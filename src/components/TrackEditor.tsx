@@ -25,6 +25,128 @@ interface TrackEditorProps {
   onTrackSelect: (track: Track | null) => void;
 }
 
+type TrackFormMode = 'create' | 'edit';
+
+interface TrackFormProps {
+  mode: TrackFormMode;
+  name: string;
+  latA: string;
+  lonA: string;
+  latB: string;
+  lonB: string;
+  onNameChange: (value: string) => void;
+  onLatAChange: (value: string) => void;
+  onLonAChange: (value: string) => void;
+  onLatBChange: (value: string) => void;
+  onLonBChange: (value: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}
+
+function TrackForm({
+  mode,
+  name,
+  latA,
+  lonA,
+  latB,
+  lonB,
+  onNameChange,
+  onLatAChange,
+  onLonAChange,
+  onLatBChange,
+  onLonBChange,
+  onSubmit,
+  onCancel,
+}: TrackFormProps) {
+  const stopKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Prevent Radix Select typeahead / focus management from stealing focus.
+    e.stopPropagation();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="trackName">Track Name</Label>
+        <Input
+          id="trackName"
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          onKeyDownCapture={stopKeys}
+          placeholder="e.g., Laguna Seca"
+          className="font-mono"
+        />
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-muted-foreground">Start/Finish Line Point A</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label htmlFor="latA" className="text-xs">Latitude</Label>
+            <Input
+              id="latA"
+              value={latA}
+              onChange={(e) => onLatAChange(e.target.value)}
+              onKeyDownCapture={stopKeys}
+              placeholder="36.5849"
+              className="font-mono text-sm"
+            />
+          </div>
+          <div>
+            <Label htmlFor="lonA" className="text-xs">Longitude</Label>
+            <Input
+              id="lonA"
+              value={lonA}
+              onChange={(e) => onLonAChange(e.target.value)}
+              onKeyDownCapture={stopKeys}
+              placeholder="-121.7527"
+              className="font-mono text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-muted-foreground">Start/Finish Line Point B</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label htmlFor="latB" className="text-xs">Latitude</Label>
+            <Input
+              id="latB"
+              value={latB}
+              onChange={(e) => onLatBChange(e.target.value)}
+              onKeyDownCapture={stopKeys}
+              placeholder="36.5851"
+              className="font-mono text-sm"
+            />
+          </div>
+          <div>
+            <Label htmlFor="lonB" className="text-xs">Longitude</Label>
+            <Input
+              id="lonB"
+              value={lonB}
+              onChange={(e) => onLonBChange(e.target.value)}
+              onKeyDownCapture={stopKeys}
+              placeholder="-121.7525"
+              className="font-mono text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        <Button onClick={onSubmit} className="flex-1">
+          <Check className="w-4 h-4 mr-2" />
+          {mode === 'edit' ? 'Update' : 'Create'}
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
 export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -121,97 +243,15 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
     }
   };
 
-  const TrackForm = ({ isEdit = false }: { isEdit?: boolean }) => (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="trackName">Track Name</Label>
-        <Input
-          id="trackName"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.stopPropagation()}
-          placeholder="e.g., Laguna Seca"
-          className="font-mono"
-        />
-      </div>
+  const closeCreateDialog = () => {
+    resetForm();
+    setIsCreating(false);
+  };
 
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-muted-foreground">
-          Start/Finish Line Point A
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label htmlFor="latA" className="text-xs">Latitude</Label>
-            <Input
-              id="latA"
-              value={latA}
-              onChange={(e) => setLatA(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-              placeholder="36.5849"
-              className="font-mono text-sm"
-            />
-          </div>
-          <div>
-            <Label htmlFor="lonA" className="text-xs">Longitude</Label>
-            <Input
-              id="lonA"
-              value={lonA}
-              onChange={(e) => setLonA(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-              placeholder="-121.7527"
-              className="font-mono text-sm"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-muted-foreground">
-          Start/Finish Line Point B
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label htmlFor="latB" className="text-xs">Latitude</Label>
-            <Input
-              id="latB"
-              value={latB}
-              onChange={(e) => setLatB(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-              placeholder="36.5851"
-              className="font-mono text-sm"
-            />
-          </div>
-          <div>
-            <Label htmlFor="lonB" className="text-xs">Longitude</Label>
-            <Input
-              id="lonB"
-              value={lonB}
-              onChange={(e) => setLonB(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-              placeholder="-121.7525"
-              className="font-mono text-sm"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-2 pt-2">
-        <Button onClick={isEdit ? handleUpdate : handleCreate} className="flex-1">
-          <Check className="w-4 h-4 mr-2" />
-          {isEdit ? 'Update' : 'Create'}
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => {
-            resetForm();
-            isEdit ? setIsEditing(false) : setIsCreating(false);
-          }}
-        >
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  );
+  const closeEditDialog = () => {
+    resetForm();
+    setIsEditing(false);
+  };
 
   return (
     <div className="space-y-3">
@@ -250,7 +290,21 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
             <DialogHeader>
               <DialogTitle>Create New Track</DialogTitle>
             </DialogHeader>
-            <TrackForm />
+            <TrackForm
+              mode="create"
+              name={name}
+              latA={latA}
+              lonA={lonA}
+              latB={latB}
+              lonB={lonB}
+              onNameChange={setName}
+              onLatAChange={setLatA}
+              onLonAChange={setLonA}
+              onLatBChange={setLatB}
+              onLonBChange={setLonB}
+              onSubmit={handleCreate}
+              onCancel={closeCreateDialog}
+            />
           </DialogContent>
         </Dialog>
 
@@ -270,7 +324,21 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
                 <DialogHeader>
                   <DialogTitle>Edit Track</DialogTitle>
                 </DialogHeader>
-                <TrackForm isEdit />
+                <TrackForm
+                  mode="edit"
+                  name={name}
+                  latA={latA}
+                  lonA={lonA}
+                  latB={latB}
+                  lonB={lonB}
+                  onNameChange={setName}
+                  onLatAChange={setLatA}
+                  onLonAChange={setLonA}
+                  onLatBChange={setLatB}
+                  onLonBChange={setLonB}
+                  onSubmit={handleUpdate}
+                  onCancel={closeEditDialog}
+                />
               </DialogContent>
             </Dialog>
 
