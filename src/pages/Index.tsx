@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Gauge, Map, ListOrdered, Settings, Play, Loader2 } from 'lucide-react';
+import { Gauge, Map, ListOrdered, Settings, Play, Loader2, Github } from 'lucide-react';
 import { FileImport } from '@/components/FileImport';
 import { TrackEditor } from '@/components/TrackEditor';
 import { RaceLineView } from '@/components/RaceLineView';
@@ -192,6 +192,17 @@ export default function Index() {
                 </p>
               </div>
             </div>
+
+            {/* GitHub link */}
+            <a 
+              href="https://github.com/your-username/racing-datalog-viewer" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mt-4"
+            >
+              <Github className="w-5 h-5" />
+              <span className="text-sm">View on GitHub</span>
+            </a>
           </div>
         </main>
       </div>
