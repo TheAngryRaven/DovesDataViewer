@@ -105,8 +105,58 @@ export function TelemetryChart({
     const maxSpeed = Math.ceil(Math.max(...speeds) / 10) * 10;
     const minSpeed = 0;
 
-    // Draw speed line - interpolate over GPS glitches (speeds below 1 mph during racing)
-    const MIN_SPEED_THRESHOLD = 1.0; // mph/kph - speeds below this are likely GPS glitches
+    // Draw speed line - smart glitch filtering
+    // Only interpolate over brief (1-3 sample) drops to zero (GPS glitches)
+    // Preserve longer stops that indicate actual crashes, spins, or stalls
+    const MIN_SPEED_THRESHOLD = 1.0; // mph/kph - speeds below this might be glitches
+    const MAX_GLITCH_SAMPLES = 3;    // runs longer than this are considered real stops
+    
+    // Pass 1: Identify glitch runs (consecutive low-speed samples)
+    interface GlitchRun {
+      start: number;
+      end: number;
+      shouldInterpolate: boolean;
+    }
+    const glitchRuns: GlitchRun[] = [];
+    let runStart = -1;
+    
+    for (let i = 0; i < samples.length; i++) {
+      const speed = getSpeed(samples[i]);
+      const isLowSpeed = speed < MIN_SPEED_THRESHOLD;
+      
+      if (isLowSpeed && runStart === -1) {
+        runStart = i;
+      } else if (!isLowSpeed && runStart !== -1) {
+        const runLength = i - runStart;
+        glitchRuns.push({
+          start: runStart,
+          end: i - 1,
+          shouldInterpolate: runLength <= MAX_GLITCH_SAMPLES
+        });
+        runStart = -1;
+      }
+    }
+    // Handle run that extends to end of samples
+    if (runStart !== -1) {
+      const runLength = samples.length - runStart;
+      glitchRuns.push({
+        start: runStart,
+        end: samples.length - 1,
+        shouldInterpolate: runLength <= MAX_GLITCH_SAMPLES
+      });
+    }
+    
+    // Create a set of indices that should be interpolated
+    const interpolateIndices = new Set<number>();
+    for (const run of glitchRuns) {
+      if (run.shouldInterpolate) {
+        for (let i = run.start; i <= run.end; i++) {
+          interpolateIndices.add(i);
+        }
+      }
+    }
+    
+    // Pass 2: Draw speed line with conditional interpolation
     ctx.beginPath();
     ctx.strokeStyle = COLORS[0];
     ctx.lineWidth = 2;
@@ -118,19 +168,21 @@ export function TelemetryChart({
       const x = padding.left + (i / (samples.length - 1)) * chartWidth;
       let speed = getSpeed(samples[i]);
       
-      // If speed is below threshold, interpolate from last valid speed to next valid speed
-      if (speed < MIN_SPEED_THRESHOLD && i > 0 && i < samples.length - 1) {
-        // Find next valid speed
+      // Only interpolate if this index is in a short glitch run
+      if (interpolateIndices.has(i) && i > 0 && i < samples.length - 1) {
+        // Find next valid speed (outside of interpolation zone)
         let nextValidSpeed = lastValidSpeed ?? speed;
+        let nextValidIndex = samples.length - 1;
         for (let j = i + 1; j < samples.length; j++) {
-          if (getSpeed(samples[j]) >= MIN_SPEED_THRESHOLD) {
+          if (!interpolateIndices.has(j)) {
             nextValidSpeed = getSpeed(samples[j]);
+            nextValidIndex = j;
             break;
           }
         }
         // Interpolate between last valid and next valid
         if (lastValidSpeed !== null) {
-          const progress = (i - lastValidIndex) / Math.max(1, samples.length - lastValidIndex);
+          const progress = (i - lastValidIndex) / Math.max(1, nextValidIndex - lastValidIndex);
           speed = lastValidSpeed + (nextValidSpeed - lastValidSpeed) * progress;
         } else {
           speed = nextValidSpeed;
