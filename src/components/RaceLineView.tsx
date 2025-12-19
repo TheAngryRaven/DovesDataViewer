@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Polyline, Circle, useMap } from 'react-leaflet';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
+import L from 'leaflet';
 import { GpsSample, Track } from '@/types/racing';
 import 'leaflet/dist/leaflet.css';
 
@@ -13,54 +13,6 @@ interface RaceLineViewProps {
     minLon: number;
     maxLon: number;
   };
-}
-
-// Component to update map view when bounds change
-function MapUpdater({ bounds }: { bounds: RaceLineViewProps['bounds'] }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (bounds.minLat !== bounds.maxLat || bounds.minLon !== bounds.maxLon) {
-      const padding = 0.0005; // Small padding around bounds
-      map.fitBounds([
-        [bounds.minLat - padding, bounds.minLon - padding],
-        [bounds.maxLat + padding, bounds.maxLon + padding]
-      ]);
-    }
-  }, [bounds, map]);
-  
-  return null;
-}
-
-// Component to show current position marker
-function CurrentPositionMarker({ position }: { position: [number, number] | null }) {
-  if (!position) return null;
-  
-  return (
-    <>
-      {/* Outer glow */}
-      <Circle
-        center={position}
-        radius={8}
-        pathOptions={{
-          color: 'transparent',
-          fillColor: 'hsl(180, 70%, 55%)',
-          fillOpacity: 0.3,
-        }}
-      />
-      {/* Inner marker */}
-      <Circle
-        center={position}
-        radius={4}
-        pathOptions={{
-          color: 'hsl(220, 20%, 10%)',
-          weight: 2,
-          fillColor: 'hsl(180, 70%, 55%)',
-          fillOpacity: 1,
-        }}
-      />
-    </>
-  );
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -89,53 +41,119 @@ function getSpeedColor(speedMph: number, maxSpeed: number): string {
 }
 
 export function RaceLineView({ samples, currentIndex, track, bounds }: RaceLineViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  
+  const polylineLayerRef = useRef<L.LayerGroup | null>(null);
+  const markerRef = useRef<L.CircleMarker | null>(null);
+  const startFinishRef = useRef<L.Polyline | null>(null);
+
   // Calculate max speed for color scaling
   const maxSpeed = useMemo(() => {
     return Math.max(...samples.map(s => s.speedMph), 1);
   }, [samples]);
-  
-  // Create polyline segments with colors based on speed
-  const polylineSegments = useMemo(() => {
-    const segments: { positions: [number, number][]; color: string }[] = [];
-    
+
+  // Initialize map
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = L.map(containerRef.current, {
+      zoomControl: false,
+      attributionControl: true,
+    }).setView([0, 0], 16);
+
+    // Dark map tiles from CARTO
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+      maxZoom: 20,
+    }).addTo(map);
+
+    // Add zoom control to bottom left
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+    // Create layer group for polylines
+    polylineLayerRef.current = L.layerGroup().addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update bounds and race line when samples change
+  useEffect(() => {
+    const map = mapRef.current;
+    const polylineLayer = polylineLayerRef.current;
+    if (!map || !polylineLayer) return;
+
+    // Clear existing polylines
+    polylineLayer.clearLayers();
+
+    if (samples.length === 0) return;
+
+    // Fit bounds
+    const latLngBounds = L.latLngBounds([
+      [bounds.minLat, bounds.minLon],
+      [bounds.maxLat, bounds.maxLon]
+    ]);
+    map.fitBounds(latLngBounds, { padding: [20, 20] });
+
+    // Draw race line segments with speed coloring
     for (let i = 0; i < samples.length - 1; i++) {
       const color = getSpeedColor(samples[i].speedMph, maxSpeed);
-      const positions: [number, number][] = [
-        [samples[i].lat, samples[i].lon],
-        [samples[i + 1].lat, samples[i + 1].lon]
-      ];
-      segments.push({ positions, color });
+      const polyline = L.polyline(
+        [[samples[i].lat, samples[i].lon], [samples[i + 1].lat, samples[i + 1].lon]],
+        { color, weight: 4, opacity: 0.9 }
+      );
+      polylineLayer.addLayer(polyline);
     }
-    
-    return segments;
-  }, [samples, maxSpeed]);
-  
-  // Start/finish line
-  const startFinishLine = useMemo(() => {
-    if (!track) return null;
-    return [
-      [track.startFinishA.lat, track.startFinishA.lon] as [number, number],
-      [track.startFinishB.lat, track.startFinishB.lon] as [number, number]
-    ];
+  }, [samples, bounds, maxSpeed]);
+
+  // Update start/finish line when track changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove existing start/finish line
+    if (startFinishRef.current) {
+      map.removeLayer(startFinishRef.current);
+      startFinishRef.current = null;
+    }
+
+    if (!track) return;
+
+    // Draw start/finish line
+    startFinishRef.current = L.polyline(
+      [[track.startFinishA.lat, track.startFinishA.lon], [track.startFinishB.lat, track.startFinishB.lon]],
+      { color: 'hsl(0, 75%, 55%)', weight: 5, opacity: 1 }
+    ).addTo(map);
   }, [track]);
-  
-  // Current position
-  const currentPosition = useMemo(() => {
-    if (currentIndex >= 0 && currentIndex < samples.length) {
-      return [samples[currentIndex].lat, samples[currentIndex].lon] as [number, number];
+
+  // Update current position marker
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove existing marker
+    if (markerRef.current) {
+      map.removeLayer(markerRef.current);
+      markerRef.current = null;
     }
-    return null;
-  }, [samples, currentIndex]);
-  
-  // Center of the track for initial view
-  const center = useMemo(() => {
-    return [
-      (bounds.minLat + bounds.maxLat) / 2,
-      (bounds.minLon + bounds.maxLon) / 2
-    ] as [number, number];
-  }, [bounds]);
+
+    if (currentIndex < 0 || currentIndex >= samples.length) return;
+
+    const sample = samples[currentIndex];
+    
+    // Create marker
+    markerRef.current = L.circleMarker([sample.lat, sample.lon], {
+      radius: 8,
+      fillColor: 'hsl(180, 70%, 55%)',
+      fillOpacity: 1,
+      color: 'hsl(220, 20%, 10%)',
+      weight: 2,
+    }).addTo(map);
+  }, [currentIndex, samples]);
 
   if (samples.length === 0) {
     return (
@@ -147,49 +165,7 @@ export function RaceLineView({ samples, currentIndex, track, bounds }: RaceLineV
 
   return (
     <div className="w-full h-full relative">
-      <MapContainer
-        center={center}
-        zoom={16}
-        className="w-full h-full"
-        ref={mapRef}
-        zoomControl={false}
-      >
-        {/* Dark satellite/street tiles - using CartoDB dark theme */}
-        <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
-        
-        <MapUpdater bounds={bounds} />
-        
-        {/* Draw race line segments with speed coloring */}
-        {polylineSegments.map((segment, i) => (
-          <Polyline
-            key={i}
-            positions={segment.positions}
-            pathOptions={{
-              color: segment.color,
-              weight: 4,
-              opacity: 0.9,
-            }}
-          />
-        ))}
-        
-        {/* Start/finish line */}
-        {startFinishLine && (
-          <Polyline
-            positions={startFinishLine}
-            pathOptions={{
-              color: 'hsl(0, 75%, 55%)',
-              weight: 5,
-              opacity: 1,
-            }}
-          />
-        )}
-        
-        {/* Current position marker */}
-        <CurrentPositionMarker position={currentPosition} />
-      </MapContainer>
+      <div ref={containerRef} className="w-full h-full" />
       
       {/* Speed legend */}
       <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000]">
