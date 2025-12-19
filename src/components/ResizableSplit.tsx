@@ -78,10 +78,15 @@ export function ResizableSplit({
     };
   }, [isDragging, minTopHeight, minBottomHeight]);
 
+  const dividerHeight = 8; // h-2 = 0.5rem = 8px
+
   return (
-    <div ref={containerRef} className="flex flex-col h-full">
+    <div ref={containerRef} className="flex flex-col h-full overflow-hidden">
       {/* Top Panel */}
-      <div style={{ height: `${ratio * 100}%` }} className="overflow-hidden">
+      <div 
+        style={{ height: `calc(${ratio * 100}% - ${dividerHeight / 2}px)` }} 
+        className="overflow-hidden shrink-0"
+      >
         {topPanel}
       </div>
 
@@ -90,7 +95,7 @@ export function ResizableSplit({
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         className={`
-          h-2 bg-border cursor-row-resize flex items-center justify-center
+          h-2 bg-border cursor-row-resize flex items-center justify-center shrink-0
           hover:bg-primary/30 transition-colors
           ${isDragging ? 'bg-primary/50' : ''}
         `}
@@ -99,7 +104,10 @@ export function ResizableSplit({
       </div>
 
       {/* Bottom Panel */}
-      <div style={{ height: `${(1 - ratio) * 100}%` }} className="overflow-hidden">
+      <div 
+        style={{ height: `calc(${(1 - ratio) * 100}% - ${dividerHeight / 2}px)` }} 
+        className="overflow-hidden shrink-0"
+      >
         {bottomPanel}
       </div>
     </div>

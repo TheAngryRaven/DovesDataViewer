@@ -254,13 +254,7 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <MapPin className="w-4 h-4 text-racing-startFinish" />
-        <span className="text-sm font-medium">Track</span>
-      </div>
-
-      <div className="flex gap-2">
+    <div className="flex gap-2">
         <Select
           value={selectedTrack?.id || ''}
           onValueChange={(value) => {
@@ -352,8 +346,6 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
             </Button>
           </>
         )}
-      </div>
-
     </div>
   );
 }
