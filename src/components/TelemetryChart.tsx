@@ -262,9 +262,11 @@ export function TelemetryChart({
     ctx.fillText(speedUnit, 0, 0);
     ctx.restore();
 
-    // Draw X axis labels (time)
+    // Draw X axis labels (time) - normalize to start of displayed samples
     ctx.textAlign = 'center';
-    const duration = samples[samples.length - 1].t / 1000; // seconds
+    const startTime = samples[0].t / 1000; // seconds
+    const endTime = samples[samples.length - 1].t / 1000;
+    const duration = endTime - startTime; // duration of displayed range
     
     for (let i = 0; i <= timeGridCount; i++) {
       const time = (duration / timeGridCount) * i;
