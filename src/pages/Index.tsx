@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Gauge, Map, ListOrdered, Settings } from 'lucide-react';
+import { Gauge, Map, ListOrdered, Settings, Play, Loader2 } from 'lucide-react';
 import { FileImport } from '@/components/FileImport';
 import { TrackEditor } from '@/components/TrackEditor';
 import { RaceLineView } from '@/components/RaceLineView';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParsedData, Track, Lap, FieldMapping, GpsSample } from '@/types/racing';
 import { calculateLaps } from '@/lib/lapCalculation';
+import { parseDatalog } from '@/lib/nmeaParser';
 
 type TopPanelView = 'raceline' | 'laptable';
 
@@ -21,6 +22,28 @@ export default function Index() {
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const [laps, setLaps] = useState<Lap[]>([]);
   const [selectedLapNumber, setSelectedLapNumber] = useState<number | null>(null);
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
+
+  const handleLoadSample = useCallback(async () => {
+    setIsLoadingSample(true);
+    try {
+      const response = await fetch('/samples/okc-tillotson-plain.nmea');
+      const text = await response.text();
+      const parsedData = parseDatalog(text);
+      setData(parsedData);
+      setFieldMappings(parsedData.fieldMappings);
+      setCurrentIndex(0);
+      
+      if (selectedTrack) {
+        const computedLaps = calculateLaps(parsedData.samples, selectedTrack);
+        setLaps(computedLaps);
+      }
+    } catch (e) {
+      console.error('Failed to load sample data:', e);
+    } finally {
+      setIsLoadingSample(false);
+    }
+  }, [selectedTrack]);
 
   // Filter samples to selected lap
   const filteredSamples = useMemo((): GpsSample[] => {
@@ -131,6 +154,27 @@ export default function Index() {
             <div className="text-center text-sm text-muted-foreground space-y-3">
               <p>Drop a CSV or NMEA file to get started.</p>
               <p>Track definitions are saved in your browser.</p>
+              
+              {/* Try Sample Data */}
+              <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <h3 className="font-medium text-foreground mb-2">Try it out!</h3>
+                <p className="text-xs mb-3">
+                  Load sample data from Orlando Kart Center to see how the viewer works.
+                </p>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleLoadSample}
+                  disabled={isLoadingSample}
+                >
+                  {isLoadingSample ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="w-4 h-4 mr-2" />
+                  )}
+                  {isLoadingSample ? 'Loading...' : 'Load Sample Data'}
+                </Button>
+              </div>
               
               <div className="mt-4 p-4 bg-muted/30 rounded-lg text-left border border-border/50">
                 <h3 className="font-medium text-foreground mb-2">NMEA Enhanced Format</h3>
