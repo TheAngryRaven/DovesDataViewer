@@ -129,6 +129,7 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
           id="trackName"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.stopPropagation()}
           placeholder="e.g., Laguna Seca"
           className="font-mono"
         />
@@ -145,6 +146,7 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
               id="latA"
               value={latA}
               onChange={(e) => setLatA(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               placeholder="36.5849"
               className="font-mono text-sm"
             />
@@ -155,6 +157,7 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
               id="lonA"
               value={lonA}
               onChange={(e) => setLonA(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               placeholder="-121.7527"
               className="font-mono text-sm"
             />
@@ -173,6 +176,7 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
               id="latB"
               value={latB}
               onChange={(e) => setLatB(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               placeholder="36.5851"
               className="font-mono text-sm"
             />
@@ -183,6 +187,7 @@ export function TrackEditor({ selectedTrack, onTrackSelect }: TrackEditorProps) 
               id="lonB"
               value={lonB}
               onChange={(e) => setLonB(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               placeholder="-121.7525"
               className="font-mono text-sm"
             />
