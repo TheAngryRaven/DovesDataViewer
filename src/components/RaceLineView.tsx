@@ -91,23 +91,44 @@ export function RaceLineView({ samples, currentIndex, track, bounds }: RaceLineV
     ctx.fillStyle = 'hsl(220, 20%, 6%)';
     ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
-    // Calculate projection
+    // Calculate projection - convert GPS to screen coordinates
     const padding = 40;
-    const latRange = bounds.maxLat - bounds.minLat || 0.001;
-    const lonRange = bounds.maxLon - bounds.minLon || 0.001;
+    
+    // Get actual data range
+    const latRange = bounds.maxLat - bounds.minLat;
+    const lonRange = bounds.maxLon - bounds.minLon;
+    
+    // Ensure minimum range to avoid division issues
+    const effectiveLatRange = Math.max(latRange, 0.0001);
+    const effectiveLonRange = Math.max(lonRange, 0.0001);
+    
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
     
-    // Correct for latitude distortion
-    const aspectCorrection = Math.cos(centerLat * Math.PI / 180);
-    const correctedLonRange = lonRange * aspectCorrection;
-
-    const scaleX = (dimensions.width - padding * 2) / correctedLonRange;
-    const scaleY = (dimensions.height - padding * 2) / latRange;
-    const baseScale = Math.min(scaleX, scaleY);
-
+    // Apply latitude correction for longitude (mercator-like)
+    const cosLat = Math.cos(centerLat * Math.PI / 180);
+    
+    // Convert to approximate meters for proper aspect ratio
+    // 1 degree lat ≈ 111km, 1 degree lon ≈ 111km * cos(lat)
+    const latMeters = effectiveLatRange * 111000;
+    const lonMeters = effectiveLonRange * 111000 * cosLat;
+    
+    // Available drawing area
+    const drawWidth = dimensions.width - padding * 2;
+    const drawHeight = dimensions.height - padding * 2;
+    
+    // Scale to fit, maintaining aspect ratio
+    const scaleToFit = Math.min(drawWidth / lonMeters, drawHeight / latMeters);
+    
+    // Project function: GPS -> screen coordinates
     const project = (lat: number, lon: number) => {
-      const x = ((lon - bounds.minLon) * aspectCorrection - correctedLonRange / 2) * baseScale * transform.scale + dimensions.width / 2 + transform.x;
-      const y = ((bounds.maxLat - lat) - latRange / 2) * baseScale * transform.scale + dimensions.height / 2 + transform.y;
+      // Convert to meters from center
+      const dx = (lon - (bounds.minLon + bounds.maxLon) / 2) * 111000 * cosLat;
+      const dy = (lat - (bounds.minLat + bounds.maxLat) / 2) * 111000;
+      
+      // Apply scale and center on screen
+      const x = dimensions.width / 2 + dx * scaleToFit * transform.scale + transform.x;
+      const y = dimensions.height / 2 - dy * scaleToFit * transform.scale + transform.y; // Y inverted for screen
+      
       return { x, y };
     };
 
