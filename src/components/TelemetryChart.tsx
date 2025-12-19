@@ -117,24 +117,40 @@ export function TelemetryChart({
     }
     ctx.stroke();
 
-    // Draw extra fields
+    // Draw extra fields (handles gaps for GGA-derived fields)
     enabledFields.forEach((field, fieldIndex) => {
-      const values = samples.map(s => s.extraFields[field.name] ?? 0);
+      // Pre-calculate min/max for this field
+      const values = samples
+        .map(s => s.extraFields[field.name])
+        .filter((v): v is number => v !== undefined);
+      
+      if (values.length === 0) return;
+      
       const maxVal = Math.max(...values);
       const minVal = Math.min(...values);
       const range = maxVal - minVal || 1;
-
+      
       ctx.beginPath();
       ctx.strokeStyle = COLORS[(fieldIndex + 1) % COLORS.length];
       ctx.lineWidth = 1.5;
 
+      let isDrawing = false;
+      
       for (let i = 0; i < samples.length; i++) {
+        const val = samples[i].extraFields[field.name];
+        
+        // Handle gaps - if value is undefined, break the line
+        if (val === undefined) {
+          isDrawing = false;
+          continue;
+        }
+        
         const x = padding.left + (i / (samples.length - 1)) * chartWidth;
-        const val = samples[i].extraFields[field.name] ?? 0;
         const y = padding.top + (1 - (val - minVal) / range) * chartHeight;
         
-        if (i === 0) {
+        if (!isDrawing) {
           ctx.moveTo(x, y);
+          isDrawing = true;
         } else {
           ctx.lineTo(x, y);
         }
@@ -189,20 +205,29 @@ export function TelemetryChart({
       const boxX = Math.min(x + 10, dimensions.width - 120);
       const boxY = padding.top + 10;
       
+      // Count fields with values at current index
+      const fieldsWithValues = enabledFields.filter(f => 
+        samples[currentIndex].extraFields[f.name] !== undefined
+      );
+      
       ctx.fillStyle = 'hsla(220, 18%, 10%, 0.9)';
-      ctx.fillRect(boxX, boxY, 110, 20 + enabledFields.length * 16);
+      ctx.fillRect(boxX, boxY, 110, 20 + fieldsWithValues.length * 16);
       ctx.strokeStyle = 'hsl(220, 15%, 25%)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(boxX, boxY, 110, 20 + enabledFields.length * 16);
+      ctx.strokeRect(boxX, boxY, 110, 20 + fieldsWithValues.length * 16);
 
       ctx.fillStyle = COLORS[0];
       ctx.textAlign = 'left';
       ctx.fillText(`Speed: ${currentSpeed.toFixed(1)} mph`, boxX + 8, boxY + 14);
 
+      let fieldOffset = 1;
       enabledFields.forEach((field, idx) => {
-        const val = samples[currentIndex].extraFields[field.name] ?? 0;
-        ctx.fillStyle = COLORS[(idx + 1) % COLORS.length];
-        ctx.fillText(`${field.name}: ${val.toFixed(1)}`, boxX + 8, boxY + 14 + (idx + 1) * 16);
+        const val = samples[currentIndex].extraFields[field.name];
+        if (val !== undefined) {
+          ctx.fillStyle = COLORS[(idx + 1) % COLORS.length];
+          ctx.fillText(`${field.name}: ${val.toFixed(1)}`, boxX + 8, boxY + 14 + fieldOffset * 16);
+          fieldOffset++;
+        }
       });
     }
 

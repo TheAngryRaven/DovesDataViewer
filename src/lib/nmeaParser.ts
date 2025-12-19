@@ -45,18 +45,23 @@ function knotsToMps(knots: number): number {
   return knots * 0.514444;
 }
 
-interface ParsedNmea {
+interface ParsedRmc {
   lat: number;
   lon: number;
   timeMs: number; // ms since midnight
   speedMps: number | null;
   date: { day: number; month: number; year: number } | null;
   valid: boolean;
-  satellites?: number;
-  hdop?: number;
 }
 
-function parseNmeaSentence(sentence: string): ParsedNmea | null {
+interface ParsedGga {
+  timeMs: number;
+  satellites: number;
+  hdop: number;
+  altitude: number;
+}
+
+function parseRmcSentence(sentence: string): ParsedRmc | null {
   // Remove quotes if wrapped
   sentence = sentence.replace(/^"|"$/g, '').trim();
   
@@ -93,6 +98,41 @@ function parseNmeaSentence(sentence: string): ParsedNmea | null {
     speedMps: knotsToMps(speedKnots),
     date,
     valid: true
+  };
+}
+
+function parseGgaSentence(sentence: string): ParsedGga | null {
+  // Remove quotes if wrapped
+  sentence = sentence.replace(/^"|"$/g, '').trim();
+  
+  const parts = sentence.split(',');
+  if (parts.length < 10) return null;
+
+  const type = parts[0];
+  
+  // Parse GGA sentences: $GPGGA or $GNGGA
+  if (type !== '$GPGGA' && type !== '$GNGGA') {
+    return null;
+  }
+  
+  // GGA: $GPGGA,hhmmss.ss,llll.ll,a,yyyyy.yy,a,q,nn,x.x,x.x,M,...
+  // Field 1: time, 7: satellites, 8: HDOP, 9: altitude, 10: altitude units
+  
+  const fixQuality = parseInt(parts[6], 10);
+  if (fixQuality === 0) return null; // No fix
+  
+  const time = parseNmeaTime(parts[1]);
+  const satellites = parseInt(parts[7], 10) || 0;
+  const hdop = parseFloat(parts[8]) || 0;
+  const altitude = parseFloat(parts[9]) || 0;
+  
+  const timeMs = (time.hours * 3600 + time.minutes * 60 + time.seconds) * 1000 + time.ms;
+  
+  return {
+    timeMs,
+    satellites,
+    hdop,
+    altitude
   };
 }
 
@@ -144,6 +184,25 @@ export function parseDatalog(content: string): ParsedData {
     dataStartIndex = 1;
   }
 
+  // First pass: collect all GGA data indexed by timeMs
+  const ggaData = new Map<number, ParsedGga>();
+  let hasGgaData = false;
+  
+  for (let i = dataStartIndex; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const fields = parseCSVLine(line);
+    if (fields.length === 0) continue;
+    
+    const nmeaSentence = fields[0];
+    const gga = parseGgaSentence(nmeaSentence);
+    if (gga) {
+      ggaData.set(gga.timeMs, gga);
+      hasGgaData = true;
+    }
+  }
+
   const samples: GpsSample[] = [];
   const fieldMappings: FieldMapping[] = [];
   let fieldMappingsCreated = false;
@@ -151,6 +210,27 @@ export function parseDatalog(content: string): ParsedData {
   let baseTimeMs = 0;
   let lastTimeMs = 0;
   let dayOffset = 0;
+  let ggaDayOffset = 0;
+  let lastGgaTimeMs = 0;
+
+  // Helper to find closest GGA data within tolerance
+  const findGgaData = (timeMs: number): ParsedGga | null => {
+    // Handle midnight wrap for GGA lookup
+    let lookupTime = timeMs % 86400000; // Time of day
+    
+    // Direct match
+    if (ggaData.has(lookupTime)) {
+      return ggaData.get(lookupTime)!;
+    }
+    
+    // Search within 500ms tolerance
+    for (let offset = 1; offset <= 500; offset++) {
+      if (ggaData.has(lookupTime + offset)) return ggaData.get(lookupTime + offset)!;
+      if (ggaData.has(lookupTime - offset)) return ggaData.get(lookupTime - offset)!;
+    }
+    
+    return null;
+  };
 
   for (let i = dataStartIndex; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -161,7 +241,7 @@ export function parseDatalog(content: string): ParsedData {
 
     // First field should be NMEA sentence
     const nmeaSentence = fields[0];
-    const parsed = parseNmeaSentence(nmeaSentence);
+    const parsed = parseRmcSentence(nmeaSentence);
     
     if (!parsed || !parsed.valid) continue;
     
@@ -180,7 +260,7 @@ export function parseDatalog(content: string): ParsedData {
 
     const t = currentTimeMs - baseTimeMs;
 
-    // Parse extra fields
+    // Parse extra fields from CSV columns
     const extraFields: Record<string, number> = {};
     
     if (!fieldMappingsCreated && fields.length > 1) {
@@ -205,6 +285,14 @@ export function parseDatalog(content: string): ParsedData {
           extraFields[mapping.name] = value;
         }
       }
+    }
+    
+    // Look up GGA data for this timestamp
+    const gga = findGgaData(parsed.timeMs);
+    if (gga) {
+      extraFields['Satellites'] = gga.satellites;
+      extraFields['HDOP'] = gga.hdop;
+      extraFields['Altitude (m)'] = gga.altitude;
     }
 
     // Get speed from NMEA or calculate it
@@ -257,6 +345,26 @@ export function parseDatalog(content: string): ParsedData {
 
   if (samples.length === 0) {
     throw new Error('No valid GPS data found in file');
+  }
+
+  // Add GGA-derived field mappings if we found GGA data
+  if (hasGgaData) {
+    // Check if any sample has GGA data
+    const hasGgaInSamples = samples.some(s => 
+      s.extraFields['Satellites'] !== undefined ||
+      s.extraFields['HDOP'] !== undefined ||
+      s.extraFields['Altitude (m)'] !== undefined
+    );
+    
+    if (hasGgaInSamples) {
+      // Add to beginning of field mappings for visibility
+      const ggaFields: FieldMapping[] = [
+        { index: -1, name: 'Satellites', enabled: true },
+        { index: -2, name: 'HDOP', enabled: true },
+        { index: -3, name: 'Altitude (m)', enabled: true },
+      ];
+      fieldMappings.unshift(...ggaFields);
+    }
   }
 
   // Calculate bounds
