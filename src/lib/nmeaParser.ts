@@ -77,6 +77,10 @@ function parseNmeaSentence(sentence: string): ParsedNmea | null {
   const time = parseNmeaTime(parts[1]);
   const lat = parseNmeaLat(parts[3], parts[4]);
   const lon = parseNmeaLon(parts[5], parts[6]);
+  
+  // Skip samples with invalid coordinates (0,0 is a common GPS error/default)
+  if (lat === 0 || lon === 0) return null;
+  
   const speedKnots = parseFloat(parts[7]) || 0;
   const date = parseNmeaDate(parts[9]);
   
@@ -92,13 +96,8 @@ function parseNmeaSentence(sentence: string): ParsedNmea | null {
   };
 }
 
-// Calculate speed from two GPS points with sanity checks
-function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lon2: number, t2: number): number | null {
-  const timeDiff = (t2 - t1) / 1000; // seconds
-  
-  // Need at least 50ms time difference to calculate speed reliably
-  if (timeDiff < 0.05) return null;
-  
+// Haversine distance in meters
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000; // Earth radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -106,7 +105,17 @@ function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lo
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
+  return R * c;
+}
+
+// Calculate speed from two GPS points with sanity checks
+function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lon2: number, t2: number): number | null {
+  const timeDiff = (t2 - t1) / 1000; // seconds
+  
+  // Need at least 50ms time difference to calculate speed reliably
+  if (timeDiff < 0.05) return null;
+  
+  const distance = haversineDistance(lat1, lon1, lat2, lon2);
   const speedMps = distance / timeDiff;
   
   // Sanity check: max reasonable speed is ~150 m/s (~335 mph) for race cars
@@ -217,6 +226,21 @@ export function parseDatalog(content: string): ParsedData {
     if (speedMps > 150) {
       // GPS glitch - use previous sample's speed or 0
       speedMps = samples.length > 0 ? samples[samples.length - 1].speedMps : 0;
+    }
+
+    // Teleportation filter: if this sample is too far from the previous one, skip it
+    // Max reasonable distance is ~50 meters per 40ms sample (which is ~450 km/h / 280 mph)
+    if (samples.length > 0) {
+      const prev = samples[samples.length - 1];
+      const timeDiff = (t - prev.t) / 1000; // seconds
+      if (timeDiff > 0 && timeDiff < 10) { // Only check for samples within 10 seconds
+        const distance = haversineDistance(prev.lat, prev.lon, parsed.lat, parsed.lon);
+        const maxDistance = 50 * (timeDiff / 0.04); // 50m per 40ms, scaled by actual time diff
+        if (distance > maxDistance && distance > 100) { // Allow some slack, but flag big jumps
+          console.warn(`GPS teleportation detected: ${distance.toFixed(0)}m in ${timeDiff.toFixed(3)}s at sample ${samples.length}`);
+          continue; // Skip this sample
+        }
+      }
     }
 
     samples.push({
