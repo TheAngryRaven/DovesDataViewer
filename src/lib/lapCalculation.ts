@@ -127,9 +127,42 @@ export function calculateLaps(samples: GpsSample[], track: Track): Lap[] {
     const lapTimeMs = end.crossingTime - start.crossingTime;
     
     // Find max and min speed in this lap
-    // We use a small threshold for min speed to filter out GPS glitches where speed briefly reports as 0
-    const MIN_SPEED_THRESHOLD_MPH = 1.0; // Speeds below this are likely GPS artifacts during racing
+    // Smart glitch filtering: only exclude brief (1-3 sample) drops to zero
+    // Preserve longer stops that indicate actual crashes, spins, or stalls
+    const MIN_SPEED_THRESHOLD_MPH = 1.0; // Speeds below this might be glitches
+    const MAX_GLITCH_SAMPLES = 3;        // Runs longer than this are real stops
     
+    // Pass 1: Identify glitch runs within this lap
+    const glitchIndices = new Set<number>();
+    let runStart = -1;
+    
+    for (let j = start.sampleIndex; j <= end.sampleIndex && j < samples.length; j++) {
+      const isLowSpeed = samples[j].speedMph < MIN_SPEED_THRESHOLD_MPH;
+      
+      if (isLowSpeed && runStart === -1) {
+        runStart = j;
+      } else if (!isLowSpeed && runStart !== -1) {
+        const runLength = j - runStart;
+        // Only mark as glitch if it's a short run
+        if (runLength <= MAX_GLITCH_SAMPLES) {
+          for (let k = runStart; k < j; k++) {
+            glitchIndices.add(k);
+          }
+        }
+        runStart = -1;
+      }
+    }
+    // Handle run extending to end of lap
+    if (runStart !== -1) {
+      const runLength = (end.sampleIndex + 1) - runStart;
+      if (runLength <= MAX_GLITCH_SAMPLES) {
+        for (let k = runStart; k <= end.sampleIndex && k < samples.length; k++) {
+          glitchIndices.add(k);
+        }
+      }
+    }
+    
+    // Pass 2: Calculate min/max speeds, excluding only short glitch runs
     let maxSpeedMph = 0;
     let maxSpeedKph = 0;
     let minSpeedMph = Infinity;
@@ -143,9 +176,8 @@ export function calculateLaps(samples: GpsSample[], track: Track): Lap[] {
         maxSpeedKph = sample.speedKph;
       }
       
-      // Only consider speeds above threshold for min calculation
-      // This filters out GPS glitches that report 0 speed momentarily
-      if (sample.speedMph >= MIN_SPEED_THRESHOLD_MPH && sample.speedMph < minSpeedMph) {
+      // Exclude GPS glitches (short runs) but include real stops (long runs)
+      if (!glitchIndices.has(j) && sample.speedMph < minSpeedMph) {
         minSpeedMph = sample.speedMph;
         minSpeedKph = sample.speedKph;
       }
