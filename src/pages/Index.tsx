@@ -197,26 +197,24 @@ export default function Index() {
             >
               <Github className="w-5 h-5" />
               <span className="text-sm">View on GitHub</span>
-            </a>
-
+            </a> | 
             <a
-              href="https://github.com/TheAngryRaven/lap-tracker-pro"
+              href="https://github.com/TheAngryRaven/BirdsEye"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mt-4"
             >
               <Github className="w-5 h-5" />
-              <span className="text-sm">View on GitHub</span>
-            </a>
-
+              <span className="text-sm">View Datalogger on GitHub</span>
+            </a> | 
             <a
-              href="https://github.com/TheAngryRaven/lap-tracker-pro"
+              href="https://github.com/TheAngryRaven/DovesLapTimer"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mt-4"
             >
               <Github className="w-5 h-5" />
-              <span className="text-sm">View on GitHub</span>
+              <span className="text-sm">View Timer Library on GitHub</span>
             </a>
           </div>
         </main>
