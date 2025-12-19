@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Gauge, Map, ListOrdered, Settings } from 'lucide-react';
 import { FileImport } from '@/components/FileImport';
 import { TrackEditor } from '@/components/TrackEditor';
@@ -7,7 +7,8 @@ import { TelemetryChart } from '@/components/TelemetryChart';
 import { LapTable } from '@/components/LapTable';
 import { ResizableSplit } from '@/components/ResizableSplit';
 import { Button } from '@/components/ui/button';
-import { ParsedData, Track, Lap, FieldMapping } from '@/types/racing';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ParsedData, Track, Lap, FieldMapping, GpsSample } from '@/types/racing';
 import { calculateLaps } from '@/lib/lapCalculation';
 
 type TopPanelView = 'raceline' | 'laptable';
@@ -19,6 +20,35 @@ export default function Index() {
   const [topPanelView, setTopPanelView] = useState<TopPanelView>('raceline');
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const [laps, setLaps] = useState<Lap[]>([]);
+  const [selectedLapNumber, setSelectedLapNumber] = useState<number | null>(null);
+
+  // Filter samples to selected lap
+  const filteredSamples = useMemo((): GpsSample[] => {
+    if (!data) return [];
+    if (selectedLapNumber === null) return data.samples;
+    
+    const lap = laps.find(l => l.lapNumber === selectedLapNumber);
+    if (!lap) return data.samples;
+    
+    return data.samples.slice(lap.startIndex, lap.endIndex + 1);
+  }, [data, laps, selectedLapNumber]);
+
+  // Compute bounds for filtered samples
+  const filteredBounds = useMemo(() => {
+    if (filteredSamples.length === 0) return data?.bounds;
+    
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLon = Infinity, maxLon = -Infinity;
+    
+    for (const s of filteredSamples) {
+      if (s.lat < minLat) minLat = s.lat;
+      if (s.lat > maxLat) maxLat = s.lat;
+      if (s.lon < minLon) minLon = s.lon;
+      if (s.lon > maxLon) maxLon = s.lon;
+    }
+    
+    return { minLat, maxLat, minLon, maxLon };
+  }, [filteredSamples, data?.bounds]);
 
   const handleDataLoaded = useCallback((parsedData: ParsedData) => {
     setData(parsedData);
@@ -55,8 +85,20 @@ export default function Index() {
   }, []);
 
   const handleLapSelect = useCallback((lap: Lap) => {
-    setCurrentIndex(lap.startIndex);
+    setSelectedLapNumber(lap.lapNumber);
+    setCurrentIndex(0); // Reset to start of lap
     setTopPanelView('raceline');
+  }, []);
+
+  const handleLapDropdownChange = useCallback((value: string) => {
+    if (value === 'all') {
+      setSelectedLapNumber(null);
+      setCurrentIndex(0);
+    } else {
+      const lapNum = parseInt(value, 10);
+      setSelectedLapNumber(lapNum);
+      setCurrentIndex(0);
+    }
   }, []);
 
   // No data loaded - show import UI
@@ -115,15 +157,35 @@ export default function Index() {
             />
           </div>
 
+          {/* Lap selector dropdown */}
+          {laps.length > 0 && (
+            <Select 
+              value={selectedLapNumber?.toString() ?? 'all'} 
+              onValueChange={handleLapDropdownChange}
+            >
+              <SelectTrigger className="w-[140px] h-8 text-sm">
+                <SelectValue placeholder="All Laps" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Laps</SelectItem>
+                {laps.map(lap => (
+                  <SelectItem key={lap.lapNumber} value={lap.lapNumber.toString()}>
+                    Lap {lap.lapNumber}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {/* Current values readout */}
-          {data.samples[currentIndex] && (
+          {filteredSamples[currentIndex] && (
             <div className="flex items-center gap-4 text-sm font-mono bg-muted/50 px-3 py-1.5 rounded">
               <span className="text-racing-telemetrySpeed">
-                {data.samples[currentIndex].speedMph.toFixed(1)} mph
+                {filteredSamples[currentIndex].speedMph.toFixed(1)} mph
               </span>
               {fieldMappings.filter(f => f.enabled).slice(0, 2).map((field, idx) => (
                 <span key={field.name} className="text-muted-foreground">
-                  {field.name}: {(data.samples[currentIndex].extraFields[field.name] ?? 0).toFixed(1)}
+                  {field.name}: {(filteredSamples[currentIndex].extraFields[field.name] ?? 0).toFixed(1)}
                 </span>
               ))}
             </div>
@@ -180,15 +242,16 @@ export default function Index() {
               <div className="flex-1 overflow-hidden">
                 {topPanelView === 'raceline' ? (
                   <RaceLineView
-                    samples={data.samples}
+                    samples={filteredSamples}
                     currentIndex={currentIndex}
                     track={selectedTrack}
-                    bounds={data.bounds}
+                    bounds={filteredBounds}
                   />
                 ) : (
                   <LapTable 
                     laps={laps} 
                     onLapSelect={handleLapSelect}
+                    selectedLapNumber={selectedLapNumber}
                   />
                 )}
               </div>
@@ -196,7 +259,7 @@ export default function Index() {
           }
           bottomPanel={
             <TelemetryChart
-              samples={data.samples}
+              samples={filteredSamples}
               fieldMappings={fieldMappings}
               currentIndex={currentIndex}
               onScrub={handleScrub}

@@ -5,9 +5,10 @@ import { Trophy, Zap } from 'lucide-react';
 interface LapTableProps {
   laps: Lap[];
   onLapSelect?: (lap: Lap) => void;
+  selectedLapNumber?: number | null;
 }
 
-export function LapTable({ laps, onLapSelect }: LapTableProps) {
+export function LapTable({ laps, onLapSelect, selectedLapNumber }: LapTableProps) {
   if (laps.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -47,7 +48,9 @@ export function LapTable({ laps, onLapSelect }: LapTableProps) {
                 onClick={() => onLapSelect?.(lap)}
                 className={`
                   border-t border-border cursor-pointer transition-colors
-                  ${isFastest ? 'bg-racing-lapBest/10' : 'hover:bg-muted/50'}
+                  ${selectedLapNumber === lap.lapNumber ? 'bg-primary/20 ring-1 ring-primary/50' : ''}
+                  ${isFastest && selectedLapNumber !== lap.lapNumber ? 'bg-racing-lapBest/10' : ''}
+                  ${!isFastest && selectedLapNumber !== lap.lapNumber ? 'hover:bg-muted/50' : ''}
                 `}
               >
                 <td className="px-4 py-3">
