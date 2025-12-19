@@ -195,7 +195,7 @@ export default function Index() {
 
             {/* GitHub link */}
             <a 
-              href="https://github.com/your-username/racing-datalog-viewer" 
+              href="https://github.com/TheAngryRaven/lap-tracker-pro" 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mt-4"
