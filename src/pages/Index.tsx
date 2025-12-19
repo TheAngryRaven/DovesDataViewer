@@ -1,14 +1,210 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useCallback } from 'react';
+import { Gauge, Map, ListOrdered, Settings } from 'lucide-react';
+import { FileImport } from '@/components/FileImport';
+import { TrackEditor } from '@/components/TrackEditor';
+import { RaceLineView } from '@/components/RaceLineView';
+import { TelemetryChart } from '@/components/TelemetryChart';
+import { LapTable } from '@/components/LapTable';
+import { ResizableSplit } from '@/components/ResizableSplit';
+import { Button } from '@/components/ui/button';
+import { ParsedData, Track, Lap, FieldMapping } from '@/types/racing';
+import { calculateLaps } from '@/lib/lapCalculation';
 
-const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+type TopPanelView = 'raceline' | 'laptable';
+
+export default function Index() {
+  const [data, setData] = useState<ParsedData | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [topPanelView, setTopPanelView] = useState<TopPanelView>('raceline');
+  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
+  const [laps, setLaps] = useState<Lap[]>([]);
+
+  const handleDataLoaded = useCallback((parsedData: ParsedData) => {
+    setData(parsedData);
+    setFieldMappings(parsedData.fieldMappings);
+    setCurrentIndex(0);
+    
+    // Calculate laps if track is selected
+    if (selectedTrack) {
+      const computedLaps = calculateLaps(parsedData.samples, selectedTrack);
+      setLaps(computedLaps);
+    }
+  }, [selectedTrack]);
+
+  const handleTrackSelect = useCallback((track: Track | null) => {
+    setSelectedTrack(track);
+    
+    // Recalculate laps
+    if (track && data) {
+      const computedLaps = calculateLaps(data.samples, track);
+      setLaps(computedLaps);
+    } else {
+      setLaps([]);
+    }
+  }, [data]);
+
+  const handleScrub = useCallback((index: number) => {
+    setCurrentIndex(index);
+  }, []);
+
+  const handleFieldToggle = useCallback((fieldName: string) => {
+    setFieldMappings(prev => prev.map(f => 
+      f.name === fieldName ? { ...f, enabled: !f.enabled } : f
+    ));
+  }, []);
+
+  const handleLapSelect = useCallback((lap: Lap) => {
+    setCurrentIndex(lap.startIndex);
+    setTopPanelView('raceline');
+  }, []);
+
+  // No data loaded - show import UI
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Header */}
+        <header className="border-b border-border px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Gauge className="w-8 h-8 text-primary" />
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">Racing Datalog Viewer</h1>
+              <p className="text-sm text-muted-foreground">NMEA Enhanced Format</p>
+            </div>
+          </div>
+        </header>
+
+        {/* Main content */}
+        <main className="flex-1 flex items-center justify-center p-8">
+          <div className="w-full max-w-xl space-y-6">
+            <FileImport onDataLoaded={handleDataLoaded} />
+            
+            <div className="racing-card p-4">
+              <TrackEditor 
+                selectedTrack={selectedTrack} 
+                onTrackSelect={handleTrackSelect} 
+              />
+            </div>
+
+            <div className="text-center text-sm text-muted-foreground">
+              <p>Drop a CSV or NMEA file to get started.</p>
+              <p className="mt-1">Track definitions are saved in your browser.</p>
+            </div>
+          </div>
+        </main>
       </div>
+    );
+  }
+
+  // Data loaded - show main view
+  return (
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Header */}
+      <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <Gauge className="w-6 h-6 text-primary" />
+          <span className="font-semibold text-foreground">Racing Datalog</span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Track selector (compact) */}
+          <div className="flex items-center gap-2">
+            <TrackEditor 
+              selectedTrack={selectedTrack} 
+              onTrackSelect={handleTrackSelect} 
+            />
+          </div>
+
+          {/* Current values readout */}
+          {data.samples[currentIndex] && (
+            <div className="flex items-center gap-4 text-sm font-mono bg-muted/50 px-3 py-1.5 rounded">
+              <span className="text-racing-telemetrySpeed">
+                {data.samples[currentIndex].speedMph.toFixed(1)} mph
+              </span>
+              {fieldMappings.filter(f => f.enabled).slice(0, 2).map((field, idx) => (
+                <span key={field.name} className="text-muted-foreground">
+                  {field.name}: {(data.samples[currentIndex].extraFields[field.name] ?? 0).toFixed(1)}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* New file button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setData(null)}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            New File
+          </Button>
+        </div>
+      </header>
+
+      {/* Main split view */}
+      <main className="flex-1 overflow-hidden">
+        <ResizableSplit
+          defaultRatio={0.7}
+          topPanel={
+            <div className="h-full flex flex-col">
+              {/* View toggle tabs */}
+              <div className="flex border-b border-border shrink-0">
+                <button
+                  onClick={() => setTopPanelView('raceline')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors
+                    ${topPanelView === 'raceline' 
+                      ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                      : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Map className="w-4 h-4" />
+                  Race Line
+                </button>
+                <button
+                  onClick={() => setTopPanelView('laptable')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors
+                    ${topPanelView === 'laptable' 
+                      ? 'text-primary border-b-2 border-primary bg-primary/5' 
+                      : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <ListOrdered className="w-4 h-4" />
+                  Lap Times
+                  {laps.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">
+                      {laps.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Panel content */}
+              <div className="flex-1 overflow-hidden">
+                {topPanelView === 'raceline' ? (
+                  <RaceLineView
+                    samples={data.samples}
+                    currentIndex={currentIndex}
+                    track={selectedTrack}
+                    bounds={data.bounds}
+                  />
+                ) : (
+                  <LapTable 
+                    laps={laps} 
+                    onLapSelect={handleLapSelect}
+                  />
+                )}
+              </div>
+            </div>
+          }
+          bottomPanel={
+            <TelemetryChart
+              samples={data.samples}
+              fieldMappings={fieldMappings}
+              currentIndex={currentIndex}
+              onScrub={handleScrub}
+              onFieldToggle={handleFieldToggle}
+            />
+          }
+        />
+      </main>
     </div>
   );
-};
-
-export default Index;
+}

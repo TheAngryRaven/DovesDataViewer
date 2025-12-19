@@ -1,0 +1,294 @@
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { GpsSample, FieldMapping } from '@/types/racing';
+
+interface TelemetryChartProps {
+  samples: GpsSample[];
+  fieldMappings: FieldMapping[];
+  currentIndex: number;
+  onScrub: (index: number) => void;
+  onFieldToggle: (fieldName: string) => void;
+}
+
+const COLORS = [
+  'hsl(180, 70%, 55%)', // Cyan - speed
+  'hsl(45, 85%, 55%)',  // Yellow - rpm
+  'hsl(0, 70%, 55%)',   // Red - temp
+  'hsl(280, 60%, 60%)', // Purple
+  'hsl(120, 60%, 50%)', // Green
+  'hsl(30, 80%, 55%)',  // Orange
+];
+
+export function TelemetryChart({ 
+  samples, 
+  fieldMappings, 
+  currentIndex, 
+  onScrub,
+  onFieldToggle 
+}: TelemetryChartProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Handle resize
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setDimensions({ width, height });
+      }
+    });
+
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Get enabled fields
+  const enabledFields = fieldMappings.filter(f => f.enabled);
+
+  // Draw chart
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || dimensions.width === 0 || dimensions.height === 0) return;
+    if (samples.length === 0) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = dimensions.width * dpr;
+    canvas.height = dimensions.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const padding = { left: 60, right: 20, top: 20, bottom: 30 };
+    const chartWidth = dimensions.width - padding.left - padding.right;
+    const chartHeight = dimensions.height - padding.top - padding.bottom;
+
+    // Clear
+    ctx.fillStyle = 'hsl(220, 18%, 10%)';
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
+    // Draw grid
+    ctx.strokeStyle = 'hsl(220, 15%, 20%)';
+    ctx.lineWidth = 1;
+
+    // Vertical grid (time)
+    const timeGridCount = 10;
+    for (let i = 0; i <= timeGridCount; i++) {
+      const x = padding.left + (chartWidth / timeGridCount) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, padding.top);
+      ctx.lineTo(x, padding.top + chartHeight);
+      ctx.stroke();
+    }
+
+    // Horizontal grid
+    const valueGridCount = 5;
+    for (let i = 0; i <= valueGridCount; i++) {
+      const y = padding.top + (chartHeight / valueGridCount) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(padding.left + chartWidth, y);
+      ctx.stroke();
+    }
+
+    // Find speed range
+    const speeds = samples.map(s => s.speedMph);
+    const maxSpeed = Math.ceil(Math.max(...speeds) / 10) * 10;
+    const minSpeed = 0;
+
+    // Draw speed line
+    ctx.beginPath();
+    ctx.strokeStyle = COLORS[0];
+    ctx.lineWidth = 2;
+    
+    for (let i = 0; i < samples.length; i++) {
+      const x = padding.left + (i / (samples.length - 1)) * chartWidth;
+      const y = padding.top + (1 - (samples[i].speedMph - minSpeed) / (maxSpeed - minSpeed)) * chartHeight;
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+
+    // Draw extra fields
+    enabledFields.forEach((field, fieldIndex) => {
+      const values = samples.map(s => s.extraFields[field.name] ?? 0);
+      const maxVal = Math.max(...values);
+      const minVal = Math.min(...values);
+      const range = maxVal - minVal || 1;
+
+      ctx.beginPath();
+      ctx.strokeStyle = COLORS[(fieldIndex + 1) % COLORS.length];
+      ctx.lineWidth = 1.5;
+
+      for (let i = 0; i < samples.length; i++) {
+        const x = padding.left + (i / (samples.length - 1)) * chartWidth;
+        const val = samples[i].extraFields[field.name] ?? 0;
+        const y = padding.top + (1 - (val - minVal) / range) * chartHeight;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+    });
+
+    // Draw Y axis labels (speed)
+    ctx.fillStyle = 'hsl(220, 10%, 55%)';
+    ctx.font = '11px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    
+    for (let i = 0; i <= valueGridCount; i++) {
+      const value = minSpeed + ((maxSpeed - minSpeed) / valueGridCount) * (valueGridCount - i);
+      const y = padding.top + (chartHeight / valueGridCount) * i;
+      ctx.fillText(value.toFixed(0), padding.left - 8, y + 4);
+    }
+
+    // Y axis label
+    ctx.save();
+    ctx.translate(12, padding.top + chartHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText('MPH', 0, 0);
+    ctx.restore();
+
+    // Draw X axis labels (time)
+    ctx.textAlign = 'center';
+    const duration = samples[samples.length - 1].t / 1000; // seconds
+    
+    for (let i = 0; i <= timeGridCount; i++) {
+      const time = (duration / timeGridCount) * i;
+      const x = padding.left + (chartWidth / timeGridCount) * i;
+      const minutes = Math.floor(time / 60);
+      const seconds = (time % 60).toFixed(0).padStart(2, '0');
+      ctx.fillText(`${minutes}:${seconds}`, x, dimensions.height - 8);
+    }
+
+    // Draw scrub cursor
+    if (currentIndex >= 0 && currentIndex < samples.length) {
+      const x = padding.left + (currentIndex / (samples.length - 1)) * chartWidth;
+      
+      ctx.beginPath();
+      ctx.moveTo(x, padding.top);
+      ctx.lineTo(x, padding.top + chartHeight);
+      ctx.strokeStyle = 'hsl(0, 75%, 55%)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Current values box
+      const currentSpeed = samples[currentIndex].speedMph;
+      const boxX = Math.min(x + 10, dimensions.width - 120);
+      const boxY = padding.top + 10;
+      
+      ctx.fillStyle = 'hsla(220, 18%, 10%, 0.9)';
+      ctx.fillRect(boxX, boxY, 110, 20 + enabledFields.length * 16);
+      ctx.strokeStyle = 'hsl(220, 15%, 25%)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(boxX, boxY, 110, 20 + enabledFields.length * 16);
+
+      ctx.fillStyle = COLORS[0];
+      ctx.textAlign = 'left';
+      ctx.fillText(`Speed: ${currentSpeed.toFixed(1)} mph`, boxX + 8, boxY + 14);
+
+      enabledFields.forEach((field, idx) => {
+        const val = samples[currentIndex].extraFields[field.name] ?? 0;
+        ctx.fillStyle = COLORS[(idx + 1) % COLORS.length];
+        ctx.fillText(`${field.name}: ${val.toFixed(1)}`, boxX + 8, boxY + 14 + (idx + 1) * 16);
+      });
+    }
+
+  }, [samples, currentIndex, dimensions, enabledFields]);
+
+  // Scrub handling
+  const handleScrub = useCallback((clientX: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas || samples.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const padding = { left: 60, right: 20 };
+    const chartWidth = rect.width - padding.left - padding.right;
+    const x = clientX - rect.left - padding.left;
+    const ratio = Math.max(0, Math.min(1, x / chartWidth));
+    const index = Math.round(ratio * (samples.length - 1));
+    onScrub(index);
+  }, [samples, onScrub]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    handleScrub(e.clientX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      handleScrub(e.clientX);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    handleScrub(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging) {
+      handleScrub(e.touches[0].clientX);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-card">
+      {/* Legend */}
+      <div className="flex items-center gap-4 px-4 py-2 border-b border-border flex-wrap">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[0] }} />
+          <span className="text-xs font-mono">Speed</span>
+        </div>
+        {fieldMappings.map((field, idx) => (
+          <button
+            key={field.name}
+            onClick={() => onFieldToggle(field.name)}
+            className={`flex items-center gap-2 ${field.enabled ? '' : 'opacity-40'}`}
+          >
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: COLORS[(idx + 1) % COLORS.length] }} 
+            />
+            <span className="text-xs font-mono">{field.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div 
+        ref={containerRef}
+        className="flex-1 cursor-crosshair"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleMouseUp}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{ width: dimensions.width, height: dimensions.height }}
+          className="block"
+        />
+      </div>
+    </div>
+  );
+}
