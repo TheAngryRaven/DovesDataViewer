@@ -52,7 +52,12 @@ interface ParsedNmea {
   speedMps: number | null;
   date: { day: number; month: number; year: number } | null;
   valid: boolean;
+  satellites?: number;
+  hdop?: number;
 }
+
+// Track last GGA quality info to apply to subsequent RMC sentences
+let lastGgaQuality: { satellites: number; hdop: number; timeMs: number } | null = null;
 
 function parseNmeaSentence(sentence: string): ParsedNmea | null {
   // Remove quotes if wrapped
@@ -62,6 +67,40 @@ function parseNmeaSentence(sentence: string): ParsedNmea | null {
   if (parts.length < 5) return null;
 
   const type = parts[0];
+  
+  // GGA sentence: $GPGGA,hhmmss.ss,llll.ll,a,yyyyy.yy,a,x,xx,x.x,x.x,M,...
+  // Process GGA first to capture quality info
+  if (type === '$GPGGA' || type === '$GNGGA') {
+    const fixQuality = parseInt(parts[6], 10);
+    if (fixQuality === 0) return null; // No fix
+    
+    const time = parseNmeaTime(parts[1]);
+    const lat = parseNmeaLat(parts[2], parts[3]);
+    const lon = parseNmeaLon(parts[4], parts[5]);
+    const satellites = parseInt(parts[7], 10) || 0;
+    const hdop = parseFloat(parts[8]) || 99;
+    
+    const timeMs = (time.hours * 3600 + time.minutes * 60 + time.seconds) * 1000 + time.ms;
+    
+    // Store quality info for RMC sentences
+    lastGgaQuality = { satellites, hdop, timeMs };
+    
+    // Filter: need at least 4 satellites and HDOP < 5 for decent accuracy
+    if (satellites < 4 || hdop > 5) {
+      return null;
+    }
+    
+    return {
+      lat,
+      lon,
+      timeMs,
+      speedMps: null, // GGA doesn't have speed
+      date: null,
+      valid: true,
+      satellites,
+      hdop
+    };
+  }
   
   // RMC sentence: $GPRMC,hhmmss.ss,A,llll.ll,a,yyyyy.yy,a,x.x,x.x,ddmmyy,...
   if (type === '$GPRMC' || type === '$GNRMC') {
@@ -76,42 +115,42 @@ function parseNmeaSentence(sentence: string): ParsedNmea | null {
     
     const timeMs = (time.hours * 3600 + time.minutes * 60 + time.seconds) * 1000 + time.ms;
     
+    // Check if we have recent GGA quality info (within 1 second)
+    let satellites: number | undefined;
+    let hdop: number | undefined;
+    
+    if (lastGgaQuality && Math.abs(lastGgaQuality.timeMs - timeMs) < 1000) {
+      satellites = lastGgaQuality.satellites;
+      hdop = lastGgaQuality.hdop;
+      
+      // Filter based on quality
+      if (satellites < 4 || hdop > 5) {
+        return null;
+      }
+    }
+    
     return {
       lat,
       lon,
       timeMs,
       speedMps: knotsToMps(speedKnots),
       date,
-      valid: true
-    };
-  }
-  
-  // GGA sentence: $GPGGA,hhmmss.ss,llll.ll,a,yyyyy.yy,a,x,xx,x.x,x.x,M,...
-  if (type === '$GPGGA' || type === '$GNGGA') {
-    const fixQuality = parseInt(parts[6], 10);
-    if (fixQuality === 0) return null; // No fix
-    
-    const time = parseNmeaTime(parts[1]);
-    const lat = parseNmeaLat(parts[2], parts[3]);
-    const lon = parseNmeaLon(parts[4], parts[5]);
-    
-    const timeMs = (time.hours * 3600 + time.minutes * 60 + time.seconds) * 1000 + time.ms;
-    
-    return {
-      lat,
-      lon,
-      timeMs,
-      speedMps: null, // GGA doesn't have speed
-      date: null,
-      valid: true
+      valid: true,
+      satellites,
+      hdop
     };
   }
 
   return null;
 }
 
-// Calculate speed from two GPS points
-function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lon2: number, t2: number): number {
+// Calculate speed from two GPS points with sanity checks
+function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lon2: number, t2: number): number | null {
+  const timeDiff = (t2 - t1) / 1000; // seconds
+  
+  // Need at least 50ms time difference to calculate speed reliably
+  if (timeDiff < 0.05) return null;
+  
   const R = 6371000; // Earth radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -120,8 +159,13 @@ function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lo
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
-  const timeDiff = (t2 - t1) / 1000; // seconds
-  return timeDiff > 0 ? distance / timeDiff : 0;
+  const speedMps = distance / timeDiff;
+  
+  // Sanity check: max reasonable speed is ~150 m/s (~335 mph) for race cars
+  // Anything above this is likely GPS glitch
+  if (speedMps > 150) return null;
+  
+  return speedMps;
 }
 
 export function parseDatalog(content: string): ParsedData {
@@ -129,6 +173,9 @@ export function parseDatalog(content: string): ParsedData {
   if (lines.length === 0) {
     throw new Error('Empty file');
   }
+
+  // Reset GGA quality tracking
+  lastGgaQuality = null;
 
   // Check if first line is a header
   const firstLine = lines[0];
@@ -206,11 +253,25 @@ export function parseDatalog(content: string): ParsedData {
       }
     }
 
-    // Calculate speed if not available from NMEA
-    let speedMps = parsed.speedMps ?? 0;
+    // Get speed from NMEA or calculate it
+    let speedMps = parsed.speedMps;
+    
+    // If no speed from NMEA, try to calculate from position
     if (speedMps === null && samples.length > 0) {
       const prev = samples[samples.length - 1];
       speedMps = calculateSpeed(prev.lat, prev.lon, prev.t, parsed.lat, parsed.lon, t);
+    }
+    
+    // Skip samples with no valid speed
+    if (speedMps === null) {
+      speedMps = 0;
+    }
+    
+    // Additional sanity check on speed from NMEA data
+    // Max reasonable speed: 150 m/s (~335 mph)
+    if (speedMps > 150) {
+      // GPS glitch - use previous sample's speed or 0
+      speedMps = samples.length > 0 ? samples[samples.length - 1].speedMps : 0;
     }
 
     samples.push({
