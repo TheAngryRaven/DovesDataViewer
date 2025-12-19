@@ -158,6 +158,7 @@ export default function Index() {
             </div>
 
             <div className="text-center text-sm text-muted-foreground space-y-3">
+              <p>Drop a CSV or NMEA file to get started.</p>
               <p>Track definitions are saved in your browser.</p>
               
               {/* Try Sample Data */}
