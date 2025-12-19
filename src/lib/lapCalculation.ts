@@ -127,19 +127,27 @@ export function calculateLaps(samples: GpsSample[], track: Track): Lap[] {
     const lapTimeMs = end.crossingTime - start.crossingTime;
     
     // Find max and min speed in this lap
+    // We use a small threshold for min speed to filter out GPS glitches where speed briefly reports as 0
+    const MIN_SPEED_THRESHOLD_MPH = 1.0; // Speeds below this are likely GPS artifacts during racing
+    
     let maxSpeedMph = 0;
     let maxSpeedKph = 0;
     let minSpeedMph = Infinity;
     let minSpeedKph = Infinity;
     
     for (let j = start.sampleIndex; j <= end.sampleIndex && j < samples.length; j++) {
-      if (samples[j].speedMph > maxSpeedMph) {
-        maxSpeedMph = samples[j].speedMph;
-        maxSpeedKph = samples[j].speedKph;
+      const sample = samples[j];
+      
+      if (sample.speedMph > maxSpeedMph) {
+        maxSpeedMph = sample.speedMph;
+        maxSpeedKph = sample.speedKph;
       }
-      if (samples[j].speedMph < minSpeedMph) {
-        minSpeedMph = samples[j].speedMph;
-        minSpeedKph = samples[j].speedKph;
+      
+      // Only consider speeds above threshold for min calculation
+      // This filters out GPS glitches that report 0 speed momentarily
+      if (sample.speedMph >= MIN_SPEED_THRESHOLD_MPH && sample.speedMph < minSpeedMph) {
+        minSpeedMph = sample.speedMph;
+        minSpeedKph = sample.speedKph;
       }
     }
     
