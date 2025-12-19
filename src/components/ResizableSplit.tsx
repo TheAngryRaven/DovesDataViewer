@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
 
 interface ResizableSplitProps {
   topPanel: React.ReactNode;
@@ -13,22 +13,56 @@ export function ResizableSplit({
   bottomPanel,
   defaultRatio = 0.7,
   minTopHeight = 150,
-  minBottomHeight = 100
+  minBottomHeight = 100,
 }: ResizableSplitProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [topHeight, setTopHeight] = useState<number | null>(null);
+  const ratioRef = useRef(defaultRatio);
+
+  const DIVIDER_HEIGHT = 8; // h-2 = 0.5rem
+
+  const [topPx, setTopPx] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Initialize top height based on container size
+  const clampTopPx = useCallback(
+    (desiredTopPx: number, availableHeight: number) => {
+      const maxTop = Math.max(minTopHeight, availableHeight - minBottomHeight);
+      return Math.max(minTopHeight, Math.min(maxTop, desiredTopPx));
+    },
+    [minTopHeight, minBottomHeight],
+  );
+
+  const measureAndSetFromRatio = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const availableHeight = container.clientHeight - DIVIDER_HEIGHT;
+    if (availableHeight <= 0) return;
+
+    const desired = availableHeight * ratioRef.current;
+    const clamped = clampTopPx(desired, availableHeight);
+
+    ratioRef.current = clamped / availableHeight;
+    setTopPx(clamped);
+  }, [clampTopPx]);
+
+  // Set initial size before paint to avoid the bottom panel "starting full height".
+  useLayoutEffect(() => {
+    measureAndSetFromRatio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep split stable on container resize.
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || topHeight !== null) return;
+    if (!container) return;
 
-    const rect = container.getBoundingClientRect();
-    const dividerHeight = 8;
-    const availableHeight = rect.height - dividerHeight;
-    setTopHeight(availableHeight * defaultRatio);
-  }, [defaultRatio, topHeight]);
+    const ro = new ResizeObserver(() => {
+      measureAndSetFromRatio();
+    });
+
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [measureAndSetFromRatio]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -36,6 +70,7 @@ export function ResizableSplit({
   }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
     setIsDragging(true);
   }, []);
 
@@ -47,129 +82,66 @@ export function ResizableSplit({
       if (!container) return;
 
       const rect = container.getBoundingClientRect();
-      const dividerHeight = 8;
-      const availableHeight = rect.height - dividerHeight;
-      const y = clientY - rect.top;
-      
-      // Constrain to min heights
-      const newTopHeight = Math.max(
-        minTopHeight, 
-        Math.min(availableHeight - minBottomHeight, y)
-      );
-      
-      setTopHeight(newTopHeight);
+      const availableHeight = rect.height - DIVIDER_HEIGHT;
+      if (availableHeight <= 0) return;
+
+      const desiredTop = clientY - rect.top;
+      const clamped = clampTopPx(desiredTop, availableHeight);
+
+      ratioRef.current = clamped / availableHeight;
+      setTopPx(clamped);
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      handleMove(e.clientY);
-    };
+    const handleMouseMove = (e: MouseEvent) => handleMove(e.clientY);
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        handleMove(e.touches[0].clientY);
-      }
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      handleMove(e.touches[0].clientY);
     };
 
-    const handleEnd = () => {
-      setIsDragging(false);
-    };
+    const handleEnd = () => setIsDragging(false);
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchmove', handleTouchMove);
-    document.addEventListener('touchend', handleEnd);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleEnd);
+
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
+    document.addEventListener("touchend", handleEnd);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleEnd);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleEnd);
+      document.removeEventListener("touchmove", handleTouchMove as any);
+      document.removeEventListener("touchend", handleEnd);
     };
-  }, [isDragging, minTopHeight, minBottomHeight]);
-
-  // Handle window resize - adjust proportionally
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || topHeight === null) return;
-
-    let lastContainerHeight = container.getBoundingClientRect().height;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const newContainerHeight = entry.contentRect.height;
-        if (newContainerHeight === lastContainerHeight) return;
-        
-        const dividerHeight = 8;
-        const oldAvailable = lastContainerHeight - dividerHeight;
-        const newAvailable = newContainerHeight - dividerHeight;
-        
-        // Maintain the same ratio when container resizes
-        const ratio = topHeight / oldAvailable;
-        const newTopHeight = Math.max(
-          minTopHeight,
-          Math.min(newAvailable - minBottomHeight, newAvailable * ratio)
-        );
-        
-        setTopHeight(newTopHeight);
-        lastContainerHeight = newContainerHeight;
-      }
-    });
-
-    resizeObserver.observe(container);
-    return () => resizeObserver.disconnect();
-  }, [topHeight, minTopHeight, minBottomHeight]);
-
-  const dividerHeight = 8;
+  }, [isDragging, clampTopPx]);
 
   return (
-    <div ref={containerRef} className="h-full overflow-hidden relative">
-      {/* Top Panel - absolute positioning */}
-      <div 
-        style={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: topHeight ?? '70%'
-        }} 
-        className="overflow-hidden"
-      >
-        {topPanel}
-      </div>
+    <div
+      ref={containerRef}
+      className="h-full overflow-hidden grid"
+      style={{
+        gridTemplateRows: `${topPx}px ${DIVIDER_HEIGHT}px 1fr`,
+      }}
+    >
+      {/* Top Panel */}
+      <div className="overflow-hidden">{topPanel}</div>
 
-      {/* Divider - absolute positioning */}
+      {/* Divider */}
       <div
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        style={{
-          position: 'absolute',
-          top: topHeight ?? '70%',
-          left: 0,
-          right: 0,
-          height: dividerHeight
-        }}
         className={`
-          bg-border cursor-row-resize flex items-center justify-center z-10
+          bg-border cursor-row-resize flex items-center justify-center select-none touch-none
           hover:bg-primary/30 transition-colors
-          ${isDragging ? 'bg-primary/50' : ''}
+          ${isDragging ? "bg-primary/50" : ""}
         `}
       >
         <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
       </div>
 
-      {/* Bottom Panel - absolute positioning */}
-      <div 
-        style={{ 
-          position: 'absolute',
-          top: (topHeight ?? 0) + dividerHeight,
-          left: 0,
-          right: 0,
-          bottom: 0
-        }} 
-        className="overflow-hidden"
-      >
-        {bottomPanel}
-      </div>
+      {/* Bottom Panel */}
+      <div className="overflow-hidden">{bottomPanel}</div>
     </div>
   );
 }
