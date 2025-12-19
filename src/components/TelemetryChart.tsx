@@ -105,14 +105,42 @@ export function TelemetryChart({
     const maxSpeed = Math.ceil(Math.max(...speeds) / 10) * 10;
     const minSpeed = 0;
 
-    // Draw speed line
+    // Draw speed line - interpolate over GPS glitches (speeds below 1 mph during racing)
+    const MIN_SPEED_THRESHOLD = 1.0; // mph/kph - speeds below this are likely GPS glitches
     ctx.beginPath();
     ctx.strokeStyle = COLORS[0];
     ctx.lineWidth = 2;
     
+    let lastValidSpeed: number | null = null;
+    let lastValidIndex = 0;
+    
     for (let i = 0; i < samples.length; i++) {
       const x = padding.left + (i / (samples.length - 1)) * chartWidth;
-      const y = padding.top + (1 - (getSpeed(samples[i]) - minSpeed) / (maxSpeed - minSpeed)) * chartHeight;
+      let speed = getSpeed(samples[i]);
+      
+      // If speed is below threshold, interpolate from last valid speed to next valid speed
+      if (speed < MIN_SPEED_THRESHOLD && i > 0 && i < samples.length - 1) {
+        // Find next valid speed
+        let nextValidSpeed = lastValidSpeed ?? speed;
+        for (let j = i + 1; j < samples.length; j++) {
+          if (getSpeed(samples[j]) >= MIN_SPEED_THRESHOLD) {
+            nextValidSpeed = getSpeed(samples[j]);
+            break;
+          }
+        }
+        // Interpolate between last valid and next valid
+        if (lastValidSpeed !== null) {
+          const progress = (i - lastValidIndex) / Math.max(1, samples.length - lastValidIndex);
+          speed = lastValidSpeed + (nextValidSpeed - lastValidSpeed) * progress;
+        } else {
+          speed = nextValidSpeed;
+        }
+      } else {
+        lastValidSpeed = speed;
+        lastValidIndex = i;
+      }
+      
+      const y = padding.top + (1 - (speed - minSpeed) / (maxSpeed - minSpeed)) * chartHeight;
       
       if (i === 0) {
         ctx.moveTo(x, y);
