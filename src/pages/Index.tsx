@@ -128,9 +128,19 @@ export default function Index() {
               />
             </div>
 
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-sm text-muted-foreground space-y-3">
               <p>Drop a CSV or NMEA file to get started.</p>
-              <p className="mt-1">Track definitions are saved in your browser.</p>
+              <p>Track definitions are saved in your browser.</p>
+              
+              <div className="mt-4 p-4 bg-muted/30 rounded-lg text-left border border-border/50">
+                <h3 className="font-medium text-foreground mb-2">NMEA Enhanced Format</h3>
+                <p className="text-xs leading-relaxed">
+                  This viewer supports <span className="font-medium text-foreground">NMEA Enhanced</span> format — 
+                  standard NMEA sentences (RMC, GGA) organized as tab-delimited CSV with optional 
+                  additional data columns. Simply export your GPS logger data with NMEA strings in 
+                  one column, and any extra telemetry (RPM, throttle, etc.) in additional columns.
+                </p>
+              </div>
             </div>
           </div>
         </main>
