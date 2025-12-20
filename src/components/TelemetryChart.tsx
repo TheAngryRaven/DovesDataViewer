@@ -246,9 +246,13 @@ export function TelemetryChart({
       const maxVal = Math.max(...values);
       const minVal = Math.min(...values);
       const range = maxVal - minVal || 1;
+
+      // Keep colors stable regardless of enabled/disabled state
+      const mappingIndex = fieldMappings.findIndex(f => f.name === field.name);
+      const colorIndex = ((mappingIndex === -1 ? fieldIndex : mappingIndex) + 1) % COLORS.length;
       
       ctx.beginPath();
-      ctx.strokeStyle = COLORS[(fieldIndex + 1) % COLORS.length];
+      ctx.strokeStyle = COLORS[colorIndex];
       ctx.lineWidth = 1.5;
 
       let isDrawing = false;
@@ -442,10 +446,12 @@ export function TelemetryChart({
         fieldOffset++;
       }
       
-      enabledFields.forEach((field, idx) => {
+      enabledFields.forEach((field) => {
         const val = samples[currentIndex].extraFields[field.name];
         if (val !== undefined) {
-          ctx.fillStyle = COLORS[(idx + 1) % COLORS.length];
+          const mappingIndex = fieldMappings.findIndex(f => f.name === field.name);
+          const colorIndex = ((mappingIndex === -1 ? 0 : mappingIndex) + 1) % COLORS.length;
+          ctx.fillStyle = COLORS[colorIndex];
           ctx.fillText(`${field.name}: ${val.toFixed(1)}`, boxX + 8, boxY + 14 + fieldOffset * 16);
           fieldOffset++;
         }
@@ -531,27 +537,19 @@ export function TelemetryChart({
           </button>
         )}
         
-        {fieldMappings.map((field) => {
-          // Calculate the color index based on position in enabled fields (matching chart drawing)
-          const enabledIndex = enabledFields.findIndex(f => f.name === field.name);
-          const colorIndex = field.enabled && enabledIndex !== -1 
-            ? (enabledIndex + 1) % COLORS.length 
-            : 1; // Default color when disabled
-          
-          return (
-            <button
-              key={field.name}
-              onClick={() => onFieldToggle(field.name)}
-              className={`flex items-center gap-2 ${field.enabled ? '' : 'opacity-40'}`}
-            >
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: COLORS[colorIndex] }} 
-              />
-              <span className="text-xs font-mono">{field.name}</span>
-            </button>
-          );
-        })}
+        {fieldMappings.map((field, idx) => (
+          <button
+            key={field.name}
+            onClick={() => onFieldToggle(field.name)}
+            className={`flex items-center gap-2 ${field.enabled ? '' : 'opacity-40'}`}
+          >
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: COLORS[(idx + 1) % COLORS.length] }} 
+            />
+            <span className="text-xs font-mono">{field.name}</span>
+          </button>
+        ))}
       </div>
 
       {/* Chart */}
