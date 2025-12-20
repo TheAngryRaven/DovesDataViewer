@@ -1,4 +1,4 @@
-import { GpsSample, Track, Lap, LapCrossing } from '@/types/racing';
+import { GpsSample, Course, Lap, LapCrossing } from '@/types/racing';
 
 interface Point {
   x: number;
@@ -62,16 +62,16 @@ function segmentIntersection(
 // Minimum time between lap crossings (debounce)
 const MIN_CROSSING_INTERVAL_MS = 5000; // 5 seconds
 
-export function calculateLaps(samples: GpsSample[], track: Track): Lap[] {
+export function calculateLaps(samples: GpsSample[], course: Course): Lap[] {
   if (samples.length < 2) return [];
   
   // Calculate center for projection
-  const centerLat = (track.startFinishA.lat + track.startFinishB.lat) / 2;
-  const centerLon = (track.startFinishA.lon + track.startFinishB.lon) / 2;
+  const centerLat = (course.startFinishA.lat + course.startFinishB.lat) / 2;
+  const centerLon = (course.startFinishA.lon + course.startFinishB.lon) / 2;
   
   // Project start/finish line
-  const sfA = projectToPlane(track.startFinishA.lat, track.startFinishA.lon, centerLat, centerLon);
-  const sfB = projectToPlane(track.startFinishB.lat, track.startFinishB.lon, centerLat, centerLon);
+  const sfA = projectToPlane(course.startFinishA.lat, course.startFinishA.lon, centerLat, centerLon);
+  const sfB = projectToPlane(course.startFinishB.lat, course.startFinishB.lon, centerLat, centerLon);
   
   // Find all crossings
   const crossings: LapCrossing[] = [];

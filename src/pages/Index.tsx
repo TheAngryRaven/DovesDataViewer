@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Gauge, Map, ListOrdered, Settings, Play, Loader2, Github } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { TrackEditor } from "@/components/TrackEditor";
@@ -10,16 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ParsedData, Track, Lap, FieldMapping, GpsSample } from "@/types/racing";
+import { ParsedData, Lap, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
 import { calculateLaps } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
 import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
+import { loadTracks } from "@/lib/trackStorage";
 
 type TopPanelView = "raceline" | "laptable";
 
 export default function Index() {
   const [data, setData] = useState<ParsedData | null>(null);
-  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [selection, setSelection] = useState<TrackCourseSelection | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
@@ -29,13 +30,14 @@ export default function Index() {
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const [useKph, setUseKph] = useState(false);
 
+  const selectedCourse: Course | null = selection?.course ?? null;
+
   const handleLoadSample = useCallback(async () => {
     setIsLoadingSample(true);
     try {
-      // Load tracks and find Orlando Kart Center
-      const { loadTracks } = await import("@/lib/trackStorage");
-      const tracks = loadTracks();
-      const okcTrack = tracks.find((t) => t.id === "orlando-kart-center") ?? null;
+      const tracks = await loadTracks();
+      const okcTrack = tracks.find((t) => t.name === "Orlando Kart Center");
+      const okcCourse = okcTrack?.courses[0] ?? null;
 
       const response = await fetch("/samples/okc-tillotson-plain.nmea");
       const text = await response.text();
@@ -43,10 +45,14 @@ export default function Index() {
       setData(parsedData);
       setFieldMappings(parsedData.fieldMappings);
       setCurrentIndex(0);
-      setSelectedTrack(okcTrack);
 
-      if (okcTrack) {
-        const computedLaps = calculateLaps(parsedData.samples, okcTrack);
+      if (okcTrack && okcCourse) {
+        setSelection({
+          trackName: okcTrack.name,
+          courseName: okcCourse.name,
+          course: okcCourse,
+        });
+        const computedLaps = calculateLaps(parsedData.samples, okcCourse);
         setLaps(computedLaps);
       }
     } catch (e) {
@@ -114,22 +120,22 @@ export default function Index() {
       setFieldMappings(parsedData.fieldMappings);
       setCurrentIndex(0);
 
-      // Calculate laps if track is selected
-      if (selectedTrack) {
-        const computedLaps = calculateLaps(parsedData.samples, selectedTrack);
+      // Calculate laps if course is selected
+      if (selectedCourse) {
+        const computedLaps = calculateLaps(parsedData.samples, selectedCourse);
         setLaps(computedLaps);
       }
     },
-    [selectedTrack],
+    [selectedCourse],
   );
 
-  const handleTrackSelect = useCallback(
-    (track: Track | null) => {
-      setSelectedTrack(track);
+  const handleSelectionChange = useCallback(
+    (newSelection: TrackCourseSelection | null) => {
+      setSelection(newSelection);
 
       // Recalculate laps
-      if (track && data) {
-        const computedLaps = calculateLaps(data.samples, track);
+      if (newSelection?.course && data) {
+        const computedLaps = calculateLaps(data.samples, newSelection.course);
         setLaps(computedLaps);
       } else {
         setLaps([]);
@@ -148,7 +154,7 @@ export default function Index() {
 
   const handleLapSelect = useCallback((lap: Lap) => {
     setSelectedLapNumber(lap.lapNumber);
-    setCurrentIndex(0); // Reset to start of lap
+    setCurrentIndex(0);
     setTopPanelView("raceline");
   }, []);
 
@@ -174,7 +180,6 @@ export default function Index() {
   if (!data) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
         <header className="border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <Gauge className="w-8 h-8 text-primary" />
@@ -185,19 +190,17 @@ export default function Index() {
           </div>
         </header>
 
-        {/* Main content */}
         <main className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-xl space-y-6">
             <FileImport onDataLoaded={handleDataLoaded} />
 
             <div className="racing-card p-4">
-              <TrackEditor selectedTrack={selectedTrack} onTrackSelect={handleTrackSelect} />
+              <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} />
             </div>
 
             <div className="text-center text-sm text-muted-foreground space-y-3">
               <p>Track definitions are saved in your browser.</p>
 
-              {/* Try Sample Data */}
               <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <h3 className="font-medium text-foreground mb-2">Try it out!</h3>
                 <p className="text-xs mb-3">Load sample data from Orlando Kart Center to see how the viewer works.</p>
@@ -216,38 +219,21 @@ export default function Index() {
                 <p className="text-xs leading-relaxed">
                   This viewer supports <span className="font-medium text-foreground">NMEA Enhanced</span> format —
                   standard NMEA sentences (RMC, GGA) organized as tab-delimited CSV with optional additional data
-                  columns. Simply export your GPS logger data with NMEA strings in one column, and any extra telemetry
-                  (RPM, throttle, etc.) in additional columns.
+                  columns.
                 </p>
               </div>
             </div>
 
-            {/* GitHub links */}
             <div className="flex items-center justify-center gap-8 mt-4">
-              <a
-                href="https://github.com/TheAngryRaven/lap-tracker-pro"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <a href="https://github.com/TheAngryRaven/lap-tracker-pro" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <Github className="w-5 h-5" />
                 <span className="text-sm">View on GitHub</span>
               </a>
-              <a
-                href="https://github.com/TheAngryRaven/BirdsEye"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <a href="https://github.com/TheAngryRaven/BirdsEye" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <Github className="w-5 h-5" />
                 <span className="text-sm">View Datalogger</span>
               </a>
-              <a
-                href="https://github.com/TheAngryRaven/DovesLapTimer"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <a href="https://github.com/TheAngryRaven/DovesLapTimer" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <Github className="w-5 h-5" />
                 <span className="text-sm">View Timer Library</span>
               </a>
@@ -261,7 +247,6 @@ export default function Index() {
   // Data loaded - show main view
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
-      {/* Header */}
       <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Gauge className="w-6 h-6 text-primary" />
@@ -269,23 +254,14 @@ export default function Index() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Speed unit toggle */}
           <div className="flex items-center gap-2">
             <Label htmlFor="speed-unit" className="text-xs text-muted-foreground">MPH</Label>
-            <Switch
-              id="speed-unit"
-              checked={useKph}
-              onCheckedChange={setUseKph}
-            />
+            <Switch id="speed-unit" checked={useKph} onCheckedChange={setUseKph} />
             <Label htmlFor="speed-unit" className="text-xs text-muted-foreground">KPH</Label>
           </div>
 
-          {/* Track selector (compact) */}
-          <div className="flex items-center gap-2">
-            <TrackEditor selectedTrack={selectedTrack} onTrackSelect={handleTrackSelect} />
-          </div>
+          <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact />
 
-          {/* Lap selector dropdown */}
           {laps.length > 0 && (
             <Select value={selectedLapNumber?.toString() ?? "all"} onValueChange={handleLapDropdownChange}>
               <SelectTrigger className="w-[140px] h-8 text-sm">
@@ -302,24 +278,19 @@ export default function Index() {
             </Select>
           )}
 
-          {/* Current values readout */}
           {filteredSamples[currentIndex] && (
             <div className="flex items-center gap-4 text-sm font-mono bg-muted/50 px-3 py-1.5 rounded">
               <span className="text-racing-telemetrySpeed">
                 {getCurrentSpeed(filteredSamples[currentIndex]).toFixed(1)} {speedUnit}
               </span>
-              {fieldMappings
-                .filter((f) => f.enabled)
-                .slice(0, 2)
-                .map((field) => (
-                  <span key={field.name} className="text-muted-foreground">
-                    {field.name}: {(filteredSamples[currentIndex].extraFields[field.name] ?? 0).toFixed(1)}
-                  </span>
-                ))}
+              {fieldMappings.filter((f) => f.enabled).slice(0, 2).map((field) => (
+                <span key={field.name} className="text-muted-foreground">
+                  {field.name}: {(filteredSamples[currentIndex].extraFields[field.name] ?? 0).toFixed(1)}
+                </span>
+              ))}
             </div>
           )}
 
-          {/* New file button */}
           <Button variant="outline" size="sm" onClick={() => setData(null)}>
             <Settings className="w-4 h-4 mr-2" />
             New File
@@ -327,34 +298,22 @@ export default function Index() {
         </div>
       </header>
 
-      {/* Main split view */}
       <main className="flex-1 min-h-0 overflow-hidden">
         <ResizableSplit
           defaultRatio={0.7}
           topPanel={
             <div className="h-full flex flex-col">
-              {/* View toggle tabs */}
               <div className="flex border-b border-border shrink-0">
                 <button
                   onClick={() => setTopPanelView("raceline")}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors
-                    ${
-                      topPanelView === "raceline"
-                        ? "text-primary border-b-2 border-primary bg-primary/5"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "raceline" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <Map className="w-4 h-4" />
                   Race Line
                 </button>
                 <button
                   onClick={() => setTopPanelView("laptable")}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors
-                    ${
-                      topPanelView === "laptable"
-                        ? "text-primary border-b-2 border-primary bg-primary/5"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "laptable" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <ListOrdered className="w-4 h-4" />
                   Lap Times
@@ -364,15 +323,14 @@ export default function Index() {
                 </button>
               </div>
 
-              {/* Panel content */}
               <div className="flex-1 overflow-hidden">
                 {topPanelView === "raceline" ? (
                   <RaceLineView
                     samples={filteredSamples}
                     referenceSamples={referenceSamples}
                     currentIndex={currentIndex}
-                    track={selectedTrack}
-                    bounds={filteredBounds}
+                    course={selectedCourse}
+                    bounds={filteredBounds!}
                     useKph={useKph}
                   />
                 ) : (
