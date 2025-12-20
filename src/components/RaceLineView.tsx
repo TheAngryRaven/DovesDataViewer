@@ -74,7 +74,7 @@ function createArrowIcon(heading: number): L.DivIcon {
 
 // Create speed event marker (peak or valley)
 function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
-  const displaySpeed = useKph ? Math.round(event.speed * 1.60934) : event.speed;
+  const displaySpeed = useKph ? (event.speed * 1.60934).toFixed(1) : event.speed.toFixed(1);
   const isPeak = event.type === 'peak';
   const bgColor = isPeak ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 50%)';
   const textColor = 'white';
