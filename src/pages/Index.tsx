@@ -179,7 +179,7 @@ export default function Index() {
           <div className="flex items-center gap-3">
             <Gauge className="w-8 h-8 text-primary" />
             <div>
-              <h1 className="text-xl font-semibold text-foreground">Racing Datalog Viewer</h1>
+              <h1 className="text-xl font-semibold text-foreground">Dove's Datavier</h1>
               <p className="text-sm text-muted-foreground">NMEA Enhanced Format</p>
             </div>
           </div>
