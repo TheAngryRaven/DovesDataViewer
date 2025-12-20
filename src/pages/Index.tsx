@@ -265,7 +265,7 @@ export default function Index() {
       <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Gauge className="w-6 h-6 text-primary" />
-          <span className="font-semibold text-foreground">Racing Datalog</span>
+          <span className="font-semibold text-foreground">Dove's DataViewer</span>
         </div>
 
         <div className="flex items-center gap-4">
