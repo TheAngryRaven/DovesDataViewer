@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 
 interface RaceLineViewProps {
   samples: GpsSample[];
+  referenceSamples?: GpsSample[];
   currentIndex: number;
   track: Track | null;
   bounds: {
@@ -64,10 +65,11 @@ function createArrowIcon(heading: number): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, currentIndex, track, bounds, useKph = false }: RaceLineViewProps) {
+export function RaceLineView({ samples, referenceSamples = [], currentIndex, track, bounds, useKph = false }: RaceLineViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
+  const referenceLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const startFinishRef = useRef<L.Polyline | null>(null);
 
@@ -110,7 +112,10 @@ export function RaceLineView({ samples, currentIndex, track, bounds, useKph = fa
     // Add zoom control to bottom left
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // Create layer group for polylines
+    // Create layer group for reference polylines (rendered underneath)
+    referenceLayerRef.current = L.layerGroup().addTo(map);
+
+    // Create layer group for current lap polylines
     polylineLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
@@ -118,6 +123,7 @@ export function RaceLineView({ samples, currentIndex, track, bounds, useKph = fa
     return () => {
       map.remove();
       mapRef.current = null;
+      referenceLayerRef.current = null;
     };
   }, []);
 
@@ -125,10 +131,12 @@ export function RaceLineView({ samples, currentIndex, track, bounds, useKph = fa
   useEffect(() => {
     const map = mapRef.current;
     const polylineLayer = polylineLayerRef.current;
-    if (!map || !polylineLayer) return;
+    const referenceLayer = referenceLayerRef.current;
+    if (!map || !polylineLayer || !referenceLayer) return;
 
     // Clear existing polylines
     polylineLayer.clearLayers();
+    referenceLayer.clearLayers();
 
     if (samples.length === 0) return;
 
@@ -139,6 +147,17 @@ export function RaceLineView({ samples, currentIndex, track, bounds, useKph = fa
     ]);
     map.fitBounds(latLngBounds, { padding: [20, 20] });
 
+    // Draw reference line first (underneath) as grey
+    if (referenceSamples.length > 0) {
+      const refCoords = referenceSamples.map(s => [s.lat, s.lon] as [number, number]);
+      const refPolyline = L.polyline(refCoords, { 
+        color: 'hsl(220, 10%, 50%)', 
+        weight: 4, 
+        opacity: 0.6 
+      });
+      referenceLayer.addLayer(refPolyline);
+    }
+
     // Draw race line segments with speed coloring
     for (let i = 0; i < samples.length - 1; i++) {
       const color = getSpeedColor(samples[i].speedMph, maxSpeed);
@@ -148,7 +167,7 @@ export function RaceLineView({ samples, currentIndex, track, bounds, useKph = fa
       );
       polylineLayer.addLayer(polyline);
     }
-  }, [samples, bounds, maxSpeed]);
+  }, [samples, referenceSamples, bounds, maxSpeed]);
 
   // Update start/finish line when track changes
   useEffect(() => {
