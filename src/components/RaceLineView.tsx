@@ -1,6 +1,9 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { GpsSample, Course } from '@/types/racing';
+import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import 'leaflet/dist/leaflet.css';
 
 interface RaceLineViewProps {
@@ -65,6 +68,36 @@ function createArrowIcon(heading: number): L.DivIcon {
   });
 }
 
+// Create speed event marker (peak or valley)
+function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
+  const displaySpeed = useKph ? Math.round(event.speed * 1.60934) : event.speed;
+  const isPeak = event.type === 'peak';
+  const bgColor = isPeak ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 50%)';
+  const textColor = 'white';
+  
+  const html = `
+    <div style="
+      background: ${bgColor};
+      color: ${textColor};
+      font-size: 10px;
+      font-weight: 600;
+      font-family: ui-monospace, monospace;
+      padding: 2px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.3);
+    ">${displaySpeed}</div>
+  `;
+  
+  return L.divIcon({
+    html,
+    className: 'speed-event-marker',
+    iconSize: [30, 18],
+    iconAnchor: [15, 20], // Anchor below the point
+  });
+}
+
 export function RaceLineView({ samples, referenceSamples = [], currentIndex, course, bounds, useKph = false }: RaceLineViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -72,6 +105,20 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
   const referenceLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const startFinishRef = useRef<L.Polyline | null>(null);
+  const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
+  
+  const [showSpeedEvents, setShowSpeedEvents] = useState(true);
+
+  // Compute speed events from samples
+  const speedEvents = useMemo(() => {
+    if (samples.length < 10) return [];
+    return findSpeedEvents(samples, {
+      smoothingWindow: 5,
+      minSwing: 3,
+      minSeparationMs: 1000,
+      debounceCount: 2,
+    });
+  }, [samples]);
 
   // Invalidate map size when container resizes
   useEffect(() => {
@@ -117,6 +164,9 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
 
     // Create layer group for current lap polylines
     polylineLayerRef.current = L.layerGroup().addTo(map);
+    
+    // Create layer group for speed event markers (on top)
+    speedEventsLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
 
@@ -124,6 +174,7 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
       map.remove();
       mapRef.current = null;
       referenceLayerRef.current = null;
+      speedEventsLayerRef.current = null;
     };
   }, []);
 
@@ -168,6 +219,25 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
       polylineLayer.addLayer(polyline);
     }
   }, [samples, referenceSamples, bounds, maxSpeed]);
+
+  // Update speed event markers
+  useEffect(() => {
+    const map = mapRef.current;
+    const speedEventsLayer = speedEventsLayerRef.current;
+    if (!map || !speedEventsLayer) return;
+
+    speedEventsLayer.clearLayers();
+
+    if (!showSpeedEvents || speedEvents.length === 0) return;
+
+    speedEvents.forEach((event) => {
+      const marker = L.marker([event.lat, event.lon], {
+        icon: createSpeedEventIcon(event, useKph),
+        interactive: false,
+      });
+      speedEventsLayer.addLayer(marker);
+    });
+  }, [speedEvents, showSpeedEvents, useKph]);
 
   // Update start/finish line when course changes
   useEffect(() => {
@@ -234,6 +304,33 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full" />
+      
+      {/* Speed events toggle */}
+      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000]">
+        <div className="flex items-center gap-2">
+          <Switch 
+            id="speed-events" 
+            checked={showSpeedEvents} 
+            onCheckedChange={setShowSpeedEvents}
+            className="scale-75"
+          />
+          <Label htmlFor="speed-events" className="text-xs text-muted-foreground cursor-pointer">
+            Speed events
+          </Label>
+        </div>
+        {showSpeedEvents && speedEvents.length > 0 && (
+          <div className="flex items-center gap-3 mt-2 text-xs">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
+              <span className="text-muted-foreground">Peak</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(0, 84%, 50%)' }} />
+              <span className="text-muted-foreground">Valley</span>
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* Speed legend */}
       <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000]">
