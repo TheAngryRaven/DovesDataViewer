@@ -340,6 +340,37 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
           <span>Slow</span>
           <span>Fast</span>
         </div>
+        
+        {/* Average speed stats from speed events - only show when course is selected */}
+        {course && speedEvents.length > 0 && (() => {
+          const peaks = speedEvents.filter(e => e.type === 'peak');
+          const valleys = speedEvents.filter(e => e.type === 'valley');
+          const avgTop = peaks.length > 0 
+            ? peaks.reduce((sum, e) => sum + e.speed, 0) / peaks.length 
+            : null;
+          const avgMin = valleys.length > 0 
+            ? valleys.reduce((sum, e) => sum + e.speed, 0) / valleys.length 
+            : null;
+          const unit = useKph ? 'kph' : 'mph';
+          const convertSpeed = (speed: number) => useKph ? speed * 1.60934 : speed;
+          
+          return (
+            <div className="mt-3 pt-2 border-t border-border space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Avg Top Speed:</span>
+                <span className="font-mono" style={{ color: 'hsl(142, 76%, 45%)' }}>
+                  {avgTop !== null ? `${convertSpeed(avgTop).toFixed(1)} ${unit}` : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Avg Min Speed:</span>
+                <span className="font-mono" style={{ color: 'hsl(0, 84%, 55%)' }}>
+                  {avgMin !== null ? `${convertSpeed(avgMin).toFixed(1)} ${unit}` : '—'}
+                </span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
