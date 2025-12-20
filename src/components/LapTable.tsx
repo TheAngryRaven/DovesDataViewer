@@ -1,15 +1,18 @@
 import { Lap } from '@/types/racing';
 import { formatLapTime } from '@/lib/lapCalculation';
-import { Trophy, Zap, Snail } from 'lucide-react';
+import { Trophy, Zap, Snail, Target } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface LapTableProps {
   laps: Lap[];
   onLapSelect?: (lap: Lap) => void;
   selectedLapNumber?: number | null;
+  referenceLapNumber?: number | null;
+  onSetReference?: (lapNumber: number) => void;
   useKph?: boolean;
 }
 
-export function LapTable({ laps, onLapSelect, selectedLapNumber, useKph = false }: LapTableProps) {
+export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, useKph = false }: LapTableProps) {
   if (laps.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -47,6 +50,7 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, useKph = false 
       <table className="w-full">
         <thead className="sticky top-0 bg-card">
           <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
+            <th className="px-2 py-3 font-medium w-16">Ref</th>
             <th className="px-4 py-3 font-medium">Lap</th>
             <th className="px-4 py-3 font-medium">Time</th>
             <th className="px-4 py-3 font-medium">Top Speed</th>
@@ -54,10 +58,11 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, useKph = false 
           </tr>
         </thead>
         <tbody>
-          {laps.map((lap, idx) => {
+        {laps.map((lap, idx) => {
             const isFastest = idx === fastestLapIdx;
             const hasFastestSpeed = idx === fastestSpeedIdx;
             const hasSlowestMinSpeed = idx === slowestMinSpeedIdx;
+            const isReference = referenceLapNumber === lap.lapNumber;
             
             return (
               <tr
@@ -66,10 +71,24 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, useKph = false 
                 className={`
                   border-t border-border cursor-pointer transition-colors
                   ${selectedLapNumber === lap.lapNumber ? 'bg-primary/20 ring-1 ring-primary/50' : ''}
-                  ${isFastest && selectedLapNumber !== lap.lapNumber ? 'bg-racing-lapBest/10' : ''}
-                  ${!isFastest && selectedLapNumber !== lap.lapNumber ? 'hover:bg-muted/50' : ''}
+                  ${isReference && selectedLapNumber !== lap.lapNumber ? 'bg-muted/30' : ''}
+                  ${isFastest && selectedLapNumber !== lap.lapNumber && !isReference ? 'bg-racing-lapBest/10' : ''}
+                  ${!isFastest && selectedLapNumber !== lap.lapNumber && !isReference ? 'hover:bg-muted/50' : ''}
                 `}
               >
+                <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant={isReference ? "secondary" : "ghost"}
+                    size="sm"
+                    className={`h-7 px-2 text-xs ${isReference ? 'bg-muted-foreground/20 text-foreground' : ''}`}
+                    onClick={() => onSetReference?.(lap.lapNumber)}
+                  >
+                    {isReference ? (
+                      <Target className="w-3 h-3 mr-1" />
+                    ) : null}
+                    {isReference ? 'Ref' : 'Set Ref'}
+                  </Button>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm">{lap.lapNumber}</span>

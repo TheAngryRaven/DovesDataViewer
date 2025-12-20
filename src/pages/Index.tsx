@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { ParsedData, Track, Lap, FieldMapping, GpsSample } from "@/types/racing";
 import { calculateLaps } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
+import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
 
 type TopPanelView = "raceline" | "laptable";
 
@@ -24,6 +25,7 @@ export default function Index() {
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
   const [laps, setLaps] = useState<Lap[]>([]);
   const [selectedLapNumber, setSelectedLapNumber] = useState<number | null>(null);
+  const [referenceLapNumber, setReferenceLapNumber] = useState<number | null>(null);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const [useKph, setUseKph] = useState(false);
 
@@ -64,6 +66,28 @@ export default function Index() {
 
     return data.samples.slice(lap.startIndex, lap.endIndex + 1);
   }, [data, laps, selectedLapNumber]);
+
+  // Get reference lap samples
+  const referenceSamples = useMemo((): GpsSample[] => {
+    if (!data || referenceLapNumber === null) return [];
+    
+    const refLap = laps.find((l) => l.lapNumber === referenceLapNumber);
+    if (!refLap) return [];
+    
+    return data.samples.slice(refLap.startIndex, refLap.endIndex + 1);
+  }, [data, laps, referenceLapNumber]);
+
+  // Calculate pace and reference speed when reference is selected
+  const { paceData, referenceSpeedData } = useMemo(() => {
+    if (referenceSamples.length === 0 || filteredSamples.length === 0) {
+      return { paceData: [], referenceSpeedData: [] };
+    }
+    
+    return {
+      paceData: calculatePace(filteredSamples, referenceSamples),
+      referenceSpeedData: calculateReferenceSpeed(filteredSamples, referenceSamples, useKph)
+    };
+  }, [filteredSamples, referenceSamples, useKph]);
 
   // Compute bounds for filtered samples
   const filteredBounds = useMemo(() => {
@@ -137,6 +161,10 @@ export default function Index() {
       setSelectedLapNumber(lapNum);
       setCurrentIndex(0);
     }
+  }, []);
+
+  const handleSetReference = useCallback((lapNumber: number) => {
+    setReferenceLapNumber((prev) => (prev === lapNumber ? null : lapNumber));
   }, []);
 
   const speedUnit = useKph ? "kph" : "mph";
@@ -341,13 +369,21 @@ export default function Index() {
                 {topPanelView === "raceline" ? (
                   <RaceLineView
                     samples={filteredSamples}
+                    referenceSamples={referenceSamples}
                     currentIndex={currentIndex}
                     track={selectedTrack}
                     bounds={filteredBounds}
                     useKph={useKph}
                   />
                 ) : (
-                  <LapTable laps={laps} onLapSelect={handleLapSelect} selectedLapNumber={selectedLapNumber} useKph={useKph} />
+                  <LapTable 
+                    laps={laps} 
+                    onLapSelect={handleLapSelect} 
+                    selectedLapNumber={selectedLapNumber} 
+                    referenceLapNumber={referenceLapNumber}
+                    onSetReference={handleSetReference}
+                    useKph={useKph} 
+                  />
                 )}
               </div>
             </div>
@@ -360,6 +396,9 @@ export default function Index() {
               onScrub={handleScrub}
               onFieldToggle={handleFieldToggle}
               useKph={useKph}
+              paceData={paceData}
+              referenceSpeedData={referenceSpeedData}
+              hasReference={referenceLapNumber !== null}
             />
           }
         />
