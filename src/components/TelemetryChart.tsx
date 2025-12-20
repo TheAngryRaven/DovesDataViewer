@@ -17,6 +17,8 @@ const COLORS = [
   'hsl(280, 60%, 60%)', // Purple
   'hsl(120, 60%, 50%)', // Green
   'hsl(30, 80%, 55%)',  // Orange
+  'hsl(200, 80%, 60%)', // Blue - Lat G
+  'hsl(340, 80%, 55%)', // Pink - Lon G
 ];
 
 export function TelemetryChart({ 
