@@ -2,11 +2,32 @@
   "Orlando Kart Center": {
     "courses": [
       {
-        "name": "Full Track",
+        "name": "Normal",
         "start_a_lat": 28.41270817056385,
         "start_a_lng": -81.37973266418031,
         "start_b_lat": 28.41273038679321,
         "start_b_lng": -81.37957048753776
+      },
+      {
+        "name": "Pro",
+        "start_a_lat": 28.41270817056385,
+        "start_a_lng": -81.37973266418031,
+        "start_b_lat": 28.41273038679321,
+        "start_b_lng": -81.37957048753776
+      },
+      {
+        "name": "Short",
+        "start_a_lat": 28.411993499165003,
+        "start_a_lng": -81.37995885097195,
+        "start_b_lat": 28.411993845389052,
+        "start_b_lng": -81.37986483674096
+      },
+      {
+        "name": "xShort",
+        "start_a_lat": 28.411993499165003,
+        "start_a_lng": -81.37995885097195,
+        "start_b_lat": 28.411993845389052,
+        "start_b_lng": -81.37986483674096
       }
     ]
   }
