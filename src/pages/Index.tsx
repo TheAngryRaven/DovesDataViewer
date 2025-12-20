@@ -55,6 +55,14 @@ export default function Index() {
         });
         const computedLaps = calculateLaps(parsedData.samples, okcCourse);
         setLaps(computedLaps);
+        
+        // Auto-select lap 5 and reference lap 8 to showcase delta features
+        if (computedLaps.length >= 5) {
+          setSelectedLapNumber(5);
+        }
+        if (computedLaps.length >= 8) {
+          setReferenceLapNumber(8);
+        }
       }
     } catch (e) {
       console.error("Failed to load sample data:", e);
@@ -372,7 +380,7 @@ export default function Index() {
           defaultRatio={0.7}
           topPanel={
             <div className="h-full flex flex-col">
-              <div className="flex border-b border-border shrink-0">
+              <div className="flex items-center border-b border-border shrink-0">
                 <button
                   onClick={() => setTopPanelView("raceline")}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "raceline" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
@@ -390,6 +398,11 @@ export default function Index() {
                     <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
                   )}
                 </button>
+                {referenceLapNumber !== null && (
+                  <span className="ml-auto mr-3 px-2 py-1 text-xs font-medium bg-accent text-accent-foreground rounded">
+                    Reference Lap: {referenceLapNumber}
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-hidden">
