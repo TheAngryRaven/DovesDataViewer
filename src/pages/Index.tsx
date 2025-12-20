@@ -15,6 +15,7 @@ import { calculateLaps } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
 import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
 import { loadTracks } from "@/lib/trackStorage";
+import { findSpeedEvents } from "@/lib/speedEvents";
 
 type TopPanelView = "raceline" | "laptable";
 
@@ -106,26 +107,61 @@ export default function Index() {
   }, [filteredSamples, referenceSamples, useKph]);
 
   // Calculate pace diff for display (vs reference if selected, else vs best)
-  const { paceDiff, paceDiffLabel } = useMemo((): { paceDiff: number | null; paceDiffLabel: 'best' | 'ref' } => {
+  const { paceDiff, paceDiffLabel, deltaTopSpeed, deltaMinSpeed } = useMemo((): { 
+    paceDiff: number | null; 
+    paceDiffLabel: 'best' | 'ref';
+    deltaTopSpeed: number | null;
+    deltaMinSpeed: number | null;
+  } => {
     if (filteredSamples.length === 0 || selectedLapNumber === null) {
-      return { paceDiff: null, paceDiffLabel: 'best' };
+      return { paceDiff: null, paceDiffLabel: 'best', deltaTopSpeed: null, deltaMinSpeed: null };
     }
+    
+    // Calculate speed events for current lap
+    const currentEvents = findSpeedEvents(filteredSamples);
+    const currentPeaks = currentEvents.filter(e => e.type === 'peak');
+    const currentValleys = currentEvents.filter(e => e.type === 'valley');
+    const currentAvgTop = currentPeaks.length > 0 
+      ? currentPeaks.reduce((sum, e) => sum + e.speed, 0) / currentPeaks.length 
+      : null;
+    const currentAvgMin = currentValleys.length > 0 
+      ? currentValleys.reduce((sum, e) => sum + e.speed, 0) / currentValleys.length 
+      : null;
+    
+    // Helper to calculate deltas against comparison samples
+    const calculateDeltas = (comparisonSamples: GpsSample[]) => {
+      const compEvents = findSpeedEvents(comparisonSamples);
+      const compPeaks = compEvents.filter(e => e.type === 'peak');
+      const compValleys = compEvents.filter(e => e.type === 'valley');
+      const compAvgTop = compPeaks.length > 0 
+        ? compPeaks.reduce((sum, e) => sum + e.speed, 0) / compPeaks.length 
+        : null;
+      const compAvgMin = compValleys.length > 0 
+        ? compValleys.reduce((sum, e) => sum + e.speed, 0) / compValleys.length 
+        : null;
+      
+      return {
+        deltaTop: (currentAvgTop !== null && compAvgTop !== null) ? currentAvgTop - compAvgTop : null,
+        deltaMin: (currentAvgMin !== null && compAvgMin !== null) ? currentAvgMin - compAvgMin : null
+      };
+    };
     
     // If reference is selected, use reference pace
     if (referenceSamples.length > 0 && paceData.length > 0) {
-      // Get the last valid pace value (end of lap diff)
       const lastPace = paceData.filter(p => p !== null).pop() ?? null;
-      return { paceDiff: lastPace, paceDiffLabel: 'ref' };
+      const { deltaTop, deltaMin } = calculateDeltas(referenceSamples);
+      return { paceDiff: lastPace, paceDiffLabel: 'ref', deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin };
     }
     
     // Otherwise, compare to fastest lap
     if (fastestLapSamples.length > 0) {
       const bestPaceData = calculatePace(filteredSamples, fastestLapSamples);
       const lastPace = bestPaceData.filter(p => p !== null).pop() ?? null;
-      return { paceDiff: lastPace, paceDiffLabel: 'best' };
+      const { deltaTop, deltaMin } = calculateDeltas(fastestLapSamples);
+      return { paceDiff: lastPace, paceDiffLabel: 'best', deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin };
     }
     
-    return { paceDiff: null, paceDiffLabel: 'best' };
+    return { paceDiff: null, paceDiffLabel: 'best', deltaTopSpeed: null, deltaMinSpeed: null };
   }, [filteredSamples, referenceSamples, fastestLapSamples, paceData, selectedLapNumber]);
 
   // Compute bounds for filtered samples
@@ -367,6 +403,8 @@ export default function Index() {
                     useKph={useKph}
                     paceDiff={paceDiff}
                     paceDiffLabel={paceDiffLabel}
+                    deltaTopSpeed={deltaTopSpeed}
+                    deltaMinSpeed={deltaMinSpeed}
                   />
                 ) : (
                   <LapTable 
