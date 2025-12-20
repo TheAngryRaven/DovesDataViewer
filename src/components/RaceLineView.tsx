@@ -1,13 +1,13 @@
 import { useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
-import { GpsSample, Track } from '@/types/racing';
+import { GpsSample, Course } from '@/types/racing';
 import 'leaflet/dist/leaflet.css';
 
 interface RaceLineViewProps {
   samples: GpsSample[];
   referenceSamples?: GpsSample[];
   currentIndex: number;
-  track: Track | null;
+  course: Course | null;
   bounds: {
     minLat: number;
     maxLat: number;
@@ -65,7 +65,7 @@ function createArrowIcon(heading: number): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, referenceSamples = [], currentIndex, track, bounds, useKph = false }: RaceLineViewProps) {
+export function RaceLineView({ samples, referenceSamples = [], currentIndex, course, bounds, useKph = false }: RaceLineViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
@@ -169,7 +169,7 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, tra
     }
   }, [samples, referenceSamples, bounds, maxSpeed]);
 
-  // Update start/finish line when track changes
+  // Update start/finish line when course changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -180,14 +180,14 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, tra
       startFinishRef.current = null;
     }
 
-    if (!track) return;
+    if (!course) return;
 
     // Draw start/finish line
     startFinishRef.current = L.polyline(
-      [[track.startFinishA.lat, track.startFinishA.lon], [track.startFinishB.lat, track.startFinishB.lon]],
+      [[course.startFinishA.lat, course.startFinishA.lon], [course.startFinishB.lat, course.startFinishB.lon]],
       { color: 'hsl(0, 75%, 55%)', weight: 5, opacity: 1 }
     ).addTo(map);
-  }, [track]);
+  }, [course]);
 
   // Update current position marker
   useEffect(() => {

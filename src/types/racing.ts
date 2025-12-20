@@ -12,7 +12,21 @@ export interface GpsSample {
   extraFields: Record<string, number>;
 }
 
+export interface Course {
+  name: string;
+  startFinishA: { lat: number; lon: number };
+  startFinishB: { lat: number; lon: number };
+  isUserDefined?: boolean; // true if user added/modified this course
+}
+
 export interface Track {
+  name: string;
+  courses: Course[];
+  isUserDefined?: boolean; // true if entire track is user-added
+}
+
+// Legacy interface for backward compatibility during migration
+export interface LegacyTrack {
   id: string;
   name: string;
   startFinishA: { lat: number; lon: number };
@@ -57,4 +71,11 @@ export interface ParsedData {
   };
   duration: number;
   startDate?: Date;
+}
+
+// Selection state for track + course
+export interface TrackCourseSelection {
+  trackName: string;
+  courseName: string;
+  course: Course;
 }
