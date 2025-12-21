@@ -437,6 +437,7 @@ export default function Index() {
                 {topPanelView === "raceline" ? (
                   <RaceLineView
                     samples={visibleSamples}
+                    allSamples={filteredSamples}
                     referenceSamples={referenceSamples}
                     currentIndex={currentIndex}
                     course={selectedCourse}

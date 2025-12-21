@@ -9,6 +9,7 @@ import 'leaflet/dist/leaflet.css';
 
 interface RaceLineViewProps {
   samples: GpsSample[];
+  allSamples?: GpsSample[]; // Full session samples for computing stats (not affected by range slider)
   referenceSamples?: GpsSample[];
   currentIndex: number;
   course: Course | null;
@@ -104,7 +105,9 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null }: RaceLineViewProps) {
+  // Use allSamples for statistics if provided, otherwise fall back to samples
+  const samplesForStats = allSamples ?? samples;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
@@ -115,8 +118,19 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
 
-  // Compute speed events from samples
-  const speedEvents = useMemo(() => {
+  // Compute speed events from full session samples for stable stats
+  const speedEventsForStats = useMemo(() => {
+    if (samplesForStats.length < 10) return [];
+    return findSpeedEvents(samplesForStats, {
+      smoothingWindow: 5,
+      minSwing: 3,
+      minSeparationMs: 1000,
+      debounceCount: 2,
+    });
+  }, [samplesForStats]);
+
+  // Compute speed events from visible samples for map markers
+  const speedEventsForMarkers = useMemo(() => {
     if (samples.length < 10) return [];
     return findSpeedEvents(samples, {
       smoothingWindow: 5,
@@ -142,11 +156,11 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
     return () => ro.disconnect();
   }, []);
 
-  // Calculate min and max speed for color scaling (exclude brief 0mph glitches)
+  // Calculate min and max speed for color scaling from full session (exclude brief 0mph glitches)
   const { minSpeed, maxSpeed } = useMemo(() => {
-    const speedsMph = samples.map((s) => s.speedMph);
+    const speedsMph = samplesForStats.map((s) => s.speedMph);
     return computeHeatmapSpeedBoundsMph(speedsMph);
-  }, [samples]);
+  }, [samplesForStats]);
 
   // Initialize map
   useEffect(() => {
@@ -235,16 +249,16 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
 
     speedEventsLayer.clearLayers();
 
-    if (!showSpeedEvents || speedEvents.length === 0) return;
+    if (!showSpeedEvents || speedEventsForMarkers.length === 0) return;
 
-    speedEvents.forEach((event) => {
+    speedEventsForMarkers.forEach((event) => {
       const marker = L.marker([event.lat, event.lon], {
         icon: createSpeedEventIcon(event, useKph),
         interactive: false,
       });
       speedEventsLayer.addLayer(marker);
     });
-  }, [speedEvents, showSpeedEvents, useKph]);
+  }, [speedEventsForMarkers, showSpeedEvents, useKph]);
 
   // Update start/finish line when course changes
   useEffect(() => {
@@ -325,7 +339,7 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
             Speed events
           </Label>
         </div>
-        {showSpeedEvents && speedEvents.length > 0 && (
+        {showSpeedEvents && speedEventsForMarkers.length > 0 && (
           <div className="flex items-center gap-3 mt-2 text-xs">
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
@@ -349,9 +363,9 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
         </div>
         
         {/* Average speed stats from speed events - only show when course is selected */}
-        {course && speedEvents.length > 0 && (() => {
-          const peaks = speedEvents.filter(e => e.type === 'peak');
-          const valleys = speedEvents.filter(e => e.type === 'valley');
+        {course && speedEventsForStats.length > 0 && (() => {
+          const peaks = speedEventsForStats.filter(e => e.type === 'peak');
+          const valleys = speedEventsForStats.filter(e => e.type === 'valley');
           const avgTop = peaks.length > 0 
             ? peaks.reduce((sum, e) => sum + e.speed, 0) / peaks.length 
             : null;
