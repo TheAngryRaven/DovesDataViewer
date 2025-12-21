@@ -5,7 +5,22 @@ import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Moon, Satellite, Square } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
+
+type MapStyle = 'dark' | 'satellite' | 'none';
+
+const mapStyleConfig = {
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; Esri',
+  },
+  none: null,
+};
 
 interface RaceLineViewProps {
   samples: GpsSample[];
@@ -119,8 +134,10 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   const sector2Ref = useRef<L.Polyline | null>(null);
   const sector3Ref = useRef<L.Polyline | null>(null);
   const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
+  const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
 
   // Compute speed events from full session samples for stable stats
   const speedEventsForStats = useMemo(() => {
@@ -175,11 +192,14 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       attributionControl: true,
     }).setView([0, 0], 16);
 
-    // Dark map tiles from CARTO
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-      maxZoom: 20,
-    }).addTo(map);
+    // Add initial tile layer (dark)
+    const config = mapStyleConfig.dark;
+    if (config) {
+      tileLayerRef.current = L.tileLayer(config.url, {
+        attribution: config.attribution,
+        maxZoom: 20,
+      }).addTo(map);
+    }
 
     // Add zoom control to bottom left
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -200,8 +220,32 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       mapRef.current = null;
       referenceLayerRef.current = null;
       speedEventsLayerRef.current = null;
+      tileLayerRef.current = null;
     };
   }, []);
+
+  // Update tile layer when map style changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove existing tile layer
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = null;
+    }
+
+    // Add new tile layer if not "none"
+    const config = mapStyleConfig[mapStyle];
+    if (config) {
+      tileLayerRef.current = L.tileLayer(config.url, {
+        attribution: config.attribution,
+        maxZoom: 20,
+      }).addTo(map);
+      // Move tile layer to bottom
+      tileLayerRef.current.bringToBack();
+    }
+  }, [mapStyle]);
 
   // Update bounds and race line when samples change
   useEffect(() => {
@@ -347,35 +391,66 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     );
   }
 
+  const cycleMapStyle = () => {
+    setMapStyle((prev) => {
+      if (prev === 'dark') return 'satellite';
+      if (prev === 'satellite') return 'none';
+      return 'dark';
+    });
+  };
+
+  const mapStyleIcon = {
+    dark: <Moon className="w-3.5 h-3.5" />,
+    satellite: <Satellite className="w-3.5 h-3.5" />,
+    none: <Square className="w-3.5 h-3.5" />,
+  };
+
+  const mapStyleLabel = {
+    dark: 'Dark',
+    satellite: 'Satellite',
+    none: 'None',
+  };
+
   return (
     <div className="w-full h-full relative">
-      <div ref={containerRef} className="w-full h-full" />
+      <div ref={containerRef} className="w-full h-full bg-black" />
       
-      {/* Speed events toggle */}
+      {/* Controls panel */}
       <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000]">
-        <div className="flex items-center gap-2">
-          <Switch 
-            id="speed-events" 
-            checked={showSpeedEvents} 
-            onCheckedChange={setShowSpeedEvents}
-            className="scale-75"
-          />
-          <Label htmlFor="speed-events" className="text-xs text-muted-foreground cursor-pointer">
-            Speed events
-          </Label>
-        </div>
-        {showSpeedEvents && speedEventsForMarkers.length > 0 && (
-          <div className="flex items-center gap-3 mt-2 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
-              <span className="text-muted-foreground">Peak</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(0, 84%, 50%)' }} />
-              <span className="text-muted-foreground">Valley</span>
-            </div>
+        {/* Map style toggle */}
+        <button
+          onClick={cycleMapStyle}
+          className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted/50 transition-colors mb-2"
+        >
+          {mapStyleIcon[mapStyle]}
+          <span className="text-xs text-muted-foreground">Map: {mapStyleLabel[mapStyle]}</span>
+        </button>
+        
+        <div className="border-t border-border pt-2">
+          <div className="flex items-center gap-2">
+            <Switch 
+              id="speed-events" 
+              checked={showSpeedEvents} 
+              onCheckedChange={setShowSpeedEvents}
+              className="scale-75"
+            />
+            <Label htmlFor="speed-events" className="text-xs text-muted-foreground cursor-pointer">
+              Speed events
+            </Label>
           </div>
-        )}
+          {showSpeedEvents && speedEventsForMarkers.length > 0 && (
+            <div className="flex items-center gap-3 mt-2 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
+                <span className="text-muted-foreground">Peak</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(0, 84%, 50%)' }} />
+                <span className="text-muted-foreground">Valley</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Speed legend */}
