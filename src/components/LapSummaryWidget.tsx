@@ -61,26 +61,17 @@ export function LapSummaryWidget({ laps, course, selectedLap }: LapSummaryWidget
       </div>
       
       {optimalLap && (
-        <>
-          <div className="flex items-center gap-1.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              </TooltipTrigger>
-              <TooltipContent>Optimal Lap (best sectors combined)</TooltipContent>
-            </Tooltip>
-            <span className="text-purple-400 font-semibold">
-              {formatLapTime(optimalLap.optimalTimeMs)}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Δ:</span>
-            <span className="text-muted-foreground font-semibold">
-              +{formatSectorTime(optimalLap.deltaToFastest)}s
-            </span>
-          </div>
-        </>
+        <div className="flex items-center gap-1.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            </TooltipTrigger>
+            <TooltipContent>Optimal Lap (best sectors combined)</TooltipContent>
+          </Tooltip>
+          <span className="text-purple-400 font-semibold">
+            {formatLapTime(optimalLap.optimalTimeMs)}
+          </span>
+        </div>
       )}
     </div>
   );
