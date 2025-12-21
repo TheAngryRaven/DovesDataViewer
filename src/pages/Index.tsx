@@ -5,6 +5,7 @@ import { TrackEditor } from "@/components/TrackEditor";
 import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
 import { LapTable } from "@/components/LapTable";
+import { LapSummaryWidget } from "@/components/LapSummaryWidget";
 import { ResizableSplit } from "@/components/ResizableSplit";
 import { RangeSlider } from "@/components/RangeSlider";
 import { Button } from "@/components/ui/button";
@@ -426,11 +427,16 @@ export default function Index() {
                     <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
                   )}
                 </button>
-                {referenceLapNumber !== null && (
-                  <span className="ml-auto mr-3 px-2 py-1 text-xs font-medium bg-accent text-accent-foreground rounded">
-                    Reference Lap: {referenceLapNumber}
-                  </span>
-                )}
+                
+                {/* Lap Summary Widget in tab bar */}
+                <div className="ml-auto mr-3 flex items-center gap-4">
+                  <LapSummaryWidget laps={laps} course={selectedCourse} />
+                  {referenceLapNumber !== null && (
+                    <span className="px-2 py-1 text-xs font-medium bg-accent text-accent-foreground rounded">
+                      Reference Lap: {referenceLapNumber}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 overflow-hidden">
@@ -450,7 +456,8 @@ export default function Index() {
                   />
                 ) : (
                   <LapTable 
-                    laps={laps} 
+                    laps={laps}
+                    course={selectedCourse}
                     onLapSelect={handleLapSelect} 
                     selectedLapNumber={selectedLapNumber} 
                     referenceLapNumber={referenceLapNumber}

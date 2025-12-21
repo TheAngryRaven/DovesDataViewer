@@ -12,11 +12,23 @@ export interface GpsSample {
   extraFields: Record<string, number>;
 }
 
+export interface SectorLine {
+  a: { lat: number; lon: number };
+  b: { lat: number; lon: number };
+}
+
 export interface Course {
   name: string;
   startFinishA: { lat: number; lon: number };
   startFinishB: { lat: number; lon: number };
+  sector2?: SectorLine; // Optional sector 2 line
+  sector3?: SectorLine; // Optional sector 3 line
   isUserDefined?: boolean; // true if user added/modified this course
+}
+
+// Helper to check if course has valid sector lines
+export function courseHasSectors(course: Course | null): boolean {
+  return Boolean(course?.sector2 && course?.sector3);
 }
 
 export interface Track {
@@ -40,6 +52,13 @@ export interface LapCrossing {
   fraction: number; // 0-1 position along segment
 }
 
+// Sector times (only present when course has sector lines)
+export interface SectorTimes {
+  s1?: number; // ms from start/finish to sector2 crossing
+  s2?: number; // ms from sector2 to sector3 crossing
+  s3?: number; // ms from sector3 to next start/finish
+}
+
 export interface Lap {
   lapNumber: number;
   startTime: number;
@@ -51,6 +70,7 @@ export interface Lap {
   minSpeedKph: number;
   startIndex: number;
   endIndex: number;
+  sectors?: SectorTimes; // Only present when course has sector lines
 }
 
 export interface FieldMapping {

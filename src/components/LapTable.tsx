@@ -1,10 +1,11 @@
-import { Lap } from '@/types/racing';
-import { formatLapTime } from '@/lib/lapCalculation';
+import { Lap, courseHasSectors, Course } from '@/types/racing';
+import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface LapTableProps {
   laps: Lap[];
+  course: Course | null;
   onLapSelect?: (lap: Lap) => void;
   selectedLapNumber?: number | null;
   referenceLapNumber?: number | null;
@@ -12,7 +13,7 @@ interface LapTableProps {
   useKph?: boolean;
 }
 
-export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, useKph = false }: LapTableProps) {
+export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, useKph = false }: LapTableProps) {
   if (laps.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -25,6 +26,7 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNum
   }
 
   const speedUnit = useKph ? 'kph' : 'mph';
+  const showSectors = courseHasSectors(course);
 
   // Find fastest lap, fastest top speed, and slowest min speed
   const fastestLapIdx = laps.reduce((minIdx, lap, idx, arr) => 
@@ -45,6 +47,34 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNum
   const getMaxSpeed = (lap: Lap) => useKph ? lap.maxSpeedKph : lap.maxSpeedMph;
   const getMinSpeed = (lap: Lap) => useKph ? lap.minSpeedKph : lap.minSpeedMph;
 
+  // Find fastest sector times
+  let fastestS1Idx: number | null = null;
+  let fastestS2Idx: number | null = null;
+  let fastestS3Idx: number | null = null;
+  let fastestS1 = Infinity;
+  let fastestS2 = Infinity;
+  let fastestS3 = Infinity;
+
+  if (showSectors) {
+    laps.forEach((lap, idx) => {
+      if (lap.sectors?.s1 !== undefined && lap.sectors.s1 < fastestS1) {
+        fastestS1 = lap.sectors.s1;
+        fastestS1Idx = idx;
+      }
+      if (lap.sectors?.s2 !== undefined && lap.sectors.s2 < fastestS2) {
+        fastestS2 = lap.sectors.s2;
+        fastestS2Idx = idx;
+      }
+      if (lap.sectors?.s3 !== undefined && lap.sectors.s3 < fastestS3) {
+        fastestS3 = lap.sectors.s3;
+        fastestS3Idx = idx;
+      }
+    });
+  }
+
+  // Calculate optimal lap
+  const optimalLap = showSectors ? calculateOptimalLap(laps) : null;
+
   return (
     <div className="h-full overflow-auto scrollbar-thin">
       <table className="w-full">
@@ -53,6 +83,13 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNum
             <th className="px-2 py-3 font-medium w-16">Ref</th>
             <th className="px-4 py-3 font-medium">Lap</th>
             <th className="px-4 py-3 font-medium">Time</th>
+            {showSectors && (
+              <>
+                <th className="px-3 py-3 font-medium text-center">S1</th>
+                <th className="px-3 py-3 font-medium text-center">S2</th>
+                <th className="px-3 py-3 font-medium text-center">S3</th>
+              </>
+            )}
             <th className="px-4 py-3 font-medium">Top Speed</th>
             <th className="px-4 py-3 font-medium">Min Speed</th>
           </tr>
@@ -63,6 +100,9 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNum
             const hasFastestSpeed = idx === fastestSpeedIdx;
             const hasSlowestMinSpeed = idx === slowestMinSpeedIdx;
             const isReference = referenceLapNumber === lap.lapNumber;
+            const hasFastestS1 = idx === fastestS1Idx;
+            const hasFastestS2 = idx === fastestS2Idx;
+            const hasFastestS3 = idx === fastestS3Idx;
             
             return (
               <tr
@@ -100,6 +140,19 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNum
                 <td className={`px-4 py-3 font-mono text-sm ${isFastest ? 'text-racing-lapBest font-semibold' : ''}`}>
                   {formatLapTime(lap.lapTimeMs)}
                 </td>
+                {showSectors && (
+                  <>
+                    <td className={`px-3 py-3 font-mono text-xs text-center ${hasFastestS1 ? 'text-purple-400 font-semibold bg-purple-500/10' : ''}`}>
+                      {lap.sectors?.s1 !== undefined ? formatSectorTime(lap.sectors.s1) : '—'}
+                    </td>
+                    <td className={`px-3 py-3 font-mono text-xs text-center ${hasFastestS2 ? 'text-purple-400 font-semibold bg-purple-500/10' : ''}`}>
+                      {lap.sectors?.s2 !== undefined ? formatSectorTime(lap.sectors.s2) : '—'}
+                    </td>
+                    <td className={`px-3 py-3 font-mono text-xs text-center ${hasFastestS3 ? 'text-purple-400 font-semibold bg-purple-500/10' : ''}`}>
+                      {lap.sectors?.s3 !== undefined ? formatSectorTime(lap.sectors.s3) : '—'}
+                    </td>
+                  </>
+                )}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm">
@@ -128,13 +181,29 @@ export function LapTable({ laps, onLapSelect, selectedLapNumber, referenceLapNum
 
       {/* Summary */}
       <div className="sticky bottom-0 bg-card border-t border-border px-4 py-3">
-        <div className="flex gap-6 text-sm">
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <div>
             <span className="text-muted-foreground">Best Lap: </span>
             <span className="font-mono text-racing-lapBest font-semibold">
               {formatLapTime(laps[fastestLapIdx].lapTimeMs)}
             </span>
           </div>
+          {optimalLap && (
+            <>
+              <div>
+                <span className="text-muted-foreground">Optimal: </span>
+                <span className="font-mono text-purple-400 font-semibold">
+                  {formatLapTime(optimalLap.optimalTimeMs)}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Delta: </span>
+                <span className="font-mono text-muted-foreground font-semibold">
+                  +{formatSectorTime(optimalLap.deltaToFastest)}
+                </span>
+              </div>
+            </>
+          )}
           <div>
             <span className="text-muted-foreground">Max Speed: </span>
             <span className="font-mono text-accent font-semibold">

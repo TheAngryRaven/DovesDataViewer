@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
-import { GpsSample, Course } from '@/types/racing';
+import { GpsSample, Course, courseHasSectors } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { Switch } from '@/components/ui/switch';
@@ -114,6 +114,8 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   const referenceLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const startFinishRef = useRef<L.Polyline | null>(null);
+  const sector2Ref = useRef<L.Polyline | null>(null);
+  const sector3Ref = useRef<L.Polyline | null>(null);
   const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
@@ -260,24 +262,45 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     });
   }, [speedEventsForMarkers, showSpeedEvents, useKph]);
 
-  // Update start/finish line when course changes
+  // Update start/finish line and sector lines when course changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove existing start/finish line
+    // Remove existing timing lines
     if (startFinishRef.current) {
       map.removeLayer(startFinishRef.current);
       startFinishRef.current = null;
     }
+    if (sector2Ref.current) {
+      map.removeLayer(sector2Ref.current);
+      sector2Ref.current = null;
+    }
+    if (sector3Ref.current) {
+      map.removeLayer(sector3Ref.current);
+      sector3Ref.current = null;
+    }
 
     if (!course) return;
 
-    // Draw start/finish line
+    // Draw start/finish line (red)
     startFinishRef.current = L.polyline(
       [[course.startFinishA.lat, course.startFinishA.lon], [course.startFinishB.lat, course.startFinishB.lon]],
       { color: 'hsl(0, 75%, 55%)', weight: 5, opacity: 1 }
     ).addTo(map);
+
+    // Draw sector lines if they exist (purple/magenta)
+    if (courseHasSectors(course) && course.sector2 && course.sector3) {
+      sector2Ref.current = L.polyline(
+        [[course.sector2.a.lat, course.sector2.a.lon], [course.sector2.b.lat, course.sector2.b.lon]],
+        { color: 'hsl(280, 70%, 55%)', weight: 4, opacity: 0.9 }
+      ).addTo(map);
+
+      sector3Ref.current = L.polyline(
+        [[course.sector3.a.lat, course.sector3.a.lon], [course.sector3.b.lat, course.sector3.b.lon]],
+        { color: 'hsl(280, 70%, 55%)', weight: 4, opacity: 0.9 }
+      ).addTo(map);
+    }
   }, [course]);
 
   // Update current position marker
