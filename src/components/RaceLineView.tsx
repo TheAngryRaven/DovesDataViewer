@@ -340,9 +340,9 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
       </div>
       
       {/* Speed legend */}
-      <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000]">
+      <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000] min-w-[120px]">
         <div className="text-xs text-muted-foreground mb-1">Speed ({useKph ? 'kph' : 'mph'})</div>
-        <div className="w-24 h-3 speed-gradient rounded" />
+        <div className="w-full h-3 speed-gradient rounded" />
         <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
           <span>{useKph ? (minSpeed * 1.60934).toFixed(0) : minSpeed.toFixed(0)}</span>
           <span>{useKph ? (maxSpeed * 1.60934).toFixed(0) : maxSpeed.toFixed(0)}</span>
