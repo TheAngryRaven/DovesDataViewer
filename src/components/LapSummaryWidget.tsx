@@ -1,6 +1,7 @@
 import { Lap, Course, courseHasSectors } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { Trophy, Sparkles, Timer } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface LapSummaryWidgetProps {
   laps: Lap[];
@@ -29,7 +30,12 @@ export function LapSummaryWidget({ laps, course, selectedLap }: LapSummaryWidget
       {/* Selected lap with delta to fastest */}
       {selectedLap && (
         <div className="flex items-center gap-1.5">
-          <Timer className="w-3.5 h-3.5 text-foreground" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Timer className="w-3.5 h-3.5 text-foreground" />
+            </TooltipTrigger>
+            <TooltipContent>Selected Lap</TooltipContent>
+          </Tooltip>
           <span className="text-muted-foreground">Lap {selectedLap.lapNumber}:</span>
           <span className="text-foreground font-semibold">
             {formatLapTime(selectedLap.lapTimeMs)}
@@ -43,8 +49,12 @@ export function LapSummaryWidget({ laps, course, selectedLap }: LapSummaryWidget
       )}
 
       <div className="flex items-center gap-1.5">
-        <Trophy className="w-3.5 h-3.5 text-racing-lapBest" />
-        <span className="text-muted-foreground">Fastest:</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Trophy className="w-3.5 h-3.5 text-racing-lapBest" />
+          </TooltipTrigger>
+          <TooltipContent>Fastest Lap</TooltipContent>
+        </Tooltip>
         <span className="text-racing-lapBest font-semibold">
           {formatLapTime(fastestLap.lapTimeMs)}
         </span>
@@ -53,8 +63,12 @@ export function LapSummaryWidget({ laps, course, selectedLap }: LapSummaryWidget
       {optimalLap && (
         <>
           <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span className="text-muted-foreground">Optimal:</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+              </TooltipTrigger>
+              <TooltipContent>Optimal Lap (best sectors combined)</TooltipContent>
+            </Tooltip>
             <span className="text-purple-400 font-semibold">
               {formatLapTime(optimalLap.optimalTimeMs)}
             </span>
