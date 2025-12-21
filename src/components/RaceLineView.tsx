@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { GpsSample, Course } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
+import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import 'leaflet/dist/leaflet.css';
@@ -141,14 +142,10 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
     return () => ro.disconnect();
   }, []);
 
-  // Calculate min and max speed for color scaling
+  // Calculate min and max speed for color scaling (exclude brief 0mph glitches)
   const { minSpeed, maxSpeed } = useMemo(() => {
-    if (samples.length === 0) return { minSpeed: 0, maxSpeed: 1 };
-    const speeds = samples.map(s => s.speedMph);
-    return {
-      minSpeed: Math.min(...speeds),
-      maxSpeed: Math.max(...speeds, 1)
-    };
+    const speedsMph = samples.map((s) => s.speedMph);
+    return computeHeatmapSpeedBoundsMph(speedsMph);
   }, [samples]);
 
   // Initialize map
