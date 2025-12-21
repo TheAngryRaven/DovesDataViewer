@@ -25,8 +25,9 @@ interface RaceLineViewProps {
 }
 
 // Get speed color (green -> yellow -> orange -> red)
-function getSpeedColor(speedMph: number, maxSpeed: number): string {
-  const ratio = Math.min(speedMph / Math.max(maxSpeed, 1), 1);
+function getSpeedColor(speedMph: number, minSpeed: number, maxSpeed: number): string {
+  const range = maxSpeed - minSpeed;
+  const ratio = range > 0 ? Math.min(Math.max((speedMph - minSpeed) / range, 0), 1) : 0.5;
   
   if (ratio < 0.33) {
     const t = ratio / 0.33;
@@ -140,9 +141,14 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
     return () => ro.disconnect();
   }, []);
 
-  // Calculate max speed for color scaling
-  const maxSpeed = useMemo(() => {
-    return Math.max(...samples.map(s => s.speedMph), 1);
+  // Calculate min and max speed for color scaling
+  const { minSpeed, maxSpeed } = useMemo(() => {
+    if (samples.length === 0) return { minSpeed: 0, maxSpeed: 1 };
+    const speeds = samples.map(s => s.speedMph);
+    return {
+      minSpeed: Math.min(...speeds),
+      maxSpeed: Math.max(...speeds, 1)
+    };
   }, [samples]);
 
   // Initialize map
@@ -215,14 +221,14 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
 
     // Draw race line segments with speed coloring
     for (let i = 0; i < samples.length - 1; i++) {
-      const color = getSpeedColor(samples[i].speedMph, maxSpeed);
+      const color = getSpeedColor(samples[i].speedMph, minSpeed, maxSpeed);
       const polyline = L.polyline(
         [[samples[i].lat, samples[i].lon], [samples[i + 1].lat, samples[i + 1].lon]],
         { color, weight: 4, opacity: 0.9 }
       );
       polylineLayer.addLayer(polyline);
     }
-  }, [samples, referenceSamples, bounds, maxSpeed]);
+  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed]);
 
   // Update speed event markers
   useEffect(() => {
