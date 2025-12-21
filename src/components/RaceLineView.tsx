@@ -347,8 +347,8 @@ export function RaceLineView({ samples, referenceSamples = [], currentIndex, cou
         <div className="text-xs text-muted-foreground mb-1">Speed ({useKph ? 'kph' : 'mph'})</div>
         <div className="w-24 h-3 speed-gradient rounded" />
         <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
-          <span>Slow</span>
-          <span>Fast</span>
+          <span>{useKph ? (minSpeed * 1.60934).toFixed(0) : minSpeed.toFixed(0)}</span>
+          <span>{useKph ? (maxSpeed * 1.60934).toFixed(0) : maxSpeed.toFixed(0)}</span>
         </div>
         
         {/* Average speed stats from speed events - only show when course is selected */}
