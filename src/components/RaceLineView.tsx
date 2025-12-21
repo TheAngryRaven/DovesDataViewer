@@ -24,6 +24,7 @@ interface RaceLineViewProps {
   paceDiffLabel?: 'best' | 'ref';
   deltaTopSpeed?: number | null;
   deltaMinSpeed?: number | null;
+  referenceLapNumber?: number | null;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -105,7 +106,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null }: RaceLineViewProps) {
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -414,8 +415,14 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
               </div>
               
               {/* Delta section */}
-              {(paceDiff !== null || deltaTopSpeed !== null || deltaMinSpeed !== null) && (
+              {(referenceLapNumber !== null || paceDiff !== null || deltaTopSpeed !== null || deltaMinSpeed !== null) && (
                 <div className="mt-2 pt-2 border-t border-border space-y-1">
+                  {referenceLapNumber !== null && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Δ Lap</span>
+                      <span className="font-mono text-foreground">{referenceLapNumber}</span>
+                    </div>
+                  )}
                   <div className="text-xs text-muted-foreground mb-1 text-center">
                     Δ {paceDiffLabel}
                   </div>

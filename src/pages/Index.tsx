@@ -435,11 +435,6 @@ export default function Index() {
                     course={selectedCourse} 
                     selectedLap={selectedLapNumber !== null ? laps.find(l => l.lapNumber === selectedLapNumber) ?? null : null}
                   />
-                  {referenceLapNumber !== null && (
-                    <span className="px-2 py-1 text-xs font-medium bg-accent text-accent-foreground rounded">
-                      Reference Lap: {referenceLapNumber}
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -457,6 +452,7 @@ export default function Index() {
                     paceDiffLabel={paceDiffLabel}
                     deltaTopSpeed={deltaTopSpeed}
                     deltaMinSpeed={deltaMinSpeed}
+                    referenceLapNumber={referenceLapNumber}
                   />
                 ) : (
                   <LapTable 
