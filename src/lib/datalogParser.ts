@@ -2,6 +2,7 @@ import { ParsedData } from '@/types/racing';
 import { parseDatalog } from './nmeaParser';
 import { parseUbxFile, isUbxFormat } from './ubxParser';
 import { parseVboFile, isVboFormat } from './vboParser';
+import { parseDoveFile, isDoveFormat } from './doveParser';
 import { parseAlfanoFile, isAlfanoFormat } from './alfanoParser';
 import { parseAimFile, isAimFormat } from './aimParser';
 
@@ -10,6 +11,7 @@ import { parseAimFile, isAimFormat } from './aimParser';
  * Supports:
  * - UBX binary format (u-blox GPS receivers)
  * - VBO format (Racelogic VBOX, RaceBox exports)
+ * - Dove CSV format (simple CSV with Unix timestamps)
  * - Alfano CSV format (Alfano data loggers)
  * - AiM CSV format (MyChron 5/6, Race Studio 3 exports)
  * - NMEA text format (CSV with NMEA sentences, .nmea files)
@@ -28,6 +30,11 @@ export async function parseDatalogFile(file: File): Promise<ParsedData> {
   // Check if it's VBO format
   if (isVboFormat(text)) {
     return parseVboFile(text);
+  }
+  
+  // Check if it's Dove CSV format
+  if (isDoveFormat(text)) {
+    return parseDoveFile(text);
   }
   
   // Check if it's Alfano CSV format
@@ -52,12 +59,16 @@ export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
     if (isUbxFormat(content)) {
       return parseUbxFile(content);
     }
-    // Convert to text for VBO/Alfano/NMEA detection
+    // Convert to text for VBO/Dove/Alfano/NMEA detection
     const decoder = new TextDecoder();
     const text = decoder.decode(content);
     
     if (isVboFormat(text)) {
       return parseVboFile(text);
+    }
+    
+    if (isDoveFormat(text)) {
+      return parseDoveFile(text);
     }
     
     if (isAlfanoFormat(text)) {
@@ -71,9 +82,13 @@ export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
     return parseDatalog(text);
   }
   
-  // String content - check VBO first, then Alfano, then AiM, then NMEA
+  // String content - check VBO first, then Dove, then Alfano, then AiM, then NMEA
   if (isVboFormat(content)) {
     return parseVboFile(content);
+  }
+  
+  if (isDoveFormat(content)) {
+    return parseDoveFile(content);
   }
   
   if (isAlfanoFormat(content)) {
