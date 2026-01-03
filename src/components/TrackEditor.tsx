@@ -26,6 +26,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -395,6 +396,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
         </div>
 
         <Dialog open={isSelectDialogOpen} onOpenChange={(open) => { setIsSelectDialogOpen(open); if (!open) { setIsManageMode(false); setEditingCourse(null); resetForm(); } }}>
+          <DialogTrigger asChild><span className="sr-only">Open track selector</span></DialogTrigger>
           <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{isManageMode ? 'Manage Tracks & Courses' : 'Select Track & Course'}</DialogTitle></DialogHeader>
             {!isManageMode ? (
@@ -483,12 +485,14 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
         </Dialog>
 
         <Dialog open={isAddCourseOpen} onOpenChange={setIsAddCourseOpen}>
+          <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
           <DialogContent><DialogHeader><DialogTitle>Add New Course</DialogTitle></DialogHeader>
             <CourseForm {...courseFormProps} onSubmit={handleAddCourse} onCancel={() => { setIsAddCourseOpen(false); resetForm(); }} submitLabel="Create Course" />
           </DialogContent>
         </Dialog>
 
         <Dialog open={isAddTrackOpen} onOpenChange={setIsAddTrackOpen}>
+          <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
           <DialogContent><DialogHeader><DialogTitle>Add New Track</DialogTitle></DialogHeader>
             <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
           </DialogContent>
@@ -529,11 +533,13 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
         }} className="w-full"><Check className="w-4 h-4 mr-2" />Apply Selection</Button>
       )}
       <Dialog open={isAddCourseOpen} onOpenChange={setIsAddCourseOpen}>
+        <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
         <DialogContent><DialogHeader><DialogTitle>Add New Course</DialogTitle></DialogHeader>
           <CourseForm {...courseFormProps} onSubmit={handleAddCourse} onCancel={() => { setIsAddCourseOpen(false); resetForm(); }} submitLabel="Create Course" />
         </DialogContent>
       </Dialog>
       <Dialog open={isAddTrackOpen} onOpenChange={setIsAddTrackOpen}>
+        <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
         <DialogContent><DialogHeader><DialogTitle>Add New Track</DialogTitle></DialogHeader>
           <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
         </DialogContent>
