@@ -24,15 +24,15 @@ export function isDoveFormat(content: string): boolean {
   const hasRequiredHeaders = DOVE_REQUIRED_HEADERS.every(h => firstLine.includes(h));
   if (!hasRequiredHeaders) return false;
   
-  // Check that second line has a Unix timestamp (10+ digit number)
+  // Check that second line has a Unix timestamp in milliseconds (13+ digit number)
   const secondLine = lines[1].trim();
   if (!secondLine) return false;
   
   const firstField = secondLine.split(',')[0];
   const timestamp = parseInt(firstField, 10);
   
-  // Unix timestamps from 2020-2030 range: ~1577836800 to ~1893456000
-  if (isNaN(timestamp) || timestamp < 1500000000 || timestamp > 2000000000) {
+  // Unix timestamps in milliseconds from 2020-2030 range: ~1577836800000 to ~1893456000000
+  if (isNaN(timestamp) || timestamp < 1500000000000 || timestamp > 2000000000000) {
     return false;
   }
   
@@ -198,11 +198,11 @@ export function parseDoveFile(content: string): ParsedData {
     // Set base timestamp and start date from first valid sample
     if (baseTimestamp === null) {
       baseTimestamp = timestamp;
-      startDate = new Date(timestamp * 1000);
+      startDate = new Date(timestamp); // timestamp is already in milliseconds
     }
     
-    // Convert to relative time in ms
-    const t = (timestamp - baseTimestamp) * 1000;
+    // Convert to relative time in ms (timestamp is already in milliseconds)
+    const t = timestamp - baseTimestamp;
     
     // Convert speed
     const speedMps = speedMph * 0.44704;
