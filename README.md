@@ -3,7 +3,7 @@
 **Open source motorsport data acquisition and analytics**
 
 🌐 **Live Demo:** [HackTheTrack.net](https://hackthetrack.net)  
-🔧 **Hardware Project:** [DovesDataLogger on GitHub](https://github.com/DovesDataLogger)
+🔧 **Hardware Project:** [DovesDataLogger on GitHub](https://github.com/TheAngryRaven/DovesDataLogger)
 
 ---
 
@@ -19,7 +19,7 @@ This project is **100% open source**. The entire codebase—every feature, every
 
 - **Single file processing on HackTheTrack.net is always free**—no download or account required
 - **Self-hosting is always an option**—clone this repo and run it yourself
-- The only potential future paid feature: optional cloud storage for users who *want* hosted data retention on my infrastructure
+- The only potential future paid feature: optional cloud storage for users who *want* hosted data retention on *my* infrastructure
 
 ---
 
@@ -107,9 +107,3 @@ src/
 ├── pages/           # Route pages
 └── types/           # TypeScript definitions
 ```
-
----
-
-## License
-
-See [LICENSE](./LICENSE) for details.
