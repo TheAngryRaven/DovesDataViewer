@@ -3,6 +3,7 @@ import { Upload, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
+import { DataloggerDownload } from "./DataloggerDownload";
 
 interface FileImportProps {
   onDataLoaded: (data: ParsedData) => void;
@@ -73,21 +74,25 @@ export function FileImport({ onDataLoaded }: FileImportProps) {
         </p>
       </div>
 
-      <label>
-        <input
-          type="file"
-          accept=".csv,.nmea,.txt,.ubx,.vbo,.dove"
-          onChange={handleFileChange}
-          className="hidden"
-          disabled={isLoading}
-        />
-        <Button variant="outline" disabled={isLoading} asChild>
-          <span className="cursor-pointer">
-            <FileText className="w-4 h-4 mr-2" />
-            Browse Files
-          </span>
-        </Button>
-      </label>
+      <div className="flex flex-wrap gap-2 justify-center">
+        <label>
+          <input
+            type="file"
+            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove"
+            onChange={handleFileChange}
+            className="hidden"
+            disabled={isLoading}
+          />
+          <Button variant="outline" disabled={isLoading} asChild>
+            <span className="cursor-pointer">
+              <FileText className="w-4 h-4 mr-2" />
+              Browse Files
+            </span>
+          </Button>
+        </label>
+        
+        <DataloggerDownload onDataLoaded={onDataLoaded} />
+      </div>
 
       {fileName && !error && <p className="text-sm text-muted-foreground font-mono">Loaded: {fileName}</p>}
 
