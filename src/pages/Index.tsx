@@ -8,6 +8,7 @@ import { LapTable } from "@/components/LapTable";
 import { LapSummaryWidget } from "@/components/LapSummaryWidget";
 import { ResizableSplit } from "@/components/ResizableSplit";
 import { RangeSlider } from "@/components/RangeSlider";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -298,7 +299,9 @@ export default function Index() {
   // No data loaded - show import UI
   if (!data) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <>
+        <InstallPrompt />
+        <div className="min-h-screen bg-background flex flex-col">
         <header className="border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <Gauge className="w-8 h-8 text-primary" />
@@ -376,6 +379,7 @@ export default function Index() {
           </div>
         </main>
       </div>
+      </>
     );
   }
 
@@ -547,6 +551,7 @@ export default function Index() {
           }
         />
       </main>
+      <InstallPrompt />
     </div>
   );
 }
