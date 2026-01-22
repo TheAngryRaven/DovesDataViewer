@@ -3,9 +3,10 @@ import L from 'leaflet';
 import { GpsSample, Course, courseHasSectors } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Moon, Satellite, Square } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 type MapStyle = 'dark' | 'satellite' | 'none';
@@ -138,6 +139,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
+  const isOnline = useOnlineStatus();
 
   // Compute speed events from full session samples for stable stats
   const speedEventsForStats = useMemo(() => {
@@ -451,6 +453,16 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
             </div>
           )}
         </div>
+        
+        {/* Offline indicator */}
+        {!isOnline && (
+          <div className="border-t border-border pt-2 mt-2">
+            <div className="flex items-center gap-1.5 text-xs text-amber-500">
+              <WifiOff className="w-3 h-3" />
+              <span>maps offline!</span>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Speed legend */}
