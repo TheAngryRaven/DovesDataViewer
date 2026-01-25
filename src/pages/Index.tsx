@@ -9,20 +9,23 @@ import { LapSummaryWidget } from "@/components/LapSummaryWidget";
 import { ResizableSplit } from "@/components/ResizableSplit";
 import { RangeSlider } from "@/components/RangeSlider";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { SettingsModal } from "@/components/SettingsModal";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { ParsedData, Lap, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
 import { calculateLaps } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
 import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
 import { loadTracks } from "@/lib/trackStorage";
 import { findSpeedEvents } from "@/lib/speedEvents";
+import { useSettings } from "@/hooks/useSettings";
 
 type TopPanelView = "raceline" | "laptable";
 
 export default function Index() {
+  const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
+  const useKph = settings.useKph;
+  
   const [data, setData] = useState<ParsedData | null>(null);
   const [selection, setSelection] = useState<TrackCourseSelection | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -32,7 +35,6 @@ export default function Index() {
   const [selectedLapNumber, setSelectedLapNumber] = useState<number | null>(null);
   const [referenceLapNumber, setReferenceLapNumber] = useState<number | null>(null);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
-  const [useKph, setUseKph] = useState(false);
   // Range selection state (indices within filteredSamples)
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
 
@@ -49,7 +51,13 @@ export default function Index() {
       const text = await response.text();
       const parsedData = parseDatalog(text);
       setData(parsedData);
-      setFieldMappings(parsedData.fieldMappings);
+      // Apply default hidden fields from settings
+      setFieldMappings(
+        parsedData.fieldMappings.map((f) => ({
+          ...f,
+          enabled: f.enabled && !isFieldHiddenByDefault(f.name.toLowerCase()),
+        }))
+      );
       setCurrentIndex(0);
 
       if (okcTrack && okcCourse) {
@@ -74,7 +82,7 @@ export default function Index() {
     } finally {
       setIsLoadingSample(false);
     }
-  }, []);
+  }, [isFieldHiddenByDefault]);
 
   // Filter samples to selected lap
   const filteredSamples = useMemo((): GpsSample[] => {
@@ -220,7 +228,13 @@ export default function Index() {
   const handleDataLoaded = useCallback(
     (parsedData: ParsedData) => {
       setData(parsedData);
-      setFieldMappings(parsedData.fieldMappings);
+      // Apply default hidden fields from settings
+      setFieldMappings(
+        parsedData.fieldMappings.map((f) => ({
+          ...f,
+          enabled: f.enabled && !isFieldHiddenByDefault(f.name.toLowerCase()),
+        }))
+      );
       setCurrentIndex(0);
 
       // Calculate laps if course is selected
@@ -229,7 +243,7 @@ export default function Index() {
         setLaps(computedLaps);
       }
     },
-    [selectedCourse],
+    [selectedCourse, isFieldHiddenByDefault],
   );
 
   const handleSelectionChange = useCallback(
@@ -392,17 +406,7 @@ export default function Index() {
           <span className="font-semibold text-foreground">Dove's DataViewer</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="speed-unit" className="text-xs text-muted-foreground">
-              MPH
-            </Label>
-            <Switch id="speed-unit" checked={useKph} onCheckedChange={setUseKph} />
-            <Label htmlFor="speed-unit" className="text-xs text-muted-foreground">
-              KPH
-            </Label>
-          </div>
-
+        <div className="flex items-center gap-2">
           <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact />
 
           {laps.length > 0 && (
@@ -421,6 +425,11 @@ export default function Index() {
             </Select>
           )}
 
+          <SettingsModal
+            settings={settings}
+            onSettingsChange={setSettings}
+            onToggleFieldDefault={toggleFieldDefault}
+          />
 
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setData(null)}>
             <FolderOpen className="w-4 h-4" />
