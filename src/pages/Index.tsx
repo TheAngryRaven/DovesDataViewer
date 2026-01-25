@@ -55,7 +55,7 @@ export default function Index() {
       setFieldMappings(
         parsedData.fieldMappings.map((f) => ({
           ...f,
-          enabled: f.enabled && !isFieldHiddenByDefault(f.name.toLowerCase()),
+          enabled: f.enabled && !isFieldHiddenByDefault(f.name),
         }))
       );
       setCurrentIndex(0);
@@ -232,7 +232,7 @@ export default function Index() {
       setFieldMappings(
         parsedData.fieldMappings.map((f) => ({
           ...f,
-          enabled: f.enabled && !isFieldHiddenByDefault(f.name.toLowerCase()),
+          enabled: f.enabled && !isFieldHiddenByDefault(f.name),
         }))
       );
       setCurrentIndex(0);

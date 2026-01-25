@@ -12,25 +12,59 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "@/hooks/useSettings";
 
-// Known telemetry fields that can be configured
-const CONFIGURABLE_FIELDS = [
-  { name: "altitude", label: "Altitude", description: "GPS altitude data" },
-  { name: "sats", label: "Satellites", description: "Number of GPS satellites" },
-  { name: "hdop", label: "HDOP", description: "Horizontal dilution of precision" },
-  { name: "lat_g", label: "Lateral G", description: "Lateral acceleration" },
-  { name: "lon_g", label: "Longitudinal G", description: "Longitudinal acceleration" },
-  { name: "pace", label: "Pace", description: "Time delta vs reference lap" },
-  { name: "rpm", label: "RPM", description: "Engine revolutions per minute" },
-  { name: "water_temp", label: "Water Temp", description: "Coolant temperature" },
-  { name: "egt", label: "EGT", description: "Exhaust gas temperature" },
-  { name: "throttle", label: "Throttle", description: "Throttle position" },
-  { name: "brake", label: "Brake", description: "Brake pressure/position" },
+// Field categories for organization
+interface FieldConfig {
+  names: string[]; // All possible field names from different parsers (first is primary)
+  label: string;
+  description: string;
+}
+
+interface FieldCategory {
+  category: string;
+  description: string;
+  fields: FieldConfig[];
+}
+
+const FIELD_CATEGORIES: FieldCategory[] = [
+  {
+    category: "GPS Data",
+    description: "Data from GPS receiver",
+    fields: [
+      { names: ["Altitude (m)", "Altitude"], label: "Altitude", description: "GPS altitude" },
+      { names: ["Satellites"], label: "Satellites", description: "Number of GPS satellites" },
+      { names: ["HDOP"], label: "HDOP", description: "Horizontal dilution of precision" },
+    ],
+  },
+  {
+    category: "Computed",
+    description: "Calculated from GPS data",
+    fields: [
+      { names: ["Lat G", "Lat G (Native)"], label: "Lateral G", description: "Lateral acceleration" },
+      { names: ["Lon G", "Lon G (Native)"], label: "Longitudinal G", description: "Longitudinal acceleration" },
+    ],
+  },
+  {
+    category: "Sensors",
+    description: "External sensor data",
+    fields: [
+      { names: ["RPM"], label: "RPM", description: "Engine revolutions per minute" },
+      { names: ["Water Temp"], label: "Water Temp", description: "Coolant temperature" },
+      { names: ["EGT"], label: "EGT", description: "Exhaust gas temperature" },
+      { names: ["Throttle"], label: "Throttle", description: "Throttle position" },
+      { names: ["Brake"], label: "Brake", description: "Brake pressure/position" },
+    ],
+  },
 ];
+
+// Check if any of the field's names are in the hidden list
+function isFieldHidden(fieldNames: string[], hiddenFields: string[]): boolean {
+  return fieldNames.some(name => hiddenFields.includes(name));
+}
 
 interface SettingsModalProps {
   settings: AppSettings;
   onSettingsChange: (updates: Partial<AppSettings>) => void;
-  onToggleFieldDefault: (fieldName: string) => void;
+  onToggleFieldDefault: (fieldNames: string | string[]) => void;
 }
 
 export function SettingsModal({
@@ -83,7 +117,7 @@ export function SettingsModal({
           <Separator />
 
           {/* Default Field Visibility */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-muted-foreground" />
               <h3 className="font-medium">Default Field Visibility</h3>
@@ -91,37 +125,49 @@ export function SettingsModal({
             <p className="text-xs text-muted-foreground pl-6">
               Choose which data fields are visible by default when loading a file. Hidden fields can still be enabled manually.
             </p>
-            <div className="space-y-2 pl-6">
-              {CONFIGURABLE_FIELDS.map((field) => {
-                const isHidden = settings.defaultHiddenFields.includes(field.name);
-                return (
-                  <button
-                    key={field.name}
-                    onClick={() => onToggleFieldDefault(field.name)}
-                    className={`w-full flex items-center justify-between p-2 rounded-md transition-colors ${
-                      isHidden
-                        ? "bg-muted/50 text-muted-foreground"
-                        : "bg-primary/10 text-foreground"
-                    } hover:bg-muted`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {isHidden ? (
-                        <EyeOff className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="w-4 h-4 text-primary" />
-                      )}
-                      <div className="text-left">
-                        <div className="text-sm font-medium">{field.label}</div>
-                        <div className="text-xs text-muted-foreground">{field.description}</div>
-                      </div>
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded ${isHidden ? "bg-muted text-muted-foreground" : "bg-primary/20 text-primary"}`}>
-                      {isHidden ? "Hidden" : "Visible"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            
+            {FIELD_CATEGORIES.map((category) => (
+              <div key={category.category} className="space-y-2 pl-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {category.category}
+                  </span>
+                  <span className="text-xs text-muted-foreground/60">— {category.description}</span>
+                </div>
+                <div className="space-y-1">
+                  {category.fields.map((field) => {
+                    const isHidden = isFieldHidden(field.names, settings.defaultHiddenFields);
+                    const primaryName = field.names[0];
+                    return (
+                      <button
+                        key={primaryName}
+                        onClick={() => onToggleFieldDefault(field.names)}
+                        className={`w-full flex items-center justify-between p-2 rounded-md transition-colors ${
+                          isHidden
+                            ? "bg-muted/50 text-muted-foreground"
+                            : "bg-primary/10 text-foreground"
+                        } hover:bg-muted`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {isHidden ? (
+                            <EyeOff className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-primary" />
+                          )}
+                          <div className="text-left">
+                            <div className="text-sm font-medium">{field.label}</div>
+                            <div className="text-xs text-muted-foreground">{field.description}</div>
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded ${isHidden ? "bg-muted text-muted-foreground" : "bg-primary/20 text-primary"}`}>
+                          {isHidden ? "Hidden" : "Visible"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </DialogContent>
