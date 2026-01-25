@@ -421,21 +421,6 @@ export default function Index() {
             </Select>
           )}
 
-          {visibleSamples[currentIndex] && (
-            <div className="flex items-center gap-4 text-sm font-mono bg-muted/50 px-3 py-1.5 rounded">
-              <span className="text-racing-telemetrySpeed">
-                {getCurrentSpeed(visibleSamples[currentIndex]).toFixed(1)} {speedUnit}
-              </span>
-              {fieldMappings
-                .filter((f) => f.enabled)
-                .slice(0, 2)
-                .map((field) => (
-                  <span key={field.name} className="text-muted-foreground">
-                    {field.name}: {(visibleSamples[currentIndex].extraFields[field.name] ?? 0).toFixed(1)}
-                  </span>
-                ))}
-            </div>
-          )}
 
           <Button variant="outline" size="sm" onClick={() => setData(null)}>
             <Settings className="w-4 h-4 mr-2" />
