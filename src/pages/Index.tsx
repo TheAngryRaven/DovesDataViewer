@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Gauge, Map, ListOrdered, Settings, Play, Loader2, Github } from "lucide-react";
+import { Gauge, Map, ListOrdered, FolderOpen, Play, Loader2, Github } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { TrackEditor } from "@/components/TrackEditor";
 import { RaceLineView } from "@/components/RaceLineView";
@@ -422,9 +422,8 @@ export default function Index() {
           )}
 
 
-          <Button variant="outline" size="sm" onClick={() => setData(null)}>
-            <Settings className="w-4 h-4 mr-2" />
-            New File
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setData(null)}>
+            <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
       </header>
