@@ -38,15 +38,24 @@ export function useSettings() {
     setSettingsState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  const toggleFieldDefault = useCallback((fieldName: string) => {
+  const toggleFieldDefault = useCallback((fieldNames: string | string[]) => {
+    const names = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
     setSettingsState((prev) => {
-      const hidden = prev.defaultHiddenFields.includes(fieldName);
-      return {
-        ...prev,
-        defaultHiddenFields: hidden
-          ? prev.defaultHiddenFields.filter((f) => f !== fieldName)
-          : [...prev.defaultHiddenFields, fieldName],
-      };
+      // Check if any of the names are already hidden
+      const isHidden = names.some(name => prev.defaultHiddenFields.includes(name));
+      if (isHidden) {
+        // Remove all matching names
+        return {
+          ...prev,
+          defaultHiddenFields: prev.defaultHiddenFields.filter((f) => !names.includes(f)),
+        };
+      } else {
+        // Add all names
+        return {
+          ...prev,
+          defaultHiddenFields: [...prev.defaultHiddenFields, ...names],
+        };
+      }
     });
   }, []);
 
