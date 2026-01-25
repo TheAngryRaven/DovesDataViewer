@@ -15,11 +15,14 @@ import { AppSettings } from "@/hooks/useSettings";
 // Known telemetry fields that can be configured
 const CONFIGURABLE_FIELDS = [
   { name: "altitude", label: "Altitude", description: "GPS altitude data" },
+  { name: "sats", label: "Satellites", description: "Number of GPS satellites" },
+  { name: "hdop", label: "HDOP", description: "Horizontal dilution of precision" },
+  { name: "lat_g", label: "Lateral G", description: "Lateral acceleration" },
+  { name: "lon_g", label: "Longitudinal G", description: "Longitudinal acceleration" },
   { name: "pace", label: "Pace", description: "Time delta vs reference lap" },
   { name: "rpm", label: "RPM", description: "Engine revolutions per minute" },
   { name: "water_temp", label: "Water Temp", description: "Coolant temperature" },
   { name: "egt", label: "EGT", description: "Exhaust gas temperature" },
-  { name: "oil_temp", label: "Oil Temp", description: "Oil temperature" },
   { name: "throttle", label: "Throttle", description: "Throttle position" },
   { name: "brake", label: "Brake", description: "Brake pressure/position" },
 ];
