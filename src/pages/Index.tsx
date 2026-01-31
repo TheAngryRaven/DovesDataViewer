@@ -102,6 +102,18 @@ export default function Index() {
     }
   }, [filteredSamples.length, selectedLapNumber]);
 
+  // Sync field visibility when settings change (real-time toggle)
+  useEffect(() => {
+    if (fieldMappings.length === 0) return;
+    
+    setFieldMappings((prev) =>
+      prev.map((f) => ({
+        ...f,
+        enabled: !isFieldHiddenByDefault(f.name),
+      }))
+    );
+  }, [settings.defaultHiddenFields, isFieldHiddenByDefault]);
+
   // Visible samples based on range selection
   const visibleSamples = useMemo((): GpsSample[] => {
     if (filteredSamples.length === 0) return [];
