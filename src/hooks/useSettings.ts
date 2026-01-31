@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { isFieldHiddenByCanonical, CanonicalFieldId } from "@/lib/fieldResolver";
 
 export interface AppSettings {
   useKph: boolean;
-  defaultHiddenFields: string[]; // Field names to hide by default
+  defaultHiddenFields: CanonicalFieldId[]; // Canonical field IDs to hide by default
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -38,29 +39,26 @@ export function useSettings() {
     setSettingsState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  const toggleFieldDefault = useCallback((fieldNames: string | string[]) => {
-    const names = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
+  const toggleFieldDefault = useCallback((canonicalId: CanonicalFieldId) => {
     setSettingsState((prev) => {
-      // Check if any of the names are already hidden
-      const isHidden = names.some(name => prev.defaultHiddenFields.includes(name));
+      const isHidden = prev.defaultHiddenFields.includes(canonicalId);
       if (isHidden) {
-        // Remove all matching names
         return {
           ...prev,
-          defaultHiddenFields: prev.defaultHiddenFields.filter((f) => !names.includes(f)),
+          defaultHiddenFields: prev.defaultHiddenFields.filter((f) => f !== canonicalId),
         };
       } else {
-        // Add all names
         return {
           ...prev,
-          defaultHiddenFields: [...prev.defaultHiddenFields, ...names],
+          defaultHiddenFields: [...prev.defaultHiddenFields, canonicalId],
         };
       }
     });
   }, []);
 
+  // Check if a field name should be hidden based on canonical mapping
   const isFieldHiddenByDefault = useCallback(
-    (fieldName: string) => settings.defaultHiddenFields.includes(fieldName),
+    (fieldName: string) => isFieldHiddenByCanonical(fieldName, settings.defaultHiddenFields),
     [settings.defaultHiddenFields]
   );
 

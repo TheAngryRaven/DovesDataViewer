@@ -11,60 +11,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "@/hooks/useSettings";
-
-// Field categories for organization
-interface FieldConfig {
-  names: string[]; // All possible field names from different parsers (first is primary)
-  label: string;
-  description: string;
-}
-
-interface FieldCategory {
-  category: string;
-  description: string;
-  fields: FieldConfig[];
-}
-
-const FIELD_CATEGORIES: FieldCategory[] = [
-  {
-    category: "GPS Data",
-    description: "Data from GPS receiver",
-    fields: [
-      { names: ["Altitude (m)", "Altitude"], label: "Altitude", description: "GPS altitude" },
-      { names: ["Satellites"], label: "Satellites", description: "Number of GPS satellites" },
-      { names: ["HDOP"], label: "HDOP", description: "Horizontal dilution of precision" },
-    ],
-  },
-  {
-    category: "Computed",
-    description: "Calculated from GPS data",
-    fields: [
-      { names: ["Lat G", "Lat G (Native)"], label: "Lateral G", description: "Lateral acceleration" },
-      { names: ["Lon G", "Lon G (Native)"], label: "Longitudinal G", description: "Longitudinal acceleration" },
-    ],
-  },
-  {
-    category: "Sensors",
-    description: "External sensor data",
-    fields: [
-      { names: ["RPM"], label: "RPM", description: "Engine revolutions per minute" },
-      { names: ["Water Temp"], label: "Water Temp", description: "Coolant temperature" },
-      { names: ["EGT"], label: "EGT", description: "Exhaust gas temperature" },
-      { names: ["Throttle"], label: "Throttle", description: "Throttle position" },
-      { names: ["Brake"], label: "Brake", description: "Brake pressure/position" },
-    ],
-  },
-];
-
-// Check if any of the field's names are in the hidden list
-function isFieldHidden(fieldNames: string[], hiddenFields: string[]): boolean {
-  return fieldNames.some(name => hiddenFields.includes(name));
-}
+import { FIELD_CATEGORIES, CanonicalFieldId } from "@/lib/fieldResolver";
 
 interface SettingsModalProps {
   settings: AppSettings;
   onSettingsChange: (updates: Partial<AppSettings>) => void;
-  onToggleFieldDefault: (fieldNames: string | string[]) => void;
+  onToggleFieldDefault: (canonicalId: CanonicalFieldId) => void;
 }
 
 export function SettingsModal({
@@ -136,12 +88,11 @@ export function SettingsModal({
                 </div>
                 <div className="space-y-1">
                   {category.fields.map((field) => {
-                    const isHidden = isFieldHidden(field.names, settings.defaultHiddenFields);
-                    const primaryName = field.names[0];
+                    const isHidden = settings.defaultHiddenFields.includes(field.canonicalId);
                     return (
                       <button
-                        key={primaryName}
-                        onClick={() => onToggleFieldDefault(field.names)}
+                        key={field.canonicalId}
+                        onClick={() => onToggleFieldDefault(field.canonicalId)}
                         className={`w-full flex items-center justify-between p-2 rounded-md transition-colors ${
                           isHidden
                             ? "bg-muted/50 text-muted-foreground"
