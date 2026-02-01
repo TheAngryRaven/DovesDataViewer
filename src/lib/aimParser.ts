@@ -1,4 +1,5 @@
 import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
+import { applyGForceCalculations } from './gforceCalculation';
 
 /**
  * AiM MyChron CSV Parser
@@ -351,30 +352,8 @@ export function parseAimFile(content: string): ParsedData {
   const hasNativeLonG = samples.some(s => 'Lon G' in s.extraFields);
   
   if (!hasNativeLatG || !hasNativeLonG) {
-    // Calculate from GPS speed and heading changes
-    for (let i = 1; i < samples.length - 1; i++) {
-      const prev = samples[i - 1];
-      const curr = samples[i];
-      const next = samples[i + 1];
-      
-      const dt = (next.t - prev.t) / 1000;
-      if (dt <= 0) continue;
-      
-      // Longitudinal G from speed change
-      if (!hasNativeLonG) {
-        const dv = next.speedMps - prev.speedMps;
-        const accel = dv / dt;
-        curr.extraFields['Lon G'] = clamp(accel / 9.81, -3, 3);
-      }
-      
-      // Lateral G from centripetal acceleration
-      if (!hasNativeLatG && curr.heading !== undefined && prev.heading !== undefined) {
-        const headingDelta = normalizeHeadingDelta(curr.heading - prev.heading);
-        const angularVel = (headingDelta * Math.PI / 180) / dt;
-        const latAccel = curr.speedMps * angularVel;
-        curr.extraFields['Lat G'] = clamp(latAccel / 9.81, -3, 3);
-      }
-    }
+    // Use the improved shared G-force calculation
+    applyGForceCalculations(samples, 5);
   }
   
   // Build field mappings from extra fields

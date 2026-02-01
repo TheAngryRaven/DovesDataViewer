@@ -1,4 +1,5 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
+import { applyGForceCalculations } from './gforceCalculation';
 
 // Parse NMEA latitude (ddmm.mmmm format)
 function parseNmeaLat(value: string, dir: string): number {
@@ -181,66 +182,6 @@ function normalizeHeadingDelta(h2: number | undefined, h1: number | undefined): 
 // Clamp value to range
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
-}
-
-// Calculate lateral and longitudinal G-forces from GPS data
-// Lateral G: centripetal acceleration = v * (dHeading/dt)
-// Longitudinal G: rate of change of speed = dv/dt
-function calculateAccelerations(samples: GpsSample[]): void {
-  const GRAVITY = 9.80665; // m/s²
-  const MAX_G = 3.0; // reasonable max for karts
-  const MIN_DT = 0.05; // minimum time delta in seconds
-  
-  for (let i = 0; i < samples.length; i++) {
-    // Use central difference for smoother derivatives
-    const prevIdx = Math.max(0, i - 1);
-    const nextIdx = Math.min(samples.length - 1, i + 1);
-    
-    const prev = samples[prevIdx];
-    const curr = samples[i];
-    const next = samples[nextIdx];
-    
-    const dt = (next.t - prev.t) / 1000; // seconds
-    
-    if (dt < MIN_DT) {
-      // Not enough time delta, set to 0
-      curr.extraFields['Lat G'] = 0;
-      curr.extraFields['Lon G'] = 0;
-      continue;
-    }
-    
-    // Longitudinal G: rate of change of speed
-    const dv = next.speedMps - prev.speedMps;
-    const lonG = (dv / dt) / GRAVITY;
-    
-    // Lateral G: v * (dHeading/dt)
-    // Handle heading wrap-around (359° → 1° = +2° not -358°)
-    const dHeading = normalizeHeadingDelta(next.heading, prev.heading);
-    const yawRate = (dHeading * Math.PI / 180) / dt; // rad/s
-    const latG = (curr.speedMps * yawRate) / GRAVITY;
-    
-    // Clamp to reasonable values
-    curr.extraFields['Lat G'] = clamp(latG, -MAX_G, MAX_G);
-    curr.extraFields['Lon G'] = clamp(lonG, -MAX_G, MAX_G);
-  }
-}
-
-// Apply simple moving average smoothing to a field
-function smoothField(samples: GpsSample[], fieldName: string, windowSize: number = 3): void {
-  const halfWindow = Math.floor(windowSize / 2);
-  const values = samples.map(s => s.extraFields[fieldName] ?? 0);
-  
-  for (let i = 0; i < samples.length; i++) {
-    let sum = 0;
-    let count = 0;
-    for (let j = i - halfWindow; j <= i + halfWindow; j++) {
-      if (j >= 0 && j < samples.length) {
-        sum += values[j];
-        count++;
-      }
-    }
-    samples[i].extraFields[fieldName] = sum / count;
-  }
 }
 
 export function parseDatalog(content: string): ParsedData {
@@ -427,11 +368,7 @@ export function parseDatalog(content: string): ParsedData {
   }
 
   // Calculate lateral and longitudinal G-forces from GPS heading and speed
-  calculateAccelerations(samples);
-  
-  // Apply smoothing to G-force values (reduces noise from GPS jitter)
-  smoothField(samples, 'Lat G', 5);
-  smoothField(samples, 'Lon G', 5);
+  applyGForceCalculations(samples, 5);
   
   // Add G-force field mappings
   const gForceFields: FieldMapping[] = [
