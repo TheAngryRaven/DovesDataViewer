@@ -501,7 +501,7 @@ export function TelemetryChart({
   };
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div className="flex w-full flex-col h-full min-h-0 bg-card">
       {/* Legend */}
       <div className="flex items-center gap-4 px-4 py-2 border-b border-border flex-wrap">
         <div className="flex items-center gap-2">
@@ -555,7 +555,7 @@ export function TelemetryChart({
       {/* Chart */}
       <div 
         ref={containerRef}
-        className="flex-1 cursor-crosshair"
+        className="flex-1 min-h-0 w-full overflow-hidden cursor-crosshair"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
