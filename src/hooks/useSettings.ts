@@ -3,6 +3,8 @@ import { isFieldHiddenByCanonical, CanonicalFieldId } from "@/lib/fieldResolver"
 
 export interface AppSettings {
   useKph: boolean;
+  gForceSmoothing: boolean;
+  gForceSmoothingStrength: number; // 0-100, maps to window size
   defaultHiddenFields: CanonicalFieldId[]; // Canonical field IDs to hide by default
 }
 
@@ -10,6 +12,8 @@ const SETTINGS_KEY = "dove-dataviewer-settings";
 
 const defaultSettings: AppSettings = {
   useKph: false,
+  gForceSmoothing: true,
+  gForceSmoothingStrength: 50,
   defaultHiddenFields: [],
 };
 
