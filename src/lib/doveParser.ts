@@ -1,4 +1,5 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
+import { applyGForceCalculations } from './gforceCalculation';
 
 /**
  * Dove CSV Parser
@@ -88,59 +89,6 @@ function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number
   return bearing;
 }
 
-// Calculate G-forces from GPS data
-function calculateAccelerations(samples: GpsSample[]): void {
-  const GRAVITY = 9.80665;
-  const MAX_G = 3.0;
-  const MIN_DT = 0.05;
-  
-  for (let i = 0; i < samples.length; i++) {
-    const prevIdx = Math.max(0, i - 1);
-    const nextIdx = Math.min(samples.length - 1, i + 1);
-    
-    const prev = samples[prevIdx];
-    const curr = samples[i];
-    const next = samples[nextIdx];
-    
-    const dt = (next.t - prev.t) / 1000;
-    
-    if (dt < MIN_DT) {
-      curr.extraFields['Lat G'] = 0;
-      curr.extraFields['Lon G'] = 0;
-      continue;
-    }
-    
-    // Longitudinal G from speed change
-    const dv = next.speedMps - prev.speedMps;
-    const lonG = (dv / dt) / GRAVITY;
-    
-    // Lateral G from heading change
-    const dHeading = normalizeHeadingDelta(next.heading, prev.heading);
-    const yawRate = (dHeading * Math.PI / 180) / dt;
-    const latG = (curr.speedMps * yawRate) / GRAVITY;
-    
-    curr.extraFields['Lat G'] = clamp(latG, -MAX_G, MAX_G);
-    curr.extraFields['Lon G'] = clamp(lonG, -MAX_G, MAX_G);
-  }
-}
-
-// Apply moving average smoothing
-function smoothField(samples: GpsSample[], fieldName: string, windowSize: number = 3): void {
-  const halfWindow = Math.floor(windowSize / 2);
-  const values = samples.map(s => s.extraFields[fieldName] ?? 0);
-  
-  for (let i = 0; i < samples.length; i++) {
-    let sum = 0;
-    let count = 0;
-    for (let j = i - halfWindow; j <= i + halfWindow; j++) {
-      if (j >= 0 && j < samples.length) {
-        sum += values[j];
-        count++;
-      }
-    }
-    samples[i].extraFields[fieldName] = sum / count;
-  }
-}
 
 // Convert column name to display name
 function toDisplayName(columnName: string): string {
@@ -298,9 +246,7 @@ export function parseDoveFile(content: string): ParsedData {
   }
   
   // Calculate GPS-derived G-forces
-  calculateAccelerations(samples);
-  smoothField(samples, 'Lat G', 5);
-  smoothField(samples, 'Lon G', 5);
+  applyGForceCalculations(samples, 5);
   
   // Build field mappings
   const fieldMappings: FieldMapping[] = [
