@@ -1,4 +1,4 @@
-import { Settings, Eye, EyeOff, Gauge } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "@/hooks/useSettings";
@@ -64,6 +65,46 @@ export function SettingsModal({
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* G-Force Smoothing */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">G-Force Smoothing</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <Label htmlFor="settings-gforce-smoothing" className="text-sm text-muted-foreground">
+                Apply noise reduction to calculated G-forces
+              </Label>
+              <Switch
+                id="settings-gforce-smoothing"
+                checked={settings.gForceSmoothing}
+                onCheckedChange={(checked) => onSettingsChange({ gForceSmoothing: checked })}
+              />
+            </div>
+            {settings.gForceSmoothing && (
+              <div className="pl-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Smoothing Strength</Label>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {settings.gForceSmoothingStrength}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">None</span>
+                  <Slider
+                    value={[settings.gForceSmoothingStrength]}
+                    onValueChange={([value]) => onSettingsChange({ gForceSmoothingStrength: value })}
+                    min={0}
+                    max={100}
+                    step={5}
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground">Max</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <Separator />
