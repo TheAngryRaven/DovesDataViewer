@@ -566,8 +566,7 @@ export function TelemetryChart({
       >
         <canvas
           ref={canvasRef}
-          style={{ width: dimensions.width, height: dimensions.height }}
-          className="block"
+          className="block w-full h-full"
         />
       </div>
     </div>
