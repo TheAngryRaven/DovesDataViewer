@@ -40,7 +40,7 @@ export function SettingsModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0">
+        <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0 pr-3 scrollbar-thin">
           {/* Speed Unit */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
