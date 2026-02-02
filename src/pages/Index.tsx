@@ -530,6 +530,8 @@ export default function Index() {
                   paceData={paceData.slice(visibleRange[0], visibleRange[1] + 1)}
                   referenceSpeedData={referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1)}
                   hasReference={referenceLapNumber !== null}
+                  gForceSmoothing={settings.gForceSmoothing}
+                  gForceSmoothingStrength={settings.gForceSmoothingStrength}
                 />
               </div>
               {filteredSamples.length > 0 && (
