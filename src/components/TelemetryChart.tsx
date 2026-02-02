@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { GpsSample, FieldMapping } from '@/types/racing';
 
 interface TelemetryChartProps {
@@ -11,6 +11,8 @@ interface TelemetryChartProps {
   paceData?: (number | null)[];
   referenceSpeedData?: (number | null)[];
   hasReference?: boolean;
+  gForceSmoothing?: boolean;
+  gForceSmoothingStrength?: number;
 }
 
 const COLORS = [
@@ -27,6 +29,36 @@ const COLORS = [
 const REFERENCE_COLOR = 'hsl(220, 10%, 55%)'; // Grey for reference
 const PACE_COLOR = 'hsl(35, 90%, 55%)'; // Orange-gold for pace
 
+// Apply moving average smoothing to an array of values
+function applySmoothingToValues(values: (number | undefined)[], windowSize: number): (number | undefined)[] {
+  if (windowSize <= 1) return values;
+  
+  const halfWindow = Math.floor(windowSize / 2);
+  const result: (number | undefined)[] = new Array(values.length);
+  
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] === undefined) {
+      result[i] = undefined;
+      continue;
+    }
+    
+    let sum = 0;
+    let count = 0;
+    for (let j = i - halfWindow; j <= i + halfWindow; j++) {
+      if (j >= 0 && j < values.length && values[j] !== undefined) {
+        sum += values[j]!;
+        count++;
+      }
+    }
+    result[i] = count > 0 ? sum / count : values[i];
+  }
+  
+  return result;
+}
+
+// G-force field names that should have smoothing applied
+const G_FORCE_FIELDS = ['Lat G', 'Lon G'];
+
 export function TelemetryChart({ 
   samples, 
   fieldMappings, 
@@ -36,7 +68,9 @@ export function TelemetryChart({
   useKph = false,
   paceData = [],
   referenceSpeedData = [],
-  hasReference = false
+  hasReference = false,
+  gForceSmoothing = true,
+  gForceSmoothingStrength = 50
 }: TelemetryChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,6 +78,25 @@ export function TelemetryChart({
   const [isDragging, setIsDragging] = useState(false);
   const [showReferenceSpeed, setShowReferenceSpeed] = useState(true);
   const [showPace, setShowPace] = useState(true);
+
+  // Calculate smoothing window size from strength (0-100 -> 1-15 samples)
+  const smoothingWindowSize = useMemo(() => {
+    if (!gForceSmoothing) return 1;
+    // Map 0-100 to window size 1-15 (odd numbers work best for symmetric smoothing)
+    return Math.max(1, Math.floor(1 + (gForceSmoothingStrength / 100) * 14));
+  }, [gForceSmoothing, gForceSmoothingStrength]);
+
+  // Pre-compute smoothed G-force values
+  const smoothedGForceData = useMemo(() => {
+    const result: Record<string, (number | undefined)[]> = {};
+    
+    for (const fieldName of G_FORCE_FIELDS) {
+      const rawValues = samples.map(s => s.extraFields[fieldName]);
+      result[fieldName] = applySmoothingToValues(rawValues, smoothingWindowSize);
+    }
+    
+    return result;
+  }, [samples, smoothingWindowSize]);
 
   const speedUnit = useKph ? 'KPH' : 'MPH';
   const getSpeed = (sample: GpsSample) => useKph ? sample.speedKph : sample.speedMph;
@@ -237,14 +290,18 @@ export function TelemetryChart({
 
     // Draw extra fields
     enabledFields.forEach((field, fieldIndex) => {
-      const values = samples
-        .map(s => s.extraFields[field.name])
-        .filter((v): v is number => v !== undefined);
+      // Use smoothed data for G-force fields
+      const isGForceField = G_FORCE_FIELDS.includes(field.name);
+      const rawValues = samples.map(s => s.extraFields[field.name]);
+      const values = isGForceField 
+        ? smoothedGForceData[field.name] || rawValues
+        : rawValues;
       
-      if (values.length === 0) return;
+      const numericValues = values.filter((v): v is number => v !== undefined);
+      if (numericValues.length === 0) return;
       
-      const maxVal = Math.max(...values);
-      const minVal = Math.min(...values);
+      const maxVal = Math.max(...numericValues);
+      const minVal = Math.min(...numericValues);
       const range = maxVal - minVal || 1;
 
       // Keep colors stable regardless of enabled/disabled state
@@ -258,7 +315,7 @@ export function TelemetryChart({
       let isDrawing = false;
       
       for (let i = 0; i < samples.length; i++) {
-        const val = samples[i].extraFields[field.name];
+        const val = values[i];
         
         if (val === undefined) {
           isDrawing = false;
@@ -447,7 +504,12 @@ export function TelemetryChart({
       }
       
       enabledFields.forEach((field) => {
-        const val = samples[currentIndex].extraFields[field.name];
+        // Use smoothed value for G-force fields in tooltip too
+        const isGForceField = G_FORCE_FIELDS.includes(field.name);
+        const val = isGForceField 
+          ? smoothedGForceData[field.name]?.[currentIndex]
+          : samples[currentIndex].extraFields[field.name];
+        
         if (val !== undefined) {
           const mappingIndex = fieldMappings.findIndex(f => f.name === field.name);
           const colorIndex = ((mappingIndex === -1 ? 0 : mappingIndex) + 1) % COLORS.length;
@@ -458,7 +520,7 @@ export function TelemetryChart({
       });
     }
 
-  }, [samples, currentIndex, dimensions, enabledFields, useKph, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace]);
+  }, [samples, currentIndex, dimensions, enabledFields, useKph, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace, smoothedGForceData]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {
