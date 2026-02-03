@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Gauge, Map, ListOrdered, FolderOpen, Play, Loader2, Github } from "lucide-react";
+import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { TrackEditor } from "@/components/TrackEditor";
 import { RaceLineView } from "@/components/RaceLineView";
@@ -12,6 +12,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData, Lap, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
 import { calculateLaps } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
@@ -19,6 +20,7 @@ import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
 import { loadTracks } from "@/lib/trackStorage";
 import { findSpeedEvents } from "@/lib/speedEvents";
 import { useSettings } from "@/hooks/useSettings";
+import { usePlayback } from "@/hooks/usePlayback";
 
 type TopPanelView = "raceline" | "laptable";
 
@@ -39,6 +41,9 @@ export default function Index() {
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
 
   const selectedCourse: Course | null = selection?.course ?? null;
+
+  // Playback hook - needs to be after visibleSamples is defined, but we use a forward reference pattern
+  // We'll initialize it after visibleSamples is computed
 
   const handleLoadSample = useCallback(async () => {
     setIsLoadingSample(true);
@@ -120,6 +125,14 @@ export default function Index() {
     const [start, end] = visibleRange;
     return filteredSamples.slice(start, end + 1);
   }, [filteredSamples, visibleRange]);
+
+  // Playback hook for animating through data at realistic speed
+  const { isPlaying, toggle: togglePlayback, averageFrameRate } = usePlayback({
+    samples: visibleSamples,
+    currentIndex,
+    onIndexChange: setCurrentIndex,
+    visibleRange,
+  });
 
   // Get reference lap samples
   const referenceSamples = useMemo((): GpsSample[] => {
@@ -419,6 +432,28 @@ export default function Index() {
         </div>
 
         <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-8 w-8" 
+                  onClick={togglePlayback}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isPlaying ? "Pause" : "Play"} ({averageFrameRate ? `${averageFrameRate.toFixed(0)} Hz` : "–"})</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact />
 
           {laps.length > 0 && (
