@@ -646,11 +646,9 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <div className="flex items-center justify-between">
-                <DialogTitle>Add New Course</DialogTitle>
-                <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
-              </div>
+              <DialogTitle>Add New Course</DialogTitle>
             </DialogHeader>
+            <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
             {editorMode === 'manual' ? (
               <CourseForm {...courseFormProps} onSubmit={handleAddCourse} onCancel={() => { setIsAddCourseOpen(false); resetForm(); }} submitLabel="Create Course" />
             ) : (
@@ -679,11 +677,9 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <div className="flex items-center justify-between">
-                <DialogTitle>Add New Track</DialogTitle>
-                <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
-              </div>
+              <DialogTitle>Add New Track</DialogTitle>
             </DialogHeader>
+            <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
             {editorMode === 'manual' ? (
               <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
             ) : (
