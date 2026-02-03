@@ -272,30 +272,247 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorT
   );
 }
 
-function VisualEditor({ startFinishA, startFinishB, sector2, sector3, onDone }: VisualEditorProps) {
+function VisualEditor({ 
+  startFinishA, startFinishB, sector2, sector3, 
+  onStartFinishChange, onSector2Change, onSector3Change, onDone 
+}: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const [activeTool, setActiveTool] = useState<VisualEditorTool>(null);
+  
+  // Pending coordinates while dragging
+  const [pendingStartFinish, setPendingStartFinish] = useState<{ a: GpsPoint; b: GpsPoint } | null>(null);
+  const [pendingSector2, setPendingSector2] = useState<SectorLine | null>(null);
+  const [pendingSector3, setPendingSector3] = useState<SectorLine | null>(null);
+  
+  // Layer refs for markers and active polyline
+  const markersRef = useRef<L.Marker[]>([]);
+  const activeLineRef = useRef<L.Polyline | null>(null);
+  const staticLinesRef = useRef<L.Polyline[]>([]);
 
   // Calculate center from existing points or default to Orlando Kart Center
   const getInitialCenter = (): [number, number] => {
     if (startFinishA && startFinishB) {
       return [(startFinishA.lat + startFinishB.lat) / 2, (startFinishA.lon + startFinishB.lon) / 2];
     }
-    // Default to Orlando Kart Center
     return [28.4120, -81.3797];
   };
 
+  // Get line coordinates for a specific tool
+  const getLineCoords = (tool: VisualEditorTool): { a: GpsPoint; b: GpsPoint } | null => {
+    if (tool === 'startFinish') {
+      if (pendingStartFinish) return pendingStartFinish;
+      if (startFinishA && startFinishB) return { a: startFinishA, b: startFinishB };
+    } else if (tool === 'sector2') {
+      if (pendingSector2) return { a: pendingSector2.a, b: pendingSector2.b };
+      if (sector2) return { a: sector2.a, b: sector2.b };
+    } else if (tool === 'sector3') {
+      if (pendingSector3) return { a: pendingSector3.a, b: pendingSector3.b };
+      if (sector3) return { a: sector3.a, b: sector3.b };
+    }
+    return null;
+  };
+
+  // Clear interactive editing layers
+  const clearEditingLayers = () => {
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+    if (activeLineRef.current) {
+      activeLineRef.current.remove();
+      activeLineRef.current = null;
+    }
+  };
+
+  // Draw static lines (non-active lines, dimmed)
+  const drawStaticLines = (map: L.Map, excludeTool: VisualEditorTool) => {
+    staticLinesRef.current.forEach(l => l.remove());
+    staticLinesRef.current = [];
+
+    const lines: { coords: GpsPoint[]; color: string; isActive: boolean }[] = [];
+
+    // Start/Finish line
+    if (startFinishA && startFinishB) {
+      const isActive = excludeTool === 'startFinish';
+      const coords = pendingStartFinish && isActive 
+        ? [pendingStartFinish.a, pendingStartFinish.b]
+        : [startFinishA, startFinishB];
+      if (!isActive) {
+        lines.push({ coords, color: '#22c55e', isActive });
+      }
+    }
+
+    // Sector 2 line
+    if (sector2) {
+      const isActive = excludeTool === 'sector2';
+      const coords = pendingSector2 && isActive
+        ? [pendingSector2.a, pendingSector2.b]
+        : [sector2.a, sector2.b];
+      if (!isActive) {
+        lines.push({ coords, color: '#a855f7', isActive });
+      }
+    }
+
+    // Sector 3 line
+    if (sector3) {
+      const isActive = excludeTool === 'sector3';
+      const coords = pendingSector3 && isActive
+        ? [pendingSector3.a, pendingSector3.b]
+        : [sector3.a, sector3.b];
+      if (!isActive) {
+        lines.push({ coords, color: '#a855f7', isActive });
+      }
+    }
+
+    lines.forEach(({ coords, color }) => {
+      const polyline = L.polyline(
+        coords.map(p => [p.lat, p.lon] as [number, number]),
+        { color, weight: 2, opacity: 0.5 }
+      ).addTo(map);
+      staticLinesRef.current.push(polyline);
+    });
+  };
+
+  // Create draggable markers and active line for the selected tool
+  const createEditingLayers = (map: L.Map, tool: VisualEditorTool) => {
+    clearEditingLayers();
+    if (!tool) return;
+
+    const lineCoords = getLineCoords(tool);
+    if (!lineCoords) return;
+
+    const color = tool === 'startFinish' ? '#22c55e' : '#a855f7';
+    
+    // Create the active polyline
+    const polyline = L.polyline(
+      [[lineCoords.a.lat, lineCoords.a.lon], [lineCoords.b.lat, lineCoords.b.lon]],
+      { color, weight: 4, opacity: 1 }
+    ).addTo(map);
+    activeLineRef.current = polyline;
+
+    // Create draggable markers
+    const createMarker = (point: GpsPoint, isPointA: boolean) => {
+      const marker = L.marker([point.lat, point.lon], {
+        draggable: true,
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="
+            width: 16px; 
+            height: 16px; 
+            background: ${color}; 
+            border: 3px solid white; 
+            border-radius: 50%; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+          "></div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        }),
+      }).addTo(map);
+
+      marker.on('drag', (e: L.LeafletEvent) => {
+        const latlng = (e.target as L.Marker).getLatLng();
+        const newPoint = { lat: latlng.lat, lon: latlng.lng };
+        
+        // Update polyline in real-time
+        if (activeLineRef.current) {
+          const otherMarker = markersRef.current.find(m => m !== marker);
+          if (otherMarker) {
+            const otherLatLng = otherMarker.getLatLng();
+            activeLineRef.current.setLatLngs([
+              [isPointA ? latlng.lat : otherLatLng.lat, isPointA ? latlng.lng : otherLatLng.lng],
+              [isPointA ? otherLatLng.lat : latlng.lat, isPointA ? otherLatLng.lng : latlng.lng],
+            ]);
+          }
+        }
+      });
+
+      marker.on('dragend', (e: L.LeafletEvent) => {
+        const latlng = (e.target as L.Marker).getLatLng();
+        const newPoint = { lat: latlng.lat, lon: latlng.lng };
+        const otherMarker = markersRef.current.find(m => m !== marker);
+        const otherLatLng = otherMarker?.getLatLng();
+        const otherPoint = otherLatLng ? { lat: otherLatLng.lat, lon: otherLatLng.lng } : null;
+
+        if (!otherPoint) return;
+
+        const newA = isPointA ? newPoint : otherPoint;
+        const newB = isPointA ? otherPoint : newPoint;
+
+        if (tool === 'startFinish') {
+          setPendingStartFinish({ a: newA, b: newB });
+        } else if (tool === 'sector2') {
+          setPendingSector2({ a: newA, b: newB });
+        } else if (tool === 'sector3') {
+          setPendingSector3({ a: newA, b: newB });
+        }
+      });
+
+      return marker;
+    };
+
+    const markerA = createMarker(lineCoords.a, true);
+    const markerB = createMarker(lineCoords.b, false);
+    markersRef.current = [markerA, markerB];
+  };
+
   const handleToolChange = (tool: VisualEditorTool) => {
+    const map = mapRef.current;
+    
+    // If switching away from a tool without clicking Done, discard pending changes
+    if (activeTool && activeTool !== tool) {
+      if (activeTool === 'startFinish') setPendingStartFinish(null);
+      else if (activeTool === 'sector2') setPendingSector2(null);
+      else if (activeTool === 'sector3') setPendingSector3(null);
+    }
+    
     setActiveTool(tool);
-    // Placeholder for future functionality
+
+    if (map && tool) {
+      const lineCoords = getLineCoords(tool);
+      if (lineCoords) {
+        // Center map on the selected line
+        const center: [number, number] = [
+          (lineCoords.a.lat + lineCoords.b.lat) / 2,
+          (lineCoords.a.lon + lineCoords.b.lon) / 2,
+        ];
+        map.setView(center, 18, { animate: true });
+      }
+
+      // Draw layers after a small delay to ensure state is updated
+      setTimeout(() => {
+        drawStaticLines(map, tool);
+        createEditingLayers(map, tool);
+      }, 50);
+    } else if (map && !tool) {
+      // No tool selected, clear editing layers and redraw all static
+      clearEditingLayers();
+      drawStaticLines(map, null);
+    }
   };
 
   const handleDone = () => {
+    // Apply pending changes via callbacks
+    if (activeTool === 'startFinish' && pendingStartFinish && onStartFinishChange) {
+      onStartFinishChange(pendingStartFinish.a, pendingStartFinish.b);
+      setPendingStartFinish(null);
+    } else if (activeTool === 'sector2' && pendingSector2 && onSector2Change) {
+      onSector2Change(pendingSector2);
+      setPendingSector2(null);
+    } else if (activeTool === 'sector3' && pendingSector3 && onSector3Change) {
+      onSector3Change(pendingSector3);
+      setPendingSector3(null);
+    }
+    
+    // Clear editing state
+    clearEditingLayers();
     setActiveTool(null);
-    onDone?.();
+    
+    // Redraw static lines
+    if (mapRef.current) {
+      drawStaticLines(mapRef.current, null);
+    }
   };
 
+  // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -306,7 +523,6 @@ function VisualEditor({ startFinishA, startFinishB, sector2, sector3, onDone }: 
       zoomControl: true,
     });
 
-    // Satellite tile layer (ESRI World Imagery)
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles © Esri',
       maxZoom: 19,
@@ -314,29 +530,12 @@ function VisualEditor({ startFinishA, startFinishB, sector2, sector3, onDone }: 
 
     mapRef.current = map;
 
-    // Draw existing lines if present
-    if (startFinishA && startFinishB) {
-      L.polyline([[startFinishA.lat, startFinishA.lon], [startFinishB.lat, startFinishB.lon]], {
-        color: '#22c55e',
-        weight: 4,
-      }).addTo(map);
-    }
-
-    if (sector2) {
-      L.polyline([[sector2.a.lat, sector2.a.lon], [sector2.b.lat, sector2.b.lon]], {
-        color: '#a855f7',
-        weight: 3,
-      }).addTo(map);
-    }
-
-    if (sector3) {
-      L.polyline([[sector3.a.lat, sector3.a.lon], [sector3.b.lat, sector3.b.lon]], {
-        color: '#a855f7',
-        weight: 3,
-      }).addTo(map);
-    }
+    // Draw initial static lines
+    drawStaticLines(map, null);
 
     return () => {
+      clearEditingLayers();
+      staticLinesRef.current.forEach(l => l.remove());
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -356,6 +555,29 @@ function VisualEditor({ startFinishA, startFinishB, sector2, sector3, onDone }: 
     return () => resizeObserver.disconnect();
   }, []);
 
+  // Update layers when activeTool changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    if (activeTool) {
+      drawStaticLines(mapRef.current, activeTool);
+      createEditingLayers(mapRef.current, activeTool);
+    } else {
+      clearEditingLayers();
+      drawStaticLines(mapRef.current, null);
+    }
+  }, [activeTool, pendingStartFinish, pendingSector2, pendingSector3]);
+
+  const getHelperText = (): string => {
+    if (!activeTool) return '';
+    const lineCoords = getLineCoords(activeTool);
+    if (!lineCoords) {
+      return `No ${activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3'} line defined`;
+    }
+    const toolName = activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3';
+    return `Drag the markers to adjust the ${toolName} line`;
+  };
+
   return (
     <div className="space-y-3">
       <VisualEditorToolbar
@@ -369,7 +591,7 @@ function VisualEditor({ startFinishA, startFinishB, sector2, sector3, onDone }: 
       />
       {activeTool && (
         <p className="text-xs text-muted-foreground text-center">
-          Click on the map to place the {activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3'} line
+          {getHelperText()}
         </p>
       )}
     </div>
@@ -663,14 +885,36 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                         <CourseForm {...courseFormProps} onSubmit={handleUpdateCourse} onCancel={() => { setEditingCourse(null); resetForm(); setEditorMode('manual'); }} submitLabel="Update" showTrackName={false} />
                       ) : (
                         <div className="space-y-4">
-                          <VisualEditor
-                            startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
-                            startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
-                            sector2={parseSectorLine(formSector2)}
-                            sector3={parseSectorLine(formSector3)}
-                          />
+                        <VisualEditor
+                          startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
+                          startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
+                          sector2={parseSectorLine(formSector2)}
+                          sector3={parseSectorLine(formSector3)}
+                          onStartFinishChange={(a, b) => {
+                            setFormLatA(a.lat.toString());
+                            setFormLonA(a.lon.toString());
+                            setFormLatB(b.lat.toString());
+                            setFormLonB(b.lon.toString());
+                          }}
+                          onSector2Change={(line) => {
+                            setFormSector2({
+                              aLat: line.a.lat.toString(),
+                              aLon: line.a.lon.toString(),
+                              bLat: line.b.lat.toString(),
+                              bLon: line.b.lon.toString(),
+                            });
+                          }}
+                          onSector3Change={(line) => {
+                            setFormSector3({
+                              aLat: line.a.lat.toString(),
+                              aLon: line.a.lon.toString(),
+                              bLat: line.b.lat.toString(),
+                              bLon: line.b.lon.toString(),
+                            });
+                          }}
+                        />
                           <div className="flex gap-2">
-                            <Button onClick={handleUpdateCourse} className="flex-1" disabled>
+                            <Button onClick={handleUpdateCourse} className="flex-1">
                               <Check className="w-4 h-4 mr-2" />
                               Update
                             </Button>
