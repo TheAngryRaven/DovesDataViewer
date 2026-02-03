@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Settings, Map, FileText } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Settings, Map, FileText, Flag, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -188,6 +188,7 @@ function parseSectorLine(sector: { aLat: string; aLon: string; bLat: string; bLo
 }
 
 type EditorMode = 'manual' | 'visual';
+type VisualEditorTool = 'startFinish' | 'sector2' | 'sector3' | null;
 
 interface GpsPoint {
   lat: number;
@@ -202,11 +203,79 @@ interface VisualEditorProps {
   onStartFinishChange?: (a: GpsPoint, b: GpsPoint) => void;
   onSector2Change?: (line: SectorLine) => void;
   onSector3Change?: (line: SectorLine) => void;
+  onDone?: () => void;
 }
 
-function VisualEditor({ startFinishA, startFinishB, sector2, sector3 }: VisualEditorProps) {
+interface VisualEditorToolbarProps {
+  activeTool: VisualEditorTool;
+  onToolChange: (tool: VisualEditorTool) => void;
+  onDone: () => void;
+}
+
+function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorToolbarProps) {
+  const handleStartFinish = () => {
+    onToolChange(activeTool === 'startFinish' ? null : 'startFinish');
+  };
+
+  const handleSector2 = () => {
+    onToolChange(activeTool === 'sector2' ? null : 'sector2');
+  };
+
+  const handleSector3 = () => {
+    onToolChange(activeTool === 'sector3' ? null : 'sector3');
+  };
+
+  const handleDone = () => {
+    onDone();
+  };
+
+  return (
+    <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg">
+      <Button
+        variant={activeTool === 'startFinish' ? 'default' : 'outline'}
+        size="sm"
+        className="h-8 gap-1.5 text-xs"
+        onClick={handleStartFinish}
+      >
+        <Flag className="w-3.5 h-3.5" />
+        Start/Finish
+      </Button>
+      <Button
+        variant={activeTool === 'sector2' ? 'default' : 'outline'}
+        size="sm"
+        className="h-8 gap-1.5 text-xs"
+        onClick={handleSector2}
+      >
+        <Timer className="w-3.5 h-3.5" />
+        Sector 2
+      </Button>
+      <Button
+        variant={activeTool === 'sector3' ? 'default' : 'outline'}
+        size="sm"
+        className="h-8 gap-1.5 text-xs"
+        onClick={handleSector3}
+      >
+        <Timer className="w-3.5 h-3.5" />
+        Sector 3
+      </Button>
+      <div className="flex-1" />
+      <Button
+        variant="secondary"
+        size="sm"
+        className="h-8 gap-1.5 text-xs"
+        onClick={handleDone}
+      >
+        <Check className="w-3.5 h-3.5" />
+        Done
+      </Button>
+    </div>
+  );
+}
+
+function VisualEditor({ startFinishA, startFinishB, sector2, sector3, onDone }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const [activeTool, setActiveTool] = useState<VisualEditorTool>(null);
 
   // Calculate center from existing points or default to Orlando Kart Center
   const getInitialCenter = (): [number, number] => {
@@ -215,6 +284,16 @@ function VisualEditor({ startFinishA, startFinishB, sector2, sector3 }: VisualEd
     }
     // Default to Orlando Kart Center
     return [28.4120, -81.3797];
+  };
+
+  const handleToolChange = (tool: VisualEditorTool) => {
+    setActiveTool(tool);
+    // Placeholder for future functionality
+  };
+
+  const handleDone = () => {
+    setActiveTool(null);
+    onDone?.();
   };
 
   useEffect(() => {
@@ -279,13 +358,20 @@ function VisualEditor({ startFinishA, startFinishB, sector2, sector3 }: VisualEd
 
   return (
     <div className="space-y-3">
+      <VisualEditorToolbar
+        activeTool={activeTool}
+        onToolChange={handleToolChange}
+        onDone={handleDone}
+      />
       <div 
         ref={mapContainerRef} 
         className="w-full h-64 rounded-lg border border-border overflow-hidden"
       />
-      <p className="text-xs text-muted-foreground text-center">
-        Visual line editing coming soon. Use Manual mode to edit coordinates.
-      </p>
+      {activeTool && (
+        <p className="text-xs text-muted-foreground text-center">
+          Click on the map to place the {activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3'} line
+        </p>
+      )}
     </div>
   );
 }
