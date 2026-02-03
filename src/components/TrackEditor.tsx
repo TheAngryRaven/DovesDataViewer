@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Settings } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Trash2, Edit2, Check, X, Settings, Map, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import L from 'leaflet';
 
 interface TrackCourseEditorProps {
   selection: TrackCourseSelection | null;
@@ -186,6 +187,139 @@ function parseSectorLine(sector: { aLat: string; aLon: string; bLat: string; bLo
   return { a: { lat: aLat, lon: aLon }, b: { lat: bLat, lon: bLon } };
 }
 
+type EditorMode = 'manual' | 'visual';
+
+interface GpsPoint {
+  lat: number;
+  lon: number;
+}
+
+interface VisualEditorProps {
+  startFinishA: GpsPoint | null;
+  startFinishB: GpsPoint | null;
+  sector2: SectorLine | undefined;
+  sector3: SectorLine | undefined;
+  onStartFinishChange?: (a: GpsPoint, b: GpsPoint) => void;
+  onSector2Change?: (line: SectorLine) => void;
+  onSector3Change?: (line: SectorLine) => void;
+}
+
+function VisualEditor({ startFinishA, startFinishB, sector2, sector3 }: VisualEditorProps) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+
+  // Calculate center from existing points or default to Orlando Kart Center
+  const getInitialCenter = (): [number, number] => {
+    if (startFinishA && startFinishB) {
+      return [(startFinishA.lat + startFinishB.lat) / 2, (startFinishA.lon + startFinishB.lon) / 2];
+    }
+    // Default to Orlando Kart Center
+    return [28.4120, -81.3797];
+  };
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const center = getInitialCenter();
+    const map = L.map(mapContainerRef.current, {
+      center,
+      zoom: 18,
+      zoomControl: true,
+    });
+
+    // Satellite tile layer (ESRI World Imagery)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri',
+      maxZoom: 19,
+    }).addTo(map);
+
+    mapRef.current = map;
+
+    // Draw existing lines if present
+    if (startFinishA && startFinishB) {
+      L.polyline([[startFinishA.lat, startFinishA.lon], [startFinishB.lat, startFinishB.lon]], {
+        color: '#22c55e',
+        weight: 4,
+      }).addTo(map);
+    }
+
+    if (sector2) {
+      L.polyline([[sector2.a.lat, sector2.a.lon], [sector2.b.lat, sector2.b.lon]], {
+        color: '#a855f7',
+        weight: 3,
+      }).addTo(map);
+    }
+
+    if (sector3) {
+      L.polyline([[sector3.a.lat, sector3.a.lon], [sector3.b.lat, sector3.b.lon]], {
+        color: '#a855f7',
+        weight: 3,
+      }).addTo(map);
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle resize
+  useEffect(() => {
+    if (!mapRef.current || !mapContainerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      mapRef.current?.invalidateSize();
+    });
+
+    resizeObserver.observe(mapContainerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      <div 
+        ref={mapContainerRef} 
+        className="w-full h-64 rounded-lg border border-border overflow-hidden"
+      />
+      <p className="text-xs text-muted-foreground text-center">
+        Visual line editing coming soon. Use Manual mode to edit coordinates.
+      </p>
+    </div>
+  );
+}
+
+interface EditorModeToggleProps {
+  mode: EditorMode;
+  onModeChange: (mode: EditorMode) => void;
+}
+
+function EditorModeToggle({ mode, onModeChange }: EditorModeToggleProps) {
+  return (
+    <div className="flex items-center gap-1 p-1 bg-muted rounded-lg w-fit">
+      <Button
+        variant={mode === 'manual' ? 'default' : 'ghost'}
+        size="sm"
+        className="h-7 px-3 text-xs gap-1.5"
+        onClick={() => onModeChange('manual')}
+      >
+        <FileText className="w-3.5 h-3.5" />
+        Manual
+      </Button>
+      <Button
+        variant={mode === 'visual' ? 'default' : 'ghost'}
+        size="sm"
+        className="h-7 px-3 text-xs gap-1.5"
+        onClick={() => onModeChange('visual')}
+      >
+        <Map className="w-3.5 h-3.5" />
+        Visual
+      </Button>
+    </div>
+  );
+}
+
 export function TrackEditor({ selection, onSelectionChange, compact = false }: TrackCourseEditorProps) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -204,6 +338,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
   const [formSector2, setFormSector2] = useState({ aLat: '', aLon: '', bLat: '', bLon: '' });
   const [formSector3, setFormSector3] = useState({ aLat: '', aLon: '', bLat: '', bLon: '' });
   const [editingCourse, setEditingCourse] = useState<{ trackName: string; courseName: string } | null>(null);
+  const [editorMode, setEditorMode] = useState<EditorMode>('manual');
 
   useEffect(() => {
     let mounted = true;
@@ -434,8 +569,31 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                 <TabsContent value="courses" className="space-y-4">
                   {editingCourse ? (
                     <div className="space-y-4">
-                      <h4 className="font-medium">Edit Course</h4>
-                      <CourseForm {...courseFormProps} onSubmit={handleUpdateCourse} onCancel={() => { setEditingCourse(null); resetForm(); }} submitLabel="Update" showTrackName={false} />
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Edit Course</h4>
+                        <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
+                      </div>
+                      {editorMode === 'manual' ? (
+                        <CourseForm {...courseFormProps} onSubmit={handleUpdateCourse} onCancel={() => { setEditingCourse(null); resetForm(); setEditorMode('manual'); }} submitLabel="Update" showTrackName={false} />
+                      ) : (
+                        <div className="space-y-4">
+                          <VisualEditor
+                            startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
+                            startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
+                            sector2={parseSectorLine(formSector2)}
+                            sector3={parseSectorLine(formSector3)}
+                          />
+                          <div className="flex gap-2">
+                            <Button onClick={handleUpdateCourse} className="flex-1" disabled>
+                              <Check className="w-4 h-4 mr-2" />
+                              Update
+                            </Button>
+                            <Button variant="outline" onClick={() => { setEditingCourse(null); resetForm(); setEditorMode('manual'); }}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -484,17 +642,69 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isAddCourseOpen} onOpenChange={setIsAddCourseOpen}>
+        <Dialog open={isAddCourseOpen} onOpenChange={(open) => { setIsAddCourseOpen(open); if (!open) setEditorMode('manual'); }}>
           <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
-          <DialogContent><DialogHeader><DialogTitle>Add New Course</DialogTitle></DialogHeader>
-            <CourseForm {...courseFormProps} onSubmit={handleAddCourse} onCancel={() => { setIsAddCourseOpen(false); resetForm(); }} submitLabel="Create Course" />
+          <DialogContent>
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Add New Course</DialogTitle>
+                <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
+              </div>
+            </DialogHeader>
+            {editorMode === 'manual' ? (
+              <CourseForm {...courseFormProps} onSubmit={handleAddCourse} onCancel={() => { setIsAddCourseOpen(false); resetForm(); }} submitLabel="Create Course" />
+            ) : (
+              <div className="space-y-4">
+                <VisualEditor
+                  startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
+                  startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
+                  sector2={parseSectorLine(formSector2)}
+                  sector3={parseSectorLine(formSector3)}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleAddCourse} className="flex-1" disabled>
+                    <Check className="w-4 h-4 mr-2" />
+                    Create Course
+                  </Button>
+                  <Button variant="outline" onClick={() => { setIsAddCourseOpen(false); resetForm(); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isAddTrackOpen} onOpenChange={setIsAddTrackOpen}>
+        <Dialog open={isAddTrackOpen} onOpenChange={(open) => { setIsAddTrackOpen(open); if (!open) setEditorMode('manual'); }}>
           <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
-          <DialogContent><DialogHeader><DialogTitle>Add New Track</DialogTitle></DialogHeader>
-            <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
+          <DialogContent>
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Add New Track</DialogTitle>
+                <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
+              </div>
+            </DialogHeader>
+            {editorMode === 'manual' ? (
+              <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
+            ) : (
+              <div className="space-y-4">
+                <VisualEditor
+                  startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
+                  startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
+                  sector2={parseSectorLine(formSector2)}
+                  sector3={parseSectorLine(formSector3)}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleAddTrack} className="flex-1" disabled>
+                    <Check className="w-4 h-4 mr-2" />
+                    Create Track
+                  </Button>
+                  <Button variant="outline" onClick={() => { setIsAddTrackOpen(false); resetForm(); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </>
