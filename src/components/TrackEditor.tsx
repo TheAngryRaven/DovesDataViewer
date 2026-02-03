@@ -469,12 +469,16 @@ function VisualEditor({
     if (map && tool) {
       const lineCoords = getLineCoords(tool);
       if (lineCoords) {
-        // Center map on the selected line
-        const center: [number, number] = [
-          (lineCoords.a.lat + lineCoords.b.lat) / 2,
-          (lineCoords.a.lon + lineCoords.b.lon) / 2,
-        ];
-        map.setView(center, 18, { animate: true });
+        // Fit map bounds to the selected line with padding
+        const bounds = L.latLngBounds(
+          [lineCoords.a.lat, lineCoords.a.lon],
+          [lineCoords.b.lat, lineCoords.b.lon]
+        );
+        map.fitBounds(bounds, { 
+          padding: [80, 80], 
+          maxZoom: 20,
+          animate: true 
+        });
       }
 
       // Draw layers after a small delay to ensure state is updated
