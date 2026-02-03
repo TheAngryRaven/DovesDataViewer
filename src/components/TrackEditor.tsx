@@ -738,16 +738,64 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           if (track && course) onSelectionChange({ trackName: tempTrackName, courseName: tempCourseName, course });
         }} className="w-full"><Check className="w-4 h-4 mr-2" />Apply Selection</Button>
       )}
-      <Dialog open={isAddCourseOpen} onOpenChange={setIsAddCourseOpen}>
+      <Dialog open={isAddCourseOpen} onOpenChange={(open) => { setIsAddCourseOpen(open); if (!open) setEditorMode('manual'); }}>
         <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
-        <DialogContent><DialogHeader><DialogTitle>Add New Course</DialogTitle></DialogHeader>
-          <CourseForm {...courseFormProps} onSubmit={handleAddCourse} onCancel={() => { setIsAddCourseOpen(false); resetForm(); }} submitLabel="Create Course" />
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Course</DialogTitle>
+          </DialogHeader>
+          <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
+          {editorMode === 'manual' ? (
+            <CourseForm {...courseFormProps} onSubmit={handleAddCourse} onCancel={() => { setIsAddCourseOpen(false); resetForm(); }} submitLabel="Create Course" />
+          ) : (
+            <div className="space-y-4">
+              <VisualEditor
+                startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
+                startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
+                sector2={parseSectorLine(formSector2)}
+                sector3={parseSectorLine(formSector3)}
+              />
+              <div className="flex gap-2">
+                <Button onClick={handleAddCourse} className="flex-1" disabled>
+                  <Check className="w-4 h-4 mr-2" />
+                  Create Course
+                </Button>
+                <Button variant="outline" onClick={() => { setIsAddCourseOpen(false); resetForm(); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
-      <Dialog open={isAddTrackOpen} onOpenChange={setIsAddTrackOpen}>
+      <Dialog open={isAddTrackOpen} onOpenChange={(open) => { setIsAddTrackOpen(open); if (!open) setEditorMode('manual'); }}>
         <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
-        <DialogContent><DialogHeader><DialogTitle>Add New Track</DialogTitle></DialogHeader>
-          <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Track</DialogTitle>
+          </DialogHeader>
+          <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
+          {editorMode === 'manual' ? (
+            <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
+          ) : (
+            <div className="space-y-4">
+              <VisualEditor
+                startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
+                startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
+                sector2={parseSectorLine(formSector2)}
+                sector3={parseSectorLine(formSector3)}
+              />
+              <div className="flex gap-2">
+                <Button onClick={handleAddTrack} className="flex-1" disabled>
+                  <Check className="w-4 h-4 mr-2" />
+                  Create Track
+                </Button>
+                <Button variant="outline" onClick={() => { setIsAddTrackOpen(false); resetForm(); }}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
