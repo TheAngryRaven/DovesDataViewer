@@ -204,7 +204,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     if (config) {
       tileLayerRef.current = L.tileLayer(config.url, {
         attribution: config.attribution,
-        maxZoom: 20,
+        maxZoom: 21,
       }).addTo(map);
     }
 
@@ -247,7 +247,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     if (config) {
       tileLayerRef.current = L.tileLayer(config.url, {
         attribution: config.attribution,
-        maxZoom: 20,
+        maxZoom: 21,
       }).addTo(map);
       // Move tile layer to bottom
       tileLayerRef.current.bringToBack();
