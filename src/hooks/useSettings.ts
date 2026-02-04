@@ -11,6 +11,8 @@ export interface AppSettings {
   brakingExitThreshold: number;     // 5-25, represents 0.05-0.25g (default: 10)
   brakingMinDuration: number;       // 50-500ms (default: 120)
   brakingSmoothingAlpha: number;    // 10-80, represents 0.1-0.8 (default: 40)
+  brakingZoneColor: string;         // HSL color string (default: blue)
+  brakingZoneWidth: number;         // 6-16 pixels (default: 10)
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -25,6 +27,8 @@ const defaultSettings: AppSettings = {
   brakingExitThreshold: 10,       // -0.10g
   brakingMinDuration: 120,        // 120ms
   brakingSmoothingAlpha: 40,      // 0.4
+  brakingZoneColor: 'hsl(210, 90%, 55%)',  // Blue
+  brakingZoneWidth: 10,           // 10px
 };
 
 export function useSettings() {

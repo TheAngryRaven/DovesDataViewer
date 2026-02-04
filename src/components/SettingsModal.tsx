@@ -204,6 +204,57 @@ export function SettingsModal({
                 <span className="text-xs text-muted-foreground">0.80</span>
               </div>
             </div>
+
+            {/* Zone Width */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Zone Width</Label>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {settings.brakingZoneWidth}px
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">6px</span>
+                <Slider
+                  value={[settings.brakingZoneWidth]}
+                  onValueChange={([value]) => onSettingsChange({ brakingZoneWidth: value })}
+                  min={6}
+                  max={16}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">16px</span>
+              </div>
+            </div>
+
+            {/* Zone Color */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Zone Color</Label>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {[
+                  { color: 'hsl(210, 90%, 55%)', label: 'Blue' },
+                  { color: 'hsl(30, 90%, 50%)', label: 'Orange' },
+                  { color: 'hsl(280, 70%, 55%)', label: 'Purple' },
+                  { color: 'hsl(340, 80%, 55%)', label: 'Pink' },
+                  { color: 'hsl(180, 70%, 50%)', label: 'Cyan' },
+                  { color: 'hsl(60, 80%, 50%)', label: 'Yellow' },
+                ].map(({ color, label }) => (
+                  <button
+                    key={color}
+                    onClick={() => onSettingsChange({ brakingZoneColor: color })}
+                    className={`w-8 h-8 rounded-md border-2 transition-all ${
+                      settings.brakingZoneColor === color 
+                        ? 'border-foreground scale-110' 
+                        : 'border-transparent hover:border-muted-foreground/50'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    title={label}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
           <Separator />

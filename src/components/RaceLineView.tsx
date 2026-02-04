@@ -30,6 +30,8 @@ export interface BrakingZoneSettings {
   exitThresholdG: number;
   minDurationMs: number;
   smoothingAlpha: number;
+  color: string;
+  width: number;
 }
 
 interface RaceLineViewProps {
@@ -356,19 +358,22 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
 
     if (!showBrakingZones || brakingZones.length === 0) return;
 
-    // Draw each braking zone as a thick orange polyline following the GPS path
+    // Draw each braking zone as a polyline following the GPS path
+    const zoneColor = brakingZoneSettings?.color ?? 'hsl(210, 90%, 55%)';
+    const zoneWidth = brakingZoneSettings?.width ?? 10;
+    
     brakingZones.forEach((zone) => {
       const coords = zone.path.map(p => [p.lat, p.lon] as [number, number]);
       const polyline = L.polyline(coords, {
-        color: 'hsl(30, 90%, 50%)',
-        weight: 8,
+        color: zoneColor,
+        weight: zoneWidth,
         opacity: 0.85,
         lineCap: 'round',
         lineJoin: 'round',
       });
       brakingZonesLayer.addLayer(polyline);
     });
-  }, [brakingZones, showBrakingZones]);
+  }, [brakingZones, showBrakingZones, brakingZoneSettings?.color, brakingZoneSettings?.width]);
 
   // Update start/finish line and sector lines when course changes
   useEffect(() => {
@@ -531,7 +536,10 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
             </div>
             {showBrakingZones && brakingZones.length > 0 && (
               <div className="flex items-center gap-1 mt-1 text-xs">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(30, 90%, 50%)' }} />
+                <div 
+                  className="w-3 h-3 rounded" 
+                  style={{ backgroundColor: brakingZoneSettings?.color ?? 'hsl(210, 90%, 55%)' }} 
+                />
                 <span className="text-muted-foreground">Braking ({brakingZones.length})</span>
               </div>
             )}
