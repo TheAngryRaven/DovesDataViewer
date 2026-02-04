@@ -1,189 +1,169 @@
 
-## Map Overlay Toggle & Enhanced Stats Display
 
-This plan reorganizes the main viewing page by moving the lap summary widget data into the map overlays and adding a toggle to show/hide the overlay panels.
+## Braking Zone Detection & Visualization
+
+This plan implements discrete braking zone detection and map visualization using a hysteresis-based state machine algorithm, with both a quick-toggle in the map controls and detailed tuning in settings.
 
 ---
 
 ### Overview
 
-**Changes to make:**
+**New file to create:**
+- `src/lib/brakingZones.ts` - Detection algorithm with state machine and configurable thresholds
 
-1. Replace the `LapSummaryWidget` in the tab bar with a simple "Toggle Overlay" button
-2. Add overlay visibility state that controls the two map panels
-3. Add current lap time display in the right stats panel (above Avg Top Speed)
-4. Add reference lap's average speeds with deltas to the delta section
-
----
-
-### Feature 1: Toggle Overlay Button
-
-**Location**: Tab bar, right side (replacing LapSummaryWidget)
-
-**Behavior**:
-- Button toggles a new `showOverlays` state
-- When `showOverlays` is false, both the left panel (map style/speed events) and right panel (speed legend/stats) are hidden
-- Race line, position marker, and speed event bubbles (if previously enabled) remain visible
-- Default state: overlays visible (true)
-
-**Icon**: Use `Eye` / `EyeOff` from lucide-react
+**Files to modify:**
+- `src/hooks/useSettings.ts` - Add braking zone tuning settings
+- `src/components/SettingsModal.tsx` - Add Braking Zones settings section with sliders
+- `src/components/RaceLineView.tsx` - Add toggle under speed events, render braking zone polylines
+- `src/pages/Index.tsx` - Pass braking settings to RaceLineView
 
 ---
 
-### Feature 2: Pass Overlay Visibility to RaceLineView
+### Feature 1: Braking Zone Detection Algorithm
 
-**New prop**: `showOverlays?: boolean`
+**New file: `src/lib/brakingZones.ts`**
 
-**Changes to RaceLineView**:
-- Wrap both panel `div` elements in a conditional: `{showOverlays && (...)}`
-- Panels fade out when hidden (can use CSS transitions for polish)
+Types:
+```typescript
+interface BrakingZone {
+  start: { lat: number; lon: number; t: number; speedMps: number };
+  end: { lat: number; lon: number; t: number; speedMps: number };
+  path: Array<{ lat: number; lon: number }>;
+  durationMs: number;
+  speedDeltaMps: number;
+}
 
----
-
-### Feature 3: Add Lap Time Above Stats
-
-**Location**: Right stats panel, directly above "Avg Top Speed"
-
-**Display**:
-```text
-Lap Time: 0:42.567
+interface BrakingZoneConfig {
+  entryThresholdG: number;    // default: -0.25
+  exitThresholdG: number;     // default: -0.10
+  minDurationMs: number;      // default: 120
+  smoothingAlpha: number;     // default: 0.4
+}
 ```
 
-**Data source**: New prop `lapTimeMs?: number | null` passed from Index.tsx
-- When a specific lap is selected, show that lap's time
-- When "All Laps" is selected, don't show (or show fastest)
+Algorithm:
+1. Calculate longitudinal acceleration from scalar speed changes
+2. Apply exponential smoothing with configurable alpha
+3. State machine with hysteresis (entry at -0.25g, exit at -0.10g)
+4. Filter zones shorter than minimum duration (120ms default)
+5. Return array of zones with full GPS path for curved rendering
 
 ---
 
-### Feature 4: Reference Lap Average Speeds in Delta Section
+### Feature 2: Map Controls Toggle
 
-**Current delta section shows**:
-- Δ Lap (reference lap number)
-- Δ Time (lap time difference)
-- Δ Top Speed (current vs reference average top speed)
-- Δ Min Speed (current vs reference average min speed)
+**Location:** Controls panel, directly below "Speed events" toggle
 
-**Enhancement**: Show the actual reference lap averages, then the delta
-
-New display format in the delta section:
-```text
-Δ ref
-─────────────────────
-Δ Lap:      8
-Δ Time:     +0.234s
-Ref Avg Top: 54.3 mph
-Δ Top Speed: +1.2 mph
-Ref Avg Min: 18.7 mph  
-Δ Min Speed: -0.5 mph
+**UI:**
+```
+├─ [Switch] Speed events
+│  └─ Peak/Valley legend (when enabled)
+│
+├─ [Switch] Braking zones      ← NEW
+│  └─ Orange square legend (when enabled)
 ```
 
-**Data to pass**: New props `refAvgTopSpeed` and `refAvgMinSpeed` to RaceLineView
+**Behavior:**
+- Local state `showBrakingZones` in RaceLineView (default: true)
+- Independent of speed events toggle
+- Zones render as thick orange polylines (weight: 8-10)
+- Follows global `showOverlays` visibility
+
+---
+
+### Feature 3: Settings for Threshold Tuning
+
+**Location:** Settings modal, new "Braking Zones" section after G-Force Smoothing
+
+**New settings in AppSettings:**
+```typescript
+brakingEntryThreshold: number;    // 10-50, represents 0.10-0.50g (default: 25)
+brakingExitThreshold: number;     // 5-25, represents 0.05-0.25g (default: 10)
+brakingMinDuration: number;       // 50-500ms (default: 120)
+brakingSmoothingAlpha: number;    // 10-80, represents 0.1-0.8 (default: 40)
+```
+
+**UI in SettingsModal:**
+```
+[Icon: Circle] Braking Zone Detection
+─────────────────────────────────────
+Entry Threshold        [-0.25g] ●────────○
+Exit Threshold         [-0.10g] ●────○
+Min Duration           [120ms]  ●──────○
+Smoothing              [0.4]    ●────○
+```
+
+Each slider shows the current value with proper formatting.
+
+---
+
+### Feature 4: Map Rendering
+
+**New layer in RaceLineView:**
+- `brakingZonesLayerRef` - Layer group for zone polylines
+- Compute zones via `useMemo` when samples change
+- Draw each zone as polyline following actual GPS path
+- Style: Orange (`hsl(30, 90%, 50%)`), weight 8-10px
+- Render below race line, above reference line
+
+**Visual hierarchy:**
+```
+Top:     Position marker, speed event bubbles
+         Race line (weight: 4)
+         Braking zones (weight: 8, orange)
+         Reference line (weight: 4, grey)
+Bottom:  Map tiles
+```
 
 ---
 
 ### Technical Implementation
 
-**File: `src/pages/Index.tsx`**
+**File: `src/lib/brakingZones.ts` (NEW)**
+- Export `detectBrakingZones(samples, config)` function
+- Export `BrakingZone` and `BrakingZoneConfig` types
+- Export `DEFAULT_BRAKING_CONFIG` constants
 
-1. Add state:
-   ```tsx
-   const [showOverlays, setShowOverlays] = useState(true);
-   ```
+**File: `src/hooks/useSettings.ts`**
+- Add 4 new settings to `AppSettings` interface
+- Add defaults to `defaultSettings`
 
-2. Calculate reference lap average speeds in the existing `paceDiff` useMemo:
-   - Already calculates `deltaTopSpeed` and `deltaMinSpeed`
-   - Add `refAvgTopSpeed` and `refAvgMinSpeed` to the return value
-
-3. Replace LapSummaryWidget in tab bar (lines 511-521):
-   ```tsx
-   <div className="ml-auto mr-3">
-     <Button 
-       variant="ghost" 
-       size="sm"
-       onClick={() => setShowOverlays(!showOverlays)}
-     >
-       {showOverlays ? <Eye /> : <EyeOff />}
-       <span className="ml-1">Overlay</span>
-     </Button>
-   </div>
-   ```
-
-4. Pass new props to RaceLineView:
-   - `showOverlays={showOverlays}`
-   - `lapTimeMs={selectedLap?.lapTimeMs ?? null}`
-   - `refAvgTopSpeed={refAvgTopSpeed}`
-   - `refAvgMinSpeed={refAvgMinSpeed}`
+**File: `src/components/SettingsModal.tsx`**
+- Import `Circle` icon from lucide-react
+- Add new "Braking Zone Detection" section with 4 sliders
+- Display values with proper units (-0.XXg for thresholds, ms for duration)
 
 **File: `src/components/RaceLineView.tsx`**
+- Add `showBrakingZones` local state (default: true)
+- Add toggle UI below speed events toggle with orange legend
+- Add `brakingZonesLayerRef` for the layer
+- Import and call `detectBrakingZones` in useMemo
+- Render zones as thick orange polylines
+- Add new prop `brakingZoneSettings` for threshold values
 
-1. Add new props to interface:
-   ```tsx
-   showOverlays?: boolean;
-   lapTimeMs?: number | null;
-   refAvgTopSpeed?: number | null;
-   refAvgMinSpeed?: number | null;
-   ```
-
-2. Wrap control panels in conditional:
-   ```tsx
-   {showOverlays !== false && (
-     <div className="absolute top-4 left-4 ...">
-       {/* Controls panel content */}
-     </div>
-   )}
-   
-   {showOverlays !== false && (
-     <div className="absolute top-4 right-4 ...">
-       {/* Stats panel content */}
-     </div>
-   )}
-   ```
-
-3. Add lap time display above Avg Top Speed:
-   ```tsx
-   {lapTimeMs !== null && (
-     <div className="flex justify-between text-xs mb-2 pb-2 border-b border-border">
-       <span className="text-muted-foreground">Lap Time:</span>
-       <span className="font-mono text-foreground font-semibold">
-         {formatLapTime(lapTimeMs)}
-       </span>
-     </div>
-   )}
-   ```
-
-4. Add reference averages to delta section:
-   ```tsx
-   {refAvgTopSpeed !== null && (
-     <div className="flex justify-between text-xs">
-       <span className="text-muted-foreground">Ref Avg Top:</span>
-       <span className="font-mono text-muted-foreground">
-         {convertSpeed(refAvgTopSpeed).toFixed(1)} {unit}
-       </span>
-     </div>
-   )}
-   ```
+**File: `src/pages/Index.tsx`**
+- Pass braking settings to RaceLineView as `brakingZoneSettings` prop
 
 ---
 
-### Import Changes
-
-**Index.tsx**: Add `Eye`, `EyeOff` from lucide-react
-
-**RaceLineView.tsx**: Import `formatLapTime` from `@/lib/lapCalculation`
-
----
-
-### Files to Modify
+### Files Summary
 
 | File | Changes |
 |------|---------|
-| `src/pages/Index.tsx` | Add overlay toggle state, calculate ref averages, replace LapSummaryWidget with toggle button, pass new props |
-| `src/components/RaceLineView.tsx` | Add new props, conditionally render panels, show lap time and ref averages |
+| `src/lib/brakingZones.ts` | **New** - Detection algorithm, types, constants |
+| `src/hooks/useSettings.ts` | Add 4 braking threshold settings |
+| `src/components/SettingsModal.tsx` | Add Braking Zone Detection section with sliders |
+| `src/components/RaceLineView.tsx` | Add toggle, layer, compute and render zones |
+| `src/pages/Index.tsx` | Pass braking settings to RaceLineView |
 
 ---
 
-### Edge Cases
+### Default Tuning Values
 
-- **"All Laps" selected**: `lapTimeMs` will be null, so lap time row won't show in stats panel
-- **No reference selected**: Delta section won't show (existing behavior), ref averages won't show
-- **No course selected**: Stats section doesn't render (existing behavior preserved)
+| Setting | Default | Range | Display |
+|---------|---------|-------|---------|
+| Entry Threshold | 25 | 10-50 | -0.25g |
+| Exit Threshold | 10 | 5-25 | -0.10g |
+| Min Duration | 120 | 50-500 | 120ms |
+| Smoothing Alpha | 40 | 10-80 | 0.4 |
+
