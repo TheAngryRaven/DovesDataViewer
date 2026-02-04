@@ -110,8 +110,9 @@ export function SettingsModal({
           {/* Braking Zone Detection */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Circle className="w-4 h-4 text-orange-500" />
+              <Circle className="w-4 h-4 text-blue-500" />
               <h3 className="font-medium">Braking Zone Detection</h3>
+              <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Experimental</span>
             </div>
             <p className="text-xs text-muted-foreground pl-6">
               Tune the detection algorithm for identifying braking zones on the map.
