@@ -1,11 +1,11 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github } from "lucide-react";
+import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { TrackEditor } from "@/components/TrackEditor";
 import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
 import { LapTable } from "@/components/LapTable";
-import { LapSummaryWidget } from "@/components/LapSummaryWidget";
+// LapSummaryWidget removed - replaced by overlay toggle
 import { ResizableSplit } from "@/components/ResizableSplit";
 import { RangeSlider } from "@/components/RangeSlider";
 import { InstallPrompt } from "@/components/InstallPrompt";
@@ -39,6 +39,7 @@ export default function Index() {
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   // Range selection state (indices within filteredSamples)
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
+  const [showOverlays, setShowOverlays] = useState(true);
 
   const selectedCourse: Course | null = selection?.course ?? null;
 
@@ -178,14 +179,16 @@ export default function Index() {
   }, [laps, selectedLapNumber]);
 
   // Calculate pace diff for display (vs reference if selected, else vs best)
-  const { paceDiff, paceDiffLabel, deltaTopSpeed, deltaMinSpeed } = useMemo((): {
+  const { paceDiff, paceDiffLabel, deltaTopSpeed, deltaMinSpeed, refAvgTopSpeed, refAvgMinSpeed } = useMemo((): {
     paceDiff: number | null;
     paceDiffLabel: "best" | "ref";
     deltaTopSpeed: number | null;
     deltaMinSpeed: number | null;
+    refAvgTopSpeed: number | null;
+    refAvgMinSpeed: number | null;
   } => {
     if (filteredSamples.length === 0 || selectedLapNumber === null) {
-      return { paceDiff: null, paceDiffLabel: "best", deltaTopSpeed: null, deltaMinSpeed: null };
+      return { paceDiff: null, paceDiffLabel: "best", deltaTopSpeed: null, deltaMinSpeed: null, refAvgTopSpeed: null, refAvgMinSpeed: null };
     }
 
     // Calculate speed events for current lap
@@ -197,7 +200,7 @@ export default function Index() {
     const currentAvgMin =
       currentValleys.length > 0 ? currentValleys.reduce((sum, e) => sum + e.speed, 0) / currentValleys.length : null;
 
-    // Helper to calculate deltas against comparison samples
+    // Helper to calculate deltas and reference averages against comparison samples
     const calculateDeltas = (comparisonSamples: GpsSample[]) => {
       const compEvents = findSpeedEvents(comparisonSamples);
       const compPeaks = compEvents.filter((e) => e.type === "peak");
@@ -210,25 +213,27 @@ export default function Index() {
       return {
         deltaTop: currentAvgTop !== null && compAvgTop !== null ? currentAvgTop - compAvgTop : null,
         deltaMin: currentAvgMin !== null && compAvgMin !== null ? currentAvgMin - compAvgMin : null,
+        refTop: compAvgTop,
+        refMin: compAvgMin,
       };
     };
 
     // If reference is selected, use reference pace
     if (referenceSamples.length > 0 && paceData.length > 0) {
       const lastPace = paceData.filter((p) => p !== null).pop() ?? null;
-      const { deltaTop, deltaMin } = calculateDeltas(referenceSamples);
-      return { paceDiff: lastPace, paceDiffLabel: "ref", deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin };
+      const { deltaTop, deltaMin, refTop, refMin } = calculateDeltas(referenceSamples);
+      return { paceDiff: lastPace, paceDiffLabel: "ref", deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin, refAvgTopSpeed: refTop, refAvgMinSpeed: refMin };
     }
 
     // Otherwise, compare to fastest lap
     if (fastestLapSamples.length > 0) {
       const bestPaceData = calculatePace(filteredSamples, fastestLapSamples);
       const lastPace = bestPaceData.filter((p) => p !== null).pop() ?? null;
-      const { deltaTop, deltaMin } = calculateDeltas(fastestLapSamples);
-      return { paceDiff: lastPace, paceDiffLabel: "best", deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin };
+      const { deltaTop, deltaMin, refTop, refMin } = calculateDeltas(fastestLapSamples);
+      return { paceDiff: lastPace, paceDiffLabel: "best", deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin, refAvgTopSpeed: refTop, refAvgMinSpeed: refMin };
     }
 
-    return { paceDiff: null, paceDiffLabel: "best", deltaTopSpeed: null, deltaMinSpeed: null };
+    return { paceDiff: null, paceDiffLabel: "best", deltaTopSpeed: null, deltaMinSpeed: null, refAvgTopSpeed: null, refAvgMinSpeed: null };
   }, [filteredSamples, referenceSamples, fastestLapSamples, paceData, selectedLapNumber]);
 
   // Compute bounds for filtered samples
@@ -508,16 +513,17 @@ export default function Index() {
                   )}
                 </button>
 
-                {/* Lap Summary Widget in tab bar */}
-                <div className="ml-auto mr-3 flex items-center gap-4">
-                  <LapSummaryWidget
-                    laps={laps}
-                    course={selectedCourse}
-                    selectedLap={
-                      selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber) ?? null) : null
-                    }
-                    paceDiff={paceDiff}
-                  />
+                {/* Overlay toggle button */}
+                <div className="ml-auto mr-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowOverlays(!showOverlays)}
+                    className="h-7 px-2 gap-1.5"
+                  >
+                    {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    <span className="text-xs">Overlay</span>
+                  </Button>
                 </div>
               </div>
 
@@ -537,6 +543,10 @@ export default function Index() {
                     deltaMinSpeed={deltaMinSpeed}
                     referenceLapNumber={referenceLapNumber}
                     lapToFastestDelta={lapToFastestDelta}
+                    showOverlays={showOverlays}
+                    lapTimeMs={selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null) : null}
+                    refAvgTopSpeed={refAvgTopSpeed}
+                    refAvgMinSpeed={refAvgMinSpeed}
                   />
                 ) : (
                   <LapTable
