@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { GpsSample, Course, courseHasSectors } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
+import { formatLapTime } from '@/lib/lapCalculation';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -42,6 +43,10 @@ interface RaceLineViewProps {
   deltaMinSpeed?: number | null;
   referenceLapNumber?: number | null;
   lapToFastestDelta?: number | null; // Direct lap time difference to fastest
+  showOverlays?: boolean;
+  lapTimeMs?: number | null;
+  refAvgTopSpeed?: number | null;
+  refAvgMinSpeed?: number | null;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -123,7 +128,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null }: RaceLineViewProps) {
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -413,146 +418,179 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     none: 'None',
   };
 
+  const unit = useKph ? 'kph' : 'mph';
+  const convertSpeed = (speed: number) => useKph ? speed * 1.60934 : speed;
+
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full bg-black" />
       
       {/* Controls panel */}
-      <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000]">
-        {/* Map style toggle */}
-        <button
-          onClick={cycleMapStyle}
-          className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted/50 transition-colors mb-2"
-        >
-          {mapStyleIcon[mapStyle]}
-          <span className="text-xs text-muted-foreground">Map: {mapStyleLabel[mapStyle]}</span>
-        </button>
-        
-        <div className="border-t border-border pt-2">
-          <div className="flex items-center gap-2">
-            <Switch 
-              id="speed-events" 
-              checked={showSpeedEvents} 
-              onCheckedChange={setShowSpeedEvents}
-              className="scale-75"
-            />
-            <Label htmlFor="speed-events" className="text-xs text-muted-foreground cursor-pointer">
-              Speed events
-            </Label>
-          </div>
-          {showSpeedEvents && speedEventsForMarkers.length > 0 && (
-            <div className="flex items-center gap-3 mt-2 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
-                <span className="text-muted-foreground">Peak</span>
+      {showOverlays && (
+        <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000] transition-opacity duration-200">
+          {/* Map style toggle */}
+          <button
+            onClick={cycleMapStyle}
+            className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted/50 transition-colors mb-2"
+          >
+            {mapStyleIcon[mapStyle]}
+            <span className="text-xs text-muted-foreground">Map: {mapStyleLabel[mapStyle]}</span>
+          </button>
+          
+          <div className="border-t border-border pt-2">
+            <div className="flex items-center gap-2">
+              <Switch 
+                id="speed-events" 
+                checked={showSpeedEvents} 
+                onCheckedChange={setShowSpeedEvents}
+                className="scale-75"
+              />
+              <Label htmlFor="speed-events" className="text-xs text-muted-foreground cursor-pointer">
+                Speed events
+              </Label>
+            </div>
+            {showSpeedEvents && speedEventsForMarkers.length > 0 && (
+              <div className="flex items-center gap-3 mt-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
+                  <span className="text-muted-foreground">Peak</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(0, 84%, 50%)' }} />
+                  <span className="text-muted-foreground">Valley</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(0, 84%, 50%)' }} />
-                <span className="text-muted-foreground">Valley</span>
+            )}
+          </div>
+          
+          {/* Offline indicator */}
+          {!isOnline && (
+            <div className="border-t border-border pt-2 mt-2">
+              <div className="flex items-center gap-1.5 text-xs text-amber-500">
+                <WifiOff className="w-3 h-3" />
+                <span>maps offline!</span>
               </div>
             </div>
           )}
         </div>
-        
-        {/* Offline indicator */}
-        {!isOnline && (
-          <div className="border-t border-border pt-2 mt-2">
-            <div className="flex items-center gap-1.5 text-xs text-amber-500">
-              <WifiOff className="w-3 h-3" />
-              <span>maps offline!</span>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
       
-      {/* Speed legend */}
-      <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000] min-w-[120px]">
-        <div className="text-xs text-muted-foreground mb-1">Speed ({useKph ? 'kph' : 'mph'})</div>
-        <div className="w-full h-3 speed-gradient rounded" />
-        <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
-          <span>{useKph ? (minSpeed * 1.60934).toFixed(0) : minSpeed.toFixed(0)}</span>
-          <span>{useKph ? (maxSpeed * 1.60934).toFixed(0) : maxSpeed.toFixed(0)}</span>
-        </div>
-        
-        {/* Average speed stats from speed events - only show when course is selected */}
-        {course && speedEventsForStats.length > 0 && (() => {
-          const peaks = speedEventsForStats.filter(e => e.type === 'peak');
-          const valleys = speedEventsForStats.filter(e => e.type === 'valley');
-          const avgTop = peaks.length > 0 
-            ? peaks.reduce((sum, e) => sum + e.speed, 0) / peaks.length 
-            : null;
-          const avgMin = valleys.length > 0 
-            ? valleys.reduce((sum, e) => sum + e.speed, 0) / valleys.length 
-            : null;
-          const unit = useKph ? 'kph' : 'mph';
-          const convertSpeed = (speed: number) => useKph ? speed * 1.60934 : speed;
+      {/* Speed legend and stats panel */}
+      {showOverlays && (
+        <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000] min-w-[120px] transition-opacity duration-200">
+          <div className="text-xs text-muted-foreground mb-1">Speed ({unit})</div>
+          <div className="w-full h-3 speed-gradient rounded" />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
+            <span>{convertSpeed(minSpeed).toFixed(0)}</span>
+            <span>{convertSpeed(maxSpeed).toFixed(0)}</span>
+          </div>
           
-          return (
-            <div className="mt-3 pt-2 border-t border-border space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Avg Top Speed:</span>
-                <span className="font-mono" style={{ color: 'hsl(142, 76%, 45%)' }}>
-                  {avgTop !== null ? `${convertSpeed(avgTop).toFixed(1)} ${unit}` : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Avg Min Speed:</span>
-                <span className="font-mono" style={{ color: 'hsl(0, 84%, 55%)' }}>
-                  {avgMin !== null ? `${convertSpeed(avgMin).toFixed(1)} ${unit}` : '—'}
-                </span>
-              </div>
-              
-              {/* Delta section */}
-              {(referenceLapNumber !== null || lapToFastestDelta !== null || deltaTopSpeed !== null || deltaMinSpeed !== null) && (
-                <div className="mt-2 pt-2 border-t border-border space-y-1">
-                  <div className="text-xs text-muted-foreground mb-1 text-center">
-                    Δ {paceDiffLabel}
+          {/* Lap time and average speed stats - only show when course is selected */}
+          {course && speedEventsForStats.length > 0 && (() => {
+            const peaks = speedEventsForStats.filter(e => e.type === 'peak');
+            const valleys = speedEventsForStats.filter(e => e.type === 'valley');
+            const avgTop = peaks.length > 0 
+              ? peaks.reduce((sum, e) => sum + e.speed, 0) / peaks.length 
+              : null;
+            const avgMin = valleys.length > 0 
+              ? valleys.reduce((sum, e) => sum + e.speed, 0) / valleys.length 
+              : null;
+            
+            return (
+              <div className="mt-3 pt-2 border-t border-border space-y-1">
+                {/* Lap Time - shown above Avg Top Speed */}
+                {lapTimeMs !== null && (
+                  <div className="flex justify-between text-xs mb-2 pb-2 border-b border-border">
+                    <span className="text-muted-foreground">Lap Time:</span>
+                    <span className="font-mono text-foreground font-semibold">
+                      {formatLapTime(lapTimeMs)}
+                    </span>
                   </div>
-                  {referenceLapNumber !== null && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Δ Lap</span>
-                      <span className="font-mono text-foreground">{referenceLapNumber}</span>
-                    </div>
-                  )}
-                  {lapToFastestDelta !== null && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Δ Time:</span>
-                      <span 
-                        className="font-mono"
-                        style={{ color: lapToFastestDelta < 0 ? 'hsl(142, 76%, 45%)' : lapToFastestDelta > 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
-                      >
-                        {lapToFastestDelta > 0 ? '+' : ''}{(lapToFastestDelta / 1000).toFixed(3)}s
-                      </span>
-                    </div>
-                  )}
-                  {deltaTopSpeed !== null && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Δ Top Speed:</span>
-                      <span 
-                        className="font-mono"
-                        style={{ color: deltaTopSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaTopSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
-                      >
-                        {deltaTopSpeed > 0 ? '+' : ''}{convertSpeed(deltaTopSpeed).toFixed(1)} {unit}
-                      </span>
-                    </div>
-                  )}
-                  {deltaMinSpeed !== null && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Δ Min Speed:</span>
-                      <span 
-                        className="font-mono"
-                        style={{ color: deltaMinSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaMinSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
-                      >
-                        {deltaMinSpeed > 0 ? '+' : ''}{convertSpeed(deltaMinSpeed).toFixed(1)} {unit}
-                      </span>
-                    </div>
-                  )}
+                )}
+                
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Avg Top Speed:</span>
+                  <span className="font-mono" style={{ color: 'hsl(142, 76%, 45%)' }}>
+                    {avgTop !== null ? `${convertSpeed(avgTop).toFixed(1)} ${unit}` : '—'}
+                  </span>
                 </div>
-              )}
-            </div>
-          );
-        })()}
-      </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Avg Min Speed:</span>
+                  <span className="font-mono" style={{ color: 'hsl(0, 84%, 55%)' }}>
+                    {avgMin !== null ? `${convertSpeed(avgMin).toFixed(1)} ${unit}` : '—'}
+                  </span>
+                </div>
+                
+                {/* Delta section with reference averages */}
+                {(referenceLapNumber !== null || lapToFastestDelta !== null || deltaTopSpeed !== null || deltaMinSpeed !== null) && (
+                  <div className="mt-2 pt-2 border-t border-border space-y-1">
+                    <div className="text-xs text-muted-foreground mb-1 text-center">
+                      Δ {paceDiffLabel}
+                    </div>
+                    {referenceLapNumber !== null && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Δ Lap</span>
+                        <span className="font-mono text-foreground">{referenceLapNumber}</span>
+                      </div>
+                    )}
+                    {lapToFastestDelta !== null && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Δ Time:</span>
+                        <span 
+                          className="font-mono"
+                          style={{ color: lapToFastestDelta < 0 ? 'hsl(142, 76%, 45%)' : lapToFastestDelta > 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
+                        >
+                          {lapToFastestDelta > 0 ? '+' : ''}{(lapToFastestDelta / 1000).toFixed(3)}s
+                        </span>
+                      </div>
+                    )}
+                    {/* Reference average top speed */}
+                    {refAvgTopSpeed !== null && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Ref Avg Top:</span>
+                        <span className="font-mono text-muted-foreground">
+                          {convertSpeed(refAvgTopSpeed).toFixed(1)} {unit}
+                        </span>
+                      </div>
+                    )}
+                    {deltaTopSpeed !== null && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Δ Top Speed:</span>
+                        <span 
+                          className="font-mono"
+                          style={{ color: deltaTopSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaTopSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
+                        >
+                          {deltaTopSpeed > 0 ? '+' : ''}{convertSpeed(deltaTopSpeed).toFixed(1)} {unit}
+                        </span>
+                      </div>
+                    )}
+                    {/* Reference average min speed */}
+                    {refAvgMinSpeed !== null && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Ref Avg Min:</span>
+                        <span className="font-mono text-muted-foreground">
+                          {convertSpeed(refAvgMinSpeed).toFixed(1)} {unit}
+                        </span>
+                      </div>
+                    )}
+                    {deltaMinSpeed !== null && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Δ Min Speed:</span>
+                        <span 
+                          className="font-mono"
+                          style={{ color: deltaMinSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaMinSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
+                        >
+                          {deltaMinSpeed > 0 ? '+' : ''}{convertSpeed(deltaMinSpeed).toFixed(1)} {unit}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }
