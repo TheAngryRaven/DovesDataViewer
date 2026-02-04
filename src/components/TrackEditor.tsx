@@ -443,18 +443,16 @@ function VisualEditor({
   };
 
   // Create draggable markers and active line for the selected tool
-  const createEditingLayers = (map: L.Map, tool: VisualEditorTool) => {
+  // If coords is provided, use it directly (avoids async state issues)
+  const createEditingLayersWithCoords = (map: L.Map, tool: VisualEditorTool, coords: { a: GpsPoint; b: GpsPoint }) => {
     clearEditingLayers();
     if (!tool) return;
-
-    const lineCoords = getLineCoords(tool);
-    if (!lineCoords) return;
 
     const color = tool === 'startFinish' ? '#22c55e' : '#a855f7';
     
     // Create the active polyline
     const polyline = L.polyline(
-      [[lineCoords.a.lat, lineCoords.a.lon], [lineCoords.b.lat, lineCoords.b.lon]],
+      [[coords.a.lat, coords.a.lon], [coords.b.lat, coords.b.lon]],
       { color, weight: 4, opacity: 1 }
     ).addTo(map);
     activeLineRef.current = polyline;
@@ -480,7 +478,6 @@ function VisualEditor({
 
       marker.on('drag', (e: L.LeafletEvent) => {
         const latlng = (e.target as L.Marker).getLatLng();
-        const newPoint = { lat: latlng.lat, lon: latlng.lng };
         
         // Update polyline in real-time
         if (activeLineRef.current) {
@@ -519,9 +516,17 @@ function VisualEditor({
       return marker;
     };
 
-    const markerA = createMarker(lineCoords.a, true);
-    const markerB = createMarker(lineCoords.b, false);
+    const markerA = createMarker(coords.a, true);
+    const markerB = createMarker(coords.b, false);
     markersRef.current = [markerA, markerB];
+  };
+
+  // Convenience wrapper that reads coords from state
+  const createEditingLayers = (map: L.Map, tool: VisualEditorTool) => {
+    if (!tool) return;
+    const lineCoords = getLineCoords(tool);
+    if (!lineCoords) return;
+    createEditingLayersWithCoords(map, tool, lineCoords);
   };
 
   const handleToolChange = (tool: VisualEditorTool) => {
@@ -555,13 +560,11 @@ function VisualEditor({
           maxZoom: 20,
           animate: true 
         });
-      }
 
-      // Draw layers after a small delay to ensure state is updated
-      setTimeout(() => {
+        // Create layers directly with the known coordinates (avoids async state issue)
         drawStaticLines(map, tool);
-        createEditingLayers(map, tool);
-      }, 50);
+        createEditingLayersWithCoords(map, tool, lineCoords);
+      }
     } else if (map && !tool) {
       // No tool selected, clear editing layers and redraw all static
       clearEditingLayers();
@@ -1155,6 +1158,16 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
               <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
             ) : (
               <div className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="newTrackName">Track Name</Label>
+                    <Input id="newTrackName" value={formTrackName} onChange={(e) => setFormTrackName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" />
+                  </div>
+                  <div>
+                    <Label htmlFor="newCourseName">Course Name</Label>
+                    <Input id="newCourseName" value={formCourseName} onChange={(e) => setFormCourseName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
+                  </div>
+                </div>
                 <VisualEditor
                   startFinishA={formLatA && formLonA ? { lat: parseFloat(formLatA), lon: parseFloat(formLonA) } : null}
                   startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
@@ -1184,16 +1197,6 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                     });
                   }}
                 />
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="newTrackName">Track Name</Label>
-                    <Input id="newTrackName" value={formTrackName} onChange={(e) => setFormTrackName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" />
-                  </div>
-                  <div>
-                    <Label htmlFor="newCourseName">Course Name</Label>
-                    <Input id="newCourseName" value={formCourseName} onChange={(e) => setFormCourseName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
-                  </div>
-                </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAddTrack} className="flex-1" disabled={!formTrackName.trim() || !formCourseName.trim() || !formLatA || !formLonA || !formLatB || !formLonB}>
                     <Check className="w-4 h-4 mr-2" />
