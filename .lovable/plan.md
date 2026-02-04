@@ -1,158 +1,189 @@
 
+## Map Overlay Toggle & Enhanced Stats Display
 
-## Visual Course Editor: Add New Lines & Location Search
-
-This plan extends the Visual Course Editor to support creating new lines when they don't exist, and adds a location search bar for new track creation.
+This plan reorganizes the main viewing page by moving the lap summary widget data into the map overlays and adding a toggle to show/hide the overlay panels.
 
 ---
 
 ### Overview
 
-Two new capabilities:
+**Changes to make:**
 
-1. **Create lines at map center**: When a user clicks a line button (Start/Finish, Sector 2, or Sector 3) and no coordinates exist for that line, create a new ~30-meter line at the center of the current map view
-
-2. **Location search for new tracks**: When creating a new track in Visual mode, show a search bar above the toolbar that allows users to search for an address/location and pan the map there
+1. Replace the `LapSummaryWidget` in the tab bar with a simple "Toggle Overlay" button
+2. Add overlay visibility state that controls the two map panels
+3. Add current lap time display in the right stats panel (above Avg Top Speed)
+4. Add reference lap's average speeds with deltas to the delta section
 
 ---
 
-### Feature 1: Create Lines at Map Center
+### Feature 1: Toggle Overlay Button
 
-**Current behavior**: When clicking a line button with no existing coordinates, `getLineCoords()` returns `null` and the helper text shows "No line defined" - nothing else happens.
+**Location**: Tab bar, right side (replacing LapSummaryWidget)
 
-**New behavior**: When clicking a line button with no existing coordinates:
-1. Get the current map center using `map.getCenter()`
-2. Calculate two points ~30 meters apart (one ~15m to the left, one ~15m to the right of center)
-3. Set these as pending coordinates
-4. Create the draggable markers and polyline
-5. User can now drag to position, then click "Done" to commit
+**Behavior**:
+- Button toggles a new `showOverlays` state
+- When `showOverlays` is false, both the left panel (map style/speed events) and right panel (speed legend/stats) are hidden
+- Race line, position marker, and speed event bubbles (if previously enabled) remain visible
+- Default state: overlays visible (true)
 
-**Implementation details**:
+**Icon**: Use `Eye` / `EyeOff` from lucide-react
 
+---
+
+### Feature 2: Pass Overlay Visibility to RaceLineView
+
+**New prop**: `showOverlays?: boolean`
+
+**Changes to RaceLineView**:
+- Wrap both panel `div` elements in a conditional: `{showOverlays && (...)}`
+- Panels fade out when hidden (can use CSS transitions for polish)
+
+---
+
+### Feature 3: Add Lap Time Above Stats
+
+**Location**: Right stats panel, directly above "Avg Top Speed"
+
+**Display**:
 ```text
-Distance calculation:
-- At most latitudes, ~0.00015 degrees longitude ≈ ~15 meters
-- Create Point A at (center.lat, center.lng - 0.00015)
-- Create Point B at (center.lat, center.lng + 0.00015)
-- This gives a horizontal line ~30m wide
+Lap Time: 0:42.567
 ```
 
-**Changes to `handleToolChange` in `VisualEditor`**:
-- After checking `getLineCoords(tool)`, if it returns `null`:
-  - Get map center
-  - Calculate the two endpoints
-  - Set the appropriate pending state (pendingStartFinish, pendingSector2, or pendingSector3)
-  - Create editing layers with these new coordinates
-
-**Changes to `handleDone`**:
-- Currently only commits if there are pending changes AND a callback exists
-- Now also needs to handle the case where pending data was created from scratch (new line)
+**Data source**: New prop `lapTimeMs?: number | null` passed from Index.tsx
+- When a specific lap is selected, show that lap's time
+- When "All Laps" is selected, don't show (or show fastest)
 
 ---
 
-### Feature 2: Location Search for New Tracks
+### Feature 4: Reference Lap Average Speeds in Delta Section
 
-**When to show**: Only in the "Add New Track" dialog when Visual mode is selected
+**Current delta section shows**:
+- Δ Lap (reference lap number)
+- Δ Time (lap time difference)
+- Δ Top Speed (current vs reference average top speed)
+- Δ Min Speed (current vs reference average min speed)
 
-**UI placement**: A search input row above the `VisualEditorToolbar`, inside the `VisualEditor` component when `isNewTrack` prop is true
+**Enhancement**: Show the actual reference lap averages, then the delta
 
-**Search implementation**:
-- Use OpenStreetMap Nominatim API (free, no API key required)
-- Endpoint: `https://nominatim.openstreetmap.org/search?format=json&q={query}`
-- On search submit, fetch results and pan map to first result's coordinates
-- Simple text input with a search button or Enter key submission
-
-**Props addition to VisualEditor**:
-- `isNewTrack?: boolean` - when true, shows the location search bar
-
-**Search bar component**:
+New display format in the delta section:
 ```text
-[  Search location...      ] [🔍]
+Δ ref
+─────────────────────
+Δ Lap:      8
+Δ Time:     +0.234s
+Ref Avg Top: 54.3 mph
+Δ Top Speed: +1.2 mph
+Ref Avg Min: 18.7 mph  
+Δ Min Speed: -0.5 mph
 ```
 
-- Input field with placeholder "Search location..."
-- Search icon button to trigger search
-- On submit: fetch from Nominatim, get first result, `map.setView([lat, lon], 17)`
-- Shows brief loading state
-- Error handling: toast or inline message if no results found
+**Data to pass**: New props `refAvgTopSpeed` and `refAvgMinSpeed` to RaceLineView
 
 ---
 
-### Technical Approach
+### Technical Implementation
 
-**File to modify:** `src/components/TrackEditor.tsx`
+**File: `src/pages/Index.tsx`**
 
-**Changes to VisualEditor component**:
+1. Add state:
+   ```tsx
+   const [showOverlays, setShowOverlays] = useState(true);
+   ```
 
-1. Add new prop `isNewTrack?: boolean`
+2. Calculate reference lap average speeds in the existing `paceDiff` useMemo:
+   - Already calculates `deltaTopSpeed` and `deltaMinSpeed`
+   - Add `refAvgTopSpeed` and `refAvgMinSpeed` to the return value
 
-2. Add state for search:
-   - `searchQuery: string`
-   - `isSearching: boolean`
+3. Replace LapSummaryWidget in tab bar (lines 511-521):
+   ```tsx
+   <div className="ml-auto mr-3">
+     <Button 
+       variant="ghost" 
+       size="sm"
+       onClick={() => setShowOverlays(!showOverlays)}
+     >
+       {showOverlays ? <Eye /> : <EyeOff />}
+       <span className="ml-1">Overlay</span>
+     </Button>
+   </div>
+   ```
 
-3. Add `createLineAtMapCenter(tool: VisualEditorTool)` function:
-   - Gets current map center
-   - Calculates ~30m line (horizontal orientation)
-   - Sets pending state for the appropriate line type
-   - Returns the new coordinates for layer creation
+4. Pass new props to RaceLineView:
+   - `showOverlays={showOverlays}`
+   - `lapTimeMs={selectedLap?.lapTimeMs ?? null}`
+   - `refAvgTopSpeed={refAvgTopSpeed}`
+   - `refAvgMinSpeed={refAvgMinSpeed}`
 
-4. Update `handleToolChange`:
-   - If `getLineCoords(tool)` returns null and map exists:
-     - Call `createLineAtMapCenter(tool)`
-     - Use returned coordinates for `fitBounds` and `createEditingLayers`
+**File: `src/components/RaceLineView.tsx`**
 
-5. Add location search function:
-   - `handleLocationSearch(query: string)`: async function that:
-     - Fetches from Nominatim API
-     - Pans map to result location
-     - Uses `map.setView()` at zoom 17-18
+1. Add new props to interface:
+   ```tsx
+   showOverlays?: boolean;
+   lapTimeMs?: number | null;
+   refAvgTopSpeed?: number | null;
+   refAvgMinSpeed?: number | null;
+   ```
 
-6. Conditionally render search bar above toolbar when `isNewTrack` is true
+2. Wrap control panels in conditional:
+   ```tsx
+   {showOverlays !== false && (
+     <div className="absolute top-4 left-4 ...">
+       {/* Controls panel content */}
+     </div>
+   )}
+   
+   {showOverlays !== false && (
+     <div className="absolute top-4 right-4 ...">
+       {/* Stats panel content */}
+     </div>
+   )}
+   ```
 
-**Parent component changes**:
+3. Add lap time display above Avg Top Speed:
+   ```tsx
+   {lapTimeMs !== null && (
+     <div className="flex justify-between text-xs mb-2 pb-2 border-b border-border">
+       <span className="text-muted-foreground">Lap Time:</span>
+       <span className="font-mono text-foreground font-semibold">
+         {formatLapTime(lapTimeMs)}
+       </span>
+     </div>
+   )}
+   ```
 
-1. Pass `isNewTrack={true}` to VisualEditor in the "Add New Track" dialog
-2. Pass `isNewTrack={false}` (or omit) for Edit Course and Add Course dialogs
+4. Add reference averages to delta section:
+   ```tsx
+   {refAvgTopSpeed !== null && (
+     <div className="flex justify-between text-xs">
+       <span className="text-muted-foreground">Ref Avg Top:</span>
+       <span className="font-mono text-muted-foreground">
+         {convertSpeed(refAvgTopSpeed).toFixed(1)} {unit}
+       </span>
+     </div>
+   )}
+   ```
 
 ---
 
-### User Flow: Creating a New Line
+### Import Changes
 
-```text
-1. User opens Edit Course in Visual mode
-2. Sector 2 has no coordinates defined
-3. User clicks "Sector 2" button
-   -> Map stays at current position
-   -> A new 30m line appears at map center
-   -> Two draggable markers are created
-4. User drags markers to desired position
-5. User clicks "Done"
-   -> Coordinates saved to form state
-6. User clicks "Update" to persist
-```
+**Index.tsx**: Add `Eye`, `EyeOff` from lucide-react
+
+**RaceLineView.tsx**: Import `formatLapTime` from `@/lib/lapCalculation`
 
 ---
 
-### User Flow: New Track with Location Search
+### Files to Modify
 
-```text
-1. User clicks + to add new track
-2. User switches to Visual mode
-3. Search bar appears above toolbar
-4. User types "Orlando Kart Center" and presses Enter
-   -> Map pans to that location (zoom 17)
-5. User clicks "Start/Finish" button
-   -> 30m line appears at map center
-6. User positions the line
-7. User fills in track/course names and saves
-```
+| File | Changes |
+|------|---------|
+| `src/pages/Index.tsx` | Add overlay toggle state, calculate ref averages, replace LapSummaryWidget with toggle button, pass new props |
+| `src/components/RaceLineView.tsx` | Add new props, conditionally render panels, show lap time and ref averages |
 
 ---
 
 ### Edge Cases
 
-- **Nominatim rate limits**: Add a small debounce, and User-Agent header as per Nominatim usage policy
-- **No search results**: Show message "Location not found, try a different search"
-- **Map not yet initialized**: Search button disabled until map is ready
-- **Creating multiple lines**: Each line button click creates a new line at the current map center if none exists
-
+- **"All Laps" selected**: `lapTimeMs` will be null, so lap time row won't show in stats panel
+- **No reference selected**: Delta section won't show (existing behavior), ref averages won't show
+- **No course selected**: Stats section doesn't render (existing behavior preserved)
