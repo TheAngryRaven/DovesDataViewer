@@ -547,6 +547,12 @@ export default function Index() {
                     lapTimeMs={selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null) : null}
                     refAvgTopSpeed={refAvgTopSpeed}
                     refAvgMinSpeed={refAvgMinSpeed}
+                    brakingZoneSettings={{
+                      entryThresholdG: settings.brakingEntryThreshold / 100,
+                      exitThresholdG: settings.brakingExitThreshold / 100,
+                      minDurationMs: settings.brakingMinDuration,
+                      smoothingAlpha: settings.brakingSmoothingAlpha / 100,
+                    }}
                   />
                 ) : (
                   <LapTable

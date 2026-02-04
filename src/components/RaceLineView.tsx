@@ -4,6 +4,7 @@ import { GpsSample, Course, courseHasSectors } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { formatLapTime } from '@/lib/lapCalculation';
+import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,13 @@ const mapStyleConfig = {
   },
   none: null,
 };
+
+export interface BrakingZoneSettings {
+  entryThresholdG: number;
+  exitThresholdG: number;
+  minDurationMs: number;
+  smoothingAlpha: number;
+}
 
 interface RaceLineViewProps {
   samples: GpsSample[];
@@ -47,6 +55,7 @@ interface RaceLineViewProps {
   lapTimeMs?: number | null;
   refAvgTopSpeed?: number | null;
   refAvgMinSpeed?: number | null;
+  brakingZoneSettings?: BrakingZoneSettings;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -128,13 +137,14 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, brakingZoneSettings }: RaceLineViewProps) {
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
   const referenceLayerRef = useRef<L.LayerGroup | null>(null);
+  const brakingZonesLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const startFinishRef = useRef<L.Polyline | null>(null);
   const sector2Ref = useRef<L.Polyline | null>(null);
@@ -143,6 +153,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
+  const [showBrakingZones, setShowBrakingZones] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
   const isOnline = useOnlineStatus();
 
@@ -167,6 +178,22 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       debounceCount: 2,
     });
   }, [samples]);
+
+  // Compute braking zones from visible samples
+  const brakingZones = useMemo(() => {
+    if (samples.length < 10) return [];
+    
+    const config: BrakingZoneConfig = brakingZoneSettings
+      ? {
+          entryThresholdG: -brakingZoneSettings.entryThresholdG,
+          exitThresholdG: -brakingZoneSettings.exitThresholdG,
+          minDurationMs: brakingZoneSettings.minDurationMs,
+          smoothingAlpha: brakingZoneSettings.smoothingAlpha,
+        }
+      : undefined as any;
+    
+    return detectBrakingZones(samples, config);
+  }, [samples, brakingZoneSettings]);
 
   // Invalidate map size when container resizes
   useEffect(() => {
@@ -214,6 +241,9 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     // Create layer group for reference polylines (rendered underneath)
     referenceLayerRef.current = L.layerGroup().addTo(map);
 
+    // Create layer group for braking zones (above reference, below race line)
+    brakingZonesLayerRef.current = L.layerGroup().addTo(map);
+
     // Create layer group for current lap polylines
     polylineLayerRef.current = L.layerGroup().addTo(map);
     
@@ -226,6 +256,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       map.remove();
       mapRef.current = null;
       referenceLayerRef.current = null;
+      brakingZonesLayerRef.current = null;
       speedEventsLayerRef.current = null;
       tileLayerRef.current = null;
     };
@@ -314,6 +345,30 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       speedEventsLayer.addLayer(marker);
     });
   }, [speedEventsForMarkers, showSpeedEvents, useKph]);
+
+  // Update braking zones layer
+  useEffect(() => {
+    const map = mapRef.current;
+    const brakingZonesLayer = brakingZonesLayerRef.current;
+    if (!map || !brakingZonesLayer) return;
+
+    brakingZonesLayer.clearLayers();
+
+    if (!showBrakingZones || brakingZones.length === 0) return;
+
+    // Draw each braking zone as a thick orange polyline following the GPS path
+    brakingZones.forEach((zone) => {
+      const coords = zone.path.map(p => [p.lat, p.lon] as [number, number]);
+      const polyline = L.polyline(coords, {
+        color: 'hsl(30, 90%, 50%)',
+        weight: 8,
+        opacity: 0.85,
+        lineCap: 'round',
+        lineJoin: 'round',
+      });
+      brakingZonesLayer.addLayer(polyline);
+    });
+  }, [brakingZones, showBrakingZones]);
 
   // Update start/finish line and sector lines when course changes
   useEffect(() => {
@@ -461,9 +516,26 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
                 </div>
               </div>
             )}
+
+            {/* Braking zones toggle */}
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
+              <Switch 
+                id="braking-zones" 
+                checked={showBrakingZones} 
+                onCheckedChange={setShowBrakingZones}
+                className="scale-75"
+              />
+              <Label htmlFor="braking-zones" className="text-xs text-muted-foreground cursor-pointer">
+                Braking zones
+              </Label>
+            </div>
+            {showBrakingZones && brakingZones.length > 0 && (
+              <div className="flex items-center gap-1 mt-1 text-xs">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(30, 90%, 50%)' }} />
+                <span className="text-muted-foreground">Braking ({brakingZones.length})</span>
+              </div>
+            )}
           </div>
-          
-          {/* Offline indicator */}
           {!isOnline && (
             <div className="border-t border-border pt-2 mt-2">
               <div className="flex items-center gap-1.5 text-xs text-amber-500">
