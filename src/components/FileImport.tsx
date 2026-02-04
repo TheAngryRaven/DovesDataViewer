@@ -65,7 +65,7 @@ export function FileImport({ onDataLoaded }: FileImportProps) {
       <div className="flex flex-col items-center gap-2 text-muted-foreground">
         {isLoading ? <Loader2 className="w-12 h-12 animate-spin text-primary" /> : <Upload className="w-12 h-12" />}
         <p className="text-lg font-medium">{isLoading ? "Processing..." : "Drop datalog file here"}</p>
-        <p className="text-sm">Supports .nmea, .ubx, .vbo, .dove, Alfano CSV, AiM CSV, or NMEA sentences</p>
+        <p className="text-sm">Supports .nmea, .ubx, .vbo, .dove, Alfano CSV or AiM CSV.</p>
         <p className="text-sm text-primary/80">
           <i>Alfano, AiM, RaceBox, Dove support experimental</i>
         </p>
@@ -90,7 +90,7 @@ export function FileImport({ onDataLoaded }: FileImportProps) {
             </span>
           </Button>
         </label>
-        
+
         <DataloggerDownload onDataLoaded={onDataLoaded} />
       </div>
 
