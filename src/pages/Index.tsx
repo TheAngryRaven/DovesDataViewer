@@ -552,6 +552,8 @@ export default function Index() {
                       exitThresholdG: settings.brakingExitThreshold / 100,
                       minDurationMs: settings.brakingMinDuration,
                       smoothingAlpha: settings.brakingSmoothingAlpha / 100,
+                      color: settings.brakingZoneColor,
+                      width: settings.brakingZoneWidth,
                     }}
                   />
                 ) : (
