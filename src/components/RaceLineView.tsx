@@ -544,15 +544,6 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
                         </span>
                       </div>
                     )}
-                    {/* Reference average top speed */}
-                    {refAvgTopSpeed !== null && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Ref Avg Top:</span>
-                        <span className="font-mono text-muted-foreground">
-                          {convertSpeed(refAvgTopSpeed).toFixed(1)} {unit}
-                        </span>
-                      </div>
-                    )}
                     {deltaTopSpeed !== null && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">Δ Top Speed:</span>
@@ -561,15 +552,6 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
                           style={{ color: deltaTopSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaTopSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
                         >
                           {deltaTopSpeed > 0 ? '+' : ''}{convertSpeed(deltaTopSpeed).toFixed(1)} {unit}
-                        </span>
-                      </div>
-                    )}
-                    {/* Reference average min speed */}
-                    {refAvgMinSpeed !== null && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Ref Avg Min:</span>
-                        <span className="font-mono text-muted-foreground">
-                          {convertSpeed(refAvgMinSpeed).toFixed(1)} {unit}
                         </span>
                       </div>
                     )}
