@@ -1158,6 +1158,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
               <CourseForm {...courseFormProps} onSubmit={handleAddTrack} onCancel={() => { setIsAddTrackOpen(false); resetForm(); }} submitLabel="Create Track" />
             ) : (
               <div className="space-y-4">
+                {/* Track/Course inputs above the map for better UX */}
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="newTrackName">Track Name</Label>
