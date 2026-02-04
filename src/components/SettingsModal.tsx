@@ -1,4 +1,4 @@
-import { Settings, Eye, EyeOff, Gauge, Activity } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -105,6 +105,105 @@ export function SettingsModal({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Braking Zone Detection */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Circle className="w-4 h-4 text-orange-500" />
+              <h3 className="font-medium">Braking Zone Detection</h3>
+            </div>
+            <p className="text-xs text-muted-foreground pl-6">
+              Tune the detection algorithm for identifying braking zones on the map.
+            </p>
+            
+            {/* Entry Threshold */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Entry Threshold</Label>
+                <span className="text-xs font-mono text-muted-foreground">
+                  -{(settings.brakingEntryThreshold / 100).toFixed(2)}g
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">-0.10g</span>
+                <Slider
+                  value={[settings.brakingEntryThreshold]}
+                  onValueChange={([value]) => onSettingsChange({ brakingEntryThreshold: value })}
+                  min={10}
+                  max={50}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">-0.50g</span>
+              </div>
+            </div>
+
+            {/* Exit Threshold */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Exit Threshold</Label>
+                <span className="text-xs font-mono text-muted-foreground">
+                  -{(settings.brakingExitThreshold / 100).toFixed(2)}g
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">-0.05g</span>
+                <Slider
+                  value={[settings.brakingExitThreshold]}
+                  onValueChange={([value]) => onSettingsChange({ brakingExitThreshold: value })}
+                  min={5}
+                  max={25}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">-0.25g</span>
+              </div>
+            </div>
+
+            {/* Min Duration */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Min Duration</Label>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {settings.brakingMinDuration}ms
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">50ms</span>
+                <Slider
+                  value={[settings.brakingMinDuration]}
+                  onValueChange={([value]) => onSettingsChange({ brakingMinDuration: value })}
+                  min={50}
+                  max={500}
+                  step={10}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">500ms</span>
+              </div>
+            </div>
+
+            {/* Smoothing Alpha */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Smoothing</Label>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {(settings.brakingSmoothingAlpha / 100).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">0.10</span>
+                <Slider
+                  value={[settings.brakingSmoothingAlpha]}
+                  onValueChange={([value]) => onSettingsChange({ brakingSmoothingAlpha: value })}
+                  min={10}
+                  max={80}
+                  step={5}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">0.80</span>
+              </div>
+            </div>
           </div>
 
           <Separator />

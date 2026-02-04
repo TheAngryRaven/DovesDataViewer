@@ -6,6 +6,11 @@ export interface AppSettings {
   gForceSmoothing: boolean;
   gForceSmoothingStrength: number; // 0-100, maps to window size
   defaultHiddenFields: CanonicalFieldId[]; // Canonical field IDs to hide by default
+  // Braking zone detection settings
+  brakingEntryThreshold: number;    // 10-50, represents 0.10-0.50g (default: 25)
+  brakingExitThreshold: number;     // 5-25, represents 0.05-0.25g (default: 10)
+  brakingMinDuration: number;       // 50-500ms (default: 120)
+  brakingSmoothingAlpha: number;    // 10-80, represents 0.1-0.8 (default: 40)
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -15,6 +20,11 @@ const defaultSettings: AppSettings = {
   gForceSmoothing: true,
   gForceSmoothingStrength: 50,
   defaultHiddenFields: [],
+  // Braking zone defaults
+  brakingEntryThreshold: 25,      // -0.25g
+  brakingExitThreshold: 10,       // -0.10g
+  brakingMinDuration: 120,        // 120ms
+  brakingSmoothingAlpha: 40,      // 0.4
 };
 
 export function useSettings() {
