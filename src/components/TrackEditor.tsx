@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Settings, Map, FileText, Flag, Timer } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Settings, Map, FileText, Flag, Timer, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Track, Course, TrackCourseSelection, SectorLine } from '@/types/racing';
@@ -204,6 +205,7 @@ interface VisualEditorProps {
   onSector2Change?: (line: SectorLine) => void;
   onSector3Change?: (line: SectorLine) => void;
   onDone?: () => void;
+  isNewTrack?: boolean;
 }
 
 interface VisualEditorToolbarProps {
@@ -274,7 +276,8 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorT
 
 function VisualEditor({ 
   startFinishA, startFinishB, sector2, sector3, 
-  onStartFinishChange, onSector2Change, onSector3Change, onDone 
+  onStartFinishChange, onSector2Change, onSector3Change, onDone,
+  isNewTrack = false
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -289,6 +292,73 @@ function VisualEditor({
   const markersRef = useRef<L.Marker[]>([]);
   const activeLineRef = useRef<L.Polyline | null>(null);
   const staticLinesRef = useRef<L.Polyline[]>([]);
+
+  // Location search state (only used when isNewTrack)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Create a new ~30m horizontal line at the map center
+  const createLineAtMapCenter = useCallback((tool: VisualEditorTool): { a: GpsPoint; b: GpsPoint } | null => {
+    const map = mapRef.current;
+    if (!map || !tool) return null;
+
+    const center = map.getCenter();
+    // ~0.00015 degrees longitude ≈ ~15 meters at most latitudes
+    const offset = 0.00015;
+    const newLine = {
+      a: { lat: center.lat, lon: center.lng - offset },
+      b: { lat: center.lat, lon: center.lng + offset },
+    };
+
+    // Set pending state for the line
+    if (tool === 'startFinish') {
+      setPendingStartFinish(newLine);
+    } else if (tool === 'sector2') {
+      setPendingSector2(newLine);
+    } else if (tool === 'sector3') {
+      setPendingSector3(newLine);
+    }
+
+    return newLine;
+  }, []);
+
+  // Location search using Nominatim
+  const handleLocationSearch = useCallback(async () => {
+    if (!searchQuery.trim() || !mapRef.current) return;
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.trim())}`,
+        {
+          headers: {
+            'User-Agent': 'DovesDataViewer/1.0',
+          },
+        }
+      );
+      const results = await response.json();
+
+      if (results && results.length > 0) {
+        const { lat, lon } = results[0];
+        mapRef.current.setView([parseFloat(lat), parseFloat(lon)], 17, { animate: true });
+        setSearchQuery('');
+      } else {
+        toast({
+          title: 'Location not found',
+          description: 'Try a different search term',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Search failed',
+        description: 'Could not search for location',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  }, [searchQuery]);
 
   // Calculate center from existing points or default to Orlando Kart Center
   const getInitialCenter = (): [number, number] => {
@@ -467,7 +537,13 @@ function VisualEditor({
     setActiveTool(tool);
 
     if (map && tool) {
-      const lineCoords = getLineCoords(tool);
+      let lineCoords = getLineCoords(tool);
+      
+      // If no line exists, create one at map center
+      if (!lineCoords) {
+        lineCoords = createLineAtMapCenter(tool);
+      }
+      
       if (lineCoords) {
         // Fit map bounds to the selected line with padding
         const bounds = L.latLngBounds(
@@ -513,6 +589,11 @@ function VisualEditor({
     // Redraw static lines
     if (mapRef.current) {
       drawStaticLines(mapRef.current, null);
+    }
+    
+    // Call parent onDone if provided
+    if (onDone) {
+      onDone();
     }
   };
 
@@ -584,6 +665,34 @@ function VisualEditor({
 
   return (
     <div className="space-y-3">
+      {isNewTrack && (
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') handleLocationSearch();
+            }}
+            className="flex-1 h-8 text-sm"
+            disabled={isSearching || !mapRef.current}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3"
+            onClick={handleLocationSearch}
+            disabled={isSearching || !searchQuery.trim() || !mapRef.current}
+          >
+            {isSearching ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+      )}
       <VisualEditorToolbar
         activeTool={activeTool}
         onToolChange={handleToolChange}
@@ -992,9 +1101,37 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                   startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
                   sector2={parseSectorLine(formSector2)}
                   sector3={parseSectorLine(formSector3)}
+                  onStartFinishChange={(a, b) => {
+                    setFormLatA(a.lat.toString());
+                    setFormLonA(a.lon.toString());
+                    setFormLatB(b.lat.toString());
+                    setFormLonB(b.lon.toString());
+                  }}
+                  onSector2Change={(line) => {
+                    setFormSector2({
+                      aLat: line.a.lat.toString(),
+                      aLon: line.a.lon.toString(),
+                      bLat: line.b.lat.toString(),
+                      bLon: line.b.lon.toString(),
+                    });
+                  }}
+                  onSector3Change={(line) => {
+                    setFormSector3({
+                      aLat: line.a.lat.toString(),
+                      aLon: line.a.lon.toString(),
+                      bLat: line.b.lat.toString(),
+                      bLon: line.b.lon.toString(),
+                    });
+                  }}
                 />
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="addCourseName">Course Name</Label>
+                    <Input id="addCourseName" value={formCourseName} onChange={(e) => setFormCourseName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
+                  </div>
+                </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleAddCourse} className="flex-1" disabled>
+                  <Button onClick={handleAddCourse} className="flex-1" disabled={!formCourseName.trim() || !formLatA || !formLonA || !formLatB || !formLonB}>
                     <Check className="w-4 h-4 mr-2" />
                     Create Course
                   </Button>
@@ -1023,9 +1160,42 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                   startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
                   sector2={parseSectorLine(formSector2)}
                   sector3={parseSectorLine(formSector3)}
+                  isNewTrack={true}
+                  onStartFinishChange={(a, b) => {
+                    setFormLatA(a.lat.toString());
+                    setFormLonA(a.lon.toString());
+                    setFormLatB(b.lat.toString());
+                    setFormLonB(b.lon.toString());
+                  }}
+                  onSector2Change={(line) => {
+                    setFormSector2({
+                      aLat: line.a.lat.toString(),
+                      aLon: line.a.lon.toString(),
+                      bLat: line.b.lat.toString(),
+                      bLon: line.b.lon.toString(),
+                    });
+                  }}
+                  onSector3Change={(line) => {
+                    setFormSector3({
+                      aLat: line.a.lat.toString(),
+                      aLon: line.a.lon.toString(),
+                      bLat: line.b.lat.toString(),
+                      bLon: line.b.lon.toString(),
+                    });
+                  }}
                 />
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="newTrackName">Track Name</Label>
+                    <Input id="newTrackName" value={formTrackName} onChange={(e) => setFormTrackName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" />
+                  </div>
+                  <div>
+                    <Label htmlFor="newCourseName">Course Name</Label>
+                    <Input id="newCourseName" value={formCourseName} onChange={(e) => setFormCourseName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
+                  </div>
+                </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleAddTrack} className="flex-1" disabled>
+                  <Button onClick={handleAddTrack} className="flex-1" disabled={!formTrackName.trim() || !formCourseName.trim() || !formLatA || !formLonA || !formLatB || !formLonB}>
                     <Check className="w-4 h-4 mr-2" />
                     Create Track
                   </Button>
@@ -1088,9 +1258,37 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                 startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
                 sector2={parseSectorLine(formSector2)}
                 sector3={parseSectorLine(formSector3)}
+                onStartFinishChange={(a, b) => {
+                  setFormLatA(a.lat.toString());
+                  setFormLonA(a.lon.toString());
+                  setFormLatB(b.lat.toString());
+                  setFormLonB(b.lon.toString());
+                }}
+                onSector2Change={(line) => {
+                  setFormSector2({
+                    aLat: line.a.lat.toString(),
+                    aLon: line.a.lon.toString(),
+                    bLat: line.b.lat.toString(),
+                    bLon: line.b.lon.toString(),
+                  });
+                }}
+                onSector3Change={(line) => {
+                  setFormSector3({
+                    aLat: line.a.lat.toString(),
+                    aLon: line.a.lon.toString(),
+                    bLat: line.b.lat.toString(),
+                    bLon: line.b.lon.toString(),
+                  });
+                }}
               />
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="addCourseNameNonCompact">Course Name</Label>
+                  <Input id="addCourseNameNonCompact" value={formCourseName} onChange={(e) => setFormCourseName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
+                </div>
+              </div>
               <div className="flex gap-2">
-                <Button onClick={handleAddCourse} className="flex-1" disabled>
+                <Button onClick={handleAddCourse} className="flex-1" disabled={!formCourseName.trim() || !formLatA || !formLonA || !formLatB || !formLonB}>
                   <Check className="w-4 h-4 mr-2" />
                   Create Course
                 </Button>
@@ -1118,9 +1316,42 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                 startFinishB={formLatB && formLonB ? { lat: parseFloat(formLatB), lon: parseFloat(formLonB) } : null}
                 sector2={parseSectorLine(formSector2)}
                 sector3={parseSectorLine(formSector3)}
+                isNewTrack={true}
+                onStartFinishChange={(a, b) => {
+                  setFormLatA(a.lat.toString());
+                  setFormLonA(a.lon.toString());
+                  setFormLatB(b.lat.toString());
+                  setFormLonB(b.lon.toString());
+                }}
+                onSector2Change={(line) => {
+                  setFormSector2({
+                    aLat: line.a.lat.toString(),
+                    aLon: line.a.lon.toString(),
+                    bLat: line.b.lat.toString(),
+                    bLon: line.b.lon.toString(),
+                  });
+                }}
+                onSector3Change={(line) => {
+                  setFormSector3({
+                    aLat: line.a.lat.toString(),
+                    aLon: line.a.lon.toString(),
+                    bLat: line.b.lat.toString(),
+                    bLon: line.b.lon.toString(),
+                  });
+                }}
               />
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="newTrackNameNonCompact">Track Name</Label>
+                  <Input id="newTrackNameNonCompact" value={formTrackName} onChange={(e) => setFormTrackName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" />
+                </div>
+                <div>
+                  <Label htmlFor="newCourseNameNonCompact">Course Name</Label>
+                  <Input id="newCourseNameNonCompact" value={formCourseName} onChange={(e) => setFormCourseName(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
+                </div>
+              </div>
               <div className="flex gap-2">
-                <Button onClick={handleAddTrack} className="flex-1" disabled>
+                <Button onClick={handleAddTrack} className="flex-1" disabled={!formTrackName.trim() || !formCourseName.trim() || !formLatA || !formLonA || !formLatB || !formLonB}>
                   <Check className="w-4 h-4 mr-2" />
                   Create Track
                 </Button>
