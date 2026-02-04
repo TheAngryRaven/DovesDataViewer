@@ -136,7 +136,7 @@ export function DataloggerDownload({ onDataLoaded }: DataloggerDownloadProps) {
             <span>
               <Button variant="outline" disabled className="opacity-50">
                 <Bluetooth className="w-4 h-4 mr-2" />
-                Download From DataLogger
+                Download from DovesDataLogger
               </Button>
             </span>
           </TooltipTrigger>
@@ -155,7 +155,7 @@ export function DataloggerDownload({ onDataLoaded }: DataloggerDownloadProps) {
     <>
       <Button variant="outline" onClick={handleConnect}>
         <Bluetooth className="w-4 h-4 mr-2" />
-        Download From DataLogger
+        Download from DovesDataLogger
       </Button>
 
       <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
