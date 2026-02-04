@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Settings, Map, FileText, Flag, Timer, Search, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Settings, Map, FileText, Flag, Timer, Search, Loader2, Copy, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Track, Course, TrackCourseSelection, SectorLine } from '@/types/racing';
 import { 
   loadTracks, 
@@ -763,6 +764,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
   const [formSector3, setFormSector3] = useState({ aLat: '', aLon: '', bLat: '', bLon: '' });
   const [editingCourse, setEditingCourse] = useState<{ trackName: string; courseName: string } | null>(null);
   const [editorMode, setEditorMode] = useState<EditorMode>('manual');
+  const [isJsonViewOpen, setIsJsonViewOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -794,6 +796,62 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
 
   const selectedTrack = tracks.find(t => t.name === tempTrackName);
   const availableCourses = selectedTrack?.courses ?? [];
+
+  // Generate JSON for the selected track in datalogger format
+  const generateTrackJson = useCallback(() => {
+    if (!selectedTrack) return '{}';
+    
+    const result: Record<string, {
+      start_a_lat: number;
+      start_a_lng: number;
+      start_b_lat: number;
+      start_b_lng: number;
+      sector_2_a_lat?: number;
+      sector_2_a_lng?: number;
+      sector_2_b_lat?: number;
+      sector_2_b_lng?: number;
+      sector_3_a_lat?: number;
+      sector_3_a_lng?: number;
+      sector_3_b_lat?: number;
+      sector_3_b_lng?: number;
+    }> = {};
+    
+    for (const course of selectedTrack.courses) {
+      const courseData: typeof result[string] = {
+        start_a_lat: course.startFinishA.lat,
+        start_a_lng: course.startFinishA.lon,
+        start_b_lat: course.startFinishB.lat,
+        start_b_lng: course.startFinishB.lon,
+      };
+      
+      if (course.sector2) {
+        courseData.sector_2_a_lat = course.sector2.a.lat;
+        courseData.sector_2_a_lng = course.sector2.a.lon;
+        courseData.sector_2_b_lat = course.sector2.b.lat;
+        courseData.sector_2_b_lng = course.sector2.b.lon;
+      }
+      
+      if (course.sector3) {
+        courseData.sector_3_a_lat = course.sector3.a.lat;
+        courseData.sector_3_a_lng = course.sector3.a.lon;
+        courseData.sector_3_b_lat = course.sector3.b.lat;
+        courseData.sector_3_b_lng = course.sector3.b.lon;
+      }
+      
+      result[course.name] = courseData;
+    }
+    
+    return JSON.stringify(result, null, 2);
+  }, [selectedTrack]);
+
+  const handleCopyJson = () => {
+    const json = generateTrackJson();
+    navigator.clipboard.writeText(json).then(() => {
+      toast({ title: 'Copied!', description: 'Track JSON copied to clipboard' });
+    }).catch(() => {
+      toast({ title: 'Failed to copy', variant: 'destructive' });
+    });
+  };
 
   const handleTrackChange = (trackName: string) => {
     setTempTrackName(trackName);
@@ -1082,9 +1140,39 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                   ))}
                   <Button variant="outline" size="sm" onClick={openAddTrack} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />Add Track</Button>
                 </TabsContent>
-                <div className="flex justify-end pt-4"><Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button></div>
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" onClick={() => setIsJsonViewOpen(true)} disabled={!selectedTrack}>
+                    <Code className="w-4 h-4 mr-2" />View JSON
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>
+                </div>
               </Tabs>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* JSON View Dialog */}
+        <Dialog open={isJsonViewOpen} onOpenChange={setIsJsonViewOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Code className="w-5 h-5" />
+                {selectedTrack?.name} JSON
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Textarea 
+                readOnly 
+                value={generateTrackJson()} 
+                className="font-mono text-xs h-64 resize-none bg-muted"
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleCopyJson}>
+                  <Copy className="w-4 h-4 mr-2" />Copy to Clipboard
+                </Button>
+                <Button variant="outline" onClick={() => setIsJsonViewOpen(false)}>Close</Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
