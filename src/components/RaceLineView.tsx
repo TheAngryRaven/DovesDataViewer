@@ -8,9 +8,10 @@ import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Moon, Satellite, Square, WifiOff, CloudSun } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff, CloudSun, FileText } from 'lucide-react';
 import { WeatherPanel } from '@/components/WeatherPanel';
-import { WeatherStation } from '@/lib/weatherService';
+import { LocalWeatherDialog } from '@/components/LocalWeatherDialog';
+import { WeatherStation, WeatherData } from '@/lib/weatherService';
 import 'leaflet/dist/leaflet.css';
 
 type MapStyle = 'dark' | 'satellite' | 'none';
@@ -164,6 +165,8 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   const [showBrakingZones, setShowBrakingZones] = useState(true);
   const [showWeather, setShowWeather] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
+  const [sessionWeatherData, setSessionWeatherData] = useState<WeatherData | null>(null);
+  const [sessionMetarOpen, setSessionMetarOpen] = useState(false);
   const isOnline = useOnlineStatus();
 
   // Compute speed events from full session samples for stable stats
@@ -562,6 +565,17 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
         </div>
       )}
 
+      {/* Session METAR detail button - bottom right, left of weather toggle */}
+      {showWeather && sessionWeatherData && (
+        <button
+          onClick={() => setSessionMetarOpen(true)}
+          className="absolute bottom-4 right-14 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 text-primary"
+          title="Session METAR detail"
+        >
+          <FileText className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Weather toggle button - bottom right */}
       <button
         onClick={() => setShowWeather(prev => !prev)}
@@ -570,6 +584,13 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       >
         <CloudSun className="w-4 h-4" />
       </button>
+
+      {/* Session METAR dialog */}
+      <LocalWeatherDialog
+        sessionWeather={sessionWeatherData}
+        externalOpen={sessionMetarOpen}
+        onExternalOpenChange={setSessionMetarOpen}
+      />
       
       {/* Speed legend and stats panel */}
       {showOverlays && (
@@ -677,6 +698,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
                 sessionDate={sessionStartDate}
                 cachedStation={cachedWeatherStation}
                 onStationResolved={onWeatherStationResolved}
+                onWeatherLoaded={setSessionWeatherData}
               />
             </div>
           )}
