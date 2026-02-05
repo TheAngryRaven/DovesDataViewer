@@ -245,6 +245,15 @@ export function LocalWeatherDialog() {
                   value={`${weather.altimeterInHg} inHg`}
                 />
                 <WeatherItem
+                  icon={<Wind className="w-4 h-4" />}
+                  label="Wind"
+                  value={
+                    weather.windSpeedKts !== null
+                      ? `${weather.windDirectionDeg ?? "VRB"}° @ ${weather.windSpeedKts} kts${weather.windGustKts ? ` G${weather.windGustKts}` : ""}`
+                      : "Calm"
+                  }
+                />
+                <WeatherItem
                   icon={<Mountain className="w-4 h-4" />}
                   label="Pressure Alt"
                   value={pressureAltFt !== null ? `${pressureAltFt.toLocaleString()} ft` : "—"}
