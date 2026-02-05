@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Cloud, Thermometer, Droplets, Gauge, Mountain } from "lucide-react";
+import { Cloud, Thermometer, Droplets, Gauge } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchSessionWeather,
@@ -125,7 +125,7 @@ export function WeatherPanel({
 
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Mountain className="w-3 h-3" />
+              <Gauge className="w-3 h-3" />
               <span>Pressure</span>
             </div>
             <span className="text-foreground">
@@ -135,7 +135,7 @@ export function WeatherPanel({
 
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Mountain className="w-3 h-3" />
+              <Gauge className="w-3 h-3" />
               <span>DA</span>
             </div>
             <span className="text-foreground">
