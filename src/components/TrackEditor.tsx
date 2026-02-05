@@ -763,7 +763,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
   const [formSector2, setFormSector2] = useState({ aLat: '', aLon: '', bLat: '', bLon: '' });
   const [formSector3, setFormSector3] = useState({ aLat: '', aLon: '', bLat: '', bLon: '' });
   const [editingCourse, setEditingCourse] = useState<{ trackName: string; courseName: string } | null>(null);
-  const [editorMode, setEditorMode] = useState<EditorMode>('manual');
+  const [editorMode, setEditorMode] = useState<EditorMode>('visual');
   const [isJsonViewOpen, setIsJsonViewOpen] = useState(false);
 
   useEffect(() => {
@@ -1056,7 +1056,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                         <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
                       </div>
                       {editorMode === 'manual' ? (
-                        <CourseForm {...courseFormProps} onSubmit={handleUpdateCourse} onCancel={() => { setEditingCourse(null); resetForm(); setEditorMode('manual'); }} submitLabel="Update" showTrackName={false} />
+                        <CourseForm {...courseFormProps} onSubmit={handleUpdateCourse} onCancel={() => { setEditingCourse(null); resetForm(); setEditorMode('visual'); }} submitLabel="Update" showTrackName={false} />
                       ) : (
                         <div className="space-y-4">
                         <VisualEditor
@@ -1092,7 +1092,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                               <Check className="w-4 h-4 mr-2" />
                               Update
                             </Button>
-                            <Button variant="outline" onClick={() => { setEditingCourse(null); resetForm(); setEditorMode('manual'); }}>
+                            <Button variant="outline" onClick={() => { setEditingCourse(null); resetForm(); setEditorMode('visual'); }}>
                               <X className="w-4 h-4" />
                             </Button>
                           </div>
@@ -1176,7 +1176,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isAddCourseOpen} onOpenChange={(open) => { setIsAddCourseOpen(open); if (!open) setEditorMode('manual'); }}>
+        <Dialog open={isAddCourseOpen} onOpenChange={(open) => { setIsAddCourseOpen(open); if (!open) setEditorMode('visual'); }}>
           <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -1235,7 +1235,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isAddTrackOpen} onOpenChange={(open) => { setIsAddTrackOpen(open); if (!open) setEditorMode('manual'); }}>
+        <Dialog open={isAddTrackOpen} onOpenChange={(open) => { setIsAddTrackOpen(open); if (!open) setEditorMode('visual'); }}>
           <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -1334,7 +1334,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           if (track && course) onSelectionChange({ trackName: tempTrackName, courseName: tempCourseName, course });
         }} className="w-full"><Check className="w-4 h-4 mr-2" />Apply Selection</Button>
       )}
-      <Dialog open={isAddCourseOpen} onOpenChange={(open) => { setIsAddCourseOpen(open); if (!open) setEditorMode('manual'); }}>
+      <Dialog open={isAddCourseOpen} onOpenChange={(open) => { setIsAddCourseOpen(open); if (!open) setEditorMode('visual'); }}>
         <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -1392,7 +1392,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
           )}
         </DialogContent>
       </Dialog>
-      <Dialog open={isAddTrackOpen} onOpenChange={(open) => { setIsAddTrackOpen(open); if (!open) setEditorMode('manual'); }}>
+      <Dialog open={isAddTrackOpen} onOpenChange={(open) => { setIsAddTrackOpen(open); if (!open) setEditorMode('visual'); }}>
         <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
         <DialogContent>
           <DialogHeader>
