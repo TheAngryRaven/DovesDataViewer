@@ -9,6 +9,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Moon, Satellite, Square, WifiOff } from 'lucide-react';
+import { WeatherPanel } from '@/components/WeatherPanel';
 import 'leaflet/dist/leaflet.css';
 
 type MapStyle = 'dark' | 'satellite' | 'none';
@@ -58,6 +59,8 @@ interface RaceLineViewProps {
   refAvgTopSpeed?: number | null;
   refAvgMinSpeed?: number | null;
   brakingZoneSettings?: BrakingZoneSettings;
+  sessionGpsPoint?: { lat: number; lon: number };
+  sessionStartDate?: Date;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -139,7 +142,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, brakingZoneSettings }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, brakingZoneSettings, sessionGpsPoint, sessionStartDate }: RaceLineViewProps) {
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -554,6 +557,14 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
           )}
         </div>
       )}
+
+      {/* Weather panel */}
+      <WeatherPanel
+        lat={sessionGpsPoint?.lat}
+        lon={sessionGpsPoint?.lon}
+        sessionDate={sessionStartDate}
+        visible={showOverlays}
+      />
       
       {/* Speed legend and stats panel */}
       {showOverlays && (

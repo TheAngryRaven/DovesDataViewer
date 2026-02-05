@@ -255,6 +255,16 @@ export default function Index() {
     return { minLat, maxLat, minLon, maxLon };
   }, [filteredSamples, data?.bounds]);
 
+  // Find first valid GPS sample for weather lookup
+  const sessionGpsPoint = useMemo(() => {
+    if (!data?.samples?.length) return undefined;
+    const validSample = data.samples.find(s => 
+      s.lat !== 0 && s.lon !== 0 && 
+      Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180
+    );
+    return validSample ? { lat: validSample.lat, lon: validSample.lon } : undefined;
+  }, [data?.samples]);
+
   const handleDataLoaded = useCallback(
     (parsedData: ParsedData) => {
       setData(parsedData);
@@ -555,6 +565,8 @@ export default function Index() {
                       color: settings.brakingZoneColor,
                       width: settings.brakingZoneWidth,
                     }}
+                    sessionGpsPoint={sessionGpsPoint}
+                    sessionStartDate={data?.startDate}
                   />
                 ) : (
                   <LapTable
