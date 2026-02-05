@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Pencil, Trash2, ShoppingCart } from "lucide-react";
+import { Pencil, Trash2, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,7 +72,7 @@ export function KartsTab({ karts, onAdd, onUpdate, onRemove }: KartsTabProps) {
       <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-1">
         {karts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-            <ShoppingCart className="w-12 h-12 opacity-30" />
+            <Car className="w-12 h-12 opacity-30" />
             <p className="text-sm">No karts yet</p>
             <p className="text-xs">Add a kart using the form below</p>
           </div>
