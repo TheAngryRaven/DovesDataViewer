@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData, Lap, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
 import { saveFileMetadata, getFileMetadata } from "@/lib/fileStorage";
+import { WeatherStation } from "@/lib/weatherService";
 import { calculateLaps } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
 import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
@@ -45,6 +46,7 @@ export default function Index() {
   // Range selection state (indices within filteredSamples)
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
   const [showOverlays, setShowOverlays] = useState(true);
+  const [cachedWeatherStation, setCachedWeatherStation] = useState<WeatherStation | null>(null);
 
   const selectedCourse: Course | null = selection?.course ?? null;
 
@@ -300,7 +302,21 @@ export default function Index() {
             setSelection(restoredSelection);
             courseToUse = course;
           }
+          // Restore cached weather station
+          if (meta.weatherStationId) {
+            setCachedWeatherStation({
+              stationId: meta.weatherStationId,
+              name: meta.weatherStationName || meta.weatherStationId,
+              distanceKm: meta.weatherStationDistanceKm || 0,
+            });
+          } else {
+            setCachedWeatherStation(null);
+          }
+        } else {
+          setCachedWeatherStation(null);
         }
+      } else {
+        setCachedWeatherStation(null);
       }
 
       // Calculate laps if course is selected
@@ -325,10 +341,16 @@ export default function Index() {
 
       // Persist track/course association for current file
       if (currentFileName && newSelection) {
-        saveFileMetadata({
-          fileName: currentFileName,
-          trackName: newSelection.trackName,
-          courseName: newSelection.courseName,
+        // Preserve existing weather station cache when saving track selection
+        getFileMetadata(currentFileName).then((existing) => {
+          saveFileMetadata({
+            fileName: currentFileName,
+            trackName: newSelection.trackName,
+            courseName: newSelection.courseName,
+            weatherStationId: existing?.weatherStationId,
+            weatherStationName: existing?.weatherStationName,
+            weatherStationDistanceKm: existing?.weatherStationDistanceKm,
+          });
         });
       }
 
@@ -394,6 +416,25 @@ export default function Index() {
   const handleSetReference = useCallback((lapNumber: number) => {
     setReferenceLapNumber((prev) => (prev === lapNumber ? null : lapNumber));
   }, []);
+
+  const handleWeatherStationResolved = useCallback(
+    (station: WeatherStation) => {
+      setCachedWeatherStation(station);
+      if (currentFileName) {
+        getFileMetadata(currentFileName).then((existing) => {
+          saveFileMetadata({
+            fileName: currentFileName,
+            trackName: existing?.trackName || "",
+            courseName: existing?.courseName || "",
+            weatherStationId: station.stationId,
+            weatherStationName: station.name,
+            weatherStationDistanceKm: station.distanceKm,
+          });
+        });
+      }
+    },
+    [currentFileName],
+  );
 
   const speedUnit = useKph ? "kph" : "mph";
   const getCurrentSpeed = (sample: GpsSample) => (useKph ? sample.speedKph : sample.speedMph);
@@ -633,6 +674,8 @@ export default function Index() {
                     }}
                     sessionGpsPoint={sessionGpsPoint}
                     sessionStartDate={data?.startDate}
+                    cachedWeatherStation={cachedWeatherStation}
+                    onWeatherStationResolved={handleWeatherStationResolved}
                   />
                 ) : (
                   <LapTable

@@ -1,26 +1,35 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Cloud, Thermometer, Droplets, Gauge } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchSessionWeather,
+  fetchWeatherData,
+  fetchNearestStation,
   isValidGpsPoint,
   WeatherData,
+  WeatherStation,
 } from "@/lib/weatherService";
 
 interface WeatherPanelProps {
   lat?: number;
   lon?: number;
   sessionDate?: Date;
+  cachedStation?: WeatherStation | null;
+  onStationResolved?: (station: WeatherStation) => void;
 }
 
 export function WeatherPanel({
   lat,
   lon,
   sessionDate,
+  cachedStation,
+  onStationResolved,
 }: WeatherPanelProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const onStationResolvedRef = useRef(onStationResolved);
+  onStationResolvedRef.current = onStationResolved;
 
   useEffect(() => {
     // Reset state when inputs change
@@ -39,15 +48,36 @@ export function WeatherPanel({
 
     let cancelled = false;
 
-    const fetchWeather = async () => {
+    const doFetch = async () => {
       setLoading(true);
       try {
-        const data = await fetchSessionWeather(lat, lon, sessionDate);
-        if (!cancelled) {
-          if (data) {
-            setWeather(data);
-          } else {
+        if (cachedStation) {
+          // Skip NWS lookup, go straight to weather data
+          const data = await fetchWeatherData(cachedStation, sessionDate);
+          if (!cancelled) {
+            if (data) {
+              setWeather(data);
+            } else {
+              setError(true);
+            }
+          }
+        } else {
+          // Full lookup: find station then fetch weather
+          const station = await fetchNearestStation(lat, lon);
+          if (cancelled) return;
+          if (!station) {
             setError(true);
+            return;
+          }
+          // Notify parent so it can cache the station
+          onStationResolvedRef.current?.(station);
+          const data = await fetchWeatherData(station, sessionDate);
+          if (!cancelled) {
+            if (data) {
+              setWeather(data);
+            } else {
+              setError(true);
+            }
           }
         }
       } catch (e) {
@@ -61,12 +91,12 @@ export function WeatherPanel({
       }
     };
 
-    fetchWeather();
+    doFetch();
 
     return () => {
       cancelled = true;
     };
-  }, [lat, lon, sessionDate]);
+  }, [lat, lon, sessionDate, cachedStation]);
 
   // Don't render if no valid GPS
   if (
