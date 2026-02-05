@@ -324,13 +324,14 @@ function haversineDistance(
 export async function fetchSessionWeather(
   lat: number,
   lon: number,
-  sessionDate: Date
+  sessionDate: Date,
+  cachedStation?: WeatherStation | null
 ): Promise<WeatherData | null> {
   if (!isValidGpsPoint(lat, lon)) {
     return null;
   }
 
-  const station = await fetchNearestStation(lat, lon);
+  const station = cachedStation ?? (await fetchNearestStation(lat, lon));
   if (!station) {
     return null;
   }

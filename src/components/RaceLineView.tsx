@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Moon, Satellite, Square, WifiOff, CloudSun } from 'lucide-react';
 import { WeatherPanel } from '@/components/WeatherPanel';
+import { WeatherStation } from '@/lib/weatherService';
 import 'leaflet/dist/leaflet.css';
 
 type MapStyle = 'dark' | 'satellite' | 'none';
@@ -61,6 +62,8 @@ interface RaceLineViewProps {
   brakingZoneSettings?: BrakingZoneSettings;
   sessionGpsPoint?: { lat: number; lon: number };
   sessionStartDate?: Date;
+  cachedWeatherStation?: WeatherStation | null;
+  onWeatherStationResolved?: (station: WeatherStation) => void;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -142,7 +145,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, brakingZoneSettings, sessionGpsPoint, sessionStartDate }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, brakingZoneSettings, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved }: RaceLineViewProps) {
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -672,6 +675,8 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
                 lat={sessionGpsPoint?.lat}
                 lon={sessionGpsPoint?.lon}
                 sessionDate={sessionStartDate}
+                cachedStation={cachedWeatherStation}
+                onStationResolved={onWeatherStationResolved}
               />
             </div>
           )}

@@ -14,6 +14,10 @@ export interface FileMetadata {
   fileName: string;
   trackName: string;
   courseName: string;
+  // Cached weather station lookup
+  weatherStationId?: string;
+  weatherStationName?: string;
+  weatherStationDistanceKm?: number;
 }
 
 interface StoredFile {
