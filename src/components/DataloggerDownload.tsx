@@ -26,7 +26,7 @@ type DownloadState =
   | "error";
 
 interface DataloggerDownloadProps {
-  onDataLoaded: (data: ParsedData) => void;
+  onDataLoaded: (data: ParsedData, fileName?: string) => void;
   autoSave?: boolean;
   autoSaveFile?: (name: string, blob: Blob) => Promise<void>;
 }
@@ -108,7 +108,7 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
         
         // Close modal and load data
         handleClose();
-        onDataLoaded(parsedData);
+        onDataLoaded(parsedData, file.name);
       } catch (err) {
         console.error("Download error:", err);
         setError(err instanceof Error ? err.message : "Download failed");
