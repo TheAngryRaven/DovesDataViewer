@@ -3,17 +3,20 @@ import { X, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry } from "@/lib/fileStorage";
 import { Kart } from "@/lib/kartStorage";
+import { Note } from "@/lib/noteStorage";
 import { ParsedData } from "@/types/racing";
 import { FilesTab } from "./drawer/FilesTab";
 import { KartsTab } from "./drawer/KartsTab";
 import { SetupsTab } from "./drawer/SetupsTab";
+import { NotesTab } from "./drawer/NotesTab";
 
-type DrawerTab = "files" | "karts" | "setups";
+type DrawerTab = "files" | "karts" | "setups" | "notes";
 
 const tabs: { key: DrawerTab; label: string }[] = [
   { key: "files", label: "Files" },
   { key: "karts", label: "Karts" },
   { key: "setups", label: "Setups" },
+  { key: "notes", label: "Notes" },
 ];
 
 interface FileManagerDrawerProps {
@@ -33,6 +36,12 @@ interface FileManagerDrawerProps {
   onAddKart: (kart: Omit<Kart, "id">) => Promise<void>;
   onUpdateKart: (kart: Kart) => Promise<void>;
   onRemoveKart: (id: string) => Promise<void>;
+  // Note props
+  currentFileName: string | null;
+  notes: Note[];
+  onAddNote: (text: string) => Promise<void>;
+  onUpdateNote: (id: string, text: string) => Promise<void>;
+  onRemoveNote: (id: string) => Promise<void>;
 }
 
 export function FileManagerDrawer({
@@ -51,6 +60,11 @@ export function FileManagerDrawer({
   onAddKart,
   onUpdateKart,
   onRemoveKart,
+  currentFileName,
+  notes,
+  onAddNote,
+  onUpdateNote,
+  onRemoveNote,
 }: FileManagerDrawerProps) {
   const [activeTab, setActiveTab] = useState<DrawerTab>("files");
 
@@ -120,6 +134,15 @@ export function FileManagerDrawer({
           />
         )}
         {activeTab === "setups" && <SetupsTab />}
+        {activeTab === "notes" && (
+          <NotesTab
+            fileName={currentFileName}
+            notes={notes}
+            onAdd={onAddNote}
+            onUpdate={onUpdateNote}
+            onRemove={onRemoveNote}
+          />
+        )}
       </div>
     </>
   );
