@@ -138,7 +138,7 @@ export function LocalWeatherDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="w-full gap-2">
           <CloudSun className="w-4 h-4" />
           Get Local Weather (METAR)
         </Button>
