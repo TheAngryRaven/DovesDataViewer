@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Upload, FileText, FolderOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
@@ -7,9 +7,12 @@ import { DataloggerDownload } from "./DataloggerDownload";
 
 interface FileImportProps {
   onDataLoaded: (data: ParsedData) => void;
+  onOpenFileManager?: () => void;
+  autoSave?: boolean;
+  autoSaveFile?: (name: string, blob: Blob) => Promise<void>;
 }
 
-export function FileImport({ onDataLoaded }: FileImportProps) {
+export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSaveFile }: FileImportProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -22,6 +25,9 @@ export function FileImport({ onDataLoaded }: FileImportProps) {
 
       try {
         const data = await parseDatalogFile(file);
+        if (autoSave && autoSaveFile) {
+          try { await autoSaveFile(file.name, file); } catch (e) { console.warn("Auto-save failed:", e); }
+        }
         onDataLoaded(data);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to parse file");
@@ -85,13 +91,20 @@ export function FileImport({ onDataLoaded }: FileImportProps) {
           />
           <Button variant="outline" disabled={isLoading} asChild>
             <span className="cursor-pointer">
-              <FileText className="w-4 h-4 mr-2" />
-              Browse Files
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Files
             </span>
           </Button>
         </label>
 
-        <DataloggerDownload onDataLoaded={onDataLoaded} />
+        {onOpenFileManager && (
+          <Button variant="outline" onClick={onOpenFileManager}>
+            <FolderOpen className="w-4 h-4 mr-2" />
+            Browse Files
+          </Button>
+        )}
+
+        <DataloggerDownload onDataLoaded={onDataLoaded} autoSave={autoSave} autoSaveFile={autoSaveFile} />
       </div>
 
       {fileName && !error && <p className="text-sm text-muted-foreground font-mono">Loaded: {fileName}</p>}
