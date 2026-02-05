@@ -26,12 +26,14 @@ import { findSpeedEvents } from "@/lib/speedEvents";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useFileManager } from "@/hooks/useFileManager";
+import { useKartManager } from "@/hooks/useKartManager";
 
 type TopPanelView = "raceline" | "laptable";
 
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
   const fileManager = useFileManager();
+  const kartManager = useKartManager();
   const useKph = settings.useKph;
   
   const [data, setData] = useState<ParsedData | null>(null);
@@ -544,6 +546,10 @@ export default function Index() {
         onSaveFile={fileManager.saveFile}
         onDataLoaded={handleDataLoaded}
         autoSave={settings.autoSaveFiles}
+        karts={kartManager.karts}
+        onAddKart={kartManager.addKart}
+        onUpdateKart={kartManager.updateKart}
+        onRemoveKart={kartManager.removeKart}
       />
       </>
     );
@@ -750,6 +756,10 @@ export default function Index() {
         onSaveFile={fileManager.saveFile}
         onDataLoaded={handleDataLoaded}
         autoSave={settings.autoSaveFiles}
+        karts={kartManager.karts}
+        onAddKart={kartManager.addKart}
+        onUpdateKart={kartManager.updateKart}
+        onRemoveKart={kartManager.removeKart}
       />
     </div>
   );
