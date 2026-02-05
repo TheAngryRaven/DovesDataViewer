@@ -13,6 +13,9 @@ export interface WeatherData {
   humidity: number; // percentage
   altimeterInHg: number; // for DA calculation
   densityAltitudeFt: number;
+  windSpeedKts: number | null; // knots
+  windDirectionDeg: number | null; // degrees (0-360)
+  windGustKts: number | null; // gust speed in knots
   observationTime: Date;
 }
 
@@ -155,7 +158,7 @@ export async function fetchWeatherData(
     // IEM ASOS endpoint
     const params = new URLSearchParams({
       station: station.stationId,
-      data: "tmpf,relh,alti",
+      data: "tmpf,relh,alti,sknt,drct,gust",
       tz: "UTC",
       format: "comma",
       latlon: "no",
@@ -206,6 +209,9 @@ export async function fetchWeatherData(
       humidity: observation.humidity,
       altimeterInHg: observation.altimeterInHg,
       densityAltitudeFt,
+      windSpeedKts: observation.windSpeedKts,
+      windDirectionDeg: observation.windDirectionDeg,
+      windGustKts: observation.windGustKts,
       observationTime: observation.time,
     };
   } catch (error) {
@@ -225,6 +231,9 @@ function parseAsosResponse(
   temperatureC: number;
   humidity: number;
   altimeterInHg: number;
+  windSpeedKts: number | null;
+  windDirectionDeg: number | null;
+  windGustKts: number | null;
   time: Date;
 } | null {
   const lines = csvText.trim().split("\n");
@@ -248,6 +257,9 @@ function parseAsosResponse(
   const tmpfIdx = headers.indexOf("tmpf");
   const relhIdx = headers.indexOf("relh");
   const altiIdx = headers.indexOf("alti");
+  const skntIdx = headers.indexOf("sknt");
+  const drctIdx = headers.indexOf("drct");
+  const gustIdx = headers.indexOf("gust");
 
   if (validIdx === -1 || tmpfIdx === -1 || relhIdx === -1 || altiIdx === -1) {
     return null;
@@ -258,6 +270,9 @@ function parseAsosResponse(
     temperatureC: number;
     humidity: number;
     altimeterInHg: number;
+    windSpeedKts: number | null;
+    windDirectionDeg: number | null;
+    windGustKts: number | null;
     time: Date;
   } | null = null;
   let closestDiff = Infinity;
@@ -288,6 +303,9 @@ function parseAsosResponse(
         temperatureC: Math.round(((tmpf - 32) * 5) / 9 * 10) / 10,
         humidity: Math.round(relh),
         altimeterInHg: Math.round(alti * 100) / 100,
+        windSpeedKts: skntIdx !== -1 ? (isNaN(parseFloat(values[skntIdx])) ? null : Math.round(parseFloat(values[skntIdx]))) : null,
+        windDirectionDeg: drctIdx !== -1 ? (isNaN(parseFloat(values[drctIdx])) ? null : Math.round(parseFloat(values[drctIdx]))) : null,
+        windGustKts: gustIdx !== -1 ? (isNaN(parseFloat(values[gustIdx])) ? null : Math.round(parseFloat(values[gustIdx]))) : null,
         time: obsTime,
       };
     }
