@@ -225,6 +225,7 @@ export function parseDatalog(content: string): ParsedData {
   const samples: GpsSample[] = [];
   const fieldMappings: FieldMapping[] = [];
   let fieldMappingsCreated = false;
+  let startDate: Date | undefined;
   
   let baseTimeMs = 0;
   let lastTimeMs = 0;
@@ -272,9 +273,27 @@ export function parseDatalog(content: string): ParsedData {
     }
     lastTimeMs = currentTimeMs;
 
-    // Set base time from first valid sample
+    // Set base time and startDate from first valid sample
     if (samples.length === 0) {
       baseTimeMs = currentTimeMs;
+      // Construct startDate from NMEA date + time
+      if (parsed.date) {
+        const time = {
+          hours: Math.floor(parsed.timeMs / 3600000),
+          minutes: Math.floor((parsed.timeMs % 3600000) / 60000),
+          seconds: Math.floor((parsed.timeMs % 60000) / 1000),
+          ms: parsed.timeMs % 1000
+        };
+        startDate = new Date(Date.UTC(
+          parsed.date.year,
+          parsed.date.month - 1, // JS months are 0-indexed
+          parsed.date.day,
+          time.hours,
+          time.minutes,
+          time.seconds,
+          time.ms
+        ));
+      }
     }
 
     const t = currentTimeMs - baseTimeMs;
@@ -410,7 +429,8 @@ export function parseDatalog(content: string): ParsedData {
       minLon: Math.min(...lons),
       maxLon: Math.max(...lons)
     },
-    duration: samples[samples.length - 1].t
+    duration: samples[samples.length - 1].t,
+    startDate
   };
 }
 
