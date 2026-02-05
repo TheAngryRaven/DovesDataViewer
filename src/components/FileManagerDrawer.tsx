@@ -23,7 +23,7 @@ interface FileManagerDrawerProps {
   onDeleteFile: (name: string) => Promise<void>;
   onExportFile: (name: string) => Promise<void>;
   onSaveFile: (name: string, blob: Blob) => Promise<void>;
-  onDataLoaded: (data: ParsedData) => void;
+  onDataLoaded: (data: ParsedData, fileName?: string) => void;
   autoSave: boolean;
 }
 
@@ -53,7 +53,7 @@ export function FileManagerDrawer({
       if (blob) {
         const file = new File([blob], confirmLoad);
         const data = await parseDatalogFile(file);
-        onDataLoaded(data);
+        onDataLoaded(data, confirmLoad);
         onClose();
       }
     } catch (e) {
@@ -80,7 +80,7 @@ export function FileManagerDrawer({
         if (autoSave) {
           await onSaveFile(file.name, file);
         }
-        onDataLoaded(data);
+        onDataLoaded(data, file.name);
         onClose();
       } catch (e) {
         console.error("Failed to process uploaded file:", e);
@@ -93,8 +93,8 @@ export function FileManagerDrawer({
   );
 
   const handleBleDataLoaded = useCallback(
-    (data: ParsedData) => {
-      onDataLoaded(data);
+    (data: ParsedData, fileName?: string) => {
+      onDataLoaded(data, fileName);
       onClose();
     },
     [onDataLoaded, onClose],

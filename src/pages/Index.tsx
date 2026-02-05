@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData, Lap, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
+import { saveFileMetadata, getFileMetadata } from "@/lib/fileStorage";
 import { calculateLaps } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
 import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
@@ -32,6 +33,7 @@ export default function Index() {
   const useKph = settings.useKph;
   
   const [data, setData] = useState<ParsedData | null>(null);
+  const [currentFileName, setCurrentFileName] = useState<string | null>(null);
   const [selection, setSelection] = useState<TrackCourseSelection | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
@@ -269,8 +271,9 @@ export default function Index() {
   }, [data?.samples]);
 
   const handleDataLoaded = useCallback(
-    (parsedData: ParsedData) => {
+    async (parsedData: ParsedData, fileName?: string) => {
       setData(parsedData);
+      if (fileName) setCurrentFileName(fileName);
       // Apply default hidden fields from settings
       setFieldMappings(
         parsedData.fieldMappings.map((f) => ({
@@ -280,10 +283,37 @@ export default function Index() {
       );
       setCurrentIndex(0);
 
+      // Try to restore track selection from metadata
+      let courseToUse = selectedCourse;
+      if (fileName) {
+        const meta = await getFileMetadata(fileName);
+        if (meta) {
+          const tracks = await loadTracks();
+          const track = tracks.find((t) => t.name === meta.trackName);
+          const course = track?.courses.find((c) => c.name === meta.courseName);
+          if (track && course) {
+            const restoredSelection: TrackCourseSelection = {
+              trackName: track.name,
+              courseName: course.name,
+              course,
+            };
+            setSelection(restoredSelection);
+            courseToUse = course;
+          }
+        }
+      }
+
       // Calculate laps if course is selected
-      if (selectedCourse) {
-        const computedLaps = calculateLaps(parsedData.samples, selectedCourse);
+      if (courseToUse) {
+        const computedLaps = calculateLaps(parsedData.samples, courseToUse);
         setLaps(computedLaps);
+        // Auto-select fastest lap
+        if (computedLaps.length > 0) {
+          const fastest = computedLaps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), computedLaps[0]);
+          setSelectedLapNumber(fastest.lapNumber);
+        }
+      } else {
+        setSelectedLapNumber(null);
       }
     },
     [selectedCourse, isFieldHiddenByDefault],
@@ -293,15 +323,30 @@ export default function Index() {
     (newSelection: TrackCourseSelection | null) => {
       setSelection(newSelection);
 
+      // Persist track/course association for current file
+      if (currentFileName && newSelection) {
+        saveFileMetadata({
+          fileName: currentFileName,
+          trackName: newSelection.trackName,
+          courseName: newSelection.courseName,
+        });
+      }
+
       // Recalculate laps
       if (newSelection?.course && data) {
         const computedLaps = calculateLaps(data.samples, newSelection.course);
         setLaps(computedLaps);
+        // Auto-select fastest lap
+        if (computedLaps.length > 0) {
+          const fastest = computedLaps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), computedLaps[0]);
+          setSelectedLapNumber(fastest.lapNumber);
+        }
       } else {
         setLaps([]);
+        setSelectedLapNumber(null);
       }
     },
-    [data],
+    [data, currentFileName],
   );
 
   const handleScrub = useCallback(

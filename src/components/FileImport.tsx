@@ -6,7 +6,7 @@ import { ParsedData } from "@/types/racing";
 import { DataloggerDownload } from "./DataloggerDownload";
 
 interface FileImportProps {
-  onDataLoaded: (data: ParsedData) => void;
+  onDataLoaded: (data: ParsedData, fileName?: string) => void;
   onOpenFileManager?: () => void;
   autoSave?: boolean;
   autoSaveFile?: (name: string, blob: Blob) => Promise<void>;
@@ -28,7 +28,7 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
         if (autoSave && autoSaveFile) {
           try { await autoSaveFile(file.name, file); } catch (e) { console.warn("Auto-save failed:", e); }
         }
-        onDataLoaded(data);
+        onDataLoaded(data, file.name);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to parse file");
       } finally {
