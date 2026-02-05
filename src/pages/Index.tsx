@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
+import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { TrackEditor } from "@/components/TrackEditor";
 import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
@@ -457,6 +458,10 @@ export default function Index() {
 
         <main className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-xl space-y-6">
+            <div className="flex justify-end">
+              <LocalWeatherDialog />
+            </div>
+
             <FileImport
               onDataLoaded={handleDataLoaded}
               onOpenFileManager={fileManager.open}
