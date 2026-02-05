@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { X, Trash2, Download, Upload, Bluetooth, FolderOpen, Loader2 } from "lucide-react";
+import { X, Trash2, Download, Upload, FolderOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileEntry } from "@/lib/fileStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
@@ -123,6 +122,37 @@ export function FileManagerDrawer({
           </Button>
         </div>
 
+        {/* Inline Confirmation Banner */}
+        {(confirmLoad || confirmDelete) && (
+          <div className="mx-3 mt-3 mb-1 p-3 rounded-md border border-border bg-muted/60 space-y-2 shrink-0">
+            {confirmLoad && (
+              <>
+                <p className="text-sm text-foreground">
+                  Load <span className="font-mono font-medium">{confirmLoad}</span>?
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setConfirmLoad(null)}>Cancel</Button>
+                  <Button size="sm" onClick={handleLoadConfirm} disabled={loading}>
+                    {loading && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                    Load
+                  </Button>
+                </div>
+              </>
+            )}
+            {confirmDelete && (
+              <>
+                <p className="text-sm text-foreground">
+                  Delete <span className="font-mono font-medium">{confirmDelete}</span>? This cannot be undone.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+                  <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>Delete</Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* File List */}
         <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-1">
           {files.length === 0 ? (
@@ -213,41 +243,6 @@ export function FileManagerDrawer({
           />
         </div>
       </div>
-
-      {/* Load Confirmation Dialog */}
-      <Dialog open={!!confirmLoad} onOpenChange={(open) => !open && setConfirmLoad(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Load File</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Would you like to load <span className="font-mono font-medium text-foreground">{confirmLoad}</span>?
-          </p>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setConfirmLoad(null)}>Cancel</Button>
-            <Button onClick={handleLoadConfirm} disabled={loading}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Load
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete File</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Delete <span className="font-mono font-medium text-foreground">{confirmDelete}</span>? This cannot be undone.
-          </p>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
