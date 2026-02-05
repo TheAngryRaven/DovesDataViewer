@@ -1,148 +1,172 @@
 
 
-## Braking Zone Detection & Visualization
+## Weather Panel Implementation
 
-This plan implements discrete braking zone detection and map visualization using a hysteresis-based state machine algorithm, with both a quick-toggle in the map controls and detailed tuning in settings.
+This plan adds a weather data panel to the lower-left of the map view, displaying temperature, humidity, and density altitude. The panel integrates with the existing overlay toggle system and includes GPS validation.
 
 ---
 
 ### Overview
 
-**New file to create:**
-- `src/lib/brakingZones.ts` - Detection algorithm with state machine and configurable thresholds
+**New files to create:**
+- `src/lib/weatherService.ts` - API client for NWS station lookup + IEM weather data fetch
+- `src/components/WeatherPanel.tsx` - UI component for the weather display
 
 **Files to modify:**
-- `src/hooks/useSettings.ts` - Add braking zone tuning settings
-- `src/components/SettingsModal.tsx` - Add Braking Zones settings section with sliders
-- `src/components/RaceLineView.tsx` - Add toggle under speed events, render braking zone polylines
-- `src/pages/Index.tsx` - Pass braking settings to RaceLineView
+- `src/components/RaceLineView.tsx` - Add WeatherPanel to the map view
+- `src/pages/Index.tsx` - Pass session data (GPS point + start time) to RaceLineView
 
 ---
 
-### Feature 1: Braking Zone Detection Algorithm
+### Feature 1: Weather Panel UI
 
-**New file: `src/lib/brakingZones.ts`**
+**New component: `src/components/WeatherPanel.tsx`**
 
-Types:
+Position: Bottom-left of map view (above zoom controls)
+
+**Layout:**
+```text
++-------------------------+
+| Weather                 |
++-------------------------+
+| Temp:      72 F (22 C)  |
+| Humidity:  65%          |
+| DA:        1,234 ft     |
++-------------------------+
+```
+
+**States:**
+- Loading: Show skeleton/spinner while fetching
+- Error: Show "Weather unavailable" message
+- Success: Display formatted weather data
+- No data: Hidden when session has no valid GPS or start date
+
+**Styling:**
+- Match existing panel style: `bg-card/90 backdrop-blur-sm border border-border rounded p-2`
+- Follows `showOverlays` toggle visibility
+
+---
+
+### Feature 2: GPS Validation
+
+**Validation function in `src/lib/weatherService.ts`:**
 ```typescript
-interface BrakingZone {
-  start: { lat: number; lon: number; t: number; speedMps: number };
-  end: { lat: number; lon: number; t: number; speedMps: number };
-  path: Array<{ lat: number; lon: number }>;
-  durationMs: number;
-  speedDeltaMps: number;
+function isValidGpsPoint(lat: number, lon: number): boolean {
+  // Skip invalid coordinates (0,0 is common GPS error)
+  if (lat === 0 || lon === 0) return false;
+  // Bounds check
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return false;
+  return true;
+}
+```
+
+This matches the validation pattern used in:
+- `src/lib/nmeaParser.ts`
+- `src/lib/ubxParser.ts`
+- `src/lib/vboParser.ts`
+- `src/lib/aimParser.ts`
+- `src/lib/alfanoParser.ts`
+
+**Usage:**
+- Validate GPS point before making any API calls
+- Return early with null if invalid
+- WeatherPanel shows nothing when GPS is invalid
+
+---
+
+### Feature 3: Weather Data Service
+
+**New file: `src/lib/weatherService.ts`**
+
+**Types:**
+```typescript
+interface WeatherStation {
+  stationId: string;    // e.g., "KOKC"
+  name: string;         // e.g., "Oklahoma City"
+  distanceKm: number;
 }
 
-interface BrakingZoneConfig {
-  entryThresholdG: number;    // default: -0.25
-  exitThresholdG: number;     // default: -0.10
-  minDurationMs: number;      // default: 120
-  smoothingAlpha: number;     // default: 0.4
+interface WeatherData {
+  station: WeatherStation;
+  temperatureF: number;
+  temperatureC: number;
+  humidity: number;         // percentage
+  altimeterInHg: number;    // for DA calculation
+  densityAltitudeFt: number;
+  observationTime: Date;
 }
 ```
 
-Algorithm:
-1. Calculate longitudinal acceleration from scalar speed changes
-2. Apply exponential smoothing with configurable alpha
-3. State machine with hysteresis (entry at -0.25g, exit at -0.10g)
-4. Filter zones shorter than minimum duration (120ms default)
-5. Return array of zones with full GPS path for curved rendering
+**API Flow:**
+1. Validate GPS point using `isValidGpsPoint(lat, lon)`
+2. If invalid, return null immediately
+3. Call NWS API: `GET https://api.weather.gov/points/{lat},{lon}`
+4. Get `observationStations` URL from response
+5. Fetch station list, find nearest ASOS/AWOS station
+6. Call IEM ASOS endpoint with station ID and session time range
+7. Parse CSV response, calculate density altitude
+8. Return `WeatherData` object
+
+**Density Altitude Calculation:**
+```text
+Pressure Altitude (ft) = (29.92 - altimeter) x 1000 + field_elevation
+Density Altitude (ft) = Pressure Altitude + (120 x (OAT_C - ISA_temp))
+Where ISA_temp = 15 - (2 x altitude_in_thousands)
+```
+
+**Error Handling:**
+- Invalid GPS: Return null silently
+- Network failures: Return null, UI shows "unavailable"
+- CORS issues: Graceful fallback message
+- No nearby station: Show "No station found"
 
 ---
 
-### Feature 2: Map Controls Toggle
+### Feature 4: Integration with RaceLineView
 
-**Location:** Controls panel, directly below "Speed events" toggle
-
-**UI:**
-```
-├─ [Switch] Speed events
-│  └─ Peak/Valley legend (when enabled)
-│
-├─ [Switch] Braking zones      ← NEW
-│  └─ Orange square legend (when enabled)
-```
-
-**Behavior:**
-- Local state `showBrakingZones` in RaceLineView (default: true)
-- Independent of speed events toggle
-- Zones render as thick orange polylines (weight: 8-10)
-- Follows global `showOverlays` visibility
-
----
-
-### Feature 3: Settings for Threshold Tuning
-
-**Location:** Settings modal, new "Braking Zones" section after G-Force Smoothing
-
-**New settings in AppSettings:**
+**New props for RaceLineView:**
 ```typescript
-brakingEntryThreshold: number;    // 10-50, represents 0.10-0.50g (default: 25)
-brakingExitThreshold: number;     // 5-25, represents 0.05-0.25g (default: 10)
-brakingMinDuration: number;       // 50-500ms (default: 120)
-brakingSmoothingAlpha: number;    // 10-80, represents 0.1-0.8 (default: 40)
+sessionGpsPoint?: { lat: number; lon: number };
+sessionStartDate?: Date;
 ```
 
-**UI in SettingsModal:**
-```
-[Icon: Circle] Braking Zone Detection
-─────────────────────────────────────
-Entry Threshold        [-0.25g] ●────────○
-Exit Threshold         [-0.10g] ●────○
-Min Duration           [120ms]  ●──────○
-Smoothing              [0.4]    ●────○
-```
+**Panel placement:**
+- Position: `absolute bottom-16 left-4` (above zoom controls)
+- Same z-index as other panels: `z-[1000]`
+- Respects `showOverlays` toggle
 
-Each slider shows the current value with proper formatting.
-
----
-
-### Feature 4: Map Rendering
-
-**New layer in RaceLineView:**
-- `brakingZonesLayerRef` - Layer group for zone polylines
-- Compute zones via `useMemo` when samples change
-- Draw each zone as polyline following actual GPS path
-- Style: Orange (`hsl(30, 90%, 50%)`), weight 8-10px
-- Render below race line, above reference line
-
-**Visual hierarchy:**
-```
-Top:     Position marker, speed event bubbles
-         Race line (weight: 4)
-         Braking zones (weight: 8, orange)
-         Reference line (weight: 4, grey)
-Bottom:  Map tiles
-```
+**Data fetching:**
+- Use `useEffect` to fetch weather once when session loads
+- Cache result in component state
+- Only fetch when valid GPS point and `sessionStartDate` are available
 
 ---
 
 ### Technical Implementation
 
-**File: `src/lib/brakingZones.ts` (NEW)**
-- Export `detectBrakingZones(samples, config)` function
-- Export `BrakingZone` and `BrakingZoneConfig` types
-- Export `DEFAULT_BRAKING_CONFIG` constants
+**File: `src/lib/weatherService.ts` (NEW)**
+- Export `isValidGpsPoint(lat, lon)` validation function
+- Export `fetchNearestStation(lat, lon)` function
+- Export `fetchWeatherData(stationId, date)` function
+- Export `calculateDensityAltitude(tempC, altimeterInHg, fieldElevation)` utility
+- Export types
 
-**File: `src/hooks/useSettings.ts`**
-- Add 4 new settings to `AppSettings` interface
-- Add defaults to `defaultSettings`
-
-**File: `src/components/SettingsModal.tsx`**
-- Import `Circle` icon from lucide-react
-- Add new "Braking Zone Detection" section with 4 sliders
-- Display values with proper units (-0.XXg for thresholds, ms for duration)
+**File: `src/components/WeatherPanel.tsx` (NEW)**
+- Props: `lat`, `lon`, `sessionDate`, `visible`
+- Internal state for weather data, loading, error
+- Validate GPS before fetching
+- Fetch on mount when props available and valid
+- Display formatted data with units
 
 **File: `src/components/RaceLineView.tsx`**
-- Add `showBrakingZones` local state (default: true)
-- Add toggle UI below speed events toggle with orange legend
-- Add `brakingZonesLayerRef` for the layer
-- Import and call `detectBrakingZones` in useMemo
-- Render zones as thick orange polylines
-- Add new prop `brakingZoneSettings` for threshold values
+- Add new props: `sessionGpsPoint`, `sessionStartDate`
+- Import and render `WeatherPanel` component
+- Position in bottom-left, conditionally shown with `showOverlays`
 
 **File: `src/pages/Index.tsx`**
-- Pass braking settings to RaceLineView as `brakingZoneSettings` prop
+- Find first valid GPS sample (skip 0,0 coordinates)
+- Extract `startDate` from parsed data
+- Pass to RaceLineView as new props
 
 ---
 
@@ -150,20 +174,26 @@ Bottom:  Map tiles
 
 | File | Changes |
 |------|---------|
-| `src/lib/brakingZones.ts` | **New** - Detection algorithm, types, constants |
-| `src/hooks/useSettings.ts` | Add 4 braking threshold settings |
-| `src/components/SettingsModal.tsx` | Add Braking Zone Detection section with sliders |
-| `src/components/RaceLineView.tsx` | Add toggle, layer, compute and render zones |
-| `src/pages/Index.tsx` | Pass braking settings to RaceLineView |
+| `src/lib/weatherService.ts` | **New** - NWS + IEM API client, GPS validation, DA calculation |
+| `src/components/WeatherPanel.tsx` | **New** - Weather display UI component |
+| `src/components/RaceLineView.tsx` | Add WeatherPanel, new props |
+| `src/pages/Index.tsx` | Extract valid GPS point and start date, pass to RaceLineView |
 
 ---
 
-### Default Tuning Values
+### GPS Point Extraction in Index.tsx
 
-| Setting | Default | Range | Display |
-|---------|---------|-------|---------|
-| Entry Threshold | 25 | 10-50 | -0.25g |
-| Exit Threshold | 10 | 5-25 | -0.10g |
-| Min Duration | 120 | 50-500 | 120ms |
-| Smoothing Alpha | 40 | 10-80 | 0.4 |
+```typescript
+// Find first valid GPS sample for weather lookup
+const sessionGpsPoint = useMemo(() => {
+  if (!data?.samples?.length) return undefined;
+  const validSample = data.samples.find(s => 
+    s.lat !== 0 && s.lon !== 0 && 
+    Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180
+  );
+  return validSample ? { lat: validSample.lat, lon: validSample.lon } : undefined;
+}, [data?.samples]);
+```
+
+This ensures we skip any invalid/placeholder GPS coordinates before attempting weather lookup.
 
