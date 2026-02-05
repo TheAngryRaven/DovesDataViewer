@@ -16,6 +16,7 @@ interface WeatherPanelProps {
   sessionDate?: Date;
   cachedStation?: WeatherStation | null;
   onStationResolved?: (station: WeatherStation) => void;
+  onWeatherLoaded?: (data: WeatherData) => void;
 }
 
 export function WeatherPanel({
@@ -24,12 +25,15 @@ export function WeatherPanel({
   sessionDate,
   cachedStation,
   onStationResolved,
+  onWeatherLoaded,
 }: WeatherPanelProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const onStationResolvedRef = useRef(onStationResolved);
   onStationResolvedRef.current = onStationResolved;
+  const onWeatherLoadedRef = useRef(onWeatherLoaded);
+  onWeatherLoadedRef.current = onWeatherLoaded;
 
   useEffect(() => {
     // Reset state when inputs change
@@ -57,7 +61,7 @@ export function WeatherPanel({
           if (!cancelled) {
             if (data) {
               setWeather(data);
-            } else {
+              onWeatherLoadedRef.current?.(data);
               setError(true);
             }
           }
@@ -75,7 +79,7 @@ export function WeatherPanel({
           if (!cancelled) {
             if (data) {
               setWeather(data);
-            } else {
+              onWeatherLoadedRef.current?.(data);
               setError(true);
             }
           }
