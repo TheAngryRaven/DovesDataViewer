@@ -30,7 +30,7 @@ interface StoredFile {
 const DB_NAME = "dove-file-manager";
 const FILES_STORE = "files";
 const META_STORE = "metadata";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -45,6 +45,10 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains("karts")) {
         db.createObjectStore("karts", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("notes")) {
+        const notesStore = db.createObjectStore("notes", { keyPath: "id" });
+        notesStore.createIndex("fileName", "fileName", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);

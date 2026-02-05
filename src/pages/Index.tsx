@@ -27,6 +27,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useFileManager } from "@/hooks/useFileManager";
 import { useKartManager } from "@/hooks/useKartManager";
+import { useNoteManager } from "@/hooks/useNoteManager";
 
 type TopPanelView = "raceline" | "laptable";
 
@@ -38,6 +39,7 @@ export default function Index() {
   
   const [data, setData] = useState<ParsedData | null>(null);
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
+  const noteManager = useNoteManager(currentFileName);
   const [selection, setSelection] = useState<TrackCourseSelection | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
@@ -550,6 +552,11 @@ export default function Index() {
         onAddKart={kartManager.addKart}
         onUpdateKart={kartManager.updateKart}
         onRemoveKart={kartManager.removeKart}
+        currentFileName={currentFileName}
+        notes={noteManager.notes}
+        onAddNote={noteManager.addNote}
+        onUpdateNote={noteManager.updateNote}
+        onRemoveNote={noteManager.removeNote}
       />
       </>
     );
@@ -760,6 +767,11 @@ export default function Index() {
         onAddKart={kartManager.addKart}
         onUpdateKart={kartManager.updateKart}
         onRemoveKart={kartManager.removeKart}
+        currentFileName={currentFileName}
+        notes={noteManager.notes}
+        onAddNote={noteManager.addNote}
+        onUpdateNote={noteManager.updateNote}
+        onRemoveNote={noteManager.removeNote}
       />
     </div>
   );
