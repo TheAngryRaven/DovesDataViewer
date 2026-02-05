@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Cloud, Thermometer, Droplets, Mountain } from "lucide-react";
+import { Cloud, Thermometer, Droplets, Gauge, Mountain } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchSessionWeather,
@@ -11,14 +11,12 @@ interface WeatherPanelProps {
   lat?: number;
   lon?: number;
   sessionDate?: Date;
-  visible: boolean;
 }
 
 export function WeatherPanel({
   lat,
   lon,
   sessionDate,
-  visible,
 }: WeatherPanelProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,9 +68,8 @@ export function WeatherPanel({
     };
   }, [lat, lon, sessionDate]);
 
-  // Don't render if not visible or no valid GPS
+  // Don't render if no valid GPS
   if (
-    !visible ||
     lat === undefined ||
     lon === undefined ||
     !sessionDate ||
@@ -82,19 +79,20 @@ export function WeatherPanel({
   }
 
   return (
-    <div className="absolute bottom-16 left-4 z-[1000] bg-card/90 backdrop-blur-sm border border-border rounded p-2 min-w-[160px]">
+    <div className="bg-card/90 backdrop-blur-sm border border-border rounded p-2 min-w-[140px]">
       <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-2 border-b border-border pb-1.5">
         <Cloud className="w-3.5 h-3.5 text-primary" />
         <span>Weather</span>
         {weather && (
-          <span className="text-muted-foreground ml-auto text-[10px] truncate max-w-[80px]">
-            {weather.station.name}
+          <span className="text-muted-foreground ml-auto font-mono text-[10px]">
+            {weather.station.stationId}
           </span>
         )}
       </div>
 
       {loading && (
         <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4" />
@@ -123,6 +121,16 @@ export function WeatherPanel({
               <span>Humidity</span>
             </div>
             <span className="text-foreground">{weather.humidity}%</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Mountain className="w-3 h-3" />
+              <span>Pressure</span>
+            </div>
+            <span className="text-foreground">
+              {weather.altimeterInHg} inHg
+            </span>
           </div>
 
           <div className="flex items-center justify-between gap-3">

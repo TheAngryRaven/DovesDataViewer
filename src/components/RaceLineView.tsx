@@ -8,7 +8,7 @@ import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Moon, Satellite, Square, WifiOff } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff, CloudSun } from 'lucide-react';
 import { WeatherPanel } from '@/components/WeatherPanel';
 import 'leaflet/dist/leaflet.css';
 
@@ -159,6 +159,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
   const [showBrakingZones, setShowBrakingZones] = useState(true);
+  const [showWeather, setShowWeather] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
   const isOnline = useOnlineStatus();
 
@@ -558,13 +559,14 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
         </div>
       )}
 
-      {/* Weather panel */}
-      <WeatherPanel
-        lat={sessionGpsPoint?.lat}
-        lon={sessionGpsPoint?.lon}
-        sessionDate={sessionStartDate}
-        visible={showOverlays}
-      />
+      {/* Weather toggle button - bottom right */}
+      <button
+        onClick={() => setShowWeather(prev => !prev)}
+        className={`absolute bottom-4 right-4 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 ${showWeather ? 'text-primary' : 'text-muted-foreground'}`}
+        title={showWeather ? 'Hide weather' : 'Show weather'}
+      >
+        <CloudSun className="w-4 h-4" />
+      </button>
       
       {/* Speed legend and stats panel */}
       {showOverlays && (
@@ -662,6 +664,17 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
               </div>
             );
           })()}
+          
+          {/* Weather panel - below delta section */}
+          {showWeather && (
+            <div className="mt-3 pt-2 border-t border-border">
+              <WeatherPanel
+                lat={sessionGpsPoint?.lat}
+                lon={sessionGpsPoint?.lon}
+                sessionDate={sessionStartDate}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
