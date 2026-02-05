@@ -1,199 +1,174 @@
 
 
-## Weather Panel Implementation
+## In-App File Manager (IndexedDB + Pull-Out Overlay)
 
-This plan adds a weather data panel to the lower-left of the map view, displaying temperature, humidity, and density altitude. The panel integrates with the existing overlay toggle system and includes GPS validation.
+This plan adds a full client-side file manager using IndexedDB for storage, accessible as a slide-in overlay drawer from two entry points.
 
 ---
 
 ### Overview
 
-**New files to create:**
-- `src/lib/weatherService.ts` - API client for NWS station lookup + IEM weather data fetch
-- `src/components/WeatherPanel.tsx` - UI component for the weather display
+**New files:**
+- `src/lib/fileStorage.ts` - IndexedDB wrapper for storing/retrieving/deleting file blobs
+- `src/components/FileManagerDrawer.tsx` - The overlay drawer UI component
+- `src/hooks/useFileManager.ts` - Hook managing file list state, CRUD operations, and storage estimates
 
-**Files to modify:**
-- `src/components/RaceLineView.tsx` - Add WeatherPanel to the map view
-- `src/pages/Index.tsx` - Pass session data (GPS point + start time) to RaceLineView
+**Modified files:**
+- `src/hooks/useSettings.ts` + `src/components/SettingsModal.tsx` - Add "Auto-save" toggle
+- `src/components/FileImport.tsx` - Rename button, add "Browse files" button, hook into auto-save
+- `src/components/DataloggerDownload.tsx` - Hook into auto-save after BLE download
+- `src/pages/Index.tsx` - Wire up file manager state, change FolderOpen button behavior
 
 ---
 
-### Feature 1: Weather Panel UI
+### 1. IndexedDB Storage Layer (`src/lib/fileStorage.ts`)
 
-**New component: `src/components/WeatherPanel.tsx`**
+A thin wrapper around IndexedDB using the `idb`-free raw API (no new dependencies).
 
-Position: Bottom-left of map view (above zoom controls)
+```text
+Database: "dove-file-manager"
+Object Store: "files"
+Key: filename (string)
+Value: { name: string, data: Blob, size: number, savedAt: number }
+```
+
+**Exported functions:**
+- `initFileDB()` - Open/create the database
+- `saveFile(name: string, data: Blob): Promise<void>`
+- `listFiles(): Promise<FileEntry[]>` - Returns `{ name, size, savedAt }`
+- `getFile(name: string): Promise<Blob | null>`
+- `deleteFile(name: string): Promise<void>`
+- `getStorageEstimate(): Promise<{ used: number, quota: number } | null>` - Wraps `navigator.storage.estimate()`
+
+All functions handle errors gracefully and log warnings.
+
+---
+
+### 2. File Manager Hook (`src/hooks/useFileManager.ts`)
+
+Manages reactive state for the file list and storage usage.
+
+**State:**
+- `files: FileEntry[]` - Current list of stored files
+- `storageUsed: number` / `storageQuota: number` - From storage estimate
+- `isOpen: boolean` - Drawer open/close
+
+**Methods:**
+- `open()` / `close()` - Toggle drawer
+- `refresh()` - Re-fetch file list + storage estimate from IndexedDB
+- `saveFile(name, blob)` - Save + refresh
+- `removeFile(name)` - Delete + refresh
+- `exportFile(name)` - Get blob, create download link, trigger browser download
+
+---
+
+### 3. File Manager Drawer UI (`src/components/FileManagerDrawer.tsx`)
+
+A slide-in overlay panel rendered at the app root level (inside Index.tsx).
 
 **Layout:**
 ```text
-+-------------------------+
-| Weather                 |
-+-------------------------+
-| Temp:      72 F (22 C)  |
-| Humidity:  65%          |
-| DA:        1,234 ft     |
-+-------------------------+
++-------------------------------+
+| [X]  File Manager             |  <- Header with close button
++-------------------------------+
+|                               |
+|  file1.nmea         [D] [Ex] |  <- Scrollable file list
+|  file2.csv          [D] [Ex] |     D = Delete, Ex = Export
+|  file3.vbo          [D] [Ex] |
+|                               |
+|  (empty state when no files)  |
+|                               |
++-------------------------------+
+|  [====........] 12MB / 500MB  |  <- Storage usage bar
++-------------------------------+
+|  [Upload files] [BT Import]  |  <- Bottom action bar
++-------------------------------+
 ```
 
-**States:**
-- Loading: Show skeleton/spinner while fetching
-- Error: Show "Weather unavailable" message
-- Success: Display formatted weather data
-- No data: Hidden when session has no valid GPS or start date
+**Sizing:**
+- Desktop/tablet: `w-[28vw] min-w-[320px]` fixed to right edge
+- Mobile (`< 640px`): `w-full`
+- Uses `fixed inset-y-0 right-0 z-50` with backdrop overlay
+- Slide-in animation via CSS transform transition
 
-**Styling:**
-- Match existing panel style: `bg-card/90 backdrop-blur-sm border border-border rounded p-2`
-- Follows `showOverlays` toggle visibility
+**Interactions:**
+- Click filename: Confirmation dialog "Load {filename}?" then parse blob, call `onDataLoaded`, close drawer
+- Delete button: Confirmation dialog "Delete {filename}? This cannot be undone." then remove from IndexedDB
+- Export button: Trigger browser file download with original filename and blob content
+- "Upload files": Opens hidden file input (same accept types as FileImport)
+- "Import via Bluetooth": Triggers BLE connect flow (reuses DataloggerDownload logic)
+
+**Storage bar:**
+- Progress bar showing used/quota from `navigator.storage.estimate()`
+- Text: "12.3 MB used of 500 MB" or "Storage usage unavailable"
 
 ---
 
-### Feature 2: GPS Validation
+### 4. Settings Toggle
 
-**Validation function in `src/lib/weatherService.ts`:**
+**`src/hooks/useSettings.ts`** - Add to `AppSettings`:
 ```typescript
-function isValidGpsPoint(lat: number, lon: number): boolean {
-  // Skip invalid coordinates (0,0 is common GPS error)
-  if (lat === 0 || lon === 0) return false;
-  // Bounds check
-  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return false;
-  return true;
-}
+autoSaveFiles: boolean;  // default: true
 ```
 
-This matches the validation pattern used in:
-- `src/lib/nmeaParser.ts`
-- `src/lib/ubxParser.ts`
-- `src/lib/vboParser.ts`
-- `src/lib/aimParser.ts`
-- `src/lib/alfanoParser.ts`
-
-**Usage:**
-- Validate GPS point before making any API calls
-- Return early with null if invalid
-- WeatherPanel shows nothing when GPS is invalid
+**`src/components/SettingsModal.tsx`** - Add new section at the TOP of the settings list (before Speed Unit), with a `HardDrive` icon:
+- Label: "Auto-save imported/uploaded files to device"
+- Switch toggle, default ON
+- Description: "Automatically store files in on-device storage for later access"
 
 ---
 
-### Feature 3: Weather Data Service
+### 5. Home Page Changes (`src/components/FileImport.tsx`)
 
-**New file: `src/lib/weatherService.ts`**
+Current buttons: `[Browse Files]` `[Download from DovesDataLogger]`
 
-**Types:**
-```typescript
-interface WeatherStation {
-  stationId: string;    // e.g., "KOKC"
-  name: string;         // e.g., "Oklahoma City"
-  distanceKm: number;
-}
+New buttons: `[Upload Files]` `[Browse Files]` `[Download from DovesDataLogger]`
 
-interface WeatherData {
-  station: WeatherStation;
-  temperatureF: number;
-  temperatureC: number;
-  humidity: number;         // percentage
-  altimeterInHg: number;    // for DA calculation
-  densityAltitudeFt: number;
-  observationTime: Date;
-}
-```
+- Rename existing "Browse Files" to "Upload Files" (keeps the hidden file input behavior)
+- Add new "Browse Files" button that calls `onOpenFileManager()` callback
+- New prop: `onOpenFileManager: () => void`
+- New prop: `autoSaveFile: (name: string, blob: Blob) => Promise<void>` - called after successful file parse when auto-save is ON
+- New prop: `autoSave: boolean`
 
-**API Flow:**
-1. Validate GPS point using `isValidGpsPoint(lat, lon)`
-2. If invalid, return null immediately
-3. Call NWS API: `GET https://api.weather.gov/points/{lat},{lon}`
-4. Get `observationStations` URL from response
-5. Fetch station list, find nearest ASOS/AWOS station
-6. Call IEM ASOS endpoint with station ID and session time range
-7. Parse CSV response, calculate density altitude
-8. Return `WeatherData` object
-
-**Density Altitude Calculation:**
-```text
-Pressure Altitude (ft) = (29.92 - altimeter) x 1000 + field_elevation
-Density Altitude (ft) = Pressure Altitude + (120 x (OAT_C - ISA_temp))
-Where ISA_temp = 15 - (2 x altitude_in_thousands)
-```
-
-**Error Handling:**
-- Invalid GPS: Return null silently
-- Network failures: Return null, UI shows "unavailable"
-- CORS issues: Graceful fallback message
-- No nearby station: Show "No station found"
+After a file is successfully parsed via upload, if `autoSave` is true, also call `autoSaveFile(file.name, file)` to persist the original File blob.
 
 ---
 
-### Feature 4: Integration with RaceLineView
+### 6. Bluetooth Auto-Save (`src/components/DataloggerDownload.tsx`)
 
-**New props for RaceLineView:**
-```typescript
-sessionGpsPoint?: { lat: number; lon: number };
-sessionStartDate?: Date;
-```
-
-**Panel placement:**
-- Position: `absolute bottom-16 left-4` (above zoom controls)
-- Same z-index as other panels: `z-[1000]`
-- Respects `showOverlays` toggle
-
-**Data fetching:**
-- Use `useEffect` to fetch weather once when session loads
-- Cache result in component state
-- Only fetch when valid GPS point and `sessionStartDate` are available
+- Add props: `autoSave: boolean`, `autoSaveFile: (name: string, blob: Blob) => Promise<void>`
+- After successful BLE download + parse, if `autoSave` is true, save the raw `Uint8Array` as a Blob to IndexedDB via the callback
 
 ---
 
-### Technical Implementation
+### 7. Index.tsx Wiring
 
-**File: `src/lib/weatherService.ts` (NEW)**
-- Export `isValidGpsPoint(lat, lon)` validation function
-- Export `fetchNearestStation(lat, lon)` function
-- Export `fetchWeatherData(stationId, date)` function
-- Export `calculateDensityAltitude(tempC, altimeterInHg, fieldElevation)` utility
-- Export types
+**New state/hooks:**
+- `useFileManager()` hook instance
+- File manager open/close state
 
-**File: `src/components/WeatherPanel.tsx` (NEW)**
-- Props: `lat`, `lon`, `sessionDate`, `visible`
-- Internal state for weather data, loading, error
-- Validate GPS before fetching
-- Fetch on mount when props available and valid
-- Display formatted data with units
+**Home page (no data loaded):**
+- Pass `onOpenFileManager`, `autoSave`, and `autoSaveFile` to `FileImport`
+- Pass `autoSave` and `autoSaveFile` to `DataloggerDownload` (through FileImport)
+- Render `FileManagerDrawer` overlay
 
-**File: `src/components/RaceLineView.tsx`**
-- Add new props: `sessionGpsPoint`, `sessionStartDate`
-- Import and render `WeatherPanel` component
-- Position in bottom-left, conditionally shown with `showOverlays`
-
-**File: `src/pages/Index.tsx`**
-- Find first valid GPS sample (skip 0,0 coordinates)
-- Extract `startDate` from parsed data
-- Pass to RaceLineView as new props
+**Data loaded view:**
+- Change the `FolderOpen` button (line 496) from `onClick={() => setData(null)}` to `onClick={() => fileManager.open()}`
+- Render `FileManagerDrawer` overlay
+- When a file is loaded from the file manager, parse it through `parseDatalogFile` and call `handleDataLoaded`
 
 ---
 
 ### Files Summary
 
-| File | Changes |
-|------|---------|
-| `src/lib/weatherService.ts` | **New** - NWS + IEM API client, GPS validation, DA calculation |
-| `src/components/WeatherPanel.tsx` | **New** - Weather display UI component |
-| `src/components/RaceLineView.tsx` | Add WeatherPanel, new props |
-| `src/pages/Index.tsx` | Extract valid GPS point and start date, pass to RaceLineView |
-
----
-
-### GPS Point Extraction in Index.tsx
-
-```typescript
-// Find first valid GPS sample for weather lookup
-const sessionGpsPoint = useMemo(() => {
-  if (!data?.samples?.length) return undefined;
-  const validSample = data.samples.find(s => 
-    s.lat !== 0 && s.lon !== 0 && 
-    Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180
-  );
-  return validSample ? { lat: validSample.lat, lon: validSample.lon } : undefined;
-}, [data?.samples]);
-```
-
-This ensures we skip any invalid/placeholder GPS coordinates before attempting weather lookup.
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/lib/fileStorage.ts` | **New** | IndexedDB CRUD wrapper |
+| `src/hooks/useFileManager.ts` | **New** | Reactive file list + storage state |
+| `src/components/FileManagerDrawer.tsx` | **New** | Overlay drawer UI |
+| `src/hooks/useSettings.ts` | Edit | Add `autoSaveFiles` setting |
+| `src/components/SettingsModal.tsx` | Edit | Add auto-save toggle at top |
+| `src/components/FileImport.tsx` | Edit | Rename button, add Browse Files, auto-save hook |
+| `src/components/DataloggerDownload.tsx` | Edit | Add auto-save after BLE download |
+| `src/pages/Index.tsx` | Edit | Wire file manager, change FolderOpen behavior |
 
