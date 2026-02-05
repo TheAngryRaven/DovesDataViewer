@@ -27,9 +27,11 @@ type DownloadState =
 
 interface DataloggerDownloadProps {
   onDataLoaded: (data: ParsedData) => void;
+  autoSave?: boolean;
+  autoSaveFile?: (name: string, blob: Blob) => Promise<void>;
 }
 
-export function DataloggerDownload({ onDataLoaded }: DataloggerDownloadProps) {
+export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: DataloggerDownloadProps) {
   const [state, setState] = useState<DownloadState>("idle");
   const [connection, setConnection] = useState<BleConnection | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
@@ -94,6 +96,15 @@ export function DataloggerDownload({ onDataLoaded }: DataloggerDownloadProps) {
         const content = decoder.decode(fileData);
         
         const parsedData = parseDatalogContent(content);
+        
+        // Auto-save to IndexedDB if enabled
+        if (autoSave && autoSaveFile) {
+          try {
+            await autoSaveFile(file.name, new Blob([fileData.buffer as ArrayBuffer]));
+          } catch (e) {
+            console.warn("Auto-save failed:", e);
+          }
+        }
         
         // Close modal and load data
         handleClose();

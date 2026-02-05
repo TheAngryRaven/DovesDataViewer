@@ -1,4 +1,4 @@
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,31 @@ export function SettingsModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0 pr-3 scrollbar-thin">
+          {/* Auto-Save Files */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">File Storage</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <div>
+                <Label htmlFor="settings-auto-save" className="text-sm text-muted-foreground">
+                  Auto-save imported/uploaded files to device
+                </Label>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  Automatically store files in on-device storage for later access
+                </p>
+              </div>
+              <Switch
+                id="settings-auto-save"
+                checked={settings.autoSaveFiles}
+                onCheckedChange={(checked) => onSettingsChange({ autoSaveFiles: checked })}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Speed Unit */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">

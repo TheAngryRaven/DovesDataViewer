@@ -10,6 +10,7 @@ import { ResizableSplit } from "@/components/ResizableSplit";
 import { RangeSlider } from "@/components/RangeSlider";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
+import { FileManagerDrawer } from "@/components/FileManagerDrawer";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,11 +22,13 @@ import { loadTracks } from "@/lib/trackStorage";
 import { findSpeedEvents } from "@/lib/speedEvents";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
+import { useFileManager } from "@/hooks/useFileManager";
 
 type TopPanelView = "raceline" | "laptable";
 
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
+  const fileManager = useFileManager();
   const useKph = settings.useKph;
   
   const [data, setData] = useState<ParsedData | null>(null);
@@ -368,7 +371,12 @@ export default function Index() {
 
         <main className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-xl space-y-6">
-            <FileImport onDataLoaded={handleDataLoaded} />
+            <FileImport
+              onDataLoaded={handleDataLoaded}
+              onOpenFileManager={fileManager.open}
+              autoSave={settings.autoSaveFiles}
+              autoSaveFile={fileManager.saveFile}
+            />
 
             <div className="racing-card p-4">
               <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} />
@@ -433,6 +441,19 @@ export default function Index() {
           </div>
         </main>
       </div>
+      <FileManagerDrawer
+        isOpen={fileManager.isOpen}
+        files={fileManager.files}
+        storageUsed={fileManager.storageUsed}
+        storageQuota={fileManager.storageQuota}
+        onClose={fileManager.close}
+        onLoadFile={fileManager.loadFile}
+        onDeleteFile={fileManager.removeFile}
+        onExportFile={fileManager.exportFile}
+        onSaveFile={fileManager.saveFile}
+        onDataLoaded={handleDataLoaded}
+        autoSave={settings.autoSaveFiles}
+      />
       </>
     );
   }
@@ -493,7 +514,7 @@ export default function Index() {
             onToggleFieldDefault={toggleFieldDefault}
           />
 
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setData(null)}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={fileManager.open}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -624,6 +645,19 @@ export default function Index() {
         />
       </main>
       <InstallPrompt />
+      <FileManagerDrawer
+        isOpen={fileManager.isOpen}
+        files={fileManager.files}
+        storageUsed={fileManager.storageUsed}
+        storageQuota={fileManager.storageQuota}
+        onClose={fileManager.close}
+        onLoadFile={fileManager.loadFile}
+        onDeleteFile={fileManager.removeFile}
+        onExportFile={fileManager.exportFile}
+        onSaveFile={fileManager.saveFile}
+        onDataLoaded={handleDataLoaded}
+        autoSave={settings.autoSaveFiles}
+      />
     </div>
   );
 }
