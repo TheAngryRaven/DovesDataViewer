@@ -1,38 +1,89 @@
 
 
-## Wind in MPH, Direction Arrow, and Session METAR Detail Button
+## Multi-Purpose Drawer: Files, Karts, and Setups
 
-### 1. Convert wind speed from knots to MPH in the METAR dialog
+### Overview
 
-In `LocalWeatherDialog.tsx`, convert `windSpeedKts` and `windGustKts` to MPH (multiply by 1.15078) for display. Update the wind value string to show MPH instead of kts.
+Transform the current file manager drawer into a tabbed, multi-purpose management panel. The drawer shell (backdrop, header, close button, animation) becomes a reusable container with a tab bar at the top. Each tab renders its own self-contained content component. The drawer always opens to the "Files" tab by default.
 
-### 2. Add a wind direction arrow icon
+### Architecture
 
-In the Wind `WeatherItem` inside `LocalWeatherDialog.tsx`, add a small inline SVG arrow (or use a Lucide `Navigation` icon) rotated by the `windDirectionDeg` value. The arrow points in the direction the wind is coming FROM, with up = North (0 degrees). This sits next to the wind text value inside the weather item.
+```text
+FileManagerDrawer (shell + tabs)
+  |-- FilesTab (existing file manager content, extracted as-is)
+  |-- KartsTab (kart list + add/edit form)
+  |-- SetupsTab (placeholder)
+```
 
-### 3. Add a "Session METAR Detail" button in the map view
+### New Files
 
-In `RaceLineView.tsx`, add a second button to the LEFT of the existing weather toggle button (bottom-right area). When clicked, it opens the `LocalWeatherDialog` in a **session mode** -- no search bar, no GPS button, just immediately shows the session's weather data.
+| File | Purpose |
+|------|---------|
+| `src/lib/kartStorage.ts` | IndexedDB CRUD for the "karts" object store (same DB, bumped version) |
+| `src/hooks/useKartManager.ts` | Hook wrapping kart CRUD state + refresh logic |
+| `src/components/drawer/FilesTab.tsx` | Extracted file manager content (list, confirmations, upload actions, storage bar) |
+| `src/components/drawer/KartsTab.tsx` | Kart list (top half) + add/edit form (bottom half) |
+| `src/components/drawer/SetupsTab.tsx` | Placeholder tab with a "Coming soon" message |
 
-To support this:
-- Refactor `LocalWeatherDialog` to accept optional props:
-  - `sessionWeather?: WeatherData` -- if provided, skip search UI entirely and render the weather data directly
-  - `externalOpen? / onExternalOpenChange?` -- allow the dialog to be controlled externally (opened by the map button)
-- The map button only appears when weather data is available (when `showWeather` is true and the WeatherPanel has data)
-
-### Technical details
-
-**Files to edit:**
+### Modified Files
 
 | File | Changes |
 |------|---------|
-| `src/components/LocalWeatherDialog.tsx` | (a) Convert kts to MPH for display. (b) Add rotated arrow icon next to wind value. (c) Accept optional `sessionWeather` prop to render in read-only mode (no search UI). (d) Accept `open`/`onOpenChange` props for external control. |
-| `src/components/RaceLineView.tsx` | Add state for session METAR dialog open. Add a second button (left of CloudSun toggle). Pass session weather data to the dialog. Need to lift `weather` from WeatherPanel or track it via a callback. |
-| `src/components/WeatherPanel.tsx` | Add `onWeatherLoaded?: (data: WeatherData) => void` callback so the parent can capture the resolved weather data for the detail dialog. |
+| `src/lib/fileStorage.ts` | Bump `DB_VERSION` to 3, add "karts" object store in `onupgradeneeded` |
+| `src/components/FileManagerDrawer.tsx` | Replace inner content with a tab bar (`Files | Karts | Setups`) and render the matching tab component. Header title changes to just the app icon + close button. Always defaults to "Files" tab on open. |
+| `src/pages/Index.tsx` | Pass kart manager hook data into the drawer (minor prop additions) |
 
-**Wind display format change:**
-- Current: `270deg @ 8 kts G15`
-- New: `270deg @ 9 mph G17` (with a small arrow rotated to 270deg)
+### Detailed Design
 
-**Arrow approach:** Use the Lucide `Navigation` icon with inline `style={{ transform: rotate(Xdeg) }}` where X = windDirectionDeg. The Navigation icon points up by default (north), which is perfect.
+**1. IndexedDB - Kart Storage (`src/lib/kartStorage.ts`)**
+
+- Kart interface: `{ id: string, name: string, engine: string, number: number, weight: number, weightUnit: "lb" | "kg" }`
+- `id` uses `crypto.randomUUID()` for unique keys
+- Functions: `saveKart`, `listKarts`, `deleteKart`, `getKart`
+- Reuses the same `dove-file-manager` database, version bumped to 3
+- New object store `karts` with `keyPath: "id"` created in `onupgradeneeded`
+
+**2. Kart Manager Hook (`src/hooks/useKartManager.ts`)**
+
+- State: `karts: Kart[]`, manages refresh cycle
+- Exposes: `karts`, `refresh`, `addKart`, `updateKart`, `removeKart`
+- Called from `Index.tsx` alongside the existing `useFileManager` hook
+
+**3. FilesTab (`src/components/drawer/FilesTab.tsx`)**
+
+- Extracted directly from the current `FileManagerDrawer.tsx` inner content
+- Receives the same props (files, storage, callbacks, autoSave)
+- Contains: confirmation banners, file list, storage bar, upload/BLE buttons
+
+**4. KartsTab (`src/components/drawer/KartsTab.tsx`)**
+
+- **Top half (~50%)**: Scrollable list of karts, each row shows name, engine, number, weight+unit. Two icon buttons per row: Edit (pencil) and Delete (trash). Delete shows an inline confirmation banner (same pattern as files).
+- **Bottom half (~50%)**: Add/Edit form with:
+  - Text input: Name
+  - Text input: Engine
+  - Number input: Number (integer)
+  - Number input: Weight (step 0.01 for two decimal places)
+  - Switch next to weight toggling lb/kg (defaults to lb)
+  - Button labeled "Add Kart" or "Update Kart" depending on whether an existing kart is being edited
+  - When editing, form is pre-populated; pressing the button saves changes and clears the form back to "Add" mode
+  - A small "Cancel" link/button to exit edit mode without saving
+
+**5. SetupsTab (`src/components/drawer/SetupsTab.tsx`)**
+
+- Simple centered placeholder: wrench icon + "Setups coming soon" text
+
+**6. Drawer Shell Updates (`FileManagerDrawer.tsx`)**
+
+- Header simplified: generic icon + "Garage" or similar title + close button
+- Below header: tab bar using three buttons styled as pills/segments: `Files | Karts | Setups`
+- Active tab highlighted with primary color
+- State: `activeTab` defaults to `"files"` and resets to `"files"` each time the drawer opens
+- Renders the matching tab component below the tab bar
+
+### Technical Notes
+
+- The `onupgradeneeded` handler in `fileStorage.ts` will be updated to handle version 3 by adding the `karts` store if it doesn't exist, without touching existing stores
+- All kart data persists locally in IndexedDB, no server needed
+- The tab bar uses simple button styling (not Radix Tabs) to keep it lightweight and match the existing drawer aesthetic
+- The 50/50 split on the Karts tab uses `flex` with `flex-1` and `overflow-y-auto` on the list portion
 
