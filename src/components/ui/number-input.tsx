@@ -15,12 +15,16 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       else if (ref) (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
     };
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (onValueChange) onValueChange(e.target.value);
+      if (onChange) onChange(e);
+    };
+
     const stepValue = (direction: 1 | -1) => {
       const input = inputRef.current;
       if (!input) return;
       if (direction === 1) input.stepUp();
       else input.stepDown();
-      // Fire synthetic change event
       const nativeEvent = new Event("input", { bubbles: true });
       input.dispatchEvent(nativeEvent);
       if (onValueChange) onValueChange(input.value);
@@ -35,6 +39,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         <input
           type="number"
           step={step}
+          onChange={handleChange}
           className={cn(
             "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-8 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
             className,
