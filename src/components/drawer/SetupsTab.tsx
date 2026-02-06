@@ -48,6 +48,12 @@ const emptyForm = (): Omit<KartSetup, "id" | "createdAt" | "updatedAt"> => ({
   tireWidthRearLeft: null,
   tireWidthRearRight: null,
   tireWidthUnit: "mm",
+  tireDiameterMode: "halves",
+  tireDiameterFrontLeft: null,
+  tireDiameterFrontRight: null,
+  tireDiameterRearLeft: null,
+  tireDiameterRearRight: null,
+  tireDiameterUnit: "mm",
 });
 
 function detectPsiMode(s: KartSetup): "single" | "halves" | "quarters" {
@@ -61,6 +67,11 @@ function detectPsiMode(s: KartSetup): "single" | "halves" | "quarters" {
 
 function detectWidthMode(s: KartSetup): "halves" | "quarters" {
   if (s.tireWidthFrontLeft === s.tireWidthFrontRight && s.tireWidthRearLeft === s.tireWidthRearRight) return "halves";
+  return "quarters";
+}
+
+function detectDiameterMode(s: KartSetup): "halves" | "quarters" {
+  if ((s.tireDiameterFrontLeft ?? null) === (s.tireDiameterFrontRight ?? null) && (s.tireDiameterRearLeft ?? null) === (s.tireDiameterRearRight ?? null)) return "halves";
   return "quarters";
 }
 
@@ -80,6 +91,10 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
   const [widthFront, setWidthFront] = useState<number | null>(null);
   const [widthRear, setWidthRear] = useState<number | null>(null);
 
+  // Diameter display state
+  const [diamFront, setDiamFront] = useState<number | null>(null);
+  const [diamRear, setDiamRear] = useState<number | null>(null);
+
   const resetForm = useCallback(() => {
     setForm(emptyForm());
     setPreloaded(false);
@@ -88,6 +103,8 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     setPsiRear(null);
     setWidthFront(null);
     setWidthRear(null);
+    setDiamFront(null);
+    setDiamRear(null);
   }, []);
 
   const openNew = useCallback(() => {
@@ -100,6 +117,7 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     setEditingId(setup.id);
     const psiMode = detectPsiMode(setup);
     const widthMode = detectWidthMode(setup);
+    const diamMode = detectDiameterMode(setup);
     setForm({
       kartId: setup.kartId,
       name: setup.name,
@@ -129,6 +147,12 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
       tireWidthRearLeft: setup.tireWidthRearLeft,
       tireWidthRearRight: setup.tireWidthRearRight,
       tireWidthUnit: setup.tireWidthUnit,
+      tireDiameterMode: diamMode,
+      tireDiameterFrontLeft: setup.tireDiameterFrontLeft ?? null,
+      tireDiameterFrontRight: setup.tireDiameterFrontRight ?? null,
+      tireDiameterRearLeft: setup.tireDiameterRearLeft ?? null,
+      tireDiameterRearRight: setup.tireDiameterRearRight ?? null,
+      tireDiameterUnit: setup.tireDiameterUnit ?? "mm",
     });
     // Set display helpers
     if (psiMode === "single") setPsiSingle(setup.psiFrontLeft);
@@ -141,6 +165,10 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
       setWidthFront(setup.tireWidthFrontLeft);
       setWidthRear(setup.tireWidthRearLeft);
     }
+    if (diamMode === "halves") {
+      setDiamFront(setup.tireDiameterFrontLeft ?? null);
+      setDiamRear(setup.tireDiameterRearLeft ?? null);
+    }
     setPreloaded(false);
     setMode("edit");
   }, []);
@@ -152,10 +180,11 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     if (latest) {
       const psiMode = detectPsiMode(latest);
       const widthMode = detectWidthMode(latest);
+      const diamMode = detectDiameterMode(latest);
       setForm((prev) => ({
         ...prev,
         kartId,
-        name: prev.name, // keep user-typed name
+        name: prev.name,
         toe: latest.toe,
         camber: latest.camber,
         castor: latest.castor,
@@ -182,17 +211,24 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
         tireWidthRearLeft: latest.tireWidthRearLeft,
         tireWidthRearRight: latest.tireWidthRearRight,
         tireWidthUnit: latest.tireWidthUnit,
+        tireDiameterMode: diamMode,
+        tireDiameterFrontLeft: latest.tireDiameterFrontLeft ?? null,
+        tireDiameterFrontRight: latest.tireDiameterFrontRight ?? null,
+        tireDiameterRearLeft: latest.tireDiameterRearLeft ?? null,
+        tireDiameterRearRight: latest.tireDiameterRearRight ?? null,
+        tireDiameterUnit: latest.tireDiameterUnit ?? "mm",
       }));
       if (psiMode === "single") setPsiSingle(latest.psiFrontLeft);
       if (psiMode === "halves") { setPsiFront(latest.psiFrontLeft); setPsiRear(latest.psiRearLeft); }
       if (widthMode === "halves") { setWidthFront(latest.tireWidthFrontLeft); setWidthRear(latest.tireWidthRearLeft); }
+      if (diamMode === "halves") { setDiamFront(latest.tireDiameterFrontLeft ?? null); setDiamRear(latest.tireDiameterRearLeft ?? null); }
       setPreloaded(true);
     }
   }, [mode, onGetLatestForKart]);
 
   const handleSave = useCallback(async () => {
-    // Build final PSI fields based on mode
     let finalForm = { ...form };
+    // Build final PSI fields based on mode
     if (form.psiMode === "single" && psiSingle !== null) {
       finalForm = { ...finalForm, psiFrontLeft: psiSingle, psiFrontRight: psiSingle, psiRearLeft: psiSingle, psiRearRight: psiSingle };
     } else if (form.psiMode === "halves") {
@@ -201,6 +237,10 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     // Build final width fields based on mode
     if (form.tireWidthMode === "halves") {
       finalForm = { ...finalForm, tireWidthFrontLeft: widthFront, tireWidthFrontRight: widthFront, tireWidthRearLeft: widthRear, tireWidthRearRight: widthRear };
+    }
+    // Build final diameter fields based on mode
+    if (form.tireDiameterMode === "halves") {
+      finalForm = { ...finalForm, tireDiameterFrontLeft: diamFront, tireDiameterFrontRight: diamFront, tireDiameterRearLeft: diamRear, tireDiameterRearRight: diamRear };
     }
 
     if (mode === "edit" && editingId) {
@@ -211,9 +251,9 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     }
     resetForm();
     setMode("list");
-  }, [form, psiSingle, psiFront, psiRear, widthFront, widthRear, mode, editingId, setups, onAdd, onUpdate, resetForm]);
+  }, [form, psiSingle, psiFront, psiRear, widthFront, widthRear, diamFront, diamRear, mode, editingId, setups, onAdd, onUpdate, resetForm]);
 
-  const canSave = form.kartId && form.name.trim() && hasAnySetting(form, psiSingle, psiFront, psiRear, widthFront, widthRear);
+  const canSave = form.kartId && form.name.trim() && hasAnySetting(form, psiSingle, psiFront, psiRear, widthFront, widthRear, diamFront, diamRear);
 
   // ── List View ──
   if (mode === "list") {
@@ -460,6 +500,45 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
             </div>
           )}
         </Section>
+
+        {/* Tire Diameter */}
+        <Section title="Tire Diameter">
+          <div className="flex items-center justify-between mb-2">
+            <ModeToggle
+              options={["halves", "quarters"] as const}
+              labels={["Halves", "Quarters"]}
+              value={form.tireDiameterMode}
+              onChange={(v) => setForm((p) => ({ ...p, tireDiameterMode: v }))}
+            />
+            <UnitSwitch value={form.tireDiameterUnit} onChange={(u) => setForm((p) => ({ ...p, tireDiameterUnit: u }))} />
+          </div>
+          {form.tireDiameterMode === "halves" && (
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Front">
+                <Input type="number" step="0.01" className="h-9" value={diamFront ?? ""} onChange={(e) => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
+              </Field>
+              <Field label="Rear">
+                <Input type="number" step="0.01" className="h-9" value={diamRear ?? ""} onChange={(e) => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
+              </Field>
+            </div>
+          )}
+          {form.tireDiameterMode === "quarters" && (
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="FL">
+                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+              </Field>
+              <Field label="FR">
+                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+              </Field>
+              <Field label="RL">
+                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+              </Field>
+              <Field label="RR">
+                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+              </Field>
+            </div>
+          )}
+        </Section>
       </div>
 
       {/* Bottom actions */}
@@ -482,6 +561,8 @@ function hasAnySetting(
   psiRear: number | null,
   widthFront: number | null,
   widthRear: number | null,
+  diamFront: number | null,
+  diamRear: number | null,
 ): boolean {
   return !!(
     f.toe !== null || f.camber !== null || f.castor !== null ||
@@ -492,7 +573,9 @@ function hasAnySetting(
     psiSingle !== null || psiFront !== null || psiRear !== null ||
     f.psiFrontLeft !== null || f.psiFrontRight !== null || f.psiRearLeft !== null || f.psiRearRight !== null ||
     widthFront !== null || widthRear !== null ||
-    f.tireWidthFrontLeft !== null || f.tireWidthFrontRight !== null || f.tireWidthRearLeft !== null || f.tireWidthRearRight !== null
+    f.tireWidthFrontLeft !== null || f.tireWidthFrontRight !== null || f.tireWidthRearLeft !== null || f.tireWidthRearRight !== null ||
+    diamFront !== null || diamRear !== null ||
+    f.tireDiameterFrontLeft !== null || f.tireDiameterFrontRight !== null || f.tireDiameterRearLeft !== null || f.tireDiameterRearRight !== null
   );
 }
 
