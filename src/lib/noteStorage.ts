@@ -13,7 +13,7 @@ export interface Note {
 
 const DB_NAME = "dove-file-manager";
 const NOTES_STORE = "notes";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -32,6 +32,10 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(NOTES_STORE)) {
         const store = db.createObjectStore(NOTES_STORE, { keyPath: "id" });
         store.createIndex("fileName", "fileName", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("setups")) {
+        const setupsStore = db.createObjectStore("setups", { keyPath: "id" });
+        setupsStore.createIndex("kartId", "kartId", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);

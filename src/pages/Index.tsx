@@ -28,6 +28,7 @@ import { usePlayback } from "@/hooks/usePlayback";
 import { useFileManager } from "@/hooks/useFileManager";
 import { useKartManager } from "@/hooks/useKartManager";
 import { useNoteManager } from "@/hooks/useNoteManager";
+import { useSetupManager } from "@/hooks/useSetupManager";
 
 type TopPanelView = "raceline" | "laptable";
 
@@ -35,6 +36,7 @@ export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
   const fileManager = useFileManager();
   const kartManager = useKartManager();
+  const setupManager = useSetupManager();
   const useKph = settings.useKph;
   
   const [data, setData] = useState<ParsedData | null>(null);
@@ -557,6 +559,11 @@ export default function Index() {
         onAddNote={noteManager.addNote}
         onUpdateNote={noteManager.updateNote}
         onRemoveNote={noteManager.removeNote}
+        setups={setupManager.setups}
+        onAddSetup={setupManager.addSetup}
+        onUpdateSetup={setupManager.updateSetup}
+        onRemoveSetup={setupManager.removeSetup}
+        onGetLatestSetupForKart={setupManager.getLatestForKart}
       />
       </>
     );
@@ -772,6 +779,11 @@ export default function Index() {
         onAddNote={noteManager.addNote}
         onUpdateNote={noteManager.updateNote}
         onRemoveNote={noteManager.removeNote}
+        setups={setupManager.setups}
+        onAddSetup={setupManager.addSetup}
+        onUpdateSetup={setupManager.updateSetup}
+        onRemoveSetup={setupManager.removeSetup}
+        onGetLatestSetupForKart={setupManager.getLatestForKart}
       />
     </div>
   );
