@@ -80,6 +80,7 @@ export default function Index() {
       const text = await response.text();
       const parsedData = parseDatalog(text);
       setData(parsedData);
+      setCurrentFileName("okc-tillotson-plain.nmea");
       // Apply default hidden fields from settings
       setFieldMappings(
         parsedData.fieldMappings.map((f) => ({
