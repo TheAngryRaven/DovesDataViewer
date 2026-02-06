@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileEntry } from '@/lib/fileStorage';
 import { formatLapTime } from '@/lib/lapCalculation';
-import { FileSearch, Loader2, X } from 'lucide-react';
+import { FileSearch, Loader2, X, Trophy } from 'lucide-react';
 
 interface ExternalRefBarProps {
   externalRefLabel: string | null;
@@ -129,18 +129,28 @@ export function ExternalRefBar({
 
           {!loading && !error && stage === 'laps' && (
             <div className="overflow-y-auto flex-1 -mx-2">
-              <ul className="space-y-0.5">
-                {laps.map((lap) => (
-                  <li key={lap.lapNumber}>
-                    <button
-                      className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted/50 transition-colors font-mono"
-                      onClick={() => handleLapClick(lap.lapNumber)}
-                    >
-                      Lap {lap.lapNumber} : {formatLapTime(lap.lapTimeMs)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              {(() => {
+                const fastestIdx = laps.reduce((minIdx, lap, idx, arr) =>
+                  lap.lapTimeMs < arr[minIdx].lapTimeMs ? idx : minIdx, 0);
+                return (
+                  <ul className="space-y-0.5">
+                    {laps.map((lap, idx) => {
+                      const isFastest = idx === fastestIdx;
+                      return (
+                        <li key={lap.lapNumber}>
+                          <button
+                            className={`w-full text-left px-3 py-2 text-sm rounded hover:bg-muted/50 transition-colors font-mono flex items-center gap-2 ${isFastest ? 'text-racing-lapBest' : ''}`}
+                            onClick={() => handleLapClick(lap.lapNumber)}
+                          >
+                            {isFastest && <Trophy className="w-3.5 h-3.5 text-racing-lapBest shrink-0" />}
+                            <span>Lap {lap.lapNumber} : {formatLapTime(lap.lapTimeMs)}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              })()}
               <div className="px-3 pt-2">
                 <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStage('files'); setError(null); }}>
                   ← Back to files
