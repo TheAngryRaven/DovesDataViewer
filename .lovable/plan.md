@@ -1,79 +1,111 @@
 
 
-## Add Session Kart/Setup Link to Notes Tab
+## External Reference Lap from Another Session
 
 ### Overview
 
-Add a "Session Setup" selector at the top of the Notes tab. Two dropdowns (Kart, then Setup filtered by selected kart) and a Save button let the user link a kart and setup to the current session file. This link persists in the existing `metadata` IndexedDB store (via `FileMetadata`) so it's remembered when the session is reloaded.
+Add an "External Reference" bar at the top of the Lap Times view. It displays a "Choose Log" button and shows either "No session loaded" or the loaded file name, lap number, and lap time. When a log is chosen and a lap selected, that external lap's samples replace the internal reference for all delta/pace calculations.
 
-### How It Works
+### User Flow
 
-1. User opens Notes tab with a session loaded
-2. At the top: a Kart dropdown, a Setup dropdown (disabled until a kart is selected, only shows setups for that kart), and a Save/Update button
-3. When saved, the selected `kartId` and `setupId` are stored in the existing `FileMetadata` record for that session file
-4. On load, the saved kart/setup selection is restored and displayed
+1. User sees: `External Reference: [Choose Log] | No session loaded`
+2. Clicks "Choose Log" -- a dialog lists all saved files from IndexedDB (names only, clickable)
+3. User clicks a file -- the app loads and parses it, calculates laps using the *currently selected course*
+4. If no laps found: show an error message in the dialog ("No laps detected for the current track/course")
+5. If laps found: the dialog switches to show a lap list (`Lap #: lap time`), user clicks one
+6. The external reference is set. The bar now shows: `External Reference: [Choose Log] | filename.nmea : Lap 3 : 1:02.345`
+7. All reference-based features (pace, reference speed line, grey map polyline, delta metrics) now use the external lap's samples
+8. The internal "Set Ref" buttons in the lap table still work -- clicking one clears the external reference and uses the internal one instead
 
-### Data Model Change
+### Architecture
 
-Add two optional fields to `FileMetadata` in `src/lib/fileStorage.ts`:
+The external reference produces a `GpsSample[]` array, which is the same type the existing reference system uses. The change is that `referenceSamples` can now come from either:
+- An internal lap (existing behavior via `referenceLapNumber`)
+- An external session+lap (new behavior)
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `sessionKartId` | `string` (optional) | Links to a saved Kart |
-| `sessionSetupId` | `string` (optional) | Links to a saved Setup |
-
-No DB version bump needed -- these are just new properties on existing objects in the schemaless `metadata` store.
+When an external reference is active, it takes priority. Setting an internal reference clears the external one and vice versa.
 
 ### Files Modified
 
 | File | Changes |
 |------|---------|
-| `src/lib/fileStorage.ts` | Add `sessionKartId?` and `sessionSetupId?` to `FileMetadata` interface |
-| `src/components/drawer/NotesTab.tsx` | Add kart/setup dropdowns and save button at top; accept new props for karts, setups, and metadata save/load |
-| `src/components/FileManagerDrawer.tsx` | Pass karts, setups, and metadata callbacks to NotesTab |
-| `src/pages/Index.tsx` | Pass metadata load/save functions and karts/setups to the drawer's Notes tab |
+| `src/pages/Index.tsx` | Add external reference state (`externalRefSamples`, `externalRefLabel`), modify `referenceSamples` memo to prefer external when set, add handler for setting external ref, clear external when internal ref is set, pass new props to LapTable |
+| `src/components/LapTable.tsx` | Add external reference bar at top with "Choose Log" button and status label, add dialog for file selection and lap selection |
 
-### NotesTab UI Changes
-
-The top of the Notes tab (when a session is loaded) gets a new section above the notes list:
+### State in Index.tsx
 
 ```text
-+----------------------------------+
-| Session Setup                    |
-| [Kart dropdown    v]             |
-| [Setup dropdown   v]             |
-| [Save Selection]                 |
-+--- divider ----------------------+
-| (existing notes list)            |
-| ...                              |
-+--- divider ----------------------+
-| (existing add/edit form)         |
-+----------------------------------+
+externalRefSamples: GpsSample[] | null   -- the external lap's raw samples
+externalRefLabel: string | null          -- "filename : Lap # : time" display string
 ```
 
-- Kart dropdown: lists all saved karts by name
-- Setup dropdown: disabled until a kart is selected; filters to show only setups linked to that kart
-- Save button: saves the `sessionKartId` and `sessionSetupId` to `FileMetadata` via the existing `saveFileMetadata` function
-- When the session already has a saved kart/setup, the dropdowns show the saved selection and the button says "Update Selection"
-- A small "Linked" or checkmark indicator shows when the selection matches what's saved
+The existing `referenceSamples` memo changes from:
 
-### Props Flow
+```text
+if externalRefSamples is set -> use externalRefSamples
+else if referenceLapNumber is set -> use internal lap samples
+else -> empty
+```
 
-NotesTab will receive additional props:
-- `karts: Kart[]` -- already available in the drawer
-- `setups: KartSetup[]` -- already available in the drawer
-- `sessionKartId: string | null` -- loaded from metadata
-- `sessionSetupId: string | null` -- loaded from metadata
-- `onSaveSessionSetup: (kartId: string, setupId: string) => Promise<void>` -- persists to metadata
+When `handleSetReference` (internal) is called, clear `externalRefSamples`. When external ref is set, clear `referenceLapNumber`.
 
-### Integration in Index.tsx
+### LapTable Changes
 
-- On session load (when `currentFileName` changes), fetch `FileMetadata` to get `sessionKartId` and `sessionSetupId`
-- Expose a callback that merges the kart/setup IDs into the existing metadata record and calls `saveFileMetadata`
-- Pass the loaded IDs and callback down through the drawer
+New props:
+- `externalRefLabel: string | null`
+- `onChooseExternalRef: () => void` (opens dialog)
+- Plus the dialog logic can live inside LapTable itself using local state
 
-### Technical Notes
+Actually, to keep it self-contained, the dialog will live inside LapTable. LapTable will receive:
+- `savedFiles: FileEntry[]` -- list of files in storage
+- `onLoadExternalRef: (fileName: string, lapNumber: number) => Promise<{ success: boolean; error?: string }>` -- callback that loads file, parses, calculates laps, sets reference
+- `externalRefLabel: string | null` -- current external ref display text
+- `onClearExternalRef: () => void` -- clears external ref
 
-- The `metadata` store already uses `fileName` as its keyPath, so we just add properties to the existing record via `saveFileMetadata` (a `put` operation that merges)
-- Need to be careful to preserve existing metadata fields (trackName, courseName, weather) when saving the session setup -- read existing metadata first, merge, then save
-- Setup dropdown filtering uses the `kartId` field already present on every `KartSetup`
+### Dialog Flow (inside LapTable)
+
+The dialog has two stages managed by local state:
+
+**Stage 1 -- File List:**
+- Shows all files from `savedFiles` as a clickable list
+- Clicking a file calls `onLoadExternalRef` which returns the laps
+- Actually, better approach: pass a callback that returns laps for a file, then LapTable manages lap selection locally
+
+Revised approach -- LapTable receives:
+- `savedFiles: FileEntry[]`
+- `onLoadFileForRef: (fileName: string) => Promise<Lap[] | null>` -- loads, parses, calculates laps; returns laps or null
+- `onSetExternalRef: (fileName: string, lapNumber: number, lapSamples: GpsSample[]) => void`
+- `externalRefLabel: string | null`
+
+Wait, LapTable shouldn't need to know about GpsSample. Simpler:
+
+- `onLoadFileForRef: (fileName: string) => Promise<{ laps: Array<{ lapNumber: number; lapTimeMs: number }> } | null>`
+- `onSelectExternalLap: (fileName: string, lapNumber: number) => void`
+
+Index.tsx handles all the heavy lifting (loading blob, parsing, calculating laps, extracting samples, storing them).
+
+### Technical Details
+
+**Index.tsx additions:**
+- State: `externalRefFile: string | null`, `externalRefLapNumber: number | null`, `externalRefSamples: GpsSample[] | null`, `externalParsedData: ParsedData | null` (cached parsed data for the external file)
+- `handleLoadFileForRef(fileName)`: calls `getFile(fileName)`, creates a File-like blob, calls `parseDatalogContent()`, runs `calculateLaps()` with current `selectedCourse`, returns simplified lap list
+- `handleSelectExternalLap(fileName, lapNumber)`: extracts the samples for that lap from the cached parsed data, sets `externalRefSamples`, clears `referenceLapNumber`, builds display label
+- Modify `referenceSamples` memo: if `externalRefSamples` is set, return those; otherwise fall back to internal
+- Modify `handleSetReference`: when internal ref is set, clear external ref state
+
+**LapTable.tsx additions:**
+- New props for external ref functionality
+- A sticky bar at the top (above the table header) with: label "External Reference:", a "Choose Log" button, and the status text
+- A Dialog component with two views:
+  - File list view: scrollable list of file names
+  - Lap list view: shows laps for the selected file with `Lap #: formatted time`, or error if no laps found
+- Loading state while parsing file
+
+### Prop Changes Summary
+
+LapTable new props:
+- `savedFiles: FileEntry[]`
+- `externalRefLabel: string | null`
+- `onLoadFileForRef: (fileName: string) => Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null>`
+- `onSelectExternalLap: (fileName: string, lapNumber: number) => void`
+
