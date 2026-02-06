@@ -54,6 +54,8 @@ export default function Index() {
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
   const [showOverlays, setShowOverlays] = useState(true);
   const [cachedWeatherStation, setCachedWeatherStation] = useState<WeatherStation | null>(null);
+  const [sessionKartId, setSessionKartId] = useState<string | null>(null);
+  const [sessionSetupId, setSessionSetupId] = useState<string | null>(null);
 
   const selectedCourse: Course | null = selection?.course ?? null;
 
@@ -319,11 +321,18 @@ export default function Index() {
           } else {
             setCachedWeatherStation(null);
           }
+          // Restore session kart/setup link
+          setSessionKartId(meta.sessionKartId ?? null);
+          setSessionSetupId(meta.sessionSetupId ?? null);
         } else {
           setCachedWeatherStation(null);
+          setSessionKartId(null);
+          setSessionSetupId(null);
         }
       } else {
         setCachedWeatherStation(null);
+        setSessionKartId(null);
+        setSessionSetupId(null);
       }
 
       // Calculate laps if course is selected
@@ -439,6 +448,26 @@ export default function Index() {
           });
         });
       }
+    },
+    [currentFileName],
+  );
+
+  const handleSaveSessionSetup = useCallback(
+    async (kartId: string | null, setupId: string | null) => {
+      if (!currentFileName) return;
+      const existing = await getFileMetadata(currentFileName);
+      await saveFileMetadata({
+        fileName: currentFileName,
+        trackName: existing?.trackName || "",
+        courseName: existing?.courseName || "",
+        weatherStationId: existing?.weatherStationId,
+        weatherStationName: existing?.weatherStationName,
+        weatherStationDistanceKm: existing?.weatherStationDistanceKm,
+        sessionKartId: kartId ?? undefined,
+        sessionSetupId: setupId ?? undefined,
+      });
+      setSessionKartId(kartId);
+      setSessionSetupId(setupId);
     },
     [currentFileName],
   );
@@ -564,6 +593,9 @@ export default function Index() {
         onUpdateSetup={setupManager.updateSetup}
         onRemoveSetup={setupManager.removeSetup}
         onGetLatestSetupForKart={setupManager.getLatestForKart}
+        sessionKartId={sessionKartId}
+        sessionSetupId={sessionSetupId}
+        onSaveSessionSetup={handleSaveSessionSetup}
       />
       </>
     );
@@ -784,6 +816,9 @@ export default function Index() {
         onUpdateSetup={setupManager.updateSetup}
         onRemoveSetup={setupManager.removeSetup}
         onGetLatestSetupForKart={setupManager.getLatestForKart}
+        sessionKartId={sessionKartId}
+        sessionSetupId={sessionSetupId}
+        onSaveSessionSetup={handleSaveSessionSetup}
       />
     </div>
   );
