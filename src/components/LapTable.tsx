@@ -2,6 +2,8 @@ import { Lap, courseHasSectors, Course } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ExternalRefBar } from '@/components/ExternalRefBar';
+import { FileEntry } from '@/lib/fileStorage';
 
 interface LapTableProps {
   laps: Lap[];
@@ -11,9 +13,16 @@ interface LapTableProps {
   referenceLapNumber?: number | null;
   onSetReference?: (lapNumber: number) => void;
   useKph?: boolean;
+  // External reference props
+  externalRefLabel?: string | null;
+  savedFiles?: FileEntry[];
+  onLoadFileForRef?: (fileName: string) => Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null>;
+  onSelectExternalLap?: (fileName: string, lapNumber: number) => void;
+  onClearExternalRef?: () => void;
+  onRefreshSavedFiles?: () => void;
 }
 
-export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, useKph = false }: LapTableProps) {
+export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, useKph = false, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
   if (laps.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -75,8 +84,20 @@ export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referen
   // Calculate optimal lap
   const optimalLap = showSectors ? calculateOptimalLap(laps) : null;
 
+  const hasExternalRefProps = savedFiles && onLoadFileForRef && onSelectExternalLap && onClearExternalRef;
+
   return (
     <div className="h-full overflow-auto scrollbar-thin">
+      {hasExternalRefProps && (
+        <ExternalRefBar
+          externalRefLabel={externalRefLabel ?? null}
+          savedFiles={savedFiles}
+          onLoadFileForRef={onLoadFileForRef}
+          onSelectExternalLap={onSelectExternalLap}
+          onClearExternalRef={onClearExternalRef}
+          onOpen={onRefreshSavedFiles}
+        />
+      )}
       <table className="w-full">
         <thead className="sticky top-0 bg-card">
           <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
@@ -16,9 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData, Lap, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
-import { saveFileMetadata, getFileMetadata } from "@/lib/fileStorage";
+import { saveFileMetadata, getFileMetadata, listFiles, getFile, FileEntry } from "@/lib/fileStorage";
+import { parseDatalogContent } from "@/lib/datalogParser";
 import { WeatherStation } from "@/lib/weatherService";
-import { calculateLaps } from "@/lib/lapCalculation";
+import { calculateLaps, formatLapTime } from "@/lib/lapCalculation";
 import { parseDatalog } from "@/lib/nmeaParser";
 import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
 import { loadTracks } from "@/lib/trackStorage";
@@ -55,6 +56,12 @@ export default function Index() {
   const [showOverlays, setShowOverlays] = useState(true);
   const [cachedWeatherStation, setCachedWeatherStation] = useState<WeatherStation | null>(null);
   const [sessionKartId, setSessionKartId] = useState<string | null>(null);
+
+  // External reference lap state
+  const [externalRefSamples, setExternalRefSamples] = useState<GpsSample[] | null>(null);
+  const [externalRefLabel, setExternalRefLabel] = useState<string | null>(null);
+  const [savedFiles, setSavedFiles] = useState<FileEntry[]>([]);
+  const externalParsedRef = useRef<{ fileName: string; samples: GpsSample[]; laps: Lap[] } | null>(null);
   const [sessionSetupId, setSessionSetupId] = useState<string | null>(null);
 
   const selectedCourse: Course | null = selection?.course ?? null;
@@ -151,15 +158,16 @@ export default function Index() {
     visibleRange,
   });
 
-  // Get reference lap samples
+  // Get reference lap samples (external takes priority)
   const referenceSamples = useMemo((): GpsSample[] => {
+    if (externalRefSamples) return externalRefSamples;
     if (!data || referenceLapNumber === null) return [];
 
     const refLap = laps.find((l) => l.lapNumber === referenceLapNumber);
     if (!refLap) return [];
 
     return data.samples.slice(refLap.startIndex, refLap.endIndex + 1);
-  }, [data, laps, referenceLapNumber]);
+  }, [data, laps, referenceLapNumber, externalRefSamples]);
 
   // Get fastest lap samples for pace comparison when no reference selected
   const fastestLapSamples = useMemo((): GpsSample[] => {
@@ -431,6 +439,52 @@ export default function Index() {
 
   const handleSetReference = useCallback((lapNumber: number) => {
     setReferenceLapNumber((prev) => (prev === lapNumber ? null : lapNumber));
+    // Clear external reference when internal ref is set
+    setExternalRefSamples(null);
+    setExternalRefLabel(null);
+  }, []);
+
+  // Load saved files list for external ref dialog
+  const refreshSavedFiles = useCallback(async () => {
+    const files = await listFiles();
+    setSavedFiles(files);
+  }, []);
+
+  // Load a file from storage and calculate laps for external reference
+  const handleLoadFileForRef = useCallback(async (fileName: string): Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null> => {
+    if (!selectedCourse) return null;
+    const blob = await getFile(fileName);
+    if (!blob) return null;
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const parsed = parseDatalogContent(arrayBuffer);
+    const computedLaps = calculateLaps(parsed.samples, selectedCourse);
+
+    if (computedLaps.length === 0) return null;
+
+    // Cache parsed data for lap selection
+    externalParsedRef.current = { fileName, samples: parsed.samples, laps: computedLaps };
+
+    return computedLaps.map((l) => ({ lapNumber: l.lapNumber, lapTimeMs: l.lapTimeMs }));
+  }, [selectedCourse]);
+
+  // Set external reference from cached parsed data
+  const handleSelectExternalLap = useCallback((fileName: string, lapNumber: number) => {
+    const cached = externalParsedRef.current;
+    if (!cached || cached.fileName !== fileName) return;
+
+    const lap = cached.laps.find((l) => l.lapNumber === lapNumber);
+    if (!lap) return;
+
+    const samples = cached.samples.slice(lap.startIndex, lap.endIndex + 1);
+    setExternalRefSamples(samples);
+    setExternalRefLabel(`${fileName} : Lap ${lapNumber} : ${formatLapTime(lap.lapTimeMs)}`);
+    setReferenceLapNumber(null); // Clear internal reference
+  }, []);
+
+  const handleClearExternalRef = useCallback(() => {
+    setExternalRefSamples(null);
+    setExternalRefLabel(null);
   }, []);
 
   const handleWeatherStationResolved = useCallback(
@@ -743,6 +797,12 @@ export default function Index() {
                     referenceLapNumber={referenceLapNumber}
                     onSetReference={handleSetReference}
                     useKph={useKph}
+                    externalRefLabel={externalRefLabel}
+                    savedFiles={savedFiles}
+                    onLoadFileForRef={handleLoadFileForRef}
+                    onSelectExternalLap={handleSelectExternalLap}
+                    onClearExternalRef={handleClearExternalRef}
+                    onRefreshSavedFiles={refreshSavedFiles}
                   />
                 )}
               </div>
@@ -760,7 +820,7 @@ export default function Index() {
                   useKph={useKph}
                   paceData={paceData.slice(visibleRange[0], visibleRange[1] + 1)}
                   referenceSpeedData={referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1)}
-                  hasReference={referenceLapNumber !== null}
+                  hasReference={referenceLapNumber !== null || externalRefSamples !== null}
                   gForceSmoothing={settings.gForceSmoothing}
                   gForceSmoothingStrength={settings.gForceSmoothingStrength}
                 />
