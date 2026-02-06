@@ -33,6 +33,12 @@ export interface KartSetup {
   tireWidthRearLeft: number | null;
   tireWidthRearRight: number | null;
   tireWidthUnit: "mm" | "in";
+  tireDiameterMode: "halves" | "quarters";
+  tireDiameterFrontLeft: number | null;
+  tireDiameterFrontRight: number | null;
+  tireDiameterRearLeft: number | null;
+  tireDiameterRearRight: number | null;
+  tireDiameterUnit: "mm" | "in";
   createdAt: number;
   updatedAt: number;
 }
