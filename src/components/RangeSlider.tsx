@@ -136,32 +136,40 @@ export function RangeSlider({
         </div>
       </div>
 
-      <SliderPrimitive.Root
-        min={min}
-        max={max}
-        step={1}
-        value={value}
-        onValueChange={handleValueChange}
-        className="relative flex w-full touch-none select-none items-center"
-      >
-        <SliderPrimitive.Track
-          ref={trackRef}
-          className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-secondary"
+      <div className="relative">
+        <SliderPrimitive.Root
+          min={min}
+          max={max}
+          step={1}
+          value={value}
+          onValueChange={handleValueChange}
+          className="relative flex w-full touch-none select-none items-center"
         >
-          <SliderPrimitive.Range
-            className={cn(
-              "absolute h-full bg-primary/60",
-              !isFullRange && "cursor-grab active:cursor-grabbing",
-            )}
+          <SliderPrimitive.Track
+            ref={trackRef}
+            className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-secondary"
+          >
+            <SliderPrimitive.Range className="absolute h-full bg-primary/60" />
+          </SliderPrimitive.Track>
+          <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-ew-resize" />
+          <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-ew-resize" />
+        </SliderPrimitive.Root>
+
+        {/* Transparent drag overlay on top of the range bar — sits above Radix so it intercepts events before thumb-snapping occurs */}
+        {!isFullRange && (
+          <div
+            className="absolute top-0 h-full cursor-grab active:cursor-grabbing touch-none"
+            style={{
+              left: `${startPercent}%`,
+              width: `${endPercent - startPercent}%`,
+            }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
           />
-        </SliderPrimitive.Track>
-        <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-ew-resize" />
-        <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-ew-resize" />
-      </SliderPrimitive.Root>
+        )}
+      </div>
     </div>
   );
 }
