@@ -43,6 +43,10 @@ interface FileManagerDrawerProps {
   onAddNote: (text: string) => Promise<void>;
   onUpdateNote: (id: string, text: string) => Promise<void>;
   onRemoveNote: (id: string) => Promise<void>;
+  // Session setup link
+  sessionKartId: string | null;
+  sessionSetupId: string | null;
+  onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
   // Setup props
   setups: KartSetup[];
   onAddSetup: (setup: Omit<KartSetup, "id" | "createdAt" | "updatedAt">) => Promise<void>;
@@ -72,6 +76,9 @@ export function FileManagerDrawer({
   onAddNote,
   onUpdateNote,
   onRemoveNote,
+  sessionKartId,
+  sessionSetupId,
+  onSaveSessionSetup,
   setups,
   onAddSetup,
   onUpdateSetup,
@@ -162,6 +169,11 @@ export function FileManagerDrawer({
             onAdd={onAddNote}
             onUpdate={onUpdateNote}
             onRemove={onRemoveNote}
+            karts={karts}
+            setups={setups}
+            sessionKartId={sessionKartId}
+            sessionSetupId={sessionSetupId}
+            onSaveSessionSetup={onSaveSessionSetup}
           />
         )}
       </div>

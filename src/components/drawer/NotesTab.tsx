@@ -1,8 +1,11 @@
-import { useState, useCallback } from "react";
-import { Pencil, Trash2, NotebookPen } from "lucide-react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Pencil, Trash2, NotebookPen, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Note } from "@/lib/noteStorage";
+import { Kart } from "@/lib/kartStorage";
+import { KartSetup } from "@/lib/setupStorage";
 
 interface NotesTabProps {
   fileName: string | null;
@@ -10,12 +13,54 @@ interface NotesTabProps {
   onAdd: (text: string) => Promise<void>;
   onUpdate: (id: string, text: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
+  // Session setup link
+  karts: Kart[];
+  setups: KartSetup[];
+  sessionKartId: string | null;
+  sessionSetupId: string | null;
+  onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
 }
 
-export function NotesTab({ fileName, notes, onAdd, onUpdate, onRemove }: NotesTabProps) {
+export function NotesTab({
+  fileName, notes, onAdd, onUpdate, onRemove,
+  karts, setups, sessionKartId, sessionSetupId, onSaveSessionSetup,
+}: NotesTabProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  // Session setup selection state
+  const [selectedKartId, setSelectedKartId] = useState<string | null>(null);
+  const [selectedSetupId, setSelectedSetupId] = useState<string | null>(null);
+
+  // Sync selection state when saved values change (e.g. file reloaded)
+  useEffect(() => {
+    setSelectedKartId(sessionKartId);
+    setSelectedSetupId(sessionSetupId);
+  }, [sessionKartId, sessionSetupId]);
+
+  // Reset setup when kart changes
+  const handleKartChange = useCallback((value: string) => {
+    const id = value === "none" ? null : value;
+    setSelectedKartId(id);
+    setSelectedSetupId(null);
+  }, []);
+
+  const handleSetupChange = useCallback((value: string) => {
+    setSelectedSetupId(value === "none" ? null : value);
+  }, []);
+
+  const filteredSetups = useMemo(() => {
+    if (!selectedKartId) return [];
+    return setups.filter((s) => s.kartId === selectedKartId);
+  }, [setups, selectedKartId]);
+
+  const isSaved = selectedKartId === sessionKartId && selectedSetupId === sessionSetupId;
+  const canSave = !isSaved; // allow saving even with nulls to clear selection
+
+  const handleSaveSetup = useCallback(async () => {
+    await onSaveSessionSetup(selectedKartId, selectedSetupId);
+  }, [selectedKartId, selectedSetupId, onSaveSessionSetup]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -63,6 +108,52 @@ export function NotesTab({ fileName, notes, onAdd, onUpdate, onRemove }: NotesTa
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      {/* Session Setup Selector */}
+      <div className="p-3 space-y-2 border-b border-border shrink-0">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Session Setup</p>
+          {isSaved && sessionKartId && (
+            <span className="flex items-center gap-1 text-xs text-primary">
+              <Check className="w-3 h-3" /> Linked
+            </span>
+          )}
+        </div>
+        <Select value={selectedKartId ?? "none"} onValueChange={handleKartChange}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue placeholder="Select kart…" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No kart</SelectItem>
+            {karts.map((k) => (
+              <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={selectedSetupId ?? "none"}
+          onValueChange={handleSetupChange}
+          disabled={!selectedKartId || filteredSetups.length === 0}
+        >
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue placeholder={!selectedKartId ? "Select a kart first" : filteredSetups.length === 0 ? "No setups for this kart" : "Select setup…"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No setup</SelectItem>
+            {filteredSetups.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          className="w-full"
+          size="sm"
+          onClick={handleSaveSetup}
+          disabled={!canSave}
+        >
+          {sessionKartId ? "Update Selection" : "Save Selection"}
+        </Button>
+      </div>
+
       {/* Delete Confirmation */}
       {confirmDelete && (
         <div className="mx-3 mt-3 mb-1 p-3 rounded-md border border-border bg-muted/60 space-y-2 shrink-0">

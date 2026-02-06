@@ -18,6 +18,9 @@ export interface FileMetadata {
   weatherStationId?: string;
   weatherStationName?: string;
   weatherStationDistanceKm?: number;
+  // Session kart/setup link
+  sessionKartId?: string;
+  sessionSetupId?: string;
 }
 
 interface StoredFile {
