@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,7 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [preloaded, setPreloaded] = useState(false);
+  const preloadSnapshot = useRef<Record<string, unknown> | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // PSI display state (separate from form.psiMode for display toggling)
@@ -99,6 +100,7 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
   const resetForm = useCallback(() => {
     setForm(emptyForm());
     setPreloaded(false);
+    preloadSnapshot.current = null;
     setPsiSingle(null);
     setPsiFront(null);
     setPsiRear(null);
@@ -107,6 +109,13 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     setDiamFront(null);
     setDiamRear(null);
   }, []);
+
+  /** Check if a form field was changed from the preloaded value */
+  const isChanged = useCallback((key: string, currentValue: unknown): boolean => {
+    if (!preloaded || !preloadSnapshot.current) return false;
+    const original = preloadSnapshot.current[key];
+    return original !== currentValue;
+  }, [preloaded]);
 
   const openNew = useCallback(() => {
     resetForm();
@@ -223,6 +232,28 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
       if (psiMode === "halves") { setPsiFront(latest.psiFrontLeft); setPsiRear(latest.psiRearLeft); }
       if (widthMode === "halves") { setWidthFront(latest.tireWidthFrontLeft); setWidthRear(latest.tireWidthRearLeft); }
       if (diamMode === "halves") { setDiamFront(latest.tireDiameterFrontLeft ?? null); setDiamRear(latest.tireDiameterRearLeft ?? null); }
+      // Save snapshot for change highlighting
+      preloadSnapshot.current = {
+        toe: latest.toe, camber: latest.camber, castor: latest.castor,
+        frontWidth: latest.frontWidth, rearWidth: latest.rearWidth, rearHeight: latest.rearHeight,
+        frontWidthUnit: latest.frontWidthUnit, rearWidthUnit: latest.rearWidthUnit, rearHeightUnit: latest.rearHeightUnit,
+        frontSprocket: latest.frontSprocket, rearSprocket: latest.rearSprocket,
+        steeringBrand: latest.steeringBrand, steeringSetting: latest.steeringSetting, spindleSetting: latest.spindleSetting,
+        tireBrand: latest.tireBrand,
+        psiSingle: psiMode === "single" ? latest.psiFrontLeft : null,
+        psiFront: psiMode === "halves" ? latest.psiFrontLeft : null,
+        psiRear: psiMode === "halves" ? latest.psiRearLeft : null,
+        psiFrontLeft: latest.psiFrontLeft, psiFrontRight: latest.psiFrontRight,
+        psiRearLeft: latest.psiRearLeft, psiRearRight: latest.psiRearRight,
+        widthFront: widthMode === "halves" ? latest.tireWidthFrontLeft : null,
+        widthRear: widthMode === "halves" ? latest.tireWidthRearLeft : null,
+        tireWidthFrontLeft: latest.tireWidthFrontLeft, tireWidthFrontRight: latest.tireWidthFrontRight,
+        tireWidthRearLeft: latest.tireWidthRearLeft, tireWidthRearRight: latest.tireWidthRearRight,
+        diamFront: diamMode === "halves" ? (latest.tireDiameterFrontLeft ?? null) : null,
+        diamRear: diamMode === "halves" ? (latest.tireDiameterRearLeft ?? null) : null,
+        tireDiameterFrontLeft: latest.tireDiameterFrontLeft ?? null, tireDiameterFrontRight: latest.tireDiameterFrontRight ?? null,
+        tireDiameterRearLeft: latest.tireDiameterRearLeft ?? null, tireDiameterRearRight: latest.tireDiameterRearRight ?? null,
+      };
       setPreloaded(true);
     }
   }, [mode, onGetLatestForKart]);
@@ -369,13 +400,13 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
         {/* Alignment */}
         <Section title="Alignment">
           <div className="grid grid-cols-3 gap-2">
-            <Field label="Toe">
+            <Field label="Toe" changed={isChanged("toe", form.toe)}>
               <NumberInput step="1" className="h-9" value={form.toe ?? ""} onChange={(e) => setForm((p) => ({ ...p, toe: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
-            <Field label="Camber">
+            <Field label="Camber" changed={isChanged("camber", form.camber)}>
               <NumberInput step="1" className="h-9" value={form.camber ?? ""} onChange={(e) => setForm((p) => ({ ...p, camber: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
-            <Field label="Castor">
+            <Field label="Castor" changed={isChanged("castor", form.castor)}>
               <NumberInput step="1" className="h-9" value={form.castor ?? ""} onChange={(e) => setForm((p) => ({ ...p, castor: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
           </div>
@@ -383,18 +414,18 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
 
         {/* Dimensions */}
         <Section title="Dimensions">
-          <DimensionRow label="Front Width" value={form.frontWidth} unit={form.frontWidthUnit} onValue={(v) => setForm((p) => ({ ...p, frontWidth: v }))} onUnit={(u) => setForm((p) => ({ ...p, frontWidthUnit: u }))} />
-          <DimensionRow label="Rear Width" value={form.rearWidth} unit={form.rearWidthUnit} onValue={(v) => setForm((p) => ({ ...p, rearWidth: v }))} onUnit={(u) => setForm((p) => ({ ...p, rearWidthUnit: u }))} />
-          <DimensionRow label="Rear Height" value={form.rearHeight} unit={form.rearHeightUnit} onValue={(v) => setForm((p) => ({ ...p, rearHeight: v }))} onUnit={(u) => setForm((p) => ({ ...p, rearHeightUnit: u }))} />
+          <DimensionRow label="Front Width" value={form.frontWidth} unit={form.frontWidthUnit} onValue={(v) => setForm((p) => ({ ...p, frontWidth: v }))} onUnit={(u) => setForm((p) => ({ ...p, frontWidthUnit: u }))} changed={isChanged("frontWidth", form.frontWidth)} />
+          <DimensionRow label="Rear Width" value={form.rearWidth} unit={form.rearWidthUnit} onValue={(v) => setForm((p) => ({ ...p, rearWidth: v }))} onUnit={(u) => setForm((p) => ({ ...p, rearWidthUnit: u }))} changed={isChanged("rearWidth", form.rearWidth)} />
+          <DimensionRow label="Rear Height" value={form.rearHeight} unit={form.rearHeightUnit} onValue={(v) => setForm((p) => ({ ...p, rearHeight: v }))} onUnit={(u) => setForm((p) => ({ ...p, rearHeightUnit: u }))} changed={isChanged("rearHeight", form.rearHeight)} />
         </Section>
 
         {/* Sprockets */}
         <Section title="Sprockets">
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Front">
+            <Field label="Front" changed={isChanged("frontSprocket", form.frontSprocket)}>
               <NumberInput step="1" className="h-9" value={form.frontSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, frontSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
-            <Field label="Rear">
+            <Field label="Rear" changed={isChanged("rearSprocket", form.rearSprocket)}>
               <NumberInput step="1" className="h-9" value={form.rearSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, rearSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
           </div>
@@ -402,14 +433,14 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
 
         {/* Steering */}
         <Section title="Steering">
-          <Field label="Column Brand">
+          <Field label="Column Brand" changed={isChanged("steeringBrand", form.steeringBrand)}>
             <Input className="h-9" value={form.steeringBrand} onChange={(e) => setForm((p) => ({ ...p, steeringBrand: e.target.value }))} />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Steering (1-5)">
+            <Field label="Steering (1-5)" changed={isChanged("steeringSetting", form.steeringSetting)}>
               <NumberInput min={1} max={5} step="1" className="h-9" value={form.steeringSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, steeringSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
-            <Field label="Spindle (1-5)">
+            <Field label="Spindle (1-5)" changed={isChanged("spindleSetting", form.spindleSetting)}>
               <NumberInput min={1} max={5} step="1" className="h-9" value={form.spindleSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, spindleSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
           </div>
@@ -417,7 +448,7 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
 
         {/* Tires */}
         <Section title="Tires">
-          <Field label="Tire Brand">
+          <Field label="Tire Brand" changed={isChanged("tireBrand", form.tireBrand)}>
             <Input className="h-9" value={form.tireBrand} onChange={(e) => setForm((p) => ({ ...p, tireBrand: e.target.value }))} />
           </Field>
         </Section>
@@ -431,32 +462,32 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
             onChange={(v) => setForm((p) => ({ ...p, psiMode: v }))}
           />
           {form.psiMode === "single" && (
-            <Field label="All Tires">
+            <Field label="All Tires" changed={isChanged("psiSingle", psiSingle)}>
               <NumberInput step="0.01" className="h-9" value={psiSingle ?? ""} onChange={(e) => setPsiSingle(e.target.value === "" ? null : parseFloat(e.target.value))} />
             </Field>
           )}
           {form.psiMode === "halves" && (
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Front">
+              <Field label="Front" changed={isChanged("psiFront", psiFront)}>
                 <NumberInput step="0.01" className="h-9" value={psiFront ?? ""} onChange={(e) => setPsiFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
-              <Field label="Rear">
+              <Field label="Rear" changed={isChanged("psiRear", psiRear)}>
                 <NumberInput step="0.01" className="h-9" value={psiRear ?? ""} onChange={(e) => setPsiRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
             </div>
           )}
           {form.psiMode === "quarters" && (
             <div className="grid grid-cols-2 gap-2">
-              <Field label="FL">
+              <Field label="FL" changed={isChanged("psiFrontLeft", form.psiFrontLeft)}>
                 <NumberInput step="0.01" className="h-9" value={form.psiFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="FR">
+              <Field label="FR" changed={isChanged("psiFrontRight", form.psiFrontRight)}>
                 <NumberInput step="0.01" className="h-9" value={form.psiFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="RL">
+              <Field label="RL" changed={isChanged("psiRearLeft", form.psiRearLeft)}>
                 <NumberInput step="0.01" className="h-9" value={form.psiRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="RR">
+              <Field label="RR" changed={isChanged("psiRearRight", form.psiRearRight)}>
                 <NumberInput step="0.01" className="h-9" value={form.psiRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
             </div>
@@ -476,26 +507,26 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
           </div>
           {form.tireWidthMode === "halves" && (
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Front">
+              <Field label="Front" changed={isChanged("widthFront", widthFront)}>
                 <NumberInput step="0.01" className="h-9" value={widthFront ?? ""} onChange={(e) => setWidthFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
-              <Field label="Rear">
+              <Field label="Rear" changed={isChanged("widthRear", widthRear)}>
                 <NumberInput step="0.01" className="h-9" value={widthRear ?? ""} onChange={(e) => setWidthRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
             </div>
           )}
           {form.tireWidthMode === "quarters" && (
             <div className="grid grid-cols-2 gap-2">
-              <Field label="FL">
+              <Field label="FL" changed={isChanged("tireWidthFrontLeft", form.tireWidthFrontLeft)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireWidthFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="FR">
+              <Field label="FR" changed={isChanged("tireWidthFrontRight", form.tireWidthFrontRight)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireWidthFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="RL">
+              <Field label="RL" changed={isChanged("tireWidthRearLeft", form.tireWidthRearLeft)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireWidthRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="RR">
+              <Field label="RR" changed={isChanged("tireWidthRearRight", form.tireWidthRearRight)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireWidthRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
             </div>
@@ -515,26 +546,26 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
           </div>
           {form.tireDiameterMode === "halves" && (
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Front">
+              <Field label="Front" changed={isChanged("diamFront", diamFront)}>
                 <NumberInput step="0.01" className="h-9" value={diamFront ?? ""} onChange={(e) => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
-              <Field label="Rear">
+              <Field label="Rear" changed={isChanged("diamRear", diamRear)}>
                 <NumberInput step="0.01" className="h-9" value={diamRear ?? ""} onChange={(e) => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
             </div>
           )}
           {form.tireDiameterMode === "quarters" && (
             <div className="grid grid-cols-2 gap-2">
-              <Field label="FL">
+              <Field label="FL" changed={isChanged("tireDiameterFrontLeft", form.tireDiameterFrontLeft)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="FR">
+              <Field label="FR" changed={isChanged("tireDiameterFrontRight", form.tireDiameterFrontRight)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="RL">
+              <Field label="RL" changed={isChanged("tireDiameterRearLeft", form.tireDiameterRearLeft)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
-              <Field label="RR">
+              <Field label="RR" changed={isChanged("tireDiameterRearRight", form.tireDiameterRearRight)}>
                 <NumberInput step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
             </div>
@@ -594,28 +625,31 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, changed, children }: { label: string; changed?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <Label className="text-xs">{label}</Label>
-      {children}
+      <div className={changed ? "rounded-md ring-1 ring-primary/60" : ""}>
+        {children}
+      </div>
     </div>
   );
 }
 
 function DimensionRow({
-  label, value, unit, onValue, onUnit,
+  label, value, unit, onValue, onUnit, changed,
 }: {
   label: string;
   value: number | null;
   unit: "mm" | "in";
   onValue: (v: number | null) => void;
   onUnit: (u: "mm" | "in") => void;
+  changed?: boolean;
 }) {
   return (
     <div className="flex items-end gap-2">
       <div className="flex-1">
-        <Field label={label}>
+        <Field label={label} changed={changed}>
           <NumberInput step="0.01" className="h-9" value={value ?? ""} onChange={(e) => onValue(e.target.value === "" ? null : parseFloat(e.target.value))} />
         </Field>
       </div>
