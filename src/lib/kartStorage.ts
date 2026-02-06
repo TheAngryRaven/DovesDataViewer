@@ -14,7 +14,7 @@ export interface Kart {
 
 const DB_NAME = "dove-file-manager";
 const KARTS_STORE = "karts";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -33,6 +33,10 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains("notes")) {
         const notesStore = db.createObjectStore("notes", { keyPath: "id" });
         notesStore.createIndex("fileName", "fileName", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("setups")) {
+        const setupsStore = db.createObjectStore("setups", { keyPath: "id" });
+        setupsStore.createIndex("kartId", "kartId", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);
