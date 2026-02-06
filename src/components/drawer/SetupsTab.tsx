@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -369,13 +370,13 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
         <Section title="Alignment">
           <div className="grid grid-cols-3 gap-2">
             <Field label="Toe">
-              <Input type="number" step="1" className="h-9" value={form.toe ?? ""} onChange={(e) => setForm((p) => ({ ...p, toe: e.target.value === "" ? null : parseInt(e.target.value) }))} />
+              <NumberInput step="1" className="h-9" value={form.toe ?? ""} onChange={(e) => setForm((p) => ({ ...p, toe: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
             <Field label="Camber">
-              <Input type="number" step="1" className="h-9" value={form.camber ?? ""} onChange={(e) => setForm((p) => ({ ...p, camber: e.target.value === "" ? null : parseInt(e.target.value) }))} />
+              <NumberInput step="1" className="h-9" value={form.camber ?? ""} onChange={(e) => setForm((p) => ({ ...p, camber: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
             <Field label="Castor">
-              <Input type="number" step="1" className="h-9" value={form.castor ?? ""} onChange={(e) => setForm((p) => ({ ...p, castor: e.target.value === "" ? null : parseInt(e.target.value) }))} />
+              <NumberInput step="1" className="h-9" value={form.castor ?? ""} onChange={(e) => setForm((p) => ({ ...p, castor: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
           </div>
         </Section>
@@ -391,10 +392,10 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
         <Section title="Sprockets">
           <div className="grid grid-cols-2 gap-2">
             <Field label="Front">
-              <Input type="number" step="1" className="h-9" value={form.frontSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, frontSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
+              <NumberInput step="1" className="h-9" value={form.frontSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, frontSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
             <Field label="Rear">
-              <Input type="number" step="1" className="h-9" value={form.rearSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, rearSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
+              <NumberInput step="1" className="h-9" value={form.rearSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, rearSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
           </div>
         </Section>
@@ -406,10 +407,10 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
           </Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Steering (1-5)">
-              <Input type="number" min={1} max={5} step="1" className="h-9" value={form.steeringSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, steeringSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
+              <NumberInput min={1} max={5} step="1" className="h-9" value={form.steeringSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, steeringSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
             <Field label="Spindle (1-5)">
-              <Input type="number" min={1} max={5} step="1" className="h-9" value={form.spindleSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, spindleSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
+              <NumberInput min={1} max={5} step="1" className="h-9" value={form.spindleSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, spindleSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
             </Field>
           </div>
         </Section>
@@ -431,32 +432,32 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
           />
           {form.psiMode === "single" && (
             <Field label="All Tires">
-              <Input type="number" step="0.01" className="h-9" value={psiSingle ?? ""} onChange={(e) => setPsiSingle(e.target.value === "" ? null : parseFloat(e.target.value))} />
+              <NumberInput step="0.01" className="h-9" value={psiSingle ?? ""} onChange={(e) => setPsiSingle(e.target.value === "" ? null : parseFloat(e.target.value))} />
             </Field>
           )}
           {form.psiMode === "halves" && (
             <div className="grid grid-cols-2 gap-2">
               <Field label="Front">
-                <Input type="number" step="0.01" className="h-9" value={psiFront ?? ""} onChange={(e) => setPsiFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                <NumberInput step="0.01" className="h-9" value={psiFront ?? ""} onChange={(e) => setPsiFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
               <Field label="Rear">
-                <Input type="number" step="0.01" className="h-9" value={psiRear ?? ""} onChange={(e) => setPsiRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                <NumberInput step="0.01" className="h-9" value={psiRear ?? ""} onChange={(e) => setPsiRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
             </div>
           )}
           {form.psiMode === "quarters" && (
             <div className="grid grid-cols-2 gap-2">
               <Field label="FL">
-                <Input type="number" step="0.01" className="h-9" value={form.psiFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.psiFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="FR">
-                <Input type="number" step="0.01" className="h-9" value={form.psiFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.psiFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="RL">
-                <Input type="number" step="0.01" className="h-9" value={form.psiRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.psiRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="RR">
-                <Input type="number" step="0.01" className="h-9" value={form.psiRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.psiRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
             </div>
           )}
@@ -476,26 +477,26 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
           {form.tireWidthMode === "halves" && (
             <div className="grid grid-cols-2 gap-2">
               <Field label="Front">
-                <Input type="number" step="0.01" className="h-9" value={widthFront ?? ""} onChange={(e) => setWidthFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                <NumberInput step="0.01" className="h-9" value={widthFront ?? ""} onChange={(e) => setWidthFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
               <Field label="Rear">
-                <Input type="number" step="0.01" className="h-9" value={widthRear ?? ""} onChange={(e) => setWidthRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                <NumberInput step="0.01" className="h-9" value={widthRear ?? ""} onChange={(e) => setWidthRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
             </div>
           )}
           {form.tireWidthMode === "quarters" && (
             <div className="grid grid-cols-2 gap-2">
               <Field label="FL">
-                <Input type="number" step="0.01" className="h-9" value={form.tireWidthFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireWidthFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="FR">
-                <Input type="number" step="0.01" className="h-9" value={form.tireWidthFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireWidthFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="RL">
-                <Input type="number" step="0.01" className="h-9" value={form.tireWidthRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireWidthRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="RR">
-                <Input type="number" step="0.01" className="h-9" value={form.tireWidthRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireWidthRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
             </div>
           )}
@@ -515,26 +516,26 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
           {form.tireDiameterMode === "halves" && (
             <div className="grid grid-cols-2 gap-2">
               <Field label="Front">
-                <Input type="number" step="0.01" className="h-9" value={diamFront ?? ""} onChange={(e) => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                <NumberInput step="0.01" className="h-9" value={diamFront ?? ""} onChange={(e) => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
               <Field label="Rear">
-                <Input type="number" step="0.01" className="h-9" value={diamRear ?? ""} onChange={(e) => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                <NumberInput step="0.01" className="h-9" value={diamRear ?? ""} onChange={(e) => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
               </Field>
             </div>
           )}
           {form.tireDiameterMode === "quarters" && (
             <div className="grid grid-cols-2 gap-2">
               <Field label="FL">
-                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="FR">
-                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="RL">
-                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
               <Field label="RR">
-                <Input type="number" step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
+                <NumberInput step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
               </Field>
             </div>
           )}
@@ -615,7 +616,7 @@ function DimensionRow({
     <div className="flex items-end gap-2">
       <div className="flex-1">
         <Field label={label}>
-          <Input type="number" step="0.01" className="h-9" value={value ?? ""} onChange={(e) => onValue(e.target.value === "" ? null : parseFloat(e.target.value))} />
+          <NumberInput step="0.01" className="h-9" value={value ?? ""} onChange={(e) => onValue(e.target.value === "" ? null : parseFloat(e.target.value))} />
         </Field>
       </div>
       <UnitSwitch value={unit} onChange={onUnit} />

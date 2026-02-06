@@ -192,31 +192,15 @@
     border-radius: 3px;
   }
 
-  /* Number input spinner styling */
+  /* Hide default number input spinners — custom component handles step buttons */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     appearance: none;
-    background: hsl(var(--secondary));
-    border-left: 1px solid hsl(var(--border));
-    width: 1.25rem;
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    cursor: pointer;
-    opacity: 1;
-    display: block;
-    border-radius: 0 calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0;
-  }
-
-  input[type="number"]::-webkit-inner-spin-button:hover,
-  input[type="number"]::-webkit-outer-spin-button:hover {
-    background: hsl(var(--muted));
+    margin: 0;
   }
 
   input[type="number"] {
     -moz-appearance: textfield;
-    position: relative;
   }
 }
