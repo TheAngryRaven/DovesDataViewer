@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff } from "lucide-react";
+import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { TrackEditor } from "@/components/TrackEditor";
@@ -537,12 +537,24 @@ export default function Index() {
         <InstallPrompt />
         <div className="min-h-screen bg-background flex flex-col">
         <header className="border-b border-border px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Gauge className="w-8 h-8 text-primary" />
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Dove's DataViewer</h1>
-              <p className="text-sm text-muted-foreground">NMEA Enhanced Format</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Gauge className="w-8 h-8 text-primary" />
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Dove's DataViewer</h1>
+                <p className="text-sm text-muted-foreground">NMEA Enhanced Format</p>
+              </div>
             </div>
+            <a
+              href="https://github.com/sponsors/TheAngryRaven"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm" className="gap-2">
+                <Heart className="w-4 h-4 text-pink-500" />
+                <span className="hidden sm:inline">Sponsor</span>
+              </Button>
+            </a>
           </div>
         </header>
 
