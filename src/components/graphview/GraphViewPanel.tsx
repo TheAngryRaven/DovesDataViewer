@@ -156,6 +156,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
           formatRangeLabel={props.formatRangeLabel}
           gForceSmoothing={props.gForceSmoothing}
           gForceSmoothingStrength={props.gForceSmoothingStrength}
+          brakingZoneSettings={props.brakingZoneSettings}
         />
       </ResizablePanel>
     </ResizablePanelGroup>

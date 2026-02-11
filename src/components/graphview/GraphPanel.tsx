@@ -6,6 +6,8 @@ import { RangeSlider } from '@/components/RangeSlider';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
+import { computeBrakingGSeries, BrakingZoneConfig } from '@/lib/brakingZones';
+import { BrakingZoneSettings } from './MiniMap';
 
 const SERIES_COLORS = [
   'hsl(180, 70%, 55%)', 'hsl(45, 85%, 55%)', 'hsl(0, 70%, 55%)',
@@ -27,16 +29,37 @@ interface GraphPanelProps {
   formatRangeLabel: (idx: number) => string;
   gForceSmoothing: boolean;
   gForceSmoothingStrength: number;
+  brakingZoneSettings: BrakingZoneSettings;
 }
 
 export function GraphPanel({
   samples, filteredSamples, referenceSamples, fieldMappings, currentIndex, onScrub, useKph,
   visibleRange, onRangeChange, minRange, formatRangeLabel,
-  gForceSmoothing, gForceSmoothingStrength,
+  gForceSmoothing, gForceSmoothingStrength, brakingZoneSettings,
 }: GraphPanelProps) {
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
 
   const hasReference = referenceSamples.length > 0;
+
+  // Build braking config from settings
+  const brakingConfig: BrakingZoneConfig = useMemo(() => ({
+    entryThresholdG: -brakingZoneSettings.entryThresholdG,
+    exitThresholdG: -brakingZoneSettings.exitThresholdG,
+    minDurationMs: brakingZoneSettings.minDurationMs,
+    smoothingAlpha: brakingZoneSettings.smoothingAlpha,
+  }), [brakingZoneSettings]);
+
+  // Compute braking G series from FULL dataset
+  const brakingGFull = useMemo(() => {
+    if (filteredSamples.length < 3) return [];
+    return computeBrakingGSeries(filteredSamples, brakingConfig);
+  }, [filteredSamples, brakingConfig]);
+
+  // Compute braking G for reference samples
+  const brakingGRefFull = useMemo(() => {
+    if (!hasReference || referenceSamples.length < 3) return [];
+    return computeBrakingGSeries(referenceSamples, brakingConfig);
+  }, [referenceSamples, brakingConfig, hasReference]);
 
   // Precompute reference values for each channel from FULL dataset, then slice for visible range
   const referenceValuesByKey = useMemo(() => {
@@ -49,6 +72,27 @@ export function GraphPanel({
 
     // Pace
     result['__pace__'] = calculatePace(filteredSamples, referenceSamples);
+
+    // Braking G reference - interpolated by distance
+    if (brakingGRefFull.length > 0) {
+      const currentDistances = calculateDistanceArray(filteredSamples);
+      const refDistances = calculateDistanceArray(referenceSamples);
+      const refBrakingG: (number | null)[] = [];
+      for (let i = 0; i < filteredSamples.length; i++) {
+        const targetDist = currentDistances[i];
+        let lo = 0, hi = refDistances.length - 1;
+        while (lo < hi - 1) {
+          const mid = Math.floor((lo + hi) / 2);
+          if (refDistances[mid] <= targetDist) lo = mid; else hi = mid;
+        }
+        if (targetDist > refDistances[refDistances.length - 1]) { refBrakingG.push(null); continue; }
+        const d1 = refDistances[lo], d2 = refDistances[hi];
+        if (d2 === d1) { refBrakingG.push(brakingGRefFull[lo]); continue; }
+        const t = (targetDist - d1) / (d2 - d1);
+        refBrakingG.push(brakingGRefFull[lo] + t * (brakingGRefFull[hi] - brakingGRefFull[lo]));
+      }
+      result['__braking_g__'] = refBrakingG;
+    }
 
     // For extra fields, interpolate by distance using full dataset
     const currentDistances = calculateDistanceArray(filteredSamples);
@@ -76,7 +120,7 @@ export function GraphPanel({
     });
 
     return result;
-  }, [filteredSamples, referenceSamples, fieldMappings, useKph, hasReference]);
+  }, [filteredSamples, referenceSamples, fieldMappings, useKph, hasReference, brakingGRefFull]);
 
   // Available data sources
   const availableSources = useMemo(() => {
@@ -86,6 +130,7 @@ export function GraphPanel({
     if (hasReference) {
       sources.push({ key: '__pace__', label: 'Pace (Δs)' });
     }
+    sources.push({ key: '__braking_g__', label: 'Braking G' });
     fieldMappings.forEach(f => {
       sources.push({ key: f.name, label: f.name + (f.unit ? ` (${f.unit})` : '') });
     });
@@ -108,6 +153,7 @@ export function GraphPanel({
 
   const getColor = (key: string) => {
     if (key === '__pace__') return 'hsl(50, 85%, 55%)';
+    if (key === '__braking_g__') return 'hsl(15, 80%, 55%)';
     const idx = availableSources.findIndex(s => s.key === key);
     return SERIES_COLORS[idx % SERIES_COLORS.length];
   };
@@ -155,6 +201,7 @@ export function GraphPanel({
                 gForceSmoothing={gForceSmoothing}
                 gForceSmoothingStrength={gForceSmoothingStrength}
                 referenceValues={referenceValuesByKey[key]?.slice(visibleRange[0], visibleRange[1] + 1) ?? null}
+                brakingGValues={key === '__braking_g__' ? brakingGFull.slice(visibleRange[0], visibleRange[1] + 1) : undefined}
               />
             ))}
             {/* Add more button */}

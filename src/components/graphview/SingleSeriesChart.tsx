@@ -4,7 +4,7 @@ import { GpsSample } from '@/types/racing';
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
-  seriesKey: string; // "speed", "__pace__", or field name from extraFields
+  seriesKey: string; // "speed", "__pace__", "__braking_g__", or field name from extraFields
   currentIndex: number;
   onScrub: (index: number) => void;
   useKph?: boolean;
@@ -14,6 +14,7 @@ interface SingleSeriesChartProps {
   gForceSmoothing?: boolean;
   gForceSmoothingStrength?: number;
   referenceValues?: (number | null)[] | null;
+  brakingGValues?: number[];
 }
 
 const G_FORCE_FIELDS = ['Lat G', 'Lon G'];
@@ -36,7 +37,7 @@ function applySmoothingToValues(values: (number | undefined)[], windowSize: numb
 export function SingleSeriesChart({
   samples, seriesKey, currentIndex, onScrub, useKph = false,
   color, label, onDelete, gForceSmoothing = true, gForceSmoothingStrength = 50,
-  referenceValues = null,
+  referenceValues = null, brakingGValues,
 }: SingleSeriesChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,7 @@ export function SingleSeriesChart({
 
   const isSpeed = seriesKey === 'speed';
   const isPace = seriesKey === '__pace__';
+  const isBrakingG = seriesKey === '__braking_g__';
   const isGForce = G_FORCE_FIELDS.includes(seriesKey);
 
   const smoothingWindowSize = useMemo(() => {
@@ -57,11 +59,14 @@ export function SingleSeriesChart({
     if (isPace && referenceValues) {
       return referenceValues.map(v => v ?? undefined);
     }
+    if (isBrakingG && brakingGValues) {
+      return brakingGValues.map(v => v);
+    }
     if (isSpeed) {
       return samples.map(s => useKph ? s.speedKph : s.speedMph);
     }
     return samples.map(s => s.extraFields[seriesKey]);
-  }, [samples, seriesKey, isSpeed, isPace, useKph, referenceValues]);
+  }, [samples, seriesKey, isSpeed, isPace, isBrakingG, useKph, referenceValues, brakingGValues]);
 
   // Apply smoothing for G-force fields
   const values = useMemo(() => {
@@ -158,9 +163,9 @@ export function SingleSeriesChart({
     }
 
     if (isSpeed) { minVal = 0; maxVal = Math.ceil(maxVal / 10) * 10; }
-    if (isPace) {
+    if (isPace || isBrakingG) {
       // Center around zero with symmetric range
-      const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 0.5);
+      const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), isPace ? 0.5 : 0.1);
       minVal = -absMax;
       maxVal = absMax;
     }
@@ -185,8 +190,8 @@ export function SingleSeriesChart({
       ctx.setLineDash([]);
     }
 
-    // Draw zero line for pace
-    if (isPace) {
+    // Draw zero line for pace and braking G
+    if (isPace || isBrakingG) {
       const zeroY = padding.top + (1 - (0 - minVal) / range) * chartHeight;
       ctx.beginPath();
       ctx.strokeStyle = 'hsla(220, 10%, 55%, 0.4)';
@@ -245,7 +250,7 @@ export function SingleSeriesChart({
     for (let i = 0; i <= valueGridCount; i++) {
       const value = minVal + (range / valueGridCount) * (valueGridCount - i);
       const y = padding.top + (chartHeight / valueGridCount) * i;
-      const fmt = isPace ? (value > 0 ? '+' : '') + value.toFixed(1) : value.toFixed(isSpeed ? 0 : 1);
+      const fmt = (isPace || isBrakingG) ? (value > 0 ? '+' : '') + value.toFixed(isBrakingG ? 2 : 1) : value.toFixed(isSpeed ? 0 : 1);
       ctx.fillText(fmt, padding.left - 6, y + 3);
     }
 
@@ -275,9 +280,9 @@ export function SingleSeriesChart({
       // Current value tooltip
       let displayVal = values[currentIndex];
       if (displayVal !== undefined) {
-        const unit = isPace ? 's' : isSpeed ? (useKph ? ' kph' : ' mph') : '';
-        const prefix = isPace && displayVal > 0 ? '+' : '';
-        const mainText = `${prefix}${displayVal.toFixed(isPace ? 2 : 1)}${unit}`;
+        const unit = isPace ? 's' : isBrakingG ? 'G' : isSpeed ? (useKph ? ' kph' : ' mph') : '';
+        const prefix = (isPace || isBrakingG) && displayVal > 0 ? '+' : '';
+        const mainText = `${prefix}${displayVal.toFixed((isPace || isBrakingG) ? 2 : 1)}${unit}`;
 
         // Delta text (difference from reference at same point)
         let deltaText = '';
@@ -315,7 +320,7 @@ export function SingleSeriesChart({
         }
       }
     }
-  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, useKph, interpolateIndices, referenceValues]);
+  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {
