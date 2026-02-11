@@ -843,6 +843,7 @@ export default function Index() {
             <GraphViewTab
               visibleSamples={visibleSamples}
               filteredSamples={filteredSamples}
+              referenceSamples={referenceSamples}
               currentIndex={currentIndex}
               onScrub={handleScrub}
               useKph={useKph}

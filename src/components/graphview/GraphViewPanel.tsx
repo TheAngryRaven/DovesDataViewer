@@ -14,6 +14,7 @@ export interface GraphViewPanelProps {
   // Data
   visibleSamples: GpsSample[];
   filteredSamples: GpsSample[];
+  referenceSamples: GpsSample[];
   currentIndex: number;
   onScrub: (index: number) => void;
   useKph: boolean;
@@ -144,6 +145,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
         <GraphPanel
           samples={props.visibleSamples}
           filteredSamples={props.filteredSamples}
+          referenceSamples={props.referenceSamples}
           fieldMappings={props.fieldMappings}
           currentIndex={props.currentIndex}
           onScrub={props.onScrub}

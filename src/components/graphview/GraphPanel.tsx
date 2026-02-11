@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RangeSlider } from '@/components/RangeSlider';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GpsSample, FieldMapping } from '@/types/racing';
+import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
 
 const SERIES_COLORS = [
   'hsl(180, 70%, 55%)', 'hsl(45, 85%, 55%)', 'hsl(0, 70%, 55%)',
@@ -15,6 +16,7 @@ const SERIES_COLORS = [
 interface GraphPanelProps {
   samples: GpsSample[];
   filteredSamples: GpsSample[];
+  referenceSamples: GpsSample[];
   fieldMappings: FieldMapping[];
   currentIndex: number;
   onScrub: (index: number) => void;
@@ -28,22 +30,68 @@ interface GraphPanelProps {
 }
 
 export function GraphPanel({
-  samples, filteredSamples, fieldMappings, currentIndex, onScrub, useKph,
+  samples, filteredSamples, referenceSamples, fieldMappings, currentIndex, onScrub, useKph,
   visibleRange, onRangeChange, minRange, formatRangeLabel,
   gForceSmoothing, gForceSmoothingStrength,
 }: GraphPanelProps) {
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
+
+  const hasReference = referenceSamples.length > 0;
+
+  // Precompute reference values for each channel, aligned by distance to current samples
+  const referenceValuesByKey = useMemo(() => {
+    if (!hasReference || samples.length === 0) return {};
+
+    const result: Record<string, (number | null)[]> = {};
+
+    // Reference speed
+    result['speed'] = calculateReferenceSpeed(samples, referenceSamples, useKph);
+
+    // Pace
+    result['__pace__'] = calculatePace(samples, referenceSamples);
+
+    // For extra fields, interpolate by distance
+    const currentDistances = calculateDistanceArray(samples);
+    const refDistances = calculateDistanceArray(referenceSamples);
+
+    fieldMappings.forEach(f => {
+      const refValues: (number | null)[] = [];
+      for (let i = 0; i < samples.length; i++) {
+        const targetDist = currentDistances[i];
+        // Binary search in refDistances
+        let lo = 0, hi = refDistances.length - 1;
+        while (lo < hi - 1) {
+          const mid = Math.floor((lo + hi) / 2);
+          if (refDistances[mid] <= targetDist) lo = mid; else hi = mid;
+        }
+        const d1 = refDistances[lo], d2 = refDistances[hi];
+        if (targetDist > refDistances[refDistances.length - 1]) { refValues.push(null); continue; }
+        if (d2 === d1) { refValues.push(referenceSamples[lo].extraFields[f.name] ?? null); continue; }
+        const t = (targetDist - d1) / (d2 - d1);
+        const v1 = referenceSamples[lo].extraFields[f.name];
+        const v2 = referenceSamples[hi].extraFields[f.name];
+        if (v1 === undefined || v2 === undefined) { refValues.push(null); continue; }
+        refValues.push(v1 + t * (v2 - v1));
+      }
+      result[f.name] = refValues;
+    });
+
+    return result;
+  }, [samples, referenceSamples, fieldMappings, useKph, hasReference]);
 
   // Available data sources
   const availableSources = useMemo(() => {
     const sources: { key: string; label: string }[] = [
       { key: 'speed', label: `Speed (${useKph ? 'KPH' : 'MPH'})` },
     ];
+    if (hasReference) {
+      sources.push({ key: '__pace__', label: 'Pace (Δs)' });
+    }
     fieldMappings.forEach(f => {
       sources.push({ key: f.name, label: f.name + (f.unit ? ` (${f.unit})` : '') });
     });
     return sources;
-  }, [fieldMappings, useKph]);
+  }, [fieldMappings, useKph, hasReference]);
 
   const unusedSources = useMemo(() => {
     return availableSources.filter(s => !activeGraphs.includes(s.key));
@@ -60,6 +108,7 @@ export function GraphPanel({
   }, []);
 
   const getColor = (key: string) => {
+    if (key === '__pace__') return 'hsl(50, 85%, 55%)';
     const idx = availableSources.findIndex(s => s.key === key);
     return SERIES_COLORS[idx % SERIES_COLORS.length];
   };
@@ -106,6 +155,7 @@ export function GraphPanel({
                 onDelete={() => removeGraph(key)}
                 gForceSmoothing={gForceSmoothing}
                 gForceSmoothingStrength={gForceSmoothingStrength}
+                referenceValues={referenceValuesByKey[key] ?? null}
               />
             ))}
             {/* Add more button */}
