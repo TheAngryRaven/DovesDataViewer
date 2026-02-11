@@ -117,6 +117,42 @@ export function detectBrakingZones(
 }
 
 /**
+ * Compute a continuous smoothed longitudinal acceleration (G) series.
+ * Returns one value per sample using the same EMA math as detectBrakingZones.
+ */
+export function computeBrakingGSeries(
+  samples: GpsSample[],
+  config: BrakingZoneConfig = DEFAULT_BRAKING_CONFIG
+): number[] {
+  if (samples.length === 0) return [];
+  const result: number[] = [0]; // first sample has no delta
+  let smoothedAccelG = 0;
+
+  for (let i = 1; i < samples.length; i++) {
+    const prev = samples[i - 1];
+    const curr = samples[i];
+    const dtS = (curr.t - prev.t) / 1000;
+
+    if (dtS < 0.01 || dtS > 2.0) {
+      result.push(smoothedAccelG); // carry forward during gaps
+      continue;
+    }
+
+    const speedMpsCurr = curr.speedMph * 0.44704;
+    const speedMpsPrev = prev.speedMph * 0.44704;
+    const accelG = (speedMpsCurr - speedMpsPrev) / dtS / GRAVITY_MPS2;
+
+    if (i === 1) {
+      smoothedAccelG = accelG;
+    } else {
+      smoothedAccelG = config.smoothingAlpha * accelG + (1 - config.smoothingAlpha) * smoothedAccelG;
+    }
+    result.push(smoothedAccelG);
+  }
+  return result;
+}
+
+/**
  * Create a BrakingZone object from sample indices
  */
 function createZone(samples: GpsSample[], startIdx: number, endIdx: number): BrakingZone {
