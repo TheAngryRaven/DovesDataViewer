@@ -23,6 +23,11 @@ export const DEFAULT_BRAKING_CONFIG: BrakingZoneConfig = {
 };
 
 const GRAVITY_MPS2 = 9.80665;
+const MIN_SPEED_MPS = 2.0;      // Below this, accel is too noisy (matches gforceCalculation)
+const MAX_SPEED_MPS = 150;       // Reject GPS glitch speeds (matches speed sanity check)
+const MIN_DT_S = 0.05;           // Minimum time delta to avoid division artifacts
+const MAX_DT_S = 2.0;            // Maximum time delta (GPS gap)
+const MAX_ACCEL_G = 3.0;         // Clamp raw accel to ±3G (matches gforceCalculation)
 
 type BrakingState = 'COASTING' | 'BRAKING';
 
@@ -52,7 +57,7 @@ export function detectBrakingZones(
     const dtS = dtMs / 1000;
 
     // Skip samples with invalid time deltas (GPS gaps or too fast)
-    if (dtS < 0.01 || dtS > 2.0) {
+    if (dtS < MIN_DT_S || dtS > MAX_DT_S) {
       // If we were braking during a gap, end the zone at the previous sample
       if (state === 'BRAKING') {
         const zoneEnd = samples[i - 1];
@@ -70,8 +75,14 @@ export function detectBrakingZones(
     // Calculate longitudinal acceleration from scalar speed change
     const speedMpsCurr = curr.speedMph * 0.44704; // mph to m/s
     const speedMpsPrev = prev.speedMph * 0.44704;
-    const accelMps2 = (speedMpsCurr - speedMpsPrev) / dtS;
-    const accelG = accelMps2 / GRAVITY_MPS2;
+
+    // Speed sanity: reject impossible speeds or too-slow samples
+    if (speedMpsCurr > MAX_SPEED_MPS || speedMpsPrev > MAX_SPEED_MPS) continue;
+    if (speedMpsCurr < MIN_SPEED_MPS && speedMpsPrev < MIN_SPEED_MPS) continue;
+
+    const accelG = Math.max(-MAX_ACCEL_G, Math.min(MAX_ACCEL_G,
+      (speedMpsCurr - speedMpsPrev) / dtS / GRAVITY_MPS2
+    ));
 
     // Apply exponential smoothing
     if (i === 1) {
@@ -133,19 +144,37 @@ export function computeBrakingGSeries(
     const curr = samples[i];
     const dtS = (curr.t - prev.t) / 1000;
 
-    if (dtS < 0.01 || dtS > 2.0) {
+    // Reject bad time deltas
+    if (dtS < MIN_DT_S || dtS > MAX_DT_S) {
       result.push(smoothedAccelG); // carry forward during gaps
       continue;
     }
 
     const speedMpsCurr = curr.speedMph * 0.44704;
     const speedMpsPrev = prev.speedMph * 0.44704;
-    const accelG = (speedMpsCurr - speedMpsPrev) / dtS / GRAVITY_MPS2;
 
+    // Speed sanity: reject impossible speeds (GPS glitch)
+    if (speedMpsCurr > MAX_SPEED_MPS || speedMpsPrev > MAX_SPEED_MPS) {
+      result.push(smoothedAccelG);
+      continue;
+    }
+
+    // Speed gate: below minimum, accel is unreliable
+    if (speedMpsCurr < MIN_SPEED_MPS && speedMpsPrev < MIN_SPEED_MPS) {
+      result.push(smoothedAccelG);
+      continue;
+    }
+
+    // Raw longitudinal acceleration, clamped to physical limits
+    const rawAccelG = Math.max(-MAX_ACCEL_G, Math.min(MAX_ACCEL_G,
+      (speedMpsCurr - speedMpsPrev) / dtS / GRAVITY_MPS2
+    ));
+
+    // EMA smoothing
     if (i === 1) {
-      smoothedAccelG = accelG;
+      smoothedAccelG = rawAccelG;
     } else {
-      smoothedAccelG = config.smoothingAlpha * accelG + (1 - config.smoothingAlpha) * smoothedAccelG;
+      smoothedAccelG = config.smoothingAlpha * rawAccelG + (1 - config.smoothingAlpha) * smoothedAccelG;
     }
     result.push(smoothedAccelG);
   }
