@@ -12,6 +12,11 @@ import {
 
 const knotsToMph = (kts: number) => Math.round(kts * 1.15078);
 
+function isToday(date: Date): boolean {
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+}
+
 interface WeatherPanelProps {
   lat?: number;
   lon?: number;
@@ -162,7 +167,9 @@ export function WeatherPanel({
               <DewPointRow temperatureC={weather.temperatureC} humidity={weather.humidity} />
               <WindRow weather={weather} />
               <PressureAltRow altimeterInHg={weather.altimeterInHg} />
-              <TuningNote densityAltitudeFt={weather.densityAltitudeFt} humidity={weather.humidity} />
+              {sessionDate && isToday(sessionDate) && (
+                <TuningNote densityAltitudeFt={weather.densityAltitudeFt} humidity={weather.humidity} />
+              )}
             </>
           )}
         </div>
