@@ -1,32 +1,19 @@
 import { GpsSample } from '@/types/racing';
+import { clamp, normalizeHeadingDelta } from './parserUtils';
 
 /**
  * G-Force calculation utilities for GPS-derived accelerations
- * 
+ *
  * These calculations derive lateral and longitudinal G-forces from GPS data:
  * - Lateral G: centripetal acceleration = v * (dHeading/dt)
  * - Longitudinal G: rate of change of speed = dv/dt
- * 
+ *
  * Quality filters applied:
  * - HDOP threshold (poor GPS accuracy samples skipped)
  * - Minimum speed for lateral G (heading unreliable at low speeds)
  * - Maximum heading rate (physically impossible changes rejected)
  * - Time gap detection (filtered teleportation samples detected)
  */
-
-// Clamp value to range
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-// Normalize heading delta to handle wrap-around (e.g., 359° → 1° = +2° not -358°)
-function normalizeHeadingDelta(h2: number | undefined, h1: number | undefined): number {
-  if (h2 === undefined || h1 === undefined) return 0;
-  let delta = h2 - h1;
-  if (delta > 180) delta -= 360;
-  if (delta < -180) delta += 360;
-  return delta;
-}
 
 // Configuration constants
 const G_FORCE_CONFIG = {

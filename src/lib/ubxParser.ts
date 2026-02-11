@@ -1,5 +1,6 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
+import { haversineDistance, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
 
 // UBX Protocol Constants
 const UBX_SYNC_1 = 0xB5;
@@ -148,33 +149,6 @@ function parseNavPvt(payload: DataView): NavPvtData | null {
   };
 }
 
-// Clamp value to range
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-// Normalize heading delta to handle wrap-around
-function normalizeHeadingDelta(h2: number | undefined, h1: number | undefined): number {
-  if (h2 === undefined || h1 === undefined) return 0;
-  let delta = h2 - h1;
-  if (delta > 180) delta -= 360;
-  if (delta < -180) delta += 360;
-  return delta;
-}
-
-
-// Haversine distance in meters
-function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 export function parseUbxFile(buffer: ArrayBuffer): ParsedData {
   const data = new Uint8Array(buffer);
   const samples: GpsSample[] = [];
@@ -216,21 +190,13 @@ export function parseUbxFile(buffer: ArrayBuffer): ParsedData {
     // Convert speed from mm/s to m/s
     const speedMps = pvt.gSpeed / 1000;
     
-    // Sanity check on speed (max 150 m/s = ~335 mph)
-    if (speedMps > 150) continue;
-    
+    // Sanity check on speed
+    if (speedMps > MAX_SPEED_MPS) continue;
+
     // Teleportation filter
     if (samples.length > 0) {
       const prev = samples[samples.length - 1];
-      const timeDiff = (t - prev.t) / 1000;
-      if (timeDiff > 0 && timeDiff < 10) {
-        const distance = haversineDistance(prev.lat, prev.lon, pvt.lat, pvt.lon);
-        const maxDistance = 50 * (timeDiff / 0.04);
-        if (distance > maxDistance && distance > 100) {
-          console.warn(`UBX GPS teleportation: ${distance.toFixed(0)}m in ${timeDiff.toFixed(3)}s`);
-          continue;
-        }
-      }
+      if (isTeleportation(prev.lat, prev.lon, prev.t, pvt.lat, pvt.lon, t, 'UBX')) continue;
     }
     
     // Normalize heading to 0-360

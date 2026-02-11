@@ -72,7 +72,7 @@ export function WeatherPanel({
             if (data) {
               setWeather(data);
               onWeatherLoadedRef.current?.(data);
-              setError(true);
+              setError(false);
             }
           }
         } else {
@@ -90,7 +90,7 @@ export function WeatherPanel({
             if (data) {
               setWeather(data);
               onWeatherLoadedRef.current?.(data);
-              setError(true);
+              setError(false);
             }
           }
         }

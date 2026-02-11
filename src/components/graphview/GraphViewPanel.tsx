@@ -4,7 +4,7 @@ import { Kart } from '@/lib/kartStorage';
 import { KartSetup } from '@/lib/setupStorage';
 import { WeatherStation } from '@/lib/weatherService';
 import { InfoBox } from './InfoBox';
-import { MiniMap, BrakingZoneSettings } from './MiniMap';
+import { MiniMap } from './MiniMap';
 import { GraphPanel } from './GraphPanel';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Map as MapIcon, EyeOff } from 'lucide-react';
@@ -17,7 +17,6 @@ export interface GraphViewPanelProps {
   referenceSamples: GpsSample[];
   currentIndex: number;
   onScrub: (index: number) => void;
-  useKph: boolean;
   fieldMappings: FieldMapping[];
   // Stats
   course: Course | null;
@@ -30,7 +29,6 @@ export interface GraphViewPanelProps {
   lapToFastestDelta: number | null;
   // Map
   bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
-  brakingZoneSettings: BrakingZoneSettings;
   // Weather
   sessionGpsPoint?: { lat: number; lon: number };
   sessionStartDate?: Date;
@@ -48,9 +46,6 @@ export interface GraphViewPanelProps {
   onRangeChange: (range: [number, number]) => void;
   minRange: number;
   formatRangeLabel: (idx: number) => string;
-  // G-force settings
-  gForceSmoothing: boolean;
-  gForceSmoothingStrength: number;
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
@@ -83,7 +78,6 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
               <InfoBox
                 filteredSamples={props.filteredSamples}
                 course={props.course}
-                useKph={props.useKph}
                 lapTimeMs={props.lapTimeMs}
                 paceDiff={props.paceDiff}
                 paceDiffLabel={props.paceDiffLabel}
@@ -122,8 +116,6 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 currentIndex={props.currentIndex}
                 course={props.course}
                 bounds={props.bounds}
-                useKph={props.useKph}
-                brakingZoneSettings={props.brakingZoneSettings}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
@@ -149,14 +141,10 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
           fieldMappings={props.fieldMappings}
           currentIndex={props.currentIndex}
           onScrub={props.onScrub}
-          useKph={props.useKph}
           visibleRange={props.visibleRange}
           onRangeChange={props.onRangeChange}
           minRange={props.minRange}
           formatRangeLabel={props.formatRangeLabel}
-          gForceSmoothing={props.gForceSmoothing}
-          gForceSmoothingStrength={props.gForceSmoothingStrength}
-          brakingZoneSettings={props.brakingZoneSettings}
         />
       </ResizablePanel>
     </ResizablePanelGroup>

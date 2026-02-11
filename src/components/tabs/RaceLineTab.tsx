@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ResizableSplit } from "@/components/ResizableSplit";
 import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
@@ -11,7 +12,6 @@ interface RaceLineTabProps {
   currentIndex: number;
   course: Course | null;
   bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
-  useKph: boolean;
   paceDiff: number | null;
   paceDiffLabel: "best" | "ref";
   deltaTopSpeed: number | null;
@@ -22,14 +22,6 @@ interface RaceLineTabProps {
   lapTimeMs: number | null;
   refAvgTopSpeed: number | null;
   refAvgMinSpeed: number | null;
-  brakingZoneSettings: {
-    entryThresholdG: number;
-    exitThresholdG: number;
-    minDurationMs: number;
-    smoothingAlpha: number;
-    color: string;
-    width: number;
-  };
   sessionGpsPoint?: { lat: number; lon: number };
   sessionStartDate?: Date;
   cachedWeatherStation: import("@/lib/weatherService").WeatherStation | null;
@@ -41,8 +33,6 @@ interface RaceLineTabProps {
   paceData: (number | null)[];
   referenceSpeedData: (number | null)[];
   hasReference: boolean;
-  gForceSmoothing: boolean;
-  gForceSmoothingStrength: number;
   // Range slider props
   visibleRange: [number, number];
   onRangeChange: (range: [number, number]) => void;
@@ -50,7 +40,7 @@ interface RaceLineTabProps {
   formatRangeLabel: (idx: number) => string;
 }
 
-export function RaceLineTab(props: RaceLineTabProps) {
+export const RaceLineTab = memo(function RaceLineTab(props: RaceLineTabProps) {
   return (
     <ResizableSplit
       defaultRatio={0.7}
@@ -62,7 +52,6 @@ export function RaceLineTab(props: RaceLineTabProps) {
           currentIndex={props.currentIndex}
           course={props.course}
           bounds={props.bounds}
-          useKph={props.useKph}
           paceDiff={props.paceDiff}
           paceDiffLabel={props.paceDiffLabel}
           deltaTopSpeed={props.deltaTopSpeed}
@@ -73,7 +62,6 @@ export function RaceLineTab(props: RaceLineTabProps) {
           lapTimeMs={props.lapTimeMs}
           refAvgTopSpeed={props.refAvgTopSpeed}
           refAvgMinSpeed={props.refAvgMinSpeed}
-          brakingZoneSettings={props.brakingZoneSettings}
           sessionGpsPoint={props.sessionGpsPoint}
           sessionStartDate={props.sessionStartDate}
           cachedWeatherStation={props.cachedWeatherStation}
@@ -89,12 +77,9 @@ export function RaceLineTab(props: RaceLineTabProps) {
               currentIndex={props.currentIndex}
               onScrub={props.onScrub}
               onFieldToggle={props.onFieldToggle}
-              useKph={props.useKph}
               paceData={props.paceData}
               referenceSpeedData={props.referenceSpeedData}
               hasReference={props.hasReference}
-              gForceSmoothing={props.gForceSmoothing}
-              gForceSmoothingStrength={props.gForceSmoothingStrength}
             />
           </div>
           {props.filteredSamples.length > 0 && (
@@ -113,4 +98,4 @@ export function RaceLineTab(props: RaceLineTabProps) {
       }
     />
   );
-}
+});

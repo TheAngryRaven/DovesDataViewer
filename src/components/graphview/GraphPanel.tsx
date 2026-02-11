@@ -1,13 +1,12 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RangeSlider } from '@/components/RangeSlider';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
 import { computeBrakingGSeries, BrakingZoneConfig } from '@/lib/brakingZones';
-import { BrakingZoneSettings } from './MiniMap';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 
 const SERIES_COLORS = [
   'hsl(180, 70%, 55%)', 'hsl(45, 85%, 55%)', 'hsl(0, 70%, 55%)',
@@ -22,21 +21,17 @@ interface GraphPanelProps {
   fieldMappings: FieldMapping[];
   currentIndex: number;
   onScrub: (index: number) => void;
-  useKph: boolean;
   visibleRange: [number, number];
   onRangeChange: (range: [number, number]) => void;
   minRange: number;
   formatRangeLabel: (idx: number) => string;
-  gForceSmoothing: boolean;
-  gForceSmoothingStrength: number;
-  brakingZoneSettings: BrakingZoneSettings;
 }
 
 export function GraphPanel({
-  samples, filteredSamples, referenceSamples, fieldMappings, currentIndex, onScrub, useKph,
+  samples, filteredSamples, referenceSamples, fieldMappings, currentIndex, onScrub,
   visibleRange, onRangeChange, minRange, formatRangeLabel,
-  gForceSmoothing, gForceSmoothingStrength, brakingZoneSettings,
 }: GraphPanelProps) {
+  const { useKph, brakingZoneSettings } = useSettingsContext();
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
 
   const hasReference = referenceSamples.length > 0;
@@ -194,12 +189,9 @@ export function GraphPanel({
                 seriesKey={key}
                 currentIndex={currentIndex}
                 onScrub={onScrub}
-                useKph={useKph}
                 color={getColor(key)}
                 label={getLabel(key)}
                 onDelete={() => removeGraph(key)}
-                gForceSmoothing={gForceSmoothing}
-                gForceSmoothingStrength={gForceSmoothingStrength}
                 referenceValues={referenceValuesByKey[key]?.slice(visibleRange[0], visibleRange[1] + 1) ?? null}
                 brakingGValues={key === '__braking_g__' ? brakingGFull.slice(visibleRange[0], visibleRange[1] + 1) : undefined}
               />

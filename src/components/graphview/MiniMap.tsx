@@ -5,6 +5,7 @@ import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 import { Moon, Satellite, Square, WifiOff, Zap, Octagon, Map as MapIcon } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -40,22 +41,16 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export interface BrakingZoneSettings {
-  entryThresholdG: number; exitThresholdG: number; minDurationMs: number;
-  smoothingAlpha: number; color: string; width: number;
-}
-
 interface MiniMapProps {
   samples: GpsSample[];
   allSamples: GpsSample[];
   currentIndex: number;
   course: Course | null;
   bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
-  useKph: boolean;
-  brakingZoneSettings?: BrakingZoneSettings;
 }
 
-export function MiniMap({ samples, allSamples, currentIndex, course, bounds, useKph, brakingZoneSettings }: MiniMapProps) {
+export function MiniMap({ samples, allSamples, currentIndex, course, bounds }: MiniMapProps) {
+  const { useKph, brakingZoneSettings } = useSettingsContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);

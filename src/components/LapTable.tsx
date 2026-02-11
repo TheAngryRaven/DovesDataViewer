@@ -1,9 +1,11 @@
+import { memo, useMemo } from 'react';
 import { Lap, courseHasSectors, Course } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalRefBar } from '@/components/ExternalRefBar';
 import { FileEntry } from '@/lib/fileStorage';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 
 interface LapTableProps {
   laps: Lap[];
@@ -12,7 +14,6 @@ interface LapTableProps {
   selectedLapNumber?: number | null;
   referenceLapNumber?: number | null;
   onSetReference?: (lapNumber: number) => void;
-  useKph?: boolean;
   // External reference props
   externalRefLabel?: string | null;
   savedFiles?: FileEntry[];
@@ -22,8 +23,60 @@ interface LapTableProps {
   onRefreshSavedFiles?: () => void;
 }
 
-export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, useKph = false, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
-  if (laps.length === 0) {
+export const LapTable = memo(function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
+  const { useKph } = useSettingsContext();
+
+  const showSectors = courseHasSectors(course);
+
+  // Memoize expensive lap statistics computation
+  const lapStats = useMemo(() => {
+    if (laps.length === 0) return null;
+
+    const fastestLapIdx = laps.reduce((minIdx, lap, idx, arr) =>
+      lap.lapTimeMs < arr[minIdx].lapTimeMs ? idx : minIdx, 0);
+
+    const fastestSpeedIdx = laps.reduce((maxIdx, lap, idx, arr) => {
+      const currentMax = useKph ? arr[maxIdx].maxSpeedKph : arr[maxIdx].maxSpeedMph;
+      const lapMax = useKph ? lap.maxSpeedKph : lap.maxSpeedMph;
+      return lapMax > currentMax ? idx : maxIdx;
+    }, 0);
+
+    const slowestMinSpeedIdx = laps.reduce((minIdx, lap, idx, arr) => {
+      const currentMin = useKph ? arr[minIdx].minSpeedKph : arr[minIdx].minSpeedMph;
+      const lapMin = useKph ? lap.minSpeedKph : lap.minSpeedMph;
+      return lapMin < currentMin ? idx : minIdx;
+    }, 0);
+
+    let fastestS1Idx: number | null = null;
+    let fastestS2Idx: number | null = null;
+    let fastestS3Idx: number | null = null;
+
+    if (showSectors) {
+      let fastestS1 = Infinity;
+      let fastestS2 = Infinity;
+      let fastestS3 = Infinity;
+      laps.forEach((lap, idx) => {
+        if (lap.sectors?.s1 !== undefined && lap.sectors.s1 < fastestS1) {
+          fastestS1 = lap.sectors.s1;
+          fastestS1Idx = idx;
+        }
+        if (lap.sectors?.s2 !== undefined && lap.sectors.s2 < fastestS2) {
+          fastestS2 = lap.sectors.s2;
+          fastestS2Idx = idx;
+        }
+        if (lap.sectors?.s3 !== undefined && lap.sectors.s3 < fastestS3) {
+          fastestS3 = lap.sectors.s3;
+          fastestS3Idx = idx;
+        }
+      });
+    }
+
+    const optimalLap = showSectors ? calculateOptimalLap(laps) : null;
+
+    return { fastestLapIdx, fastestSpeedIdx, slowestMinSpeedIdx, fastestS1Idx, fastestS2Idx, fastestS3Idx, optimalLap };
+  }, [laps, useKph, showSectors]);
+
+  if (laps.length === 0 || !lapStats) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         <p className="text-center">
@@ -34,55 +87,10 @@ export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referen
     );
   }
 
+  const { fastestLapIdx, fastestSpeedIdx, slowestMinSpeedIdx, fastestS1Idx, fastestS2Idx, fastestS3Idx, optimalLap } = lapStats;
   const speedUnit = useKph ? 'kph' : 'mph';
-  const showSectors = courseHasSectors(course);
-
-  // Find fastest lap, fastest top speed, and slowest min speed
-  const fastestLapIdx = laps.reduce((minIdx, lap, idx, arr) => 
-    lap.lapTimeMs < arr[minIdx].lapTimeMs ? idx : minIdx, 0);
-  
-  const fastestSpeedIdx = laps.reduce((maxIdx, lap, idx, arr) => {
-    const currentMax = useKph ? arr[maxIdx].maxSpeedKph : arr[maxIdx].maxSpeedMph;
-    const lapMax = useKph ? lap.maxSpeedKph : lap.maxSpeedMph;
-    return lapMax > currentMax ? idx : maxIdx;
-  }, 0);
-
-  const slowestMinSpeedIdx = laps.reduce((minIdx, lap, idx, arr) => {
-    const currentMin = useKph ? arr[minIdx].minSpeedKph : arr[minIdx].minSpeedMph;
-    const lapMin = useKph ? lap.minSpeedKph : lap.minSpeedMph;
-    return lapMin < currentMin ? idx : minIdx;
-  }, 0);
-
   const getMaxSpeed = (lap: Lap) => useKph ? lap.maxSpeedKph : lap.maxSpeedMph;
   const getMinSpeed = (lap: Lap) => useKph ? lap.minSpeedKph : lap.minSpeedMph;
-
-  // Find fastest sector times
-  let fastestS1Idx: number | null = null;
-  let fastestS2Idx: number | null = null;
-  let fastestS3Idx: number | null = null;
-  let fastestS1 = Infinity;
-  let fastestS2 = Infinity;
-  let fastestS3 = Infinity;
-
-  if (showSectors) {
-    laps.forEach((lap, idx) => {
-      if (lap.sectors?.s1 !== undefined && lap.sectors.s1 < fastestS1) {
-        fastestS1 = lap.sectors.s1;
-        fastestS1Idx = idx;
-      }
-      if (lap.sectors?.s2 !== undefined && lap.sectors.s2 < fastestS2) {
-        fastestS2 = lap.sectors.s2;
-        fastestS2Idx = idx;
-      }
-      if (lap.sectors?.s3 !== undefined && lap.sectors.s3 < fastestS3) {
-        fastestS3 = lap.sectors.s3;
-        fastestS3Idx = idx;
-      }
-    });
-  }
-
-  // Calculate optimal lap
-  const optimalLap = showSectors ? calculateOptimalLap(laps) : null;
 
   const hasExternalRefProps = savedFiles && onLoadFileForRef && onSelectExternalLap && onClearExternalRef;
 
@@ -241,4 +249,4 @@ export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referen
       </div>
     </div>
   );
-}
+});

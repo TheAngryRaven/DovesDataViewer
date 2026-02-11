@@ -6,6 +6,7 @@ import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { formatLapTime } from '@/lib/lapCalculation';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Moon, Satellite, Square, WifiOff, CloudSun, FileText } from 'lucide-react';
@@ -28,15 +29,6 @@ const mapStyleConfig = {
   none: null,
 };
 
-export interface BrakingZoneSettings {
-  entryThresholdG: number;
-  exitThresholdG: number;
-  minDurationMs: number;
-  smoothingAlpha: number;
-  color: string;
-  width: number;
-}
-
 interface RaceLineViewProps {
   samples: GpsSample[];
   allSamples?: GpsSample[]; // Full session samples for computing stats (not affected by range slider)
@@ -49,7 +41,6 @@ interface RaceLineViewProps {
     minLon: number;
     maxLon: number;
   };
-  useKph?: boolean;
   paceDiff?: number | null;
   paceDiffLabel?: 'best' | 'ref';
   deltaTopSpeed?: number | null;
@@ -60,7 +51,6 @@ interface RaceLineViewProps {
   lapTimeMs?: number | null;
   refAvgTopSpeed?: number | null;
   refAvgMinSpeed?: number | null;
-  brakingZoneSettings?: BrakingZoneSettings;
   sessionGpsPoint?: { lat: number; lon: number };
   sessionStartDate?: Date;
   cachedWeatherStation?: WeatherStation | null;
@@ -146,7 +136,8 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, useKph = false, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, brakingZoneSettings, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved }: RaceLineViewProps) {
+  const { useKph, brakingZoneSettings } = useSettingsContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
   const containerRef = useRef<HTMLDivElement>(null);

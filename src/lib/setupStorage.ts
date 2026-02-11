@@ -1,7 +1,8 @@
 /**
  * IndexedDB CRUD for the "setups" object store.
- * Reuses the same "dove-file-manager" database (version 5).
  */
+
+import { openDB, STORE_NAMES } from './dbUtils';
 
 export interface KartSetup {
   id: string;
@@ -43,37 +44,7 @@ export interface KartSetup {
   updatedAt: number;
 }
 
-const DB_NAME = "dove-file-manager";
-const SETUPS_STORE = "setups";
-const DB_VERSION = 5;
-
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains("files")) {
-        db.createObjectStore("files", { keyPath: "name" });
-      }
-      if (!db.objectStoreNames.contains("metadata")) {
-        db.createObjectStore("metadata", { keyPath: "fileName" });
-      }
-      if (!db.objectStoreNames.contains("karts")) {
-        db.createObjectStore("karts", { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains("notes")) {
-        const notesStore = db.createObjectStore("notes", { keyPath: "id" });
-        notesStore.createIndex("fileName", "fileName", { unique: false });
-      }
-      if (!db.objectStoreNames.contains(SETUPS_STORE)) {
-        const store = db.createObjectStore(SETUPS_STORE, { keyPath: "id" });
-        store.createIndex("kartId", "kartId", { unique: false });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
+const SETUPS_STORE = STORE_NAMES.SETUPS;
 
 export async function listSetups(): Promise<KartSetup[]> {
   const db = await openDB();

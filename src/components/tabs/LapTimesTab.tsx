@@ -1,5 +1,6 @@
+import { memo } from "react";
 import { LapTable } from "@/components/LapTable";
-import { Lap, Course, GpsSample } from "@/types/racing";
+import { Lap, Course } from "@/types/racing";
 import { FileEntry } from "@/lib/fileStorage";
 
 interface LapTimesTabProps {
@@ -9,7 +10,6 @@ interface LapTimesTabProps {
   selectedLapNumber: number | null;
   referenceLapNumber: number | null;
   onSetReference: (lapNumber: number) => void;
-  useKph: boolean;
   externalRefLabel: string | null;
   savedFiles: FileEntry[];
   onLoadFileForRef: (fileName: string) => Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null>;
@@ -18,7 +18,7 @@ interface LapTimesTabProps {
   onRefreshSavedFiles: () => void;
 }
 
-export function LapTimesTab(props: LapTimesTabProps) {
+export const LapTimesTab = memo(function LapTimesTab(props: LapTimesTabProps) {
   return (
     <div className="h-full overflow-hidden">
       <LapTable
@@ -28,7 +28,6 @@ export function LapTimesTab(props: LapTimesTabProps) {
         selectedLapNumber={props.selectedLapNumber}
         referenceLapNumber={props.referenceLapNumber}
         onSetReference={props.onSetReference}
-        useKph={props.useKph}
         externalRefLabel={props.externalRefLabel}
         savedFiles={props.savedFiles}
         onLoadFileForRef={props.onLoadFileForRef}
@@ -38,4 +37,4 @@ export function LapTimesTab(props: LapTimesTabProps) {
       />
     </div>
   );
-}
+});
