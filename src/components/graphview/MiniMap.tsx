@@ -168,6 +168,7 @@ export function MiniMap({ samples, allSamples, currentIndex, course, bounds, use
       if (Math.abs(dLat) > 0.00001 || Math.abs(dLon) > 0.00001) heading = (Math.atan2(dLon, dLat) * 180 / Math.PI + 360) % 360;
     }
     markerRef.current = L.marker([sample.lat, sample.lon], { icon: createArrowIcon(heading) }).addTo(map);
+    map.panTo([sample.lat, sample.lon], { animate: true, duration: 0.15 });
   }, [currentIndex, samples]);
 
   const cycleMapStyle = () => setMapStyle(p => p === 'dark' ? 'satellite' : p === 'satellite' ? 'none' : 'dark');
