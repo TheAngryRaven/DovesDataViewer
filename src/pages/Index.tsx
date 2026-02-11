@@ -1,14 +1,11 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { Gauge, Map, ListOrdered, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { TrackEditor } from "@/components/TrackEditor";
-import { RaceLineView } from "@/components/RaceLineView";
-import { TelemetryChart } from "@/components/TelemetryChart";
-import { LapTable } from "@/components/LapTable";
-// LapSummaryWidget removed - replaced by overlay toggle
-import { ResizableSplit } from "@/components/ResizableSplit";
-import { RangeSlider } from "@/components/RangeSlider";
+import { RaceLineTab } from "@/components/tabs/RaceLineTab";
+import { LapTimesTab } from "@/components/tabs/LapTimesTab";
+import { GraphViewTab } from "@/components/tabs/GraphViewTab";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
 import { FileManagerDrawer } from "@/components/FileManagerDrawer";
@@ -31,7 +28,7 @@ import { useKartManager } from "@/hooks/useKartManager";
 import { useNoteManager } from "@/hooks/useNoteManager";
 import { useSetupManager } from "@/hooks/useSetupManager";
 
-type TopPanelView = "raceline" | "laptable";
+type TopPanelView = "raceline" | "laptable" | "graphview";
 
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
@@ -730,137 +727,120 @@ export default function Index() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-hidden">
-        <ResizableSplit
-          defaultRatio={0.7}
-          topPanel={
-            <div className="h-full flex flex-col">
-              <div className="flex items-center border-b border-border shrink-0">
-                <button
-                  onClick={() => setTopPanelView("raceline")}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "raceline" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  <Map className="w-4 h-4" />
-                  Race Line
-                </button>
-                <button
-                  onClick={() => setTopPanelView("laptable")}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "laptable" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  <ListOrdered className="w-4 h-4" />
-                  Lap Times
-                  {laps.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
-                  )}
-                </button>
+      <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <div className="flex items-center border-b border-border shrink-0">
+          <button
+            onClick={() => setTopPanelView("raceline")}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "raceline" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <Map className="w-4 h-4" />
+            Race Line
+          </button>
+          <button
+            onClick={() => setTopPanelView("laptable")}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "laptable" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <ListOrdered className="w-4 h-4" />
+            Lap Times
+            {laps.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
+            )}
+          </button>
+          <button
+            onClick={() => setTopPanelView("graphview")}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "graphview" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span className="hidden sm:inline">Graph View</span>
+          </button>
 
-                {/* Overlay toggle button */}
-                <div className="ml-auto mr-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowOverlays(!showOverlays)}
-                    className="h-7 px-2 gap-1.5"
-                  >
-                    {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                    <span className="text-xs">Overlay</span>
-                  </Button>
-                </div>
-              </div>
+          {/* Overlay toggle button */}
+          <div className="ml-auto mr-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowOverlays(!showOverlays)}
+              className="h-7 px-2 gap-1.5"
+            >
+              {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              <span className="text-xs">Overlay</span>
+            </Button>
+          </div>
+        </div>
 
-              <div className="flex-1 overflow-hidden">
-                {topPanelView === "raceline" ? (
-                  <RaceLineView
-                    samples={visibleSamples}
-                    allSamples={filteredSamples}
-                    referenceSamples={referenceSamples}
-                    currentIndex={currentIndex}
-                    course={selectedCourse}
-                    bounds={filteredBounds!}
-                    useKph={useKph}
-                    paceDiff={paceDiff}
-                    paceDiffLabel={paceDiffLabel}
-                    deltaTopSpeed={deltaTopSpeed}
-                    deltaMinSpeed={deltaMinSpeed}
-                    referenceLapNumber={referenceLapNumber}
-                    lapToFastestDelta={lapToFastestDelta}
-                    showOverlays={showOverlays}
-                    lapTimeMs={selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null) : null}
-                    refAvgTopSpeed={refAvgTopSpeed}
-                    refAvgMinSpeed={refAvgMinSpeed}
-                    brakingZoneSettings={{
-                      entryThresholdG: settings.brakingEntryThreshold / 100,
-                      exitThresholdG: settings.brakingExitThreshold / 100,
-                      minDurationMs: settings.brakingMinDuration,
-                      smoothingAlpha: settings.brakingSmoothingAlpha / 100,
-                      color: settings.brakingZoneColor,
-                      width: settings.brakingZoneWidth,
-                    }}
-                    sessionGpsPoint={sessionGpsPoint}
-                    sessionStartDate={data?.startDate}
-                    cachedWeatherStation={cachedWeatherStation}
-                    onWeatherStationResolved={handleWeatherStationResolved}
-                  />
-                ) : (
-                  <LapTable
-                    laps={laps}
-                    course={selectedCourse}
-                    onLapSelect={handleLapSelect}
-                    selectedLapNumber={selectedLapNumber}
-                    referenceLapNumber={referenceLapNumber}
-                    onSetReference={handleSetReference}
-                    useKph={useKph}
-                    externalRefLabel={externalRefLabel}
-                    savedFiles={savedFiles}
-                    onLoadFileForRef={handleLoadFileForRef}
-                    onSelectExternalLap={handleSelectExternalLap}
-                    onClearExternalRef={handleClearExternalRef}
-                    onRefreshSavedFiles={refreshSavedFiles}
-                  />
-                )}
-              </div>
-            </div>
-          }
-          bottomPanel={
-            <div className="h-full flex flex-col">
-              <div className="flex-1 min-h-0">
-                <TelemetryChart
-                  samples={visibleSamples}
-                  fieldMappings={fieldMappings}
-                  currentIndex={currentIndex}
-                  onScrub={handleScrub}
-                  onFieldToggle={handleFieldToggle}
-                  useKph={useKph}
-                  paceData={paceData.slice(visibleRange[0], visibleRange[1] + 1)}
-                  referenceSpeedData={referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1)}
-                  hasReference={referenceLapNumber !== null || externalRefSamples !== null}
-                  gForceSmoothing={settings.gForceSmoothing}
-                  gForceSmoothingStrength={settings.gForceSmoothingStrength}
-                />
-              </div>
-              {filteredSamples.length > 0 && (
-                <div className="shrink-0 px-4 py-2 border-t border-border bg-muted/30">
-                  <RangeSlider
-                    min={0}
-                    max={filteredSamples.length - 1}
-                    value={visibleRange}
-                    onChange={handleRangeChange}
-                    minRange={Math.min(10, Math.floor(filteredSamples.length / 10))}
-                    formatLabel={(idx) => {
-                      const sample = filteredSamples[idx];
-                      if (!sample) return "";
-                      const totalMs = sample.t - filteredSamples[0].t;
-                      const secs = Math.floor(totalMs / 1000);
-                      const mins = Math.floor(secs / 60);
-                      const remSecs = secs % 60;
-                      return `${mins}:${remSecs.toString().padStart(2, "0")}`;
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          }
-        />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {topPanelView === "raceline" && (
+            <RaceLineTab
+              visibleSamples={visibleSamples}
+              filteredSamples={filteredSamples}
+              referenceSamples={referenceSamples}
+              currentIndex={currentIndex}
+              course={selectedCourse}
+              bounds={filteredBounds!}
+              useKph={useKph}
+              paceDiff={paceDiff}
+              paceDiffLabel={paceDiffLabel}
+              deltaTopSpeed={deltaTopSpeed}
+              deltaMinSpeed={deltaMinSpeed}
+              referenceLapNumber={referenceLapNumber}
+              lapToFastestDelta={lapToFastestDelta}
+              showOverlays={showOverlays}
+              lapTimeMs={selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null) : null}
+              refAvgTopSpeed={refAvgTopSpeed}
+              refAvgMinSpeed={refAvgMinSpeed}
+              brakingZoneSettings={{
+                entryThresholdG: settings.brakingEntryThreshold / 100,
+                exitThresholdG: settings.brakingExitThreshold / 100,
+                minDurationMs: settings.brakingMinDuration,
+                smoothingAlpha: settings.brakingSmoothingAlpha / 100,
+                color: settings.brakingZoneColor,
+                width: settings.brakingZoneWidth,
+              }}
+              sessionGpsPoint={sessionGpsPoint}
+              sessionStartDate={data?.startDate}
+              cachedWeatherStation={cachedWeatherStation}
+              onWeatherStationResolved={handleWeatherStationResolved}
+              fieldMappings={fieldMappings}
+              onScrub={handleScrub}
+              onFieldToggle={handleFieldToggle}
+              paceData={paceData.slice(visibleRange[0], visibleRange[1] + 1)}
+              referenceSpeedData={referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1)}
+              hasReference={referenceLapNumber !== null || externalRefSamples !== null}
+              gForceSmoothing={settings.gForceSmoothing}
+              gForceSmoothingStrength={settings.gForceSmoothingStrength}
+              visibleRange={visibleRange}
+              onRangeChange={handleRangeChange}
+              minRange={Math.min(10, Math.floor(filteredSamples.length / 10))}
+              formatRangeLabel={(idx) => {
+                const sample = filteredSamples[idx];
+                if (!sample) return "";
+                const totalMs = sample.t - filteredSamples[0].t;
+                const secs = Math.floor(totalMs / 1000);
+                const mins = Math.floor(secs / 60);
+                const remSecs = secs % 60;
+                return `${mins}:${remSecs.toString().padStart(2, "0")}`;
+              }}
+            />
+          )}
+          {topPanelView === "laptable" && (
+            <LapTimesTab
+              laps={laps}
+              course={selectedCourse}
+              onLapSelect={handleLapSelect}
+              selectedLapNumber={selectedLapNumber}
+              referenceLapNumber={referenceLapNumber}
+              onSetReference={handleSetReference}
+              useKph={useKph}
+              externalRefLabel={externalRefLabel}
+              savedFiles={savedFiles}
+              onLoadFileForRef={handleLoadFileForRef}
+              onSelectExternalLap={handleSelectExternalLap}
+              onClearExternalRef={handleClearExternalRef}
+              onRefreshSavedFiles={refreshSavedFiles}
+            />
+          )}
+          {topPanelView === "graphview" && <GraphViewTab />}
+        </div>
       </main>
       <InstallPrompt />
       <FileManagerDrawer
