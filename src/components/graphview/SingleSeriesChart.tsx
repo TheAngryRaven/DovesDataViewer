@@ -310,8 +310,7 @@ export function SingleSeriesChart({
         // Draw delta in separate color
         if (deltaText) {
           const mainWidth = ctx.measureText(mainText).width;
-          const delta = displayVal - (referenceValues![currentIndex] ?? displayVal);
-          ctx.fillStyle = delta > 0 ? 'hsl(0, 70%, 55%)' : delta < 0 ? 'hsl(140, 70%, 50%)' : 'hsl(220, 10%, 55%)';
+          ctx.fillStyle = 'hsl(0, 0%, 85%)';
           ctx.fillText(deltaText, boxX + 4 + mainWidth, padding.top + 16);
         }
       }
