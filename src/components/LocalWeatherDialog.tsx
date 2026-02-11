@@ -197,7 +197,7 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
 
         {/* Weather results */}
         {displayWeather && !loading && (
-          <WeatherResultsView weather={displayWeather} resolvedLocation={isSessionMode ? undefined : resolvedLocation} />
+          <WeatherResultsView weather={displayWeather} resolvedLocation={isSessionMode ? undefined : resolvedLocation} showTuningNote={!isSessionMode} />
         )}
       </div>
     </DialogContent>
@@ -227,7 +227,7 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
 }
 
 /** Extracted weather results display */
-function WeatherResultsView({ weather, resolvedLocation }: { weather: WeatherData; resolvedLocation?: string | null }) {
+function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }: { weather: WeatherData; resolvedLocation?: string | null; showTuningNote?: boolean }) {
   // Compute dew point from temp and humidity (Magnus formula)
   const dewPointC = (() => {
     const a = 17.27;
@@ -315,16 +315,18 @@ function WeatherResultsView({ weather, resolvedLocation }: { weather: WeatherDat
         />
       </div>
 
-      {/* Racing note */}
-      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5 leading-relaxed border border-border/50">
-        <span className="font-medium text-foreground">Tuning note:</span>{" "}
-        {weather.densityAltitudeFt > 2000
-          ? "High density altitude — engine produces less power. Consider leaning the carb mixture."
-          : weather.densityAltitudeFt < 0
-            ? "Negative density altitude — engine produces more power than standard. May need to richen mixture."
-            : "Moderate density altitude. Standard jetting should be close."}
-        {weather.humidity > 70 && " High humidity further reduces effective air density."}
-      </div>
+      {/* Racing note - only for current weather */}
+      {showTuningNote && (
+        <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5 leading-relaxed border border-border/50">
+          <span className="font-medium text-foreground">Tuning note:</span>{" "}
+          {weather.densityAltitudeFt > 2000
+            ? "High density altitude — engine produces less power. Consider leaning the carb mixture."
+            : weather.densityAltitudeFt < 0
+              ? "Negative density altitude — engine produces more power than standard. May need to richen mixture."
+              : "Moderate density altitude. Standard jetting should be close."}
+          {weather.humidity > 70 && " High humidity further reduces effective air density."}
+        </div>
+      )}
     </div>
   );
 }
