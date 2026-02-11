@@ -1,43 +1,27 @@
 
 
-## Fix the Overlay Toggle Button
+## Fix: Braking Zones Not Rendering on Map
 
-### Problems Found
+### Root Cause
 
-1. **Button always visible**: The Overlay toggle button renders in the tab bar regardless of which tab is active. It should only appear on the "Race Line" tab.
-
-2. **State is disconnected**: The `TabBar` component manages `showOverlays` as internal state, but the actual `RaceLineTab` receives a hardcoded `showOverlays={true}` (line 393). Toggling the button does nothing.
+The sample NMEA data (and likely the user's real data) comes from a **25Hz GPS receiver**, producing samples every **0.04 seconds** (40ms). The heuristic guard added to prevent division artifacts sets `MIN_DT_S = 0.05` (50ms), which is **larger than the actual sample interval**. This means every single sample pair is skipped in both `detectBrakingZones` and `computeBrakingGSeries`, so no braking zones are ever detected.
 
 ### Fix
 
-**Move `showOverlays` state up to the parent** (`DataView` or the main Index component) so it can be:
-- Passed down to `RaceLineTab` as an actual prop
-- Passed to `TabBar` so the button reflects the real state
-
-**Conditionally render the button** only when `topPanelView === "raceline"`.
+Lower `MIN_DT_S` from `0.05` to `0.02` in `src/lib/brakingZones.ts`. This accommodates GPS receivers up to 50Hz while still filtering out degenerate near-zero time deltas that would cause division artifacts.
 
 ### Changes
 
-**`src/pages/Index.tsx`**
+**`src/lib/brakingZones.ts`** (single line change)
 
-1. In the parent component that renders `TabBar` and `RaceLineTab`, add `showOverlays` state:
-   ```
-   const [showOverlays, setShowOverlays] = useState(true);
-   ```
+Change line 28:
+```
+const MIN_DT_S = 0.05;   // was too high for 25Hz GPS
+```
+to:
+```
+const MIN_DT_S = 0.02;   // Supports GPS up to 50Hz
+```
 
-2. Pass it to `TabBar`:
-   ```
-   <TabBar ... showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} />
-   ```
+This one constant is shared by both `detectBrakingZones` and `computeBrakingGSeries`, so both the map overlay and the graph channel will be fixed simultaneously.
 
-3. Pass it to `RaceLineTab`:
-   ```
-   showOverlays={showOverlays}   // instead of hardcoded true
-   ```
-
-4. Update the `TabBar` component:
-   - Remove its internal `showOverlays` state
-   - Accept `showOverlays`, `onToggleOverlays`, and `topPanelView` as props
-   - Only render the Overlay button when `topPanelView === "raceline"`
-
-This is a small wiring fix -- no new files, no logic changes, just reconnecting the state properly.
