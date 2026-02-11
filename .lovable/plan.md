@@ -1,111 +1,57 @@
 
 
-## External Reference Lap from Another Session
+# Modularize Tabs, Bind Telemetry Chart to Race Line, Add Graph View Placeholder
 
-### Overview
+## Overview
 
-Add an "External Reference" bar at the top of the Lap Times view. It displays a "Choose Log" button and shows either "No session loaded" or the loaded file name, lap number, and lap time. When a log is chosen and a lap selected, that external lap's samples replace the internal reference for all delta/pace calculations.
+Refactor the top panel into modular tab components and restructure the layout so the telemetry chart is part of the Race Line view (not a global bottom panel). Add a new "Graph View" tab as a placeholder for future per-series graph panels.
 
-### User Flow
+## Layout Change
 
-1. User sees: `External Reference: [Choose Log] | No session loaded`
-2. Clicks "Choose Log" -- a dialog lists all saved files from IndexedDB (names only, clickable)
-3. User clicks a file -- the app loads and parses it, calculates laps using the *currently selected course*
-4. If no laps found: show an error message in the dialog ("No laps detected for the current track/course")
-5. If laps found: the dialog switches to show a lap list (`Lap #: lap time`), user clicks one
-6. The external reference is set. The bar now shows: `External Reference: [Choose Log] | filename.nmea : Lap 3 : 1:02.345`
-7. All reference-based features (pace, reference speed line, grey map polyline, delta metrics) now use the external lap's samples
-8. The internal "Set Ref" buttons in the lap table still work -- clicking one clears the external reference and uses the internal one instead
+Currently the layout is a vertical split: top panel (race line OR lap table) and bottom panel (telemetry chart + range slider, always visible). After this change:
 
-### Architecture
+- **Race Line tab**: Shows the resizable split with race line on top, telemetry chart + range slider on bottom (same as today)
+- **Lap Times tab**: Shows just the lap table (full height, no chart below)
+- **Graph View tab**: Placeholder for now (full height)
 
-The external reference produces a `GpsSample[]` array, which is the same type the existing reference system uses. The change is that `referenceSamples` can now come from either:
-- An internal lap (existing behavior via `referenceLapNumber`)
-- An external session+lap (new behavior)
+The telemetry chart and range slider move from being a global bottom panel into being part of the Race Line tab's content.
 
-When an external reference is active, it takes priority. Setting an internal reference clears the external one and vice versa.
+## New File Structure
 
-### Files Modified
-
-| File | Changes |
+| File | Purpose |
 |------|---------|
-| `src/pages/Index.tsx` | Add external reference state (`externalRefSamples`, `externalRefLabel`), modify `referenceSamples` memo to prefer external when set, add handler for setting external ref, clear external when internal ref is set, pass new props to LapTable |
-| `src/components/LapTable.tsx` | Add external reference bar at top with "Choose Log" button and status label, add dialog for file selection and lap selection |
+| `src/components/tabs/RaceLineTab.tsx` | Contains the resizable split: RaceLineView (top) + TelemetryChart + RangeSlider (bottom) |
+| `src/components/tabs/LapTimesTab.tsx` | Wraps LapTable with all its props |
+| `src/components/tabs/GraphViewTab.tsx` | Placeholder with info text about upcoming per-series graphing |
 
-### State in Index.tsx
+## Step-by-Step
 
-```text
-externalRefSamples: GpsSample[] | null   -- the external lap's raw samples
-externalRefLabel: string | null          -- "filename : Lap # : time" display string
-```
+### 1. Create `RaceLineTab.tsx`
+Extracts the full resizable split panel content from Index.tsx -- includes RaceLineView, TelemetryChart, and RangeSlider. Receives all needed props from Index.tsx.
 
-The existing `referenceSamples` memo changes from:
+### 2. Create `LapTimesTab.tsx`
+Thin wrapper around LapTable. Takes the same props currently passed to LapTable.
 
-```text
-if externalRefSamples is set -> use externalRefSamples
-else if referenceLapNumber is set -> use internal lap samples
-else -> empty
-```
+### 3. Create `GraphViewTab.tsx`
+Placeholder component with a centered icon (e.g., `BarChart3`) and text like:
+- "Graph View -- Coming Soon"
+- "Individual telemetry channels with independent scales"
 
-When `handleSetReference` (internal) is called, clear `externalRefSamples`. When external ref is set, clear `referenceLapNumber`.
+### 4. Refactor `Index.tsx`
+- Add `"graphview"` to the `TopPanelView` type
+- Add a third tab button with a chart icon
+- Remove the `ResizableSplit` wrapper from Index.tsx -- each tab now manages its own full-height content
+- Race Line tab renders its own `ResizableSplit` internally (with the chart bound inside it)
+- Lap Times and Graph View tabs take the full panel height
+- The tab container becomes a simple full-height area that swaps between the three tab components
 
-### LapTable Changes
+### 5. Future-proof TelemetryChart
+No changes to TelemetryChart now. The future Graph View will use **new, simpler chart components** -- each rendering 1-2 series with their own Y-axis. The existing TelemetryChart stays as the multi-series overview bound to the Race Line tab.
 
-New props:
-- `externalRefLabel: string | null`
-- `onChooseExternalRef: () => void` (opens dialog)
-- Plus the dialog logic can live inside LapTable itself using local state
+## Technical Notes
 
-Actually, to keep it self-contained, the dialog will live inside LapTable. LapTable will receive:
-- `savedFiles: FileEntry[]` -- list of files in storage
-- `onLoadExternalRef: (fileName: string, lapNumber: number) => Promise<{ success: boolean; error?: string }>` -- callback that loads file, parses, calculates laps, sets reference
-- `externalRefLabel: string | null` -- current external ref display text
-- `onClearExternalRef: () => void` -- clears external ref
-
-### Dialog Flow (inside LapTable)
-
-The dialog has two stages managed by local state:
-
-**Stage 1 -- File List:**
-- Shows all files from `savedFiles` as a clickable list
-- Clicking a file calls `onLoadExternalRef` which returns the laps
-- Actually, better approach: pass a callback that returns laps for a file, then LapTable manages lap selection locally
-
-Revised approach -- LapTable receives:
-- `savedFiles: FileEntry[]`
-- `onLoadFileForRef: (fileName: string) => Promise<Lap[] | null>` -- loads, parses, calculates laps; returns laps or null
-- `onSetExternalRef: (fileName: string, lapNumber: number, lapSamples: GpsSample[]) => void`
-- `externalRefLabel: string | null`
-
-Wait, LapTable shouldn't need to know about GpsSample. Simpler:
-
-- `onLoadFileForRef: (fileName: string) => Promise<{ laps: Array<{ lapNumber: number; lapTimeMs: number }> } | null>`
-- `onSelectExternalLap: (fileName: string, lapNumber: number) => void`
-
-Index.tsx handles all the heavy lifting (loading blob, parsing, calculating laps, extracting samples, storing them).
-
-### Technical Details
-
-**Index.tsx additions:**
-- State: `externalRefFile: string | null`, `externalRefLapNumber: number | null`, `externalRefSamples: GpsSample[] | null`, `externalParsedData: ParsedData | null` (cached parsed data for the external file)
-- `handleLoadFileForRef(fileName)`: calls `getFile(fileName)`, creates a File-like blob, calls `parseDatalogContent()`, runs `calculateLaps()` with current `selectedCourse`, returns simplified lap list
-- `handleSelectExternalLap(fileName, lapNumber)`: extracts the samples for that lap from the cached parsed data, sets `externalRefSamples`, clears `referenceLapNumber`, builds display label
-- Modify `referenceSamples` memo: if `externalRefSamples` is set, return those; otherwise fall back to internal
-- Modify `handleSetReference`: when internal ref is set, clear external ref state
-
-**LapTable.tsx additions:**
-- New props for external ref functionality
-- A sticky bar at the top (above the table header) with: label "External Reference:", a "Choose Log" button, and the status text
-- A Dialog component with two views:
-  - File list view: scrollable list of file names
-  - Lap list view: shows laps for the selected file with `Lap #: formatted time`, or error if no laps found
-- Loading state while parsing file
-
-### Prop Changes Summary
-
-LapTable new props:
-- `savedFiles: FileEntry[]`
-- `externalRefLabel: string | null`
-- `onLoadFileForRef: (fileName: string) => Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null>`
-- `onSelectExternalLap: (fileName: string, lapNumber: number) => void`
+- State remains centralized in Index.tsx; tab components are presentational
+- The range slider state (`visibleRange`) stays in Index.tsx since it affects scrubbing and other cross-cutting concerns
+- Tab components receive props via a clean interface -- no prop drilling beyond one level
+- The `ResizableSplit` component moves from wrapping the entire data view to being internal to `RaceLineTab`
 
