@@ -1,147 +1,63 @@
 
-# Graph View Tab - Full Implementation Plan
 
-## Overview
-Build the Graph View tab as a complex multi-panel analysis view with synchronized graphs, a mini map, and an info box displaying session/kart data. The layout is a 30/70 vertical split (left sidebar / right graph area).
+## Add "Braking G" as a Virtual Graph Channel
 
-## Layout Structure
+### What This Does
+Adds a new selectable "Braking G" channel in Graph View that plots the **continuous smoothed longitudinal acceleration** (in G) used by the braking zone detector. This gives you a time-series view of deceleration intensity across the entire session, not just the discrete zones.
 
-```text
-+---------------------------+----------------------------------------------+
-|  LEFT PANEL (30%)         |  RIGHT PANEL (70%)                           |
-|                           |                                              |
-|  +---------------------+ |  +------------------------------------------+|
-|  | INFO BOX (70%)       | |  | GRAPH 1 (Speed)              [X delete] ||
-|  | [Data] [Kart] tabs   | |  |                                          ||
-|  |                      | |  +------------------------------------------+|
-|  | Data tab:            | |  | GRAPH 2 (RPM)                [X delete]  ||
-|  |  - Lap time          | |  |                                          ||
-|  |  - Avg top/min speed | |  +------------------------------------------+|
-|  |  - Deltas            | |  |                                          ||
-|  |  - Weather (full)    | |  |     [+ Add Graph] button                  ||
-|  |                      | |  |                                          ||
-|  | Kart tab:            | |  +------------------------------------------+|
-|  |  - Kart name/number  | |  | RANGE SLIDER (crop bar)                  ||
-|  |  - Full setup data   | |  +------------------------------------------+|
-|  +---------------------+ |                                              |
-|  +---------------------+ |                                              |
-|  | MAP (30%)            | |                                              |
-|  | [cycle] [brake][spd] | |                                              |
-|  | [hide map]           | |                                              |
-|  +---------------------+ |                                              |
-+---------------------------+----------------------------------------------+
-```
+### How It Works
 
-## Files to Create
+The existing `detectBrakingZones` function already calculates a smoothed acceleration value at every sample point using exponential smoothing and your configured thresholds. Currently, that per-sample signal is thrown away and only the detected zone boundaries are returned. The plan is to expose that continuous signal.
 
-### 1. `src/components/graphview/GraphViewPanel.tsx`
-The main Graph View layout component. Renders the 30/70 horizontal split using CSS flexbox or the resizable panels library. Receives all necessary props from Index.tsx.
+### Implementation Steps
 
-### 2. `src/components/graphview/SingleSeriesChart.tsx`
-A reusable canvas-based chart that renders ONE data series with its own Y-axis scale. Props:
-- `samples: GpsSample[]` -- the visible samples
-- `seriesKey: string` -- which data to plot (e.g. "speed", "RPM", "Lat G", etc.)
-- `currentIndex: number` -- synced cursor position
-- `onScrub: (index: number) => void` -- cursor sync callback
-- `useKph: boolean`
-- `color: string`
-- `label: string`
-- `onDelete: () => void`
+**1. New utility function in `brakingZones.ts`**
 
-This reuses the canvas rendering patterns from `TelemetryChart.tsx` (grid drawing, scrub line, glitch filtering for speed) but simplified to one series with its own independent min/max scale.
+Add a `computeBrakingGSeries()` function that runs the same smoothed longitudinal acceleration math as `detectBrakingZones`, but returns a `number[]` array (one value per sample) instead of zone objects. This reuses the same config (entry/exit thresholds, smoothing alpha) from settings.
 
-### 3. `src/components/graphview/GraphPanel.tsx`
-The right 70% panel. Manages:
-- An array of active graph series (state: `activeGraphs: string[]`)
-- The "+ Add Graph" dropdown (lists available data sources not yet added)
-- Scrollable container of `SingleSeriesChart` instances
-- The `RangeSlider` at the bottom
-- Cursor sync: passes the same `currentIndex` and `onScrub` to all charts
+**2. Register as a virtual channel in `GraphPanel.tsx`**
 
-### 4. `src/components/graphview/InfoBox.tsx`
-The upper-left info panel with two tabs:
-- **Data tab**: Extracts the stats overlay logic currently in `RaceLineView.tsx` (lap time, avg top/min speed, deltas, weather) into a reusable display. Weather data is shown inline (always visible, no toggle needed).
-- **Kart tab**: Displays the kart name/number and full setup dataset if linked to the session. If no kart/setup is linked, shows selectors (reusing the same pattern from `NotesTab.tsx`). An "Edit" button opens the Garage drawer with the setup loaded.
+- Add `"__braking_g__"` to `availableSources` (always available, like speed -- no reference lap needed)
+- Compute the series using `computeBrakingGSeries(filteredSamples, config)` in the existing `useMemo` block
+- Pass braking zone settings into `GraphPanel` (they already flow to `GraphViewPanel` via `brakingZoneSettings`)
+- Slice the computed values by `visibleRange` for rendering, same as other channels
 
-### 5. `src/components/graphview/MiniMap.tsx`
-A simplified version of `RaceLineView` for the bottom-left panel:
-- Shows the race line with speed heatmap coloring
-- Shows braking zones and speed event markers
-- Toggle buttons (icon-only) in the upper-right for braking/speed events
-- Map style cycle button in upper-left
-- "Hide map" toggle button at bottom of panel
-- No stats overlay, no weather panel, no reference line
-- Syncs the cursor position (shows the arrow marker)
+**3. Rendering in `SingleSeriesChart.tsx`**
 
-## Files to Modify
+- Detect `isBrakingG` via `seriesKey === '__braking_g__'`
+- Draw a **zero-line baseline** (like the pace channel) since braking G oscillates around zero
+- Use symmetric Y-axis scaling (like pace)
+- Negative values = braking, positive = acceleration
+- Assign a distinct color (orange-red, e.g. `hsl(15, 80%, 55%)`)
 
-### 6. `src/components/tabs/GraphViewTab.tsx`
-Replace the placeholder with `GraphViewPanel`, passing through all props from Index.tsx.
+**4. Wire braking settings through props**
 
-### 7. `src/pages/Index.tsx`
-Pass additional props to `GraphViewTab`:
-- All the data props (samples, laps, field mappings, visible range, etc.)
-- Kart/setup data (karts, setups, sessionKartId, sessionSetupId)
-- Weather props
-- Map-related props (bounds, course, braking zone settings)
-- Scrub/range handlers
+- Pass `brakingZoneSettings` from `GraphViewPanel` into `GraphPanel`
+- Use the smoothing alpha and threshold values from user settings so the graph matches what the map overlay shows
 
-## Reusability Strategy
-
-### Stats Data Module
-Extract the stats computation (avg top speed, avg min speed, delta calculations) that currently lives inline in `RaceLineView.tsx` and `Index.tsx` into a shared utility or a custom hook. Both the Race Line view's overlay and the Graph View's Info Box will consume the same computed values from Index.tsx via props -- no duplication needed since Index.tsx already computes all of this.
-
-### Chart Rendering
-`SingleSeriesChart` will reuse the canvas rendering patterns from `TelemetryChart`:
-- Same grid drawing code
-- Same scrub cursor rendering
-- Same glitch filtering for speed series
-- Same G-force smoothing logic
-- Simplified to single series with own Y-axis auto-scaling
-
-### Map Component
-`MiniMap` will reuse the core Leaflet setup from `RaceLineView`:
-- Same map initialization pattern
-- Same race line drawing with speed heatmap
-- Same braking zone rendering
-- Same speed event markers
-- Same arrow cursor marker
-- Stripped of overlay panels, weather, and reference line
-
-## Data Flow
+### Technical Details
 
 ```text
-Index.tsx (state owner)
-  |
-  +---> GraphViewTab (props pass-through)
-          |
-          +---> GraphViewPanel
-                  |
-                  +---> InfoBox
-                  |       +---> Data tab (stats, weather)
-                  |       +---> Kart tab (kart info, setup details)
-                  |
-                  +---> MiniMap (simplified RaceLineView)
-                  |
-                  +---> GraphPanel
-                          +---> SingleSeriesChart (x N, synced cursor)
-                          +---> RangeSlider (reused component)
+brakingZones.ts
+  +-- computeBrakingGSeries(samples, config) -> number[]
+      (same EMA smoothing + speed-derived accel as detectBrakingZones)
+
+GraphViewPanel.tsx
+  +-- pass brakingZoneSettings to GraphPanel
+
+GraphPanel.tsx
+  +-- add '__braking_g__' to availableSources
+  +-- compute series via computeBrakingGSeries in useMemo
+  +-- slice by visibleRange for SingleSeriesChart
+
+SingleSeriesChart.tsx
+  +-- handle isBrakingG: zero-line, symmetric Y-axis
 ```
 
-## Available Data Sources for Graph Dropdown
-The dropdown will list:
-- "Speed" (always available -- uses `speedMph`/`speedKph`)
-- Each entry from `fieldMappings` (e.g., "RPM", "Temp", "Lat G", "Lon G", etc.)
-- Sources already added are excluded from the dropdown
+### What You'll See
+- A new "Braking G" option in the "Add Graph" dropdown
+- A continuous trace showing deceleration intensity (negative = braking harder)
+- Zero-line baseline for easy reading
+- Synchronized cursor with all other channels
+- Reference overlay support if a reference lap is selected (braking G computed for reference samples too, aligned by distance)
 
-## Cursor Synchronization
-All `SingleSeriesChart` instances share the same `currentIndex` state from Index.tsx. When any chart is scrubbed, it calls `onScrub` which updates `currentIndex` in Index.tsx, which propagates to all charts AND the MiniMap's arrow marker. This ensures perfect synchronization.
-
-## Technical Notes
-- The left panel uses a vertical split (70/30) via CSS flexbox with the map collapsible via a toggle
-- When the map is hidden, the info box expands to fill the full left panel height
-- The right panel's graph area is scrollable (`overflow-y: auto`) to accommodate many graphs
-- The RangeSlider is fixed at the bottom of the right panel (not scrollable)
-- Each SingleSeriesChart has a fixed minimum height (e.g., 150px) to remain usable
-- The delete button (X icon) sits in the upper-right corner of each chart
-- The "+ Add Graph" button appears below the last chart (or centered if no charts exist)
