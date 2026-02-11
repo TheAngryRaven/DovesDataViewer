@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Cloud, Thermometer, Droplets, Gauge } from "lucide-react";
+import { Cloud, Thermometer, Droplets, Gauge, Wind, Mountain, Navigation } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchSessionWeather,
@@ -10,6 +10,8 @@ import {
   WeatherStation,
 } from "@/lib/weatherService";
 
+const knotsToMph = (kts: number) => Math.round(kts * 1.15078);
+
 interface WeatherPanelProps {
   lat?: number;
   lon?: number;
@@ -17,6 +19,8 @@ interface WeatherPanelProps {
   cachedStation?: WeatherStation | null;
   onStationResolved?: (station: WeatherStation) => void;
   onWeatherLoaded?: (data: WeatherData) => void;
+  /** Show full detailed weather (wind, dew point, pressure alt, tuning note) */
+  detailed?: boolean;
 }
 
 export function WeatherPanel({
@@ -26,6 +30,7 @@ export function WeatherPanel({
   cachedStation,
   onStationResolved,
   onWeatherLoaded,
+  detailed = false,
 }: WeatherPanelProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -139,45 +144,92 @@ export function WeatherPanel({
 
       {weather && !loading && (
         <div className="space-y-1.5 text-xs font-mono">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Thermometer className="w-3 h-3" />
-              <span>Temp</span>
+          {/* Observation time - detailed only */}
+          {detailed && (
+            <div className="text-[10px] text-muted-foreground mb-1">
+              Observed: {weather.observationTime.toLocaleString()}
             </div>
-            <span className="text-foreground">
-              {weather.temperatureF}°F ({weather.temperatureC}°C)
-            </span>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Droplets className="w-3 h-3" />
-              <span>Humidity</span>
-            </div>
-            <span className="text-foreground">{weather.humidity}%</span>
-          </div>
+          <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Temp" value={`${weather.temperatureF}°F (${weather.temperatureC}°C)`} />
+          <WeatherRow icon={<Droplets className="w-3 h-3" />} label="Humidity" value={`${weather.humidity}%`} />
+          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="Pressure" value={`${weather.altimeterInHg} inHg`} />
+          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="DA" value={`${weather.densityAltitudeFt.toLocaleString()} ft`} />
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Gauge className="w-3 h-3" />
-              <span>Pressure</span>
-            </div>
-            <span className="text-foreground">
-              {weather.altimeterInHg} inHg
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Gauge className="w-3 h-3" />
-              <span>DA</span>
-            </div>
-            <span className="text-foreground">
-              {weather.densityAltitudeFt.toLocaleString()} ft
-            </span>
-          </div>
+          {/* Extended fields - detailed only */}
+          {detailed && (
+            <>
+              <DewPointRow temperatureC={weather.temperatureC} humidity={weather.humidity} />
+              <WindRow weather={weather} />
+              <PressureAltRow altimeterInHg={weather.altimeterInHg} />
+              <TuningNote densityAltitudeFt={weather.densityAltitudeFt} humidity={weather.humidity} />
+            </>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function WeatherRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <span className="text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function DewPointRow({ temperatureC, humidity }: { temperatureC: number; humidity: number }) {
+  const a = 17.27, b = 237.7;
+  const alpha = (a * temperatureC) / (b + temperatureC) + Math.log(humidity / 100);
+  const dewC = Math.round(((b * alpha) / (a - alpha)) * 10) / 10;
+  const dewF = Math.round((dewC * 9) / 5 + 32);
+  return <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Dew Pt" value={`${dewF}°F (${dewC}°C)`} />;
+}
+
+function WindRow({ weather }: { weather: WeatherData }) {
+  const windValue = weather.windSpeedKts !== null
+    ? (() => {
+        const mph = knotsToMph(weather.windSpeedKts);
+        const gustStr = weather.windGustKts ? ` G${knotsToMph(weather.windGustKts)}` : "";
+        return `${weather.windDirectionDeg ?? "VRB"}° @ ${mph}${gustStr}`;
+      })()
+    : "Calm";
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        <Wind className="w-3 h-3" />
+        <span>Wind</span>
+      </div>
+      <div className="flex items-center gap-1">
+        {weather.windSpeedKts !== null && weather.windDirectionDeg !== null && (
+          <Navigation className="w-3 h-3 text-primary shrink-0" style={{ transform: `rotate(${weather.windDirectionDeg}deg)` }} />
+        )}
+        <span className="text-foreground">{windValue}</span>
+      </div>
+    </div>
+  );
+}
+
+function PressureAltRow({ altimeterInHg }: { altimeterInHg: number }) {
+  const pressureAltFt = Math.round((29.92 - altimeterInHg) * 1000);
+  return <WeatherRow icon={<Mountain className="w-3 h-3" />} label="Press Alt" value={`${pressureAltFt.toLocaleString()} ft`} />;
+}
+
+function TuningNote({ densityAltitudeFt, humidity }: { densityAltitudeFt: number; humidity: number }) {
+  return (
+    <div className="text-[10px] text-muted-foreground bg-muted/50 rounded p-1.5 leading-relaxed border border-border/50 mt-1 font-sans">
+      <span className="font-medium text-foreground">Tuning:</span>{" "}
+      {densityAltitudeFt > 2000
+        ? "High DA — less power. Consider leaning mixture."
+        : densityAltitudeFt < 0
+          ? "Negative DA — more power. May need richer mixture."
+          : "Moderate DA. Standard jetting should be close."}
+      {humidity > 70 && " High humidity reduces effective air density."}
     </div>
   );
 }
