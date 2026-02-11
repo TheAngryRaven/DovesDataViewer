@@ -175,6 +175,7 @@ export function InfoBox({
                 sessionDate={sessionStartDate}
                 cachedStation={cachedWeatherStation}
                 onStationResolved={onWeatherStationResolved}
+                detailed
               />
             </div>
           </>
