@@ -1,57 +1,147 @@
 
-
-# Modularize Tabs, Bind Telemetry Chart to Race Line, Add Graph View Placeholder
+# Graph View Tab - Full Implementation Plan
 
 ## Overview
+Build the Graph View tab as a complex multi-panel analysis view with synchronized graphs, a mini map, and an info box displaying session/kart data. The layout is a 30/70 vertical split (left sidebar / right graph area).
 
-Refactor the top panel into modular tab components and restructure the layout so the telemetry chart is part of the Race Line view (not a global bottom panel). Add a new "Graph View" tab as a placeholder for future per-series graph panels.
+## Layout Structure
 
-## Layout Change
+```text
++---------------------------+----------------------------------------------+
+|  LEFT PANEL (30%)         |  RIGHT PANEL (70%)                           |
+|                           |                                              |
+|  +---------------------+ |  +------------------------------------------+|
+|  | INFO BOX (70%)       | |  | GRAPH 1 (Speed)              [X delete] ||
+|  | [Data] [Kart] tabs   | |  |                                          ||
+|  |                      | |  +------------------------------------------+|
+|  | Data tab:            | |  | GRAPH 2 (RPM)                [X delete]  ||
+|  |  - Lap time          | |  |                                          ||
+|  |  - Avg top/min speed | |  +------------------------------------------+|
+|  |  - Deltas            | |  |                                          ||
+|  |  - Weather (full)    | |  |     [+ Add Graph] button                  ||
+|  |                      | |  |                                          ||
+|  | Kart tab:            | |  +------------------------------------------+|
+|  |  - Kart name/number  | |  | RANGE SLIDER (crop bar)                  ||
+|  |  - Full setup data   | |  +------------------------------------------+|
+|  +---------------------+ |                                              |
+|  +---------------------+ |                                              |
+|  | MAP (30%)            | |                                              |
+|  | [cycle] [brake][spd] | |                                              |
+|  | [hide map]           | |                                              |
+|  +---------------------+ |                                              |
++---------------------------+----------------------------------------------+
+```
 
-Currently the layout is a vertical split: top panel (race line OR lap table) and bottom panel (telemetry chart + range slider, always visible). After this change:
+## Files to Create
 
-- **Race Line tab**: Shows the resizable split with race line on top, telemetry chart + range slider on bottom (same as today)
-- **Lap Times tab**: Shows just the lap table (full height, no chart below)
-- **Graph View tab**: Placeholder for now (full height)
+### 1. `src/components/graphview/GraphViewPanel.tsx`
+The main Graph View layout component. Renders the 30/70 horizontal split using CSS flexbox or the resizable panels library. Receives all necessary props from Index.tsx.
 
-The telemetry chart and range slider move from being a global bottom panel into being part of the Race Line tab's content.
+### 2. `src/components/graphview/SingleSeriesChart.tsx`
+A reusable canvas-based chart that renders ONE data series with its own Y-axis scale. Props:
+- `samples: GpsSample[]` -- the visible samples
+- `seriesKey: string` -- which data to plot (e.g. "speed", "RPM", "Lat G", etc.)
+- `currentIndex: number` -- synced cursor position
+- `onScrub: (index: number) => void` -- cursor sync callback
+- `useKph: boolean`
+- `color: string`
+- `label: string`
+- `onDelete: () => void`
 
-## New File Structure
+This reuses the canvas rendering patterns from `TelemetryChart.tsx` (grid drawing, scrub line, glitch filtering for speed) but simplified to one series with its own independent min/max scale.
 
-| File | Purpose |
-|------|---------|
-| `src/components/tabs/RaceLineTab.tsx` | Contains the resizable split: RaceLineView (top) + TelemetryChart + RangeSlider (bottom) |
-| `src/components/tabs/LapTimesTab.tsx` | Wraps LapTable with all its props |
-| `src/components/tabs/GraphViewTab.tsx` | Placeholder with info text about upcoming per-series graphing |
+### 3. `src/components/graphview/GraphPanel.tsx`
+The right 70% panel. Manages:
+- An array of active graph series (state: `activeGraphs: string[]`)
+- The "+ Add Graph" dropdown (lists available data sources not yet added)
+- Scrollable container of `SingleSeriesChart` instances
+- The `RangeSlider` at the bottom
+- Cursor sync: passes the same `currentIndex` and `onScrub` to all charts
 
-## Step-by-Step
+### 4. `src/components/graphview/InfoBox.tsx`
+The upper-left info panel with two tabs:
+- **Data tab**: Extracts the stats overlay logic currently in `RaceLineView.tsx` (lap time, avg top/min speed, deltas, weather) into a reusable display. Weather data is shown inline (always visible, no toggle needed).
+- **Kart tab**: Displays the kart name/number and full setup dataset if linked to the session. If no kart/setup is linked, shows selectors (reusing the same pattern from `NotesTab.tsx`). An "Edit" button opens the Garage drawer with the setup loaded.
 
-### 1. Create `RaceLineTab.tsx`
-Extracts the full resizable split panel content from Index.tsx -- includes RaceLineView, TelemetryChart, and RangeSlider. Receives all needed props from Index.tsx.
+### 5. `src/components/graphview/MiniMap.tsx`
+A simplified version of `RaceLineView` for the bottom-left panel:
+- Shows the race line with speed heatmap coloring
+- Shows braking zones and speed event markers
+- Toggle buttons (icon-only) in the upper-right for braking/speed events
+- Map style cycle button in upper-left
+- "Hide map" toggle button at bottom of panel
+- No stats overlay, no weather panel, no reference line
+- Syncs the cursor position (shows the arrow marker)
 
-### 2. Create `LapTimesTab.tsx`
-Thin wrapper around LapTable. Takes the same props currently passed to LapTable.
+## Files to Modify
 
-### 3. Create `GraphViewTab.tsx`
-Placeholder component with a centered icon (e.g., `BarChart3`) and text like:
-- "Graph View -- Coming Soon"
-- "Individual telemetry channels with independent scales"
+### 6. `src/components/tabs/GraphViewTab.tsx`
+Replace the placeholder with `GraphViewPanel`, passing through all props from Index.tsx.
 
-### 4. Refactor `Index.tsx`
-- Add `"graphview"` to the `TopPanelView` type
-- Add a third tab button with a chart icon
-- Remove the `ResizableSplit` wrapper from Index.tsx -- each tab now manages its own full-height content
-- Race Line tab renders its own `ResizableSplit` internally (with the chart bound inside it)
-- Lap Times and Graph View tabs take the full panel height
-- The tab container becomes a simple full-height area that swaps between the three tab components
+### 7. `src/pages/Index.tsx`
+Pass additional props to `GraphViewTab`:
+- All the data props (samples, laps, field mappings, visible range, etc.)
+- Kart/setup data (karts, setups, sessionKartId, sessionSetupId)
+- Weather props
+- Map-related props (bounds, course, braking zone settings)
+- Scrub/range handlers
 
-### 5. Future-proof TelemetryChart
-No changes to TelemetryChart now. The future Graph View will use **new, simpler chart components** -- each rendering 1-2 series with their own Y-axis. The existing TelemetryChart stays as the multi-series overview bound to the Race Line tab.
+## Reusability Strategy
+
+### Stats Data Module
+Extract the stats computation (avg top speed, avg min speed, delta calculations) that currently lives inline in `RaceLineView.tsx` and `Index.tsx` into a shared utility or a custom hook. Both the Race Line view's overlay and the Graph View's Info Box will consume the same computed values from Index.tsx via props -- no duplication needed since Index.tsx already computes all of this.
+
+### Chart Rendering
+`SingleSeriesChart` will reuse the canvas rendering patterns from `TelemetryChart`:
+- Same grid drawing code
+- Same scrub cursor rendering
+- Same glitch filtering for speed series
+- Same G-force smoothing logic
+- Simplified to single series with own Y-axis auto-scaling
+
+### Map Component
+`MiniMap` will reuse the core Leaflet setup from `RaceLineView`:
+- Same map initialization pattern
+- Same race line drawing with speed heatmap
+- Same braking zone rendering
+- Same speed event markers
+- Same arrow cursor marker
+- Stripped of overlay panels, weather, and reference line
+
+## Data Flow
+
+```text
+Index.tsx (state owner)
+  |
+  +---> GraphViewTab (props pass-through)
+          |
+          +---> GraphViewPanel
+                  |
+                  +---> InfoBox
+                  |       +---> Data tab (stats, weather)
+                  |       +---> Kart tab (kart info, setup details)
+                  |
+                  +---> MiniMap (simplified RaceLineView)
+                  |
+                  +---> GraphPanel
+                          +---> SingleSeriesChart (x N, synced cursor)
+                          +---> RangeSlider (reused component)
+```
+
+## Available Data Sources for Graph Dropdown
+The dropdown will list:
+- "Speed" (always available -- uses `speedMph`/`speedKph`)
+- Each entry from `fieldMappings` (e.g., "RPM", "Temp", "Lat G", "Lon G", etc.)
+- Sources already added are excluded from the dropdown
+
+## Cursor Synchronization
+All `SingleSeriesChart` instances share the same `currentIndex` state from Index.tsx. When any chart is scrubbed, it calls `onScrub` which updates `currentIndex` in Index.tsx, which propagates to all charts AND the MiniMap's arrow marker. This ensures perfect synchronization.
 
 ## Technical Notes
-
-- State remains centralized in Index.tsx; tab components are presentational
-- The range slider state (`visibleRange`) stays in Index.tsx since it affects scrubbing and other cross-cutting concerns
-- Tab components receive props via a clean interface -- no prop drilling beyond one level
-- The `ResizableSplit` component moves from wrapping the entire data view to being internal to `RaceLineTab`
-
+- The left panel uses a vertical split (70/30) via CSS flexbox with the map collapsible via a toggle
+- When the map is hidden, the info box expands to fill the full left panel height
+- The right panel's graph area is scrollable (`overflow-y: auto`) to accommodate many graphs
+- The RangeSlider is fixed at the bottom of the right panel (not scrollable)
+- Each SingleSeriesChart has a fixed minimum height (e.g., 150px) to remain usable
+- The delete button (X icon) sits in the upper-right corner of each chart
+- The "+ Add Graph" button appears below the last chart (or centered if no charts exist)
