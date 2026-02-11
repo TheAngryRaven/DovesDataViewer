@@ -83,6 +83,7 @@ export default function Index() {
   });
 
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
+  const [showOverlays, setShowOverlays] = useState(true);
 
   // Orchestrate data loading — connects sessionData, lapMgmt, and sessionMeta
   const handleDataLoaded = useCallback(
@@ -373,7 +374,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} />
 
         <div className="flex-1 min-h-0 overflow-hidden">
           {topPanelView === "raceline" && (
@@ -390,7 +391,7 @@ export default function Index() {
               deltaMinSpeed={deltaMinSpeed}
               referenceLapNumber={referenceLapNumber}
               lapToFastestDelta={lapToFastestDelta}
-              showOverlays={true}
+              showOverlays={showOverlays}
               lapTimeMs={selectedLapTimeMs}
               refAvgTopSpeed={refAvgTopSpeed}
               refAvgMinSpeed={refAvgMinSpeed}
@@ -468,13 +469,13 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
+  showOverlays: boolean;
+  onToggleOverlays: () => void;
 }) {
-  const [showOverlays, setShowOverlays] = useState(true);
-
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
       topPanelView === view
@@ -496,12 +497,14 @@ function TabBar({ topPanelView, setTopPanelView, laps }: {
       <button onClick={() => setTopPanelView("graphview")} className={tabClass("graphview")}>
         <BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">Graph View</span>
       </button>
-      <div className="ml-auto mr-3">
-        <Button variant="ghost" size="sm" onClick={() => setShowOverlays(!showOverlays)} className="h-7 px-2 gap-1.5">
-          {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-          <span className="text-xs">Overlay</span>
-        </Button>
-      </div>
+      {topPanelView === "raceline" && (
+        <div className="ml-auto mr-3">
+          <Button variant="ghost" size="sm" onClick={onToggleOverlays} className="h-7 px-2 gap-1.5">
+            {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            <span className="text-xs">Overlay</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
