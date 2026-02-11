@@ -839,7 +839,56 @@ export default function Index() {
               onRefreshSavedFiles={refreshSavedFiles}
             />
           )}
-          {topPanelView === "graphview" && <GraphViewTab />}
+          {topPanelView === "graphview" && (
+            <GraphViewTab
+              visibleSamples={visibleSamples}
+              filteredSamples={filteredSamples}
+              currentIndex={currentIndex}
+              onScrub={handleScrub}
+              useKph={useKph}
+              fieldMappings={fieldMappings}
+              course={selectedCourse}
+              lapTimeMs={selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null) : null}
+              paceDiff={paceDiff}
+              paceDiffLabel={paceDiffLabel}
+              deltaTopSpeed={deltaTopSpeed}
+              deltaMinSpeed={deltaMinSpeed}
+              referenceLapNumber={referenceLapNumber}
+              lapToFastestDelta={lapToFastestDelta}
+              bounds={filteredBounds!}
+              brakingZoneSettings={{
+                entryThresholdG: settings.brakingEntryThreshold / 100,
+                exitThresholdG: settings.brakingExitThreshold / 100,
+                minDurationMs: settings.brakingMinDuration,
+                smoothingAlpha: settings.brakingSmoothingAlpha / 100,
+                color: settings.brakingZoneColor,
+                width: settings.brakingZoneWidth,
+              }}
+              sessionGpsPoint={sessionGpsPoint}
+              sessionStartDate={data?.startDate}
+              cachedWeatherStation={cachedWeatherStation}
+              onWeatherStationResolved={handleWeatherStationResolved}
+              karts={kartManager.karts}
+              setups={setupManager.setups}
+              sessionKartId={sessionKartId}
+              sessionSetupId={sessionSetupId}
+              onSaveSessionSetup={handleSaveSessionSetup}
+              visibleRange={visibleRange}
+              onRangeChange={handleRangeChange}
+              minRange={Math.min(10, Math.floor(filteredSamples.length / 10))}
+              formatRangeLabel={(idx) => {
+                const sample = filteredSamples[idx];
+                if (!sample) return "";
+                const totalMs = sample.t - filteredSamples[0].t;
+                const secs = Math.floor(totalMs / 1000);
+                const mins = Math.floor(secs / 60);
+                const remSecs = secs % 60;
+                return `${mins}:${remSecs.toString().padStart(2, "0")}`;
+              }}
+              gForceSmoothing={settings.gForceSmoothing}
+              gForceSmoothingStrength={settings.gForceSmoothingStrength}
+            />
+          )}
         </div>
       </main>
       <InstallPrompt />
