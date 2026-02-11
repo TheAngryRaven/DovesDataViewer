@@ -114,7 +114,7 @@ export function SingleSeriesChart({
     canvas.height = dimensions.height * dpr;
     ctx.scale(dpr, dpr);
 
-    const padding = { left: 55, right: 15, top: 15, bottom: 25 };
+    const padding = { left: 55, right: 15, top: 30, bottom: 25 };
     const chartWidth = dimensions.width - padding.left - padding.right;
     const chartHeight = dimensions.height - padding.top - padding.bottom;
 
