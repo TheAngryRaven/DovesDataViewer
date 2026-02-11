@@ -25,7 +25,7 @@ export const DEFAULT_BRAKING_CONFIG: BrakingZoneConfig = {
 const GRAVITY_MPS2 = 9.80665;
 const MIN_SPEED_MPS = 2.0;      // Below this, accel is too noisy (matches gforceCalculation)
 const MAX_SPEED_MPS = 150;       // Reject GPS glitch speeds (matches speed sanity check)
-const MIN_DT_S = 0.05;           // Minimum time delta to avoid division artifacts
+const MIN_DT_S = 0.02;           // Supports GPS up to 50Hz
 const MAX_DT_S = 2.0;            // Maximum time delta (GPS gap)
 const MAX_ACCEL_G = 3.0;         // Clamp raw accel to ±3G (matches gforceCalculation)
 
