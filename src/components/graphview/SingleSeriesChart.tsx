@@ -275,18 +275,45 @@ export function SingleSeriesChart({
       // Current value tooltip
       let displayVal = values[currentIndex];
       if (displayVal !== undefined) {
-        const boxX = Math.min(x + 8, dimensions.width - 100);
-        ctx.fillStyle = 'hsla(220, 18%, 10%, 0.9)';
-        ctx.fillRect(boxX, padding.top + 4, 90, 18);
-        ctx.strokeStyle = 'hsl(220, 15%, 25%)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(boxX, padding.top + 4, 90, 18);
-        ctx.fillStyle = color;
-        ctx.textAlign = 'left';
-        ctx.font = '10px JetBrains Mono, monospace';
         const unit = isPace ? 's' : isSpeed ? (useKph ? ' kph' : ' mph') : '';
         const prefix = isPace && displayVal > 0 ? '+' : '';
-        ctx.fillText(`${prefix}${displayVal.toFixed(isPace ? 2 : 1)}${unit}`, boxX + 4, padding.top + 16);
+        const mainText = `${prefix}${displayVal.toFixed(isPace ? 2 : 1)}${unit}`;
+
+        // Delta text (difference from reference at same point)
+        let deltaText = '';
+        if (referenceValues && !isPace) {
+          const refVal = referenceValues[currentIndex];
+          if (refVal !== null && refVal !== undefined) {
+            const delta = displayVal - refVal;
+            const sign = delta > 0 ? '+' : '';
+            deltaText = `  Δ${sign}${delta.toFixed(1)}`;
+          }
+        }
+
+        const fullText = mainText + deltaText;
+        const boxWidth = Math.max(90, ctx.measureText(fullText).width + 12);
+        const boxX = Math.min(x + 8, dimensions.width - boxWidth - 10);
+
+        ctx.fillStyle = 'hsla(220, 18%, 10%, 0.9)';
+        ctx.fillRect(boxX, padding.top + 4, boxWidth, 18);
+        ctx.strokeStyle = 'hsl(220, 15%, 25%)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(boxX, padding.top + 4, boxWidth, 18);
+
+        ctx.textAlign = 'left';
+        ctx.font = '10px JetBrains Mono, monospace';
+
+        // Draw main value
+        ctx.fillStyle = color;
+        ctx.fillText(mainText, boxX + 4, padding.top + 16);
+
+        // Draw delta in separate color
+        if (deltaText) {
+          const mainWidth = ctx.measureText(mainText).width;
+          const delta = displayVal - (referenceValues![currentIndex] ?? displayVal);
+          ctx.fillStyle = delta > 0 ? 'hsl(0, 70%, 55%)' : delta < 0 ? 'hsl(140, 70%, 50%)' : 'hsl(220, 10%, 55%)';
+          ctx.fillText(deltaText, boxX + 4 + mainWidth, padding.top + 16);
+        }
       }
     }
   }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, useKph, interpolateIndices, referenceValues]);

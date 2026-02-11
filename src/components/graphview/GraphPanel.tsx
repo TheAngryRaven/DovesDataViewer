@@ -38,27 +38,26 @@ export function GraphPanel({
 
   const hasReference = referenceSamples.length > 0;
 
-  // Precompute reference values for each channel, aligned by distance to current samples
+  // Precompute reference values for each channel from FULL dataset, then slice for visible range
   const referenceValuesByKey = useMemo(() => {
-    if (!hasReference || samples.length === 0) return {};
+    if (!hasReference || filteredSamples.length === 0) return {};
 
     const result: Record<string, (number | null)[]> = {};
 
-    // Reference speed
-    result['speed'] = calculateReferenceSpeed(samples, referenceSamples, useKph);
+    // Reference speed (computed from full filteredSamples)
+    result['speed'] = calculateReferenceSpeed(filteredSamples, referenceSamples, useKph);
 
     // Pace
-    result['__pace__'] = calculatePace(samples, referenceSamples);
+    result['__pace__'] = calculatePace(filteredSamples, referenceSamples);
 
-    // For extra fields, interpolate by distance
-    const currentDistances = calculateDistanceArray(samples);
+    // For extra fields, interpolate by distance using full dataset
+    const currentDistances = calculateDistanceArray(filteredSamples);
     const refDistances = calculateDistanceArray(referenceSamples);
 
     fieldMappings.forEach(f => {
       const refValues: (number | null)[] = [];
-      for (let i = 0; i < samples.length; i++) {
+      for (let i = 0; i < filteredSamples.length; i++) {
         const targetDist = currentDistances[i];
-        // Binary search in refDistances
         let lo = 0, hi = refDistances.length - 1;
         while (lo < hi - 1) {
           const mid = Math.floor((lo + hi) / 2);
@@ -77,7 +76,7 @@ export function GraphPanel({
     });
 
     return result;
-  }, [samples, referenceSamples, fieldMappings, useKph, hasReference]);
+  }, [filteredSamples, referenceSamples, fieldMappings, useKph, hasReference]);
 
   // Available data sources
   const availableSources = useMemo(() => {
@@ -155,7 +154,7 @@ export function GraphPanel({
                 onDelete={() => removeGraph(key)}
                 gForceSmoothing={gForceSmoothing}
                 gForceSmoothingStrength={gForceSmoothingStrength}
-                referenceValues={referenceValuesByKey[key] ?? null}
+                referenceValues={referenceValuesByKey[key]?.slice(visibleRange[0], visibleRange[1] + 1) ?? null}
               />
             ))}
             {/* Add more button */}
