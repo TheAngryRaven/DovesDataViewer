@@ -1,4 +1,5 @@
 import { GpsSample } from '@/types/racing';
+import savitzkyGolay from 'ml-savitzky-golay';
 
 export interface BrakingZone {
   start: { lat: number; lon: number; t: number; speedMps: number };
@@ -179,6 +180,55 @@ export function computeBrakingGSeries(
     result.push(smoothedAccelG);
   }
   return result;
+}
+
+/**
+ * Compute a smooth longitudinal acceleration (G) series using Savitzky-Golay filter.
+ * Fits a local cubic polynomial to speed data and differentiates analytically —
+ * producing a smooth derivative in one step with no phase lag (per NREL / IFAC 2019 research).
+ */
+export function computeBrakingGSeriesSG(
+  samples: GpsSample[],
+  windowSize: number = 25
+): number[] {
+  if (samples.length < windowSize) return computeBrakingGSeries(samples); // fallback for tiny datasets
+
+  // Ensure odd window size
+  const ws = windowSize % 2 === 0 ? windowSize + 1 : windowSize;
+
+  // Extract speed in m/s
+  const speedMps = samples.map(s => {
+    const v = s.speedMph * 0.44704;
+    return (v > MAX_SPEED_MPS || v < 0) ? 0 : v;
+  });
+
+  // Compute median time step for h
+  const dts: number[] = [];
+  for (let i = 1; i < samples.length; i++) {
+    const dt = (samples[i].t - samples[i - 1].t) / 1000;
+    if (dt > 0 && dt < MAX_DT_S) dts.push(dt);
+  }
+  if (dts.length === 0) return new Array(samples.length).fill(0);
+  dts.sort((a, b) => a - b);
+  const h = dts[Math.floor(dts.length / 2)];
+
+  // Import is at top of file — use dynamic require pattern
+  // SG filter: derivative=1 gives dSpeed/dt directly
+  const sgResult = savitzkyGolay(speedMps, h, {
+    derivative: 1,
+    windowSize: ws,
+    polynomial: 3,
+    pad: 'post',
+    padValue: 'replicate',
+  });
+
+  // Convert to G and apply gates
+  return sgResult.map((dvdt: number, i: number) => {
+    const speedMs = speedMps[i];
+    if (speedMs < MIN_SPEED_MPS) return 0;
+    const g = dvdt / GRAVITY_MPS2;
+    return Math.max(-MAX_ACCEL_G, Math.min(MAX_ACCEL_G, g));
+  });
 }
 
 /**

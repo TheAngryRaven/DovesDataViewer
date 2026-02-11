@@ -253,6 +253,35 @@ export function SettingsModal({
               </div>
             </div>
 
+            {/* Graph Smoothing Window */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Graph Smoothing</Label>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {settings.brakingGraphWindow} pts
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground/70">
+                Savitzky-Golay filter window for the Braking G chart. Larger = smoother.
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">5</span>
+                <Slider
+                  value={[settings.brakingGraphWindow]}
+                  onValueChange={([value]) => {
+                    // Ensure odd
+                    const odd = value % 2 === 0 ? value + 1 : value;
+                    onSettingsChange({ brakingGraphWindow: odd });
+                  }}
+                  min={5}
+                  max={51}
+                  step={2}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">51</span>
+              </div>
+            </div>
+
             {/* Zone Color */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
