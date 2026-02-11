@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { GpsSample } from '@/types/racing';
+import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
@@ -15,23 +16,6 @@ interface SingleSeriesChartProps {
   gForceSmoothingStrength?: number;
   referenceValues?: (number | null)[] | null;
   brakingGValues?: number[];
-}
-
-const G_FORCE_FIELDS = ['Lat G', 'Lon G'];
-
-function applySmoothingToValues(values: (number | undefined)[], windowSize: number): (number | undefined)[] {
-  if (windowSize <= 1) return values;
-  const halfWindow = Math.floor(windowSize / 2);
-  const result: (number | undefined)[] = new Array(values.length);
-  for (let i = 0; i < values.length; i++) {
-    if (values[i] === undefined) { result[i] = undefined; continue; }
-    let sum = 0, count = 0;
-    for (let j = i - halfWindow; j <= i + halfWindow; j++) {
-      if (j >= 0 && j < values.length && values[j] !== undefined) { sum += values[j]!; count++; }
-    }
-    result[i] = count > 0 ? sum / count : values[i];
-  }
-  return result;
 }
 
 export function SingleSeriesChart({
@@ -49,10 +33,9 @@ export function SingleSeriesChart({
   const isBrakingG = seriesKey === '__braking_g__';
   const isGForce = G_FORCE_FIELDS.includes(seriesKey);
 
-  const smoothingWindowSize = useMemo(() => {
-    if (!gForceSmoothing || !isGForce) return 1;
-    return Math.max(1, Math.floor(1 + (gForceSmoothingStrength / 100) * 14));
-  }, [gForceSmoothing, gForceSmoothingStrength, isGForce]);
+  const smoothingWindowSize = useMemo(() =>
+    isGForce ? computeSmoothingWindowSize(gForceSmoothing, gForceSmoothingStrength) : 1,
+    [gForceSmoothing, gForceSmoothingStrength, isGForce]);
 
   // Extract raw values for this series
   const rawValues = useMemo((): (number | undefined)[] => {
@@ -76,27 +59,11 @@ export function SingleSeriesChart({
     return rawValues;
   }, [rawValues, isGForce, smoothingWindowSize]);
 
-  // Speed glitch filtering (reused from TelemetryChart)
+  // Speed glitch filtering
   const interpolateIndices = useMemo(() => {
     if (!isSpeed) return new Set<number>();
-    const MIN_SPEED_THRESHOLD = 1.0;
-    const MAX_GLITCH_SAMPLES = 3;
-    const indices = new Set<number>();
-    let runStart = -1;
-    for (let i = 0; i < samples.length; i++) {
-      const speed = useKph ? samples[i].speedKph : samples[i].speedMph;
-      if (speed < MIN_SPEED_THRESHOLD && runStart === -1) runStart = i;
-      else if (speed >= MIN_SPEED_THRESHOLD && runStart !== -1) {
-        if (i - runStart <= MAX_GLITCH_SAMPLES) {
-          for (let j = runStart; j < i; j++) indices.add(j);
-        }
-        runStart = -1;
-      }
-    }
-    if (runStart !== -1 && samples.length - runStart <= MAX_GLITCH_SAMPLES) {
-      for (let j = runStart; j < samples.length; j++) indices.add(j);
-    }
-    return indices;
+    const speeds = samples.map(s => useKph ? s.speedKph : s.speedMph);
+    return detectSpeedGlitchIndices(speeds);
   }, [samples, isSpeed, useKph]);
 
   // Resize observer
@@ -218,18 +185,8 @@ export function SingleSeriesChart({
 
       // Speed glitch interpolation
       if (isSpeed && interpolateIndices.has(i) && i > 0 && i < samples.length - 1) {
-        let nextValid = lastValidSpeed ?? val;
-        let nextIdx = samples.length - 1;
-        for (let j = i + 1; j < samples.length; j++) {
-          if (!interpolateIndices.has(j)) {
-            nextValid = useKph ? samples[j].speedKph : samples[j].speedMph;
-            nextIdx = j; break;
-          }
-        }
-        if (lastValidSpeed !== null) {
-          const progress = (i - lastValidIndex) / Math.max(1, nextIdx - lastValidIndex);
-          val = lastValidSpeed + (nextValid - lastValidSpeed) * progress;
-        } else { val = nextValid; }
+        const speeds = samples.map(s => useKph ? s.speedKph : s.speedMph);
+        val = interpolateGlitchSpeed(i, speeds, interpolateIndices, lastValidSpeed, lastValidIndex);
       } else if (isSpeed) {
         lastValidSpeed = val;
         lastValidIndex = i;

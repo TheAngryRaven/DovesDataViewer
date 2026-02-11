@@ -1,8 +1,8 @@
 /**
  * IndexedDB wrapper for storing/retrieving/deleting file blobs and file metadata.
- * Database: "dove-file-manager"
- * Object Stores: "files" (blobs), "metadata" (track/course per file)
  */
+
+import { openDB, STORE_NAMES } from './dbUtils';
 
 export interface FileEntry {
   name: string;
@@ -30,38 +30,8 @@ interface StoredFile {
   savedAt: number;
 }
 
-const DB_NAME = "dove-file-manager";
-const FILES_STORE = "files";
-const META_STORE = "metadata";
-const DB_VERSION = 5;
-
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(FILES_STORE)) {
-        db.createObjectStore(FILES_STORE, { keyPath: "name" });
-      }
-      if (!db.objectStoreNames.contains(META_STORE)) {
-        db.createObjectStore(META_STORE, { keyPath: "fileName" });
-      }
-      if (!db.objectStoreNames.contains("karts")) {
-        db.createObjectStore("karts", { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains("notes")) {
-        const notesStore = db.createObjectStore("notes", { keyPath: "id" });
-        notesStore.createIndex("fileName", "fileName", { unique: false });
-      }
-      if (!db.objectStoreNames.contains("setups")) {
-        const setupsStore = db.createObjectStore("setups", { keyPath: "id" });
-        setupsStore.createIndex("kartId", "kartId", { unique: false });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
+const FILES_STORE = STORE_NAMES.FILES;
+const META_STORE = STORE_NAMES.METADATA;
 
 export async function saveFile(name: string, data: Blob): Promise<void> {
   try {

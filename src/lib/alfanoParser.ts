@@ -1,5 +1,6 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
+import { clamp, haversineDistance, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
 
 /**
  * Alfano CSV Parser
@@ -125,33 +126,6 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   'sats': 'satellites',
 };
 
-// Clamp value to range
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-// Normalize heading delta to handle wrap-around
-function normalizeHeadingDelta(h2: number | undefined, h1: number | undefined): number {
-  if (h2 === undefined || h1 === undefined) return 0;
-  let delta = h2 - h1;
-  if (delta > 180) delta -= 360;
-  if (delta < -180) delta += 360;
-  return delta;
-}
-
-
-// Haversine distance in meters
-function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 // Parse CSV line handling quoted fields
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -271,8 +245,8 @@ export function parseAlfanoFile(content: string): ParsedData {
     const speedMps = speedKph / 3.6;
     
     // Sanity check on speed
-    if (speedMps > 150) continue;
-    
+    if (speedMps > MAX_SPEED_MPS) continue;
+
     // Parse heading
     let heading: number | undefined;
     if (columnMap['heading'] !== undefined) {
@@ -287,15 +261,7 @@ export function parseAlfanoFile(content: string): ParsedData {
     // Teleportation filter
     if (samples.length > 0) {
       const prev = samples[samples.length - 1];
-      const timeDiff = (t - prev.t) / 1000;
-      if (timeDiff > 0 && timeDiff < 10) {
-        const distance = haversineDistance(prev.lat, prev.lon, lat, lon);
-        const maxDistance = 50 * (timeDiff / 0.04);
-        if (distance > maxDistance && distance > 100) {
-          console.warn(`Alfano GPS teleportation: ${distance.toFixed(0)}m in ${timeDiff.toFixed(3)}s`);
-          continue;
-        }
-      }
+      if (isTeleportation(prev.lat, prev.lon, prev.t, lat, lon, t, 'Alfano')) continue;
     }
     
     // Build extra fields

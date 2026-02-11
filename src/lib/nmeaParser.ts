@@ -1,5 +1,6 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
+import { haversineDistance, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
 
 // Parse NMEA latitude (ddmm.mmmm format)
 function parseNmeaLat(value: string, dir: string): number {
@@ -141,18 +142,6 @@ function parseGgaSentence(sentence: string): ParsedGga | null {
   };
 }
 
-// Haversine distance in meters
-function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000; // Earth radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 // Calculate speed from two GPS points with sanity checks
 function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lon2: number, t2: number): number | null {
   const timeDiff = (t2 - t1) / 1000; // seconds
@@ -165,23 +154,9 @@ function calculateSpeed(lat1: number, lon1: number, t1: number, lat2: number, lo
   
   // Sanity check: max reasonable speed is ~150 m/s (~335 mph) for race cars
   // Anything above this is likely GPS glitch
-  if (speedMps > 150) return null;
+  if (speedMps > MAX_SPEED_MPS) return null;
   
   return speedMps;
-}
-
-// Normalize heading delta to handle wrap-around (e.g., 359° → 1° = +2° not -358°)
-function normalizeHeadingDelta(h2: number | undefined, h1: number | undefined): number {
-  if (h2 === undefined || h1 === undefined) return 0;
-  let delta = h2 - h1;
-  if (delta > 180) delta -= 360;
-  if (delta < -180) delta += 360;
-  return delta;
-}
-
-// Clamp value to range
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
 }
 
 export function parseDatalog(content: string): ParsedData {
@@ -348,25 +323,15 @@ export function parseDatalog(content: string): ParsedData {
     }
     
     // Additional sanity check on speed from NMEA data
-    // Max reasonable speed: 150 m/s (~335 mph)
-    if (speedMps > 150) {
+    if (speedMps > MAX_SPEED_MPS) {
       // GPS glitch - use previous sample's speed or 0
       speedMps = samples.length > 0 ? samples[samples.length - 1].speedMps : 0;
     }
 
-    // Teleportation filter: if this sample is too far from the previous one, skip it
-    // Max reasonable distance is ~50 meters per 40ms sample (which is ~450 km/h / 280 mph)
+    // Teleportation filter
     if (samples.length > 0) {
       const prev = samples[samples.length - 1];
-      const timeDiff = (t - prev.t) / 1000; // seconds
-      if (timeDiff > 0 && timeDiff < 10) { // Only check for samples within 10 seconds
-        const distance = haversineDistance(prev.lat, prev.lon, parsed.lat, parsed.lon);
-        const maxDistance = 50 * (timeDiff / 0.04); // 50m per 40ms, scaled by actual time diff
-        if (distance > maxDistance && distance > 100) { // Allow some slack, but flag big jumps
-          console.warn(`GPS teleportation detected: ${distance.toFixed(0)}m in ${timeDiff.toFixed(3)}s at sample ${samples.length}`);
-          continue; // Skip this sample
-        }
-      }
+      if (isTeleportation(prev.lat, prev.lon, prev.t, parsed.lat, parsed.lon, t, 'NMEA')) continue;
     }
 
     samples.push({

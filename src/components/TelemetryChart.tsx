@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { GpsSample, FieldMapping } from '@/types/racing';
+import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
 
 interface TelemetryChartProps {
   samples: GpsSample[];
@@ -29,36 +30,6 @@ const COLORS = [
 const REFERENCE_COLOR = 'hsl(220, 10%, 55%)'; // Grey for reference
 const PACE_COLOR = 'hsl(35, 90%, 55%)'; // Orange-gold for pace
 
-// Apply moving average smoothing to an array of values
-function applySmoothingToValues(values: (number | undefined)[], windowSize: number): (number | undefined)[] {
-  if (windowSize <= 1) return values;
-  
-  const halfWindow = Math.floor(windowSize / 2);
-  const result: (number | undefined)[] = new Array(values.length);
-  
-  for (let i = 0; i < values.length; i++) {
-    if (values[i] === undefined) {
-      result[i] = undefined;
-      continue;
-    }
-    
-    let sum = 0;
-    let count = 0;
-    for (let j = i - halfWindow; j <= i + halfWindow; j++) {
-      if (j >= 0 && j < values.length && values[j] !== undefined) {
-        sum += values[j]!;
-        count++;
-      }
-    }
-    result[i] = count > 0 ? sum / count : values[i];
-  }
-  
-  return result;
-}
-
-// G-force field names that should have smoothing applied
-const G_FORCE_FIELDS = ['Lat G', 'Lon G'];
-
 export function TelemetryChart({ 
   samples, 
   fieldMappings, 
@@ -79,12 +50,9 @@ export function TelemetryChart({
   const [showReferenceSpeed, setShowReferenceSpeed] = useState(true);
   const [showPace, setShowPace] = useState(true);
 
-  // Calculate smoothing window size from strength (0-100 -> 1-15 samples)
-  const smoothingWindowSize = useMemo(() => {
-    if (!gForceSmoothing) return 1;
-    // Map 0-100 to window size 1-15 (odd numbers work best for symmetric smoothing)
-    return Math.max(1, Math.floor(1 + (gForceSmoothingStrength / 100) * 14));
-  }, [gForceSmoothing, gForceSmoothingStrength]);
+  const smoothingWindowSize = useMemo(() =>
+    computeSmoothingWindowSize(gForceSmoothing, gForceSmoothingStrength),
+    [gForceSmoothing, gForceSmoothingStrength]);
 
   // Pre-compute smoothed G-force values
   const smoothedGForceData = useMemo(() => {
@@ -201,85 +169,29 @@ export function TelemetryChart({
     }
 
     // Draw speed line - smart glitch filtering
-    const MIN_SPEED_THRESHOLD = 1.0;
-    const MAX_GLITCH_SAMPLES = 3;
-    
-    interface GlitchRun {
-      start: number;
-      end: number;
-      shouldInterpolate: boolean;
-    }
-    const glitchRuns: GlitchRun[] = [];
-    let runStart = -1;
-    
-    for (let i = 0; i < samples.length; i++) {
-      const speed = getSpeed(samples[i]);
-      const isLowSpeed = speed < MIN_SPEED_THRESHOLD;
-      
-      if (isLowSpeed && runStart === -1) {
-        runStart = i;
-      } else if (!isLowSpeed && runStart !== -1) {
-        const runLength = i - runStart;
-        glitchRuns.push({
-          start: runStart,
-          end: i - 1,
-          shouldInterpolate: runLength <= MAX_GLITCH_SAMPLES
-        });
-        runStart = -1;
-      }
-    }
-    if (runStart !== -1) {
-      const runLength = samples.length - runStart;
-      glitchRuns.push({
-        start: runStart,
-        end: samples.length - 1,
-        shouldInterpolate: runLength <= MAX_GLITCH_SAMPLES
-      });
-    }
-    
-    const interpolateIndices = new Set<number>();
-    for (const run of glitchRuns) {
-      if (run.shouldInterpolate) {
-        for (let i = run.start; i <= run.end; i++) {
-          interpolateIndices.add(i);
-        }
-      }
-    }
-    
+    const allSpeeds = samples.map(s => getSpeed(s));
+    const interpolateIndices = detectSpeedGlitchIndices(allSpeeds);
+
     ctx.beginPath();
     ctx.strokeStyle = COLORS[0];
     ctx.lineWidth = 2;
-    
+
     let lastValidSpeed: number | null = null;
     let lastValidIndex = 0;
-    
+
     for (let i = 0; i < samples.length; i++) {
       const x = padding.left + (i / (samples.length - 1)) * chartWidth;
-      let speed = getSpeed(samples[i]);
-      
+      let speed = allSpeeds[i];
+
       if (interpolateIndices.has(i) && i > 0 && i < samples.length - 1) {
-        let nextValidSpeed = lastValidSpeed ?? speed;
-        let nextValidIndex = samples.length - 1;
-        for (let j = i + 1; j < samples.length; j++) {
-          if (!interpolateIndices.has(j)) {
-            nextValidSpeed = getSpeed(samples[j]);
-            nextValidIndex = j;
-            break;
-          }
-        }
-        if (lastValidSpeed !== null) {
-          const progress = (i - lastValidIndex) / Math.max(1, nextValidIndex - lastValidIndex);
-          speed = lastValidSpeed + (nextValidSpeed - lastValidSpeed) * progress;
-        } else {
-          speed = nextValidSpeed;
-        }
+        speed = interpolateGlitchSpeed(i, allSpeeds, interpolateIndices, lastValidSpeed, lastValidIndex);
       } else {
         lastValidSpeed = speed;
         lastValidIndex = i;
       }
-      
+
       const y = padding.top + (1 - (speed - minSpeed) / (maxSpeed - minSpeed)) * chartHeight;
-      
+
       if (i === 0) {
         ctx.moveTo(x, y);
       } else {

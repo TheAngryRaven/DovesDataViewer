@@ -1,37 +1,12 @@
 import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
+import { clamp, haversineDistance } from './parserUtils';
 
 /**
  * AiM MyChron CSV Parser
  * Parses CSV exports from Race Studio 3 (RS2Analysis Style CSV)
  * Supports MyChron 5, MyChron 6, and other AiM data loggers
  */
-
-// Clamp value between min and max
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-// Normalize heading delta to [-180, 180]
-function normalizeHeadingDelta(delta: number): number {
-  while (delta > 180) delta -= 360;
-  while (delta < -180) delta += 360;
-  return delta;
-}
-
-// Haversine distance in meters
-function haversineDistance(
-  lat1: number, lon1: number,
-  lat2: number, lon2: number
-): number {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 // Parse a CSV line handling quoted fields
 function parseCSVLine(line: string, delimiter: string = ','): string[] {
