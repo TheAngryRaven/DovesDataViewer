@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
@@ -12,21 +12,20 @@ import { FileManagerDrawer } from "@/components/FileManagerDrawer";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ParsedData, Lap, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
-import { saveFileMetadata, getFileMetadata, listFiles, getFile, FileEntry } from "@/lib/fileStorage";
-import { parseDatalogContent } from "@/lib/datalogParser";
-import { WeatherStation } from "@/lib/weatherService";
-import { calculateLaps, formatLapTime } from "@/lib/lapCalculation";
-import { parseDatalog } from "@/lib/nmeaParser";
-import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
+import { ParsedData, TrackCourseSelection } from "@/types/racing";
+import { getFileMetadata } from "@/lib/fileStorage";
 import { loadTracks } from "@/lib/trackStorage";
-import { findSpeedEvents } from "@/lib/speedEvents";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useFileManager } from "@/hooks/useFileManager";
 import { useKartManager } from "@/hooks/useKartManager";
 import { useNoteManager } from "@/hooks/useNoteManager";
 import { useSetupManager } from "@/hooks/useSetupManager";
+import { useSessionData } from "@/hooks/useSessionData";
+import { useLapManagement } from "@/hooks/useLapManagement";
+import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
+import { useSessionMetadata } from "@/hooks/useSessionMetadata";
+import { useState } from "react";
 
 type TopPanelView = "raceline" | "laptable" | "graphview";
 
@@ -36,119 +35,45 @@ export default function Index() {
   const kartManager = useKartManager();
   const setupManager = useSetupManager();
   const useKph = settings.useKph;
-  
-  const [data, setData] = useState<ParsedData | null>(null);
-  const [currentFileName, setCurrentFileName] = useState<string | null>(null);
+
+  // Core session data
+  const sessionData = useSessionData(isFieldHiddenByDefault, settings.defaultHiddenFields);
+  const { data, currentFileName, fieldMappings, isLoadingSample, sessionGpsPoint } = sessionData;
+
   const noteManager = useNoteManager(currentFileName);
-  const [selection, setSelection] = useState<TrackCourseSelection | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
-  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
-  const [laps, setLaps] = useState<Lap[]>([]);
-  const [selectedLapNumber, setSelectedLapNumber] = useState<number | null>(null);
-  const [referenceLapNumber, setReferenceLapNumber] = useState<number | null>(null);
-  const [isLoadingSample, setIsLoadingSample] = useState(false);
-  // Range selection state (indices within filteredSamples)
-  const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 0]);
-  const [showOverlays, setShowOverlays] = useState(true);
-  const [cachedWeatherStation, setCachedWeatherStation] = useState<WeatherStation | null>(null);
-  const [sessionKartId, setSessionKartId] = useState<string | null>(null);
 
-  // External reference lap state
-  const [externalRefSamples, setExternalRefSamples] = useState<GpsSample[] | null>(null);
-  const [externalRefLabel, setExternalRefLabel] = useState<string | null>(null);
-  const [savedFiles, setSavedFiles] = useState<FileEntry[]>([]);
-  const externalParsedRef = useRef<{ fileName: string; samples: GpsSample[]; laps: Lap[] } | null>(null);
-  const [sessionSetupId, setSessionSetupId] = useState<string | null>(null);
+  // Lap management
+  const lapMgmt = useLapManagement(data, currentFileName);
+  const {
+    selection, selectedCourse, laps, selectedLapNumber, referenceLapNumber,
+    filteredSamples, visibleSamples, visibleRange, currentIndex, filteredBounds,
+    setSelectedLapNumber, setReferenceLapNumber, setCurrentIndex,
+    handleSelectionChange, handleLapSelect, handleLapDropdownChange,
+    handleSetReference, handleScrub, handleRangeChange, formatRangeLabel,
+  } = lapMgmt;
 
-  const selectedCourse: Course | null = selection?.course ?? null;
+  // External reference
+  const externalRef = useExternalReference(selectedCourse);
+  const {
+    externalRefSamples, externalRefLabel, savedFiles,
+    refreshSavedFiles, handleLoadFileForRef, handleSelectExternalLap, handleClearExternalRef,
+  } = externalRef;
 
-  // Playback hook - needs to be after visibleSamples is defined, but we use a forward reference pattern
-  // We'll initialize it after visibleSamples is computed
+  // Reference lap comparison
+  const refLap = useReferenceLap(
+    data, laps, selectedCourse, filteredSamples, selectedLapNumber,
+    referenceLapNumber, externalRefSamples, useKph
+  );
+  const {
+    referenceSamples, paceData, referenceSpeedData, lapToFastestDelta,
+    paceDiff, paceDiffLabel, deltaTopSpeed, deltaMinSpeed, refAvgTopSpeed, refAvgMinSpeed,
+  } = refLap;
 
-  const handleLoadSample = useCallback(async () => {
-    setIsLoadingSample(true);
-    try {
-      const tracks = await loadTracks();
-      const okcTrack = tracks.find((t) => t.name === "Orlando Kart Center");
-      const okcCourse = okcTrack?.courses[0] ?? null;
+  // Session metadata
+  const sessionMeta = useSessionMetadata(currentFileName);
+  const { cachedWeatherStation, sessionKartId, sessionSetupId } = sessionMeta;
 
-      const response = await fetch("/samples/okc-tillotson-plain.nmea");
-      const text = await response.text();
-      const parsedData = parseDatalog(text);
-      setData(parsedData);
-      setCurrentFileName("okc-tillotson-plain.nmea");
-      // Apply default hidden fields from settings
-      setFieldMappings(
-        parsedData.fieldMappings.map((f) => ({
-          ...f,
-          enabled: f.enabled && !isFieldHiddenByDefault(f.name),
-        }))
-      );
-      setCurrentIndex(0);
-
-      if (okcTrack && okcCourse) {
-        setSelection({
-          trackName: okcTrack.name,
-          courseName: okcCourse.name,
-          course: okcCourse,
-        });
-        const computedLaps = calculateLaps(parsedData.samples, okcCourse);
-        setLaps(computedLaps);
-
-        // Auto-select lap 5 and reference lap 8 to showcase delta features
-        if (computedLaps.length >= 5) {
-          setSelectedLapNumber(5);
-        }
-        if (computedLaps.length >= 8) {
-          setReferenceLapNumber(8);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load sample data:", e);
-    } finally {
-      setIsLoadingSample(false);
-    }
-  }, [isFieldHiddenByDefault]);
-
-  // Filter samples to selected lap
-  const filteredSamples = useMemo((): GpsSample[] => {
-    if (!data) return [];
-    if (selectedLapNumber === null) return data.samples;
-
-    const lap = laps.find((l) => l.lapNumber === selectedLapNumber);
-    if (!lap) return data.samples;
-
-    return data.samples.slice(lap.startIndex, lap.endIndex + 1);
-  }, [data, laps, selectedLapNumber]);
-
-  // Reset visible range when filtered samples change
-  useEffect(() => {
-    if (filteredSamples.length > 0) {
-      setVisibleRange([0, filteredSamples.length - 1]);
-    }
-  }, [filteredSamples.length, selectedLapNumber]);
-
-  // Sync field visibility when settings change (real-time toggle)
-  useEffect(() => {
-    if (fieldMappings.length === 0) return;
-    
-    setFieldMappings((prev) =>
-      prev.map((f) => ({
-        ...f,
-        enabled: !isFieldHiddenByDefault(f.name),
-      }))
-    );
-  }, [settings.defaultHiddenFields, isFieldHiddenByDefault]);
-
-  // Visible samples based on range selection
-  const visibleSamples = useMemo((): GpsSample[] => {
-    if (filteredSamples.length === 0) return [];
-    const [start, end] = visibleRange;
-    return filteredSamples.slice(start, end + 1);
-  }, [filteredSamples, visibleRange]);
-
-  // Playback hook for animating through data at realistic speed
+  // Playback
   const { isPlaying, toggle: togglePlayback, averageFrameRate } = usePlayback({
     samples: visibleSamples,
     currentIndex,
@@ -156,148 +81,12 @@ export default function Index() {
     visibleRange,
   });
 
-  // Get reference lap samples (external takes priority)
-  const referenceSamples = useMemo((): GpsSample[] => {
-    if (externalRefSamples) return externalRefSamples;
-    if (!data || referenceLapNumber === null) return [];
+  const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
 
-    const refLap = laps.find((l) => l.lapNumber === referenceLapNumber);
-    if (!refLap) return [];
-
-    return data.samples.slice(refLap.startIndex, refLap.endIndex + 1);
-  }, [data, laps, referenceLapNumber, externalRefSamples]);
-
-  // Get fastest lap samples for pace comparison when no reference selected
-  const fastestLapSamples = useMemo((): GpsSample[] => {
-    if (!data || laps.length === 0) return [];
-
-    const fastestLap = laps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), laps[0]);
-
-    return data.samples.slice(fastestLap.startIndex, fastestLap.endIndex + 1);
-  }, [data, laps]);
-
-  // Calculate pace and reference speed when reference is selected
-  const { paceData, referenceSpeedData } = useMemo(() => {
-    if (referenceSamples.length === 0 || filteredSamples.length === 0) {
-      return { paceData: [], referenceSpeedData: [] };
-    }
-
-    return {
-      paceData: calculatePace(filteredSamples, referenceSamples),
-      referenceSpeedData: calculateReferenceSpeed(filteredSamples, referenceSamples, useKph),
-    };
-  }, [filteredSamples, referenceSamples, useKph]);
-
-  // Calculate lap to fastest delta (direct lap time difference)
-  const lapToFastestDelta = useMemo((): number | null => {
-    if (selectedLapNumber === null || laps.length === 0) return null;
-
-    const selectedLap = laps.find((l) => l.lapNumber === selectedLapNumber);
-    if (!selectedLap) return null;
-
-    const fastestLap = laps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), laps[0]);
-
-    return selectedLap.lapTimeMs - fastestLap.lapTimeMs;
-  }, [laps, selectedLapNumber]);
-
-  // Calculate pace diff for display (vs reference if selected, else vs best)
-  const { paceDiff, paceDiffLabel, deltaTopSpeed, deltaMinSpeed, refAvgTopSpeed, refAvgMinSpeed } = useMemo((): {
-    paceDiff: number | null;
-    paceDiffLabel: "best" | "ref";
-    deltaTopSpeed: number | null;
-    deltaMinSpeed: number | null;
-    refAvgTopSpeed: number | null;
-    refAvgMinSpeed: number | null;
-  } => {
-    if (filteredSamples.length === 0 || selectedLapNumber === null) {
-      return { paceDiff: null, paceDiffLabel: "best", deltaTopSpeed: null, deltaMinSpeed: null, refAvgTopSpeed: null, refAvgMinSpeed: null };
-    }
-
-    // Calculate speed events for current lap
-    const currentEvents = findSpeedEvents(filteredSamples);
-    const currentPeaks = currentEvents.filter((e) => e.type === "peak");
-    const currentValleys = currentEvents.filter((e) => e.type === "valley");
-    const currentAvgTop =
-      currentPeaks.length > 0 ? currentPeaks.reduce((sum, e) => sum + e.speed, 0) / currentPeaks.length : null;
-    const currentAvgMin =
-      currentValleys.length > 0 ? currentValleys.reduce((sum, e) => sum + e.speed, 0) / currentValleys.length : null;
-
-    // Helper to calculate deltas and reference averages against comparison samples
-    const calculateDeltas = (comparisonSamples: GpsSample[]) => {
-      const compEvents = findSpeedEvents(comparisonSamples);
-      const compPeaks = compEvents.filter((e) => e.type === "peak");
-      const compValleys = compEvents.filter((e) => e.type === "valley");
-      const compAvgTop =
-        compPeaks.length > 0 ? compPeaks.reduce((sum, e) => sum + e.speed, 0) / compPeaks.length : null;
-      const compAvgMin =
-        compValleys.length > 0 ? compValleys.reduce((sum, e) => sum + e.speed, 0) / compValleys.length : null;
-
-      return {
-        deltaTop: currentAvgTop !== null && compAvgTop !== null ? currentAvgTop - compAvgTop : null,
-        deltaMin: currentAvgMin !== null && compAvgMin !== null ? currentAvgMin - compAvgMin : null,
-        refTop: compAvgTop,
-        refMin: compAvgMin,
-      };
-    };
-
-    // If reference is selected, use reference pace
-    if (referenceSamples.length > 0 && paceData.length > 0) {
-      const lastPace = paceData.filter((p) => p !== null).pop() ?? null;
-      const { deltaTop, deltaMin, refTop, refMin } = calculateDeltas(referenceSamples);
-      return { paceDiff: lastPace, paceDiffLabel: "ref", deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin, refAvgTopSpeed: refTop, refAvgMinSpeed: refMin };
-    }
-
-    // Otherwise, compare to fastest lap
-    if (fastestLapSamples.length > 0) {
-      const bestPaceData = calculatePace(filteredSamples, fastestLapSamples);
-      const lastPace = bestPaceData.filter((p) => p !== null).pop() ?? null;
-      const { deltaTop, deltaMin, refTop, refMin } = calculateDeltas(fastestLapSamples);
-      return { paceDiff: lastPace, paceDiffLabel: "best", deltaTopSpeed: deltaTop, deltaMinSpeed: deltaMin, refAvgTopSpeed: refTop, refAvgMinSpeed: refMin };
-    }
-
-    return { paceDiff: null, paceDiffLabel: "best", deltaTopSpeed: null, deltaMinSpeed: null, refAvgTopSpeed: null, refAvgMinSpeed: null };
-  }, [filteredSamples, referenceSamples, fastestLapSamples, paceData, selectedLapNumber]);
-
-  // Compute bounds for filtered samples
-  const filteredBounds = useMemo(() => {
-    if (filteredSamples.length === 0) return data?.bounds;
-
-    let minLat = Infinity,
-      maxLat = -Infinity;
-    let minLon = Infinity,
-      maxLon = -Infinity;
-
-    for (const s of filteredSamples) {
-      if (s.lat < minLat) minLat = s.lat;
-      if (s.lat > maxLat) maxLat = s.lat;
-      if (s.lon < minLon) minLon = s.lon;
-      if (s.lon > maxLon) maxLon = s.lon;
-    }
-
-    return { minLat, maxLat, minLon, maxLon };
-  }, [filteredSamples, data?.bounds]);
-
-  // Find first valid GPS sample for weather lookup
-  const sessionGpsPoint = useMemo(() => {
-    if (!data?.samples?.length) return undefined;
-    const validSample = data.samples.find(s => 
-      s.lat !== 0 && s.lon !== 0 && 
-      Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180
-    );
-    return validSample ? { lat: validSample.lat, lon: validSample.lon } : undefined;
-  }, [data?.samples]);
-
+  // Orchestrate data loading — connects sessionData, lapMgmt, and sessionMeta
   const handleDataLoaded = useCallback(
     async (parsedData: ParsedData, fileName?: string) => {
-      setData(parsedData);
-      if (fileName) setCurrentFileName(fileName);
-      // Apply default hidden fields from settings
-      setFieldMappings(
-        parsedData.fieldMappings.map((f) => ({
-          ...f,
-          enabled: f.enabled && !isFieldHiddenByDefault(f.name),
-        }))
-      );
+      sessionData.loadParsedData(parsedData, fileName);
       setCurrentIndex(0);
 
       // Try to restore track selection from metadata
@@ -314,38 +103,20 @@ export default function Index() {
               courseName: course.name,
               course,
             };
-            setSelection(restoredSelection);
+            lapMgmt.setSelection(restoredSelection);
             courseToUse = course;
           }
-          // Restore cached weather station
-          if (meta.weatherStationId) {
-            setCachedWeatherStation({
-              stationId: meta.weatherStationId,
-              name: meta.weatherStationName || meta.weatherStationId,
-              distanceKm: meta.weatherStationDistanceKm || 0,
-            });
-          } else {
-            setCachedWeatherStation(null);
-          }
-          // Restore session kart/setup link
-          setSessionKartId(meta.sessionKartId ?? null);
-          setSessionSetupId(meta.sessionSetupId ?? null);
+          sessionMeta.restoreFromMetadata(meta);
         } else {
-          setCachedWeatherStation(null);
-          setSessionKartId(null);
-          setSessionSetupId(null);
+          sessionMeta.restoreFromMetadata(null);
         }
       } else {
-        setCachedWeatherStation(null);
-        setSessionKartId(null);
-        setSessionSetupId(null);
+        sessionMeta.restoreFromMetadata(null);
       }
 
       // Calculate laps if course is selected
       if (courseToUse) {
-        const computedLaps = calculateLaps(parsedData.samples, courseToUse);
-        setLaps(computedLaps);
-        // Auto-select fastest lap
+        const computedLaps = lapMgmt.calculateAndSetLaps(courseToUse, parsedData.samples);
         if (computedLaps.length > 0) {
           const fastest = computedLaps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), computedLaps[0]);
           setSelectedLapNumber(fastest.lapNumber);
@@ -354,178 +125,82 @@ export default function Index() {
         setSelectedLapNumber(null);
       }
     },
-    [selectedCourse, isFieldHiddenByDefault],
+    [selectedCourse, sessionData, lapMgmt, sessionMeta, setCurrentIndex, setSelectedLapNumber]
   );
 
-  const handleSelectionChange = useCallback(
-    (newSelection: TrackCourseSelection | null) => {
-      setSelection(newSelection);
-
-      // Persist track/course association for current file
-      if (currentFileName && newSelection) {
-        // Preserve existing weather station cache when saving track selection
-        getFileMetadata(currentFileName).then((existing) => {
-          saveFileMetadata({
-            fileName: currentFileName,
-            trackName: newSelection.trackName,
-            courseName: newSelection.courseName,
-            weatherStationId: existing?.weatherStationId,
-            weatherStationName: existing?.weatherStationName,
-            weatherStationDistanceKm: existing?.weatherStationDistanceKm,
-          });
-        });
+  // Wire up sample loading
+  const handleLoadSample = useCallback(() => {
+    sessionData.handleLoadSample(
+      handleSelectionChange,
+      (computedLaps, autoSelectLap, autoSelectRef) => {
+        lapMgmt.setLaps(computedLaps);
+        if (autoSelectLap !== undefined) setSelectedLapNumber(autoSelectLap);
+        if (autoSelectRef !== undefined) setReferenceLapNumber(autoSelectRef);
       }
+    );
+  }, [sessionData, handleSelectionChange, lapMgmt, setSelectedLapNumber, setReferenceLapNumber]);
 
-      // Recalculate laps
-      if (newSelection?.course && data) {
-        const computedLaps = calculateLaps(data.samples, newSelection.course);
-        setLaps(computedLaps);
-        // Auto-select fastest lap
-        if (computedLaps.length > 0) {
-          const fastest = computedLaps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), computedLaps[0]);
-          setSelectedLapNumber(fastest.lapNumber);
-        }
-      } else {
-        setLaps([]);
-        setSelectedLapNumber(null);
-      }
-    },
-    [data, currentFileName],
-  );
+  // Wire up reference setting to also clear external ref
+  const handleSetReferenceWithClear = useCallback((lapNumber: number) => {
+    handleSetReference(lapNumber);
+    externalRef.setExternalRefSamples(null);
+    externalRef.setExternalRefLabel(null);
+  }, [handleSetReference, externalRef]);
 
-  const handleScrub = useCallback(
-    (index: number) => {
-      // Clamp to visible range
-      const clampedIndex = Math.max(0, Math.min(index, visibleRange[1] - visibleRange[0]));
-      setCurrentIndex(clampedIndex);
-    },
-    [visibleRange],
-  );
+  // Wire up external lap selection to clear internal ref
+  const handleSelectExternalLapWithClear = useCallback((fileName: string, lapNumber: number) => {
+    handleSelectExternalLap(fileName, lapNumber);
+    setReferenceLapNumber(null);
+  }, [handleSelectExternalLap, setReferenceLapNumber]);
 
-  const handleRangeChange = useCallback(
-    (newRange: [number, number]) => {
-      setVisibleRange(newRange);
-      // Clamp current index to new visible range
-      const visibleLength = newRange[1] - newRange[0];
-      if (currentIndex > visibleLength) {
-        setCurrentIndex(visibleLength);
-      }
-    },
-    [currentIndex],
-  );
+  const hasReference = referenceLapNumber !== null || externalRefSamples !== null;
 
-  const handleFieldToggle = useCallback((fieldName: string) => {
-    setFieldMappings((prev) => prev.map((f) => (f.name === fieldName ? { ...f, enabled: !f.enabled } : f)));
-  }, []);
+  const brakingZoneSettings = useMemo(() => ({
+    entryThresholdG: settings.brakingEntryThreshold / 100,
+    exitThresholdG: settings.brakingExitThreshold / 100,
+    minDurationMs: settings.brakingMinDuration,
+    smoothingAlpha: settings.brakingSmoothingAlpha / 100,
+    color: settings.brakingZoneColor,
+    width: settings.brakingZoneWidth,
+  }), [settings.brakingEntryThreshold, settings.brakingExitThreshold, settings.brakingMinDuration, settings.brakingSmoothingAlpha, settings.brakingZoneColor, settings.brakingZoneWidth]);
 
-  const handleLapSelect = useCallback((lap: Lap) => {
-    setSelectedLapNumber(lap.lapNumber);
-    setCurrentIndex(0);
-    setTopPanelView("raceline");
-  }, []);
+  const selectedLapTimeMs = selectedLapNumber !== null
+    ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null)
+    : null;
 
-  const handleLapDropdownChange = useCallback((value: string) => {
-    if (value === "all") {
-      setSelectedLapNumber(null);
-      setCurrentIndex(0);
-    } else {
-      const lapNum = parseInt(value, 10);
-      setSelectedLapNumber(lapNum);
-      setCurrentIndex(0);
-    }
-  }, []);
+  const minRange = Math.min(10, Math.floor(filteredSamples.length / 10));
 
-  const handleSetReference = useCallback((lapNumber: number) => {
-    setReferenceLapNumber((prev) => (prev === lapNumber ? null : lapNumber));
-    // Clear external reference when internal ref is set
-    setExternalRefSamples(null);
-    setExternalRefLabel(null);
-  }, []);
-
-  // Load saved files list for external ref dialog
-  const refreshSavedFiles = useCallback(async () => {
-    const files = await listFiles();
-    setSavedFiles(files);
-  }, []);
-
-  // Load a file from storage and calculate laps for external reference
-  const handleLoadFileForRef = useCallback(async (fileName: string): Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null> => {
-    if (!selectedCourse) return null;
-    const blob = await getFile(fileName);
-    if (!blob) return null;
-
-    const arrayBuffer = await blob.arrayBuffer();
-    const parsed = parseDatalogContent(arrayBuffer);
-    const computedLaps = calculateLaps(parsed.samples, selectedCourse);
-
-    if (computedLaps.length === 0) return null;
-
-    // Cache parsed data for lap selection
-    externalParsedRef.current = { fileName, samples: parsed.samples, laps: computedLaps };
-
-    return computedLaps.map((l) => ({ lapNumber: l.lapNumber, lapTimeMs: l.lapTimeMs }));
-  }, [selectedCourse]);
-
-  // Set external reference from cached parsed data
-  const handleSelectExternalLap = useCallback((fileName: string, lapNumber: number) => {
-    const cached = externalParsedRef.current;
-    if (!cached || cached.fileName !== fileName) return;
-
-    const lap = cached.laps.find((l) => l.lapNumber === lapNumber);
-    if (!lap) return;
-
-    const samples = cached.samples.slice(lap.startIndex, lap.endIndex + 1);
-    setExternalRefSamples(samples);
-    setExternalRefLabel(`${fileName} : Lap ${lapNumber} : ${formatLapTime(lap.lapTimeMs)}`);
-    setReferenceLapNumber(null); // Clear internal reference
-  }, []);
-
-  const handleClearExternalRef = useCallback(() => {
-    setExternalRefSamples(null);
-    setExternalRefLabel(null);
-  }, []);
-
-  const handleWeatherStationResolved = useCallback(
-    (station: WeatherStation) => {
-      setCachedWeatherStation(station);
-      if (currentFileName) {
-        getFileMetadata(currentFileName).then((existing) => {
-          saveFileMetadata({
-            fileName: currentFileName,
-            trackName: existing?.trackName || "",
-            courseName: existing?.courseName || "",
-            weatherStationId: station.stationId,
-            weatherStationName: station.name,
-            weatherStationDistanceKm: station.distanceKm,
-          });
-        });
-      }
-    },
-    [currentFileName],
-  );
-
-  const handleSaveSessionSetup = useCallback(
-    async (kartId: string | null, setupId: string | null) => {
-      if (!currentFileName) return;
-      const existing = await getFileMetadata(currentFileName);
-      await saveFileMetadata({
-        fileName: currentFileName,
-        trackName: existing?.trackName || "",
-        courseName: existing?.courseName || "",
-        weatherStationId: existing?.weatherStationId,
-        weatherStationName: existing?.weatherStationName,
-        weatherStationDistanceKm: existing?.weatherStationDistanceKm,
-        sessionKartId: kartId ?? undefined,
-        sessionSetupId: setupId ?? undefined,
-      });
-      setSessionKartId(kartId);
-      setSessionSetupId(setupId);
-    },
-    [currentFileName],
-  );
-
-  const speedUnit = useKph ? "kph" : "mph";
-  const getCurrentSpeed = (sample: GpsSample) => (useKph ? sample.speedKph : sample.speedMph);
+  // Shared FileManagerDrawer props
+  const fileManagerProps = {
+    isOpen: fileManager.isOpen,
+    files: fileManager.files,
+    storageUsed: fileManager.storageUsed,
+    storageQuota: fileManager.storageQuota,
+    onClose: fileManager.close,
+    onLoadFile: fileManager.loadFile,
+    onDeleteFile: fileManager.removeFile,
+    onExportFile: fileManager.exportFile,
+    onSaveFile: fileManager.saveFile,
+    onDataLoaded: handleDataLoaded,
+    autoSave: settings.autoSaveFiles,
+    karts: kartManager.karts,
+    onAddKart: kartManager.addKart,
+    onUpdateKart: kartManager.updateKart,
+    onRemoveKart: kartManager.removeKart,
+    currentFileName,
+    notes: noteManager.notes,
+    onAddNote: noteManager.addNote,
+    onUpdateNote: noteManager.updateNote,
+    onRemoveNote: noteManager.removeNote,
+    setups: setupManager.setups,
+    onAddSetup: setupManager.addSetup,
+    onUpdateSetup: setupManager.updateSetup,
+    onRemoveSetup: setupManager.removeSetup,
+    onGetLatestSetupForKart: setupManager.getLatestForKart,
+    sessionKartId,
+    sessionSetupId,
+    onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
+  };
 
   // No data loaded - show import UI
   if (!data) {
@@ -600,67 +275,23 @@ export default function Index() {
             </div>
 
             <div className="flex items-center justify-center gap-8 mt-4">
-              <a
-                href="https://github.com/TheAngryRaven/DovesDataViewer"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Github className="w-5 h-5" />
-                <span className="text-sm">View on GitHub</span>
+              <a href="https://github.com/TheAngryRaven/DovesDataViewer" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Github className="w-5 h-5" /><span className="text-sm">View on GitHub</span>
               </a>
-              <a
-                href="https://github.com/TheAngryRaven/DovesDataLogger"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Github className="w-5 h-5" />
-                <span className="text-sm">View Datalogger</span>
+              <a href="https://github.com/TheAngryRaven/DovesDataLogger" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Github className="w-5 h-5" /><span className="text-sm">View Datalogger</span>
               </a>
-              <a
-                href="https://github.com/TheAngryRaven/DovesLapTimer"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Github className="w-5 h-5" />
-                <span className="text-sm">View Timer Library</span>
+              <a href="https://github.com/TheAngryRaven/DovesLapTimer" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Github className="w-5 h-5" /><span className="text-sm">View Timer Library</span>
               </a>
             </div>
           </div>
         </main>
       </div>
-      <FileManagerDrawer
-        isOpen={fileManager.isOpen}
-        files={fileManager.files}
-        storageUsed={fileManager.storageUsed}
-        storageQuota={fileManager.storageQuota}
-        onClose={fileManager.close}
-        onLoadFile={fileManager.loadFile}
-        onDeleteFile={fileManager.removeFile}
-        onExportFile={fileManager.exportFile}
-        onSaveFile={fileManager.saveFile}
-        onDataLoaded={handleDataLoaded}
-        autoSave={settings.autoSaveFiles}
-        karts={kartManager.karts}
-        onAddKart={kartManager.addKart}
-        onUpdateKart={kartManager.updateKart}
-        onRemoveKart={kartManager.removeKart}
-        currentFileName={currentFileName}
-        notes={noteManager.notes}
-        onAddNote={noteManager.addNote}
-        onUpdateNote={noteManager.updateNote}
-        onRemoveNote={noteManager.removeNote}
-        setups={setupManager.setups}
-        onAddSetup={setupManager.addSetup}
-        onUpdateSetup={setupManager.updateSetup}
-        onRemoveSetup={setupManager.removeSetup}
-        onGetLatestSetupForKart={setupManager.getLatestForKart}
-        sessionKartId={sessionKartId}
-        sessionSetupId={sessionSetupId}
-        onSaveSessionSetup={handleSaveSessionSetup}
-      />
+      <FileManagerDrawer {...fileManagerProps} />
       </>
     );
   }
@@ -678,17 +309,8 @@ export default function Index() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="h-8 w-8" 
-                  onClick={togglePlayback}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4" />
-                  )}
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={togglePlayback}>
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -715,12 +337,7 @@ export default function Index() {
             </Select>
           )}
 
-          <SettingsModal
-            settings={settings}
-            onSettingsChange={setSettings}
-            onToggleFieldDefault={toggleFieldDefault}
-          />
-
+          <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={fileManager.open}>
             <FolderOpen className="w-4 h-4" />
           </Button>
@@ -728,45 +345,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <div className="flex items-center border-b border-border shrink-0">
-          <button
-            onClick={() => setTopPanelView("raceline")}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "raceline" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <Map className="w-4 h-4" />
-            Race Line
-          </button>
-          <button
-            onClick={() => setTopPanelView("laptable")}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "laptable" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <ListOrdered className="w-4 h-4" />
-            Lap Times
-            {laps.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
-            )}
-          </button>
-          <button
-            onClick={() => setTopPanelView("graphview")}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${topPanelView === "graphview" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span className="hidden sm:inline">Graph View</span>
-          </button>
-
-          {/* Overlay toggle button */}
-          <div className="ml-auto mr-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowOverlays(!showOverlays)}
-              className="h-7 px-2 gap-1.5"
-            >
-              {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-              <span className="text-xs">Overlay</span>
-            </Button>
-          </div>
-        </div>
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} />
 
         <div className="flex-1 min-h-0 overflow-hidden">
           {topPanelView === "raceline" && (
@@ -784,42 +363,27 @@ export default function Index() {
               deltaMinSpeed={deltaMinSpeed}
               referenceLapNumber={referenceLapNumber}
               lapToFastestDelta={lapToFastestDelta}
-              showOverlays={showOverlays}
-              lapTimeMs={selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null) : null}
+              showOverlays={true}
+              lapTimeMs={selectedLapTimeMs}
               refAvgTopSpeed={refAvgTopSpeed}
               refAvgMinSpeed={refAvgMinSpeed}
-              brakingZoneSettings={{
-                entryThresholdG: settings.brakingEntryThreshold / 100,
-                exitThresholdG: settings.brakingExitThreshold / 100,
-                minDurationMs: settings.brakingMinDuration,
-                smoothingAlpha: settings.brakingSmoothingAlpha / 100,
-                color: settings.brakingZoneColor,
-                width: settings.brakingZoneWidth,
-              }}
+              brakingZoneSettings={brakingZoneSettings}
               sessionGpsPoint={sessionGpsPoint}
               sessionStartDate={data?.startDate}
               cachedWeatherStation={cachedWeatherStation}
-              onWeatherStationResolved={handleWeatherStationResolved}
+              onWeatherStationResolved={sessionMeta.handleWeatherStationResolved}
               fieldMappings={fieldMappings}
               onScrub={handleScrub}
-              onFieldToggle={handleFieldToggle}
+              onFieldToggle={sessionData.handleFieldToggle}
               paceData={paceData.slice(visibleRange[0], visibleRange[1] + 1)}
               referenceSpeedData={referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1)}
-              hasReference={referenceLapNumber !== null || externalRefSamples !== null}
+              hasReference={hasReference}
               gForceSmoothing={settings.gForceSmoothing}
               gForceSmoothingStrength={settings.gForceSmoothingStrength}
               visibleRange={visibleRange}
               onRangeChange={handleRangeChange}
-              minRange={Math.min(10, Math.floor(filteredSamples.length / 10))}
-              formatRangeLabel={(idx) => {
-                const sample = filteredSamples[idx];
-                if (!sample) return "";
-                const totalMs = sample.t - filteredSamples[0].t;
-                const secs = Math.floor(totalMs / 1000);
-                const mins = Math.floor(secs / 60);
-                const remSecs = secs % 60;
-                return `${mins}:${remSecs.toString().padStart(2, "0")}`;
-              }}
+              minRange={minRange}
+              formatRangeLabel={formatRangeLabel}
             />
           )}
           {topPanelView === "laptable" && (
@@ -829,12 +393,12 @@ export default function Index() {
               onLapSelect={handleLapSelect}
               selectedLapNumber={selectedLapNumber}
               referenceLapNumber={referenceLapNumber}
-              onSetReference={handleSetReference}
+              onSetReference={handleSetReferenceWithClear}
               useKph={useKph}
               externalRefLabel={externalRefLabel}
               savedFiles={savedFiles}
               onLoadFileForRef={handleLoadFileForRef}
-              onSelectExternalLap={handleSelectExternalLap}
+              onSelectExternalLap={handleSelectExternalLapWithClear}
               onClearExternalRef={handleClearExternalRef}
               onRefreshSavedFiles={refreshSavedFiles}
             />
@@ -849,7 +413,7 @@ export default function Index() {
               useKph={useKph}
               fieldMappings={fieldMappings}
               course={selectedCourse}
-              lapTimeMs={selectedLapNumber !== null ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null) : null}
+              lapTimeMs={selectedLapTimeMs}
               paceDiff={paceDiff}
               paceDiffLabel={paceDiffLabel}
               deltaTopSpeed={deltaTopSpeed}
@@ -857,35 +421,20 @@ export default function Index() {
               referenceLapNumber={referenceLapNumber}
               lapToFastestDelta={lapToFastestDelta}
               bounds={filteredBounds!}
-              brakingZoneSettings={{
-                entryThresholdG: settings.brakingEntryThreshold / 100,
-                exitThresholdG: settings.brakingExitThreshold / 100,
-                minDurationMs: settings.brakingMinDuration,
-                smoothingAlpha: settings.brakingSmoothingAlpha / 100,
-                color: settings.brakingZoneColor,
-                width: settings.brakingZoneWidth,
-              }}
+              brakingZoneSettings={brakingZoneSettings}
               sessionGpsPoint={sessionGpsPoint}
               sessionStartDate={data?.startDate}
               cachedWeatherStation={cachedWeatherStation}
-              onWeatherStationResolved={handleWeatherStationResolved}
+              onWeatherStationResolved={sessionMeta.handleWeatherStationResolved}
               karts={kartManager.karts}
               setups={setupManager.setups}
               sessionKartId={sessionKartId}
               sessionSetupId={sessionSetupId}
-              onSaveSessionSetup={handleSaveSessionSetup}
+              onSaveSessionSetup={sessionMeta.handleSaveSessionSetup}
               visibleRange={visibleRange}
               onRangeChange={handleRangeChange}
-              minRange={Math.min(10, Math.floor(filteredSamples.length / 10))}
-              formatRangeLabel={(idx) => {
-                const sample = filteredSamples[idx];
-                if (!sample) return "";
-                const totalMs = sample.t - filteredSamples[0].t;
-                const secs = Math.floor(totalMs / 1000);
-                const mins = Math.floor(secs / 60);
-                const remSecs = secs % 60;
-                return `${mins}:${remSecs.toString().padStart(2, "0")}`;
-              }}
+              minRange={minRange}
+              formatRangeLabel={formatRangeLabel}
               gForceSmoothing={settings.gForceSmoothing}
               gForceSmoothingStrength={settings.gForceSmoothingStrength}
             />
@@ -893,36 +442,46 @@ export default function Index() {
         </div>
       </main>
       <InstallPrompt />
-      <FileManagerDrawer
-        isOpen={fileManager.isOpen}
-        files={fileManager.files}
-        storageUsed={fileManager.storageUsed}
-        storageQuota={fileManager.storageQuota}
-        onClose={fileManager.close}
-        onLoadFile={fileManager.loadFile}
-        onDeleteFile={fileManager.removeFile}
-        onExportFile={fileManager.exportFile}
-        onSaveFile={fileManager.saveFile}
-        onDataLoaded={handleDataLoaded}
-        autoSave={settings.autoSaveFiles}
-        karts={kartManager.karts}
-        onAddKart={kartManager.addKart}
-        onUpdateKart={kartManager.updateKart}
-        onRemoveKart={kartManager.removeKart}
-        currentFileName={currentFileName}
-        notes={noteManager.notes}
-        onAddNote={noteManager.addNote}
-        onUpdateNote={noteManager.updateNote}
-        onRemoveNote={noteManager.removeNote}
-        setups={setupManager.setups}
-        onAddSetup={setupManager.addSetup}
-        onUpdateSetup={setupManager.updateSetup}
-        onRemoveSetup={setupManager.removeSetup}
-        onGetLatestSetupForKart={setupManager.getLatestForKart}
-        sessionKartId={sessionKartId}
-        sessionSetupId={sessionSetupId}
-        onSaveSessionSetup={handleSaveSessionSetup}
-      />
+      <FileManagerDrawer {...fileManagerProps} />
+    </div>
+  );
+}
+
+/** Tab navigation bar for the main data view */
+function TabBar({ topPanelView, setTopPanelView, laps }: {
+  topPanelView: TopPanelView;
+  setTopPanelView: (view: TopPanelView) => void;
+  laps: { lapNumber: number }[];
+}) {
+  const [showOverlays, setShowOverlays] = useState(true);
+
+  const tabClass = (view: TopPanelView) =>
+    `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+      topPanelView === view
+        ? "text-primary border-b-2 border-primary bg-primary/5"
+        : "text-muted-foreground hover:text-foreground"
+    }`;
+
+  return (
+    <div className="flex items-center border-b border-border shrink-0">
+      <button onClick={() => setTopPanelView("raceline")} className={tabClass("raceline")}>
+        <Map className="w-4 h-4" /> Race Line
+      </button>
+      <button onClick={() => setTopPanelView("laptable")} className={tabClass("laptable")}>
+        <ListOrdered className="w-4 h-4" /> Lap Times
+        {laps.length > 0 && (
+          <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
+        )}
+      </button>
+      <button onClick={() => setTopPanelView("graphview")} className={tabClass("graphview")}>
+        <BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">Graph View</span>
+      </button>
+      <div className="ml-auto mr-3">
+        <Button variant="ghost" size="sm" onClick={() => setShowOverlays(!showOverlays)} className="h-7 px-2 gap-1.5">
+          {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          <span className="text-xs">Overlay</span>
+        </Button>
+      </div>
     </div>
   );
 }
