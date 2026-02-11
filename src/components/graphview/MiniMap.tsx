@@ -5,7 +5,7 @@ import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { Moon, Satellite, Square, WifiOff, Zap, Octagon, EyeOff, Map as MapIcon } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff, Zap, Octagon, Map as MapIcon } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 type MapStyle = 'dark' | 'satellite' | 'none';
@@ -67,7 +67,6 @@ export function MiniMap({ samples, allSamples, currentIndex, course, bounds, use
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
   const [showBrakingZones, setShowBrakingZones] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
-  const [mapVisible, setMapVisible] = useState(true);
   const isOnline = useOnlineStatus();
 
   const { minSpeed, maxSpeed } = useMemo(() => {
@@ -174,18 +173,8 @@ export function MiniMap({ samples, allSamples, currentIndex, course, bounds, use
   const cycleMapStyle = () => setMapStyle(p => p === 'dark' ? 'satellite' : p === 'satellite' ? 'none' : 'dark');
   const mapStyleIcon = { dark: <Moon className="w-3 h-3" />, satellite: <Satellite className="w-3 h-3" />, none: <Square className="w-3 h-3" /> };
 
-  if (!mapVisible) {
-    return (
-      <div className="h-full flex items-center justify-center bg-card border-t border-border">
-        <button onClick={() => setMapVisible(true)} className="flex items-center gap-2 px-3 py-2 rounded hover:bg-muted/50 text-muted-foreground text-xs">
-          <MapIcon className="w-4 h-4" /> Show Map
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full relative border-t border-border">
+    <div className="h-full relative">
       <div ref={containerRef} className="w-full h-full bg-black" />
 
       {/* Map style toggle - upper left */}
@@ -214,15 +203,6 @@ export function MiniMap({ samples, allSamples, currentIndex, course, bounds, use
           <Zap className="w-3 h-3" />
         </button>
       </div>
-
-      {/* Hide map - bottom center */}
-      <button
-        onClick={() => setMapVisible(false)}
-        className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1 px-2 py-1 rounded bg-card/90 backdrop-blur-sm border border-border hover:bg-muted/50 text-muted-foreground text-xs"
-        title="Hide map"
-      >
-        <EyeOff className="w-3 h-3" /> Hide
-      </button>
 
       {!isOnline && (
         <div className="absolute bottom-2 left-2 z-[1000] flex items-center gap-1 text-xs text-amber-500">
