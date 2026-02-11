@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ResizableSplit } from "@/components/ResizableSplit";
 import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
@@ -39,7 +40,7 @@ interface RaceLineTabProps {
   formatRangeLabel: (idx: number) => string;
 }
 
-export function RaceLineTab(props: RaceLineTabProps) {
+export const RaceLineTab = memo(function RaceLineTab(props: RaceLineTabProps) {
   return (
     <ResizableSplit
       defaultRatio={0.7}
@@ -97,4 +98,4 @@ export function RaceLineTab(props: RaceLineTabProps) {
       }
     />
   );
-}
+});

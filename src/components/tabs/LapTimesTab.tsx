@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { LapTable } from "@/components/LapTable";
 import { Lap, Course } from "@/types/racing";
 import { FileEntry } from "@/lib/fileStorage";
@@ -17,7 +18,7 @@ interface LapTimesTabProps {
   onRefreshSavedFiles: () => void;
 }
 
-export function LapTimesTab(props: LapTimesTabProps) {
+export const LapTimesTab = memo(function LapTimesTab(props: LapTimesTabProps) {
   return (
     <div className="h-full overflow-hidden">
       <LapTable
@@ -36,4 +37,4 @@ export function LapTimesTab(props: LapTimesTabProps) {
       />
     </div>
   );
-}
+});

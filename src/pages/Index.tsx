@@ -178,8 +178,18 @@ export default function Index() {
     brakingZoneSettings,
   }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings]);
 
+  // Memoize sliced data arrays to avoid recreating on every render
+  const slicedPaceData = useMemo(
+    () => paceData.slice(visibleRange[0], visibleRange[1] + 1),
+    [paceData, visibleRange]
+  );
+  const slicedReferenceSpeedData = useMemo(
+    () => referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1),
+    [referenceSpeedData, visibleRange]
+  );
+
   // Shared FileManagerDrawer props
-  const fileManagerProps = {
+  const fileManagerProps = useMemo(() => ({
     isOpen: fileManager.isOpen,
     files: fileManager.files,
     storageUsed: fileManager.storageUsed,
@@ -208,7 +218,16 @@ export default function Index() {
     sessionKartId,
     sessionSetupId,
     onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
-  };
+  }), [
+    fileManager.isOpen, fileManager.files, fileManager.storageUsed, fileManager.storageQuota,
+    fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
+    handleDataLoaded, settings.autoSaveFiles,
+    kartManager.karts, kartManager.addKart, kartManager.updateKart, kartManager.removeKart,
+    currentFileName,
+    noteManager.notes, noteManager.addNote, noteManager.updateNote, noteManager.removeNote,
+    setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForKart,
+    sessionKartId, sessionSetupId, sessionMeta.handleSaveSessionSetup,
+  ]);
 
   // No data loaded - show import UI
   if (!data) {
@@ -382,8 +401,8 @@ export default function Index() {
               fieldMappings={fieldMappings}
               onScrub={handleScrub}
               onFieldToggle={sessionData.handleFieldToggle}
-              paceData={paceData.slice(visibleRange[0], visibleRange[1] + 1)}
-              referenceSpeedData={referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1)}
+              paceData={slicedPaceData}
+              referenceSpeedData={slicedReferenceSpeedData}
               hasReference={hasReference}
               visibleRange={visibleRange}
               onRangeChange={handleRangeChange}
