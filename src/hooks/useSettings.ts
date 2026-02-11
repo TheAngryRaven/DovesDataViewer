@@ -13,6 +13,7 @@ export interface AppSettings {
   brakingSmoothingAlpha: number;    // 10-80, represents 0.1-0.8 (default: 40)
   brakingZoneColor: string;         // HSL color string (default: blue)
   brakingZoneWidth: number;         // 6-16 pixels (default: 10)
+  brakingGraphWindow: number;       // 5-51 odd, SG filter window for graph (default: 25)
   autoSaveFiles: boolean;           // Auto-save imported/uploaded files to device (default: true)
 }
 
@@ -30,6 +31,7 @@ const defaultSettings: AppSettings = {
   brakingSmoothingAlpha: 40,      // 0.4
   brakingZoneColor: 'hsl(210, 90%, 55%)',  // Blue
   brakingZoneWidth: 10,           // 10px
+  brakingGraphWindow: 25,         // SG window size (25 @ 25Hz = 1s)
   autoSaveFiles: true,
 };
 

@@ -5,7 +5,7 @@ import { RangeSlider } from '@/components/RangeSlider';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
-import { computeBrakingGSeries, BrakingZoneConfig } from '@/lib/brakingZones';
+import { computeBrakingGSeriesSG } from '@/lib/brakingZones';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 
 const SERIES_COLORS = [
@@ -36,25 +36,17 @@ export function GraphPanel({
 
   const hasReference = referenceSamples.length > 0;
 
-  // Build braking config from settings
-  const brakingConfig: BrakingZoneConfig = useMemo(() => ({
-    entryThresholdG: -brakingZoneSettings.entryThresholdG,
-    exitThresholdG: -brakingZoneSettings.exitThresholdG,
-    minDurationMs: brakingZoneSettings.minDurationMs,
-    smoothingAlpha: brakingZoneSettings.smoothingAlpha,
-  }), [brakingZoneSettings]);
-
-  // Compute braking G series from FULL dataset
+  // Compute braking G series from FULL dataset using SG filter for smooth graph
   const brakingGFull = useMemo(() => {
     if (filteredSamples.length < 3) return [];
-    return computeBrakingGSeries(filteredSamples, brakingConfig);
-  }, [filteredSamples, brakingConfig]);
+    return computeBrakingGSeriesSG(filteredSamples, brakingZoneSettings.graphWindow);
+  }, [filteredSamples, brakingZoneSettings.graphWindow]);
 
-  // Compute braking G for reference samples
+  // Compute braking G for reference samples using SG filter
   const brakingGRefFull = useMemo(() => {
     if (!hasReference || referenceSamples.length < 3) return [];
-    return computeBrakingGSeries(referenceSamples, brakingConfig);
-  }, [referenceSamples, brakingConfig, hasReference]);
+    return computeBrakingGSeriesSG(referenceSamples, brakingZoneSettings.graphWindow);
+  }, [referenceSamples, brakingZoneSettings.graphWindow, hasReference]);
 
   // Precompute reference values for each channel from FULL dataset, then slice for visible range
   const referenceValuesByKey = useMemo(() => {

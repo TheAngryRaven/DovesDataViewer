@@ -7,6 +7,7 @@ export interface BrakingZoneSettings {
   smoothingAlpha: number;
   color: string;
   width: number;
+  graphWindow: number;
 }
 
 export interface SettingsContextValue {
