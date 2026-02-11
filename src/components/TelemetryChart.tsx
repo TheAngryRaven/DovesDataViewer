@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 
 interface TelemetryChartProps {
   samples: GpsSample[];
@@ -8,12 +9,9 @@ interface TelemetryChartProps {
   currentIndex: number;
   onScrub: (index: number) => void;
   onFieldToggle: (fieldName: string) => void;
-  useKph?: boolean;
   paceData?: (number | null)[];
   referenceSpeedData?: (number | null)[];
   hasReference?: boolean;
-  gForceSmoothing?: boolean;
-  gForceSmoothingStrength?: number;
 }
 
 const COLORS = [
@@ -30,19 +28,17 @@ const COLORS = [
 const REFERENCE_COLOR = 'hsl(220, 10%, 55%)'; // Grey for reference
 const PACE_COLOR = 'hsl(35, 90%, 55%)'; // Orange-gold for pace
 
-export function TelemetryChart({ 
-  samples, 
-  fieldMappings, 
-  currentIndex, 
+export function TelemetryChart({
+  samples,
+  fieldMappings,
+  currentIndex,
   onScrub,
   onFieldToggle,
-  useKph = false,
   paceData = [],
   referenceSpeedData = [],
   hasReference = false,
-  gForceSmoothing = true,
-  gForceSmoothingStrength = 50
 }: TelemetryChartProps) {
+  const { useKph, gForceSmoothing, gForceSmoothingStrength } = useSettingsContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });

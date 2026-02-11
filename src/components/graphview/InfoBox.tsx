@@ -9,12 +9,12 @@ import { Kart } from '@/lib/kartStorage';
 import { KartSetup } from '@/lib/setupStorage';
 import { WeatherPanel } from '@/components/WeatherPanel';
 import { WeatherStation } from '@/lib/weatherService';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 
 interface InfoBoxProps {
   // Stats data
   filteredSamples: GpsSample[];
   course: Course | null;
-  useKph: boolean;
   lapTimeMs: number | null;
   paceDiff: number | null;
   paceDiffLabel: 'best' | 'ref';
@@ -39,11 +39,12 @@ interface InfoBoxProps {
 type InfoTab = 'data' | 'kart';
 
 export function InfoBox({
-  filteredSamples, course, useKph, lapTimeMs, paceDiff, paceDiffLabel,
+  filteredSamples, course, lapTimeMs, paceDiff, paceDiffLabel,
   deltaTopSpeed, deltaMinSpeed, referenceLapNumber, lapToFastestDelta,
   sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved,
   karts, setups, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor,
 }: InfoBoxProps) {
+  const { useKph } = useSettingsContext();
   const [tab, setTab] = useState<InfoTab>('data');
   const [selectedKartId, setSelectedKartId] = useState<string | null>(sessionKartId);
   const [selectedSetupId, setSelectedSetupId] = useState<string | null>(sessionSetupId);

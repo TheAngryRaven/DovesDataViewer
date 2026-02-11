@@ -26,6 +26,7 @@ import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useState } from "react";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 
 type TopPanelView = "raceline" | "laptable" | "graphview";
 
@@ -170,6 +171,13 @@ export default function Index() {
 
   const minRange = Math.min(10, Math.floor(filteredSamples.length / 10));
 
+  const settingsContextValue = useMemo(() => ({
+    useKph,
+    gForceSmoothing: settings.gForceSmoothing,
+    gForceSmoothingStrength: settings.gForceSmoothingStrength,
+    brakingZoneSettings,
+  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings]);
+
   // Shared FileManagerDrawer props
   const fileManagerProps = {
     isOpen: fileManager.isOpen,
@@ -298,6 +306,7 @@ export default function Index() {
 
   // Data loaded - show main view
   return (
+    <SettingsProvider value={settingsContextValue}>
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -356,7 +365,6 @@ export default function Index() {
               currentIndex={currentIndex}
               course={selectedCourse}
               bounds={filteredBounds!}
-              useKph={useKph}
               paceDiff={paceDiff}
               paceDiffLabel={paceDiffLabel}
               deltaTopSpeed={deltaTopSpeed}
@@ -367,7 +375,6 @@ export default function Index() {
               lapTimeMs={selectedLapTimeMs}
               refAvgTopSpeed={refAvgTopSpeed}
               refAvgMinSpeed={refAvgMinSpeed}
-              brakingZoneSettings={brakingZoneSettings}
               sessionGpsPoint={sessionGpsPoint}
               sessionStartDate={data?.startDate}
               cachedWeatherStation={cachedWeatherStation}
@@ -378,8 +385,6 @@ export default function Index() {
               paceData={paceData.slice(visibleRange[0], visibleRange[1] + 1)}
               referenceSpeedData={referenceSpeedData.slice(visibleRange[0], visibleRange[1] + 1)}
               hasReference={hasReference}
-              gForceSmoothing={settings.gForceSmoothing}
-              gForceSmoothingStrength={settings.gForceSmoothingStrength}
               visibleRange={visibleRange}
               onRangeChange={handleRangeChange}
               minRange={minRange}
@@ -394,7 +399,6 @@ export default function Index() {
               selectedLapNumber={selectedLapNumber}
               referenceLapNumber={referenceLapNumber}
               onSetReference={handleSetReferenceWithClear}
-              useKph={useKph}
               externalRefLabel={externalRefLabel}
               savedFiles={savedFiles}
               onLoadFileForRef={handleLoadFileForRef}
@@ -410,7 +414,6 @@ export default function Index() {
               referenceSamples={referenceSamples}
               currentIndex={currentIndex}
               onScrub={handleScrub}
-              useKph={useKph}
               fieldMappings={fieldMappings}
               course={selectedCourse}
               lapTimeMs={selectedLapTimeMs}
@@ -421,7 +424,6 @@ export default function Index() {
               referenceLapNumber={referenceLapNumber}
               lapToFastestDelta={lapToFastestDelta}
               bounds={filteredBounds!}
-              brakingZoneSettings={brakingZoneSettings}
               sessionGpsPoint={sessionGpsPoint}
               sessionStartDate={data?.startDate}
               cachedWeatherStation={cachedWeatherStation}
@@ -435,8 +437,6 @@ export default function Index() {
               onRangeChange={handleRangeChange}
               minRange={minRange}
               formatRangeLabel={formatRangeLabel}
-              gForceSmoothing={settings.gForceSmoothing}
-              gForceSmoothingStrength={settings.gForceSmoothingStrength}
             />
           )}
         </div>
@@ -444,6 +444,7 @@ export default function Index() {
       <InstallPrompt />
       <FileManagerDrawer {...fileManagerProps} />
     </div>
+    </SettingsProvider>
   );
 }
 

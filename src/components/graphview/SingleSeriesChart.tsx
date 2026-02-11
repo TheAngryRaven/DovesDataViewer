@@ -2,27 +2,26 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { GpsSample } from '@/types/racing';
 import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
   seriesKey: string; // "speed", "__pace__", "__braking_g__", or field name from extraFields
   currentIndex: number;
   onScrub: (index: number) => void;
-  useKph?: boolean;
   color: string;
   label: string;
   onDelete: () => void;
-  gForceSmoothing?: boolean;
-  gForceSmoothingStrength?: number;
   referenceValues?: (number | null)[] | null;
   brakingGValues?: number[];
 }
 
 export function SingleSeriesChart({
-  samples, seriesKey, currentIndex, onScrub, useKph = false,
-  color, label, onDelete, gForceSmoothing = true, gForceSmoothingStrength = 50,
+  samples, seriesKey, currentIndex, onScrub,
+  color, label, onDelete,
   referenceValues = null, brakingGValues,
 }: SingleSeriesChartProps) {
+  const { useKph, gForceSmoothing, gForceSmoothingStrength } = useSettingsContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });

@@ -4,6 +4,7 @@ import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalRefBar } from '@/components/ExternalRefBar';
 import { FileEntry } from '@/lib/fileStorage';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 
 interface LapTableProps {
   laps: Lap[];
@@ -12,7 +13,6 @@ interface LapTableProps {
   selectedLapNumber?: number | null;
   referenceLapNumber?: number | null;
   onSetReference?: (lapNumber: number) => void;
-  useKph?: boolean;
   // External reference props
   externalRefLabel?: string | null;
   savedFiles?: FileEntry[];
@@ -22,7 +22,8 @@ interface LapTableProps {
   onRefreshSavedFiles?: () => void;
 }
 
-export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, useKph = false, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
+export function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
+  const { useKph } = useSettingsContext();
   if (laps.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
