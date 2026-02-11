@@ -1,3 +1,15 @@
+import { SectorLine } from '@/types/racing';
+
+/** Parse sector line coordinates from string form fields. Returns undefined if any value is NaN. */
+export function parseSectorLine(sector: { aLat: string; aLon: string; bLat: string; bLon: string }): SectorLine | undefined {
+  const aLat = parseFloat(sector.aLat);
+  const aLon = parseFloat(sector.aLon);
+  const bLat = parseFloat(sector.bLat);
+  const bLon = parseFloat(sector.bLon);
+  if (isNaN(aLat) || isNaN(aLon) || isNaN(bLat) || isNaN(bLon)) return undefined;
+  return { a: { lat: aLat, lon: aLon }, b: { lat: bLat, lon: bLon } };
+}
+
 /**
  * Abbreviate a track name for display.
  * 
