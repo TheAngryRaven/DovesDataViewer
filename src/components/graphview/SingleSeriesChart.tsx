@@ -4,7 +4,7 @@ import { GpsSample } from '@/types/racing';
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
-  seriesKey: string; // "speed" or field name from extraFields
+  seriesKey: string; // "speed", "__pace__", or field name from extraFields
   currentIndex: number;
   onScrub: (index: number) => void;
   useKph?: boolean;
@@ -13,6 +13,7 @@ interface SingleSeriesChartProps {
   onDelete: () => void;
   gForceSmoothing?: boolean;
   gForceSmoothingStrength?: number;
+  referenceValues?: (number | null)[] | null;
 }
 
 const G_FORCE_FIELDS = ['Lat G', 'Lon G'];
@@ -35,6 +36,7 @@ function applySmoothingToValues(values: (number | undefined)[], windowSize: numb
 export function SingleSeriesChart({
   samples, seriesKey, currentIndex, onScrub, useKph = false,
   color, label, onDelete, gForceSmoothing = true, gForceSmoothingStrength = 50,
+  referenceValues = null,
 }: SingleSeriesChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,6 +44,7 @@ export function SingleSeriesChart({
   const [isDragging, setIsDragging] = useState(false);
 
   const isSpeed = seriesKey === 'speed';
+  const isPace = seriesKey === '__pace__';
   const isGForce = G_FORCE_FIELDS.includes(seriesKey);
 
   const smoothingWindowSize = useMemo(() => {
@@ -51,11 +54,14 @@ export function SingleSeriesChart({
 
   // Extract raw values for this series
   const rawValues = useMemo((): (number | undefined)[] => {
+    if (isPace && referenceValues) {
+      return referenceValues.map(v => v ?? undefined);
+    }
     if (isSpeed) {
       return samples.map(s => useKph ? s.speedKph : s.speedMph);
     }
     return samples.map(s => s.extraFields[seriesKey]);
-  }, [samples, seriesKey, isSpeed, useKph]);
+  }, [samples, seriesKey, isSpeed, isPace, useKph, referenceValues]);
 
   // Apply smoothing for G-force fields
   const values = useMemo(() => {
@@ -136,15 +142,63 @@ export function SingleSeriesChart({
       ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(padding.left + chartWidth, y); ctx.stroke();
     }
 
-    // Compute min/max
+    // Compute min/max (include reference values in range)
     const numericValues = values.filter((v): v is number => v !== undefined);
     if (numericValues.length === 0) return;
     let minVal = Math.min(...numericValues);
     let maxVal = Math.max(...numericValues);
+
+    // Expand range to fit reference values
+    if (referenceValues && !isPace) {
+      const refNums = referenceValues.filter((v): v is number => v !== null);
+      if (refNums.length > 0) {
+        minVal = Math.min(minVal, ...refNums);
+        maxVal = Math.max(maxVal, ...refNums);
+      }
+    }
+
     if (isSpeed) { minVal = 0; maxVal = Math.ceil(maxVal / 10) * 10; }
+    if (isPace) {
+      // Center around zero with symmetric range
+      const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 0.5);
+      minVal = -absMax;
+      maxVal = absMax;
+    }
     const range = maxVal - minVal || 1;
 
-    // Draw line
+    // Draw reference line (behind main line)
+    if (referenceValues && !isPace) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'hsla(220, 10%, 55%, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      let refDrawing = false;
+      for (let i = 0; i < samples.length; i++) {
+        const rv = referenceValues[i];
+        if (rv === null || rv === undefined) { refDrawing = false; continue; }
+        const x = padding.left + (i / (samples.length - 1)) * chartWidth;
+        const y = padding.top + (1 - (rv - minVal) / range) * chartHeight;
+        if (!refDrawing) { ctx.moveTo(x, y); refDrawing = true; }
+        else { ctx.lineTo(x, y); }
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Draw zero line for pace
+    if (isPace) {
+      const zeroY = padding.top + (1 - (0 - minVal) / range) * chartHeight;
+      ctx.beginPath();
+      ctx.strokeStyle = 'hsla(220, 10%, 55%, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.moveTo(padding.left, zeroY);
+      ctx.lineTo(padding.left + chartWidth, zeroY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Draw main line
     ctx.beginPath();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
@@ -191,7 +245,8 @@ export function SingleSeriesChart({
     for (let i = 0; i <= valueGridCount; i++) {
       const value = minVal + (range / valueGridCount) * (valueGridCount - i);
       const y = padding.top + (chartHeight / valueGridCount) * i;
-      ctx.fillText(value.toFixed(isSpeed ? 0 : 1), padding.left - 6, y + 3);
+      const fmt = isPace ? (value > 0 ? '+' : '') + value.toFixed(1) : value.toFixed(isSpeed ? 0 : 1);
+      ctx.fillText(fmt, padding.left - 6, y + 3);
     }
 
     // X axis labels (time)
@@ -229,11 +284,12 @@ export function SingleSeriesChart({
         ctx.fillStyle = color;
         ctx.textAlign = 'left';
         ctx.font = '10px JetBrains Mono, monospace';
-        const unit = isSpeed ? (useKph ? ' kph' : ' mph') : '';
-        ctx.fillText(`${displayVal.toFixed(1)}${unit}`, boxX + 4, padding.top + 16);
+        const unit = isPace ? 's' : isSpeed ? (useKph ? ' kph' : ' mph') : '';
+        const prefix = isPace && displayVal > 0 ? '+' : '';
+        ctx.fillText(`${prefix}${displayVal.toFixed(isPace ? 2 : 1)}${unit}`, boxX + 4, padding.top + 16);
       }
     }
-  }, [samples, values, currentIndex, dimensions, color, isSpeed, useKph, interpolateIndices]);
+  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, useKph, interpolateIndices, referenceValues]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {
