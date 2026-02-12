@@ -52,8 +52,13 @@ function findNearestIndex(samples: GpsSample[], targetMs: number): number {
 export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }: UseVideoSyncOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const isSyncingRef = useRef(false);
   const lastSeekTimeRef = useRef(0);
+
+  // Refs for values used inside frame callbacks to avoid effect dependency churn
+  const onScrubRef = useRef(onScrub);
+  onScrubRef.current = onScrub;
+  const samplesRef = useRef(samples);
+  samplesRef.current = samples;
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
@@ -206,7 +211,9 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
     }
   }, [videoUrl]);
 
-  // Video-drives-data: when locked + playing, sync telemetry to video
+  // Video-drives-data: when locked + playing, sync telemetry to video.
+  // Uses refs for onScrub/samples to avoid restarting the frame callback
+  // chain when those values get new identities.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl || !isLocked || !isPlaying) return;
@@ -220,15 +227,12 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
         if (!v) return;
         const videoMs = v.currentTime * 1000;
         const telemetryMs = videoMs + syncOffsetMs;
-        const idx = findNearestIndex(samples, telemetryMs);
+        const idx = findNearestIndex(samplesRef.current, telemetryMs);
 
-        isSyncingRef.current = true;
-        onScrub(idx);
+        onScrubRef.current(idx);
         setVideoCurrentTime(v.currentTime);
         setIsOutOfRange(v.currentTime > v.duration);
 
-        // Defer flag reset to after React commit
-        queueMicrotask(() => { isSyncingRef.current = false; });
         if (active) (v as any).requestVideoFrameCallback(callback);
       };
       (video as any).requestVideoFrameCallback(callback);
@@ -244,22 +248,21 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
         if (!v) return;
         const videoMs = v.currentTime * 1000;
         const telemetryMs = videoMs + syncOffsetMs;
-        const idx = findNearestIndex(samples, telemetryMs);
+        const idx = findNearestIndex(samplesRef.current, telemetryMs);
 
-        isSyncingRef.current = true;
-        onScrub(idx);
+        onScrubRef.current(idx);
         setVideoCurrentTime(v.currentTime);
-        queueMicrotask(() => { isSyncingRef.current = false; });
         if (active) requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
     }
     return () => { active = false; };
-  }, [videoUrl, isLocked, isPlaying, syncOffsetMs, samples, onScrub]);
+  }, [videoUrl, isLocked, isPlaying, syncOffsetMs]);
 
-  // Data-drives-video: when locked and user scrubs the graph
+  // Data-drives-video: when locked, paused, and user scrubs the graph.
+  // Guarded by !isPlaying so it never fights the video-drives-data loop.
   useEffect(() => {
-    if (!isLocked || isSyncingRef.current) return;
+    if (!isLocked || isPlaying) return;
     const video = videoRef.current;
     if (!video || !videoUrl || samples.length === 0) return;
 
@@ -284,7 +287,7 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
       }
     }
     setVideoCurrentTime(clampedSec);
-  }, [currentIndex, isLocked, syncOffsetMs, samples, videoUrl, fps]);
+  }, [currentIndex, isLocked, isPlaying, syncOffsetMs, samples, videoUrl, fps]);
 
   // Play/pause sync
   const togglePlay = useCallback(() => {
