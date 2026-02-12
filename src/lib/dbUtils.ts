@@ -5,7 +5,7 @@
  */
 
 export const DB_NAME = "dove-file-manager";
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 export const STORE_NAMES = {
   FILES: "files",
@@ -13,6 +13,7 @@ export const STORE_NAMES = {
   KARTS: "karts",
   NOTES: "notes",
   SETUPS: "setups",
+  VIDEO_SYNC: "video-sync",
 } as const;
 
 /**
@@ -39,6 +40,9 @@ export function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NAMES.SETUPS)) {
         const setupsStore = db.createObjectStore(STORE_NAMES.SETUPS, { keyPath: "id" });
         setupsStore.createIndex("kartId", "kartId", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_NAMES.VIDEO_SYNC)) {
+        db.createObjectStore(STORE_NAMES.VIDEO_SYNC, { keyPath: "sessionFileName" });
       }
     };
     request.onsuccess = () => resolve(request.result);

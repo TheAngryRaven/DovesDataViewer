@@ -1,4 +1,4 @@
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -365,6 +365,31 @@ export function SettingsModal({
                 </div>
               </div>
             ))}
+          </div>
+
+          <Separator />
+
+          {/* Super Experimental Features */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">Super Experimental Features</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <div>
+                <Label htmlFor="settings-enable-labs" className="text-sm text-muted-foreground">
+                  Enable Labs tab with experimental video sync and analysis tools
+                </Label>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  Adds an experimental Labs tab for syncing video with telemetry data
+                </p>
+              </div>
+              <Switch
+                id="settings-enable-labs"
+                checked={settings.enableLabs}
+                onCheckedChange={(checked) => onSettingsChange({ enableLabs: checked })}
+              />
+            </div>
           </div>
         </div>
       </DialogContent>

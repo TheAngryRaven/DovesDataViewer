@@ -15,6 +15,7 @@ export interface AppSettings {
   brakingZoneWidth: number;         // 6-16 pixels (default: 10)
   brakingGraphWindow: number;       // 5-51 odd, SG filter window for graph (default: 25)
   autoSaveFiles: boolean;           // Auto-save imported/uploaded files to device (default: true)
+  enableLabs: boolean;              // Enable experimental Labs tab (default: false)
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -33,6 +34,7 @@ const defaultSettings: AppSettings = {
   brakingZoneWidth: 10,           // 10px
   brakingGraphWindow: 25,         // SG window size (25 @ 25Hz = 1s)
   autoSaveFiles: true,
+  enableLabs: false,
 };
 
 export function useSettings() {

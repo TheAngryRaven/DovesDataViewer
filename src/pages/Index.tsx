@@ -1,11 +1,12 @@
 import { useCallback, useMemo } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical } from "lucide-react";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { TrackEditor } from "@/components/TrackEditor";
 import { RaceLineTab } from "@/components/tabs/RaceLineTab";
 import { LapTimesTab } from "@/components/tabs/LapTimesTab";
 import { GraphViewTab } from "@/components/tabs/GraphViewTab";
+import { LabsTab } from "@/components/tabs/LabsTab";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
 import { FileManagerDrawer } from "@/components/FileManagerDrawer";
@@ -25,10 +26,11 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
+import { useVideoSync } from "@/hooks/useVideoSync";
 import { useState } from "react";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 
-type TopPanelView = "raceline" | "laptable" | "graphview";
+type TopPanelView = "raceline" | "laptable" | "graphview" | "labs";
 
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
@@ -84,6 +86,15 @@ export default function Index() {
 
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
   const [showOverlays, setShowOverlays] = useState(true);
+
+  // Video sync for Labs tab
+  const videoSync = useVideoSync({
+    samples: filteredSamples,
+    currentIndex,
+    onScrub: handleScrub,
+    sessionFileName: currentFileName,
+  });
+  const currentSample = visibleSamples[currentIndex] ?? null;
 
   // Orchestrate data loading — connects sessionData, lapMgmt, and sessionMeta
   const handleDataLoaded = useCallback(
@@ -178,7 +189,8 @@ export default function Index() {
     gForceSmoothing: settings.gForceSmoothing,
     gForceSmoothingStrength: settings.gForceSmoothingStrength,
     brakingZoneSettings,
-  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings]);
+    enableLabs: settings.enableLabs,
+  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs]);
 
   // Memoize sliced data arrays to avoid recreating on every render
   const slicedPaceData = useMemo(
@@ -375,7 +387,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} enableLabs={settings.enableLabs} />
 
         <div className="flex-1 min-h-0 overflow-hidden">
           {topPanelView === "raceline" && (
@@ -460,6 +472,27 @@ export default function Index() {
               formatRangeLabel={formatRangeLabel}
             />
           )}
+          {topPanelView === "labs" && settings.enableLabs && (
+            <LabsTab
+              videoState={videoSync.state}
+              videoActions={videoSync.actions}
+              onVideoLoadedMetadata={videoSync.handleLoadedMetadata}
+              currentSample={currentSample}
+              visibleSamples={visibleSamples}
+              filteredSamples={filteredSamples}
+              fieldMappings={fieldMappings}
+              currentIndex={currentIndex}
+              onScrub={handleScrub}
+              onFieldToggle={sessionData.handleFieldToggle}
+              paceData={slicedPaceData}
+              referenceSpeedData={slicedReferenceSpeedData}
+              hasReference={hasReference}
+              visibleRange={visibleRange}
+              onRangeChange={handleRangeChange}
+              minRange={minRange}
+              formatRangeLabel={formatRangeLabel}
+            />
+          )}
         </div>
       </main>
       <InstallPrompt />
@@ -470,12 +503,13 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, enableLabs }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
   showOverlays: boolean;
   onToggleOverlays: () => void;
+  enableLabs: boolean;
 }) {
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -498,6 +532,11 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
       <button onClick={() => setTopPanelView("graphview")} className={tabClass("graphview")}>
         <BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">Graph View</span>
       </button>
+      {enableLabs && (
+        <button onClick={() => setTopPanelView("labs")} className={tabClass("labs")}>
+          <FlaskConical className="w-4 h-4" /> <span className="hidden sm:inline">Labs</span>
+        </button>
+      )}
       {topPanelView === "raceline" && (
         <div className="ml-auto mr-3">
           <Button variant="ghost" size="sm" onClick={onToggleOverlays} className="h-7 px-2 gap-1.5">
