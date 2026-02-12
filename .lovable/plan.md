@@ -1,67 +1,105 @@
 
 
-## Upgrade Braking G Calculation with Savitzky-Golay Filter
+# Labs Tab — Video Sync Feature
 
-### Research Findings
+## Overview
 
-Scientific literature on GPS-derived acceleration strongly recommends the **Savitzky-Golay (SG) filter** over simple finite-difference + EMA:
+Add a new "Labs" tab to the main data view that provides synchronized video playback alongside the existing telemetry graph. The tab is gated behind a new "Enable super experimental features" toggle in Settings. When enabled, users can load a local video file, sync it to their telemetry data via a manual sync point, and scrub/play them in lockstep.
 
-- **NREL GPS Data Filtration paper**: Recommends SG filter for "denoising and conditioning" GPS speed derivatives, noting it "reduces white noise while maintaining the overall profile"
-- **ScienceDirect (IFAC 2019)**: Paper titled "Determining vehicle acceleration from noisy non-uniformly sampled speed data" explicitly extends SG filters for this exact use case
-- **MDPI sports GNSS study**: Compared EMA, moving average, and 4th-order Butterworth -- all outperform raw differentiation; SG-class polynomial fitting is the cleanest for derivatives
-- **FastF1 telemetry (TracingInsights)**: Real F1 analytics code uses `smooth_derivative()` with polynomial fitting for longitudinal acceleration
+## New Files
 
-**Why SG is better than the current EMA approach:**
-The current code differentiates first (noisy), then smooths with EMA (lags). SG fits a local polynomial to a window of speed samples and differentiates the polynomial analytically -- producing a smooth derivative in one step with no phase lag.
+### 1. `src/hooks/useVideoSync.ts` — Core video sync hook
+Manages all video-related state:
+- File loading via File System Access API (`showOpenFilePicker`) with `<input type="file">` fallback for Safari
+- Persisting `FileSystemFileHandle` in IndexedDB keyed by session filename
+- Object URL lifecycle (`createObjectURL` / `revokeObjectURL`)
+- Sync offset storage and calculation (`syncOffset = telemetryTimestamp - videoCurrentTimeMs`)
+- Bidirectional sync: video time to telemetry index and vice versa
+- Frame-stepping (+/- one frame using `video.currentTime += 1/fps`)
+- Lock/unlock state
+- `requestVideoFrameCallback` loop for frame-accurate sync during video-driven playback
+- Throttled seeking when telemetry drives video (debounce rapid scrubs)
 
-### Architecture
+### 2. `src/components/tabs/LabsTab.tsx` — Labs tab component
+Layout using `ResizableSplit` (same as Race Line tab):
+- **Top panel**: Video player area
+- **Bottom panel**: Reuses `TelemetryChart` + `RangeSlider` (identical to Race Line tab's bottom panel)
 
-Two separate computation paths:
+### 3. `src/components/VideoPlayer.tsx` — Video player component
+Self-contained video player with:
+- Native `<video>` element (hidden controls, custom UI)
+- **Upper-left overlay**: Speed display in user's preferred unit (from `useSettingsContext`)
+- **Upper-right controls**: `+` / `-` frame step buttons (visible only when unlocked) and a Lock/Unlock toggle button
+- **Bottom bar**: Play/Pause button on the left, custom progress/seek bar
+- "No video for this portion" message when video time falls outside the video's duration
+- "Load Video" button when no video is attached
+- "Set Sync Point" button to capture current video time + telemetry cursor for offset calculation
+- Progress bar scrubbing disabled when locked (sync mode)
 
-1. **Zone detection (map overlay)**: Keep the existing EMA-based state machine in `detectBrakingZones`. It works well for threshold-crossing detection and is already tuned with user-configurable settings.
+### 4. `src/lib/videoStorage.ts` — IndexedDB persistence for video handles
+Stores per-session:
+- `FileSystemFileHandle` (structured-cloneable, Chromium only)
+- `syncOffsetMs: number`
+- `videoFileName: string` (for display and fallback re-attach prompt)
 
-2. **Graph channel (Braking G chart)**: Replace `computeBrakingGSeries` with a new SG-based function that produces much cleaner acceleration traces suitable for visual analysis.
+Uses a dedicated IndexedDB object store `video-sync` separate from file storage.
 
-### Changes
+## Modified Files
 
-**1. Install `ml-savitzky-golay`**
-- TypeScript npm package, ~2KB, zero dependencies
-- Supports `derivative: 1` which gives us smooth acceleration directly from speed data
+### 5. `src/hooks/useSettings.ts`
+Add `enableLabs: boolean` (default `false`) to `AppSettings`.
 
-**2. `src/lib/brakingZones.ts`** -- Add SG-based graph series function
+### 6. `src/contexts/SettingsContext.tsx`
+Expose `enableLabs` in the context value.
 
-Add a new export `computeBrakingGSeriesSG(samples, windowSize)`:
-- Extract the speed array (m/s) from samples
-- Compute uniform time step `h` from median sample interval
-- Call `savitzkyGolay(speedArray, h, { derivative: 1, windowSize, polynomial: 3 })` to get smooth dv/dt
-- Divide by 9.81 to convert to G
-- Apply the same speed gate (less than 2 m/s) and clamp to +/-3G
-- Return the array
+### 7. `src/components/SettingsModal.tsx`
+Add a new section at the very bottom with a `Flask` icon:
+- "Super Experimental Features" heading
+- Toggle switch: "Enable Labs tab with experimental video sync and analysis tools"
 
-The existing `computeBrakingGSeries` (EMA-based) remains unchanged for zone detection.
+### 8. `src/pages/Index.tsx`
+- Add `"labs"` to the `TopPanelView` union type
+- Conditionally render `LabsTab` when `topPanelView === "labs"` and `settings.enableLabs`
+- Pass the same telemetry chart props as Race Line tab (samples, fieldMappings, scrub handler, etc.)
+- Update `TabBar` to accept `enableLabs` and render the Labs tab button (with `Flask` icon) only when enabled
 
-**3. `src/components/graphview/GraphPanel.tsx`** -- Use new SG function for graph
+## Sync Architecture
 
-Replace the `computeBrakingGSeries` call for the graph channel with `computeBrakingGSeriesSG`, using a configurable window size (default 25 for 25Hz data = 1 second window).
+The sync between video and telemetry works as follows:
 
-**4. `src/contexts/SettingsContext.tsx`** and `src/hooks/useSettings.ts`** -- Add graph smoothing window setting
+```text
++---------------------+       syncOffset        +---------------------+
+|   Video Timeline    | <---------------------> | Telemetry Timeline  |
+|   (seconds)         |   telemetryMs =         |   (sample.t in ms)  |
+|                     |   videoSec*1000 + offset |                     |
++---------------------+                         +---------------------+
 
-Add `brakingGraphWindow: number` (default 25) to braking zone settings, exposed in the Settings modal.
+Locked Mode (video drives data):
+  video playing -> requestVideoFrameCallback -> compute telemetryMs -> find nearest sample index -> onScrub()
 
-**5. `src/components/SettingsModal.tsx`** -- Add "Graph Smoothing" slider
+Locked Mode (data drives video):
+  user scrubs graph -> onScrub(index) -> compute videoSec from sample.t -> video.currentTime = videoSec
 
-Under the Braking Zone Detection section, add a slider for "Graph Window" (range 5-51, odd numbers only) that controls the SG filter window size for the Braking G chart.
+Unlocked Mode:
+  Video and telemetry are independent. User can scrub video freely, step frames with +/-.
+```
 
-### Technical Details
+### Frame Rate Handling
+- Detect video frame rate from `requestVideoFrameCallback` metadata or assume 30fps as default
+- Telemetry at 25Hz and video at 30/60fps means not every video frame has a matching sample; use nearest-neighbor lookup via binary search on `sample.t`
+- When telemetry drives video, throttle `video.currentTime` seeks to max ~15/sec to avoid decoder stutter
 
-The Savitzky-Golay filter with `derivative: 1` and `polynomial: 3` (cubic) computes smooth acceleration by:
-1. For each sample, take a window of neighboring speed values
-2. Fit a 3rd-degree polynomial via least squares
-3. Evaluate the polynomial's first derivative at the center point
-4. This gives acceleration with minimal noise and zero phase lag
+### Key Constraints (from spec)
+- NO file copying into storage (videos are multi-GB)
+- NO ffmpeg.wasm — native `<video>` only
+- NO `setInterval`/`requestAnimationFrame` polling for sync — use `requestVideoFrameCallback`
+- File System Access API for persistent handle; fallback to `<input type="file">` on Safari
+- Object URLs revoked on cleanup
 
-Window size controls the trade-off:
-- Smaller window (9-15): More responsive, shows brief braking events, slightly noisier
-- Larger window (21-35): Very smooth trace, may slightly widen braking events
-- Default 25 at 25Hz = 1-second window, matching common motorsport telemetry practice
+## Technical Notes
+
+- The `requestVideoFrameCallback` API is supported in Chrome 83+, Edge 83+, and Safari 15.4+. For Firefox (no support), fall back to `requestAnimationFrame` + `video.currentTime` polling
+- The Lock button defaults to "unlocked" so users can position the video before syncing
+- The "Set Sync Point" workflow: user pauses video at a recognizable moment, scrubs telemetry to the matching point, clicks "Set Sync Point" — the offset is calculated and persisted
+- When the video time maps to before/after the video's actual duration, the video element is paused and "No video for this portion" is shown as an overlay
 
