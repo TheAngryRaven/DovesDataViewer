@@ -211,8 +211,9 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
     const video = videoRef.current;
     if (!video || !videoUrl || !isLocked || !isPlaying) return;
 
+    let active = true;
+
     if ("requestVideoFrameCallback" in video) {
-      let active = true;
       const callback = () => {
         if (!active) return;
         const v = videoRef.current;
@@ -224,20 +225,21 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
         isSyncingRef.current = true;
         onScrub(idx);
         setVideoCurrentTime(v.currentTime);
+        setIsOutOfRange(v.currentTime > v.duration);
 
-        const outOfRange = v.currentTime < 0 || v.currentTime > v.duration;
-        setIsOutOfRange(outOfRange);
-
-        requestAnimationFrame(() => { isSyncingRef.current = false; });
+        // Defer flag reset to after React commit
+        queueMicrotask(() => { isSyncingRef.current = false; });
         if (active) (v as any).requestVideoFrameCallback(callback);
       };
       (video as any).requestVideoFrameCallback(callback);
-      return () => { active = false; };
     } else {
-      // rAF fallback for Firefox
-      let active = true;
-      const loop = () => {
+      // rAF fallback for Firefox — skip frames if behind
+      let lastRaf = 0;
+      const loop = (ts: number) => {
         if (!active) return;
+        // Throttle to ~30fps to reduce overhead
+        if (ts - lastRaf < 33) { requestAnimationFrame(loop); return; }
+        lastRaf = ts;
         const v = videoRef.current;
         if (!v) return;
         const videoMs = v.currentTime * 1000;
@@ -247,12 +249,12 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
         isSyncingRef.current = true;
         onScrub(idx);
         setVideoCurrentTime(v.currentTime);
-        requestAnimationFrame(() => { isSyncingRef.current = false; });
+        queueMicrotask(() => { isSyncingRef.current = false; });
         if (active) requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);
-      return () => { active = false; };
     }
+    return () => { active = false; };
   }, [videoUrl, isLocked, isPlaying, syncOffsetMs, samples, onScrub]);
 
   // Data-drives-video: when locked and user scrubs the graph
@@ -262,23 +264,27 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
     if (!video || !videoUrl || samples.length === 0) return;
 
     const now = performance.now();
-    if (now - lastSeekTimeRef.current < 66) return; // Throttle to ~15 seeks/sec
+    if (now - lastSeekTimeRef.current < 50) return; // Throttle to ~20 seeks/sec
     lastSeekTimeRef.current = now;
 
     const sample = samples[currentIndex];
     if (!sample) return;
 
     const videoSec = (sample.t - syncOffsetMs) / 1000;
+    const clampedSec = Math.max(0, videoSec);
 
     if (videoSec < 0 || videoSec > video.duration) {
       setIsOutOfRange(true);
       if (!video.paused) video.pause();
     } else {
       setIsOutOfRange(false);
-      video.currentTime = videoSec;
+      // Only seek if the difference is meaningful (> half a frame)
+      if (Math.abs(video.currentTime - clampedSec) > 0.5 / fps) {
+        video.currentTime = clampedSec;
+      }
     }
-    setVideoCurrentTime(videoSec);
-  }, [currentIndex, isLocked, syncOffsetMs, samples, videoUrl]);
+    setVideoCurrentTime(clampedSec);
+  }, [currentIndex, isLocked, syncOffsetMs, samples, videoUrl, fps]);
 
   // Play/pause sync
   const togglePlay = useCallback(() => {
