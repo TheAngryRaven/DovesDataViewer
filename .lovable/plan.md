@@ -1,105 +1,87 @@
 
 
-# Labs Tab — Video Sync Feature
+# Labs Tab — Video Sync Implementation
 
 ## Overview
+Add a gated "Labs" tab with synchronized video playback alongside the existing telemetry graph. Users can load a local video, set a manual sync point, and scrub/play video and telemetry in lockstep.
 
-Add a new "Labs" tab to the main data view that provides synchronized video playback alongside the existing telemetry graph. The tab is gated behind a new "Enable super experimental features" toggle in Settings. When enabled, users can load a local video file, sync it to their telemetry data via a manual sync point, and scrub/play them in lockstep.
+## New Files (4)
 
-## New Files
+### 1. `src/lib/videoStorage.ts`
+IndexedDB persistence for video sync data (file handle, sync offset, video filename) per session. Uses a new `VIDEO_SYNC` object store.
 
-### 1. `src/hooks/useVideoSync.ts` — Core video sync hook
-Manages all video-related state:
-- File loading via File System Access API (`showOpenFilePicker`) with `<input type="file">` fallback for Safari
-- Persisting `FileSystemFileHandle` in IndexedDB keyed by session filename
-- Object URL lifecycle (`createObjectURL` / `revokeObjectURL`)
-- Sync offset storage and calculation (`syncOffset = telemetryTimestamp - videoCurrentTimeMs`)
-- Bidirectional sync: video time to telemetry index and vice versa
-- Frame-stepping (+/- one frame using `video.currentTime += 1/fps`)
-- Lock/unlock state
-- `requestVideoFrameCallback` loop for frame-accurate sync during video-driven playback
-- Throttled seeking when telemetry drives video (debounce rapid scrubs)
+### 2. `src/hooks/useVideoSync.ts`
+Core hook managing:
+- File loading via File System Access API (with `<input>` fallback for Safari)
+- Object URL lifecycle
+- Sync offset calculation (`syncOffset = telemetryTimestamp - videoCurrentTimeMs`)
+- Bidirectional sync: video drives data via `requestVideoFrameCallback`, data drives video via throttled seeks
+- Frame stepping, play/pause, lock/unlock state
+- FPS detection from video metadata
+- Persistence and restoration of sync state from IndexedDB
 
-### 2. `src/components/tabs/LabsTab.tsx` — Labs tab component
-Layout using `ResizableSplit` (same as Race Line tab):
-- **Top panel**: Video player area
-- **Bottom panel**: Reuses `TelemetryChart` + `RangeSlider` (identical to Race Line tab's bottom panel)
+### 3. `src/components/VideoPlayer.tsx`
+Self-contained video player component with:
+- Native `<video>` element with custom controls
+- Speed overlay (upper-left) showing current speed in user's preferred unit
+- Upper-right controls: +/- frame step (unlocked only) and Lock/Unlock toggle
+- "Set Sync Point" button to capture sync offset
+- Progress bar with play/pause (progress bar disabled when locked)
+- "No video for this portion" overlay when telemetry maps outside video duration
+- "Load Video" prompt when no video is attached
 
-### 3. `src/components/VideoPlayer.tsx` — Video player component
-Self-contained video player with:
-- Native `<video>` element (hidden controls, custom UI)
-- **Upper-left overlay**: Speed display in user's preferred unit (from `useSettingsContext`)
-- **Upper-right controls**: `+` / `-` frame step buttons (visible only when unlocked) and a Lock/Unlock toggle button
-- **Bottom bar**: Play/Pause button on the left, custom progress/seek bar
-- "No video for this portion" message when video time falls outside the video's duration
-- "Load Video" button when no video is attached
-- "Set Sync Point" button to capture current video time + telemetry cursor for offset calculation
-- Progress bar scrubbing disabled when locked (sync mode)
+### 4. `src/components/tabs/LabsTab.tsx`
+Tab component using `ResizableSplit` (60/40 default):
+- Top panel: `VideoPlayer`
+- Bottom panel: Reuses `TelemetryChart` + `RangeSlider` (identical to Race Line tab)
 
-### 4. `src/lib/videoStorage.ts` — IndexedDB persistence for video handles
-Stores per-session:
-- `FileSystemFileHandle` (structured-cloneable, Chromium only)
-- `syncOffsetMs: number`
-- `videoFileName: string` (for display and fallback re-attach prompt)
+## Modified Files (5)
 
-Uses a dedicated IndexedDB object store `video-sync` separate from file storage.
+### 5. `src/lib/dbUtils.ts`
+- Bump `DB_VERSION` from 5 to 6
+- Add `VIDEO_SYNC: "video-sync"` to `STORE_NAMES`
+- Create the new object store in `onupgradeneeded` with keyPath `sessionFileName`
 
-## Modified Files
+### 6. `src/hooks/useSettings.ts`
+- Add `enableLabs: boolean` (default `false`) to `AppSettings` interface and defaults
 
-### 5. `src/hooks/useSettings.ts`
-Add `enableLabs: boolean` (default `false`) to `AppSettings`.
+### 7. `src/contexts/SettingsContext.tsx`
+- Add `enableLabs: boolean` to `SettingsContextValue`
 
-### 6. `src/contexts/SettingsContext.tsx`
-Expose `enableLabs` in the context value.
-
-### 7. `src/components/SettingsModal.tsx`
-Add a new section at the very bottom with a `Flask` icon:
-- "Super Experimental Features" heading
+### 8. `src/components/SettingsModal.tsx`
+- Add a new "Super Experimental Features" section at the bottom with a Flask icon
 - Toggle switch: "Enable Labs tab with experimental video sync and analysis tools"
 
-### 8. `src/pages/Index.tsx`
-- Add `"labs"` to the `TopPanelView` union type
-- Conditionally render `LabsTab` when `topPanelView === "labs"` and `settings.enableLabs`
-- Pass the same telemetry chart props as Race Line tab (samples, fieldMappings, scrub handler, etc.)
-- Update `TabBar` to accept `enableLabs` and render the Labs tab button (with `Flask` icon) only when enabled
+### 9. `src/pages/Index.tsx`
+- Add `"labs"` to `TopPanelView` union type
+- Import `LabsTab`, `useVideoSync`, and `Flask` icon
+- Initialize `useVideoSync` hook with session data
+- Expose `enableLabs` in settings context value
+- Conditionally render `LabsTab` when `topPanelView === "labs"`
+- Update `TabBar` to accept `enableLabs` prop and render Labs tab button (with Flask icon) only when enabled
 
 ## Sync Architecture
 
-The sync between video and telemetry works as follows:
+The relationship between video and telemetry timelines:
 
 ```text
-+---------------------+       syncOffset        +---------------------+
-|   Video Timeline    | <---------------------> | Telemetry Timeline  |
-|   (seconds)         |   telemetryMs =         |   (sample.t in ms)  |
-|                     |   videoSec*1000 + offset |                     |
-+---------------------+                         +---------------------+
+telemetryMs = (video.currentTime * 1000) + syncOffset
 
-Locked Mode (video drives data):
-  video playing -> requestVideoFrameCallback -> compute telemetryMs -> find nearest sample index -> onScrub()
+Locked mode, video playing:
+  requestVideoFrameCallback -> compute telemetryMs -> binary search nearest sample -> onScrub(idx)
 
-Locked Mode (data drives video):
-  user scrubs graph -> onScrub(index) -> compute videoSec from sample.t -> video.currentTime = videoSec
+Locked mode, user scrubs graph:
+  currentIndex changes -> compute videoSec from sample.t -> video.currentTime = videoSec
+  (throttled to max ~15 seeks/sec to avoid decoder stutter)
 
-Unlocked Mode:
-  Video and telemetry are independent. User can scrub video freely, step frames with +/-.
+Unlocked mode:
+  Video and telemetry are independent. +/- step frames, free scrub progress bar.
 ```
 
-### Frame Rate Handling
-- Detect video frame rate from `requestVideoFrameCallback` metadata or assume 30fps as default
-- Telemetry at 25Hz and video at 30/60fps means not every video frame has a matching sample; use nearest-neighbor lookup via binary search on `sample.t`
-- When telemetry drives video, throttle `video.currentTime` seeks to max ~15/sec to avoid decoder stutter
-
-### Key Constraints (from spec)
+## Key Constraints
 - NO file copying into storage (videos are multi-GB)
-- NO ffmpeg.wasm — native `<video>` only
-- NO `setInterval`/`requestAnimationFrame` polling for sync — use `requestVideoFrameCallback`
-- File System Access API for persistent handle; fallback to `<input type="file">` on Safari
+- NO ffmpeg.wasm -- native `<video>` element only
+- Use `requestVideoFrameCallback` for frame-accurate sync (rAF fallback for Firefox)
+- FileSystemFileHandle persisted in IndexedDB for session restore
 - Object URLs revoked on cleanup
-
-## Technical Notes
-
-- The `requestVideoFrameCallback` API is supported in Chrome 83+, Edge 83+, and Safari 15.4+. For Firefox (no support), fall back to `requestAnimationFrame` + `video.currentTime` polling
-- The Lock button defaults to "unlocked" so users can position the video before syncing
-- The "Set Sync Point" workflow: user pauses video at a recognizable moment, scrubs telemetry to the matching point, clicks "Set Sync Point" — the offset is calculated and persisted
-- When the video time maps to before/after the video's actual duration, the video element is paused and "No video for this portion" is shown as an overlay
-
+- Feedback loop prevention via `isSyncingRef`
