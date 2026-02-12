@@ -1,5 +1,5 @@
-import { memo, useCallback, useRef } from "react";
-import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair } from "lucide-react";
+import { memo, useCallback, useRef, useState } from "react";
+import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSettingsContext } from "@/contexts/SettingsContext";
 import { GpsSample } from "@/types/racing";
@@ -15,6 +15,7 @@ interface VideoPlayerProps {
 export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedMetadata, currentSample }: VideoPlayerProps) {
   const { useKph } = useSettingsContext();
   const progressRef = useRef<HTMLDivElement>(null);
+  const [isMuted, setIsMuted] = useState(true);
 
   const speed = currentSample
     ? useKph ? currentSample.speedKph : currentSample.speedMph
@@ -56,6 +57,7 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
           className="w-full h-full object-contain"
           playsInline
           preload="auto"
+          muted={isMuted}
         />
 
         {/* Out of range overlay */}
@@ -134,6 +136,15 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
         >
           {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-white hover:bg-white/20"
+          onClick={() => setIsMuted(m => !m)}
+          title={isMuted ? "Unmute" : "Mute"}
+        >
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </Button>
 
         <div
           ref={progressRef}
@@ -149,6 +160,15 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
         <span className="text-white/60 text-xs font-mono min-w-[80px] text-right">
           {formatTime(state.videoCurrentTime)} / {formatTime(state.videoDuration)}
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-white hover:bg-white/20"
+          onClick={actions.loadVideo}
+          title="Replace video"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+        </Button>
       </div>
     </div>
   );
