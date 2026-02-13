@@ -3,6 +3,7 @@ import { GpsSample, Course, FieldMapping } from '@/types/racing';
 import { Kart } from '@/lib/kartStorage';
 import { KartSetup } from '@/lib/setupStorage';
 import { WeatherStation } from '@/lib/weatherService';
+import type { VideoSyncState, VideoSyncActions } from '@/hooks/useVideoSync';
 import { InfoBox } from './InfoBox';
 import { MiniMap } from './MiniMap';
 import { GraphPanel } from './GraphPanel';
@@ -46,6 +47,11 @@ export interface GraphViewPanelProps {
   onRangeChange: (range: [number, number]) => void;
   minRange: number;
   formatRangeLabel: (idx: number) => string;
+  // Video
+  videoState?: VideoSyncState;
+  videoActions?: VideoSyncActions;
+  onVideoLoadedMetadata?: () => void;
+  currentSample?: GpsSample | null;
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
@@ -95,6 +101,10 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 sessionSetupId={props.sessionSetupId}
                 onSaveSessionSetup={props.onSaveSessionSetup}
                 onOpenSetupEditor={props.onOpenSetupEditor}
+                videoState={props.videoState}
+                videoActions={props.videoActions}
+                onVideoLoadedMetadata={props.onVideoLoadedMetadata}
+                currentSample={props.currentSample}
               />
             </ResizablePanel>
 
