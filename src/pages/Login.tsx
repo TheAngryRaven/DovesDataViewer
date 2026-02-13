@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Gauge, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
@@ -18,14 +19,36 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await login(email, password);
-    setIsLoading(false);
-    if (error) {
-      toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Logged in successfully' });
-      navigate('/admin');
+
+    try {
+      // Check rate limit before attempting login
+      const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', {
+        body: { success: false },
+      });
+
+      if (rateCheck && !rateCheck.allowed) {
+        toast({ title: 'Too many attempts', description: rateCheck.message || 'Please try again later.', variant: 'destructive' });
+        setIsLoading(false);
+        return;
+      }
+
+      const { error } = await login(email, password);
+
+      if (error) {
+        toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+      } else {
+        // Report success to reset rate limit counter
+        await supabase.functions.invoke('check-login-rate', {
+          body: { success: true },
+        });
+        toast({ title: 'Logged in successfully' });
+        navigate('/admin');
+      }
+    } catch {
+      toast({ title: 'Login failed', description: 'An unexpected error occurred.', variant: 'destructive' });
     }
+
+    setIsLoading(false);
   };
 
   const handleReset = async (e: React.FormEvent) => {
