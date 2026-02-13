@@ -16,18 +16,35 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
   const { useKph } = useSettingsContext();
   const progressRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
 
   const speed = currentSample
     ? useKph ? currentSample.speedKph : currentSample.speedMph
     : null;
   const speedUnit = useKph ? "KPH" : "MPH";
 
-  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const seekFromPointer = useCallback((clientX: number) => {
     if (state.isLocked || !progressRef.current || state.videoDuration <= 0) return;
     const rect = progressRef.current.getBoundingClientRect();
-    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const fraction = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     actions.seekVideo(fraction * state.videoDuration);
   }, [state.isLocked, state.videoDuration, actions]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (state.isLocked) return;
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    seekFromPointer(e.clientX);
+  }, [state.isLocked, seekFromPointer]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    seekFromPointer(e.clientX);
+  }, [isDragging, seekFromPointer]);
+
+  const handlePointerUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   const progressFraction = state.videoDuration > 0
     ? Math.max(0, Math.min(1, state.videoCurrentTime / state.videoDuration))
@@ -75,55 +92,54 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
           </div>
         )}
 
-        {/* Controls - upper right */}
-        <div className="absolute top-3 right-3 flex items-center gap-1">
+        {/* Controls group - upper right */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+          <div className="flex items-center gap-1">
+            {!state.isLocked && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/40"
+                  onClick={() => actions.stepFrame(-1)}
+                  title="Previous frame"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/40"
+                  onClick={() => actions.stepFrame(1)}
+                  title="Next frame"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 backdrop-blur-sm text-white ${state.isLocked ? "bg-primary/70 hover:bg-primary/50 active:bg-primary/40" : "bg-white/15 hover:bg-white/30 active:bg-white/40"}`}
+              onClick={actions.toggleLock}
+              title={state.isLocked ? "Unlock sync" : "Lock sync"}
+            >
+              {state.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            </Button>
+          </div>
+          {/* Set sync button grouped below */}
           {!state.isLocked && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 bg-black/60 hover:bg-black/80 text-white"
-                onClick={() => actions.stepFrame(-1)}
-                title="Previous frame"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 bg-black/60 hover:bg-black/80 text-white"
-                onClick={() => actions.stepFrame(1)}
-                title="Next frame"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </Button>
-            </>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 text-white ${state.isLocked ? "bg-primary/80 hover:bg-primary/60" : "bg-black/60 hover:bg-black/80"}`}
-            onClick={actions.toggleLock}
-            title={state.isLocked ? "Unlock sync" : "Lock sync"}
-          >
-            {state.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-          </Button>
-        </div>
-
-        {/* Set sync point button - bottom right above progress bar */}
-        {!state.isLocked && (
-          <div className="absolute bottom-12 right-3">
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 bg-black/60 hover:bg-black/80 text-white text-xs gap-1.5"
+              className="h-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/40 text-xs gap-1.5"
               onClick={actions.setSyncPoint}
               title="Set sync point: aligns current video position with current telemetry cursor"
             >
               <Crosshair className="w-3.5 h-3.5" /> Set Sync
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Bottom progress bar */}
@@ -131,7 +147,7 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-white hover:bg-white/20"
+          className="h-7 w-7 text-white/80 hover:text-white hover:bg-white/20 active:bg-white/30"
           onClick={actions.togglePlay}
         >
           {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -139,7 +155,7 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-white hover:bg-white/20"
+          className="h-7 w-7 text-white/80 hover:text-white hover:bg-white/20 active:bg-white/30"
           onClick={() => setIsMuted(m => !m)}
           title={isMuted ? "Unmute" : "Mute"}
         >
@@ -148,11 +164,14 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
 
         <div
           ref={progressRef}
-          onClick={handleProgressClick}
-          className={`flex-1 h-2 rounded-full overflow-hidden ${state.isLocked ? "bg-white/10 cursor-not-allowed" : "bg-white/20 cursor-pointer"}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className={`flex-1 h-2 rounded-full overflow-hidden touch-none ${state.isLocked ? "bg-white/10 cursor-not-allowed" : "bg-white/20 cursor-pointer"}`}
         >
           <div
-            className={`h-full rounded-full transition-[width] duration-75 ${state.isLocked ? "bg-primary/60" : "bg-primary"}`}
+            className={`h-full rounded-full ${state.isLocked ? "bg-primary/60" : "bg-primary"}`}
             style={{ width: `${progressFraction * 100}%` }}
           />
         </div>
@@ -163,7 +182,7 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-white hover:bg-white/20"
+          className="h-7 w-7 text-white/80 hover:text-white hover:bg-white/20 active:bg-white/30"
           onClick={actions.loadVideo}
           title="Replace video"
         >
