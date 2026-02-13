@@ -1,81 +1,35 @@
 
+# Smooth Draggable Overlay Rewrite
 
-# Video Player Toolbar, Overlay Settings, and Auto-Hide
+## Problem
+The overlay dragging is jerky because every pointer move triggers `actions.updateOverlaySettings`, which updates React state, persists to IndexedDB, and causes a full re-render cycle. The element also uses `left`/`top` CSS positioning which doesn't benefit from GPU compositing.
 
-## Overview
-Restructure the video player controls into a unified bottom toolbar area that auto-hides during playback, add a configurable overlay system persisted per session in IndexedDB, and introduce an overlay settings popup.
+## Solution
+Rewrite `DraggableOverlay` to use **local state during drag** and only commit to the parent on pointer up. Use CSS `transform: translate()` for GPU-accelerated, sub-pixel smooth movement.
 
-## Layout Changes
+## Changes (1 file)
 
-The current video player has controls scattered between the top-right corner (sync/lock/frame-step) and a bottom progress bar. The new structure consolidates everything into a single bottom control group:
+### `src/components/VideoPlayer.tsx`
+
+**DraggableOverlay rewrite:**
+- Add a local `localPos` state initialized from the `position` prop
+- Sync `localPos` from prop when not dragging (so external changes are reflected)
+- During drag: update only `localPos` via `setState` -- no calls to `onMove` until pointer up
+- On pointer up: call `onMove(id, localPos)` once to persist
+- Switch from `style={{ left, top }}` to `style={{ transform: translate(x%, y%) }}` with `will-change: transform` for GPU compositing
+- Add `touch-action: none` to prevent scroll interference on mobile
+
+**No other files change** -- the `DraggableOverlay` component is already self-contained and the parent interface (`onMove` callback) stays the same. The only difference is `onMove` fires once on drop instead of on every pixel, which is actually better for persistence.
+
+## Technical Detail
 
 ```text
-+--------------------------------------------------+
-|                                                  |
-|          VIDEO AREA (click to toggle toolbar)    |
-|   [Speed Overlay]                                |
-|                                                  |
-+--------------------------------------------------+
-| TOOLBAR: [Play] [Mute] [+] [-] [Lock] [Sync] [Overlay Settings] |
-| PROGRESS: [============================] 1:23/5:00 [Replace]     |
-+--------------------------------------------------+
+Before (every frame):
+  pointerMove -> onMove(pos) -> updateOverlaySettings(pos) -> setState -> persist to IDB -> re-render
+
+After (only on drop):
+  pointerMove -> setLocalPos(pos)  [local state, fast re-render of just the overlay]
+  pointerUp   -> onMove(pos) -> updateOverlaySettings(pos) -> persist to IDB
 ```
 
-The toolbar + progress bar group fades out after ~3 seconds while video is playing. It always shows when paused. Clicking/tapping the video area (not the toolbar) toggles visibility.
-
-## What Changes
-
-### 1. `src/lib/videoStorage.ts` -- Add overlay settings to persistence
-- Add an `overlaySettings` field to `VideoSyncRecord` with shape `{ showSpeed: boolean }` (extensible later)
-- Overlay settings persist independently of the video file -- they stay even if the video is replaced or can't be loaded
-
-### 2. `src/hooks/useVideoSync.ts` -- Expose overlay state
-- Add `overlaySettings` to `VideoSyncState`
-- Add `updateOverlaySettings` to `VideoSyncActions`
-- Restore overlay settings from IndexedDB on session load
-- Persist overlay changes via the existing `persistSync` helper
-
-### 3. `src/components/VideoPlayer.tsx` -- Major restructure
-- **Remove** the top-right control group entirely
-- **New toolbar row** above the progress bar: contains Play, Mute, frame-step (+/-), Lock, Set Sync, and an Overlay Settings button (Sliders icon)
-- **Progress bar row** below: progress scrubber, timecode, replace button (same as current)
-- Both rows wrapped in a single container with `bg-black/90` styling
-- **Speed overlay** now conditional on `overlaySettings.showSpeed`
-- **Auto-hide logic**:
-  - `controlsVisible` state, default `true`
-  - When `isPlaying` becomes true, start a 3-second timer; on expiry set `controlsVisible = false`
-  - When `isPlaying` becomes false, set `controlsVisible = true`
-  - Any pointer activity on the toolbar resets the 3-second timer
-  - Clicking the video area (not the toolbar) toggles `controlsVisible`
-  - The toolbar container uses `opacity` + `pointer-events-none` transition for smooth fade
-- **Overlay Settings popup**: a small absolute-positioned panel that opens above the toolbar when the settings button is clicked, containing a toggle for "Show Speed". Clean card-style with backdrop blur.
-
-## Technical Details
-
-### VideoSyncRecord update
-```typescript
-interface OverlaySettings {
-  showSpeed: boolean;
-}
-
-interface VideoSyncRecord {
-  sessionFileName: string;
-  fileHandle?: FileSystemFileHandle;
-  syncOffsetMs: number;
-  videoFileName: string;
-  overlaySettings?: OverlaySettings;
-}
-```
-
-No DB version bump needed -- IndexedDB stores are schemaless, adding a new optional field to existing records is safe.
-
-### Auto-hide implementation
-- A `useEffect` watches `isPlaying`: when true, sets a `setTimeout(3000)` to hide; clears on pause or unmount
-- `onPointerMove` on the toolbar container resets the timer (clears + restarts)
-- `onClick` on the video element (not toolbar) toggles visibility
-- CSS: `transition-opacity duration-300` with `opacity-0 pointer-events-none` when hidden
-
-### Files Modified (3 total)
-1. **`src/lib/videoStorage.ts`** -- Add `OverlaySettings` type and optional field to record
-2. **`src/hooks/useVideoSync.ts`** -- Add overlay state, update action, restore/persist logic
-3. **`src/components/VideoPlayer.tsx`** -- Full control restructure, auto-hide, overlay settings popup
+This reduces IndexedDB writes from ~60/sec during drag to exactly 1, and keeps React re-renders scoped to the overlay component only.
