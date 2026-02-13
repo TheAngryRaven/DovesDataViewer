@@ -477,25 +477,7 @@ export default function Index() {
             />
           )}
           {topPanelView === "labs" && settings.enableLabs && (
-            <LabsTab
-              videoState={videoSync.state}
-              videoActions={videoSync.actions}
-              onVideoLoadedMetadata={videoSync.handleLoadedMetadata}
-              currentSample={currentSample}
-              visibleSamples={visibleSamples}
-              filteredSamples={filteredSamples}
-              fieldMappings={fieldMappings}
-              currentIndex={currentIndex}
-              onScrub={handleScrub}
-              onFieldToggle={sessionData.handleFieldToggle}
-              paceData={slicedPaceData}
-              referenceSpeedData={slicedReferenceSpeedData}
-              hasReference={hasReference}
-              visibleRange={visibleRange}
-              onRangeChange={handleRangeChange}
-              minRange={minRange}
-              formatRangeLabel={formatRangeLabel}
-            />
+            <LabsTab />
           )}
         </div>
       </main>
