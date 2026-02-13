@@ -291,6 +291,7 @@ export default function Index() {
                       ["Savitzky-Golay (ml.js)", "https://github.com/mljs/savitzky-golay"],
                       ["Sonner", "https://sonner.emilkowal.dev"],
                       ["react-resizable-panels", "https://github.com/bvaughn/react-resizable-panels"],
+                      ["MoTeC i2", "https://www.motec.com.au"],
                     ].map(([name, url]) => (
                       <a
                         key={name}
