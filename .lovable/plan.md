@@ -1,43 +1,42 @@
 
 
-# Add Video Tab to Graph View InfoBox
+# Add "Credits" Dialog to Homepage Header
 
 ## Overview
-Add a third "Video" tab to the InfoBox in the Graph View sidebar, to the right of "Kart". This embeds the existing VideoPlayer component directly inside the sidebar panel, synced to the same telemetry cursor as the graph charts.
+Add a "Credits" button to the left of the Sponsor button on the homepage header. Clicking it opens a dialog listing all the open-source technologies and free services the project relies on, each with a link to its homepage/resource.
 
-## What Changes
+## Changes
 
-### 1. `src/components/graphview/GraphViewPanel.tsx` -- Pass video props through
-- Add video-related props to `GraphViewPanelProps`: `videoState`, `videoActions`, `onVideoLoadedMetadata`, `currentSample`
-- Forward these to InfoBox
+### 1. `src/pages/Index.tsx`
+- Import `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle` from `@/components/ui/dialog`
+- Import an appropriate icon (e.g., `Award` or `BookOpen` from lucide-react)
+- Add a "Credits" button to the left of the existing Sponsor `<a>` tag, inside the header's right-side flex container
+- The button opens a Dialog containing a styled list of technologies with external links
 
-### 2. `src/components/graphview/InfoBox.tsx` -- Add "Video" tab
-- Add `'video'` to the `InfoTab` type union
-- Add a third tab button labeled "Video" in the tab bar
-- In the video tab content, render `<VideoPlayer>` with the passed props
-- The video player already handles its own "no video loaded" state with a load button, so no extra empty-state logic needed
+### Credits List
 
-### 3. `src/components/tabs/GraphViewTab.tsx` -- Pass video props through
-- Extend the props it receives to include video sync data and forward to `GraphViewPanel`
+| Project | URL |
+|---------|-----|
+| React | https://react.dev |
+| Vite | https://vite.dev |
+| TypeScript | https://www.typescriptlang.org |
+| Tailwind CSS | https://tailwindcss.com |
+| shadcn/ui | https://ui.shadcn.com |
+| Radix UI | https://www.radix-ui.com |
+| Leaflet | https://leafletjs.com |
+| OpenStreetMap | https://www.openstreetmap.org |
+| Lucide Icons | https://lucide.dev |
+| TanStack Query | https://tanstack.com/query |
+| IEM ASOS (Iowa State) | https://mesonet.agron.iastate.edu |
+| NWS API | https://www.weather.gov/documentation/services-web-api |
+| Savitzky-Golay (ml.js) | https://github.com/mljs/savitzky-golay |
+| Sonner | https://sonner.emilkowal.dev |
+| react-resizable-panels | https://github.com/bvaughn/react-resizable-panels |
 
-### 4. `src/pages/Index.tsx` -- Wire video sync into GraphViewTab
-- Pass `videoSync.state`, `videoSync.actions`, `videoSync.handleLoadedMetadata`, and `currentSample` to the `GraphViewTab` component
+### UI Details
+- Button: `variant="outline" size="sm"` with a `BookOpen` icon and "Credits" label (label hidden on small screens, same pattern as Sponsor)
+- Dialog: dark-themed, scrollable list of links styled as a simple two-column layout (name + link), each opening in a new tab
+- A brief thank-you line at the top: "Built on the shoulders of these incredible open-source projects and free services."
 
-## Technical Details
-
-The VideoPlayer component is already fully self-contained and modular -- it manages its own toolbar, overlays, auto-hide, and settings dialog. The same `useVideoSync` hook instance from Index.tsx is shared between Labs and Graph View, so both tabs show the same video with the same sync offset. Since `useVideoSync` receives `visibleSamples` and `currentIndex` from the parent, and the Graph View already provides scrubbing via `onScrub`, the video will automatically sync to the Graph View's telemetry cursor.
-
-### Props pipeline
-
-```text
-Index.tsx (useVideoSync hook)
-  -> GraphViewTab (pass-through)
-    -> GraphViewPanel (pass-through)
-      -> InfoBox (renders VideoPlayer in "Video" tab)
-```
-
-### Files modified (4 total)
-1. `src/pages/Index.tsx` -- Add 4 video props to GraphViewTab
-2. `src/components/tabs/GraphViewTab.tsx` -- Forward new props
-3. `src/components/graphview/GraphViewPanel.tsx` -- Add video props to interface, forward to InfoBox
-4. `src/components/graphview/InfoBox.tsx` -- Add "Video" tab with VideoPlayer
+### File modified: 1
+- `src/pages/Index.tsx`
