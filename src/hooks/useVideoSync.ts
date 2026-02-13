@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { GpsSample } from "@/types/racing";
-import { saveVideoSync, loadVideoSync, VideoSyncRecord } from "@/lib/videoStorage";
+import { saveVideoSync, loadVideoSync, VideoSyncRecord, OverlaySettings, DEFAULT_OVERLAY_SETTINGS } from "@/lib/videoStorage";
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
@@ -19,6 +19,7 @@ export interface VideoSyncState {
   videoDuration: number;
   videoCurrentTime: number;
   isOutOfRange: boolean;
+  overlaySettings: OverlaySettings;
 }
 
 export interface VideoSyncActions {
@@ -28,6 +29,7 @@ export interface VideoSyncActions {
   stepFrame: (direction: 1 | -1) => void;
   setSyncPoint: () => void;
   seekVideo: (timeSec: number) => void;
+  updateOverlaySettings: (settings: Partial<OverlaySettings>) => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
@@ -70,6 +72,7 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [isOutOfRange, setIsOutOfRange] = useState(false);
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
 
   // Cleanup object URL on unmount or video change
   const revokeUrl = useCallback(() => {
@@ -88,6 +91,7 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
       if (!record) return;
       setSyncOffsetMs(record.syncOffsetMs);
       setVideoFileName(record.videoFileName);
+      if (record.overlaySettings) setOverlaySettings(record.overlaySettings);
       // Try restoring file handle (Chromium only)
       if (record.fileHandle) {
         try {
@@ -113,9 +117,10 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
       syncOffsetMs: offset,
       videoFileName: fileName || videoFileName || "",
       fileHandle: handle || fileHandle || undefined,
+      overlaySettings,
     };
     saveVideoSync(record);
-  }, [sessionFileName, videoFileName, fileHandle]);
+  }, [sessionFileName, videoFileName, fileHandle, overlaySettings]);
 
   // Load video file
   const loadVideo = useCallback(async () => {
@@ -359,6 +364,24 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
     return () => { active = false; };
   }, [isPlaying, isLocked, videoUrl]);
 
+  const updateOverlaySettings = useCallback((partial: Partial<OverlaySettings>) => {
+    setOverlaySettings(prev => {
+      const next = { ...prev, ...partial };
+      // Persist immediately
+      if (sessionFileName) {
+        const record: VideoSyncRecord = {
+          sessionFileName,
+          syncOffsetMs,
+          videoFileName: videoFileName || "",
+          fileHandle: fileHandle || undefined,
+          overlaySettings: next,
+        };
+        saveVideoSync(record);
+      }
+      return next;
+    });
+  }, [sessionFileName, syncOffsetMs, videoFileName, fileHandle]);
+
   const state: VideoSyncState = {
     videoUrl,
     videoFileName,
@@ -369,6 +392,7 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
     videoDuration,
     videoCurrentTime,
     isOutOfRange,
+    overlaySettings,
   };
 
   const actions: VideoSyncActions = {
@@ -378,6 +402,7 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
     stepFrame,
     setSyncPoint,
     seekVideo,
+    updateOverlaySettings,
     videoRef,
   };
 

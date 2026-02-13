@@ -5,11 +5,20 @@
 
 import { openDB, STORE_NAMES } from "./dbUtils";
 
+export interface OverlaySettings {
+  showSpeed: boolean;
+}
+
+export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
+  showSpeed: true,
+};
+
 export interface VideoSyncRecord {
   sessionFileName: string;
   fileHandle?: FileSystemFileHandle;
   syncOffsetMs: number;
   videoFileName: string;
+  overlaySettings?: OverlaySettings;
 }
 
 export async function saveVideoSync(record: VideoSyncRecord): Promise<void> {
