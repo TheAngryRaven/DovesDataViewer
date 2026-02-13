@@ -5,12 +5,23 @@
 
 import { openDB, STORE_NAMES } from "./dbUtils";
 
+export interface OverlayPosition {
+  x: number; // percentage 0-100
+  y: number; // percentage 0-100
+}
+
 export interface OverlaySettings {
   showSpeed: boolean;
+  overlaysLocked: boolean;
+  positions: Record<string, OverlayPosition>;
 }
 
 export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
   showSpeed: true,
+  overlaysLocked: true,
+  positions: {
+    speed: { x: 3, y: 3 },
+  },
 };
 
 export interface VideoSyncRecord {
