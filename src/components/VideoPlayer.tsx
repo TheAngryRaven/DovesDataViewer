@@ -22,7 +22,11 @@ interface VideoPlayerProps {
   currentSample: GpsSample | null;
 }
 
-/** Draggable overlay wrapper — local state during drag, persist on drop */
+/** Base font size in px when video container is 640px wide */
+const BASE_WIDTH = 640;
+const BASE_FONT_PX = 18;
+
+/** Draggable + resizable overlay wrapper */
 function DraggableOverlay({
   id,
   position,
@@ -36,21 +40,56 @@ function DraggableOverlay({
   locked: boolean;
   onMove: (id: string, pos: OverlayPosition) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  children: React.ReactNode;
+  children: (scaledFontPx: number) => React.ReactNode;
 }) {
   const [localPos, setLocalPos] = useState<OverlayPosition>(position);
+  const [selected, setSelected] = useState(false);
   const dragging = useRef(false);
+  const resizing = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
+  const resizeStartY = useRef(0);
+  const resizeStartScale = useRef(1);
 
-  // Sync from prop when not dragging
+  // Sync from prop when not interacting
   useEffect(() => {
-    if (!dragging.current) setLocalPos(position);
+    if (!dragging.current && !resizing.current) setLocalPos(position);
   }, [position]);
+
+  // Deselect when locked
+  useEffect(() => {
+    if (locked) setSelected(false);
+  }, [locked]);
+
+  // Compute video-relative font size
+  const [containerWidth, setContainerWidth] = useState(BASE_WIDTH);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width || BASE_WIDTH);
+      }
+    });
+    ro.observe(el);
+    setContainerWidth(el.clientWidth || BASE_WIDTH);
+    return () => ro.disconnect();
+  }, [containerRef]);
+
+  const scale = localPos.scale ?? 1;
+  const scaledFontPx = (containerWidth / BASE_WIDTH) * BASE_FONT_PX * scale;
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (locked) return;
     e.preventDefault();
     e.stopPropagation();
+
+    // If not selected yet, just select
+    if (!selected) {
+      setSelected(true);
+      return;
+    }
+
+    // Already selected — start drag
     dragging.current = true;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const container = containerRef.current;
@@ -60,7 +99,7 @@ function DraggableOverlay({
       x: e.clientX - (rect.left + (localPos.x / 100) * rect.width),
       y: e.clientY - (rect.top + (localPos.y / 100) * rect.height),
     };
-  }, [locked, localPos, containerRef]);
+  }, [locked, selected, localPos, containerRef]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging.current) return;
@@ -70,7 +109,7 @@ function DraggableOverlay({
     const rect = container.getBoundingClientRect();
     const x = Math.max(0, Math.min(90, ((e.clientX - offset.current.x - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(90, ((e.clientY - offset.current.y - rect.top) / rect.height) * 100));
-    setLocalPos({ x, y });
+    setLocalPos(prev => ({ ...prev, x, y }));
   }, [containerRef]);
 
   const handlePointerUp = useCallback(() => {
@@ -80,14 +119,58 @@ function DraggableOverlay({
     }
   }, [id, onMove, localPos]);
 
+  // Resize handle
+  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizing.current = true;
+    resizeStartY.current = e.clientY;
+    resizeStartScale.current = localPos.scale ?? 1;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [localPos.scale]);
+
+  const handleResizePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!resizing.current) return;
+    e.stopPropagation();
+    // Dragging down = bigger, up = smaller
+    const delta = e.clientY - resizeStartY.current;
+    const newScale = Math.max(0.4, Math.min(4, resizeStartScale.current + delta / 100));
+    setLocalPos(prev => ({ ...prev, scale: newScale }));
+  }, []);
+
+  const handleResizePointerUp = useCallback(() => {
+    if (resizing.current) {
+      resizing.current = false;
+      onMove(id, localPos);
+    }
+  }, [id, onMove, localPos]);
+
+  // Click outside deselects (via video area click)
+  useEffect(() => {
+    if (!selected || locked) return;
+    const handleClick = (e: MouseEvent) => {
+      const el = document.getElementById(`overlay-${id}`);
+      if (el && !el.contains(e.target as Node)) {
+        setSelected(false);
+      }
+    };
+    // Delayed to avoid catching the selecting click
+    const timer = setTimeout(() => document.addEventListener("pointerdown", handleClick), 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("pointerdown", handleClick);
+    };
+  }, [selected, locked, id]);
+
   return (
     <div
-      className={`absolute ${locked ? "pointer-events-none" : "cursor-grab active:cursor-grabbing"}`}
+      id={`overlay-${id}`}
+      className={`absolute ${locked ? "pointer-events-none" : selected ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
       style={{
         left: `${localPos.x}%`,
         top: `${localPos.y}%`,
         transform: "translate3d(0,0,0)",
-        willChange: dragging.current ? "transform" : "auto",
+        willChange: dragging.current || resizing.current ? "transform" : "auto",
         touchAction: "none",
       }}
       onPointerDown={handlePointerDown}
@@ -95,12 +178,32 @@ function DraggableOverlay({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
-      {!locked && (
+      {/* Selection ring */}
+      {!locked && selected && (
+        <div className="absolute inset-0 ring-2 ring-white/60 rounded-md pointer-events-none" style={{ margin: -2 }} />
+      )}
+      {/* Move hint when unlocked but not selected */}
+      {!locked && !selected && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-white/40 rounded-full flex items-center justify-center pointer-events-none">
           <Move className="w-2 h-2 text-white" />
         </div>
       )}
-      {children}
+      {children(scaledFontPx)}
+      {/* Resize handle — bottom-right corner, only when selected */}
+      {!locked && selected && (
+        <div
+          className="absolute -bottom-2 -right-2 w-5 h-5 bg-white/80 rounded-sm border border-white/40 cursor-ns-resize flex items-center justify-center"
+          style={{ touchAction: "none" }}
+          onPointerDown={handleResizePointerDown}
+          onPointerMove={handleResizePointerMove}
+          onPointerUp={handleResizePointerUp}
+          onPointerCancel={handleResizePointerUp}
+        >
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+            <path d="M0 8L8 0M3 8L8 3M6 8L8 6" stroke="rgba(0,0,0,0.5)" strokeWidth="1" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
@@ -232,10 +335,14 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
             onMove={handleOverlayMove}
             containerRef={videoAreaRef}
           >
-            <div className={`bg-black/60 backdrop-blur-sm rounded-md px-3 py-1.5 select-none ${!overlaysLocked ? "ring-1 ring-white/30" : ""}`}>
-              <span className="text-white font-mono text-lg font-bold">{speed.toFixed(1)}</span>
-              <span className="text-white/70 text-xs ml-1">{speedUnit}</span>
-            </div>
+            {(fontSize) => (
+              <div className={`bg-black/60 backdrop-blur-sm rounded-md select-none ${!overlaysLocked ? "" : ""}`}
+                style={{ padding: `${fontSize * 0.15}px ${fontSize * 0.3}px` }}
+              >
+                <span className="text-white font-mono font-bold" style={{ fontSize }}>{speed.toFixed(1)}</span>
+                <span className="text-white/70 font-mono" style={{ fontSize: fontSize * 0.6, marginLeft: fontSize * 0.15 }}>{speedUnit}</span>
+              </div>
+            )}
           </DraggableOverlay>
         )}
       </div>
