@@ -1,0 +1,1 @@
+ALTER TABLE public.login_attempts ENABLE ROW LEVEL SECURITY;
