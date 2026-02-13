@@ -8,6 +8,7 @@ import { openDB, STORE_NAMES } from "./dbUtils";
 export interface OverlayPosition {
   x: number; // percentage 0-100
   y: number; // percentage 0-100
+  scale?: number; // multiplier, default 1
 }
 
 export interface OverlaySettings {
