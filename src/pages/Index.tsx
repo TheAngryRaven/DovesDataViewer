@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, LogIn, Shield, Send, Download } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, LogIn, Shield, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileImport } from "@/components/FileImport";
@@ -31,7 +31,7 @@ import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
 import { useState } from "react";
 import { SettingsProvider } from "@/contexts/SettingsContext";
-import { SubmitTrackDialog } from "@/components/SubmitTrackDialog";
+
 
 type TopPanelView = "raceline" | "laptable" | "graphview" | "labs";
 
@@ -357,13 +357,6 @@ export default function Index() {
             </div>
 
             <div className="flex gap-2 justify-center flex-wrap">
-              {enableAdmin && (
-                <SubmitTrackDialog trigger={
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Send className="w-4 h-4" /> Submit Track
-                  </Button>
-                } />
-              )}
               <a href="/tracks.json" download="tracks.json">
                 <Button variant="outline" size="sm" className="gap-2">
                   <Download className="w-4 h-4" /> Download Tracks
