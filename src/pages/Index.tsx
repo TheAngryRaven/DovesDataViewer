@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink } from "lucide-react";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { TrackEditor } from "@/components/TrackEditor";
@@ -258,16 +259,65 @@ export default function Index() {
                 <p className="text-sm text-muted-foreground">Experimental Data Viewer</p>
               </div>
             </div>
-            <a
-              href="https://github.com/sponsors/TheAngryRaven"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" size="sm" className="gap-2">
-                <Heart className="w-4 h-4 text-pink-500" />
-                <span className="hidden sm:inline">Sponsor</span>
-              </Button>
-            </a>
+            <div className="flex items-center gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    <span className="hidden sm:inline">Credits</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Credits</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Built on the shoulders of these incredible open-source projects and free services.
+                  </p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      ["React", "https://react.dev"],
+                      ["Vite", "https://vite.dev"],
+                      ["TypeScript", "https://www.typescriptlang.org"],
+                      ["Tailwind CSS", "https://tailwindcss.com"],
+                      ["shadcn/ui", "https://ui.shadcn.com"],
+                      ["Radix UI", "https://www.radix-ui.com"],
+                      ["Leaflet", "https://leafletjs.com"],
+                      ["OpenStreetMap", "https://www.openstreetmap.org"],
+                      ["Lucide Icons", "https://lucide.dev"],
+                      ["TanStack Query", "https://tanstack.com/query"],
+                      ["IEM ASOS (Iowa State)", "https://mesonet.agron.iastate.edu"],
+                      ["NWS API", "https://www.weather.gov/documentation/services-web-api"],
+                      ["Savitzky-Golay (ml.js)", "https://github.com/mljs/savitzky-golay"],
+                      ["Sonner", "https://sonner.emilkowal.dev"],
+                      ["react-resizable-panels", "https://github.com/bvaughn/react-resizable-panels"],
+                    ].map(([name, url]) => (
+                      <a
+                        key={name}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-accent transition-colors text-sm"
+                      >
+                        <span className="font-medium text-foreground">{name}</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <a
+                href="https://github.com/sponsors/TheAngryRaven"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Heart className="w-4 h-4 text-pink-500" />
+                  <span className="hidden sm:inline">Sponsor</span>
+                </Button>
+              </a>
+            </div>
           </div>
         </header>
 
