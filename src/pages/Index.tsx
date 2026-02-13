@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, LogIn, Shield, Download } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, Shield, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileImport } from "@/components/FileImport";
@@ -324,16 +324,10 @@ export default function Index() {
                 </Button>
               </a>
               {enableAdmin && (
-                <>
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/login')}>
-                    <LogIn className="w-4 h-4" />
-                    <span className="hidden sm:inline">Login</span>
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/admin')}>
-                    <Shield className="w-4 h-4" />
-                    <span className="hidden sm:inline">Admin</span>
-                  </Button>
-                </>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/admin')}>
+                  <Shield className="w-4 h-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Button>
               )}
             </div>
           </div>
