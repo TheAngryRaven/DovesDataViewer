@@ -33,6 +33,7 @@ export function courseHasSectors(course: Course | null): boolean {
 
 export interface Track {
   name: string;
+  shortName?: string; // max 8 chars, used for zip filenames and compact display
   courses: Course[];
   isUserDefined?: boolean; // true if entire track is user-added
 }

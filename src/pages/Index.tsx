@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, LogIn, Shield, Send, Download } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
@@ -30,14 +31,18 @@ import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
 import { useState } from "react";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { SubmitTrackDialog } from "@/components/SubmitTrackDialog";
 
 type TopPanelView = "raceline" | "laptable" | "graphview" | "labs";
+
+const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
   const fileManager = useFileManager();
   const kartManager = useKartManager();
   const setupManager = useSetupManager();
+  const navigate = useNavigate();
   const useKph = settings.useKph;
 
   // Core session data
@@ -318,6 +323,18 @@ export default function Index() {
                   <span className="hidden sm:inline">Sponsor</span>
                 </Button>
               </a>
+              {enableAdmin && (
+                <>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/login')}>
+                    <LogIn className="w-4 h-4" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/admin')}>
+                    <Shield className="w-4 h-4" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -337,6 +354,21 @@ export default function Index() {
 
             <div className="racing-card p-4">
               <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} />
+            </div>
+
+            <div className="flex gap-2 justify-center flex-wrap">
+              {enableAdmin && (
+                <SubmitTrackDialog trigger={
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Send className="w-4 h-4" /> Submit Track
+                  </Button>
+                } />
+              )}
+              <a href="/tracks.json" download="tracks.json">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-4 h-4" /> Download Tracks
+                </Button>
+              </a>
             </div>
 
             <div className="text-center text-sm text-muted-foreground space-y-3">
