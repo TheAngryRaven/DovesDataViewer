@@ -470,6 +470,10 @@ export default function Index() {
               onRangeChange={handleRangeChange}
               minRange={minRange}
               formatRangeLabel={formatRangeLabel}
+              videoState={videoSync.state}
+              videoActions={videoSync.actions}
+              onVideoLoadedMetadata={videoSync.handleLoadedMetadata}
+              currentSample={currentSample}
             />
           )}
           {topPanelView === "labs" && settings.enableLabs && (

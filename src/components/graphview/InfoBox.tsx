@@ -10,6 +10,8 @@ import { KartSetup } from '@/lib/setupStorage';
 import { WeatherPanel } from '@/components/WeatherPanel';
 import { WeatherStation } from '@/lib/weatherService';
 import { useSettingsContext } from '@/contexts/SettingsContext';
+import { VideoPlayer } from '@/components/VideoPlayer';
+import type { VideoSyncState, VideoSyncActions } from '@/hooks/useVideoSync';
 
 interface InfoBoxProps {
   // Stats data
@@ -34,15 +36,21 @@ interface InfoBoxProps {
   sessionSetupId: string | null;
   onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
   onOpenSetupEditor?: (setupId: string) => void;
+  // Video
+  videoState?: VideoSyncState;
+  videoActions?: VideoSyncActions;
+  onVideoLoadedMetadata?: () => void;
+  currentSample?: GpsSample | null;
 }
 
-type InfoTab = 'data' | 'kart';
+type InfoTab = 'data' | 'kart' | 'video';
 
 export function InfoBox({
   filteredSamples, course, lapTimeMs, paceDiff, paceDiffLabel,
   deltaTopSpeed, deltaMinSpeed, referenceLapNumber, lapToFastestDelta,
   sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved,
   karts, setups, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor,
+  videoState, videoActions, onVideoLoadedMetadata, currentSample,
 }: InfoBoxProps) {
   const { useKph } = useSettingsContext();
   const [tab, setTab] = useState<InfoTab>('data');
@@ -105,10 +113,27 @@ export function InfoBox({
         >
           Kart
         </button>
+        <button
+          onClick={() => setTab('video')}
+          className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Video
+        </button>
       </div>
 
-      {/* Content - scrollable */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
+      {/* Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {tab === 'video' && videoState && videoActions && onVideoLoadedMetadata ? (
+          <div className="h-full">
+            <VideoPlayer
+              state={videoState}
+              actions={videoActions}
+              onLoadedMetadata={onVideoLoadedMetadata}
+              currentSample={currentSample ?? null}
+            />
+          </div>
+        ) : (
+        <div className="p-3 space-y-3">
         {tab === 'data' ? (
           <>
             {/* Lap time */}
@@ -257,6 +282,8 @@ export function InfoBox({
               </div>
             )}
           </>
+        )}
+        </div>
         )}
       </div>
     </div>
