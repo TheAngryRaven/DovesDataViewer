@@ -180,6 +180,15 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
 
           <div className="w-px h-5 bg-white/20 mx-1" />
 
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-7 w-7 backdrop-blur-sm text-white ${state.isLocked ? "bg-primary/70 hover:bg-primary/50 active:bg-primary/40" : "bg-white/15 hover:bg-white/30 active:bg-white/25"}`}
+            onClick={actions.toggleLock}
+            title={state.isLocked ? "Unlock sync" : "Lock sync"}
+          >
+            {state.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+          </Button>
           {!state.isLocked && (
             <>
               <Button
@@ -200,27 +209,16 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
               >
                 <Plus className="w-3.5 h-3.5" />
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25 text-xs gap-1.5"
+                onClick={actions.setSyncPoint}
+                title="Set sync point: aligns current video position with current telemetry cursor"
+              >
+                <Crosshair className="w-3.5 h-3.5" /> Sync
+              </Button>
             </>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 backdrop-blur-sm text-white ${state.isLocked ? "bg-primary/70 hover:bg-primary/50 active:bg-primary/40" : "bg-white/15 hover:bg-white/30 active:bg-white/25"}`}
-            onClick={actions.toggleLock}
-            title={state.isLocked ? "Unlock sync" : "Lock sync"}
-          >
-            {state.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-          </Button>
-          {!state.isLocked && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25 text-xs gap-1.5"
-              onClick={actions.setSyncPoint}
-              title="Set sync point: aligns current video position with current telemetry cursor"
-            >
-              <Crosshair className="w-3.5 h-3.5" /> Sync
-            </Button>
           )}
 
           <div className="flex-1" />
