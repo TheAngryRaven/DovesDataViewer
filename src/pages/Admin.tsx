@@ -15,7 +15,9 @@ export default function Admin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
+    if (!loading && !user) {
+      navigate('/login');
+    } else if (!loading && user && !isAdmin) {
       navigate('/');
     }
   }, [user, isAdmin, loading, navigate]);
