@@ -71,9 +71,9 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
       <div className="flex flex-col items-center gap-2 text-muted-foreground">
         {isLoading ? <Loader2 className="w-12 h-12 animate-spin text-primary" /> : <Upload className="w-12 h-12" />}
         <p className="text-lg font-medium">{isLoading ? "Processing..." : "Drop datalog file here"}</p>
-        <p className="text-sm">Supports .nmea, .ubx, .vbo, .dove, Alfano CSV or AiM CSV.</p>
+        <p className="text-sm">Supports .nmea, .ubx, .vbo, .dove, .ld, Alfano CSV, AiM CSV or MoTeC CSV/LD.</p>
         <p className="text-sm text-primary/80">
-          <i>Alfano, AiM, RaceBox, Dove support experimental</i>
+          <i>Alfano, AiM, MoTeC, RaceBox, Dove support experimental</i>
         </p>
         <p className="text-sm">
           <i>All processing done locally</i>
@@ -84,7 +84,7 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
         <label>
           <input
             type="file"
-            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove"
+            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove,.ld"
             onChange={handleFileChange}
             className="hidden"
             disabled={isLoading}
