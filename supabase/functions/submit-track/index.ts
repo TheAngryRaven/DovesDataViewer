@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -32,6 +32,36 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validate track/course name lengths
+    if (track_name.trim().length > 100 || course_name.trim().length > 100) {
+      return new Response(JSON.stringify({ error: 'Names must be under 100 characters' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate coordinate data
+    const requiredCoords = ['start_a_lat', 'start_a_lng', 'start_b_lat', 'start_b_lng'];
+    for (const key of requiredCoords) {
+      if (typeof course_data[key] !== 'number' || isNaN(course_data[key])) {
+        return new Response(JSON.stringify({ error: `Invalid coordinate: ${key}` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Validate optional sector coordinates if present
+    const optionalCoords = [
+      'sector_2_a_lat', 'sector_2_a_lng', 'sector_2_b_lat', 'sector_2_b_lng',
+      'sector_3_a_lat', 'sector_3_a_lng', 'sector_3_b_lat', 'sector_3_b_lng',
+    ];
+    for (const key of optionalCoords) {
+      if (course_data[key] !== undefined && (typeof course_data[key] !== 'number' || isNaN(course_data[key]))) {
+        return new Response(JSON.stringify({ error: `Invalid coordinate: ${key}` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // Get submitter IP
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                req.headers.get('cf-connecting-ip') || 'unknown';
@@ -59,6 +89,20 @@ Deno.serve(async (req) => {
       await supabase.from('banned_ips').delete().eq('id', banned.id);
     }
 
+    // Rate limiting: max 5 submissions per hour per IP
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count } = await supabase
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('submitted_by_ip', ip)
+      .gte('created_at', oneHourAgo);
+
+    if (count !== null && count >= 5) {
+      return new Response(JSON.stringify({ error: 'Too many submissions. Please try again later.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Insert submission
     const { error } = await supabase.from('submissions').insert({
       type,
@@ -76,7 +120,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    console.error('submit-track error:', e);
+    return new Response(JSON.stringify({ error: 'An error occurred. Please try again later.' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

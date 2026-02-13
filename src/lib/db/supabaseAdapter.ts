@@ -168,10 +168,27 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
   // Import tracks.json into DB (rebuilds DB from JSON)
   async importFromTracksJson(json: string): Promise<void> {
-    const parsed = JSON.parse(json) as Record<string, { short_name?: string; courses: Array<Record<string, unknown>> }>;
+    let parsed: Record<string, { short_name?: string; courses: Array<Record<string, unknown>> }>;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      throw new Error('Invalid JSON format');
+    }
+
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Expected a JSON object with track names as keys');
+    }
 
     for (const [trackName, trackData] of Object.entries(parsed)) {
-      const shortName = trackData.short_name || trackName.split(/\s+/).map(w => w[0]).join('').slice(0, 8).toUpperCase();
+      // Validate track entry structure
+      if (!trackName.trim() || trackName.length > 100) {
+        throw new Error(`Invalid track name: "${trackName}"`);
+      }
+      if (!trackData || !Array.isArray(trackData.courses)) {
+        throw new Error(`Track "${trackName}" must have a courses array`);
+      }
+
+      const shortName = (trackData.short_name || trackName.split(/\s+/).map(w => w[0]).join('').slice(0, 8).toUpperCase()).slice(0, 8);
       
       // Upsert track
       let track: DbTrack;
@@ -191,25 +208,45 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
       // Add courses
       for (const c of trackData.courses) {
-        const courseName = (c.name as string || 'Main').trim();
+        const courseName = String(c.name || 'Main').trim();
+        if (!courseName || courseName.length > 100) {
+          throw new Error(`Invalid course name in track "${trackName}"`);
+        }
+
+        // Validate required coordinates
+        const startALat = Number(c.start_a_lat);
+        const startALng = Number(c.start_a_lng);
+        const startBLat = Number(c.start_b_lat);
+        const startBLng = Number(c.start_b_lng);
+        if ([startALat, startALng, startBLat, startBLng].some(v => isNaN(v))) {
+          throw new Error(`Invalid start coordinates in course "${courseName}" of track "${trackName}"`);
+        }
+
+        // Validate optional sector coordinates
+        const toNum = (v: unknown): number | null => {
+          if (v === undefined || v === null) return null;
+          const n = Number(v);
+          return isNaN(n) ? null : n;
+        };
+
         const { data: existingCourse } = await supabase.from('courses').select('id').eq('track_id', track.id).eq('name', courseName).maybeSingle();
         
         const courseData = {
           track_id: track.id,
           name: courseName,
           enabled: true,
-          start_a_lat: c.start_a_lat as number,
-          start_a_lng: c.start_a_lng as number,
-          start_b_lat: c.start_b_lat as number,
-          start_b_lng: c.start_b_lng as number,
-          sector_2_a_lat: (c.sector_2_a_lat as number) ?? null,
-          sector_2_a_lng: (c.sector_2_a_lng as number) ?? null,
-          sector_2_b_lat: (c.sector_2_b_lat as number) ?? null,
-          sector_2_b_lng: (c.sector_2_b_lng as number) ?? null,
-          sector_3_a_lat: (c.sector_3_a_lat as number) ?? null,
-          sector_3_a_lng: (c.sector_3_a_lng as number) ?? null,
-          sector_3_b_lat: (c.sector_3_b_lat as number) ?? null,
-          sector_3_b_lng: (c.sector_3_b_lng as number) ?? null,
+          start_a_lat: startALat,
+          start_a_lng: startALng,
+          start_b_lat: startBLat,
+          start_b_lng: startBLng,
+          sector_2_a_lat: toNum(c.sector_2_a_lat),
+          sector_2_a_lng: toNum(c.sector_2_a_lng),
+          sector_2_b_lat: toNum(c.sector_2_b_lat),
+          sector_2_b_lng: toNum(c.sector_2_b_lng),
+          sector_3_a_lat: toNum(c.sector_3_a_lat),
+          sector_3_a_lng: toNum(c.sector_3_a_lng),
+          sector_3_b_lat: toNum(c.sector_3_b_lat),
+          sector_3_b_lng: toNum(c.sector_3_b_lng),
         };
 
         if (existingCourse) {

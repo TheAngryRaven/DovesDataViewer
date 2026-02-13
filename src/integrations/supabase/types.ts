@@ -119,24 +119,6 @@ export type Database = {
           },
         ]
       }
-      login_attempts: {
-        Row: {
-          attempts: number | null
-          ip_address: string
-          locked_until: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          ip_address: string
-          locked_until?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          ip_address?: string
-          locked_until?: string | null
-        }
-        Relationships: []
-      }
       submissions: {
         Row: {
           course_data: Json

@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -55,8 +55,6 @@ Deno.serve(async (req) => {
 
     if (!tracks || !courses) throw new Error('Failed to load data');
 
-    // Build a simple concatenated format since we can't use JSZip in Deno easily
-    // We'll return a JSON object with filenames as keys
     const files: Record<string, string> = {};
     
     for (const track of tracks) {
@@ -95,7 +93,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+    console.error('admin-build-zip error:', e);
+    return new Response(JSON.stringify({ error: 'An error occurred. Please try again later.' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
