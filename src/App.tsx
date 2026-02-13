@@ -10,10 +10,11 @@ const queryClient = new QueryClient();
 
 // Lazy load admin pages only when VITE_ENABLE_ADMIN is set
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
+const enableRegistration = import.meta.env.VITE_ENABLE_REGISTRATION === 'true';
 
-// Dynamic imports for admin pages
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import Register from "./pages/Register";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           {enableAdmin && <Route path="/login" element={<Login />} />}
           {enableAdmin && <Route path="/admin" element={<Admin />} />}
+          {enableRegistration && <Route path="/register" element={<Register />} />}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
