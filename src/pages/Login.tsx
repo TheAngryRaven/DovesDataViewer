@@ -78,6 +78,15 @@ export default function Login() {
             >
               {isResetMode ? 'Back to login' : 'Forgot password?'}
             </button>
+            {import.meta.env.VITE_ENABLE_REGISTRATION === 'true' && (
+              <button
+                type="button"
+                className="text-primary hover:underline"
+                onClick={() => navigate('/register')}
+              >
+                Register
+              </button>
+            )}
           </div>
         </div>
 
