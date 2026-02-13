@@ -557,16 +557,16 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   return (
     <div className="flex items-center border-b border-border shrink-0">
       <button onClick={() => setTopPanelView("raceline")} className={tabClass("raceline")}>
-        <Map className="w-4 h-4" /> Race Line
+        <Map className="w-4 h-4" /> Simple
+      </button>
+      <button onClick={() => setTopPanelView("graphview")} className={tabClass("graphview")}>
+        <BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">Pro</span>
       </button>
       <button onClick={() => setTopPanelView("laptable")} className={tabClass("laptable")}>
         <ListOrdered className="w-4 h-4" /> Lap Times
         {laps.length > 0 && (
           <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
         )}
-      </button>
-      <button onClick={() => setTopPanelView("graphview")} className={tabClass("graphview")}>
-        <BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">Graph View</span>
       </button>
       {enableLabs && (
         <button onClick={() => setTopPanelView("labs")} className={tabClass("labs")}>
