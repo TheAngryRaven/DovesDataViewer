@@ -224,7 +224,7 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
         )}
 
         {/* Draggable speed overlay */}
-        {state.overlaySettings.showSpeed && speed !== null && (
+        {state.overlaySettings.showSpeed && speed !== null && !state.isOutOfRange && (
           <DraggableOverlay
             id="speed"
             position={positions.speed || { x: 3, y: 3 }}
