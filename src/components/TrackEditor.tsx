@@ -34,6 +34,8 @@ import { VisualEditor, EditorModeToggle } from '@/components/track-editor/Visual
 import { CourseForm } from '@/components/track-editor/CourseForm';
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
+import { SubmitTrackDialog } from '@/components/SubmitTrackDialog';
+import { Send } from 'lucide-react';
 
 interface TrackCourseEditorProps {
   selection: TrackCourseSelection | null;
@@ -365,9 +367,32 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
         <Button variant="outline" size="sm" onClick={openAddTrack} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />Add Track</Button>
       </TabsContent>
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={() => setIsJsonViewOpen(true)} disabled={!selectedTrack}>
-          <Code className="w-4 h-4 mr-2" />View JSON
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsJsonViewOpen(true)} disabled={!selectedTrack}>
+            <Code className="w-4 h-4 mr-2" />View JSON
+          </Button>
+          {selectedTrack && (selectedTrack.isUserDefined || selectedTrack.courses.some(c => c.isUserDefined)) && (
+            <SubmitTrackDialog
+              trigger={
+                <Button variant="outline">
+                  <Send className="w-4 h-4 mr-2" />Submit
+                </Button>
+              }
+              prefill={(() => {
+                const userCourse = selectedTrack.courses.find(c => c.isUserDefined && c.name === tempCourseName)
+                  || selectedTrack.courses.find(c => c.isUserDefined);
+                if (!userCourse) return undefined;
+                return {
+                  type: selectedTrack.isUserDefined ? 'new_track' as const : 'new_course' as const,
+                  trackName: selectedTrack.name,
+                  trackShortName: selectedTrack.shortName,
+                  courseName: userCourse.name,
+                  course: userCourse,
+                };
+              })()}
+            />
+          )}
+        </div>
         <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>
       </div>
     </Tabs>
