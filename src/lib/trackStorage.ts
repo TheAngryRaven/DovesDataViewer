@@ -22,6 +22,7 @@ interface DefaultCourseJson {
 
 interface DefaultTracksJson {
   [trackName: string]: {
+    short_name?: string;
     courses: DefaultCourseJson[];
   };
 }
@@ -91,6 +92,7 @@ export async function loadDefaultTracks(): Promise<Track[]> {
       });
       tracks.push({
         name: trackName,
+        shortName: trackData.short_name,
         courses,
         isUserDefined: false,
       });

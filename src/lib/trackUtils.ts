@@ -36,3 +36,10 @@ export function abbreviateTrackName(name: string): string {
     return word.slice(0, 4).toUpperCase();
   }
 }
+
+/**
+ * Get display name for a track. Uses shortName if available, falls back to abbreviation.
+ */
+export function getTrackDisplayName(track: { name: string; shortName?: string }): string {
+  return track.shortName || abbreviateTrackName(track.name);
+}
