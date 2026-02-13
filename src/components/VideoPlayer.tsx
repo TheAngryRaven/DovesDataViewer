@@ -107,8 +107,8 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
     : null;
   const speedUnit = useKph ? "KPH" : "MPH";
 
-  const overlaysLocked = state.overlaySettings.overlaysLocked;
-  const positions = state.overlaySettings.positions;
+  const overlaysLocked = state.overlaySettings.overlaysLocked ?? true;
+  const positions = state.overlaySettings.positions ?? { speed: { x: 3, y: 3 } };
 
   const handleOverlayMove = useCallback((id: string, pos: OverlayPosition) => {
     actions.updateOverlaySettings({
