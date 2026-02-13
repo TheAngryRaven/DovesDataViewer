@@ -378,10 +378,10 @@ export function SettingsModal({
             <div className="flex items-center justify-between pl-6">
               <div>
                 <Label htmlFor="settings-enable-labs" className="text-sm text-muted-foreground">
-                  Enable Labs tab with experimental video sync and analysis tools
+                  Enable Labs mode
                 </Label>
                 <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Adds an experimental Labs tab for syncing video with telemetry data
+                  shhhhhh!
                 </p>
               </div>
               <Switch
