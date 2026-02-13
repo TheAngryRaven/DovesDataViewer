@@ -213,20 +213,36 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
           throw new Error(`Invalid course name in track "${trackName}"`);
         }
 
+        // Validate coordinate is a finite number within GPS bounds
+        const validateLat = (v: unknown, label: string): number => {
+          const n = Number(v);
+          if (isNaN(n) || !isFinite(n) || n < -90 || n > 90) {
+            throw new Error(`Invalid latitude ${label} in course "${courseName}" of track "${trackName}": must be between -90 and 90`);
+          }
+          return n;
+        };
+        const validateLng = (v: unknown, label: string): number => {
+          const n = Number(v);
+          if (isNaN(n) || !isFinite(n) || n < -180 || n > 180) {
+            throw new Error(`Invalid longitude ${label} in course "${courseName}" of track "${trackName}": must be between -180 and 180`);
+          }
+          return n;
+        };
+
         // Validate required coordinates
-        const startALat = Number(c.start_a_lat);
-        const startALng = Number(c.start_a_lng);
-        const startBLat = Number(c.start_b_lat);
-        const startBLng = Number(c.start_b_lng);
-        if ([startALat, startALng, startBLat, startBLng].some(v => isNaN(v))) {
-          throw new Error(`Invalid start coordinates in course "${courseName}" of track "${trackName}"`);
-        }
+        const startALat = validateLat(c.start_a_lat, 'start_a_lat');
+        const startALng = validateLng(c.start_a_lng, 'start_a_lng');
+        const startBLat = validateLat(c.start_b_lat, 'start_b_lat');
+        const startBLng = validateLng(c.start_b_lng, 'start_b_lng');
 
         // Validate optional sector coordinates
-        const toNum = (v: unknown): number | null => {
+        const toNumLat = (v: unknown, label: string): number | null => {
           if (v === undefined || v === null) return null;
-          const n = Number(v);
-          return isNaN(n) ? null : n;
+          return validateLat(v, label);
+        };
+        const toNumLng = (v: unknown, label: string): number | null => {
+          if (v === undefined || v === null) return null;
+          return validateLng(v, label);
         };
 
         const { data: existingCourse } = await supabase.from('courses').select('id').eq('track_id', track.id).eq('name', courseName).maybeSingle();
@@ -239,14 +255,14 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
           start_a_lng: startALng,
           start_b_lat: startBLat,
           start_b_lng: startBLng,
-          sector_2_a_lat: toNum(c.sector_2_a_lat),
-          sector_2_a_lng: toNum(c.sector_2_a_lng),
-          sector_2_b_lat: toNum(c.sector_2_b_lat),
-          sector_2_b_lng: toNum(c.sector_2_b_lng),
-          sector_3_a_lat: toNum(c.sector_3_a_lat),
-          sector_3_a_lng: toNum(c.sector_3_a_lng),
-          sector_3_b_lat: toNum(c.sector_3_b_lat),
-          sector_3_b_lng: toNum(c.sector_3_b_lng),
+          sector_2_a_lat: toNumLat(c.sector_2_a_lat, 'sector_2_a_lat'),
+          sector_2_a_lng: toNumLng(c.sector_2_a_lng, 'sector_2_a_lng'),
+          sector_2_b_lat: toNumLat(c.sector_2_b_lat, 'sector_2_b_lat'),
+          sector_2_b_lng: toNumLng(c.sector_2_b_lng, 'sector_2_b_lng'),
+          sector_3_a_lat: toNumLat(c.sector_3_a_lat, 'sector_3_a_lat'),
+          sector_3_a_lng: toNumLng(c.sector_3_a_lng, 'sector_3_a_lng'),
+          sector_3_b_lat: toNumLat(c.sector_3_b_lat, 'sector_3_b_lat'),
+          sector_3_b_lng: toNumLng(c.sector_3_b_lng, 'sector_3_b_lng'),
         };
 
         if (existingCourse) {
