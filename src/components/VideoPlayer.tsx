@@ -22,7 +22,7 @@ interface VideoPlayerProps {
   currentSample: GpsSample | null;
 }
 
-/** Draggable overlay wrapper — positions via percentage, draggable when unlocked */
+/** Draggable overlay wrapper — local state during drag, persist on drop */
 function DraggableOverlay({
   id,
   position,
@@ -38,8 +38,14 @@ function DraggableOverlay({
   containerRef: React.RefObject<HTMLDivElement | null>;
   children: React.ReactNode;
 }) {
+  const [localPos, setLocalPos] = useState<OverlayPosition>(position);
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
+
+  // Sync from prop when not dragging
+  useEffect(() => {
+    if (!dragging.current) setLocalPos(position);
+  }, [position]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (locked) return;
@@ -51,10 +57,10 @@ function DraggableOverlay({
     if (!container) return;
     const rect = container.getBoundingClientRect();
     offset.current = {
-      x: e.clientX - (rect.left + (position.x / 100) * rect.width),
-      y: e.clientY - (rect.top + (position.y / 100) * rect.height),
+      x: e.clientX - (rect.left + (localPos.x / 100) * rect.width),
+      y: e.clientY - (rect.top + (localPos.y / 100) * rect.height),
     };
-  }, [locked, position, containerRef]);
+  }, [locked, localPos, containerRef]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging.current) return;
@@ -64,17 +70,26 @@ function DraggableOverlay({
     const rect = container.getBoundingClientRect();
     const x = Math.max(0, Math.min(90, ((e.clientX - offset.current.x - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(90, ((e.clientY - offset.current.y - rect.top) / rect.height) * 100));
-    onMove(id, { x, y });
-  }, [id, onMove, containerRef]);
+    setLocalPos({ x, y });
+  }, [containerRef]);
 
   const handlePointerUp = useCallback(() => {
-    dragging.current = false;
-  }, []);
+    if (dragging.current) {
+      dragging.current = false;
+      onMove(id, localPos);
+    }
+  }, [id, onMove, localPos]);
 
   return (
     <div
       className={`absolute ${locked ? "pointer-events-none" : "cursor-grab active:cursor-grabbing"}`}
-      style={{ left: `${position.x}%`, top: `${position.y}%` }}
+      style={{
+        left: `${localPos.x}%`,
+        top: `${localPos.y}%`,
+        transform: "translate3d(0,0,0)",
+        willChange: dragging.current ? "transform" : "auto",
+        touchAction: "none",
+      }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
