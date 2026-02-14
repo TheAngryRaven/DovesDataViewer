@@ -22,43 +22,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let initialResolved = false;
 
-    const checkAdmin = async (userId: string) => {
-      const { data } = await supabase.rpc('has_role', {
-        _user_id: userId,
-        _role: 'admin',
-      });
-      if (!cancelled) setIsAdmin(!!data);
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (cancelled) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          await checkAdmin(session.user.id);
+    const updateAuth = async (s: Session | null) => {
+      if (cancelled) return;
+      try {
+        setSession(s);
+        setUser(s?.user ?? null);
+        if (s?.user) {
+          const { data } = await supabase.rpc('has_role', {
+            _user_id: s.user.id,
+            _role: 'admin',
+          });
+          if (!cancelled) setIsAdmin(!!data);
         } else {
           setIsAdmin(false);
         }
-        if (!cancelled) setLoading(false);
+      } catch {
+        if (!cancelled) setIsAdmin(false);
+      }
+      if (!cancelled) {
+        initialResolved = true;
+        setLoading(false);
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (cancelled) return;
+        updateAuth(session);
       }
     );
 
-    // Fallback: ensure loading resolves even if onAuthStateChange is delayed
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (cancelled) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkAdmin(session.user.id);
+    // Fallback: getSession as backup for initial load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!initialResolved) updateAuth(session);
+    }).catch(() => {
+      if (!cancelled && !initialResolved) {
+        initialResolved = true;
+        setLoading(false);
       }
-      if (!cancelled) setLoading(false);
     });
+
+    // Safety timeout: never stay loading forever
+    const timeout = setTimeout(() => {
+      if (!initialResolved && !cancelled) {
+        console.warn('Auth loading timed out');
+        initialResolved = true;
+        setLoading(false);
+      }
+    }, 5000);
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, []);
