@@ -84,11 +84,7 @@ Deno.serve(async (req) => {
         return obj;
       });
 
-      files[`TRACKS/${track.short_name}.json`] = JSON.stringify(
-        { [track.name]: { short_name: track.short_name, courses: courseList } },
-        null,
-        2
-      );
+      files[`TRACKS/${track.short_name}.json`] = JSON.stringify(courseList, null, 2);
     }
 
     return new Response(JSON.stringify(files), {
