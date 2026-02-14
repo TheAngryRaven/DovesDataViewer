@@ -406,7 +406,19 @@ export default function Index() {
 
         <main className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-xl space-y-6">
-            <div className="flex justify-end">
+            <div className="flex justify-end items-center gap-2">
+              <a href="/tracks.json" download="tracks.json">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">tracks.json</span>
+                </Button>
+              </a>
+              <a href="/tracks.zip" download="tracks.zip">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">tracks.zip</span>
+                </Button>
+              </a>
               <LocalWeatherDialog />
             </div>
 
