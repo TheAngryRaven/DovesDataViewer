@@ -353,7 +353,12 @@ export default function Index() {
             <div className="flex gap-2 justify-center flex-wrap">
               <a href="/tracks.json" download="tracks.json">
                 <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="w-4 h-4" /> Download Tracks
+                  <Download className="w-4 h-4" /> Download tracks.json
+                </Button>
+              </a>
+              <a href="/tracks.zip" download="tracks.zip">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="w-4 h-4" /> Download tracks.zip
                 </Button>
               </a>
             </div>
