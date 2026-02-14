@@ -5,13 +5,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
+  const secret = Deno.env.get('TURNSTILE_SECRET_KEY');
+  if (!secret) {
+    console.warn('TURNSTILE_SECRET_KEY not set, skipping verification');
+    return true;
+  }
+
+  const resp = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ secret, response: token, remoteip: ip }),
+  });
+
+  const result = await resp.json();
+  return result.success === true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { type, track_name, track_short_name, course_name, course_data } = await req.json();
+    const { type, track_name, track_short_name, course_name, course_data, turnstile_token } = await req.json();
 
     // Validate required fields
     if (!type || !track_name || !course_name || !course_data) {
@@ -65,6 +82,22 @@ Deno.serve(async (req) => {
     // Get submitter IP
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                req.headers.get('cf-connecting-ip') || 'unknown';
+
+    // Verify Turnstile token
+    if (Deno.env.get('TURNSTILE_SECRET_KEY')) {
+      if (!turnstile_token || typeof turnstile_token !== 'string') {
+        return new Response(JSON.stringify({ error: 'Verification required. Please complete the CAPTCHA.' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const valid = await verifyTurnstile(turnstile_token, ip);
+      if (!valid) {
+        return new Response(JSON.stringify({ error: 'Verification failed. Please try again.' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     // Use service role to bypass RLS
     const supabase = createClient(

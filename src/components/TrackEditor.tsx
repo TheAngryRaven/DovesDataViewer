@@ -375,7 +375,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
             <SubmitTrackDialog
               trigger={
                 <Button variant="outline">
-                  <Send className="w-4 h-4 mr-2" />Submit
+                  <Send className="w-4 h-4 mr-2" />Submit to DB
                 </Button>
               }
               prefill={(() => {
