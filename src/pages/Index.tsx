@@ -1,10 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, Shield, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
-import { TrackEditor } from "@/components/TrackEditor";
+import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { RaceLineTab } from "@/components/tabs/RaceLineTab";
 import { LapTimesTab } from "@/components/tabs/LapTimesTab";
 import { GraphViewTab } from "@/components/tabs/GraphViewTab";
@@ -15,9 +15,11 @@ import { FileManagerDrawer } from "@/components/FileManagerDrawer";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ParsedData, TrackCourseSelection } from "@/types/racing";
+import { ParsedData, Track, TrackCourseSelection } from "@/types/racing";
 import { getFileMetadata } from "@/lib/fileStorage";
 import { loadTracks } from "@/lib/trackStorage";
+import { findNearestTrack } from "@/lib/trackUtils";
+import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useFileManager } from "@/hooks/useFileManager";
@@ -29,7 +31,6 @@ import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
-import { useState } from "react";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 
 
@@ -92,6 +93,9 @@ export default function Index() {
 
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
   const [showOverlays, setShowOverlays] = useState(true);
+  const [trackPromptOpen, setTrackPromptOpen] = useState(false);
+  const [detectedTrack, setDetectedTrack] = useState<Track | null>(null);
+  const [allTracks, setAllTracks] = useState<Track[]>([]);
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -110,6 +114,7 @@ export default function Index() {
 
       // Try to restore track selection from metadata
       let courseToUse = selectedCourse;
+      let restoredFromMeta = false;
       if (fileName) {
         const meta = await getFileMetadata(fileName);
         if (meta) {
@@ -124,6 +129,7 @@ export default function Index() {
             };
             lapMgmt.setSelection(restoredSelection);
             courseToUse = course;
+            restoredFromMeta = true;
           }
           sessionMeta.restoreFromMetadata(meta);
         } else {
@@ -142,6 +148,20 @@ export default function Index() {
         }
       } else {
         setSelectedLapNumber(null);
+      }
+
+      // Auto-detect track and prompt if not restored from metadata
+      if (!restoredFromMeta) {
+        const tracks = await loadTracks();
+        setAllTracks(tracks);
+        const validSample = parsedData.samples.find(
+          (s) => s.lat !== 0 && s.lon !== 0 && Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180
+        );
+        if (validSample) {
+          const nearest = findNearestTrack(validSample.lat, validSample.lon, tracks);
+          setDetectedTrack(nearest as Track | null);
+          setTrackPromptOpen(true);
+        }
       }
     },
     [selectedCourse, sessionData, lapMgmt, sessionMeta, setCurrentIndex, setSelectedLapNumber]
@@ -173,6 +193,18 @@ export default function Index() {
   }, [handleSelectExternalLap, setReferenceLapNumber]);
 
   const hasReference = referenceLapNumber !== null || externalRefSamples !== null;
+
+  // Handle course selection from the track prompt dialog
+  const handleTrackPromptSelect = useCallback((sel: TrackCourseSelection) => {
+    handleSelectionChange(sel);
+    if (data) {
+      const computedLaps = lapMgmt.calculateAndSetLaps(sel.course, data.samples);
+      if (computedLaps.length > 0) {
+        const fastest = computedLaps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), computedLaps[0]);
+        setSelectedLapNumber(fastest.lapNumber);
+      }
+    }
+  }, [handleSelectionChange, data, lapMgmt, setSelectedLapNumber]);
 
   const brakingZoneSettings = useMemo(() => ({
     entryThresholdG: settings.brakingEntryThreshold / 100,
@@ -346,27 +378,7 @@ export default function Index() {
               autoSaveFile={fileManager.saveFile}
             />
 
-            <div className="racing-card p-4">
-              <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} />
-            </div>
-
-            <div className="flex gap-2 justify-center flex-wrap">
-              <a href="/tracks.json" download="tracks.json">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="w-4 h-4" /> Download tracks.json
-                </Button>
-              </a>
-              <a href="/tracks.zip" download="tracks.zip">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="w-4 h-4" /> Download tracks.zip
-                </Button>
-              </a>
-            </div>
-
             <div className="text-center text-sm text-muted-foreground space-y-3">
-              <p>Track definitions are saved in your browser.</p>
-              <p> </p>
-
               <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <h3 className="font-medium text-foreground mb-2">Try it out!</h3>
                 <p className="text-xs mb-3">Load sample data from Orlando Kart Center to see how the viewer works.</p>
@@ -558,6 +570,13 @@ export default function Index() {
       </main>
       <InstallPrompt />
       <FileManagerDrawer {...fileManagerProps} />
+      <TrackPromptDialog
+        open={trackPromptOpen}
+        onOpenChange={setTrackPromptOpen}
+        detectedTrack={detectedTrack}
+        tracks={allTracks}
+        onSelect={handleTrackPromptSelect}
+      />
     </div>
     </SettingsProvider>
   );

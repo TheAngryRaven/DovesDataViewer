@@ -43,3 +43,39 @@ export function abbreviateTrackName(name: string): string {
 export function getTrackDisplayName(track: { name: string; shortName?: string }): string {
   return track.shortName || abbreviateTrackName(track.name);
 }
+
+/**
+ * Haversine distance in meters between two lat/lon points.
+ */
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Find the nearest track to a GPS point. Returns the track if within threshold (default 2km).
+ */
+export function findNearestTrack(
+  lat: number, lon: number,
+  tracks: { name: string; courses: { startFinishA: { lat: number; lon: number } }[] }[],
+  thresholdMeters = 2000
+): typeof tracks[number] | null {
+  let best: typeof tracks[number] | null = null;
+  let bestDist = Infinity;
+  for (const track of tracks) {
+    for (const course of track.courses) {
+      const dist = haversineDistance(lat, lon, course.startFinishA.lat, course.startFinishA.lon);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = track;
+      }
+    }
+  }
+  return bestDist <= thresholdMeters ? best : null;
+}
