@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, Shield, Download } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, Shield, Download, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileImport } from "@/components/FileImport";
@@ -297,6 +297,45 @@ export default function Index() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Info className="w-4 h-4" />
+                    <span className="hidden sm:inline">About</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>About HackTheTrack</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 text-sm text-muted-foreground">
+                    <div>
+                      <h3 className="font-semibold text-foreground mb-1">Works Offline &amp; Can Be Installed</h3>
+                      <p>
+                        HackTheTrack is a fully offline-capable web application. Once loaded, it works without an internet connection — perfect for the track. You can <strong className="text-foreground">install it like a native app</strong> on your phone, tablet, or computer by using the "Install" option in your browser menu (or the prompt that appears at the bottom of the page).
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground mb-1">Your Data Stays on Your Device</h3>
+                      <p>
+                        All data processing happens entirely in your browser. Your log files, session notes, kart setups, and video sync data are saved locally on your device — nothing is uploaded to any server.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground mb-1">Community Track Database</h3>
+                      <p>
+                        Don't see your track? You can define custom track and course layouts in the editor, then submit them to the site-wide database for everyone to use. Submissions are reviewed before being added.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground mb-1">Free &amp; Open Source</h3>
+                      <p>
+                        Every feature in HackTheTrack is completely free. The source code is open and available on GitHub. If cloud-saving is added in the future, that may carry a small cost to cover server fees — but all local features will always remain free.
+                      </p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
