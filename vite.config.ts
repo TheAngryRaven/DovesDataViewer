@@ -45,6 +45,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,json,nmea}"],
+        globIgnores: ["**/tracks.zip"],
+        navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.basemaps\.cartocdn\.com\/.*/i,
