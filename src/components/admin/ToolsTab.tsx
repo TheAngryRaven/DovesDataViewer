@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
 import { Download, Upload, FileJson, Archive } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import JSZip from 'jszip';
 
 export function ToolsTab() {
   const [jsonOutput, setJsonOutput] = useState('');
@@ -44,8 +45,13 @@ export function ToolsTab() {
       });
       if (resp.error) throw resp.error;
       
-      // The response is a zip blob
-      const blob = new Blob([resp.data], { type: 'application/zip' });
+      // Edge function returns JSON map of {path: content}, build a real zip client-side
+      const files: Record<string, string> = resp.data;
+      const zip = new JSZip();
+      for (const [path, content] of Object.entries(files)) {
+        zip.file(path, content);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
