@@ -165,7 +165,7 @@ function DraggableOverlay({
   return (
     <div
       id={`overlay-${id}`}
-      className={`absolute ${locked ? "pointer-events-none" : selected ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+      className={`absolute pointer-events-auto ${locked ? "pointer-events-none" : selected ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
       style={{
         left: `${localPos.x}%`,
         top: `${localPos.y}%`,
@@ -214,11 +214,15 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const videoAreaRef = useRef<HTMLDivElement>(null);
+  const videoRectRef = useRef<HTMLDivElement>(null);
 
   const [isMuted, setIsMuted] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [showOverlayDialog, setShowOverlayDialog] = useState(false);
+
+  // Track whether overlays were unlocked before auto-locking on fade
+  const wasUnlockedBeforeFade = useRef(false);
 
   const speed = currentSample
     ? useKph ? currentSample.speedKph : currentSample.speedMph
@@ -243,6 +247,19 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
     }
   }, [state.isPlaying]);
 
+  // Auto-lock overlays when controls fade, restore when they reappear
+  useEffect(() => {
+    if (!controlsVisible && !overlaysLocked) {
+      // Controls just faded — auto-lock overlays
+      wasUnlockedBeforeFade.current = true;
+      actions.updateOverlaySettings({ overlaysLocked: true });
+    } else if (controlsVisible && wasUnlockedBeforeFade.current) {
+      // Controls reappeared — restore unlocked state
+      wasUnlockedBeforeFade.current = false;
+      actions.updateOverlaySettings({ overlaysLocked: false });
+    }
+  }, [controlsVisible]); // intentionally narrow deps
+
   useEffect(() => {
     if (state.isPlaying) {
       hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
@@ -253,16 +270,48 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
     return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
   }, [state.isPlaying]);
 
+  // Track the actual video rendered rectangle (accounting for object-contain letterboxing)
+  const [videoRect, setVideoRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  useEffect(() => {
+    const videoEl = actions.videoRef?.current;
+    const containerEl = videoAreaRef.current;
+    if (!videoEl || !containerEl) return;
+
+    const updateRect = () => {
+      const vw = videoEl.videoWidth;
+      const vh = videoEl.videoHeight;
+      if (!vw || !vh) return;
+      const cw = containerEl.clientWidth;
+      const ch = containerEl.clientHeight;
+      const scale = Math.min(cw / vw, ch / vh);
+      const rw = vw * scale;
+      const rh = vh * scale;
+      setVideoRect({
+        left: (cw - rw) / 2,
+        top: (ch - rh) / 2,
+        width: rw,
+        height: rh,
+      });
+    };
+
+    updateRect();
+    const ro = new ResizeObserver(updateRect);
+    ro.observe(containerEl);
+    videoEl.addEventListener("loadedmetadata", updateRect);
+    return () => {
+      ro.disconnect();
+      videoEl.removeEventListener("loadedmetadata", updateRect);
+    };
+  }, [actions.videoRef, state.videoUrl]);
+
   const handleVideoClick = useCallback((e: React.MouseEvent) => {
     if (toolbarRef.current?.contains(e.target as Node)) return;
-    // Don't toggle if dragging overlays
-    if (!overlaysLocked) return;
     setControlsVisible(v => !v);
     if (state.isPlaying) {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
     }
-  }, [state.isPlaying, overlaysLocked]);
+  }, [state.isPlaying]);
 
   // Progress bar interaction
   const seekFromPointer = useCallback((clientX: number) => {
@@ -326,24 +375,38 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
           </div>
         )}
 
-        {/* Draggable speed overlay */}
-        {state.overlaySettings.showSpeed && speed !== null && !state.isOutOfRange && (
-          <DraggableOverlay
-            id="speed"
-            position={positions.speed || { x: 3, y: 3 }}
-            locked={overlaysLocked}
-            onMove={handleOverlayMove}
-            containerRef={videoAreaRef}
+        {/* Overlay container positioned over the actual video (not letterbox bars) */}
+        {videoRect && (
+          <div
+            ref={videoRectRef}
+            className="absolute pointer-events-none"
+            style={{
+              left: videoRect.left,
+              top: videoRect.top,
+              width: videoRect.width,
+              height: videoRect.height,
+            }}
           >
-            {(fontSize) => (
-              <div className={`bg-black/60 backdrop-blur-sm rounded-md select-none ${!overlaysLocked ? "" : ""}`}
-                style={{ padding: `${fontSize * 0.15}px ${fontSize * 0.3}px` }}
+            {/* Draggable speed overlay */}
+            {state.overlaySettings.showSpeed && speed !== null && !state.isOutOfRange && (
+              <DraggableOverlay
+                id="speed"
+                position={positions.speed || { x: 3, y: 3 }}
+                locked={overlaysLocked}
+                onMove={handleOverlayMove}
+                containerRef={videoRectRef}
               >
-                <span className="text-white font-mono font-bold" style={{ fontSize }}>{speed.toFixed(1)}</span>
-                <span className="text-white/70 font-mono" style={{ fontSize: fontSize * 0.6, marginLeft: fontSize * 0.15 }}>{speedUnit}</span>
-              </div>
+                {(fontSize) => (
+                  <div className={`bg-black/60 backdrop-blur-sm rounded-md select-none`}
+                    style={{ padding: `${fontSize * 0.15}px ${fontSize * 0.3}px` }}
+                  >
+                    <span className="text-white font-mono font-bold" style={{ fontSize }}>{speed.toFixed(1)}</span>
+                    <span className="text-white/70 font-mono" style={{ fontSize: fontSize * 0.6, marginLeft: fontSize * 0.15 }}>{speedUnit}</span>
+                  </div>
+                )}
+              </DraggableOverlay>
             )}
-          </DraggableOverlay>
+          </div>
         )}
       </div>
 
