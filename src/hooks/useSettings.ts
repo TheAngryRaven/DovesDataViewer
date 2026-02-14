@@ -16,6 +16,7 @@ export interface AppSettings {
   brakingGraphWindow: number;       // 5-51 odd, SG filter window for graph (default: 25)
   autoSaveFiles: boolean;           // Auto-save imported/uploaded files to device (default: true)
   enableLabs: boolean;              // Enable experimental Labs tab (default: false)
+  darkMode: boolean;                // Dark mode enabled (default: true)
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -35,6 +36,7 @@ const defaultSettings: AppSettings = {
   brakingGraphWindow: 25,         // SG window size (25 @ 25Hz = 1s)
   autoSaveFiles: true,
   enableLabs: false,
+  darkMode: true,
 };
 
 export function useSettings() {

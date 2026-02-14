@@ -16,6 +16,7 @@ export interface SettingsContextValue {
   gForceSmoothingStrength: number;
   brakingZoneSettings: BrakingZoneSettings;
   enableLabs: boolean;
+  darkMode: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);

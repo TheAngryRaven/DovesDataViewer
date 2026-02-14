@@ -6,60 +6,60 @@
 
 @layer base {
   :root {
-    --background: 220 20% 6%;
-    --foreground: 210 20% 92%;
+    --background: 0 0% 98%;
+    --foreground: 220 20% 12%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 210 20% 92%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 12%;
 
-    --popover: 220 18% 8%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 12%;
 
-    --primary: 180 70% 45%;
-    --primary-foreground: 220 20% 6%;
+    --primary: 180 70% 35%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 15% 25%;
 
-    --muted: 220 15% 15%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 220 15% 93%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 45 90% 55%;
-    --accent-foreground: 220 20% 6%;
+    --accent: 45 90% 48%;
+    --accent-foreground: 220 20% 10%;
 
     --destructive: 0 70% 50%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 18%;
-    --ring: 180 70% 45%;
+    --border: 220 15% 85%;
+    --input: 220 15% 88%;
+    --ring: 180 70% 35%;
 
     --radius: 0.5rem;
 
     /* Racing-specific colors */
-    --speed-slow: 120 60% 45%;
-    --speed-medium: 45 90% 55%;
-    --speed-fast: 15 85% 55%;
-    --speed-max: 0 75% 50%;
-    
-    --start-finish: 0 75% 55%;
-    --lap-best: 120 60% 50%;
-    --telemetry-speed: 180 70% 55%;
-    --telemetry-rpm: 45 85% 55%;
-    --telemetry-temp: 0 70% 55%;
-    --scrub-cursor: 0 75% 55%;
-    
-    --chart-grid: 220 15% 25%;
+    --speed-slow: 120 60% 38%;
+    --speed-medium: 45 90% 45%;
+    --speed-fast: 15 85% 50%;
+    --speed-max: 0 75% 48%;
+
+    --start-finish: 0 75% 50%;
+    --lap-best: 120 60% 40%;
+    --telemetry-speed: 180 70% 40%;
+    --telemetry-rpm: 45 85% 45%;
+    --telemetry-temp: 0 70% 50%;
+    --scrub-cursor: 0 75% 50%;
+
+    --chart-grid: 220 15% 88%;
     --chart-axis: 220 10% 45%;
 
-    --sidebar-background: 220 18% 10%;
-    --sidebar-foreground: 210 20% 92%;
-    --sidebar-primary: 180 70% 45%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 210 20% 85%;
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 180 70% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 12%;
+    --sidebar-primary: 180 70% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 92%;
+    --sidebar-accent-foreground: 220 15% 25%;
+    --sidebar-border: 220 15% 85%;
+    --sidebar-ring: 180 70% 35%;
   }
 
   .dark {
@@ -90,6 +90,22 @@
     --border: 220 15% 20%;
     --input: 220 15% 18%;
     --ring: 180 70% 45%;
+
+    /* Racing-specific colors */
+    --speed-slow: 120 60% 45%;
+    --speed-medium: 45 90% 55%;
+    --speed-fast: 15 85% 55%;
+    --speed-max: 0 75% 50%;
+
+    --start-finish: 0 75% 55%;
+    --lap-best: 120 60% 50%;
+    --telemetry-speed: 180 70% 55%;
+    --telemetry-rpm: 45 85% 55%;
+    --telemetry-temp: 0 70% 55%;
+    --scrub-cursor: 0 75% 55%;
+
+    --chart-grid: 220 15% 25%;
+    --chart-axis: 220 10% 45%;
 
     --sidebar-background: 220 18% 10%;
     --sidebar-foreground: 210 20% 92%;
