@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { GpsSample } from '@/types/racing';
 import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
 import { useSettingsContext } from '@/contexts/SettingsContext';
+import { getChartColors } from '@/lib/chartColors';
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
@@ -21,7 +22,8 @@ export function SingleSeriesChart({
   color, label, onDelete,
   referenceValues = null, brakingGValues,
 }: SingleSeriesChartProps) {
-  const { useKph, gForceSmoothing, gForceSmoothingStrength } = useSettingsContext();
+  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode } = useSettingsContext();
+  const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -96,11 +98,11 @@ export function SingleSeriesChart({
     const chartHeight = dimensions.height - padding.top - padding.bottom;
 
     // Clear
-    ctx.fillStyle = 'hsl(220, 18%, 10%)';
+    ctx.fillStyle = chartColors.background;
     ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
     // Grid
-    ctx.strokeStyle = 'hsl(220, 15%, 20%)';
+    ctx.strokeStyle = chartColors.grid;
     ctx.lineWidth = 1;
     const timeGridCount = 10;
     for (let i = 0; i <= timeGridCount; i++) {
@@ -140,7 +142,7 @@ export function SingleSeriesChart({
     // Draw reference line (behind main line)
     if (referenceValues && !isPace) {
       ctx.beginPath();
-      ctx.strokeStyle = 'hsla(220, 10%, 55%, 0.5)';
+      ctx.strokeStyle = chartColors.refLine;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]);
       let refDrawing = false;
@@ -160,7 +162,7 @@ export function SingleSeriesChart({
     if (isPace || isBrakingG) {
       const zeroY = padding.top + (1 - (0 - minVal) / range) * chartHeight;
       ctx.beginPath();
-      ctx.strokeStyle = 'hsla(220, 10%, 55%, 0.4)';
+      ctx.strokeStyle = chartColors.zeroLine;
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       ctx.moveTo(padding.left, zeroY);
@@ -200,7 +202,7 @@ export function SingleSeriesChart({
     ctx.stroke();
 
     // Y axis labels
-    ctx.fillStyle = 'hsl(220, 10%, 55%)';
+    ctx.fillStyle = chartColors.axisText;
     ctx.font = '10px JetBrains Mono, monospace';
     ctx.textAlign = 'right';
     for (let i = 0; i <= valueGridCount; i++) {
@@ -229,7 +231,7 @@ export function SingleSeriesChart({
       ctx.beginPath();
       ctx.moveTo(x, padding.top);
       ctx.lineTo(x, padding.top + chartHeight);
-      ctx.strokeStyle = 'hsl(0, 75%, 55%)';
+      ctx.strokeStyle = chartColors.scrubCursor;
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -255,9 +257,9 @@ export function SingleSeriesChart({
         const boxWidth = Math.max(90, ctx.measureText(fullText).width + 12);
         const boxX = Math.min(x + 8, dimensions.width - boxWidth - 10);
 
-        ctx.fillStyle = 'hsla(220, 18%, 10%, 0.9)';
+        ctx.fillStyle = chartColors.tooltipBg;
         ctx.fillRect(boxX, padding.top + 4, boxWidth, 18);
-        ctx.strokeStyle = 'hsl(220, 15%, 25%)';
+        ctx.strokeStyle = chartColors.tooltipBorder;
         ctx.lineWidth = 1;
         ctx.strokeRect(boxX, padding.top + 4, boxWidth, 18);
 
@@ -271,12 +273,12 @@ export function SingleSeriesChart({
         // Draw delta in separate color
         if (deltaText) {
           const mainWidth = ctx.measureText(mainText).width;
-          ctx.fillStyle = 'hsl(0, 0%, 85%)';
+          ctx.fillStyle = chartColors.deltaText;
           ctx.fillText(deltaText, boxX + 4 + mainWidth, padding.top + 16);
         }
       }
     }
-  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues]);
+  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues, chartColors]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {

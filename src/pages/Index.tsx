@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, Shield, Download, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,6 +45,15 @@ export default function Index() {
   const setupManager = useSetupManager();
   const navigate = useNavigate();
   const useKph = settings.useKph;
+
+  // Apply dark/light mode class to document root
+  useEffect(() => {
+    if (settings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [settings.darkMode]);
 
   // Core session data
   const sessionData = useSessionData(isFieldHiddenByDefault, settings.defaultHiddenFields);
@@ -228,7 +237,8 @@ export default function Index() {
     gForceSmoothingStrength: settings.gForceSmoothingStrength,
     brakingZoneSettings,
     enableLabs: settings.enableLabs,
-  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs]);
+    darkMode: settings.darkMode,
+  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs, settings.darkMode]);
 
   // Memoize sliced data arrays to avoid recreating on every render
   const slicedPaceData = useMemo(

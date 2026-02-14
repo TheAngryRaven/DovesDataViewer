@@ -1,4 +1,4 @@
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,30 @@ export function SettingsModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0 pr-3 scrollbar-thin">
+          {/* Theme Toggle */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              {settings.darkMode ? <Moon className="w-4 h-4 text-muted-foreground" /> : <Sun className="w-4 h-4 text-muted-foreground" />}
+              <h3 className="font-medium">Theme</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <Label htmlFor="settings-dark-mode" className="text-sm text-muted-foreground">
+                Dark mode
+              </Label>
+              <div className="flex items-center gap-2">
+                <Sun className={`w-3.5 h-3.5 ${!settings.darkMode ? "text-foreground" : "text-muted-foreground"}`} />
+                <Switch
+                  id="settings-dark-mode"
+                  checked={settings.darkMode}
+                  onCheckedChange={(checked) => onSettingsChange({ darkMode: checked })}
+                />
+                <Moon className={`w-3.5 h-3.5 ${settings.darkMode ? "text-foreground" : "text-muted-foreground"}`} />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Auto-Save Files */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">

@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
 import { useSettingsContext } from '@/contexts/SettingsContext';
+import { getChartColors } from '@/lib/chartColors';
 
 interface TelemetryChartProps {
   samples: GpsSample[];
@@ -38,7 +39,8 @@ export function TelemetryChart({
   referenceSpeedData = [],
   hasReference = false,
 }: TelemetryChartProps) {
-  const { useKph, gForceSmoothing, gForceSmoothingStrength } = useSettingsContext();
+  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode } = useSettingsContext();
+  const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -103,11 +105,11 @@ export function TelemetryChart({
     const chartHeight = dimensions.height - padding.top - padding.bottom;
 
     // Clear
-    ctx.fillStyle = 'hsl(220, 18%, 10%)';
+    ctx.fillStyle = chartColors.background;
     ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
     // Draw grid
-    ctx.strokeStyle = 'hsl(220, 15%, 20%)';
+    ctx.strokeStyle = chartColors.grid;
     ctx.lineWidth = 1;
 
     // Vertical grid (time)
@@ -324,7 +326,7 @@ export function TelemetryChart({
     }
 
     // Draw Y axis labels (speed)
-    ctx.fillStyle = 'hsl(220, 10%, 55%)';
+    ctx.fillStyle = chartColors.axisText;
     ctx.font = '11px JetBrains Mono, monospace';
     ctx.textAlign = 'right';
     
@@ -363,7 +365,7 @@ export function TelemetryChart({
       ctx.beginPath();
       ctx.moveTo(x, padding.top);
       ctx.lineTo(x, padding.top + chartHeight);
-      ctx.strokeStyle = 'hsl(0, 75%, 55%)';
+      ctx.strokeStyle = chartColors.scrubCursor;
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -383,9 +385,9 @@ export function TelemetryChart({
       const boxX = Math.min(x + 10, dimensions.width - 130);
       const boxY = padding.top + 10;
       
-      ctx.fillStyle = 'hsla(220, 18%, 10%, 0.9)';
+      ctx.fillStyle = chartColors.tooltipBg;
       ctx.fillRect(boxX, boxY, 120, boxHeight);
-      ctx.strokeStyle = 'hsl(220, 15%, 25%)';
+      ctx.strokeStyle = chartColors.tooltipBorder;
       ctx.lineWidth = 1;
       ctx.strokeRect(boxX, boxY, 120, boxHeight);
 
@@ -428,7 +430,7 @@ export function TelemetryChart({
       });
     }
 
-  }, [samples, currentIndex, dimensions, enabledFields, useKph, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace, smoothedGForceData]);
+  }, [samples, currentIndex, dimensions, enabledFields, useKph, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace, smoothedGForceData, chartColors]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {
