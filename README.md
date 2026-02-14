@@ -60,15 +60,19 @@ The app includes an optional admin system for managing a community track databas
 
 **The app always reads tracks from `public/tracks.json` — zero database calls on normal page loads.** The database exists solely for the admin workflow.
 
-### Enabling the Admin System
+### Environment Variables
 
-Set the following environment variable:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_SUPABASE_URL` | Yes (if using Cloud) | Backend URL (auto-set by Lovable Cloud) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes (if using Cloud) | Backend public/anon key (auto-set by Lovable Cloud) |
+| `VITE_SUPABASE_PROJECT_ID` | Yes (if using Cloud) | Backend project ID (auto-set by Lovable Cloud) |
+| `VITE_ENABLE_ADMIN` | No | Set to `true` to enable admin UI and `/login` route |
+| `VITE_ENABLE_REGISTRATION` | No | Set to `true` to enable the `/register` route |
+| `VITE_TURNSTILE_SITE_KEY` | No | Cloudflare Turnstile site key for track submission CAPTCHA |
+| `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (edge function secret — `???`) |
 
-```bash
-VITE_ENABLE_ADMIN=true
-```
-
-When this is not set, the app behaves exactly as before — no admin UI, no database calls, no login buttons.
+> **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
 
 ### Database Setup
 
