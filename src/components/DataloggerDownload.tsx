@@ -207,7 +207,7 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
               <p className="text-sm text-muted-foreground mb-2">
                 Click a file to download and load it:
               </p>
-              <div className="max-h-64 overflow-y-auto space-y-1">
+              <div className="max-h-80 overflow-y-auto space-y-1">
                 {files.length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">
                     No files found on device

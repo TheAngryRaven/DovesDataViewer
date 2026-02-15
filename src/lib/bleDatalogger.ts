@@ -141,7 +141,9 @@ export async function requestFileList(
       // Accumulate chunk
       fileListBuffer += chunk;
 
-      // Reset timeout - if no data for 500ms, assume complete
+      // Reset timeout - if no data for 2s, assume complete
+      // BLE has small MTU (~20 bytes) so large file lists arrive in many chunks
+      // with possible gaps between notifications
       if (fileListTimeout) clearTimeout(fileListTimeout);
       fileListTimeout = setTimeout(() => {
         console.log('=== TIMEOUT - Assuming complete ===');
@@ -149,7 +151,7 @@ export async function requestFileList(
           cleanup();
           resolve(parseFileList(fileListBuffer));
         }
-      }, 500);
+      }, 2000);
     };
 
     const cleanup = () => {
