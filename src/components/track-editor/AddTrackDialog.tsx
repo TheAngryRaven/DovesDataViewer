@@ -30,6 +30,7 @@ interface AddTrackDialogProps {
   onStartFinishChange: (a: GpsPoint, b: GpsPoint) => void;
   onSector2Change: (line: SectorLine) => void;
   onSector3Change: (line: SectorLine) => void;
+  initialCenter?: GpsPoint | null;
 }
 
 export function AddTrackDialog({
@@ -39,6 +40,7 @@ export function AddTrackDialog({
   onSubmit, onCancel,
   startFinishA, startFinishB, sector2, sector3,
   onStartFinishChange, onSector2Change, onSector3Change,
+  initialCenter,
 }: AddTrackDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,6 +71,7 @@ export function AddTrackDialog({
               sector2={sector2}
               sector3={sector3}
               isNewTrack={true}
+              initialCenter={initialCenter}
               onStartFinishChange={onStartFinishChange}
               onSector2Change={onSector2Change}
               onSector3Change={onSector3Change}

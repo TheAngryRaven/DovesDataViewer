@@ -29,10 +29,12 @@ interface TrackPromptDialogProps {
   /** All available tracks */
   tracks: Track[];
   onSelect: (selection: TrackCourseSelection) => void;
+  /** GPS center from loaded data for map positioning */
+  initialCenter?: { lat: number; lon: number } | null;
 }
 
 export function TrackPromptDialog({
-  open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect,
+  open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect, initialCenter,
 }: TrackPromptDialogProps) {
   const [tracks, setTracks] = useState(initialTracks);
   const [selectedCourseName, setSelectedCourseName] = useState('');
@@ -109,6 +111,7 @@ export function TrackPromptDialog({
     onStartFinishChange: form.handleVisualStartFinishChange,
     onSector2Change: form.handleVisualSector2Change,
     onSector3Change: form.handleVisualSector3Change,
+    initialCenter,
   } as const;
 
   const addTrackDialogProps = {
@@ -126,6 +129,7 @@ export function TrackPromptDialog({
     onStartFinishChange: form.handleVisualStartFinishChange,
     onSector2Change: form.handleVisualSector2Change,
     onSector3Change: form.handleVisualSector3Change,
+    initialCenter,
   } as const;
 
   return (

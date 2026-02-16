@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Flag, Timer, Check, Search, Loader2, FileText, Map } from 'lucide-react';
+import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
@@ -24,6 +24,8 @@ interface VisualEditorProps {
   onSector3Change?: (line: SectorLine) => void;
   onDone?: () => void;
   isNewTrack?: boolean;
+  /** Initial map center from loaded GPS data */
+  initialCenter?: GpsPoint | null;
 }
 
 interface VisualEditorToolbarProps {
@@ -95,7 +97,7 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorT
 export function VisualEditor({
   startFinishA, startFinishB, sector2, sector3,
   onStartFinishChange, onSector2Change, onSector3Change, onDone,
-  isNewTrack = false
+  isNewTrack = false, initialCenter: initialCenterProp = null
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -113,6 +115,7 @@ export function VisualEditor({
 
   // Location search state (only used when isNewTrack)
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
   // Create a new ~30m horizontal line at the map center
@@ -178,13 +181,36 @@ export function VisualEditor({
     }
   }, [searchQuery]);
 
-  // Calculate center from existing points or default to Orlando Kart Center
+  // Calculate center from existing points, GPS data, or default
   const getInitialCenter = (): [number, number] => {
     if (startFinishA && startFinishB) {
       return [(startFinishA.lat + startFinishB.lat) / 2, (startFinishA.lon + startFinishB.lon) / 2];
     }
+    if (initialCenterProp) {
+      return [initialCenterProp.lat, initialCenterProp.lon];
+    }
     return [28.4120, -81.3797];
   };
+
+  // Use device geolocation to center the map
+  const handleUseMyLocation = useCallback(() => {
+    if (!mapRef.current || !navigator.geolocation) {
+      toast({ title: 'Geolocation not available', description: 'Your browser does not support geolocation', variant: 'destructive' });
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        mapRef.current?.setView([pos.coords.latitude, pos.coords.longitude], 17, { animate: true });
+        setIsLocating(false);
+      },
+      (err) => {
+        toast({ title: 'Location error', description: err.message, variant: 'destructive' });
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
 
   // Get line coordinates for a specific tool
   const getLineCoords = (tool: VisualEditorTool): { a: GpsPoint; b: GpsPoint } | null => {
@@ -510,6 +536,20 @@ export function VisualEditor({
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Search className="w-4 h-4" />
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3"
+            onClick={handleUseMyLocation}
+            disabled={isLocating || !mapRef.current}
+            title="Use my location"
+          >
+            {isLocating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LocateFixed className="w-4 h-4" />
             )}
           </Button>
         </div>
