@@ -105,6 +105,7 @@ export default function Index() {
   const [trackPromptOpen, setTrackPromptOpen] = useState(false);
   const [detectedTrack, setDetectedTrack] = useState<Track | null>(null);
   const [allTracks, setAllTracks] = useState<Track[]>([]);
+  const [gpsCenter, setGpsCenter] = useState<{ lat: number; lon: number } | null>(null);
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -167,6 +168,7 @@ export default function Index() {
           (s) => s.lat !== 0 && s.lon !== 0 && Math.abs(s.lat) <= 90 && Math.abs(s.lon) <= 180
         );
         if (validSample) {
+          setGpsCenter({ lat: validSample.lat, lon: validSample.lon });
           const nearest = findNearestTrack(validSample.lat, validSample.lon, tracks);
           setDetectedTrack(nearest as Track | null);
           setTrackPromptOpen(true);
@@ -637,6 +639,7 @@ export default function Index() {
         detectedTrack={detectedTrack}
         tracks={allTracks}
         onSelect={handleTrackPromptSelect}
+        initialCenter={gpsCenter}
       />
     </div>
     </SettingsProvider>

@@ -30,6 +30,7 @@ interface AddCourseDialogProps {
   onStartFinishChange: (a: GpsPoint, b: GpsPoint) => void;
   onSector2Change: (line: SectorLine) => void;
   onSector3Change: (line: SectorLine) => void;
+  initialCenter?: GpsPoint | null;
 }
 
 export function AddCourseDialog({
@@ -39,6 +40,7 @@ export function AddCourseDialog({
   onSubmit, onCancel,
   startFinishA, startFinishB, sector2, sector3,
   onStartFinishChange, onSector2Change, onSector3Change,
+  initialCenter,
 }: AddCourseDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,6 +59,7 @@ export function AddCourseDialog({
               startFinishB={startFinishB}
               sector2={sector2}
               sector3={sector3}
+              initialCenter={initialCenter}
               onStartFinishChange={onStartFinishChange}
               onSector2Change={onSector2Change}
               onSector3Change={onSector3Change}
