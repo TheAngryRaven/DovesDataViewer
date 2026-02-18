@@ -179,8 +179,8 @@ export default function Index() {
   );
 
   // Wire up sample loading
-  const handleLoadSample = useCallback(() => {
-    sessionData.handleLoadSample(
+  const handleLoadSample = useCallback(async () => {
+    await sessionData.handleLoadSample(
       handleSelectionChange,
       (computedLaps, autoSelectLap, autoSelectRef) => {
         lapMgmt.setLaps(computedLaps);
@@ -188,7 +188,11 @@ export default function Index() {
         if (autoSelectRef !== undefined) setReferenceLapNumber(autoSelectRef);
       }
     );
-  }, [sessionData, handleSelectionChange, lapMgmt, setSelectedLapNumber, setReferenceLapNumber]);
+    // Restore session metadata (kart/setup link) for the sample file
+    const sampleFileName = "okc-tillotson-plain.nmea";
+    const meta = await getFileMetadata(sampleFileName);
+    sessionMeta.restoreFromMetadata(meta);
+  }, [sessionData, handleSelectionChange, lapMgmt, setSelectedLapNumber, setReferenceLapNumber, sessionMeta]);
 
   // Wire up reference setting to also clear external ref
   const handleSetReferenceWithClear = useCallback((lapNumber: number) => {
