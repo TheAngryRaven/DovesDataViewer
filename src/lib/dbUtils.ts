@@ -5,7 +5,7 @@
  */
 
 export const DB_NAME = "dove-file-manager";
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 
 export const STORE_NAMES = {
   FILES: "files",
@@ -14,6 +14,7 @@ export const STORE_NAMES = {
   NOTES: "notes",
   SETUPS: "setups",
   VIDEO_SYNC: "video-sync",
+  GRAPH_PREFS: "graph-prefs",
 } as const;
 
 /**
@@ -43,6 +44,9 @@ export function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_NAMES.VIDEO_SYNC)) {
         db.createObjectStore(STORE_NAMES.VIDEO_SYNC, { keyPath: "sessionFileName" });
+      }
+      if (!db.objectStoreNames.contains(STORE_NAMES.GRAPH_PREFS)) {
+        db.createObjectStore(STORE_NAMES.GRAPH_PREFS, { keyPath: "sessionFileName" });
       }
     };
     request.onsuccess = () => resolve(request.result);

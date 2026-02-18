@@ -624,6 +624,7 @@ export default function Index() {
               videoActions={videoSync.actions}
               onVideoLoadedMetadata={videoSync.handleLoadedMetadata}
               currentSample={currentSample}
+              sessionFileName={currentFileName}
             />
           )}
           {topPanelView === "labs" && settings.enableLabs && (
