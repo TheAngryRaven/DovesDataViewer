@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RangeSlider } from '@/components/RangeSlider';
@@ -7,6 +7,7 @@ import { GpsSample, FieldMapping } from '@/types/racing';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
 import { computeBrakingGSeriesSG } from '@/lib/brakingZones';
 import { useSettingsContext } from '@/contexts/SettingsContext';
+import { saveGraphPrefs, loadGraphPrefs } from '@/lib/graphPrefsStorage';
 
 const SERIES_COLORS = [
   'hsl(180, 70%, 55%)', 'hsl(45, 85%, 55%)', 'hsl(0, 70%, 55%)',
@@ -25,14 +26,31 @@ interface GraphPanelProps {
   onRangeChange: (range: [number, number]) => void;
   minRange: number;
   formatRangeLabel: (idx: number) => string;
+  sessionFileName: string | null;
 }
 
 export function GraphPanel({
   samples, filteredSamples, referenceSamples, fieldMappings, currentIndex, onScrub,
-  visibleRange, onRangeChange, minRange, formatRangeLabel,
+  visibleRange, onRangeChange, minRange, formatRangeLabel, sessionFileName,
 }: GraphPanelProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
+  const loadedFileRef = useRef<string | null>(null);
+
+  // Load saved graph prefs when session changes
+  useEffect(() => {
+    if (!sessionFileName || sessionFileName === loadedFileRef.current) return;
+    loadedFileRef.current = sessionFileName;
+    loadGraphPrefs(sessionFileName).then(saved => {
+      if (saved.length > 0) setActiveGraphs(saved);
+    }).catch(() => {});
+  }, [sessionFileName]);
+
+  // Persist whenever activeGraphs change (skip initial empty state before load)
+  useEffect(() => {
+    if (!sessionFileName || loadedFileRef.current !== sessionFileName) return;
+    saveGraphPrefs(sessionFileName, activeGraphs).catch(() => {});
+  }, [activeGraphs, sessionFileName]);
 
   const hasReference = referenceSamples.length > 0;
 

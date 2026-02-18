@@ -52,6 +52,8 @@ export interface GraphViewPanelProps {
   videoActions?: VideoSyncActions;
   onVideoLoadedMetadata?: () => void;
   currentSample?: GpsSample | null;
+  // Session
+  sessionFileName: string | null;
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
@@ -155,6 +157,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
           onRangeChange={props.onRangeChange}
           minRange={props.minRange}
           formatRangeLabel={props.formatRangeLabel}
+          sessionFileName={props.sessionFileName}
         />
       </ResizablePanel>
     </ResizablePanelGroup>
