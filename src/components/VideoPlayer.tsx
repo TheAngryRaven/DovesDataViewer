@@ -347,6 +347,9 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
       <div className="h-full flex flex-col items-center justify-center bg-muted/20 gap-4">
         <Video className="w-12 h-12 text-muted-foreground/50" />
         <p className="text-muted-foreground text-sm">No video loaded</p>
+        {state.videoFileName && (
+          <p className="text-xs text-muted-foreground">Last used: {state.videoFileName}</p>
+        )}
         <Button variant="outline" size="sm" onClick={actions.loadVideo} className="gap-2">
           <Video className="w-4 h-4" /> Load Video
         </Button>
