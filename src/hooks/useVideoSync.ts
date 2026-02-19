@@ -4,6 +4,7 @@ import { saveVideoSync, loadVideoSync, VideoSyncRecord, OverlaySettings, DEFAULT
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
+  allSamples: GpsSample[];
   currentIndex: number;
   onScrub: (index: number) => void;
   sessionFileName: string | null;
@@ -51,7 +52,7 @@ function findNearestIndex(samples: GpsSample[], targetMs: number): number {
   return lo;
 }
 
-export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }: UseVideoSyncOptions) {
+export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessionFileName }: UseVideoSyncOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastSeekTimeRef = useRef(0);
@@ -232,11 +233,14 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
         if (!v) return;
         const videoMs = v.currentTime * 1000;
         const telemetryMs = videoMs + syncOffsetMs;
-        const idx = findNearestIndex(samplesRef.current, telemetryMs);
+        const s = samplesRef.current;
+        const idx = findNearestIndex(s, telemetryMs);
 
+        // Out of range if telemetry time is outside visible samples' window
+        const outOfRange = s.length === 0 || telemetryMs < s[0].t || telemetryMs > s[s.length - 1].t;
         onScrubRef.current(idx);
         setVideoCurrentTime(v.currentTime);
-        setIsOutOfRange(v.currentTime > v.duration);
+        setIsOutOfRange(outOfRange);
 
         if (active) (v as any).requestVideoFrameCallback(callback);
       };
@@ -253,10 +257,13 @@ export function useVideoSync({ samples, currentIndex, onScrub, sessionFileName }
         if (!v) return;
         const videoMs = v.currentTime * 1000;
         const telemetryMs = videoMs + syncOffsetMs;
-        const idx = findNearestIndex(samplesRef.current, telemetryMs);
+        const s = samplesRef.current;
+        const idx = findNearestIndex(s, telemetryMs);
 
+        const outOfRange = s.length === 0 || telemetryMs < s[0].t || telemetryMs > s[s.length - 1].t;
         onScrubRef.current(idx);
         setVideoCurrentTime(v.currentTime);
+        setIsOutOfRange(outOfRange);
         if (active) requestAnimationFrame(loop);
       };
       requestAnimationFrame(loop);

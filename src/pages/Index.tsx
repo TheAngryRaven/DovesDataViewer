@@ -110,6 +110,7 @@ export default function Index() {
   // Video sync for Labs tab
   const videoSync = useVideoSync({
     samples: visibleSamples,
+    allSamples: data?.samples ?? [],
     currentIndex,
     onScrub: handleScrub,
     sessionFileName: currentFileName,
