@@ -67,12 +67,8 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [syncOffsetMs, _setSyncOffsetMs] = useState(0);
+  const [syncOffsetMs, setSyncOffsetMs] = useState(0);
   const syncOffsetMsRef = useRef(0);
-  const setSyncOffsetMs = useCallback((val: number) => {
-    syncOffsetMsRef.current = val;
-    _setSyncOffsetMs(val);
-  }, []);
   const [fps, setFps] = useState(30);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
@@ -95,6 +91,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     if (!sessionFileName) return;
     loadVideoSync(sessionFileName).then(async (record) => {
       if (!record) return;
+      syncOffsetMsRef.current = record.syncOffsetMs;
       setSyncOffsetMs(record.syncOffsetMs);
       setVideoFileName(record.videoFileName);
       if (record.overlaySettings) setOverlaySettings(record.overlaySettings);
@@ -350,6 +347,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     const videoMs = video.currentTime * 1000;
     const telemetryMs = samples[currentIndex]?.t ?? 0;
     const offset = telemetryMs - videoMs;
+    syncOffsetMsRef.current = offset;
     setSyncOffsetMs(offset);
     persistSync(offset);
   }, [samples, currentIndex, persistSync]);
