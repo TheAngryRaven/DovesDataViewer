@@ -27,9 +27,14 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
   }, [data, laps, selectedLapNumber]);
 
   // Reset visible range when filtered samples change
+  // In "All Laps" mode with large datasets, crop to first ~1 minute to reduce initial render cost
   useEffect(() => {
     if (filteredSamples.length > 0) {
-      setVisibleRange([0, filteredSamples.length - 1]);
+      if (selectedLapNumber === null && filteredSamples.length > 1500) {
+        setVisibleRange([0, 1499]);
+      } else {
+        setVisibleRange([0, filteredSamples.length - 1]);
+      }
     }
   }, [filteredSamples.length, selectedLapNumber]);
 

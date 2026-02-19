@@ -54,6 +54,7 @@ export interface GraphViewPanelProps {
   currentSample?: GpsSample | null;
   // Session
   sessionFileName: string | null;
+  isAllLaps?: boolean;
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
@@ -128,6 +129,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 currentIndex={props.currentIndex}
                 course={props.course}
                 bounds={props.bounds}
+                isAllLaps={props.isAllLaps}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
