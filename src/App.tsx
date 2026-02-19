@@ -16,6 +16,7 @@ const enableRegistration = import.meta.env.VITE_ENABLE_REGISTRATION === 'true';
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import Register from "./pages/Register";
+import Privacy from "./pages/Privacy";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,6 +27,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/privacy" element={<Privacy />} />
             {enableAdmin && <Route path="/login" element={<Login />} />}
             {enableAdmin && <Route path="/admin" element={<Admin />} />}
             {enableRegistration && <Route path="/register" element={<Register />} />}
