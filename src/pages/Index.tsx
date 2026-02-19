@@ -236,6 +236,7 @@ export default function Index() {
     ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null)
     : null;
 
+  const isAllLaps = selectedLapNumber === null;
   const minRange = Math.min(10, Math.floor(filteredSamples.length / 10));
 
   const settingsContextValue = useMemo(() => ({
@@ -582,6 +583,7 @@ export default function Index() {
               onRangeChange={handleRangeChange}
               minRange={minRange}
               formatRangeLabel={formatRangeLabel}
+              isAllLaps={isAllLaps}
             />
           )}
           {topPanelView === "laptable" && (
@@ -635,6 +637,7 @@ export default function Index() {
               onVideoLoadedMetadata={videoSync.handleLoadedMetadata}
               currentSample={currentSample}
               sessionFileName={currentFileName}
+              isAllLaps={isAllLaps}
             />
           )}
           {topPanelView === "labs" && settings.enableLabs && (

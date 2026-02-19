@@ -47,9 +47,10 @@ interface MiniMapProps {
   currentIndex: number;
   course: Course | null;
   bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
+  isAllLaps?: boolean;
 }
 
-export function MiniMap({ samples, allSamples, currentIndex, course, bounds }: MiniMapProps) {
+export function MiniMap({ samples, allSamples, currentIndex, course, bounds, isAllLaps }: MiniMapProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -61,6 +62,17 @@ export function MiniMap({ samples, allSamples, currentIndex, course, bounds }: M
 
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
   const [showBrakingZones, setShowBrakingZones] = useState(true);
+
+  // Auto-toggle overlays based on All Laps mode
+  useEffect(() => {
+    if (isAllLaps) {
+      setShowSpeedEvents(false);
+      setShowBrakingZones(false);
+    } else {
+      setShowSpeedEvents(true);
+      setShowBrakingZones(true);
+    }
+  }, [isAllLaps]);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
   const isOnline = useOnlineStatus();
 

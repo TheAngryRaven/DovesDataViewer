@@ -55,6 +55,7 @@ interface RaceLineViewProps {
   sessionStartDate?: Date;
   cachedWeatherStation?: WeatherStation | null;
   onWeatherStationResolved?: (station: WeatherStation) => void;
+  isAllLaps?: boolean;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -136,7 +137,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps }: RaceLineViewProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
@@ -154,6 +155,17 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
   const [showBrakingZones, setShowBrakingZones] = useState(true);
+
+  // Auto-toggle overlays based on All Laps mode
+  useEffect(() => {
+    if (isAllLaps) {
+      setShowSpeedEvents(false);
+      setShowBrakingZones(false);
+    } else {
+      setShowSpeedEvents(true);
+      setShowBrakingZones(true);
+    }
+  }, [isAllLaps]);
   const [showWeather, setShowWeather] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
   const [sessionWeatherData, setSessionWeatherData] = useState<WeatherData | null>(null);

@@ -26,6 +26,7 @@ interface RaceLineTabProps {
   sessionStartDate?: Date;
   cachedWeatherStation: import("@/lib/weatherService").WeatherStation | null;
   onWeatherStationResolved: (station: import("@/lib/weatherService").WeatherStation) => void;
+  isAllLaps?: boolean;
   // Telemetry chart props
   fieldMappings: FieldMapping[];
   onScrub: (index: number) => void;
@@ -66,6 +67,7 @@ export const RaceLineTab = memo(function RaceLineTab(props: RaceLineTabProps) {
           sessionStartDate={props.sessionStartDate}
           cachedWeatherStation={props.cachedWeatherStation}
           onWeatherStationResolved={props.onWeatherStationResolved}
+          isAllLaps={props.isAllLaps}
         />
       }
       bottomPanel={
