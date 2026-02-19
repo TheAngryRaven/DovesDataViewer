@@ -67,7 +67,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [syncOffsetMs, setSyncOffsetMs] = useState(0);
+  const [syncOffsetMs, _setSyncOffsetMs] = useState(0);
+  const syncOffsetMsRef = useRef(0);
+  const setSyncOffsetMs = useCallback((val: number) => {
+    syncOffsetMsRef.current = val;
+    _setSyncOffsetMs(val);
+  }, []);
   const [fps, setFps] = useState(30);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
@@ -137,7 +142,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         setVideoUrl(url);
         setVideoFileName(file.name);
         setFileHandle(handle);
-        persistSync(syncOffsetMs, handle, file.name);
+        persistSync(syncOffsetMsRef.current, handle, file.name);
         return;
       } catch (e: any) {
         if (e.name === "AbortError") return; // User cancelled
@@ -160,11 +165,11 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       const url = URL.createObjectURL(file);
       setVideoUrl(url);
       setVideoFileName(file.name);
-      persistSync(syncOffsetMs, undefined, file.name);
+      persistSync(syncOffsetMsRef.current, undefined, file.name);
       input.value = "";
     };
     input.click();
-  }, [revokeUrl, syncOffsetMs, persistSync]);
+  }, [revokeUrl, persistSync]);
 
   // Video metadata loaded
   const handleLoadedMetadata = useCallback(() => {
