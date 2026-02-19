@@ -30,6 +30,7 @@ export interface VideoSyncRecord {
   fileHandle?: FileSystemFileHandle;
   syncOffsetMs: number;
   videoFileName: string;
+  isLocked?: boolean;
   overlaySettings?: OverlaySettings;
 }
 
