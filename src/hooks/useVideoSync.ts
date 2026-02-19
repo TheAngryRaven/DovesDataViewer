@@ -94,6 +94,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       syncOffsetMsRef.current = record.syncOffsetMs;
       setSyncOffsetMs(record.syncOffsetMs);
       setVideoFileName(record.videoFileName);
+      if (record.isLocked !== undefined) setIsLocked(record.isLocked);
       if (record.overlaySettings) setOverlaySettings(record.overlaySettings);
       // Try restoring file handle (Chromium only)
       if (record.fileHandle) {
@@ -113,17 +114,18 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   }, [sessionFileName]);
 
   // Persist sync state
-  const persistSync = useCallback((offset: number, handle?: FileSystemFileHandle, fileName?: string) => {
+  const persistSync = useCallback((offset: number, handle?: FileSystemFileHandle, fileName?: string, locked?: boolean) => {
     if (!sessionFileName) return;
     const record: VideoSyncRecord = {
       sessionFileName,
       syncOffsetMs: offset,
       videoFileName: fileName || videoFileName || "",
       fileHandle: handle || fileHandle || undefined,
+      isLocked: locked ?? isLocked,
       overlaySettings,
     };
     saveVideoSync(record);
-  }, [sessionFileName, videoFileName, fileHandle, overlaySettings]);
+  }, [sessionFileName, videoFileName, fileHandle, isLocked, overlaySettings]);
 
   // Load video file
   const loadVideo = useCallback(async () => {
@@ -331,8 +333,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   }, [videoUrl]);
 
   const toggleLock = useCallback(() => {
-    setIsLocked(prev => !prev);
-  }, []);
+    setIsLocked(prev => {
+      const next = !prev;
+      persistSync(syncOffsetMsRef.current, undefined, undefined, next);
+      return next;
+    });
+  }, [persistSync]);
 
   const stepFrame = useCallback((direction: 1 | -1) => {
     const video = videoRef.current;
