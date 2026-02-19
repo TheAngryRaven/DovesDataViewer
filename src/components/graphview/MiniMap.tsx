@@ -44,17 +44,19 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
 interface MiniMapProps {
   samples: GpsSample[];
   allSamples: GpsSample[];
+  referenceSamples?: GpsSample[];
   currentIndex: number;
   course: Course | null;
   bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
   isAllLaps?: boolean;
 }
 
-export function MiniMap({ samples, allSamples, currentIndex, course, bounds, isAllLaps }: MiniMapProps) {
+export function MiniMap({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, isAllLaps }: MiniMapProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
+  const referenceLayerRef = useRef<L.LayerGroup | null>(null);
   const brakingZonesLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
@@ -110,6 +112,7 @@ export function MiniMap({ samples, allSamples, currentIndex, course, bounds, isA
     const config = mapStyleConfig.dark;
     if (config) tileLayerRef.current = L.tileLayer(config.url, { attribution: config.attribution, maxZoom: 21 }).addTo(map);
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    referenceLayerRef.current = L.layerGroup().addTo(map);
     brakingZonesLayerRef.current = L.layerGroup().addTo(map);
     polylineLayerRef.current = L.layerGroup().addTo(map);
     speedEventsLayerRef.current = L.layerGroup().addTo(map);
@@ -125,17 +128,23 @@ export function MiniMap({ samples, allSamples, currentIndex, course, bounds, isA
     if (config) { tileLayerRef.current = L.tileLayer(config.url, { attribution: config.attribution, maxZoom: 21 }).addTo(map); tileLayerRef.current.bringToBack(); }
   }, [mapStyle]);
 
-  // Draw race line
+  // Draw reference line + race line
   useEffect(() => {
-    const map = mapRef.current; const pl = polylineLayerRef.current; if (!map || !pl) return;
+    const map = mapRef.current; const pl = polylineLayerRef.current; const rl = referenceLayerRef.current; if (!map || !pl || !rl) return;
     pl.clearLayers();
+    rl.clearLayers();
     if (samples.length === 0) return;
     map.fitBounds(L.latLngBounds([[bounds.minLat, bounds.minLon], [bounds.maxLat, bounds.maxLon]]), { padding: [10, 10] });
+    // Draw reference line underneath as grey
+    if (referenceSamples.length > 0) {
+      const refCoords = referenceSamples.map(s => [s.lat, s.lon] as [number, number]);
+      rl.addLayer(L.polyline(refCoords, { color: 'hsl(220, 10%, 50%)', weight: 4, opacity: 0.6 }));
+    }
     for (let i = 0; i < samples.length - 1; i++) {
       const color = getSpeedColor(samples[i].speedMph, minSpeed, maxSpeed);
       pl.addLayer(L.polyline([[samples[i].lat, samples[i].lon], [samples[i + 1].lat, samples[i + 1].lon]], { color, weight: 3, opacity: 0.9 }));
     }
-  }, [samples, bounds, minSpeed, maxSpeed]);
+  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed]);
 
   // Speed events
   useEffect(() => {

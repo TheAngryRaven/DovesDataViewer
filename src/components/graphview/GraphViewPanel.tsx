@@ -126,6 +126,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
               <MiniMap
                 samples={props.visibleSamples}
                 allSamples={props.filteredSamples}
+                referenceSamples={props.referenceSamples}
                 currentIndex={props.currentIndex}
                 course={props.course}
                 bounds={props.bounds}
