@@ -1,42 +1,48 @@
 
 
-# Create CLAUDE.md for Cross-Tool Development
+# Add Fastest Lap to File Metadata and File Browser
 
 ## What
+When laps are calculated for a session, persist the fastest lap time and lap number into the existing IndexedDB metadata store. Display the fastest lap time next to each file in the Garage file browser (only when data exists).
 
-Create a `CLAUDE.md` file at the project root that gives Claude Code (and any other AI tool) a comprehensive, concise map of the codebase. This file will be the single source of truth for any AI agent working on this project -- covering architecture, conventions, file locations, data flow, and gotchas.
+## Changes
 
-Regarding Lovable: Lovable uses "Custom Knowledge" in project settings (which you already have configured) rather than a file. The existing custom knowledge entries already cover the key rules (offline-first, modular, README updates, credits list). No additional Lovable-specific file is needed -- the custom knowledge system is the equivalent.
+### 1. `src/lib/fileStorage.ts` -- Extend `FileMetadata` interface
+Add two optional fields:
+- `fastestLapMs?: number` -- fastest lap time in milliseconds
+- `fastestLapNumber?: number` -- which lap number was fastest
 
-## Why
+No DB version bump needed -- IndexedDB is schemaless for object stores, new fields just get stored alongside existing ones.
 
-As firmware features grow and Claude Code takes on more of the device-side work, both tools need a shared understanding of the webapp's architecture without burning tokens re-exploring the codebase every session.
+### 2. `src/hooks/useLapManagement.ts` -- Save fastest lap on calculation
+In `calculateAndSetLaps` (and `handleSelectionChange`), after finding the fastest lap, call `saveFileMetadata` to persist `fastestLapMs` and `fastestLapNumber` into the existing metadata record. This merges with the existing track/course/weather data already stored there.
 
-## What Goes in CLAUDE.md
+### 3. `src/hooks/useFileManager.ts` -- Load metadata alongside file list
+Extend `useFileManager` to also load `FileMetadata` for each file when refreshing. Return a `Map<string, FileMetadata>` (or similar) so the UI can look up fastest lap per file.
 
-Following best practices (under 300 lines, hand-crafted, universally applicable, pointers not copies):
+### 4. `src/components/drawer/FilesTab.tsx` -- Display fastest lap
+Accept a metadata map prop. For each file row, if metadata has `fastestLapMs`, render the formatted lap time (e.g. "1:02.347") below the file size/date line. If no data, render nothing -- no "N/A", just clean.
 
-### Sections
+### 5. `src/components/FileManagerDrawer.tsx` -- Thread metadata prop
+Pass the metadata map from `useFileManager` through to `FilesTab`.
 
-1. **Project identity** -- One-liner: what this is, live URL, companion hardware repo
-2. **Philosophy / golden rules** -- Offline-first (99% client-side), modular/reusable, update README on parser/env changes, update credits on new FOSS deps
-3. **Tech stack** -- React 18, Vite, Tailwind, Leaflet, custom Canvas charts, IndexedDB for all local storage, optional admin backend
-4. **Architecture map** -- Directory tree with purpose annotations for every key directory and file category
-5. **Data flow** -- How a file goes from import to parsed data to lap calculation to visualization (the critical pipeline)
-6. **Parser system** -- How auto-detection works (`datalogParser.ts` routes to format-specific parsers), how to add a new parser (implement `isXxxFormat()` + `parseXxxFile()`, register in `datalogParser.ts`, update README)
-7. **Core types** -- Pointer to `src/types/racing.ts` with summary of `GpsSample`, `ParsedData`, `Lap`, `Course`, `Track`
-8. **Storage layer** -- IndexedDB via `dbUtils.ts` (shared DB, 7 object stores), individual storage modules (files, metadata, karts, notes, setups, video-sync, graph-prefs), localStorage for user tracks and settings
-9. **BLE integration** -- `bleDatalogger.ts` handles Web Bluetooth connection to DovesLapTimer device, `DataloggerDownload.tsx` is the UI. BLE UUIDs, protocol (LIST, GET:filename, SIZE/DONE/ERROR status)
-10. **Settings** -- `useSettings` hook + `SettingsContext` for runtime distribution, `fieldResolver.ts` for canonical field name mapping across parsers
-11. **Admin system** -- Optional, behind `VITE_ENABLE_ADMIN`, modular DB layer (`src/lib/db/`), edge functions
-12. **Environment variables** -- Table of all env vars with descriptions
-13. **Commands** -- dev, build, lint
-14. **Key conventions** -- No server-side when client-side works, keep hooks composable, parsers export `isXxxFormat()` + `parseXxxFile()`, all IndexedDB stores registered in `dbUtils.ts`
+### 6. Update `CLAUDE.md`
+Note the new `fastestLapMs` / `fastestLapNumber` fields on `FileMetadata`.
 
-## File to Create
+## Data Flow
 
-- `CLAUDE.md` (project root, ~200-250 lines)
+```text
+Laps calculated (useLapManagement)
+  --> find fastest lap
+  --> saveFileMetadata({ ...existing, fastestLapMs, fastestLapNumber })
+  --> stored in IndexedDB "metadata" store
 
-## Technical Details
+File browser opened (useFileManager.refresh)
+  --> listFiles() + getFileMetadata() for each file
+  --> metadata map passed to FilesTab
+  --> fastest lap time rendered per file (or nothing if absent)
+```
 
-The file will reference but not duplicate content from README.md. It focuses on what an AI agent needs to know to make correct code changes: where things live, how they connect, and what rules to follow.
+## Formatting
+Lap times will use the standard mm:ss.SSS format (e.g. "1:02.347"). A small helper function handles the conversion from milliseconds.
+
