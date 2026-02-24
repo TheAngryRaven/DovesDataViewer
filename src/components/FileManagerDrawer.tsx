@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileEntry } from "@/lib/fileStorage";
+import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { Kart } from "@/lib/kartStorage";
 import { KartSetup } from "@/lib/setupStorage";
 import { Note } from "@/lib/noteStorage";
@@ -23,6 +23,7 @@ const tabs: { key: DrawerTab; label: string }[] = [
 interface FileManagerDrawerProps {
   isOpen: boolean;
   files: FileEntry[];
+  fileMetadataMap: Map<string, FileMetadata>;
   storageUsed: number;
   storageQuota: number;
   onClose: () => void;
@@ -58,6 +59,7 @@ interface FileManagerDrawerProps {
 export function FileManagerDrawer({
   isOpen,
   files,
+  fileMetadataMap,
   storageUsed,
   storageQuota,
   onClose,
@@ -133,6 +135,7 @@ export function FileManagerDrawer({
         {activeTab === "files" && (
           <FilesTab
             files={files}
+            fileMetadataMap={fileMetadataMap}
             storageUsed={storageUsed}
             storageQuota={storageQuota}
             onLoadFile={onLoadFile}

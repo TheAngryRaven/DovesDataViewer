@@ -1,16 +1,19 @@
 import { useState, useCallback } from "react";
 import {
   FileEntry,
+  FileMetadata,
   saveFile as dbSave,
   listFiles,
   getFile,
   deleteFile as dbDelete,
   getStorageEstimate,
+  getFileMetadata,
 } from "@/lib/fileStorage";
 
 export function useFileManager() {
   const [isOpen, setIsOpen] = useState(false);
   const [files, setFiles] = useState<FileEntry[]>([]);
+  const [fileMetadataMap, setFileMetadataMap] = useState<Map<string, FileMetadata>>(new Map());
   const [storageUsed, setStorageUsed] = useState(0);
   const [storageQuota, setStorageQuota] = useState(0);
 
@@ -21,6 +24,18 @@ export function useFileManager() {
       setStorageUsed(estimate.used);
       setStorageQuota(estimate.quota);
     }
+    // Load metadata for all files
+    const metaEntries = await Promise.all(
+      fileList.map(async (f) => {
+        const meta = await getFileMetadata(f.name);
+        return [f.name, meta] as const;
+      })
+    );
+    const map = new Map<string, FileMetadata>();
+    for (const [name, meta] of metaEntries) {
+      if (meta) map.set(name, meta);
+    }
+    setFileMetadataMap(map);
   }, []);
 
   const open = useCallback(() => {
@@ -66,6 +81,7 @@ export function useFileManager() {
   return {
     isOpen,
     files,
+    fileMetadataMap,
     storageUsed,
     storageQuota,
     open,

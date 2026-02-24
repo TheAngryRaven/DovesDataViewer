@@ -160,6 +160,7 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 | `Course` | `name`, `startFinishA/B` (lat/lon), optional `sector2/sector3` lines |
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
 | `FieldMapping` | `index`, `name`, `unit?`, `enabled` — maps extraFields to UI toggles |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `fastestLapMs?`, `fastestLapNumber?` |
 
 ---
 
