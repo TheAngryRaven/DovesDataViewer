@@ -262,6 +262,7 @@ export default function Index() {
   const fileManagerProps = useMemo(() => ({
     isOpen: fileManager.isOpen,
     files: fileManager.files,
+    fileMetadataMap: fileManager.fileMetadataMap,
     storageUsed: fileManager.storageUsed,
     storageQuota: fileManager.storageQuota,
     onClose: fileManager.close,

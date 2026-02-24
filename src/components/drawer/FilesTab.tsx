@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { Trash2, Download, Upload, FolderOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileEntry } from "@/lib/fileStorage";
+import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
 import { DataloggerDownload } from "@/components/DataloggerDownload";
@@ -13,8 +13,18 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+function formatLapTime(ms: number): string {
+  const totalSecs = ms / 1000;
+  const mins = Math.floor(totalSecs / 60);
+  const secs = totalSecs % 60;
+  return mins > 0
+    ? `${mins}:${secs.toFixed(3).padStart(6, "0")}`
+    : secs.toFixed(3);
+}
+
 interface FilesTabProps {
   files: FileEntry[];
+  fileMetadataMap: Map<string, FileMetadata>;
   storageUsed: number;
   storageQuota: number;
   onLoadFile: (name: string) => Promise<Blob | null>;
@@ -28,6 +38,7 @@ interface FilesTabProps {
 
 export function FilesTab({
   files,
+  fileMetadataMap,
   storageUsed,
   storageQuota,
   onLoadFile,
@@ -154,6 +165,11 @@ export function FilesTab({
                 <div className="text-sm font-mono truncate text-foreground">{file.name}</div>
                 <div className="text-xs text-muted-foreground">
                   {formatSize(file.size)} · {new Date(file.savedAt).toLocaleDateString()}
+                  {fileMetadataMap.get(file.name)?.fastestLapMs != null && (
+                    <span className="ml-1.5 text-primary font-medium">
+                      ⚡ {formatLapTime(fileMetadataMap.get(file.name)!.fastestLapMs!)}
+                    </span>
+                  )}
                 </div>
               </button>
               <Button

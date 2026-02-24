@@ -21,6 +21,9 @@ export interface FileMetadata {
   // Session kart/setup link
   sessionKartId?: string;
   sessionSetupId?: string;
+  // Fastest lap cache
+  fastestLapMs?: number;
+  fastestLapNumber?: number;
 }
 
 interface StoredFile {

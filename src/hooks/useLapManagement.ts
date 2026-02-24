@@ -69,10 +69,28 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
           computedLaps[0]
         );
         setSelectedLapNumber(fastest.lapNumber);
+
+        // Persist fastest lap into metadata
+        if (currentFileName) {
+          getFileMetadata(currentFileName).then((existing) => {
+            saveFileMetadata({
+              fileName: currentFileName,
+              trackName: existing?.trackName ?? "",
+              courseName: existing?.courseName ?? "",
+              weatherStationId: existing?.weatherStationId,
+              weatherStationName: existing?.weatherStationName,
+              weatherStationDistanceKm: existing?.weatherStationDistanceKm,
+              sessionKartId: existing?.sessionKartId,
+              sessionSetupId: existing?.sessionSetupId,
+              fastestLapMs: fastest.lapTimeMs,
+              fastestLapNumber: fastest.lapNumber,
+            });
+          });
+        }
       }
       return computedLaps;
     },
-    []
+    [currentFileName]
   );
 
   const handleSelectionChange = useCallback(
