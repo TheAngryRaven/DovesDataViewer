@@ -1,48 +1,42 @@
 
-# Optimize "All Laps" Initial Load
 
-## Problem
-At 25Hz over 10+ minutes, "All Laps" dumps 15,000+ samples into the renderer at once, causing lag. Speed event markers and braking zone overlays add further overhead on an already dense view.
+# Create CLAUDE.md for Cross-Tool Development
 
-## Solution -- Three Automatic Optimizations
+## What
 
-### 1. Auto-crop to first minute via range slider
-In `src/hooks/useLapManagement.ts`, modify the `visibleRange` reset effect (lines 30-34). When `selectedLapNumber` is `null` (All Laps mode) and the session has more than ~1500 samples (~1 minute at 25Hz), set the initial visible range to `[0, 1499]` instead of `[0, length-1]`. The user can still drag the range slider to see the full session -- this only affects the initial crop.
+Create a `CLAUDE.md` file at the project root that gives Claude Code (and any other AI tool) a comprehensive, concise map of the codebase. This file will be the single source of truth for any AI agent working on this project -- covering architecture, conventions, file locations, data flow, and gotchas.
 
-### 2. Auto-disable speed event markers
-In `src/components/RaceLineView.tsx` and `src/components/graphview/MiniMap.tsx`, accept a new `isAllLaps` boolean prop. Add a `useEffect` that watches `isAllLaps` -- when it becomes `true`, set `showSpeedEvents` to `false`; when it becomes `false` (single lap selected), set it back to `true`.
+Regarding Lovable: Lovable uses "Custom Knowledge" in project settings (which you already have configured) rather than a file. The existing custom knowledge entries already cover the key rules (offline-first, modular, README updates, credits list). No additional Lovable-specific file is needed -- the custom knowledge system is the equivalent.
 
-### 3. Auto-disable braking zones
-Same pattern as speed events: when `isAllLaps` becomes `true`, set `showBrakingZones` to `false`; restore to `true` when a single lap is selected.
+## Why
 
-## File Changes
+As firmware features grow and Claude Code takes on more of the device-side work, both tools need a shared understanding of the webapp's architecture without burning tokens re-exploring the codebase every session.
 
-### `src/hooks/useLapManagement.ts`
-- Modify the `useEffect` at lines 30-34 that resets `visibleRange`
-- When `selectedLapNumber === null` and `filteredSamples.length > 1500`, set range to `[0, 1499]`
-- Otherwise keep existing behavior (full range)
+## What Goes in CLAUDE.md
 
-### `src/components/RaceLineView.tsx`
-- Add `isAllLaps?: boolean` to the props interface
-- Add `useEffect` reacting to `isAllLaps` changes to toggle `showSpeedEvents` and `showBrakingZones` off/on
+Following best practices (under 300 lines, hand-crafted, universally applicable, pointers not copies):
 
-### `src/components/graphview/MiniMap.tsx`
-- Same as RaceLineView: add `isAllLaps` prop and auto-toggle effect
+### Sections
 
-### `src/components/tabs/RaceLineTab.tsx`
-- Thread `isAllLaps` prop through to `RaceLineView`
+1. **Project identity** -- One-liner: what this is, live URL, companion hardware repo
+2. **Philosophy / golden rules** -- Offline-first (99% client-side), modular/reusable, update README on parser/env changes, update credits on new FOSS deps
+3. **Tech stack** -- React 18, Vite, Tailwind, Leaflet, custom Canvas charts, IndexedDB for all local storage, optional admin backend
+4. **Architecture map** -- Directory tree with purpose annotations for every key directory and file category
+5. **Data flow** -- How a file goes from import to parsed data to lap calculation to visualization (the critical pipeline)
+6. **Parser system** -- How auto-detection works (`datalogParser.ts` routes to format-specific parsers), how to add a new parser (implement `isXxxFormat()` + `parseXxxFile()`, register in `datalogParser.ts`, update README)
+7. **Core types** -- Pointer to `src/types/racing.ts` with summary of `GpsSample`, `ParsedData`, `Lap`, `Course`, `Track`
+8. **Storage layer** -- IndexedDB via `dbUtils.ts` (shared DB, 7 object stores), individual storage modules (files, metadata, karts, notes, setups, video-sync, graph-prefs), localStorage for user tracks and settings
+9. **BLE integration** -- `bleDatalogger.ts` handles Web Bluetooth connection to DovesLapTimer device, `DataloggerDownload.tsx` is the UI. BLE UUIDs, protocol (LIST, GET:filename, SIZE/DONE/ERROR status)
+10. **Settings** -- `useSettings` hook + `SettingsContext` for runtime distribution, `fieldResolver.ts` for canonical field name mapping across parsers
+11. **Admin system** -- Optional, behind `VITE_ENABLE_ADMIN`, modular DB layer (`src/lib/db/`), edge functions
+12. **Environment variables** -- Table of all env vars with descriptions
+13. **Commands** -- dev, build, lint
+14. **Key conventions** -- No server-side when client-side works, keep hooks composable, parsers export `isXxxFormat()` + `parseXxxFile()`, all IndexedDB stores registered in `dbUtils.ts`
 
-### `src/components/graphview/GraphViewPanel.tsx`
-- Thread `isAllLaps` prop through to `MiniMap`
+## File to Create
 
-### `src/components/tabs/GraphViewTab.tsx`
-- Thread `isAllLaps` prop through to `GraphViewPanel`
+- `CLAUDE.md` (project root, ~200-250 lines)
 
-### `src/pages/Index.tsx`
-- Derive `isAllLaps = selectedLapNumber === null`
-- Pass it to `RaceLineTab` and `GraphViewTab`
+## Technical Details
 
-## Behavior Summary
-- Selecting "All Laps": range crops to first minute, speed events off, braking zones off
-- Selecting a specific lap: full lap visible, speed events on, braking zones on
-- User can always manually re-enable overlays or expand the range slider
+The file will reference but not duplicate content from README.md. It focuses on what an AI agent needs to know to make correct code changes: where things live, how they connect, and what rules to follow.
