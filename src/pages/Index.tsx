@@ -152,7 +152,7 @@ export default function Index() {
 
       // Calculate laps if course is selected
       if (courseToUse) {
-        const computedLaps = lapMgmt.calculateAndSetLaps(courseToUse, parsedData.samples);
+        const computedLaps = lapMgmt.calculateAndSetLaps(courseToUse, parsedData.samples, fileName);
         if (computedLaps.length > 0) {
           const fastest = computedLaps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), computedLaps[0]);
           setSelectedLapNumber(fastest.lapNumber);

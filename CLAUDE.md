@@ -243,3 +243,4 @@ npm run preview   # Preview production build
 - **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors in components
 - **Admin code** is fully optional and gated behind env vars — core app has zero admin dependencies
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in `supabase/config.toml`
+- **Stale-state gotcha**: When calling a function immediately after `setState`, the new value isn't available in the current closure. Pass values explicitly (e.g., `calculateAndSetLaps(course, samples, fileName)`) instead of relying on state that was just set.

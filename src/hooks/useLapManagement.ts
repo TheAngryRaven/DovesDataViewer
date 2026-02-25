@@ -60,7 +60,7 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
   }, [filteredSamples, data?.bounds]);
 
   const calculateAndSetLaps = useCallback(
-    (course: Course, samples: GpsSample[]) => {
+    (course: Course, samples: GpsSample[], fileNameOverride?: string) => {
       const computedLaps = calculateLaps(samples, course);
       setLaps(computedLaps);
       if (computedLaps.length > 0) {
@@ -71,10 +71,11 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
         setSelectedLapNumber(fastest.lapNumber);
 
         // Persist fastest lap into metadata
-        if (currentFileName) {
-          getFileMetadata(currentFileName).then((existing) => {
+        const targetFileName = fileNameOverride ?? currentFileName;
+        if (targetFileName) {
+          getFileMetadata(targetFileName).then((existing) => {
             saveFileMetadata({
-              fileName: currentFileName,
+              fileName: targetFileName,
               trackName: existing?.trackName ?? "",
               courseName: existing?.courseName ?? "",
               weatherStationId: existing?.weatherStationId,
