@@ -1,48 +1,45 @@
 
+# Fix Fastest Lap Persistence for Old (and New) Files
 
-# Add Fastest Lap to File Metadata and File Browser
+## Problem Found
+There's a React state timing bug. When a file is loaded via `handleDataLoaded`, it calls:
+1. `sessionData.loadParsedData(parsedData, fileName)` -- sets `currentFileName` via `setState` (async)
+2. `lapMgmt.calculateAndSetLaps(course, samples)` -- tries to use `currentFileName` to save metadata
 
-## What
-When laps are calculated for a session, persist the fastest lap time and lap number into the existing IndexedDB metadata store. Display the fastest lap time next to each file in the Garage file browser (only when data exists).
+But `currentFileName` inside `calculateAndSetLaps` is captured from the previous render cycle. It's still `null` (or the previous file's name), so the metadata save either skips or writes to the wrong file. This means fastest lap data only gets saved when laps are recalculated after a subsequent re-render (e.g., manually changing the track dropdown), not on initial file load.
 
-## Changes
+## Fix
 
-### 1. `src/lib/fileStorage.ts` -- Extend `FileMetadata` interface
-Add two optional fields:
-- `fastestLapMs?: number` -- fastest lap time in milliseconds
-- `fastestLapNumber?: number` -- which lap number was fastest
+### 1. `src/hooks/useLapManagement.ts` -- Accept optional `fileName` override
+- Add an optional `fileNameOverride?: string` parameter to `calculateAndSetLaps`
+- Use `fileNameOverride ?? currentFileName` when saving metadata
+- This lets callers pass the filename directly instead of relying on stale React state
 
-No DB version bump needed -- IndexedDB is schemaless for object stores, new fields just get stored alongside existing ones.
+### 2. `src/pages/Index.tsx` -- Pass `fileName` when calling `calculateAndSetLaps`
+- In `handleDataLoaded`, pass the `fileName` argument through: `lapMgmt.calculateAndSetLaps(courseToUse, parsedData.samples, fileName)`
+- This ensures old files get their fastest lap saved on first reload
 
-### 2. `src/hooks/useLapManagement.ts` -- Save fastest lap on calculation
-In `calculateAndSetLaps` (and `handleSelectionChange`), after finding the fastest lap, call `saveFileMetadata` to persist `fastestLapMs` and `fastestLapNumber` into the existing metadata record. This merges with the existing track/course/weather data already stored there.
+### 3. `src/components/drawer/FilesTab.tsx` -- Already handled
+The file browser already conditionally renders fastest lap only when data exists (no "N/A"). No changes needed here.
 
-### 3. `src/hooks/useFileManager.ts` -- Load metadata alongside file list
-Extend `useFileManager` to also load `FileMetadata` for each file when refreshing. Return a `Map<string, FileMetadata>` (or similar) so the UI can look up fastest lap per file.
+### 4. `CLAUDE.md` -- Note the timing pattern
+Add a brief note about the stale-state gotcha when calling functions that depend on freshly-set React state.
 
-### 4. `src/components/drawer/FilesTab.tsx` -- Display fastest lap
-Accept a metadata map prop. For each file row, if metadata has `fastestLapMs`, render the formatted lap time (e.g. "1:02.347") below the file size/date line. If no data, render nothing -- no "N/A", just clean.
+## Behavior After Fix
+- **New files**: Fastest lap saved immediately on import when track is auto-detected or selected
+- **Old files (reloaded)**: Fastest lap saved on load when track/course is restored from metadata -- no need to reprocess all files, just opening one backfills the data
+- **File browser**: Shows the lightning bolt + lap time for any file that has been opened at least once since this feature exists. Shows nothing for files never opened -- clean, no clutter
 
-### 5. `src/components/FileManagerDrawer.tsx` -- Thread metadata prop
-Pass the metadata map from `useFileManager` through to `FilesTab`.
-
-### 6. Update `CLAUDE.md`
-Note the new `fastestLapMs` / `fastestLapNumber` fields on `FileMetadata`.
-
-## Data Flow
+## Technical Detail
 
 ```text
-Laps calculated (useLapManagement)
-  --> find fastest lap
-  --> saveFileMetadata({ ...existing, fastestLapMs, fastestLapNumber })
-  --> stored in IndexedDB "metadata" store
+Before (broken):
+  loadParsedData(data, "session.nmea")   --> setState({ currentFileName: "session.nmea" })
+  calculateAndSetLaps(course, samples)   --> currentFileName is still null (stale closure)
+  --> metadata save skipped
 
-File browser opened (useFileManager.refresh)
-  --> listFiles() + getFileMetadata() for each file
-  --> metadata map passed to FilesTab
-  --> fastest lap time rendered per file (or nothing if absent)
+After (fixed):
+  loadParsedData(data, "session.nmea")   --> setState (still async)
+  calculateAndSetLaps(course, samples, "session.nmea")  --> uses override directly
+  --> metadata saved correctly
 ```
-
-## Formatting
-Lap times will use the standard mm:ss.SSS format (e.g. "1:02.347"). A small helper function handles the conversion from milliseconds.
-
