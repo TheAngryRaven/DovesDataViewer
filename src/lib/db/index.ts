@@ -14,4 +14,4 @@ export function getDatabase(): ITrackDatabase {
   return instance;
 }
 
-export type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp } from './types';
+export type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp, DbCourseLayout } from './types';

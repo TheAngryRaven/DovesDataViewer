@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type, track_name, track_short_name, course_name, course_data, turnstile_token } = await req.json();
+    const { type, track_name, track_short_name, course_name, course_data, turnstile_token, layout_data } = await req.json();
 
     // Validate required fields
     if (!type || !track_name || !course_name || !course_data) {
@@ -136,6 +136,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Determine if layout data is included
+    const hasLayout = Array.isArray(layout_data) && layout_data.length > 0;
+
     // Insert submission
     const { error } = await supabase.from('submissions').insert({
       type,
@@ -145,6 +148,8 @@ Deno.serve(async (req) => {
       course_data,
       status: 'pending',
       submitted_by_ip: ip,
+      has_layout: hasLayout,
+      layout_data: hasLayout ? layout_data : null,
     });
 
     if (error) throw error;

@@ -4,13 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
 import type { DbTrack, DbCourse } from '@/lib/db/types';
 import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 import { VisualEditor, EditorModeToggle } from '@/components/track-editor/VisualEditor';
-import { Plus, Edit2, Check, X } from 'lucide-react';
+import { Plus, Edit2, Check, X, Trash2, Cpu } from 'lucide-react';
 
 type EditorMode = 'manual' | 'visual';
 
@@ -85,6 +86,10 @@ export function CoursesTab() {
   const [editorMode, setEditorMode] = useState<EditorMode>('visual');
   const [form, setForm] = useState<CourseFormState>(emptyForm);
 
+  // Layout state
+  const [layoutPoints, setLayoutPoints] = useState<Array<{ lat: number; lon: number }>>([]);
+  const [hasExistingLayout, setHasExistingLayout] = useState(false);
+
   const db = getDatabase();
 
   const loadTracks = useCallback(async () => {
@@ -105,12 +110,33 @@ export function CoursesTab() {
 
   const setField = (key: keyof CourseFormState, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
+  // Load layout when editing a course
+  const loadLayout = useCallback(async (courseId: string) => {
+    try {
+      const layout = await db.getLayout(courseId);
+      if (layout) {
+        setLayoutPoints(layout.layout_data);
+        setHasExistingLayout(true);
+      } else {
+        setLayoutPoints([]);
+        setHasExistingLayout(false);
+      }
+    } catch {
+      setLayoutPoints([]);
+      setHasExistingLayout(false);
+    }
+  }, [db]);
+
   const handleAdd = async () => {
     if (!form.name.trim() || !selectedTrackId) return;
     try {
       const data = formToCourseData(form);
-      await db.createCourse({ track_id: selectedTrackId, enabled: true, superseded_by: null, ...data });
-      setForm(emptyForm); setShowAdd(false);
+      const course = await db.createCourse({ track_id: selectedTrackId, enabled: true, superseded_by: null, ...data });
+      // Save layout if drawn
+      if (layoutPoints.length > 0) {
+        await db.saveLayout(course.id, layoutPoints);
+      }
+      setForm(emptyForm); setShowAdd(false); setLayoutPoints([]); setHasExistingLayout(false);
       toast({ title: 'Course created' }); loadCourses();
     } catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
   };
@@ -119,8 +145,24 @@ export function CoursesTab() {
     if (!editingId || !form.name.trim()) return;
     try {
       await db.updateCourse(editingId, formToCourseData(form));
-      setForm(emptyForm); setEditingId(null);
+      // Save or delete layout
+      if (layoutPoints.length > 0) {
+        await db.saveLayout(editingId, layoutPoints);
+      } else if (hasExistingLayout) {
+        await db.deleteLayout(editingId);
+      }
+      setForm(emptyForm); setEditingId(null); setLayoutPoints([]); setHasExistingLayout(false);
       toast({ title: 'Course updated' }); loadCourses();
+    } catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
+  };
+
+  const handleDeleteLayout = async () => {
+    if (!editingId) return;
+    try {
+      await db.deleteLayout(editingId);
+      setLayoutPoints([]);
+      setHasExistingLayout(false);
+      toast({ title: 'Layout deleted' });
     } catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
   };
 
@@ -133,9 +175,13 @@ export function CoursesTab() {
     setEditingId(course.id);
     setForm(formFromCourse(course));
     setEditorMode('visual');
+    loadLayout(course.id);
   };
 
-  const cancel = () => { setForm(emptyForm); setEditingId(null); setShowAdd(false); };
+  const cancel = () => {
+    setForm(emptyForm); setEditingId(null); setShowAdd(false);
+    setLayoutPoints([]); setHasExistingLayout(false);
+  };
 
   // VisualEditor bridge helpers
   const visualStartA: GpsPoint | null = form.startALat && form.startALng
@@ -155,6 +201,10 @@ export function CoursesTab() {
   }, []);
   const handleVisualSector3 = useCallback((line: SectorLine) => {
     setForm(prev => ({ ...prev, s3aLat: String(line.a.lat), s3aLng: String(line.a.lon), s3bLat: String(line.b.lat), s3bLng: String(line.b.lon) }));
+  }, []);
+
+  const handleLayoutChange = useCallback((points: Array<{ lat: number; lon: number }>) => {
+    setLayoutPoints(points);
   }, []);
 
   const isValid = form.name.trim() && form.startALat && form.startALng && form.startBLat && form.startBLng;
@@ -181,6 +231,9 @@ export function CoursesTab() {
           onSector2Change={handleVisualSector2}
           onSector3Change={handleVisualSector3}
           isNewTrack={!editingId}
+          showDrawTool={true}
+          layoutPoints={layoutPoints}
+          onLayoutChange={handleLayoutChange}
         />
       ) : (
         <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
@@ -217,13 +270,39 @@ export function CoursesTab() {
         </div>
       )}
 
-      <div className="flex gap-2">
+      {/* Layout info */}
+      {layoutPoints.length > 0 && (
+        <div className="flex items-center justify-between p-2 bg-cyan-500/10 border border-cyan-500/30 rounded text-sm">
+          <span className="text-cyan-400">{layoutPoints.length} layout points drawn</span>
+          {hasExistingLayout && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={handleDeleteLayout}>
+              <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete Layout
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2 flex-wrap">
         <Button size="sm" onClick={editingId ? handleUpdate : handleAdd} disabled={!isValid}>
           <Check className="w-4 h-4 mr-1" /> {editingId ? 'Update' : 'Create'}
         </Button>
         <Button size="sm" variant="outline" onClick={cancel}>
           <X className="w-4 h-4" />
         </Button>
+        {editingId && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" disabled className="gap-1.5 opacity-50">
+                  <Cpu className="w-4 h-4" /> Generate Course Mapping
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Coming soon — will generate fingerprint data for automatic track detection</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     </div>
   );
@@ -238,7 +317,7 @@ export function CoursesTab() {
           </SelectContent>
         </Select>
         {selectedTrackId && (
-          <Button size="sm" onClick={() => { setForm(emptyForm); setShowAdd(!showAdd); setEditingId(null); setEditorMode('visual'); }}>
+          <Button size="sm" onClick={() => { setForm(emptyForm); setShowAdd(!showAdd); setEditingId(null); setEditorMode('visual'); setLayoutPoints([]); setHasExistingLayout(false); }}>
             <Plus className="w-4 h-4 mr-1" /> Add Course
           </Button>
         )}

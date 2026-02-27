@@ -54,6 +54,14 @@ export interface DbBannedIp {
   expires_at: string | null;
 }
 
+export interface DbCourseLayout {
+  id: string;
+  course_id: string;
+  layout_data: Array<{ lat: number; lon: number }>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ITrackDatabase {
   // Tracks
   getTracks(): Promise<DbTrack[]>;
@@ -68,6 +76,11 @@ export interface ITrackDatabase {
   createCourse(data: Omit<DbCourse, 'id' | 'created_at' | 'updated_at'>): Promise<DbCourse>;
   updateCourse(id: string, data: Partial<Omit<DbCourse, 'id' | 'created_at' | 'updated_at'>>): Promise<DbCourse>;
   toggleCourse(id: string, enabled: boolean): Promise<void>;
+
+  // Course Layouts
+  getLayout(courseId: string): Promise<DbCourseLayout | null>;
+  saveLayout(courseId: string, layoutData: Array<{ lat: number; lon: number }>): Promise<void>;
+  deleteLayout(courseId: string): Promise<void>;
 
   // Submissions
   getSubmissions(status?: string): Promise<DbSubmission[]>;
