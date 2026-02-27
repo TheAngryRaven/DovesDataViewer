@@ -161,6 +161,21 @@ export function VisualEditor({
   const drawPolylineRef = useRef<L.Polyline | null>(null);
   const drawClickHandlerRef = useRef<((e: L.LeafletMouseEvent) => void) | null>(null);
 
+  // Sync drawPoints when layoutPointsProp changes (e.g. async load from DB)
+  useEffect(() => {
+    const incoming = layoutPointsProp ?? [];
+    setDrawPoints(incoming);
+    // Also update the polyline immediately if map exists
+    if (mapRef.current && drawPolylineRef.current) {
+      if (incoming.length > 0) {
+        drawPolylineRef.current.setLatLngs(incoming.map(p => [p.lat, p.lon] as [number, number]));
+      } else {
+        drawPolylineRef.current.remove();
+        drawPolylineRef.current = null;
+      }
+    }
+  }, [layoutPointsProp]);
+
   // Layer refs for markers and active polyline
   const markersRef = useRef<L.Marker[]>([]);
   const activeLineRef = useRef<L.Polyline | null>(null);
