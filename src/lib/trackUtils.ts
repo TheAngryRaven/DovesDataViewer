@@ -1,4 +1,5 @@
 import { SectorLine } from '@/types/racing';
+import { haversineDistance as haversineDist } from '@/lib/parserUtils';
 
 /** Parse sector line coordinates from string form fields. Returns undefined if any value is NaN. */
 export function parseSectorLine(sector: { aLat: string; aLon: string; bLat: string; bLon: string }): SectorLine | undefined {
@@ -78,4 +79,39 @@ export function findNearestTrack(
     }
   }
   return bestDist <= thresholdMeters ? best : null;
+}
+
+/**
+ * Resample a polyline to evenly spaced points.
+ * Walks along the path segment-by-segment, emitting a new interpolated
+ * point every `spacingMeters` meters. Always includes the first point.
+ */
+export function resamplePolyline(
+  points: Array<{ lat: number; lon: number }>,
+  spacingMeters = 5
+): Array<{ lat: number; lon: number }> {
+  if (points.length < 2) return [...points];
+
+  const result: Array<{ lat: number; lon: number }> = [{ ...points[0] }];
+  let carry = 0; // distance carried over from previous segment
+
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const segDist = haversineDist(prev.lat, prev.lon, curr.lat, curr.lon);
+    if (segDist === 0) continue;
+
+    let walked = carry;
+    while (walked + spacingMeters <= segDist) {
+      walked += spacingMeters;
+      const t = walked / segDist;
+      result.push({
+        lat: prev.lat + t * (curr.lat - prev.lat),
+        lon: prev.lon + t * (curr.lon - prev.lon),
+      });
+    }
+    carry = segDist - walked;
+  }
+
+  return result;
 }

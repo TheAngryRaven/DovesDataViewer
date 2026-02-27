@@ -11,7 +11,8 @@ import type { DbTrack, DbCourse, DbCourseLayout } from '@/lib/db/types';
 import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 import { VisualEditor, EditorModeToggle } from '@/components/track-editor/VisualEditor';
-import { Plus, Edit2, Check, X, Trash2, Cpu } from 'lucide-react';
+import { Plus, Edit2, Check, X, Trash2, Cpu, RefreshCw } from 'lucide-react';
+import { resamplePolyline } from '@/lib/trackUtils';
 import L from 'leaflet';
 
 type EditorMode = 'manual' | 'visual';
@@ -438,18 +439,38 @@ export function CoursesTab() {
         <div className="racing-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-base font-semibold">Course Layouts</Label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="sm" variant="outline" disabled className="gap-1.5 opacity-50">
-                    <Cpu className="w-4 h-4" /> Generate Course Mapping
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Coming soon — will generate fingerprint data for automatic track detection</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={trackLayouts.length === 0}
+                onClick={() => {
+                  const resampled = trackLayouts.map(layout => ({
+                    ...layout,
+                    layout_data: resamplePolyline(layout.layout_data, 5),
+                  }));
+                  const totalBefore = trackLayouts.reduce((s, l) => s + l.layout_data.length, 0);
+                  const totalAfter = resampled.reduce((s, l) => s + l.layout_data.length, 0);
+                  setTrackLayouts(resampled);
+                  toast({ title: 'Resampled (preview only)', description: `${totalBefore} → ${totalAfter} points (~5m spacing). Not saved.` });
+                }}
+              >
+                <RefreshCw className="w-4 h-4" /> Resample
+              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="outline" disabled className="gap-1.5 opacity-50">
+                      <Cpu className="w-4 h-4" /> Generate Course Mapping
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Coming soon — will generate fingerprint data for automatic track detection</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           {trackLayouts.length > 0 ? (
             <LayoutsOverviewMap courses={courses} layouts={trackLayouts} />
