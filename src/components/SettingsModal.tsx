@@ -1,4 +1,5 @@
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon } from "lucide-react";
+import { useState } from "react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -415,8 +416,70 @@ export function SettingsModal({
               />
             </div>
           </div>
+
+          <Separator />
+
+          {/* Force Update */}
+          <ForceUpdateSection />
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ForceUpdateSection() {
+  const [updating, setUpdating] = useState(false);
+
+  const handleForceUpdate = async () => {
+    setUpdating(true);
+    try {
+      // Unregister all service workers
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((r) => r.unregister()));
+      }
+
+      // Clear all caches
+      if ("caches" in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      }
+
+      // Hard reload
+      window.location.reload();
+    } catch (e) {
+      console.error("Force update failed:", e);
+      // Reload anyway
+      window.location.reload();
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <RefreshCw className="w-4 h-4 text-muted-foreground" />
+        <h3 className="font-medium">App Update</h3>
+      </div>
+      <div className="flex items-center justify-between pl-6">
+        <div>
+          <Label htmlFor="force-update" className="text-sm text-muted-foreground">
+            Force update &amp; clear cache
+          </Label>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">
+            Clears all cached data and reloads the latest version
+          </p>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={handleForceUpdate}
+          disabled={updating}
+          className="gap-1.5"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${updating ? "animate-spin" : ""}`} />
+          {updating ? "Updating…" : "Update"}
+        </Button>
+      </div>
+    </div>
   );
 }
