@@ -1,88 +1,47 @@
 
-
-# Course Layouts Overview Map
+# Resample Layouts Button
 
 ## Overview
-Move the "Generate Course Mapping" button out of the course edit form and into a new **Layouts Overview** section below the course list. This section contains a Leaflet map showing all course layout drawings for the selected track, each in a distinct color. The course list items get a colored dot indicator matching their map color when they have a layout.
+Add a "Resample" button to the left of the "Generate Course Mapping" button in the Layouts Overview section. When clicked, it resamples ALL displayed polylines to evenly spaced points (~5 meters apart), updating the overview map visually but NOT saving to the database. This normalizes point density from hand-drawn input and produces smoother, prettier lines.
 
-## Changes
+## What Changes
 
-### 1. Course list: colored layout indicator
-Each course row in the list gets a small colored circle next to the name if that course has a saved layout. The color matches the polyline on the overview map below. Courses without a layout show no indicator.
+### 1. New utility: `resamplePolyline` in `src/lib/trackUtils.ts`
+A pure function that takes an array of `{lat, lon}` points and a target spacing in meters, and returns a new array of evenly spaced points interpolated along the original path.
 
-To know which courses have layouts, load all layouts for the selected track's courses in one batch when courses load (`Promise.all` of `db.getLayout()` for each course, or a new `getLayoutsForTrack` method).
+Algorithm:
+- Walk along the polyline segment by segment using haversine distance (already available in `parserUtils.ts`)
+- Accumulate distance; when it exceeds the target spacing, interpolate a new point at that exact distance along the current segment
+- Result: uniform ~5m spacing regardless of original point density
 
-### 2. Color palette for courses
-Define a small array of high-contrast, distinct colors (similar to chart series colors). Assign colors by course index position:
+### 2. Resample button in CoursesTab Layouts Overview header
+- Add a "Resample" button to the left of the existing "Generate Course Mapping" button
+- Only enabled when there are layouts to resample
+- On click: iterate over all `trackLayouts`, resample each one's `layout_data`, and update the `trackLayouts` state with the resampled data
+- This updates the overview map immediately (polylines redraw) but does NOT call `db.saveLayout()` -- purely visual/in-memory
+- The button could show a small toast or the point counts change visibly on the map
 
-```text
-const COURSE_COLORS = [
-  '#ff6600',  // orange
-  '#06b6d4',  // cyan
-  '#a855f7',  // purple
-  '#22c55e',  // green
-  '#f43f5e',  // rose
-  '#eab308',  // yellow
-  '#3b82f6',  // blue
-  '#ec4899',  // pink
-];
-```
-
-Each course gets `COURSE_COLORS[index % length]`.
-
-### 3. Layouts Overview Map (new component section)
-Below the course list, render a new `racing-card` containing:
-- A header row: "Course Layouts" label on the left, "Generate Course Mapping" button (disabled, tooltip) on the right
-- A Leaflet map (`h-64 sm:h-80 md:h-96`) showing ESRI satellite tiles
-- All courses that have layout data are drawn as polylines, each in their assigned color
-- The map auto-fits bounds to contain all drawn layouts
-- Only shown when there's at least one course with a layout (or always shown once a track is selected -- can show "No layouts drawn yet" if empty)
-
-### 4. Remove "Generate Course Mapping" from course edit form
-Move it from the edit form's button row to the overview map header.
-
-### 5. Batch layout loading
-Add a new method to `ITrackDatabase`:
-```typescript
-getLayoutsForCourses(courseIds: string[]): Promise<DbCourseLayout[]>
-```
-This fetches all layouts in a single query using `course_id.in.(ids)` rather than N individual calls. Called once when courses load.
+### 3. No database changes
+The resampled data stays in React state only. Navigating away or reloading discards it.
 
 ## File Changes
 
 | File | Change |
 |------|--------|
-| `src/lib/db/types.ts` | Add `getLayoutsForCourses()` to interface |
-| `src/lib/db/supabaseAdapter.ts` | Implement batch layout query |
-| `src/components/admin/CoursesTab.tsx` | Add layout map section, colored indicators, move Generate button, batch-load layouts |
+| `src/lib/trackUtils.ts` | Add `resamplePolyline(points, spacingMeters)` function |
+| `src/components/admin/CoursesTab.tsx` | Add Resample button, wire it to update `trackLayouts` state in-memory |
 
-## Layout of the Courses Tab (after changes)
+## Technical Details
 
+The `resamplePolyline` function:
 ```text
-[Track selector] [+ Add Course]
+Input:  [{lat, lon}, ...] (N points, irregular spacing)
+Output: [{lat, lon}, ...] (M points, ~5m spacing)
 
-(course edit form, if editing/adding)
-
-Course List:
-  [toggle] [orange dot] Normal        [edit]
-  [toggle]              Pro           [edit]   <-- no dot = no layout
-  [toggle] [cyan dot]   Short         [edit]
-  [toggle]              xShort        [edit]
-
-Course Layouts                [Generate Course Mapping (disabled)]
-+----------------------------------------------------------+
-|                                                          |
-|   Leaflet map with satellite tiles                       |
-|   Orange polyline = Normal layout                        |
-|   Cyan polyline = Short layout                           |
-|                                                          |
-+----------------------------------------------------------+
+1. For each consecutive pair of points, compute haversine distance
+2. Walk along accumulated distance, emitting a new point every 5m
+3. Interpolate lat/lon linearly between segment endpoints at each emission
+4. Always include the first point; last point is the final emission
 ```
 
-## Technical Notes
-- The overview map is a separate Leaflet instance from the VisualEditor -- simpler, read-only, no editing tools
-- Uses `L.polyline` for each course layout with the assigned color, weight 5, opacity 0.9
-- `map.fitBounds()` on the combined bounds of all polylines so all drawings are visible
-- The colored dot in the course list is a simple `<span>` with inline `backgroundColor` style, sized ~12px
-- The Generate Course Mapping button stays disabled with the same tooltip as before
-
+Uses `haversineDistance` from `parserUtils.ts` (already exists). Linear interpolation is fine at GPS scales (sub-km segments).
