@@ -59,15 +59,20 @@ export function SubmissionsTab() {
         <p className="text-muted-foreground">No submissions found.</p>
       ) : (
         <div className="space-y-3">
-          {submissions.map(sub => (
+          {submissions.map(sub => {
+            const hasLayout = (sub as unknown as { has_layout?: boolean }).has_layout;
+            return (
             <div key={sub.id} className="racing-card p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">{sub.type}</span>
-                  <span className="ml-2 text-sm font-medium text-foreground">{sub.track_name}</span>
-                  {sub.track_short_name && <span className="ml-1 text-xs text-muted-foreground">({sub.track_short_name})</span>}
-                  <span className="mx-1 text-muted-foreground">→</span>
+                  <span className="text-sm font-medium text-foreground">{sub.track_name}</span>
+                  {sub.track_short_name && <span className="text-xs text-muted-foreground">({sub.track_short_name})</span>}
+                  <span className="text-muted-foreground">→</span>
                   <span className="text-sm text-foreground">{sub.course_name}</span>
+                  {hasLayout && (
+                    <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">Drawing included</span>
+                  )}
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded ${sub.status === 'pending' ? 'bg-accent text-accent-foreground' : sub.status === 'approved' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
                   {sub.status}
@@ -96,7 +101,8 @@ export function SubmissionsTab() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

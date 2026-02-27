@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp } from './types';
+import type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp, DbCourseLayout } from './types';
 
 export class SupabaseTrackDatabase implements ITrackDatabase {
   // Tracks
@@ -127,6 +127,32 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
   async unbanIp(id: string): Promise<void> {
     const { error } = await supabase.from('banned_ips').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  // Course Layouts — table may not be in auto-generated types yet, use .from() with type assertion
+  async getLayout(courseId: string): Promise<DbCourseLayout | null> {
+    const { data, error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
+      .select('*')
+      .eq('course_id', courseId)
+      .maybeSingle();
+    if (error) throw error;
+    return data as DbCourseLayout | null;
+  }
+
+  async saveLayout(courseId: string, layoutData: Array<{ lat: number; lon: number }>): Promise<void> {
+    const { error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
+      .upsert(
+        { course_id: courseId, layout_data: layoutData },
+        { onConflict: 'course_id' }
+      );
+    if (error) throw error;
+  }
+
+  async deleteLayout(courseId: string): Promise<void> {
+    const { error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
+      .delete()
+      .eq('course_id', courseId);
     if (error) throw error;
   }
 

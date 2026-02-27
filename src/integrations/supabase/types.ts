@@ -38,6 +38,38 @@ export type Database = {
         }
         Relationships: []
       }
+      course_layouts: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          layout_data: Json
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          layout_data: Json
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          layout_data?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_layouts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: true
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           created_at: string | null
@@ -142,7 +174,9 @@ export type Database = {
           course_data: Json
           course_name: string
           created_at: string | null
+          has_layout: boolean
           id: string
+          layout_data: Json | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -156,7 +190,9 @@ export type Database = {
           course_data: Json
           course_name: string
           created_at?: string | null
+          has_layout?: boolean
           id?: string
+          layout_data?: Json | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -170,7 +206,9 @@ export type Database = {
           course_data?: Json
           course_name?: string
           created_at?: string | null
+          has_layout?: boolean
           id?: string
+          layout_data?: Json | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null

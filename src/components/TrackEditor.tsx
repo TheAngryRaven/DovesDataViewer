@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { Plus, Trash2, Edit2, Check, X, Settings, Code, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -36,6 +36,7 @@ import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { SubmitTrackDialog } from '@/components/SubmitTrackDialog';
 import { Send } from 'lucide-react';
+import { useSettingsContext } from '@/contexts/SettingsContext';
 
 interface TrackCourseEditorProps {
   selection: TrackCourseSelection | null;
@@ -55,6 +56,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
   const [isJsonViewOpen, setIsJsonViewOpen] = useState(false);
 
   const form = useTrackEditorForm();
+  const { enableLabs } = useSettingsContext();
 
   useEffect(() => {
     let mounted = true;
@@ -312,6 +314,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
                   onStartFinishChange={form.handleVisualStartFinishChange}
                   onSector2Change={form.handleVisualSector2Change}
                   onSector3Change={form.handleVisualSector3Change}
+                  showDrawTool={enableLabs}
                 />
                 <div className="flex gap-2">
                   <Button onClick={handleUpdateCourse} className="flex-1">
@@ -439,7 +442,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false }: T
 
         <Dialog open={isSelectDialogOpen} onOpenChange={(open) => { setIsSelectDialogOpen(open); if (!open) { setIsManageMode(false); form.setEditingCourse(null); form.resetForm(); } }}>
           <DialogTrigger asChild><span className="sr-only">Open track selector</span></DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{isManageMode ? 'Manage Tracks & Courses' : 'Select Track & Course'}</DialogTitle></DialogHeader>
             {!isManageMode ? (
               <>

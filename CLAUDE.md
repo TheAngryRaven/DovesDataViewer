@@ -182,6 +182,27 @@ To add a new store: increment `DB_VERSION`, add store name to `STORE_NAMES`, add
 
 ---
 
+## Course Layouts (Drawing Feature)
+
+The `course_layouts` table stores polyline drawings of track layouts (1:1 with courses, unique on `course_id`, cascade delete).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | uuid PK | Auto-generated |
+| `course_id` | uuid FK → courses.id (unique) | One layout per course |
+| `layout_data` | jsonb | Array of `{lat, lon}` coordinate points |
+| `created_at` / `updated_at` | timestamptz | Timestamps |
+
+**Access**: Admin-only RLS (same pattern as courses table). Layout data is NOT exported to `tracks.json`.
+
+**Draw tool**: In the VisualEditor, a "Draw" button allows clicking on the satellite map to build a polyline outline. Always visible in admin CoursesTab, gated behind `enableLabs` setting for user-side TrackEditor.
+
+**"Generate Course Mapping" button**: Placeholder in admin CoursesTab — will eventually produce fingerprint data for automatic track detection on the DovesDataLogger hardware.
+
+**Submissions**: The `submissions` table has `has_layout` (bool) and `layout_data` (jsonb) columns to carry drawing data through the submission workflow.
+
+---
+
 ## BLE Integration (`src/lib/bleDatalogger.ts`)
 
 Connects to **DovesLapTimer** ESP32 device via Web Bluetooth.

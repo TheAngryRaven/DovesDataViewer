@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed } from 'lucide-react';
+import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed, Pencil, Undo2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
@@ -11,7 +11,7 @@ export interface GpsPoint {
   lon: number;
 }
 
-export type VisualEditorTool = 'startFinish' | 'sector2' | 'sector3' | null;
+export type VisualEditorTool = 'startFinish' | 'sector2' | 'sector3' | 'draw' | null;
 export type EditorMode = 'manual' | 'visual';
 
 interface VisualEditorProps {
@@ -26,15 +26,25 @@ interface VisualEditorProps {
   isNewTrack?: boolean;
   /** Initial map center from loaded GPS data */
   initialCenter?: GpsPoint | null;
+  /** Whether to show the Draw button */
+  showDrawTool?: boolean;
+  /** Existing layout drawing to display as a static polyline */
+  layoutPoints?: Array<{ lat: number; lon: number }>;
+  /** Callback when layout drawing changes */
+  onLayoutChange?: (points: Array<{ lat: number; lon: number }>) => void;
 }
 
 interface VisualEditorToolbarProps {
   activeTool: VisualEditorTool;
   onToolChange: (tool: VisualEditorTool) => void;
   onDone: () => void;
+  showDrawTool?: boolean;
+  drawPointCount?: number;
+  onUndoDraw?: () => void;
+  onClearDraw?: () => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw }: VisualEditorToolbarProps) {
   const handleStartFinish = () => {
     onToolChange(activeTool === 'startFinish' ? null : 'startFinish');
   };
@@ -47,12 +57,16 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorT
     onToolChange(activeTool === 'sector3' ? null : 'sector3');
   };
 
+  const handleDraw = () => {
+    onToolChange(activeTool === 'draw' ? null : 'draw');
+  };
+
   const handleDone = () => {
     onDone();
   };
 
   return (
-    <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg">
+    <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg flex-wrap">
       <Button
         variant={activeTool === 'startFinish' ? 'default' : 'outline'}
         size="sm"
@@ -80,6 +94,39 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorT
         <Timer className="w-3.5 h-3.5" />
         Sector 3
       </Button>
+      {showDrawTool && (
+        <Button
+          variant={activeTool === 'draw' ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleDraw}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          Draw
+        </Button>
+      )}
+      {activeTool === 'draw' && drawPointCount > 0 && (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={onUndoDraw}
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            Undo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
+            onClick={onClearDraw}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Clear
+          </Button>
+        </>
+      )}
       <div className="flex-1" />
       <Button
         variant="secondary"
@@ -97,7 +144,8 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone }: VisualEditorT
 export function VisualEditor({
   startFinishA, startFinishB, sector2, sector3,
   onStartFinishChange, onSector2Change, onSector3Change, onDone,
-  isNewTrack = false, initialCenter: initialCenterProp = null
+  isNewTrack = false, initialCenter: initialCenterProp = null,
+  showDrawTool = false, layoutPoints: layoutPointsProp, onLayoutChange,
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -107,6 +155,11 @@ export function VisualEditor({
   const [pendingStartFinish, setPendingStartFinish] = useState<{ a: GpsPoint; b: GpsPoint } | null>(null);
   const [pendingSector2, setPendingSector2] = useState<SectorLine | null>(null);
   const [pendingSector3, setPendingSector3] = useState<SectorLine | null>(null);
+
+  // Drawing state
+  const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>(layoutPointsProp ?? []);
+  const drawPolylineRef = useRef<L.Polyline | null>(null);
+  const drawClickHandlerRef = useRef<((e: L.LeafletMouseEvent) => void) | null>(null);
 
   // Layer refs for markers and active polyline
   const markersRef = useRef<L.Marker[]>([]);
@@ -373,11 +426,102 @@ export function VisualEditor({
     createEditingLayersWithCoords(map, tool, lineCoords);
   };
 
+  // --- Draw mode helpers ---
+  const updateDrawPolyline = useCallback((points: Array<{ lat: number; lon: number }>) => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (drawPolylineRef.current) {
+      drawPolylineRef.current.setLatLngs(points.map(p => [p.lat, p.lon] as [number, number]));
+    } else if (points.length > 0) {
+      drawPolylineRef.current = L.polyline(
+        points.map(p => [p.lat, p.lon] as [number, number]),
+        { color: '#06b6d4', weight: 3, opacity: 0.9 }
+      ).addTo(map);
+    }
+  }, []);
+
+  const clearDrawMode = useCallback(() => {
+    const map = mapRef.current;
+    if (drawClickHandlerRef.current && map) {
+      map.off('click', drawClickHandlerRef.current);
+      drawClickHandlerRef.current = null;
+    }
+  }, []);
+
+  const enterDrawMode = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    clearDrawMode();
+
+    const handler = (e: L.LeafletMouseEvent) => {
+      setDrawPoints(prev => {
+        const next = [...prev, { lat: e.latlng.lat, lon: e.latlng.lng }];
+        updateDrawPolyline(next);
+        return next;
+      });
+    };
+    drawClickHandlerRef.current = handler;
+    map.on('click', handler);
+  }, [clearDrawMode, updateDrawPolyline]);
+
+  const handleUndoDraw = useCallback(() => {
+    setDrawPoints(prev => {
+      const next = prev.slice(0, -1);
+      updateDrawPolyline(next);
+      if (next.length === 0 && drawPolylineRef.current) {
+        drawPolylineRef.current.remove();
+        drawPolylineRef.current = null;
+      }
+      return next;
+    });
+  }, [updateDrawPolyline]);
+
+  const handleClearDraw = useCallback(() => {
+    setDrawPoints([]);
+    if (drawPolylineRef.current) {
+      drawPolylineRef.current.remove();
+      drawPolylineRef.current = null;
+    }
+  }, []);
+
+  // Render static layout polyline when not in draw mode
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    // If we're in draw mode, the draw polyline is managed separately
+    if (activeTool === 'draw') return;
+    // Show static layout if we have points
+    if (drawPoints.length > 0) {
+      if (!drawPolylineRef.current) {
+        drawPolylineRef.current = L.polyline(
+          drawPoints.map(p => [p.lat, p.lon] as [number, number]),
+          { color: '#06b6d4', weight: 3, opacity: 0.6, dashArray: '8 4' }
+        ).addTo(map);
+      } else {
+        drawPolylineRef.current.setLatLngs(drawPoints.map(p => [p.lat, p.lon] as [number, number]));
+        drawPolylineRef.current.setStyle({ opacity: 0.6, dashArray: '8 4' });
+      }
+    } else if (drawPolylineRef.current) {
+      drawPolylineRef.current.remove();
+      drawPolylineRef.current = null;
+    }
+  }, [activeTool, drawPoints]);
+
   const handleToolChange = (tool: VisualEditorTool) => {
     const map = mapRef.current;
 
-    // If switching away from a tool without clicking Done, discard pending changes
-    if (activeTool && activeTool !== tool) {
+    // If leaving draw mode, clean up click handler
+    if (activeTool === 'draw' && tool !== 'draw') {
+      clearDrawMode();
+      // Make the polyline dashed/static
+      if (drawPolylineRef.current) {
+        drawPolylineRef.current.setStyle({ opacity: 0.6, dashArray: '8 4' });
+      }
+    }
+
+    // If switching away from a line tool without clicking Done, discard pending changes
+    if (activeTool && activeTool !== tool && activeTool !== 'draw') {
       if (activeTool === 'startFinish') setPendingStartFinish(null);
       else if (activeTool === 'sector2') setPendingSector2(null);
       else if (activeTool === 'sector3') setPendingSector3(null);
@@ -385,7 +529,15 @@ export function VisualEditor({
 
     setActiveTool(tool);
 
-    if (map && tool) {
+    if (map && tool === 'draw') {
+      clearEditingLayers();
+      drawStaticLines(map, tool);
+      enterDrawMode();
+      // Make draw polyline solid
+      if (drawPolylineRef.current) {
+        drawPolylineRef.current.setStyle({ opacity: 0.9, dashArray: undefined });
+      }
+    } else if (map && tool) {
       let lineCoords = getLineCoords(tool);
 
       // If no line exists, create one at map center
@@ -427,6 +579,11 @@ export function VisualEditor({
     } else if (activeTool === 'sector3' && pendingSector3 && onSector3Change) {
       onSector3Change(pendingSector3);
       setPendingSector3(null);
+    } else if (activeTool === 'draw') {
+      clearDrawMode();
+      if (onLayoutChange) {
+        onLayoutChange(drawPoints);
+      }
     }
 
     // Clear editing state
@@ -502,6 +659,11 @@ export function VisualEditor({
 
   const getHelperText = (): string => {
     if (!activeTool) return '';
+    if (activeTool === 'draw') {
+      return drawPoints.length === 0
+        ? 'Click on the map to start drawing the track layout'
+        : `${drawPoints.length} point${drawPoints.length !== 1 ? 's' : ''} — click to add more, Undo to remove last`;
+    }
     const lineCoords = getLineCoords(activeTool);
     if (!lineCoords) {
       return `No ${activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3'} line defined`;
@@ -558,10 +720,14 @@ export function VisualEditor({
         activeTool={activeTool}
         onToolChange={handleToolChange}
         onDone={handleDone}
+        showDrawTool={showDrawTool}
+        drawPointCount={drawPoints.length}
+        onUndoDraw={handleUndoDraw}
+        onClearDraw={handleClearDraw}
       />
       <div
         ref={mapContainerRef}
-        className="w-full h-64 rounded-lg border border-border overflow-hidden"
+        className="w-full h-64 sm:h-80 md:h-96 rounded-lg border border-border overflow-hidden"
       />
       {activeTool && (
         <p className="text-xs text-muted-foreground text-center">
