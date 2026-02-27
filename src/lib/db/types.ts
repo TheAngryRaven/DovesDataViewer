@@ -79,6 +79,7 @@ export interface ITrackDatabase {
 
   // Course Layouts
   getLayout(courseId: string): Promise<DbCourseLayout | null>;
+  getLayoutsForCourses(courseIds: string[]): Promise<DbCourseLayout[]>;
   saveLayout(courseId: string, layoutData: Array<{ lat: number; lon: number }>): Promise<void>;
   deleteLayout(courseId: string): Promise<void>;
 

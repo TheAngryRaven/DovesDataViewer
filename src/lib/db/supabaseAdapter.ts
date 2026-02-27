@@ -140,6 +140,15 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
     return data as DbCourseLayout | null;
   }
 
+  async getLayoutsForCourses(courseIds: string[]): Promise<DbCourseLayout[]> {
+    if (courseIds.length === 0) return [];
+    const { data, error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
+      .select('*')
+      .in('course_id', courseIds);
+    if (error) throw error;
+    return (data ?? []) as DbCourseLayout[];
+  }
+
   async saveLayout(courseId: string, layoutData: Array<{ lat: number; lon: number }>): Promise<void> {
     const { error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
       .upsert(
