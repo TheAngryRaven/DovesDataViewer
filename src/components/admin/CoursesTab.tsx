@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,13 +7,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
-import type { DbTrack, DbCourse } from '@/lib/db/types';
+import type { DbTrack, DbCourse, DbCourseLayout } from '@/lib/db/types';
 import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 import { VisualEditor, EditorModeToggle } from '@/components/track-editor/VisualEditor';
 import { Plus, Edit2, Check, X, Trash2, Cpu } from 'lucide-react';
+import L from 'leaflet';
 
 type EditorMode = 'manual' | 'visual';
+
+const COURSE_COLORS = [
+  '#ff6600',  // orange
+  '#06b6d4',  // cyan
+  '#a855f7',  // purple
+  '#22c55e',  // green
+  '#f43f5e',  // rose
+  '#eab308',  // yellow
+  '#3b82f6',  // blue
+  '#ec4899',  // pink
+];
 
 interface CourseFormState {
   name: string;
@@ -76,6 +88,69 @@ function formToCourseData(f: CourseFormState) {
   };
 }
 
+/** Read-only Leaflet map showing all course layouts for a track */
+function LayoutsOverviewMap({ courses, layouts }: { courses: DbCourse[]; layouts: DbCourseLayout[] }) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      zoomControl: true,
+      attributionControl: false,
+      dragging: true,
+      scrollWheelZoom: true,
+    }).setView([0, 0], 2);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 21,
+      maxNativeZoom: 18,
+    }).addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Draw polylines whenever layouts change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear existing polylines
+    map.eachLayer(layer => {
+      if (layer instanceof L.Polyline && !(layer instanceof L.TileLayer)) {
+        layer.remove();
+      }
+    });
+
+    const allBounds: L.LatLngExpression[] = [];
+
+    layouts.forEach(layout => {
+      const courseIndex = courses.findIndex(c => c.id === layout.course_id);
+      const color = COURSE_COLORS[courseIndex >= 0 ? courseIndex % COURSE_COLORS.length : 0];
+      const coords = layout.layout_data.map(p => [p.lat, p.lon] as [number, number]);
+      if (coords.length === 0) return;
+
+      const courseName = courseIndex >= 0 ? courses[courseIndex].name : 'Unknown';
+      L.polyline(coords, { color, weight: 5, opacity: 0.9 })
+        .bindTooltip(courseName, { sticky: true })
+        .addTo(map);
+      allBounds.push(...coords.map(c => [c[0], c[1]] as [number, number]));
+    });
+
+    if (allBounds.length > 0) {
+      map.fitBounds(L.latLngBounds(allBounds as [number, number][]), { padding: [30, 30] });
+    }
+  }, [courses, layouts]);
+
+  return <div ref={mapContainerRef} className="h-64 sm:h-80 md:h-96 w-full rounded-md overflow-hidden" />;
+}
+
 export function CoursesTab() {
   const [tracks, setTracks] = useState<DbTrack[]>([]);
   const [selectedTrackId, setSelectedTrackId] = useState<string>('');
@@ -86,9 +161,12 @@ export function CoursesTab() {
   const [editorMode, setEditorMode] = useState<EditorMode>('visual');
   const [form, setForm] = useState<CourseFormState>(emptyForm);
 
-  // Layout state
+  // Layout state (for edit form)
   const [layoutPoints, setLayoutPoints] = useState<Array<{ lat: number; lon: number }>>([]);
   const [hasExistingLayout, setHasExistingLayout] = useState(false);
+
+  // All layouts for selected track (for overview map)
+  const [trackLayouts, setTrackLayouts] = useState<DbCourseLayout[]>([]);
 
   const db = getDatabase();
 
@@ -98,15 +176,25 @@ export function CoursesTab() {
   }, [db]);
 
   const loadCourses = useCallback(async () => {
-    if (!selectedTrackId) { setCourses([]); return; }
+    if (!selectedTrackId) { setCourses([]); setTrackLayouts([]); return; }
     setLoading(true);
-    try { setCourses(await db.getCourses(selectedTrackId)); }
+    try {
+      const loadedCourses = await db.getCourses(selectedTrackId);
+      setCourses(loadedCourses);
+      // Batch-load all layouts for this track's courses
+      const courseIds = loadedCourses.map(c => c.id);
+      const layouts = await db.getLayoutsForCourses(courseIds);
+      setTrackLayouts(layouts);
+    }
     catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
     setLoading(false);
   }, [selectedTrackId, db]);
 
   useEffect(() => { loadTracks(); }, [loadTracks]);
   useEffect(() => { loadCourses(); }, [loadCourses]);
+
+  // Build a set of course IDs that have layouts for quick lookup
+  const courseIdsWithLayout = new Set(trackLayouts.map(l => l.course_id));
 
   const setField = (key: keyof CourseFormState, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -132,7 +220,6 @@ export function CoursesTab() {
     try {
       const data = formToCourseData(form);
       const course = await db.createCourse({ track_id: selectedTrackId, enabled: true, superseded_by: null, ...data });
-      // Save layout if drawn
       if (layoutPoints.length > 0) {
         await db.saveLayout(course.id, layoutPoints);
       }
@@ -145,7 +232,6 @@ export function CoursesTab() {
     if (!editingId || !form.name.trim()) return;
     try {
       await db.updateCourse(editingId, formToCourseData(form));
-      // Save or delete layout
       if (layoutPoints.length > 0) {
         await db.saveLayout(editingId, layoutPoints);
       } else if (hasExistingLayout) {
@@ -289,20 +375,6 @@ export function CoursesTab() {
         <Button size="sm" variant="outline" onClick={cancel}>
           <X className="w-4 h-4" />
         </Button>
-        {editingId && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" disabled className="gap-1.5 opacity-50">
-                  <Cpu className="w-4 h-4" /> Generate Course Mapping
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Coming soon — will generate fingerprint data for automatic track detection</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
       </div>
     </div>
   );
@@ -333,20 +405,59 @@ export function CoursesTab() {
         <p className="text-muted-foreground">No courses for this track.</p>
       ) : (
         <div className="space-y-2">
-          {courses.map(course => (
-            <div key={course.id} className="racing-card p-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Switch checked={course.enabled ?? true} onCheckedChange={val => handleToggle(course.id, val)} />
-                <span className="font-medium text-foreground">{course.name}</span>
-                {course.superseded_by && <span className="text-xs text-muted-foreground">(superseded)</span>}
+          {courses.map((course, index) => {
+            const color = COURSE_COLORS[index % COURSE_COLORS.length];
+            const hasLayout = courseIdsWithLayout.has(course.id);
+            return (
+              <div key={course.id} className="racing-card p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Switch checked={course.enabled ?? true} onCheckedChange={val => handleToggle(course.id, val)} />
+                  {hasLayout && (
+                    <span
+                      className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: color }}
+                      title="Has layout drawing"
+                    />
+                  )}
+                  <span className="font-medium text-foreground">{course.name}</span>
+                  {course.superseded_by && <span className="text-xs text-muted-foreground">(superseded)</span>}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(course)}>
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(course)}>
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Layouts Overview Map */}
+      {selectedTrackId && courses.length > 0 && (
+        <div className="racing-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-semibold">Course Layouts</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="outline" disabled className="gap-1.5 opacity-50">
+                    <Cpu className="w-4 h-4" /> Generate Course Mapping
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Coming soon — will generate fingerprint data for automatic track detection</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          {trackLayouts.length > 0 ? (
+            <LayoutsOverviewMap courses={courses} layouts={trackLayouts} />
+          ) : (
+            <div className="h-32 flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
+              No layouts drawn yet. Edit a course and use the Draw tool to trace the track outline.
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
