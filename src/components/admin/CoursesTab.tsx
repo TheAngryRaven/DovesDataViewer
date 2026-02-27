@@ -272,8 +272,8 @@ export function CoursesTab() {
 
       {/* Layout info */}
       {layoutPoints.length > 0 && (
-        <div className="flex items-center justify-between p-2 bg-cyan-500/10 border border-cyan-500/30 rounded text-sm">
-          <span className="text-cyan-400">{layoutPoints.length} layout points drawn</span>
+        <div className="flex items-center justify-between p-2 bg-orange-500/10 border border-orange-500/30 rounded text-sm">
+          <span className="text-orange-400">{layoutPoints.length} layout points drawn</span>
           {hasExistingLayout && (
             <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={handleDeleteLayout}>
               <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete Layout
