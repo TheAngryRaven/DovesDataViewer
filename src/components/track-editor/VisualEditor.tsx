@@ -450,7 +450,7 @@ export function VisualEditor({
     } else if (points.length > 0) {
       drawPolylineRef.current = L.polyline(
         points.map(p => [p.lat, p.lon] as [number, number]),
-        { color: '#06b6d4', weight: 3, opacity: 0.9 }
+        { color: '#ff6600', weight: 7, opacity: 0.9 }
       ).addTo(map);
     }
   }, []);
@@ -511,11 +511,11 @@ export function VisualEditor({
       if (!drawPolylineRef.current) {
         drawPolylineRef.current = L.polyline(
           drawPoints.map(p => [p.lat, p.lon] as [number, number]),
-          { color: '#06b6d4', weight: 3, opacity: 0.6, dashArray: '8 4' }
+          { color: '#ff6600', weight: 7, opacity: 0.8, dashArray: '10 6' }
         ).addTo(map);
       } else {
         drawPolylineRef.current.setLatLngs(drawPoints.map(p => [p.lat, p.lon] as [number, number]));
-        drawPolylineRef.current.setStyle({ opacity: 0.6, dashArray: '8 4' });
+        drawPolylineRef.current.setStyle({ opacity: 0.8, dashArray: '10 6' });
       }
     } else if (drawPolylineRef.current) {
       drawPolylineRef.current.remove();
@@ -531,7 +531,7 @@ export function VisualEditor({
       clearDrawMode();
       // Make the polyline dashed/static
       if (drawPolylineRef.current) {
-        drawPolylineRef.current.setStyle({ opacity: 0.6, dashArray: '8 4' });
+        drawPolylineRef.current.setStyle({ opacity: 0.8, dashArray: '10 6' });
       }
     }
 
@@ -639,7 +639,12 @@ export function VisualEditor({
 
     return () => {
       clearEditingLayers();
+      clearDrawMode();
       staticLinesRef.current.forEach(l => l.remove());
+      if (drawPolylineRef.current) {
+        drawPolylineRef.current.remove();
+        drawPolylineRef.current = null;
+      }
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
