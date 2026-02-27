@@ -466,7 +466,7 @@ function ForceUpdateSection() {
             Force update &amp; clear cache
           </Label>
           <p className="text-xs text-muted-foreground/70 mt-0.5">
-            Clears all cached data and reloads the latest version
+            Clears cached app files and reloads the latest version. Your saved sessions and data in the Garage are not affected.
           </p>
         </div>
         <Button
