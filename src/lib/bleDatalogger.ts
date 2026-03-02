@@ -77,8 +77,7 @@ export async function connectToDevice(
   updateStatus('Scanning for devices...');
 
   const device = await navigator.bluetooth.requestDevice({
-    filters: [{ namePrefix: 'DovesDataLogger' }],
-    optionalServices: [SERVICE_UUID],
+    filters: [{ services: [SERVICE_UUID] }],
   });
 
   updateStatus('Connecting...');
