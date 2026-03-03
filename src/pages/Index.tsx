@@ -246,7 +246,8 @@ export default function Index() {
     brakingZoneSettings,
     enableLabs: settings.enableLabs,
     darkMode: settings.darkMode,
-  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs, settings.darkMode]);
+    gForceSource: settings.gForceSource,
+  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs, settings.darkMode, settings.gForceSource]);
 
   // Memoize sliced data arrays to avoid recreating on every render
   const slicedPaceData = useMemo(

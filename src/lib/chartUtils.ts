@@ -2,8 +2,14 @@
  * Shared chart utilities used by TelemetryChart and SingleSeriesChart.
  */
 
-/** Field names that should have optional smoothing applied in charts. */
-export const G_FORCE_FIELDS = ['Lat G', 'Lon G'];
+/** Field names that should have optional smoothing applied in charts (GPS-derived). */
+export const G_FORCE_FIELDS_GPS = ['Lat G', 'Lon G'];
+
+/** Field names for hardware accelerometer G-force fields. */
+export const G_FORCE_FIELDS_HW = ['Accel X', 'Accel Y'];
+
+/** All G-force field names (for smoothing detection). */
+export const G_FORCE_FIELDS = [...G_FORCE_FIELDS_GPS, ...G_FORCE_FIELDS_HW];
 
 /**
  * Map a smoothing strength (0-100) to a window size for moving average.

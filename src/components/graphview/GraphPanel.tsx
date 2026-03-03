@@ -127,6 +127,17 @@ export function GraphPanel({
     return result;
   }, [filteredSamples, referenceSamples, fieldMappings, useKph, hasReference, brakingGRefFull]);
 
+  // Check if both GPS and HW G-force data are available
+  const hasHwAccel = useMemo(() => {
+    return filteredSamples.some(s => s.extraFields['Accel X'] !== undefined);
+  }, [filteredSamples]);
+
+  const hasGpsG = useMemo(() => {
+    return filteredSamples.some(s => s.extraFields['Lat G'] !== undefined);
+  }, [filteredSamples]);
+
+  const hasBothSources = hasHwAccel && hasGpsG;
+
   // Available data sources
   const availableSources = useMemo(() => {
     const sources: { key: string; label: string }[] = [
@@ -135,12 +146,21 @@ export function GraphPanel({
     if (hasReference) {
       sources.push({ key: '__pace__', label: 'Pace (Δs)' });
     }
-    sources.push({ key: '__braking_g__', label: 'Braking G' });
+    sources.push({ key: '__braking_g__', label: hasBothSources ? 'Braking G (GPS)' : 'Braking G' });
     fieldMappings.forEach(f => {
-      sources.push({ key: f.name, label: f.name + (f.unit ? ` (${f.unit})` : '') });
+      let label = f.name + (f.unit ? ` (${f.unit})` : '');
+      // Add source indicator when both GPS and HW G-force data exist
+      if (hasBothSources) {
+        if (f.name === 'Lat G') label = 'Lat G (GPS)';
+        else if (f.name === 'Lon G') label = 'Lon G (GPS)';
+        else if (f.name === 'Accel X') label = 'Accel X (HW)';
+        else if (f.name === 'Accel Y') label = 'Accel Y (HW)';
+        else if (f.name === 'Accel Z') label = 'Accel Z (HW)';
+      }
+      sources.push({ key: f.name, label });
     });
     return sources;
-  }, [fieldMappings, useKph, hasReference]);
+  }, [fieldMappings, useKph, hasReference, hasBothSources]);
 
   const unusedSources = useMemo(() => {
     return availableSources.filter(s => !activeGraphs.includes(s.key));
