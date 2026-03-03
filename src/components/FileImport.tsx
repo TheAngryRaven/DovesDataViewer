@@ -71,7 +71,7 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
       <div className="flex flex-col items-center gap-2 text-muted-foreground">
         {isLoading ? <Loader2 className="w-12 h-12 animate-spin text-primary" /> : <Upload className="w-12 h-12" />}
         <p className="text-lg font-medium">{isLoading ? "Processing..." : "Drop datalog file here"}</p>
-        <p className="text-sm">Supports .nmea, .ubx, .vbo, .dove, .ld, Alfano CSV, AiM CSV or MoTeC CSV/LD.</p>
+        <p className="text-sm">Supports .nmea, .ubx, .vbo, .dove (w/ accelerometer), .ld, Alfano CSV, AiM CSV or MoTeC CSV/LD.</p>
         <p className="text-sm text-primary/80">
           <i>Alfano, AiM, MoTeC, RaceBox, Dove support experimental</i>
         </p>
