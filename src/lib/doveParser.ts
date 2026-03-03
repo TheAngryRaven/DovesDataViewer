@@ -8,12 +8,20 @@ import { haversineDistance, calculateBearing, isTeleportation, MAX_SPEED_MPS } f
  * Simple CSV format with header row followed by data rows.
  * Uses Unix timestamps and speed in MPH.
  *
- * Required columns: timestamp, sats, hdop, lat, lng, speed_mph, altitude_m
- * Optional columns: rpm, exhaust_temp_c, water_temp_c, and any others
+ * Required columns: timestamp, sats, hdop, lat, lng, speed_mph
+ * Optional columns: altitude_m, heading_deg, h_acc_m, rpm, accel_x, accel_y, accel_z,
+ *                   exhaust_temp_c, water_temp_c, and any others
  */
 
 // Core required headers for Dove format
 const DOVE_REQUIRED_HEADERS = ['timestamp', 'lat', 'lng', 'speed_mph'];
+
+// All known Dove columns (excluded from dynamic field detection)
+const DOVE_KNOWN_COLUMNS = new Set([
+  'timestamp', 'sats', 'hdop', 'lat', 'lng', 'speed_mph', 'altitude_m',
+  'heading_deg', 'h_acc_m', 'rpm', 'exhaust_temp_c', 'water_temp_c',
+  'accel_x', 'accel_y', 'accel_z',
+]);
 
 // Check if content is Dove CSV format
 export function isDoveFormat(content: string): boolean {
@@ -33,18 +41,14 @@ export function isDoveFormat(content: string): boolean {
   const firstField = secondLine.split(',')[0];
   const timestamp = parseInt(firstField, 10);
   
-  // Unix timestamps in milliseconds from 2020-2030 range: ~1577836800000 to ~1893456000000
+  // Unix timestamps in milliseconds from 2020-2030 range
   if (isNaN(timestamp) || timestamp < 1500000000000 || timestamp > 2000000000000) {
     return false;
   }
   
   // Make sure it's not another format
-  if (firstLine.includes('[header]') || firstLine.includes('[data]')) {
-    return false; // VBO format
-  }
-  if (firstLine.includes('gps_latitude') || firstLine.includes('gps_longitude')) {
-    return false; // Alfano format
-  }
+  if (firstLine.includes('[header]') || firstLine.includes('[data]')) return false;
+  if (firstLine.includes('gps_latitude') || firstLine.includes('gps_longitude')) return false;
   
   return true;
 }
@@ -79,6 +83,8 @@ export function parseDoveFile(content: string): ParsedData {
     }
   }
   
+  const hasHeadingColumn = columnIndex['heading_deg'] !== undefined;
+  
   // Parse data rows
   const samples: GpsSample[] = [];
   let baseTimestamp: number | null = null;
@@ -99,23 +105,21 @@ export function parseDoveFile(content: string): ParsedData {
     
     // Validate required fields
     if (isNaN(timestamp) || isNaN(lat) || isNaN(lng) || isNaN(speedMph)) continue;
-    if (lat === 0 && lng === 0) continue; // GPS error
+    if (lat === 0 && lng === 0) continue;
     if (Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
     
     // Set base timestamp and start date from first valid sample
     if (baseTimestamp === null) {
       baseTimestamp = timestamp;
-      startDate = new Date(timestamp); // timestamp is already in milliseconds
+      startDate = new Date(timestamp);
     }
     
-    // Convert to relative time in ms (timestamp is already in milliseconds)
     const t = timestamp - baseTimestamp;
     
     // Convert speed
     const speedMps = speedMph * 0.44704;
     const speedKph = speedMph * 1.60934;
     
-    // Speed sanity check
     if (speedMps > MAX_SPEED_MPS) continue;
 
     // Teleportation filter
@@ -127,7 +131,6 @@ export function parseDoveFile(content: string): ParsedData {
     // Build extra fields
     const extraFields: Record<string, number> = {};
     
-    // Optional standard columns
     if (columnIndex['sats'] !== undefined) {
       const sats = parseInt(fields[columnIndex['sats']], 10);
       if (!isNaN(sats)) extraFields['Satellites'] = sats;
@@ -141,6 +144,11 @@ export function parseDoveFile(content: string): ParsedData {
     if (columnIndex['altitude_m'] !== undefined) {
       const alt = parseFloat(fields[columnIndex['altitude_m']]);
       if (!isNaN(alt)) extraFields['Altitude'] = alt;
+    }
+    
+    if (columnIndex['h_acc_m'] !== undefined) {
+      const hAcc = parseFloat(fields[columnIndex['h_acc_m']]);
+      if (!isNaN(hAcc)) extraFields['H Accuracy'] = hAcc;
     }
     
     if (columnIndex['rpm'] !== undefined) {
@@ -158,10 +166,24 @@ export function parseDoveFile(content: string): ParsedData {
       if (!isNaN(temp)) extraFields['Water Temp'] = temp;
     }
     
+    if (columnIndex['accel_x'] !== undefined) {
+      const ax = parseFloat(fields[columnIndex['accel_x']]);
+      if (!isNaN(ax)) extraFields['Accel X'] = ax;
+    }
+    
+    if (columnIndex['accel_y'] !== undefined) {
+      const ay = parseFloat(fields[columnIndex['accel_y']]);
+      if (!isNaN(ay)) extraFields['Accel Y'] = ay;
+    }
+    
+    if (columnIndex['accel_z'] !== undefined) {
+      const az = parseFloat(fields[columnIndex['accel_z']]);
+      if (!isNaN(az)) extraFields['Accel Z'] = az;
+    }
+    
     // Handle any additional columns dynamically
     for (const header of headers) {
-      if (columnIndex[header] !== undefined && 
-          !['timestamp', 'sats', 'hdop', 'lat', 'lng', 'speed_mph', 'altitude_m', 'rpm', 'exhaust_temp_c', 'water_temp_c'].includes(header)) {
+      if (!DOVE_KNOWN_COLUMNS.has(header)) {
         const value = parseFloat(fields[columnIndex[header]]);
         if (!isNaN(value)) {
           extraFields[toDisplayName(header)] = value;
@@ -169,13 +191,17 @@ export function parseDoveFile(content: string): ParsedData {
       }
     }
     
+    // Parse heading from CSV if available
+    let heading: number | undefined;
+    if (hasHeadingColumn) {
+      const h = parseFloat(fields[columnIndex['heading_deg']]);
+      if (!isNaN(h) && h >= 0 && h <= 360) heading = h;
+    }
+    
     samples.push({
-      t,
-      lat,
-      lon: lng,
-      speedMps,
-      speedMph,
-      speedKph,
+      t, lat, lon: lng,
+      speedMps, speedMph, speedKph,
+      heading,
       extraFields
     });
   }
@@ -184,32 +210,48 @@ export function parseDoveFile(content: string): ParsedData {
     throw new Error('No valid GPS data found in Dove file');
   }
   
-  // Calculate heading from GPS track
-  for (let i = 0; i < samples.length; i++) {
-    if (i < samples.length - 1) {
-      const curr = samples[i];
-      const next = samples[i + 1];
-      curr.heading = calculateBearing(curr.lat, curr.lon, next.lat, next.lon);
-    } else if (i > 0) {
-      // Last sample uses previous heading
-      samples[i].heading = samples[i - 1].heading;
+  // Calculate heading from GPS track only if not provided in CSV
+  if (!hasHeadingColumn) {
+    for (let i = 0; i < samples.length; i++) {
+      if (i < samples.length - 1) {
+        const curr = samples[i];
+        const next = samples[i + 1];
+        curr.heading = calculateBearing(curr.lat, curr.lon, next.lat, next.lon);
+      } else if (i > 0) {
+        samples[i].heading = samples[i - 1].heading;
+      }
     }
   }
   
-  // Calculate GPS-derived G-forces
-  applyGForceCalculations(samples, 5);
+  // Calculate GPS-derived G-forces only if no hardware accelerometer data
+  const hasHardwareAccel = samples.some(s => s.extraFields['Accel X'] !== undefined);
+  if (!hasHardwareAccel) {
+    applyGForceCalculations(samples, 5);
+  }
   
   // Build field mappings
-  const fieldMappings: FieldMapping[] = [
+  const fieldMappings: FieldMapping[] = [];
+  
+  // Hardware accelerometer fields first if present
+  if (hasHardwareAccel) {
+    fieldMappings.push(
+      { index: -30, name: 'Accel X', unit: 'G', enabled: true },
+      { index: -31, name: 'Accel Y', unit: 'G', enabled: true },
+      { index: -32, name: 'Accel Z', unit: 'G', enabled: true },
+    );
+  }
+  
+  // GPS-derived G-forces (always calculated even with hardware accel)
+  fieldMappings.push(
     { index: -10, name: 'Lat G', enabled: true },
     { index: -11, name: 'Lon G', enabled: true },
-  ];
+  );
   
-  // Add optional fields if present
   const optionalFields = [
     { key: 'Satellites', index: -1 },
     { key: 'HDOP', index: -2 },
     { key: 'Altitude', index: -3 },
+    { key: 'H Accuracy', index: -4 },
     { key: 'RPM', index: -20 },
     { key: 'EGT', index: -23 },
     { key: 'Water Temp', index: -24 },
@@ -222,7 +264,10 @@ export function parseDoveFile(content: string): ParsedData {
   }
   
   // Add any dynamic extra fields
-  const knownFields = new Set(['Lat G', 'Lon G', 'Satellites', 'HDOP', 'Altitude', 'RPM', 'EGT', 'Water Temp']);
+  const knownFields = new Set([
+    'Lat G', 'Lon G', 'Satellites', 'HDOP', 'Altitude', 'H Accuracy',
+    'RPM', 'EGT', 'Water Temp', 'Accel X', 'Accel Y', 'Accel Z',
+  ]);
   let dynamicIndex = -100;
   
   for (const sample of samples) {
