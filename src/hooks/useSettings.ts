@@ -17,6 +17,7 @@ export interface AppSettings {
   autoSaveFiles: boolean;           // Auto-save imported/uploaded files to device (default: true)
   enableLabs: boolean;              // Enable experimental Labs tab (default: false)
   darkMode: boolean;                // Dark mode enabled (default: true)
+  gForceSource: 'gps' | 'hw';      // Which G-force source to show in simple mode (default: 'hw')
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -37,6 +38,7 @@ const defaultSettings: AppSettings = {
   autoSaveFiles: true,
   enableLabs: false,
   darkMode: true,
+  gForceSource: 'hw',
 };
 
 export function useSettings() {

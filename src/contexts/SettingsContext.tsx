@@ -17,6 +17,7 @@ export interface SettingsContextValue {
   brakingZoneSettings: BrakingZoneSettings;
   enableLabs: boolean;
   darkMode: boolean;
+  gForceSource: 'gps' | 'hw';
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);

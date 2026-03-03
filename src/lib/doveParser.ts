@@ -223,11 +223,9 @@ export function parseDoveFile(content: string): ParsedData {
     }
   }
   
-  // Calculate GPS-derived G-forces only if no hardware accelerometer data
+  // Always calculate GPS-derived G-forces (even when HW accel is present)
   const hasHardwareAccel = samples.some(s => s.extraFields['Accel X'] !== undefined);
-  if (!hasHardwareAccel) {
-    applyGForceCalculations(samples, 5);
-  }
+  applyGForceCalculations(samples, 5);
   
   // Build field mappings
   const fieldMappings: FieldMapping[] = [];

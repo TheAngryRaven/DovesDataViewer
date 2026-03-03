@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { GpsSample, FieldMapping } from '@/types/racing';
-import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
+import { G_FORCE_FIELDS, G_FORCE_FIELDS_GPS, G_FORCE_FIELDS_HW, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
 
@@ -39,7 +39,7 @@ export function TelemetryChart({
   referenceSpeedData = [],
   hasReference = false,
 }: TelemetryChartProps) {
-  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode } = useSettingsContext();
+  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, gForceSource } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -84,7 +84,9 @@ export function TelemetryChart({
   }, []);
 
   // Get enabled fields
-  const enabledFields = fieldMappings.filter(f => f.enabled);
+  // Filter out G-force fields based on source preference
+  const hiddenGForceFields = gForceSource === 'hw' ? G_FORCE_FIELDS_GPS : G_FORCE_FIELDS_HW;
+  const enabledFields = fieldMappings.filter(f => f.enabled && !hiddenGForceFields.includes(f.name));
 
   // Draw chart
   useEffect(() => {

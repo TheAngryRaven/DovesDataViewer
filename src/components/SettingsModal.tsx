@@ -157,6 +157,37 @@ export function SettingsModal({
             )}
           </div>
 
+          {/* G-Force Source for Simple Mode */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">G-Force Source</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <div>
+                <Label htmlFor="settings-gforce-source" className="text-sm text-muted-foreground">
+                  G-force data source for simple chart
+                </Label>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  GPS = derived from speed/heading, HW = hardware accelerometer
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${settings.gForceSource === 'gps' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  GPS
+                </span>
+                <Switch
+                  id="settings-gforce-source"
+                  checked={settings.gForceSource === 'hw'}
+                  onCheckedChange={(checked) => onSettingsChange({ gForceSource: checked ? 'hw' : 'gps' })}
+                />
+                <span className={`text-xs ${settings.gForceSource === 'hw' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  HW
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Braking Zone Detection */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
