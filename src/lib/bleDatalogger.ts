@@ -395,15 +395,15 @@ export async function requestSettingsList(
 
     const cleanup = () => {
       if (timeout) clearTimeout(timeout);
-      connection.characteristics.fileList.removeEventListener(
+      connection.characteristics.fileStatus.removeEventListener(
         'characteristicvaluechanged',
         handleNotification
       );
     };
 
     try {
-      await connection.characteristics.fileList.startNotifications();
-      connection.characteristics.fileList.addEventListener(
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
         'characteristicvaluechanged',
         handleNotification
       );
@@ -457,15 +457,15 @@ export async function getDeviceSetting(
 
     const cleanup = () => {
       if (timeout) clearTimeout(timeout);
-      connection.characteristics.fileList.removeEventListener(
+      connection.characteristics.fileStatus.removeEventListener(
         'characteristicvaluechanged',
         handleNotification
       );
     };
 
     try {
-      await connection.characteristics.fileList.startNotifications();
-      connection.characteristics.fileList.addEventListener(
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
         'characteristicvaluechanged',
         handleNotification
       );
@@ -515,15 +515,15 @@ export async function setDeviceSetting(
 
     const cleanup = () => {
       if (timeout) clearTimeout(timeout);
-      connection.characteristics.fileList.removeEventListener(
+      connection.characteristics.fileStatus.removeEventListener(
         'characteristicvaluechanged',
         handleNotification
       );
     };
 
     try {
-      await connection.characteristics.fileList.startNotifications();
-      connection.characteristics.fileList.addEventListener(
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
         'characteristicvaluechanged',
         handleNotification
       );
