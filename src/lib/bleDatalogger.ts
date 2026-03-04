@@ -349,3 +349,178 @@ export function disconnect(connection: BleConnection): void {
     connection.device.gatt.disconnect();
   }
 }
+
+// ─── Device Settings Protocol ─────────────────────────────────────────────────
+// Uses the fileList characteristic (0x2A3D) for notifications and
+// fileRequest characteristic (0x2A3E) for sending commands.
+
+/** Request all settings from device via SLIST command. Returns key→value map. */
+export async function requestSettingsList(
+  connection: BleConnection
+): Promise<Record<string, string>> {
+  return new Promise(async (resolve, reject) => {
+    const settings: Record<string, string> = {};
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const text = new TextDecoder().decode(target.value!).trim();
+
+      if (text === 'SEND') {
+        cleanup();
+        resolve(settings);
+        return;
+      }
+
+      if (text.startsWith('SVAL:')) {
+        const payload = text.substring(5);
+        const eqIdx = payload.indexOf('=');
+        if (eqIdx > 0) {
+          settings[payload.substring(0, eqIdx)] = payload.substring(eqIdx + 1);
+        }
+      }
+
+      // Reset safety timeout on each message
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        cleanup();
+        resolve(settings); // return whatever we got
+      }, 3000);
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileList.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileList.startNotifications();
+      connection.characteristics.fileList.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('SLIST'));
+
+      // Hard timeout after 10s
+      setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for settings list'));
+      }, 10000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
+/** Get a single setting from device via SGET:key. */
+export async function getDeviceSetting(
+  connection: BleConnection,
+  key: string
+): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const text = new TextDecoder().decode(target.value!).trim();
+
+      if (text.startsWith('SVAL:')) {
+        const payload = text.substring(5);
+        const eqIdx = payload.indexOf('=');
+        if (eqIdx > 0 && payload.substring(0, eqIdx) === key) {
+          cleanup();
+          resolve(payload.substring(eqIdx + 1));
+        }
+      } else if (text.startsWith('SERR:')) {
+        cleanup();
+        reject(new Error(text.substring(5)));
+      }
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileList.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileList.startNotifications();
+      connection.characteristics.fileList.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('SGET:' + key));
+
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for setting value'));
+      }, 5000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
+/** Set a device setting via SSET:key=value. Resolves on SOK, rejects on SERR. */
+export async function setDeviceSetting(
+  connection: BleConnection,
+  key: string,
+  value: string
+): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const text = new TextDecoder().decode(target.value!).trim();
+
+      if (text === 'SOK:' + key || text === 'SOK: ' + key) {
+        cleanup();
+        resolve();
+      } else if (text.startsWith('SERR:')) {
+        cleanup();
+        reject(new Error(text.substring(5)));
+      }
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileList.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileList.startNotifications();
+      connection.characteristics.fileList.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(
+        encoder.encode('SSET:' + key + '=' + value)
+      );
+
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for save confirmation'));
+      }, 5000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
