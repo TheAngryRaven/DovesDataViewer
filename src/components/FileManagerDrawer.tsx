@@ -317,7 +317,7 @@ export function FileManagerDrawer({
                 {deviceTab === "settings" && (
                   <DeviceSettingsTab connection={device.connection} />
                 )}
-                {deviceTab === "tracks" && <DeviceTracksTab />}
+                {deviceTab === "tracks" && <DeviceTracksTab connection={device.connection!} />}
               </>
             )}
           </>
