@@ -1,47 +1,97 @@
 
-# Resample Layouts Button
+
+# Device Manager: BLE Settings System
 
 ## Overview
-Add a "Resample" button to the left of the "Generate Course Mapping" button in the Layouts Overview section. When clicked, it resamples ALL displayed polylines to evenly spaced points (~5 meters apart), updating the overview map visually but NOT saving to the database. This normalizes point density from hand-drawn input and produces smoother, prettier lines.
+Transform the slide-out drawer from a single "Garage" panel into a two-tab top-level panel: **Garage** (everything as-is) and **Device** (new). The Device tab has two sub-tabs: **Settings** and **Tracks** (WIP placeholder). A shared BLE connection context gates device features behind a "Connect to Logger" prompt.
+
+## Architecture
+
+```text
+FileManagerDrawer (renamed conceptually)
+├── Top tabs: [Garage] [Device]
+│
+├── Garage tab → existing Files/Karts/Setups/Notes (unchanged)
+│
+└── Device tab
+    ├── [not connected] → "Connect to Logger" overlay
+    └── [connected]
+        ├── Sub-tabs: [Settings] [Tracks]
+        ├── Settings → list of key/value pairs from SLIST, editable
+        └── Tracks → "Work in Progress" placeholder
+```
 
 ## What Changes
 
-### 1. New utility: `resamplePolyline` in `src/lib/trackUtils.ts`
-A pure function that takes an array of `{lat, lon}` points and a target spacing in meters, and returns a new array of evenly spaced points interpolated along the original path.
+### 1. New: `src/contexts/DeviceContext.tsx` — Global BLE connection state
+- Provides `connection: BleConnection | null`, `deviceName: string | null`, `isConnecting: boolean`
+- `connect()` calls `connectToDevice()` from `bleDatalogger.ts`
+- `disconnect()` cleans up
+- Listens to `device.gatt.disconnect` event to auto-clear state
+- Wraps the app (in `Index.tsx`) so both the drawer and header can read connection status
 
-Algorithm:
-- Walk along the polyline segment by segment using haversine distance (already available in `parserUtils.ts`)
-- Accumulate distance; when it exceeds the target spacing, interpolate a new point at that exact distance along the current segment
-- Result: uniform ~5m spacing regardless of original point density
+### 2. New: BLE settings protocol in `src/lib/bleDatalogger.ts`
+Add three new exported functions using the existing `fileRequest` characteristic (which is the general-purpose write characteristic):
+- `requestSettingsList(connection)` → sends `SLIST`, listens for `SVAL:key=value` lines until `SEND`, returns `Record<string, string>`
+- `getDeviceSetting(connection, key)` → sends `SGET:key`, waits for `SVAL:key=value` or `SERR:*`
+- `setDeviceSetting(connection, key, value)` → sends `SSET:key=value`, waits for `SOK:key` or `SERR:*`
 
-### 2. Resample button in CoursesTab Layouts Overview header
-- Add a "Resample" button to the left of the existing "Generate Course Mapping" button
-- Only enabled when there are layouts to resample
-- On click: iterate over all `trackLayouts`, resample each one's `layout_data`, and update the `trackLayouts` state with the resampled data
-- This updates the overview map immediately (polylines redraw) but does NOT call `db.saveLayout()` -- purely visual/in-memory
-- The button could show a small toast or the point counts change visibly on the map
+These reuse the existing characteristic references. The response protocol uses the `fileList` characteristic for notifications (same as file list).
 
-### 3. No database changes
-The resampled data stays in React state only. Navigating away or reloading discards it.
+### 3. New: `src/lib/deviceSettingsSchema.ts` — Settings metadata registry
+A declarative map defining each known setting key, its display label, data type, and validation:
+```typescript
+export interface DeviceSettingDef {
+  key: string;
+  label: string;
+  type: 'string' | 'number';
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  description?: string;
+}
 
-## File Changes
-
-| File | Change |
-|------|--------|
-| `src/lib/trackUtils.ts` | Add `resamplePolyline(points, spacingMeters)` function |
-| `src/components/admin/CoursesTab.tsx` | Add Resample button, wire it to update `trackLayouts` state in-memory |
-
-## Technical Details
-
-The `resamplePolyline` function:
-```text
-Input:  [{lat, lon}, ...] (N points, irregular spacing)
-Output: [{lat, lon}, ...] (M points, ~5m spacing)
-
-1. For each consecutive pair of points, compute haversine distance
-2. Walk along accumulated distance, emitting a new point every 5m
-3. Interpolate lat/lon linearly between segment endpoints at each emission
-4. Always include the first point; last point is the final emission
+export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
+  { key: 'bluetooth_name', label: 'Bluetooth Name', type: 'string', maxLength: 30, description: 'Device broadcast name' },
+  { key: 'bluetooth_pin', label: 'Bluetooth PIN', type: 'number', maxLength: 4, min: 0, max: 9999, description: 'Pairing PIN code' },
+];
 ```
+Unknown keys from the device are displayed as raw string fields (forward-compatible).
 
-Uses `haversineDistance` from `parserUtils.ts` (already exists). Linear interpolation is fine at GPS scales (sub-km segments).
+### 4. New: `src/components/drawer/DeviceSettingsTab.tsx`
+- On mount (when connection exists), calls `requestSettingsList` to populate a `Record<string, string>` state
+- Renders each setting as a row: label, current value in an input, save button per row
+- Validation uses schema: shows inline error if value exceeds maxLength, out of range, etc.
+- Save button calls `setDeviceSetting`, shows success/error toast
+- Loading spinner while fetching, error state if fetch fails
+
+### 5. New: `src/components/drawer/DeviceTracksTab.tsx`
+Simple placeholder: centered text "Track Manager — Work in Progress" with a construction icon.
+
+### 6. Modify: `src/components/FileManagerDrawer.tsx`
+- Add a top-level tab bar above the current tab bar: **Garage** | **Device**
+- When "Garage" is selected, show the existing 4-tab UI unchanged
+- When "Device" is selected:
+  - If no BLE connection → show a full-panel overlay with a "Connect to Logger" button (calls `connect()` from DeviceContext) and a brief message
+  - If connected → show sub-tabs: Settings | Tracks
+  - If user cancels the browser BLE prompt, stay on the overlay
+- The drawer receives device context via `useDeviceContext()`
+
+### 7. Modify: `src/pages/Index.tsx`
+- Wrap relevant tree with `<DeviceProvider>`
+- Optionally show a small BLE status indicator in the header (connected device name or dot)
+
+## File Summary
+
+| File | Action |
+|------|--------|
+| `src/contexts/DeviceContext.tsx` | **New** — global BLE connection state |
+| `src/lib/deviceSettingsSchema.ts` | **New** — settings key definitions + validation |
+| `src/lib/bleDatalogger.ts` | **Modify** — add SLIST/SGET/SSET protocol functions |
+| `src/components/drawer/DeviceSettingsTab.tsx` | **New** — settings list UI |
+| `src/components/drawer/DeviceTracksTab.tsx` | **New** — WIP placeholder |
+| `src/components/FileManagerDrawer.tsx` | **Modify** — add Garage/Device top-level tabs, connection gate |
+| `src/pages/Index.tsx` | **Modify** — wrap with DeviceProvider |
+| `CLAUDE.md` | **Modify** — document new files |
+| `README.md` | **Modify** — note device management feature |
+
