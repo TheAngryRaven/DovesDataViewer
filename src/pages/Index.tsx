@@ -32,6 +32,7 @@ import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { DeviceProvider } from "@/contexts/DeviceContext";
 
 
 type TopPanelView = "raceline" | "laptable" | "graphview" | "labs";
@@ -304,6 +305,7 @@ export default function Index() {
   // No data loaded - show import UI
   if (!data) {
     return (
+      <DeviceProvider>
       <>
         <InstallPrompt />
         <div className="min-h-screen bg-background flex flex-col">
@@ -497,11 +499,13 @@ export default function Index() {
       </div>
       <FileManagerDrawer {...fileManagerProps} />
       </>
+      </DeviceProvider>
     );
   }
 
   // Data loaded - show main view
-  return (
+    return (
+    <DeviceProvider>
     <SettingsProvider value={settingsContextValue}>
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
@@ -659,6 +663,7 @@ export default function Index() {
       />
     </div>
     </SettingsProvider>
+    </DeviceProvider>
   );
 }
 

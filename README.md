@@ -51,6 +51,7 @@ All formats are auto-detected on import:
 | Charts | Custom Canvas 2D renderer |
 | State | React Query |
 | Backend | **None** – zero server dependencies (optional admin backend via Lovable Cloud) |
+| BLE | Web Bluetooth API for DovesDataLogger device communication & settings |
 
 ---
 

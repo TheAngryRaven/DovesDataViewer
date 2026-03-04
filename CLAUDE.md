@@ -49,7 +49,7 @@ src/
 │   ├── admin/             # Admin tabs: TracksTab, CoursesTab, SubmissionsTab, BannedIpsTab, ToolsTab
 │   ├── tabs/              # Main view tabs: GraphViewTab, RaceLineTab, LapTimesTab, LabsTab
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, InfoBox
-│   ├── drawer/            # File manager drawer tabs: FilesTab, KartsTab, NotesTab, SetupsTab
+│   ├── drawer/            # File manager drawer tabs: FilesTab, KartsTab, NotesTab, SetupsTab, DeviceSettingsTab, DeviceTracksTab
 │   ├── track-editor/      # Track editor sub-components
 │   ├── RaceLineView.tsx   # Leaflet map with race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas-based speed/telemetry chart (simple mode)
@@ -98,7 +98,8 @@ src/
 │   ├── setupStorage.ts        # IndexedDB: kart setups
 │   ├── videoStorage.ts        # IndexedDB: video sync points
 │   ├── graphPrefsStorage.ts   # IndexedDB: per-session graph selections
-│   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol
+│   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol (files + settings)
+│   ├── deviceSettingsSchema.ts # Device settings key definitions + validation
 │   ├── weatherService.ts      # OpenWeatherMap API (online-only)
 │   ├── db/                    # Admin database layer (modular, swappable)
 │   │   ├── types.ts           # ITrackDatabase interface
@@ -109,6 +110,8 @@ src/
 │   └── racing.ts              # ★ Core types: GpsSample, ParsedData, Lap, Course, Track, etc.
 ├── contexts/
 │   ├── SettingsContext.tsx     # Settings provider (useKph, gForce, brakingZones, darkMode, labs)
+│   ├── DeviceContext.tsx       # Global BLE connection state provider
+│   └── AuthContext.tsx        # Admin auth context
 │   └── AuthContext.tsx        # Admin auth context
 └── integrations/supabase/     # Auto-generated — DO NOT EDIT
     ├── client.ts
@@ -210,12 +213,34 @@ Connects to **DovesLapTimer** ESP32 device via Web Bluetooth.
 | UUID | Characteristic | Purpose |
 |------|---------------|---------|
 | `0x1820` | Service | Internet Protocol Support (container) |
-| `0x2A3D` | File List | Read: newline-separated `filename,size` pairs |
-| `0x2A3E` | File Request | Write: `GET:filename` to start download |
+| `0x2A3D` | File List | Read: newline-separated `filename,size` pairs; also used for settings notifications |
+| `0x2A3E` | File Request | Write: `GET:filename`, `LIST`, `SLIST`, `SGET:key`, `SSET:key=value` |
 | `0x2A3F` | File Data | Notify: chunked file data (reassembled client-side) |
 | `0x2A40` | File Status | Notify: `SIZE:n`, `DONE`, `ERROR:msg` |
 
-Protocol: LIST → select file → GET:filename → receive SIZE → stream data chunks → DONE.
+### File Protocol
+LIST → select file → GET:filename → receive SIZE → stream data chunks → DONE.
+
+### Settings Protocol
+- `SLIST` → device sends `SVAL:key=value` for each setting, ends with `SEND`
+- `SGET:key` → device responds `SVAL:key=value` or `SERR:NOT_FOUND`
+- `SSET:key=value` → device responds `SOK:key` or `SERR:WRITE_FAIL`
+
+Settings schema is defined in `src/lib/deviceSettingsSchema.ts` — maps keys to labels, types, and validation rules. Unknown keys from the device are displayed as raw string fields (forward-compatible).
+
+---
+
+## Device Manager
+
+The slide-out drawer (`FileManagerDrawer.tsx`) has two top-level tabs:
+- **Garage** — Files, Karts, Setups, Notes (original functionality)
+- **Device** — BLE device management, gated behind a "Connect to Logger" prompt
+
+Device sub-tabs:
+- **Settings** — Read/write device settings via SLIST/SGET/SSET protocol
+- **Tracks** — WIP placeholder for device track management
+
+Global BLE connection state is managed by `DeviceContext.tsx`, wrapping the app tree in `Index.tsx`.
 
 ---
 
