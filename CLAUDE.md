@@ -98,7 +98,8 @@ src/
 │   ├── setupStorage.ts        # IndexedDB: kart setups
 │   ├── videoStorage.ts        # IndexedDB: video sync points
 │   ├── graphPrefsStorage.ts   # IndexedDB: per-session graph selections
-│   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol (files + settings)
+│   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol (files + settings + tracks)
+│   ├── deviceTrackSync.ts     # Track sync logic: merge/compare app↔device tracks, coordinate diff
 │   ├── deviceSettingsSchema.ts # Device settings key definitions + validation
 │   ├── weatherService.ts      # OpenWeatherMap API (online-only)
 │   ├── db/                    # Admin database layer (modular, swappable)
@@ -213,20 +214,35 @@ Connects to **DovesLapTimer** ESP32 device via Web Bluetooth.
 | UUID | Characteristic | Purpose |
 |------|---------------|---------|
 | `0x1820` | Service | Internet Protocol Support (container) |
-| `0x2A3D` | File List | Read: newline-separated `filename,size` pairs; also used for settings notifications |
-| `0x2A3E` | File Request | Write: `GET:filename`, `LIST`, `SLIST`, `SGET:key`, `SSET:key=value` |
+| `0x2A3D` | File List | Read: newline-separated `filename,size` pairs |
+| `0x2A3E` | File Request | Write: `GET:filename`, `LIST`, `SLIST`, `SGET:key`, `SSET:key=value`, `TLIST`, `TGET:name`, `TPUT:name` |
 | `0x2A3F` | File Data | Notify: chunked file data (reassembled client-side) |
-| `0x2A40` | File Status | Notify: `SIZE:n`, `DONE`, `ERROR:msg` |
+| `0x2A40` | File Status | Notify: `SIZE:n`, `DONE`, `ERROR:msg`, settings (`SVAL`, `SEND`, `SOK`, `SERR`), tracks (`TFILE`, `TEND`, `TREADY`, `TOK`, `TERR`) |
 
 ### File Protocol
 LIST → select file → GET:filename → receive SIZE → stream data chunks → DONE.
 
 ### Settings Protocol
-- `SLIST` → device sends `SVAL:key=value` for each setting, ends with `SEND`
-- `SGET:key` → device responds `SVAL:key=value` or `SERR:NOT_FOUND`
-- `SSET:key=value` → device responds `SOK:key` or `SERR:WRITE_FAIL`
+- `SLIST` → device sends `SVAL:key=value` for each setting on fileStatus, ends with `SEND`
+- `SGET:key` → device responds `SVAL:key=value` or `SERR:NOT_FOUND` on fileStatus
+- `SSET:key=value` → device responds `SOK:key` or `SERR:WRITE_FAIL` on fileStatus
+
+### Track File Protocol
+- `TLIST` → device sends `TFILE:name.json` per file on fileStatus, ends with `TEND`
+- `TGET:name.json` → reuses existing SIZE → data chunks (fileData) → DONE (fileStatus) transfer pattern
+- `TPUT:name.json` → device responds `TREADY` on fileStatus → app sends data chunks on fileRequest (64-byte max) → `TDONE` → device responds `TOK` or `TERR:reason`
 
 Settings schema is defined in `src/lib/deviceSettingsSchema.ts` — maps keys to labels, types, and validation rules. Unknown keys from the device are displayed as raw string fields (forward-compatible).
+
+---
+
+## Device Track Sync (`src/lib/deviceTrackSync.ts`)
+
+Pure comparison/conversion logic for merging app tracks with device track files:
+- `buildMergedTrackList()` — matches tracks by shortName, courses by name, classifies as synced/mismatch/device_only/app_only
+- `coursesMatch()` — coordinate comparison with epsilon (0.0000005°)
+- `buildTrackJsonForUpload()` — serializes app Track to device JSON format (flat course array)
+- `deviceCourseToAppCourse()` / `appCourseToDeviceJson()` — format converters
 
 ---
 
@@ -238,7 +254,7 @@ The slide-out drawer (`FileManagerDrawer.tsx`) has two top-level tabs:
 
 Device sub-tabs:
 - **Settings** — Read/write device settings via SLIST/SGET/SSET protocol
-- **Tracks** — WIP placeholder for device track management
+- **Tracks** — Full track sync manager: downloads all device track JSONs, merges with app tracks, shows sync status per track/course, supports upload/download/diff with side-by-side comparison modal
 
 Global BLE connection state is managed by `DeviceContext.tsx`, wrapping the app tree in `Index.tsx`.
 

@@ -543,3 +543,254 @@ export async function setDeviceSetting(
     }
   });
 }
+
+// ─── Track File Protocol ──────────────────────────────────────────────────────
+// TLIST, TGET, TPUT commands for managing track files on the device.
+
+/** Request list of track files on device via TLIST. Returns filenames (e.g. ["OKC.json", "TEST.json"]). */
+export async function requestTrackFileList(
+  connection: BleConnection
+): Promise<string[]> {
+  return new Promise(async (resolve, reject) => {
+    const files: string[] = [];
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const raw = new TextDecoder().decode(target.value!);
+      console.log('[BLE Tracks] TLIST raw:', JSON.stringify(raw));
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+      for (const line of lines) {
+        if (line === 'TEND') {
+          cleanup();
+          resolve(files);
+          return;
+        }
+        if (line.startsWith('TFILE:')) {
+          files.push(line.substring(6));
+        }
+      }
+
+      // Reset safety timeout
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        cleanup();
+        resolve(files);
+      }, 3000);
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileStatus.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('TLIST'));
+
+      setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for track file list'));
+      }, 10000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Download a track file from device via TGET.
+ * Reuses the same SIZE → data chunks → DONE pattern as regular file downloads.
+ */
+export async function downloadTrackFile(
+  connection: BleConnection,
+  filename: string,
+  onProgress?: (progress: DownloadProgress) => void
+): Promise<Uint8Array> {
+  const updateProgress = onProgress || (() => {});
+
+  return new Promise(async (resolve, reject) => {
+    const receivedData: Uint8Array[] = [];
+    let expectedFileSize = 0;
+    let transferStartTime = Date.now();
+
+    const handleFileData = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const chunk = new Uint8Array(target.value!.buffer);
+      receivedData.push(chunk);
+
+      const totalReceived = receivedData.reduce((sum, arr) => sum + arr.length, 0);
+      const percent = expectedFileSize > 0 ? (totalReceived / expectedFileSize) * 100 : 0;
+      const elapsedSeconds = (Date.now() - transferStartTime) / 1000;
+      const overallSpeed = elapsedSeconds > 0 ? totalReceived / elapsedSeconds : 0;
+      const remainingBytes = expectedFileSize - totalReceived;
+      const etaSeconds = overallSpeed > 0 ? remainingBytes / overallSpeed : 0;
+
+      updateProgress({
+        received: totalReceived,
+        total: expectedFileSize,
+        percent,
+        speed: formatSpeed(overallSpeed),
+        eta: formatTime(etaSeconds),
+      });
+    };
+
+    const handleStatusData = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const raw = new TextDecoder().decode(target.value!);
+      console.log('[BLE Tracks] TGET status:', raw);
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        if (line.startsWith('SIZE:')) {
+          expectedFileSize = parseInt(line.substring(5), 10);
+          transferStartTime = Date.now();
+        } else if (line === 'DONE') {
+          cleanup();
+          const totalSize = receivedData.reduce((sum, arr) => sum + arr.length, 0);
+          const fileData = new Uint8Array(totalSize);
+          let offset = 0;
+          receivedData.forEach((chunk) => {
+            fileData.set(chunk, offset);
+            offset += chunk.length;
+          });
+          resolve(fileData);
+          return;
+        } else if (line.startsWith('TERR:') || line === 'ERROR') {
+          cleanup();
+          reject(new Error(line.startsWith('TERR:') ? line.substring(5) : 'Error downloading track file'));
+          return;
+        }
+      }
+    };
+
+    const cleanup = () => {
+      connection.characteristics.fileData.removeEventListener('characteristicvaluechanged', handleFileData);
+      connection.characteristics.fileStatus.removeEventListener('characteristicvaluechanged', handleStatusData);
+    };
+
+    try {
+      await connection.characteristics.fileData.startNotifications();
+      connection.characteristics.fileData.addEventListener('characteristicvaluechanged', handleFileData);
+
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener('characteristicvaluechanged', handleStatusData);
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('TGET:' + filename));
+
+      setTimeout(() => {
+        cleanup();
+        reject(new Error('Track file download timeout'));
+      }, 60000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Upload a track file to device via TPUT.
+ * Flow: TPUT:name → wait TREADY → send chunks → TDONE → wait TOK
+ */
+export async function uploadTrackFile(
+  connection: BleConnection,
+  filename: string,
+  data: Uint8Array
+): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    let phase: 'waiting_ready' | 'uploading' | 'waiting_ok' = 'waiting_ready';
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const raw = new TextDecoder().decode(target.value!);
+      console.log('[BLE Tracks] TPUT status:', raw, 'phase:', phase);
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        if (line === 'TREADY' && phase === 'waiting_ready') {
+          phase = 'uploading';
+          // Send data chunks
+          sendChunks().catch(err => {
+            cleanup();
+            reject(err);
+          });
+          return;
+        } else if (line === 'TOK' && phase === 'waiting_ok') {
+          cleanup();
+          resolve();
+          return;
+        } else if (line.startsWith('TERR:')) {
+          cleanup();
+          reject(new Error(line.substring(5)));
+          return;
+        }
+      }
+    };
+
+    const sendChunks = async () => {
+      const CHUNK_SIZE = 64;
+      const encoder = new TextEncoder();
+
+      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+        const chunk = data.slice(i, Math.min(i + CHUNK_SIZE, data.length));
+        await connection.characteristics.fileRequest.writeValue(chunk);
+        // Small delay between chunks for device stability
+        await new Promise(r => setTimeout(r, 10));
+      }
+
+      // Signal end of upload
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('TDONE'));
+      phase = 'waiting_ok';
+
+      // Reset timeout for TOK response
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for upload confirmation'));
+      }, 10000);
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileStatus.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('TPUT:' + filename));
+
+      // Timeout waiting for TREADY
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for device ready'));
+      }, 10000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
