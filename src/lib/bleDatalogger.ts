@@ -364,19 +364,24 @@ export async function requestSettingsList(
 
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
-      const text = new TextDecoder().decode(target.value!).trim();
+      const raw = new TextDecoder().decode(target.value!);
+      console.log('[BLE Settings] SLIST raw notification:', JSON.stringify(raw));
 
-      if (text === 'SEND') {
-        cleanup();
-        resolve(settings);
-        return;
-      }
+      // Split on newlines — device may send multiple messages in one notification
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
-      if (text.startsWith('SVAL:')) {
-        const payload = text.substring(5);
-        const eqIdx = payload.indexOf('=');
-        if (eqIdx > 0) {
-          settings[payload.substring(0, eqIdx)] = payload.substring(eqIdx + 1);
+      for (const line of lines) {
+        if (line === 'SEND') {
+          cleanup();
+          resolve(settings);
+          return;
+        }
+        if (line.startsWith('SVAL:')) {
+          const payload = line.substring(5);
+          const eqIdx = payload.indexOf('=');
+          if (eqIdx > 0) {
+            settings[payload.substring(0, eqIdx)] = payload.substring(eqIdx + 1);
+          }
         }
       }
 
@@ -384,7 +389,7 @@ export async function requestSettingsList(
       if (timeout) clearTimeout(timeout);
       timeout = setTimeout(() => {
         cleanup();
-        resolve(settings); // return whatever we got
+        resolve(settings);
       }, 3000);
     };
 
@@ -428,18 +433,25 @@ export async function getDeviceSetting(
 
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
-      const text = new TextDecoder().decode(target.value!).trim();
+      const raw = new TextDecoder().decode(target.value!);
+      console.log('[BLE Settings] SGET raw notification:', JSON.stringify(raw));
 
-      if (text.startsWith('SVAL:')) {
-        const payload = text.substring(5);
-        const eqIdx = payload.indexOf('=');
-        if (eqIdx > 0 && payload.substring(0, eqIdx) === key) {
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+      for (const line of lines) {
+        if (line.startsWith('SVAL:')) {
+          const payload = line.substring(5);
+          const eqIdx = payload.indexOf('=');
+          if (eqIdx > 0 && payload.substring(0, eqIdx) === key) {
+            cleanup();
+            resolve(payload.substring(eqIdx + 1));
+            return;
+          }
+        } else if (line.startsWith('SERR:')) {
           cleanup();
-          resolve(payload.substring(eqIdx + 1));
+          reject(new Error(line.substring(5)));
+          return;
         }
-      } else if (text.startsWith('SERR:')) {
-        cleanup();
-        reject(new Error(text.substring(5)));
       }
     };
 
@@ -483,14 +495,21 @@ export async function setDeviceSetting(
 
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
-      const text = new TextDecoder().decode(target.value!).trim();
+      const raw = new TextDecoder().decode(target.value!);
+      console.log('[BLE Settings] SSET raw notification:', JSON.stringify(raw));
 
-      if (text === 'SOK:' + key || text === 'SOK: ' + key) {
-        cleanup();
-        resolve();
-      } else if (text.startsWith('SERR:')) {
-        cleanup();
-        reject(new Error(text.substring(5)));
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+      for (const line of lines) {
+        if (line === 'SOK:' + key || line === 'SOK: ' + key) {
+          cleanup();
+          resolve();
+          return;
+        } else if (line.startsWith('SERR:')) {
+          cleanup();
+          reject(new Error(line.substring(5)));
+          return;
+        }
       }
     };
 
