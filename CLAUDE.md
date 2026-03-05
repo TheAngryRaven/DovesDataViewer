@@ -46,7 +46,7 @@ src/
 │   └── NotFound.tsx
 ├── components/
 │   ├── ui/                # shadcn/ui primitives (button, dialog, tabs, etc.)
-│   ├── admin/             # Admin tabs: TracksTab, CoursesTab, SubmissionsTab, BannedIpsTab, ToolsTab
+│   ├── admin/             # Admin tabs: TracksTab, CoursesTab, SubmissionsTab, BannedIpsTab, ToolsTab, MessagesTab
 │   ├── tabs/              # Main view tabs: GraphViewTab, RaceLineTab, LapTimesTab, LabsTab
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, InfoBox
 │   ├── drawer/            # File manager drawer tabs: FilesTab, KartsTab, NotesTab, SetupsTab, DeviceSettingsTab, DeviceTracksTab
@@ -56,6 +56,7 @@ src/
 │   ├── VideoPlayer.tsx    # Synced video playback overlay
 │   ├── FileImport.tsx     # Drag-and-drop file import
 │   ├── DataloggerDownload.tsx  # BLE device download UI
+│   ├── ContactDialog.tsx  # Public contact form dialog (categories shared const)
 │   └── ...
 ├── hooks/
 │   ├── useSessionData.ts      # Parses imported file → ParsedData

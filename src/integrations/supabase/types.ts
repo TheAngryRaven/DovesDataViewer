@@ -169,6 +169,36 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          category: string
+          created_at: string
+          email: string | null
+          id: string
+          is_read: boolean
+          message: string
+          submitted_by_ip: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          submitted_by_ip?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          submitted_by_ip?: string | null
+        }
+        Relationships: []
+      }
       submissions: {
         Row: {
           course_data: Json

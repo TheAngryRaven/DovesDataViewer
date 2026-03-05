@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, Shield, Download, Info } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ContactDialog } from "@/components/ContactDialog";
 import { FileImport } from "@/components/FileImport";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
@@ -490,10 +491,13 @@ export default function Index() {
               </a>
             </div>
 
-            <Link to="/privacy" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mt-3">
-              <Shield className="w-3 h-3" />
-              Privacy Policy
-            </Link>
+            <div className="flex items-center gap-3 mt-3">
+              <Link to="/privacy" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+                <Shield className="w-3 h-3" />
+                Privacy Policy
+              </Link>
+              <ContactDialog />
+            </div>
           </div>
         </main>
       </div>
