@@ -3,6 +3,10 @@
 // BLE Datalogger Communication Service
 // Connects to DovesLapTimer device and downloads files via Bluetooth
 
+// Debug logging — gate verbose BLE logs behind this flag
+const BLE_DEBUG = false;
+const bleLog = (...args: unknown[]) => { if (BLE_DEBUG) console.log('[BLE]', ...args); };
+
 // BLE UUIDs
 const SERVICE_UUID = 0x1820;
 const FILE_LIST_CHAR = 0x2A3D;
@@ -72,7 +76,7 @@ export function formatTime(seconds: number): string {
 export async function connectToDevice(
   onStatusChange?: (status: string) => void
 ): Promise<BleConnection> {
-  const updateStatus = onStatusChange || console.log;
+  const updateStatus = onStatusChange || (() => {});
 
   updateStatus('Scanning for devices...');
 
@@ -115,7 +119,7 @@ export async function requestFileList(
   connection: BleConnection,
   onStatusChange?: (status: string) => void
 ): Promise<FileInfo[]> {
-  const updateStatus = onStatusChange || console.log;
+  const updateStatus = onStatusChange || (() => {});
 
   return new Promise(async (resolve, reject) => {
     let fileListBuffer = '';
@@ -126,11 +130,11 @@ export async function requestFileList(
       const decoder = new TextDecoder();
       const chunk = decoder.decode(target.value!);
 
-      console.log(`File list chunk (${chunk.length} bytes):`, chunk);
+      bleLog(`File list chunk (${chunk.length} bytes):`, chunk);
 
       // Check for END marker
       if (chunk.trim() === 'END' || chunk.includes('END')) {
-        console.log('=== END MARKER DETECTED ===');
+        bleLog('END MARKER DETECTED');
         const cleanBuffer = fileListBuffer.replace('END', '');
         cleanup();
         resolve(parseFileList(cleanBuffer));
@@ -145,7 +149,7 @@ export async function requestFileList(
       // with possible gaps between notifications
       if (fileListTimeout) clearTimeout(fileListTimeout);
       fileListTimeout = setTimeout(() => {
-        console.log('=== TIMEOUT - Assuming complete ===');
+        bleLog('TIMEOUT - Assuming complete');
         if (fileListBuffer.length > 0) {
           cleanup();
           resolve(parseFileList(fileListBuffer));
@@ -214,7 +218,7 @@ export async function downloadFile(
   onProgress?: (progress: DownloadProgress) => void,
   onStatusChange?: (status: string) => void
 ): Promise<Uint8Array> {
-  const updateStatus = onStatusChange || console.log;
+  const updateStatus = onStatusChange || (() => {});
   const updateProgress = onProgress || (() => {});
 
   return new Promise(async (resolve, reject) => {
@@ -274,7 +278,7 @@ export async function downloadFile(
       const decoder = new TextDecoder();
       const status = decoder.decode(target.value!);
 
-      console.log('Status:', status);
+      bleLog('Status:', status);
 
       if (status.startsWith('SIZE:')) {
         expectedFileSize = parseInt(status.substring(5), 10);
@@ -365,7 +369,7 @@ export async function requestSettingsList(
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       const raw = new TextDecoder().decode(target.value!);
-      console.log('[BLE Settings] SLIST raw notification:', JSON.stringify(raw));
+      bleLog('SLIST raw notification:', JSON.stringify(raw));
 
       // Split on newlines — device may send multiple messages in one notification
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
@@ -434,7 +438,7 @@ export async function getDeviceSetting(
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       const raw = new TextDecoder().decode(target.value!);
-      console.log('[BLE Settings] SGET raw notification:', JSON.stringify(raw));
+      bleLog('SGET raw notification:', JSON.stringify(raw));
 
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
@@ -496,7 +500,7 @@ export async function setDeviceSetting(
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       const raw = new TextDecoder().decode(target.value!);
-      console.log('[BLE Settings] SSET raw notification:', JSON.stringify(raw));
+      bleLog('SSET raw notification:', JSON.stringify(raw));
 
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
@@ -558,7 +562,7 @@ export async function requestTrackFileList(
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       const raw = new TextDecoder().decode(target.value!);
-      console.log('[BLE Tracks] TLIST raw:', JSON.stringify(raw));
+      bleLog('TLIST raw:', JSON.stringify(raw));
 
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
@@ -650,7 +654,7 @@ export async function downloadTrackFile(
     const handleStatusData = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       const raw = new TextDecoder().decode(target.value!);
-      console.log('[BLE Tracks] TGET status:', raw);
+      bleLog('TGET status:', raw);
 
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
       for (const line of lines) {
@@ -718,7 +722,7 @@ export async function uploadTrackFile(
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       const raw = new TextDecoder().decode(target.value!);
-      console.log('[BLE Tracks] TPUT status:', raw, 'phase:', phase);
+      bleLog('TPUT status:', raw, 'phase:', phase);
 
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
       for (const line of lines) {

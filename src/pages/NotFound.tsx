@@ -4,8 +4,11 @@ import { useEffect } from "react";
 const NotFound = () => {
   const location = useLocation();
 
+  // 404 logged only in development
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    if (import.meta.env.DEV) {
+      console.warn("404: non-existent route:", location.pathname);
+    }
   }, [location.pathname]);
 
   return (
