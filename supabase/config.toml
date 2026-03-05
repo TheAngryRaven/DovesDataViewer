@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.check-login-rate]
 verify_jwt = false
+
+[functions.submit-message]
+verify_jwt = false

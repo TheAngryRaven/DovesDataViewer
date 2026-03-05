@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,10 +9,12 @@ import { TracksTab } from '@/components/admin/TracksTab';
 import { CoursesTab } from '@/components/admin/CoursesTab';
 import { ToolsTab } from '@/components/admin/ToolsTab';
 import { BannedIpsTab } from '@/components/admin/BannedIpsTab';
+import { MessagesTab } from '@/components/admin/MessagesTab';
 
 export default function Admin() {
   const { user, isAdmin, loading, logout } = useAuth();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -51,14 +53,23 @@ export default function Admin() {
       </header>
 
       <main className="flex-1 p-6 max-w-6xl mx-auto w-full">
-        <Tabs defaultValue="submissions" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs defaultValue="messages" className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="messages" className="relative">
+              Messages
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
             <TabsTrigger value="tracks">Tracks</TabsTrigger>
             <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="tools">Tools</TabsTrigger>
             <TabsTrigger value="banned">Banned IPs</TabsTrigger>
           </TabsList>
+          <TabsContent value="messages"><MessagesTab onUnreadCount={setUnreadCount} /></TabsContent>
           <TabsContent value="submissions"><SubmissionsTab /></TabsContent>
           <TabsContent value="tracks"><TracksTab /></TabsContent>
           <TabsContent value="courses"><CoursesTab /></TabsContent>
