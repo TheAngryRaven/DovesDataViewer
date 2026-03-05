@@ -5,8 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { GpsSample, Course } from '@/types/racing';
 import { findSpeedEvents } from '@/lib/speedEvents';
 import { formatLapTime } from '@/lib/lapCalculation';
-import { Kart } from '@/lib/kartStorage';
-import { KartSetup } from '@/lib/setupStorage';
+import { Vehicle } from '@/lib/vehicleStorage';
+import { VehicleSetup } from '@/lib/setupStorage';
+import { SetupTemplate } from '@/lib/templateStorage';
 import { WeatherPanel } from '@/components/WeatherPanel';
 import { WeatherStation } from '@/lib/weatherService';
 import { useSettingsContext } from '@/contexts/SettingsContext';
@@ -14,7 +15,6 @@ import { VideoPlayer } from '@/components/VideoPlayer';
 import type { VideoSyncState, VideoSyncActions } from '@/hooks/useVideoSync';
 
 interface InfoBoxProps {
-  // Stats data
   filteredSamples: GpsSample[];
   course: Course | null;
   lapTimeMs: number | null;
@@ -24,45 +24,42 @@ interface InfoBoxProps {
   deltaMinSpeed: number | null;
   referenceLapNumber: number | null;
   lapToFastestDelta: number | null;
-  // Weather
   sessionGpsPoint?: { lat: number; lon: number };
   sessionStartDate?: Date;
   cachedWeatherStation: WeatherStation | null;
   onWeatherStationResolved: (station: WeatherStation) => void;
-  // Kart/setup
-  karts: Kart[];
-  setups: KartSetup[];
+  vehicles: Vehicle[];
+  setups: VehicleSetup[];
+  templates: SetupTemplate[];
   sessionKartId: string | null;
   sessionSetupId: string | null;
   onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
   onOpenSetupEditor?: (setupId: string) => void;
-  // Video
   videoState?: VideoSyncState;
   videoActions?: VideoSyncActions;
   onVideoLoadedMetadata?: () => void;
   currentSample?: GpsSample | null;
 }
 
-type InfoTab = 'data' | 'kart' | 'video';
+type InfoTab = 'data' | 'vehicle' | 'video';
 
 export function InfoBox({
   filteredSamples, course, lapTimeMs, paceDiff, paceDiffLabel,
   deltaTopSpeed, deltaMinSpeed, referenceLapNumber, lapToFastestDelta,
   sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved,
-  karts, setups, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor,
+  vehicles, setups, templates, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor,
   videoState, videoActions, onVideoLoadedMetadata, currentSample,
 }: InfoBoxProps) {
   const { useKph } = useSettingsContext();
   const [tab, setTab] = useState<InfoTab>('data');
-  const [selectedKartId, setSelectedKartId] = useState<string | null>(sessionKartId);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(sessionKartId);
   const [selectedSetupId, setSelectedSetupId] = useState<string | null>(sessionSetupId);
 
-  useEffect(() => { setSelectedKartId(sessionKartId); setSelectedSetupId(sessionSetupId); }, [sessionKartId, sessionSetupId]);
+  useEffect(() => { setSelectedVehicleId(sessionKartId); setSelectedSetupId(sessionSetupId); }, [sessionKartId, sessionSetupId]);
 
   const unit = useKph ? 'kph' : 'mph';
   const convertSpeed = (speed: number) => useKph ? speed * 1.60934 : speed;
 
-  // Speed events for stats
   const speedEvents = useMemo(() => {
     if (filteredSamples.length < 10) return [];
     return findSpeedEvents(filteredSamples, { smoothingWindow: 5, minSwing: 3, minSeparationMs: 1000, debounceCount: 2 });
@@ -73,19 +70,17 @@ export function InfoBox({
   const avgTop = peaks.length > 0 ? peaks.reduce((s, e) => s + e.speed, 0) / peaks.length : null;
   const avgMin = valleys.length > 0 ? valleys.reduce((s, e) => s + e.speed, 0) / valleys.length : null;
 
-  // Kart/setup selection
   const filteredSetups = useMemo(() => {
-    if (!selectedKartId) return [];
-    return setups.filter(s => s.kartId === selectedKartId);
-  }, [setups, selectedKartId]);
+    if (!selectedVehicleId) return [];
+    return setups.filter(s => s.vehicleId === selectedVehicleId);
+  }, [setups, selectedVehicleId]);
 
-  const selectedKart = karts.find(k => k.id === sessionKartId);
+  const selectedVehicle = vehicles.find(v => v.id === sessionKartId);
   const selectedSetup = setups.find(s => s.id === sessionSetupId);
-  const isSaved = selectedKartId === sessionKartId && selectedSetupId === sessionSetupId;
+  const isSaved = selectedVehicleId === sessionKartId && selectedSetupId === sessionSetupId;
 
-  const handleKartChange = useCallback((v: string) => {
-    const id = v === 'none' ? null : v;
-    setSelectedKartId(id);
+  const handleVehicleChange = useCallback((v: string) => {
+    setSelectedVehicleId(v === 'none' ? null : v);
     setSelectedSetupId(null);
   }, []);
 
@@ -94,75 +89,44 @@ export function InfoBox({
   }, []);
 
   const handleSave = useCallback(async () => {
-    await onSaveSessionSetup(selectedKartId, selectedSetupId);
-  }, [selectedKartId, selectedSetupId, onSaveSessionSetup]);
+    await onSaveSessionSetup(selectedVehicleId, selectedSetupId);
+  }, [selectedVehicleId, selectedSetupId, onSaveSessionSetup]);
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-card border-b border-border">
-      {/* Tabs */}
       <div className="flex shrink-0 border-b border-border">
-        <button
-          onClick={() => setTab('data')}
-          className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'data' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
-        >
-          Data
-        </button>
-        <button
-          onClick={() => setTab('kart')}
-          className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'kart' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
-        >
-          Kart
-        </button>
-        <button
-          onClick={() => setTab('video')}
-          className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
-        >
-          Video
-        </button>
+        <button onClick={() => setTab('data')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'data' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>Data</button>
+        <button onClick={() => setTab('vehicle')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'vehicle' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>Vehicle</button>
+        <button onClick={() => setTab('video')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>Video</button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {tab === 'video' && videoState && videoActions && onVideoLoadedMetadata ? (
           <div className="h-full">
-            <VideoPlayer
-              state={videoState}
-              actions={videoActions}
-              onLoadedMetadata={onVideoLoadedMetadata}
-              currentSample={currentSample ?? null}
-            />
+            <VideoPlayer state={videoState} actions={videoActions} onLoadedMetadata={onVideoLoadedMetadata} currentSample={currentSample ?? null} />
           </div>
         ) : (
         <div className="p-3 space-y-3">
         {tab === 'data' ? (
           <>
-            {/* Lap time */}
             {lapTimeMs !== null && (
               <div className="flex justify-between text-xs pb-2 border-b border-border">
                 <span className="text-muted-foreground">Lap Time</span>
                 <span className="font-mono text-foreground font-semibold">{formatLapTime(lapTimeMs)}</span>
               </div>
             )}
-
-            {/* Avg speeds */}
             {course && speedEvents.length > 0 && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Avg Top Speed</span>
-                  <span className="font-mono" style={{ color: 'hsl(142, 76%, 45%)' }}>
-                    {avgTop !== null ? `${convertSpeed(avgTop).toFixed(1)} ${unit}` : '—'}
-                  </span>
+                  <span className="font-mono" style={{ color: 'hsl(142, 76%, 45%)' }}>{avgTop !== null ? `${convertSpeed(avgTop).toFixed(1)} ${unit}` : '—'}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Avg Min Speed</span>
-                  <span className="font-mono" style={{ color: 'hsl(0, 84%, 55%)' }}>
-                    {avgMin !== null ? `${convertSpeed(avgMin).toFixed(1)} ${unit}` : '—'}
-                  </span>
+                  <span className="font-mono" style={{ color: 'hsl(0, 84%, 55%)' }}>{avgMin !== null ? `${convertSpeed(avgMin).toFixed(1)} ${unit}` : '—'}</span>
                 </div>
               </div>
             )}
-
-            {/* Deltas */}
             {(referenceLapNumber !== null || lapToFastestDelta !== null || deltaTopSpeed !== null || deltaMinSpeed !== null) && (
               <div className="pt-2 border-t border-border space-y-1">
                 <div className="text-xs text-muted-foreground text-center mb-1">Δ {paceDiffLabel}</div>
@@ -192,50 +156,39 @@ export function InfoBox({
                 )}
               </div>
             )}
-
-            {/* Weather - always shown */}
             <div className="pt-2 border-t border-border">
-              <WeatherPanel
-                lat={sessionGpsPoint?.lat}
-                lon={sessionGpsPoint?.lon}
-                sessionDate={sessionStartDate}
-                cachedStation={cachedWeatherStation}
-                onStationResolved={onWeatherStationResolved}
-                detailed
-              />
+              <WeatherPanel lat={sessionGpsPoint?.lat} lon={sessionGpsPoint?.lon} sessionDate={sessionStartDate} cachedStation={cachedWeatherStation} onStationResolved={onWeatherStationResolved} detailed />
             </div>
           </>
         ) : (
-          /* Kart tab */
+          /* Vehicle tab */
           <>
-            {sessionKartId && selectedKart ? (
+            {sessionKartId && selectedVehicle ? (
               <div className="space-y-3">
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Kart</span>
-                    <span className="font-mono text-foreground">{selectedKart.name}</span>
+                    <span className="text-muted-foreground">Vehicle</span>
+                    <span className="font-mono text-foreground">{selectedVehicle.name}</span>
                   </div>
-                  {selectedKart.number > 0 && (
+                  {selectedVehicle.number > 0 && (
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Number</span>
-                      <span className="font-mono text-foreground">#{selectedKart.number}</span>
+                      <span className="font-mono text-foreground">#{selectedVehicle.number}</span>
                     </div>
                   )}
-                  {selectedKart.engine && (
+                  {selectedVehicle.engine && (
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Engine</span>
-                      <span className="font-mono text-foreground">{selectedKart.engine}</span>
+                      <span className="font-mono text-foreground">{selectedVehicle.engine}</span>
                     </div>
                   )}
-                  {selectedKart.weight > 0 && (
+                  {selectedVehicle.weight > 0 && (
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground">Weight</span>
-                      <span className="font-mono text-foreground">{selectedKart.weight} {selectedKart.weightUnit}</span>
+                      <span className="font-mono text-foreground">{selectedVehicle.weight} {selectedVehicle.weightUnit}</span>
                     </div>
                   )}
                 </div>
-
-                {/* Setup display */}
                 {selectedSetup ? (
                   <div className="pt-2 border-t border-border space-y-1">
                     <div className="flex items-center justify-between mb-2">
@@ -246,39 +199,32 @@ export function InfoBox({
                         </Button>
                       )}
                     </div>
-                    <SetupDetails setup={selectedSetup} />
+                    <SetupDetails setup={selectedSetup} templates={templates} />
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground pt-2 border-t border-border">No setup linked to session</p>
                 )}
               </div>
             ) : (
-              /* No kart linked - show selector */
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Link a kart and setup to this session:</p>
-                <Select value={selectedKartId ?? 'none'} onValueChange={handleKartChange}>
-                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select kart…" /></SelectTrigger>
+                <p className="text-xs text-muted-foreground">Link a vehicle and setup to this session:</p>
+                <Select value={selectedVehicleId ?? 'none'} onValueChange={handleVehicleChange}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select vehicle…" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No kart</SelectItem>
-                    {karts.map(k => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}
+                    <SelectItem value="none">No vehicle</SelectItem>
+                    {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Select
-                  value={selectedSetupId ?? 'none'}
-                  onValueChange={handleSetupChange}
-                  disabled={!selectedKartId || filteredSetups.length === 0}
-                >
+                <Select value={selectedSetupId ?? 'none'} onValueChange={handleSetupChange} disabled={!selectedVehicleId || filteredSetups.length === 0}>
                   <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder={!selectedKartId ? 'Select kart first' : filteredSetups.length === 0 ? 'No setups' : 'Select setup…'} />
+                    <SelectValue placeholder={!selectedVehicleId ? 'Select vehicle first' : filteredSetups.length === 0 ? 'No setups' : 'Select setup…'} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No setup</SelectItem>
                     {filteredSetups.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button className="w-full" size="sm" onClick={handleSave} disabled={isSaved}>
-                  Save Selection
-                </Button>
+                <Button className="w-full" size="sm" onClick={handleSave} disabled={isSaved}>Save Selection</Button>
               </div>
             )}
           </>
@@ -290,8 +236,9 @@ export function InfoBox({
   );
 }
 
-/** Read-only display of all setup fields */
-function SetupDetails({ setup }: { setup: KartSetup }) {
+/** Read-only display of setup fields — now dynamic from template */
+function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: SetupTemplate[] }) {
+  const template = templates.find(t => t.id === setup.templateId);
   const rows: { label: string; value: string }[] = [];
 
   const add = (label: string, value: string | number | null | undefined, suffix = '') => {
@@ -300,20 +247,23 @@ function SetupDetails({ setup }: { setup: KartSetup }) {
     }
   };
 
-  add('Toe', setup.toe);
-  add('Camber', setup.camber);
-  add('Castor', setup.castor);
-  add('Front Width', setup.frontWidth, ` ${setup.frontWidthUnit}`);
-  add('Rear Width', setup.rearWidth, ` ${setup.rearWidthUnit}`);
-  add('Rear Height', setup.rearHeight, ` ${setup.rearHeightUnit}`);
-  add('Front Sprocket', setup.frontSprocket);
-  add('Rear Sprocket', setup.rearSprocket);
-  if (setup.frontSprocket && setup.rearSprocket) {
-    rows.push({ label: 'Ratio', value: (setup.rearSprocket / setup.frontSprocket).toFixed(3) });
+  // Dynamic custom fields from template
+  if (template) {
+    for (const section of template.sections) {
+      for (const field of section.fields) {
+        const val = setup.customFields[field.id];
+        const displayUnit = (field.unit === "mm" || field.unit === "in") ? (setup.unitSystem || "mm") : field.unit;
+        add(field.name, val, displayUnit ? ` ${displayUnit}` : "");
+      }
+    }
+    // Sprocket ratio calculation for kart template
+    const frontSprocket = setup.customFields["f-front-sprocket"];
+    const rearSprocket = setup.customFields["f-rear-sprocket"];
+    if (typeof frontSprocket === "number" && typeof rearSprocket === "number" && frontSprocket > 0) {
+      rows.push({ label: "Ratio", value: (rearSprocket / frontSprocket).toFixed(3) });
+    }
   }
-  add('Steering Brand', setup.steeringBrand);
-  add('Steering Setting', setup.steeringSetting);
-  add('Spindle Setting', setup.spindleSetting);
+
   add('Tire Brand', setup.tireBrand);
 
   // PSI
@@ -332,30 +282,29 @@ function SetupDetails({ setup }: { setup: KartSetup }) {
   }
 
   // Tire width
+  const wu = setup.unitSystem || "mm";
   if (setup.tireWidthFrontLeft !== null) {
-    const u = setup.tireWidthUnit;
     if (setup.tireWidthFrontLeft === setup.tireWidthFrontRight && setup.tireWidthRearLeft === setup.tireWidthRearRight) {
-      add('Tire Width Front', setup.tireWidthFrontLeft?.toFixed(2), ` ${u}`);
-      add('Tire Width Rear', setup.tireWidthRearLeft?.toFixed(2), ` ${u}`);
+      add('Tire Width Front', setup.tireWidthFrontLeft?.toFixed(2), ` ${wu}`);
+      add('Tire Width Rear', setup.tireWidthRearLeft?.toFixed(2), ` ${wu}`);
     } else {
-      add('Tire Width FL', setup.tireWidthFrontLeft?.toFixed(2), ` ${u}`);
-      add('Tire Width FR', setup.tireWidthFrontRight?.toFixed(2), ` ${u}`);
-      add('Tire Width RL', setup.tireWidthRearLeft?.toFixed(2), ` ${u}`);
-      add('Tire Width RR', setup.tireWidthRearRight?.toFixed(2), ` ${u}`);
+      add('Tire Width FL', setup.tireWidthFrontLeft?.toFixed(2), ` ${wu}`);
+      add('Tire Width FR', setup.tireWidthFrontRight?.toFixed(2), ` ${wu}`);
+      add('Tire Width RL', setup.tireWidthRearLeft?.toFixed(2), ` ${wu}`);
+      add('Tire Width RR', setup.tireWidthRearRight?.toFixed(2), ` ${wu}`);
     }
   }
 
   // Tire diameter
   if (setup.tireDiameterFrontLeft !== null) {
-    const u = setup.tireDiameterUnit;
     if (setup.tireDiameterFrontLeft === setup.tireDiameterFrontRight && setup.tireDiameterRearLeft === setup.tireDiameterRearRight) {
-      add('Tire Diameter Front', setup.tireDiameterFrontLeft?.toFixed(2), ` ${u}`);
-      add('Tire Diameter Rear', setup.tireDiameterRearLeft?.toFixed(2), ` ${u}`);
+      add('Tire Diameter Front', setup.tireDiameterFrontLeft?.toFixed(2), ` ${wu}`);
+      add('Tire Diameter Rear', setup.tireDiameterRearLeft?.toFixed(2), ` ${wu}`);
     } else {
-      add('Tire Diameter FL', setup.tireDiameterFrontLeft?.toFixed(2), ` ${u}`);
-      add('Tire Diameter FR', setup.tireDiameterFrontRight?.toFixed(2), ` ${u}`);
-      add('Tire Diameter RL', setup.tireDiameterRearLeft?.toFixed(2), ` ${u}`);
-      add('Tire Diameter RR', setup.tireDiameterRearRight?.toFixed(2), ` ${u}`);
+      add('Tire Diameter FL', setup.tireDiameterFrontLeft?.toFixed(2), ` ${wu}`);
+      add('Tire Diameter FR', setup.tireDiameterFrontRight?.toFixed(2), ` ${wu}`);
+      add('Tire Diameter RL', setup.tireDiameterRearLeft?.toFixed(2), ` ${wu}`);
+      add('Tire Diameter RR', setup.tireDiameterRearRight?.toFixed(2), ` ${wu}`);
     }
   }
 

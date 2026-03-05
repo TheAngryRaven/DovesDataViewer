@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { KartSetup, listSetups, saveSetup, deleteSetup, getLatestSetupForKart } from "@/lib/setupStorage";
+import { VehicleSetup, listSetups, saveSetup, deleteSetup, getLatestSetupForVehicle } from "@/lib/setupStorage";
 
 export function useSetupManager() {
-  const [setups, setSetups] = useState<KartSetup[]>([]);
+  const [setups, setSetups] = useState<VehicleSetup[]>([]);
 
   const refresh = useCallback(async () => {
     const all = await listSetups();
@@ -13,9 +13,9 @@ export function useSetupManager() {
     refresh();
   }, [refresh]);
 
-  const addSetup = useCallback(async (setup: Omit<KartSetup, "id" | "createdAt" | "updatedAt">) => {
+  const addSetup = useCallback(async (setup: Omit<VehicleSetup, "id" | "createdAt" | "updatedAt">) => {
     const now = Date.now();
-    const full: KartSetup = {
+    const full: VehicleSetup = {
       ...setup,
       id: crypto.randomUUID(),
       createdAt: now,
@@ -25,7 +25,7 @@ export function useSetupManager() {
     await refresh();
   }, [refresh]);
 
-  const updateSetup = useCallback(async (setup: KartSetup) => {
+  const updateSetup = useCallback(async (setup: VehicleSetup) => {
     await saveSetup({ ...setup, updatedAt: Date.now() });
     await refresh();
   }, [refresh]);
@@ -35,9 +35,12 @@ export function useSetupManager() {
     await refresh();
   }, [refresh]);
 
-  const getLatestForKart = useCallback(async (kartId: string) => {
-    return getLatestSetupForKart(kartId);
+  const getLatestForVehicle = useCallback(async (vehicleId: string) => {
+    return getLatestSetupForVehicle(vehicleId);
   }, []);
 
-  return { setups, addSetup, updateSetup, removeSetup, getLatestForKart };
+  // Backward compat alias
+  const getLatestForKart = getLatestForVehicle;
+
+  return { setups, addSetup, updateSetup, removeSetup, getLatestForVehicle, getLatestForKart };
 }

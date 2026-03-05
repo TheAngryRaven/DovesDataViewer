@@ -1,27 +1,18 @@
 /**
  * IndexedDB CRUD for the "setups" object store.
+ * Now uses a generic template-driven data model.
  */
 
 import { openDB, STORE_NAMES } from './dbUtils';
 
-export interface KartSetup {
+export interface VehicleSetup {
   id: string;
-  kartId: string;
+  vehicleId: string;      // was kartId — links to Vehicle
+  templateId: string;      // which template this setup uses
   name: string;
-  toe: number | null;
-  camber: number | null;
-  castor: number | null;
-  frontWidth: number | null;
-  frontWidthUnit: "mm" | "in";
-  rearWidth: number | null;
-  rearWidthUnit: "mm" | "in";
-  rearHeight: number | null;
-  rearHeightUnit: "mm" | "in";
-  frontSprocket: number | null;
-  rearSprocket: number | null;
-  steeringBrand: string;
-  steeringSetting: number | null;
-  spindleSetting: number | null;
+  unitSystem: "mm" | "in"; // global unit toggle for measurement fields
+
+  // Built-in tire data (shared across all templates that include tires)
   tireBrand: string;
   psiMode: "single" | "halves" | "quarters";
   psiFrontLeft: number | null;
@@ -33,24 +24,29 @@ export interface KartSetup {
   tireWidthFrontRight: number | null;
   tireWidthRearLeft: number | null;
   tireWidthRearRight: number | null;
-  tireWidthUnit: "mm" | "in";
   tireDiameterMode: "halves" | "quarters";
   tireDiameterFrontLeft: number | null;
   tireDiameterFrontRight: number | null;
   tireDiameterRearLeft: number | null;
   tireDiameterRearRight: number | null;
-  tireDiameterUnit: "mm" | "in";
+
+  // Dynamic fields from template — keyed by TemplateFieldDef.id
+  customFields: Record<string, string | number | null>;
+
   createdAt: number;
   updatedAt: number;
 }
 
+// Keep backward compat export name for consumers that haven't migrated yet
+export type KartSetup = VehicleSetup;
+
 const SETUPS_STORE = STORE_NAMES.SETUPS;
 
-export async function listSetups(): Promise<KartSetup[]> {
+export async function listSetups(): Promise<VehicleSetup[]> {
   const db = await openDB();
   const tx = db.transaction(SETUPS_STORE, "readonly");
   const request = tx.objectStore(SETUPS_STORE).getAll();
-  const results = await new Promise<KartSetup[]>((resolve, reject) => {
+  const results = await new Promise<VehicleSetup[]>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -58,7 +54,7 @@ export async function listSetups(): Promise<KartSetup[]> {
   return results.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export async function saveSetup(setup: KartSetup): Promise<void> {
+export async function saveSetup(setup: VehicleSetup): Promise<void> {
   const db = await openDB();
   const tx = db.transaction(SETUPS_STORE, "readwrite");
   tx.objectStore(SETUPS_STORE).put(setup);
@@ -80,17 +76,43 @@ export async function deleteSetup(id: string): Promise<void> {
   db.close();
 }
 
-export async function getLatestSetupForKart(kartId: string): Promise<KartSetup | null> {
+export async function getLatestSetupForVehicle(vehicleId: string): Promise<VehicleSetup | null> {
   const db = await openDB();
   const tx = db.transaction(SETUPS_STORE, "readonly");
-  const index = tx.objectStore(SETUPS_STORE).index("kartId");
-  const request = index.getAll(kartId);
-  const results = await new Promise<KartSetup[]>((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  const store = tx.objectStore(SETUPS_STORE);
+  // Try using vehicleId index first, fall back to getAll scan
+  let results: VehicleSetup[];
+  try {
+    const index = store.index("vehicleId");
+    const request = index.getAll(vehicleId);
+    results = await new Promise<VehicleSetup[]>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    // Fallback: index might still be "kartId" from old DB
+    try {
+      const index = store.index("kartId");
+      const request = index.getAll(vehicleId);
+      results = await new Promise<VehicleSetup[]>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      // Final fallback: scan all
+      const request = store.getAll();
+      const all = await new Promise<VehicleSetup[]>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      results = all.filter(s => s.vehicleId === vehicleId);
+    }
+  }
   db.close();
   if (results.length === 0) return null;
   results.sort((a, b) => b.updatedAt - a.updatedAt);
   return results[0];
 }
+
+// Backward compat alias
+export const getLatestSetupForKart = getLatestSetupForVehicle;

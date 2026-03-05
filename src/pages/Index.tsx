@@ -24,9 +24,10 @@ import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useFileManager } from "@/hooks/useFileManager";
-import { useKartManager } from "@/hooks/useKartManager";
+import { useVehicleManager } from "@/hooks/useVehicleManager";
 import { useNoteManager } from "@/hooks/useNoteManager";
 import { useSetupManager } from "@/hooks/useSetupManager";
+import { useTemplateManager } from "@/hooks/useTemplateManager";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
@@ -43,8 +44,9 @@ const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
   const fileManager = useFileManager();
-  const kartManager = useKartManager();
+  const vehicleManager = useVehicleManager();
   const setupManager = useSetupManager();
+  const templateManager = useTemplateManager();
   const navigate = useNavigate();
   const useKph = settings.useKph;
 
@@ -275,10 +277,12 @@ export default function Index() {
     onSaveFile: fileManager.saveFile,
     onDataLoaded: handleDataLoaded,
     autoSave: settings.autoSaveFiles,
-    karts: kartManager.karts,
-    onAddKart: kartManager.addKart,
-    onUpdateKart: kartManager.updateKart,
-    onRemoveKart: kartManager.removeKart,
+    vehicles: vehicleManager.vehicles,
+    vehicleTypes: templateManager.vehicleTypes,
+    templates: templateManager.templates,
+    onAddVehicle: vehicleManager.addVehicle,
+    onUpdateVehicle: vehicleManager.updateVehicle,
+    onRemoveVehicle: vehicleManager.removeVehicle,
     currentFileName,
     notes: noteManager.notes,
     onAddNote: noteManager.addNote,
@@ -288,7 +292,9 @@ export default function Index() {
     onAddSetup: setupManager.addSetup,
     onUpdateSetup: setupManager.updateSetup,
     onRemoveSetup: setupManager.removeSetup,
-    onGetLatestSetupForKart: setupManager.getLatestForKart,
+    onGetLatestSetupForVehicle: setupManager.getLatestForVehicle,
+    onAddVehicleType: templateManager.addVehicleType,
+    onRemoveVehicleType: templateManager.removeVehicleType,
     sessionKartId,
     sessionSetupId,
     onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
@@ -296,10 +302,11 @@ export default function Index() {
     fileManager.isOpen, fileManager.files, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
     handleDataLoaded, settings.autoSaveFiles,
-    kartManager.karts, kartManager.addKart, kartManager.updateKart, kartManager.removeKart,
+    vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,
+    templateManager.vehicleTypes, templateManager.templates, templateManager.addVehicleType, templateManager.removeVehicleType,
     currentFileName,
     noteManager.notes, noteManager.addNote, noteManager.updateNote, noteManager.removeNote,
-    setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForKart,
+    setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
     sessionKartId, sessionSetupId, sessionMeta.handleSaveSessionSetup,
   ]);
 
@@ -633,8 +640,9 @@ export default function Index() {
               sessionStartDate={data?.startDate}
               cachedWeatherStation={cachedWeatherStation}
               onWeatherStationResolved={sessionMeta.handleWeatherStationResolved}
-              karts={kartManager.karts}
+              vehicles={vehicleManager.vehicles}
               setups={setupManager.setups}
+              templates={templateManager.templates}
               sessionKartId={sessionKartId}
               sessionSetupId={sessionSetupId}
               onSaveSessionSetup={sessionMeta.handleSaveSessionSetup}
