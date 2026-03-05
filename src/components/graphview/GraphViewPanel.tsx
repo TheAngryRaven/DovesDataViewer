@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { GpsSample, Course, FieldMapping } from '@/types/racing';
-import { Kart } from '@/lib/kartStorage';
-import { KartSetup } from '@/lib/setupStorage';
+import { Vehicle } from '@/lib/vehicleStorage';
+import { VehicleSetup } from '@/lib/setupStorage';
+import { SetupTemplate } from '@/lib/templateStorage';
 import { WeatherStation } from '@/lib/weatherService';
 import type { VideoSyncState, VideoSyncActions } from '@/hooks/useVideoSync';
 import { InfoBox } from './InfoBox';
@@ -35,9 +36,10 @@ export interface GraphViewPanelProps {
   sessionStartDate?: Date;
   cachedWeatherStation: WeatherStation | null;
   onWeatherStationResolved: (station: WeatherStation) => void;
-  // Kart/setup
-  karts: Kart[];
-  setups: KartSetup[];
+  // Vehicle/setup
+  vehicles: Vehicle[];
+  setups: VehicleSetup[];
+  templates: SetupTemplate[];
   sessionKartId: string | null;
   sessionSetupId: string | null;
   onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
@@ -98,8 +100,9 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 sessionStartDate={props.sessionStartDate}
                 cachedWeatherStation={props.cachedWeatherStation}
                 onWeatherStationResolved={props.onWeatherStationResolved}
-                karts={props.karts}
+                vehicles={props.vehicles}
                 setups={props.setups}
+                templates={props.templates}
                 sessionKartId={props.sessionKartId}
                 sessionSetupId={props.sessionSetupId}
                 onSaveSessionSetup={props.onSaveSessionSetup}
@@ -135,7 +138,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
             </ResizablePanel>
           </ResizablePanelGroup>
 
-          {/* Map toggle button - pinned to bottom of left sidebar */}
+          {/* Map toggle button */}
           <button
             onClick={toggleMap}
             className="absolute bottom-1 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-1 px-2 py-0.5 rounded bg-card/90 backdrop-blur-sm border border-border hover:bg-muted/50 text-muted-foreground text-xs"

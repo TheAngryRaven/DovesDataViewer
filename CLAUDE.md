@@ -65,9 +65,11 @@ src/
 │   ├── useReferenceLap.ts     # Reference lap overlay logic
 │   ├── useVideoSync.ts        # Video ↔ telemetry synchronization
 │   ├── useFileManager.ts      # IndexedDB file CRUD
-│   ├── useKartManager.ts      # Kart profiles CRUD
+│   ├── useKartManager.ts      # Backward compat re-export → useVehicleManager
+│   ├── useVehicleManager.ts   # Vehicle profiles CRUD
+│   ├── useTemplateManager.ts  # Vehicle types & setup templates CRUD
 │   ├── useNoteManager.ts      # Session notes CRUD
-│   ├── useSetupManager.ts     # Kart setup sheets CRUD
+│   ├── useSetupManager.ts     # Generic setup sheets CRUD (template-driven)
 │   ├── useSettings.ts         # User preferences (units, smoothing, dark mode, etc.)
 │   ├── useSessionMetadata.ts  # Per-file metadata (selected track/course)
 │   └── useOnlineStatus.ts     # Navigator.onLine wrapper
@@ -94,7 +96,9 @@ src/
 │   ├── referenceUtils.ts      # Reference lap comparison utilities
 │   ├── dbUtils.ts             # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), transaction helpers
 │   ├── fileStorage.ts         # IndexedDB: raw file blobs
-│   ├── kartStorage.ts         # IndexedDB: kart profiles
+│   ├── kartStorage.ts         # Old kart storage (kept for compat)
+│   ├── vehicleStorage.ts     # ★ Vehicle profiles CRUD (replaces kartStorage)
+│   ├── templateStorage.ts    # ★ Vehicle types + setup templates, default kart schema
 │   ├── noteStorage.ts         # IndexedDB: session notes
 │   ├── setupStorage.ts        # IndexedDB: kart setups
 │   ├── videoStorage.ts        # IndexedDB: video sync points

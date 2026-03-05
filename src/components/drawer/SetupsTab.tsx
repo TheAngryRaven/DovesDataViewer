@@ -1,42 +1,36 @@
-import { useState, useCallback, useRef } from "react";
-import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info } from "lucide-react";
+import { useState, useCallback, useRef, useMemo } from "react";
+import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Kart } from "@/lib/kartStorage";
-import { KartSetup } from "@/lib/setupStorage";
+import { Vehicle } from "@/lib/vehicleStorage";
+import { VehicleSetup } from "@/lib/setupStorage";
+import { VehicleType, SetupTemplate, TemplateSection, TemplateFieldDef } from "@/lib/templateStorage";
+import { TemplateCreator } from "@/components/drawer/TemplateCreator";
 
 interface SetupsTabProps {
-  karts: Kart[];
-  setups: KartSetup[];
-  onAdd: (setup: Omit<KartSetup, "id" | "createdAt" | "updatedAt">) => Promise<void>;
-  onUpdate: (setup: KartSetup) => Promise<void>;
+  vehicles: Vehicle[];
+  setups: VehicleSetup[];
+  vehicleTypes: VehicleType[];
+  templates: SetupTemplate[];
+  onAdd: (setup: Omit<VehicleSetup, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  onUpdate: (setup: VehicleSetup) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
-  onGetLatestForKart: (kartId: string) => Promise<KartSetup | null>;
+  onGetLatestForVehicle: (vehicleId: string) => Promise<VehicleSetup | null>;
+  onAddVehicleType: (name: string, wheelCount: 2 | 4, includeTires: boolean, sections: TemplateSection[]) => Promise<any>;
+  onRemoveVehicleType: (vehicleTypeId: string, templateId: string) => Promise<void>;
 }
 
-type FormMode = "list" | "new" | "edit";
+type FormMode = "list" | "new" | "edit" | "new-type";
 
-const emptyForm = (): Omit<KartSetup, "id" | "createdAt" | "updatedAt"> => ({
-  kartId: "",
+const emptyForm = (): Omit<VehicleSetup, "id" | "createdAt" | "updatedAt"> => ({
+  vehicleId: "",
+  templateId: "",
   name: "",
-  toe: null,
-  camber: null,
-  castor: null,
-  frontWidth: null,
-  frontWidthUnit: "mm",
-  rearWidth: null,
-  rearWidthUnit: "mm",
-  rearHeight: null,
-  rearHeightUnit: "mm",
-  frontSprocket: null,
-  rearSprocket: null,
-  steeringBrand: "",
-  steeringSetting: null,
-  spindleSetting: null,
+  unitSystem: "mm",
   tireBrand: "",
   psiMode: "single",
   psiFrontLeft: null,
@@ -48,73 +42,61 @@ const emptyForm = (): Omit<KartSetup, "id" | "createdAt" | "updatedAt"> => ({
   tireWidthFrontRight: null,
   tireWidthRearLeft: null,
   tireWidthRearRight: null,
-  tireWidthUnit: "mm",
   tireDiameterMode: "halves",
   tireDiameterFrontLeft: null,
   tireDiameterFrontRight: null,
   tireDiameterRearLeft: null,
   tireDiameterRearRight: null,
-  tireDiameterUnit: "mm",
+  customFields: {},
 });
 
-function detectPsiMode(s: KartSetup): "single" | "halves" | "quarters" {
-  const vals = [s.psiFrontLeft, s.psiFrontRight, s.psiRearLeft, s.psiRearRight];
-  const nonNull = vals.filter((v) => v !== null);
-  if (nonNull.length === 0) return "single";
-  if (nonNull.every((v) => v === nonNull[0])) return "single";
-  if (s.psiFrontLeft === s.psiFrontRight && s.psiRearLeft === s.psiRearRight) return "halves";
-  return "quarters";
-}
-
-function detectWidthMode(s: KartSetup): "halves" | "quarters" {
-  if (s.tireWidthFrontLeft === s.tireWidthFrontRight && s.tireWidthRearLeft === s.tireWidthRearRight) return "halves";
-  return "quarters";
-}
-
-function detectDiameterMode(s: KartSetup): "halves" | "quarters" {
-  if ((s.tireDiameterFrontLeft ?? null) === (s.tireDiameterFrontRight ?? null) && (s.tireDiameterRearLeft ?? null) === (s.tireDiameterRearRight ?? null)) return "halves";
-  return "quarters";
-}
-
-export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLatestForKart }: SetupsTabProps) {
+export function SetupsTab({
+  vehicles, setups, vehicleTypes, templates,
+  onAdd, onUpdate, onRemove, onGetLatestForVehicle,
+  onAddVehicleType, onRemoveVehicleType,
+}: SetupsTabProps) {
   const [mode, setMode] = useState<FormMode>("list");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
+  const [selectedTypeId, setSelectedTypeId] = useState<string>("");
   const [preloaded, setPreloaded] = useState(false);
   const preloadSnapshot = useRef<Record<string, unknown> | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // PSI display state (separate from form.psiMode for display toggling)
+  // PSI display helpers
   const [psiSingle, setPsiSingle] = useState<number | null>(null);
   const [psiFront, setPsiFront] = useState<number | null>(null);
   const [psiRear, setPsiRear] = useState<number | null>(null);
-
-  // Width display state
   const [widthFront, setWidthFront] = useState<number | null>(null);
   const [widthRear, setWidthRear] = useState<number | null>(null);
-
-  // Diameter display state
   const [diamFront, setDiamFront] = useState<number | null>(null);
   const [diamRear, setDiamRear] = useState<number | null>(null);
 
+  const currentTemplate = useMemo(() => {
+    if (!selectedTypeId) return null;
+    const vt = vehicleTypes.find(v => v.id === selectedTypeId);
+    if (!vt) return null;
+    return templates.find(t => t.id === vt.templateId) ?? null;
+  }, [selectedTypeId, vehicleTypes, templates]);
+
+  const filteredVehicles = useMemo(() => {
+    if (!selectedTypeId) return vehicles;
+    return vehicles.filter(v => v.vehicleTypeId === selectedTypeId);
+  }, [vehicles, selectedTypeId]);
+
   const resetForm = useCallback(() => {
     setForm(emptyForm());
+    setSelectedTypeId("");
     setPreloaded(false);
     preloadSnapshot.current = null;
-    setPsiSingle(null);
-    setPsiFront(null);
-    setPsiRear(null);
-    setWidthFront(null);
-    setWidthRear(null);
-    setDiamFront(null);
-    setDiamRear(null);
+    setPsiSingle(null); setPsiFront(null); setPsiRear(null);
+    setWidthFront(null); setWidthRear(null);
+    setDiamFront(null); setDiamRear(null);
   }, []);
 
-  /** Check if a form field was changed from the preloaded value */
   const isChanged = useCallback((key: string, currentValue: unknown): boolean => {
     if (!preloaded || !preloadSnapshot.current) return false;
-    const original = preloadSnapshot.current[key];
-    return original !== currentValue;
+    return preloadSnapshot.current[key] !== currentValue;
   }, [preloaded]);
 
   const openNew = useCallback(() => {
@@ -123,28 +105,21 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     setMode("new");
   }, [resetForm]);
 
-  const openEdit = useCallback((setup: KartSetup) => {
+  const openEdit = useCallback((setup: VehicleSetup) => {
     setEditingId(setup.id);
+    // Find vehicle type
+    const vehicle = vehicles.find(v => v.id === setup.vehicleId);
+    setSelectedTypeId(vehicle?.vehicleTypeId ?? "");
+
     const psiMode = detectPsiMode(setup);
     const widthMode = detectWidthMode(setup);
     const diamMode = detectDiameterMode(setup);
+
     setForm({
-      kartId: setup.kartId,
+      vehicleId: setup.vehicleId,
+      templateId: setup.templateId,
       name: setup.name,
-      toe: setup.toe,
-      camber: setup.camber,
-      castor: setup.castor,
-      frontWidth: setup.frontWidth,
-      frontWidthUnit: setup.frontWidthUnit,
-      rearWidth: setup.rearWidth,
-      rearWidthUnit: setup.rearWidthUnit,
-      rearHeight: setup.rearHeight,
-      rearHeightUnit: setup.rearHeightUnit,
-      frontSprocket: setup.frontSprocket,
-      rearSprocket: setup.rearSprocket,
-      steeringBrand: setup.steeringBrand,
-      steeringSetting: setup.steeringSetting,
-      spindleSetting: setup.spindleSetting,
+      unitSystem: setup.unitSystem || "mm",
       tireBrand: setup.tireBrand,
       psiMode,
       psiFrontLeft: setup.psiFrontLeft,
@@ -156,59 +131,36 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
       tireWidthFrontRight: setup.tireWidthFrontRight,
       tireWidthRearLeft: setup.tireWidthRearLeft,
       tireWidthRearRight: setup.tireWidthRearRight,
-      tireWidthUnit: setup.tireWidthUnit,
       tireDiameterMode: diamMode,
-      tireDiameterFrontLeft: setup.tireDiameterFrontLeft ?? null,
-      tireDiameterFrontRight: setup.tireDiameterFrontRight ?? null,
-      tireDiameterRearLeft: setup.tireDiameterRearLeft ?? null,
-      tireDiameterRearRight: setup.tireDiameterRearRight ?? null,
-      tireDiameterUnit: setup.tireDiameterUnit ?? "mm",
+      tireDiameterFrontLeft: setup.tireDiameterFrontLeft,
+      tireDiameterFrontRight: setup.tireDiameterFrontRight,
+      tireDiameterRearLeft: setup.tireDiameterRearLeft,
+      tireDiameterRearRight: setup.tireDiameterRearRight,
+      customFields: { ...setup.customFields },
     });
-    // Set display helpers
+
     if (psiMode === "single") setPsiSingle(setup.psiFrontLeft);
-    else setPsiSingle(null);
-    if (psiMode === "halves") {
-      setPsiFront(setup.psiFrontLeft);
-      setPsiRear(setup.psiRearLeft);
-    }
-    if (widthMode === "halves") {
-      setWidthFront(setup.tireWidthFrontLeft);
-      setWidthRear(setup.tireWidthRearLeft);
-    }
-    if (diamMode === "halves") {
-      setDiamFront(setup.tireDiameterFrontLeft ?? null);
-      setDiamRear(setup.tireDiameterRearLeft ?? null);
-    }
+    if (psiMode === "halves") { setPsiFront(setup.psiFrontLeft); setPsiRear(setup.psiRearLeft); }
+    if (widthMode === "halves") { setWidthFront(setup.tireWidthFrontLeft); setWidthRear(setup.tireWidthRearLeft); }
+    if (diamMode === "halves") { setDiamFront(setup.tireDiameterFrontLeft); setDiamRear(setup.tireDiameterRearLeft); }
     setPreloaded(false);
     setMode("edit");
-  }, []);
+  }, [vehicles]);
 
-  const handleKartChange = useCallback(async (kartId: string) => {
-    setForm((prev) => ({ ...prev, kartId }));
+  const handleVehicleChange = useCallback(async (vehicleId: string) => {
+    setForm(prev => ({ ...prev, vehicleId }));
     if (mode !== "new") return;
-    const latest = await onGetLatestForKart(kartId);
+    const latest = await onGetLatestForVehicle(vehicleId);
     if (latest) {
       const psiMode = detectPsiMode(latest);
       const widthMode = detectWidthMode(latest);
       const diamMode = detectDiameterMode(latest);
-      setForm((prev) => ({
+      setForm(prev => ({
         ...prev,
-        kartId,
+        vehicleId,
         name: prev.name,
-        toe: latest.toe,
-        camber: latest.camber,
-        castor: latest.castor,
-        frontWidth: latest.frontWidth,
-        frontWidthUnit: latest.frontWidthUnit,
-        rearWidth: latest.rearWidth,
-        rearWidthUnit: latest.rearWidthUnit,
-        rearHeight: latest.rearHeight,
-        rearHeightUnit: latest.rearHeightUnit,
-        frontSprocket: latest.frontSprocket,
-        rearSprocket: latest.rearSprocket,
-        steeringBrand: latest.steeringBrand,
-        steeringSetting: latest.steeringSetting,
-        spindleSetting: latest.spindleSetting,
+        templateId: latest.templateId,
+        unitSystem: latest.unitSystem || "mm",
         tireBrand: latest.tireBrand,
         psiMode,
         psiFrontLeft: latest.psiFrontLeft,
@@ -220,25 +172,20 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
         tireWidthFrontRight: latest.tireWidthFrontRight,
         tireWidthRearLeft: latest.tireWidthRearLeft,
         tireWidthRearRight: latest.tireWidthRearRight,
-        tireWidthUnit: latest.tireWidthUnit,
         tireDiameterMode: diamMode,
-        tireDiameterFrontLeft: latest.tireDiameterFrontLeft ?? null,
-        tireDiameterFrontRight: latest.tireDiameterFrontRight ?? null,
-        tireDiameterRearLeft: latest.tireDiameterRearLeft ?? null,
-        tireDiameterRearRight: latest.tireDiameterRearRight ?? null,
-        tireDiameterUnit: latest.tireDiameterUnit ?? "mm",
+        tireDiameterFrontLeft: latest.tireDiameterFrontLeft,
+        tireDiameterFrontRight: latest.tireDiameterFrontRight,
+        tireDiameterRearLeft: latest.tireDiameterRearLeft,
+        tireDiameterRearRight: latest.tireDiameterRearRight,
+        customFields: { ...latest.customFields },
       }));
       if (psiMode === "single") setPsiSingle(latest.psiFrontLeft);
       if (psiMode === "halves") { setPsiFront(latest.psiFrontLeft); setPsiRear(latest.psiRearLeft); }
       if (widthMode === "halves") { setWidthFront(latest.tireWidthFrontLeft); setWidthRear(latest.tireWidthRearLeft); }
-      if (diamMode === "halves") { setDiamFront(latest.tireDiameterFrontLeft ?? null); setDiamRear(latest.tireDiameterRearLeft ?? null); }
-      // Save snapshot for change highlighting
+      if (diamMode === "halves") { setDiamFront(latest.tireDiameterFrontLeft); setDiamRear(latest.tireDiameterRearLeft); }
+      // Snapshot for change highlighting
       preloadSnapshot.current = {
-        toe: latest.toe, camber: latest.camber, castor: latest.castor,
-        frontWidth: latest.frontWidth, rearWidth: latest.rearWidth, rearHeight: latest.rearHeight,
-        frontWidthUnit: latest.frontWidthUnit, rearWidthUnit: latest.rearWidthUnit, rearHeightUnit: latest.rearHeightUnit,
-        frontSprocket: latest.frontSprocket, rearSprocket: latest.rearSprocket,
-        steeringBrand: latest.steeringBrand, steeringSetting: latest.steeringSetting, spindleSetting: latest.spindleSetting,
+        ...latest.customFields,
         tireBrand: latest.tireBrand,
         psiSingle: psiMode === "single" ? latest.psiFrontLeft : null,
         psiFront: psiMode === "halves" ? latest.psiFrontLeft : null,
@@ -249,34 +196,39 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
         widthRear: widthMode === "halves" ? latest.tireWidthRearLeft : null,
         tireWidthFrontLeft: latest.tireWidthFrontLeft, tireWidthFrontRight: latest.tireWidthFrontRight,
         tireWidthRearLeft: latest.tireWidthRearLeft, tireWidthRearRight: latest.tireWidthRearRight,
-        diamFront: diamMode === "halves" ? (latest.tireDiameterFrontLeft ?? null) : null,
-        diamRear: diamMode === "halves" ? (latest.tireDiameterRearLeft ?? null) : null,
-        tireDiameterFrontLeft: latest.tireDiameterFrontLeft ?? null, tireDiameterFrontRight: latest.tireDiameterFrontRight ?? null,
-        tireDiameterRearLeft: latest.tireDiameterRearLeft ?? null, tireDiameterRearRight: latest.tireDiameterRearRight ?? null,
+        diamFront: diamMode === "halves" ? latest.tireDiameterFrontLeft : null,
+        diamRear: diamMode === "halves" ? latest.tireDiameterRearLeft : null,
+        tireDiameterFrontLeft: latest.tireDiameterFrontLeft, tireDiameterFrontRight: latest.tireDiameterFrontRight,
+        tireDiameterRearLeft: latest.tireDiameterRearLeft, tireDiameterRearRight: latest.tireDiameterRearRight,
       };
       setPreloaded(true);
     }
-  }, [mode, onGetLatestForKart]);
+  }, [mode, onGetLatestForVehicle]);
+
+  const handleTypeChange = useCallback((typeId: string) => {
+    setSelectedTypeId(typeId);
+    const vt = vehicleTypes.find(v => v.id === typeId);
+    const tpl = vt ? templates.find(t => t.id === vt.templateId) : null;
+    if (tpl) {
+      setForm(prev => ({ ...prev, templateId: tpl.id, vehicleId: "" }));
+    }
+  }, [vehicleTypes, templates]);
 
   const handleSave = useCallback(async () => {
     let finalForm = { ...form };
-    // Build final PSI fields based on mode
     if (form.psiMode === "single" && psiSingle !== null) {
       finalForm = { ...finalForm, psiFrontLeft: psiSingle, psiFrontRight: psiSingle, psiRearLeft: psiSingle, psiRearRight: psiSingle };
     } else if (form.psiMode === "halves") {
       finalForm = { ...finalForm, psiFrontLeft: psiFront, psiFrontRight: psiFront, psiRearLeft: psiRear, psiRearRight: psiRear };
     }
-    // Build final width fields based on mode
     if (form.tireWidthMode === "halves") {
       finalForm = { ...finalForm, tireWidthFrontLeft: widthFront, tireWidthFrontRight: widthFront, tireWidthRearLeft: widthRear, tireWidthRearRight: widthRear };
     }
-    // Build final diameter fields based on mode
     if (form.tireDiameterMode === "halves") {
       finalForm = { ...finalForm, tireDiameterFrontLeft: diamFront, tireDiameterFrontRight: diamFront, tireDiameterRearLeft: diamRear, tireDiameterRearRight: diamRear };
     }
-
     if (mode === "edit" && editingId) {
-      const existing = setups.find((s) => s.id === editingId)!;
+      const existing = setups.find(s => s.id === editingId)!;
       await onUpdate({ ...existing, ...finalForm, id: editingId });
     } else {
       await onAdd(finalForm);
@@ -285,7 +237,26 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
     setMode("list");
   }, [form, psiSingle, psiFront, psiRear, widthFront, widthRear, diamFront, diamRear, mode, editingId, setups, onAdd, onUpdate, resetForm]);
 
-  const canSave = form.kartId && form.name.trim() && hasAnySetting(form, psiSingle, psiFront, psiRear, widthFront, widthRear, diamFront, diamRear);
+  const setCustomField = useCallback((fieldId: string, value: string | number | null) => {
+    setForm(prev => ({ ...prev, customFields: { ...prev.customFields, [fieldId]: value } }));
+  }, []);
+
+  const canSave = form.vehicleId && form.name.trim();
+
+  // ── Template Creator ──
+  if (mode === "new-type") {
+    return (
+      <TemplateCreator
+        existingTemplates={templates}
+        existingTypeNames={vehicleTypes.map(vt => vt.name)}
+        onSave={async (name, wheelCount, includeTires, sections) => {
+          await onAddVehicleType(name, wheelCount, includeTires, sections);
+          setMode("list");
+        }}
+        onCancel={() => setMode("list")}
+      />
+    );
+  }
 
   // ── List View ──
   if (mode === "list") {
@@ -296,12 +267,13 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3 py-16">
               <Wrench className="w-12 h-12 opacity-30" />
               <p className="text-sm font-medium">No setups yet</p>
-              <p className="text-xs">Use the button below to add one.</p>
+              <p className="text-xs">Use the buttons below to get started.</p>
             </div>
           ) : (
             <div className="space-y-1">
-              {setups.map((setup) => {
-                const kart = karts.find((k) => k.id === setup.kartId);
+              {setups.map(setup => {
+                const vehicle = vehicles.find(v => v.id === setup.vehicleId);
+                const vt = vehicle ? vehicleTypes.find(t => t.id === vehicle.vehicleTypeId) : null;
                 const isDeleting = deleteConfirmId === setup.id;
                 return (
                   <div key={setup.id}>
@@ -309,35 +281,21 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{setup.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {kart?.name ?? "Unknown kart"} · {new Date(setup.updatedAt).toLocaleDateString()}
+                          {vehicle?.name ?? "Unknown vehicle"}{vt ? ` (${vt.name})` : ""} · {new Date(setup.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(setup)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteConfirmId(setup.id)}
-                      >
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => setDeleteConfirmId(setup.id)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                     {isDeleting && (
                       <div className="mx-3 mb-1 p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
                         <span className="text-xs text-destructive flex-1">Delete this setup?</span>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="h-6 text-xs px-2"
-                          onClick={async () => { await onRemove(setup.id); setDeleteConfirmId(null); }}
-                        >
-                          Confirm
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setDeleteConfirmId(null)}>
-                          Cancel
-                        </Button>
+                        <Button size="sm" variant="destructive" className="h-6 text-xs px-2" onClick={async () => { await onRemove(setup.id); setDeleteConfirmId(null); }}>Confirm</Button>
+                        <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
                       </div>
                     )}
                   </div>
@@ -346,7 +304,10 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
             </div>
           )}
         </div>
-        <div className="shrink-0 px-3 py-3 border-t border-border">
+        <div className="shrink-0 px-3 py-3 border-t border-border space-y-2">
+          <Button variant="secondary" className="w-full gap-2" onClick={() => setMode("new-type")}>
+            <Car className="w-4 h-4" /> New Vehicle Type
+          </Button>
           <Button className="w-full gap-2" onClick={openNew}>
             <Plus className="w-4 h-4" /> Add New Setup
           </Button>
@@ -356,6 +317,10 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
   }
 
   // ── Form View ──
+  const wheelCount = currentTemplate?.wheelCount ?? 4;
+  const psiOptions = wheelCount === 2 ? (["single", "halves"] as const) : (["single", "halves", "quarters"] as const);
+  const psiLabels = wheelCount === 2 ? ["Single", "Halves"] : ["Single", "Halves", "Quarters"];
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
@@ -368,209 +333,182 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
         </h3>
         {preloaded && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Info className="w-3 h-3" /> Pre-loaded from last setup
+            <Info className="w-3 h-3" /> Pre-loaded
           </span>
         )}
       </div>
 
       {/* Scrollable form */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
-        {/* Section: Kart & Name */}
+        {/* Vehicle Type & Vehicle Selection */}
         <Section>
-          <Field label="Kart">
-            <Select value={form.kartId} onValueChange={handleKartChange}>
-              <SelectTrigger className="h-9"><SelectValue placeholder="Select kart…" /></SelectTrigger>
+          {mode === "new" && (
+            <Field label="Vehicle Type">
+              <Select value={selectedTypeId} onValueChange={handleTypeChange}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Select type…" /></SelectTrigger>
+                <SelectContent>
+                  {vehicleTypes.map(vt => (
+                    <SelectItem key={vt.id} value={vt.id}>{vt.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          <Field label="Vehicle">
+            <Select value={form.vehicleId} onValueChange={handleVehicleChange}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Select vehicle…" /></SelectTrigger>
               <SelectContent>
-                {karts.map((k) => (
-                  <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>
+                {filteredVehicles.map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
           <Field label="Setup Name">
-            <Input
-              value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              placeholder="e.g. Race Day Dry"
-              className="h-9"
-            />
+            <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Race Day Dry" className="h-9" />
           </Field>
         </Section>
 
-        {/* Alignment */}
-        <Section title="Alignment">
-          <div className="grid grid-cols-3 gap-2">
-            <Field label="Toe" changed={isChanged("toe", form.toe)}>
-              <NumberInput step="1" className="h-9" value={form.toe ?? ""} onChange={(e) => setForm((p) => ({ ...p, toe: e.target.value === "" ? null : parseInt(e.target.value) }))} />
-            </Field>
-            <Field label="Camber" changed={isChanged("camber", form.camber)}>
-              <NumberInput step="1" className="h-9" value={form.camber ?? ""} onChange={(e) => setForm((p) => ({ ...p, camber: e.target.value === "" ? null : parseInt(e.target.value) }))} />
-            </Field>
-            <Field label="Castor" changed={isChanged("castor", form.castor)}>
-              <NumberInput step="1" className="h-9" value={form.castor ?? ""} onChange={(e) => setForm((p) => ({ ...p, castor: e.target.value === "" ? null : parseInt(e.target.value) }))} />
-            </Field>
+        {/* Global Unit Toggle — only if template has measurement fields */}
+        {currentTemplate && currentTemplate.sections.some(s => s.fields.some(f => f.unit === "mm" || f.unit === "in")) && (
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs text-muted-foreground">Measurement units</span>
+            <div className="flex gap-0.5 bg-muted/50 rounded-md p-0.5">
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, unitSystem: "mm" }))}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${form.unitSystem === "mm" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >mm</button>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, unitSystem: "in" }))}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${form.unitSystem === "in" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >in</button>
+            </div>
           </div>
-        </Section>
+        )}
 
-        {/* Dimensions */}
-        <Section title="Dimensions">
-          <DimensionRow label="Front Width" value={form.frontWidth} unit={form.frontWidthUnit} onValue={(v) => setForm((p) => ({ ...p, frontWidth: v }))} onUnit={(u) => setForm((p) => ({ ...p, frontWidthUnit: u }))} changed={isChanged("frontWidth", form.frontWidth)} />
-          <DimensionRow label="Rear Width" value={form.rearWidth} unit={form.rearWidthUnit} onValue={(v) => setForm((p) => ({ ...p, rearWidth: v }))} onUnit={(u) => setForm((p) => ({ ...p, rearWidthUnit: u }))} changed={isChanged("rearWidth", form.rearWidth)} />
-          <DimensionRow label="Rear Height" value={form.rearHeight} unit={form.rearHeightUnit} onValue={(v) => setForm((p) => ({ ...p, rearHeight: v }))} onUnit={(u) => setForm((p) => ({ ...p, rearHeightUnit: u }))} changed={isChanged("rearHeight", form.rearHeight)} />
-        </Section>
-
-        {/* Sprockets */}
-        <Section title="Sprockets">
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Front" changed={isChanged("frontSprocket", form.frontSprocket)}>
-              <NumberInput step="1" className="h-9" value={form.frontSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, frontSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
-            </Field>
-            <Field label="Rear" changed={isChanged("rearSprocket", form.rearSprocket)}>
-              <NumberInput step="1" className="h-9" value={form.rearSprocket ?? ""} onChange={(e) => setForm((p) => ({ ...p, rearSprocket: e.target.value === "" ? null : parseInt(e.target.value) }))} />
-            </Field>
-          </div>
-        </Section>
-
-        {/* Steering */}
-        <Section title="Steering">
-          <Field label="Column Brand" changed={isChanged("steeringBrand", form.steeringBrand)}>
-            <Input className="h-9" value={form.steeringBrand} onChange={(e) => setForm((p) => ({ ...p, steeringBrand: e.target.value }))} />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Steering (1-5)" changed={isChanged("steeringSetting", form.steeringSetting)}>
-              <NumberInput min={1} max={5} step="1" className="h-9" value={form.steeringSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, steeringSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
-            </Field>
-            <Field label="Spindle (1-5)" changed={isChanged("spindleSetting", form.spindleSetting)}>
-              <NumberInput min={1} max={5} step="1" className="h-9" value={form.spindleSetting ?? ""} onChange={(e) => setForm((p) => ({ ...p, spindleSetting: e.target.value === "" ? null : parseInt(e.target.value) }))} />
-            </Field>
-          </div>
-        </Section>
-
-        {/* Tires */}
-        <Section title="Tires">
-          <Field label="Tire Brand" changed={isChanged("tireBrand", form.tireBrand)}>
-            <Input className="h-9" value={form.tireBrand} onChange={(e) => setForm((p) => ({ ...p, tireBrand: e.target.value }))} />
-          </Field>
-        </Section>
-
-        {/* Tire PSI */}
-        <Section title="Tire PSI">
-          <ModeToggle
-            options={["single", "halves", "quarters"] as const}
-            labels={["Single", "Halves", "Quarters"]}
-            value={form.psiMode}
-            onChange={(v) => setForm((p) => ({ ...p, psiMode: v }))}
-          />
-          {form.psiMode === "single" && (
-            <Field label="All Tires" changed={isChanged("psiSingle", psiSingle)}>
-              <NumberInput step="0.01" className="h-9" value={psiSingle ?? ""} onChange={(e) => setPsiSingle(e.target.value === "" ? null : parseFloat(e.target.value))} />
-            </Field>
-          )}
-          {form.psiMode === "halves" && (
+        {/* Dynamic template sections */}
+        {currentTemplate?.sections.map(section => (
+          <Section key={section.id} title={section.name}>
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Front" changed={isChanged("psiFront", psiFront)}>
-                <NumberInput step="0.01" className="h-9" value={psiFront ?? ""} onChange={(e) => setPsiFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
-              </Field>
-              <Field label="Rear" changed={isChanged("psiRear", psiRear)}>
-                <NumberInput step="0.01" className="h-9" value={psiRear ?? ""} onChange={(e) => setPsiRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
-              </Field>
+              {section.fields.map(field => {
+                const value = form.customFields[field.id] ?? (field.type === "string" ? "" : null);
+                const displayUnit = (field.unit === "mm" || field.unit === "in") ? form.unitSystem : field.unit;
+                return (
+                  <Field
+                    key={field.id}
+                    label={`${field.name}${displayUnit ? ` (${displayUnit})` : ""}`}
+                    changed={isChanged(field.id, value)}
+                  >
+                    {field.type === "number" ? (
+                      <NumberInput
+                        min={field.min}
+                        max={field.max}
+                        step={field.step ? String(field.step) : "1"}
+                        className="h-9"
+                        value={value ?? ""}
+                        onChange={e => setCustomField(field.id, e.target.value === "" ? null : parseFloat(e.target.value))}
+                      />
+                    ) : (
+                      <Input
+                        className="h-9"
+                        value={String(value ?? "")}
+                        onChange={e => setCustomField(field.id, e.target.value || null)}
+                      />
+                    )}
+                  </Field>
+                );
+              })}
             </div>
-          )}
-          {form.psiMode === "quarters" && (
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="FL" changed={isChanged("psiFrontLeft", form.psiFrontLeft)}>
-                <NumberInput step="0.01" className="h-9" value={form.psiFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="FR" changed={isChanged("psiFrontRight", form.psiFrontRight)}>
-                <NumberInput step="0.01" className="h-9" value={form.psiFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="RL" changed={isChanged("psiRearLeft", form.psiRearLeft)}>
-                <NumberInput step="0.01" className="h-9" value={form.psiRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="RR" changed={isChanged("psiRearRight", form.psiRearRight)}>
-                <NumberInput step="0.01" className="h-9" value={form.psiRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, psiRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-            </div>
-          )}
-        </Section>
+          </Section>
+        ))}
 
-        {/* Tire Widths */}
-        <Section title="Tire Widths">
-          <div className="flex items-center justify-between mb-2">
-            <ModeToggle
-              options={["halves", "quarters"] as const}
-              labels={["Halves", "Quarters"]}
-              value={form.tireWidthMode}
-              onChange={(v) => setForm((p) => ({ ...p, tireWidthMode: v }))}
-            />
-            <UnitSwitch value={form.tireWidthUnit} onChange={(u) => setForm((p) => ({ ...p, tireWidthUnit: u }))} />
-          </div>
-          {form.tireWidthMode === "halves" && (
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Front" changed={isChanged("widthFront", widthFront)}>
-                <NumberInput step="0.01" className="h-9" value={widthFront ?? ""} onChange={(e) => setWidthFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
+        {/* Built-in Tire Section */}
+        {currentTemplate?.includeTires && (
+          <>
+            <Section title="Tires">
+              <Field label="Tire Brand" changed={isChanged("tireBrand", form.tireBrand)}>
+                <Input className="h-9" value={form.tireBrand} onChange={e => setForm(p => ({ ...p, tireBrand: e.target.value }))} />
               </Field>
-              <Field label="Rear" changed={isChanged("widthRear", widthRear)}>
-                <NumberInput step="0.01" className="h-9" value={widthRear ?? ""} onChange={(e) => setWidthRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
-              </Field>
-            </div>
-          )}
-          {form.tireWidthMode === "quarters" && (
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="FL" changed={isChanged("tireWidthFrontLeft", form.tireWidthFrontLeft)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireWidthFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="FR" changed={isChanged("tireWidthFrontRight", form.tireWidthFrontRight)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireWidthFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="RL" changed={isChanged("tireWidthRearLeft", form.tireWidthRearLeft)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireWidthRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="RR" changed={isChanged("tireWidthRearRight", form.tireWidthRearRight)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireWidthRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireWidthRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-            </div>
-          )}
-        </Section>
+            </Section>
 
-        {/* Tire Diameter */}
-        <Section title="Tire Diameter">
-          <div className="flex items-center justify-between mb-2">
-            <ModeToggle
-              options={["halves", "quarters"] as const}
-              labels={["Halves", "Quarters"]}
-              value={form.tireDiameterMode}
-              onChange={(v) => setForm((p) => ({ ...p, tireDiameterMode: v }))}
-            />
-            <UnitSwitch value={form.tireDiameterUnit} onChange={(u) => setForm((p) => ({ ...p, tireDiameterUnit: u }))} />
-          </div>
-          {form.tireDiameterMode === "halves" && (
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Front" changed={isChanged("diamFront", diamFront)}>
-                <NumberInput step="0.01" className="h-9" value={diamFront ?? ""} onChange={(e) => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
-              </Field>
-              <Field label="Rear" changed={isChanged("diamRear", diamRear)}>
-                <NumberInput step="0.01" className="h-9" value={diamRear ?? ""} onChange={(e) => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
-              </Field>
-            </div>
-          )}
-          {form.tireDiameterMode === "quarters" && (
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="FL" changed={isChanged("tireDiameterFrontLeft", form.tireDiameterFrontLeft)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="FR" changed={isChanged("tireDiameterFrontRight", form.tireDiameterFrontRight)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="RL" changed={isChanged("tireDiameterRearLeft", form.tireDiameterRearLeft)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-              <Field label="RR" changed={isChanged("tireDiameterRearRight", form.tireDiameterRearRight)}>
-                <NumberInput step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={(e) => setForm((p) => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} />
-              </Field>
-            </div>
-          )}
-        </Section>
+            <Section title="Tire PSI">
+              <ModeToggle options={psiOptions} labels={psiLabels} value={form.psiMode} onChange={v => setForm(p => ({ ...p, psiMode: v }))} />
+              {form.psiMode === "single" && (
+                <Field label="All Tires" changed={isChanged("psiSingle", psiSingle)}>
+                  <NumberInput step="0.01" className="h-9" value={psiSingle ?? ""} onChange={e => setPsiSingle(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                </Field>
+              )}
+              {form.psiMode === "halves" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Front" changed={isChanged("psiFront", psiFront)}>
+                    <NumberInput step="0.01" className="h-9" value={psiFront ?? ""} onChange={e => setPsiFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                  </Field>
+                  <Field label="Rear" changed={isChanged("psiRear", psiRear)}>
+                    <NumberInput step="0.01" className="h-9" value={psiRear ?? ""} onChange={e => setPsiRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
+                  </Field>
+                </div>
+              )}
+              {form.psiMode === "quarters" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="FL"><NumberInput step="0.01" className="h-9" value={form.psiFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, psiFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="FR"><NumberInput step="0.01" className="h-9" value={form.psiFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, psiFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="RL"><NumberInput step="0.01" className="h-9" value={form.psiRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, psiRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="RR"><NumberInput step="0.01" className="h-9" value={form.psiRearRight ?? ""} onChange={e => setForm(p => ({ ...p, psiRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                </div>
+              )}
+            </Section>
+
+            {/* Tire Widths */}
+            <Section title={`Tire Widths (${form.unitSystem})`}>
+              <ModeToggle
+                options={wheelCount === 2 ? (["halves"] as const) : (["halves", "quarters"] as const)}
+                labels={wheelCount === 2 ? ["Halves"] : ["Halves", "Quarters"]}
+                value={form.tireWidthMode}
+                onChange={v => setForm(p => ({ ...p, tireWidthMode: v }))}
+              />
+              {form.tireWidthMode === "halves" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Front"><NumberInput step="0.01" className="h-9" value={widthFront ?? ""} onChange={e => setWidthFront(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                  <Field label="Rear"><NumberInput step="0.01" className="h-9" value={widthRear ?? ""} onChange={e => setWidthRear(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                </div>
+              )}
+              {form.tireWidthMode === "quarters" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="FL"><NumberInput step="0.01" className="h-9" value={form.tireWidthFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="FR"><NumberInput step="0.01" className="h-9" value={form.tireWidthFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="RL"><NumberInput step="0.01" className="h-9" value={form.tireWidthRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="RR"><NumberInput step="0.01" className="h-9" value={form.tireWidthRearRight ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                </div>
+              )}
+            </Section>
+
+            {/* Tire Diameter */}
+            <Section title={`Tire Diameter (${form.unitSystem})`}>
+              <ModeToggle
+                options={wheelCount === 2 ? (["halves"] as const) : (["halves", "quarters"] as const)}
+                labels={wheelCount === 2 ? ["Halves"] : ["Halves", "Quarters"]}
+                value={form.tireDiameterMode}
+                onChange={v => setForm(p => ({ ...p, tireDiameterMode: v }))}
+              />
+              {form.tireDiameterMode === "halves" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Front"><NumberInput step="0.01" className="h-9" value={diamFront ?? ""} onChange={e => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                  <Field label="Rear"><NumberInput step="0.01" className="h-9" value={diamRear ?? ""} onChange={e => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                </div>
+              )}
+              {form.tireDiameterMode === "quarters" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="FL"><NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="FR"><NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="RL"><NumberInput step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label="RR"><NumberInput step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                </div>
+              )}
+            </Section>
+          </>
+        )}
       </div>
 
       {/* Bottom actions */}
@@ -586,29 +524,23 @@ export function SetupsTab({ karts, setups, onAdd, onUpdate, onRemove, onGetLates
 
 // ── Helpers ──
 
-function hasAnySetting(
-  f: Omit<KartSetup, "id" | "createdAt" | "updatedAt">,
-  psiSingle: number | null,
-  psiFront: number | null,
-  psiRear: number | null,
-  widthFront: number | null,
-  widthRear: number | null,
-  diamFront: number | null,
-  diamRear: number | null,
-): boolean {
-  return !!(
-    f.toe !== null || f.camber !== null || f.castor !== null ||
-    f.frontWidth !== null || f.rearWidth !== null || f.rearHeight !== null ||
-    f.frontSprocket !== null || f.rearSprocket !== null ||
-    f.steeringBrand || f.steeringSetting !== null || f.spindleSetting !== null ||
-    f.tireBrand ||
-    psiSingle !== null || psiFront !== null || psiRear !== null ||
-    f.psiFrontLeft !== null || f.psiFrontRight !== null || f.psiRearLeft !== null || f.psiRearRight !== null ||
-    widthFront !== null || widthRear !== null ||
-    f.tireWidthFrontLeft !== null || f.tireWidthFrontRight !== null || f.tireWidthRearLeft !== null || f.tireWidthRearRight !== null ||
-    diamFront !== null || diamRear !== null ||
-    f.tireDiameterFrontLeft !== null || f.tireDiameterFrontRight !== null || f.tireDiameterRearLeft !== null || f.tireDiameterRearRight !== null
-  );
+function detectPsiMode(s: VehicleSetup): "single" | "halves" | "quarters" {
+  const vals = [s.psiFrontLeft, s.psiFrontRight, s.psiRearLeft, s.psiRearRight];
+  const nonNull = vals.filter(v => v !== null);
+  if (nonNull.length === 0) return "single";
+  if (nonNull.every(v => v === nonNull[0])) return "single";
+  if (s.psiFrontLeft === s.psiFrontRight && s.psiRearLeft === s.psiRearRight) return "halves";
+  return "quarters";
+}
+
+function detectWidthMode(s: VehicleSetup): "halves" | "quarters" {
+  if (s.tireWidthFrontLeft === s.tireWidthFrontRight && s.tireWidthRearLeft === s.tireWidthRearRight) return "halves";
+  return "quarters";
+}
+
+function detectDiameterMode(s: VehicleSetup): "halves" | "quarters" {
+  if ((s.tireDiameterFrontLeft ?? null) === (s.tireDiameterFrontRight ?? null) && (s.tireDiameterRearLeft ?? null) === (s.tireDiameterRearRight ?? null)) return "halves";
+  return "quarters";
 }
 
 function Section({ title, children }: { title?: string; children: React.ReactNode }) {
@@ -632,42 +564,6 @@ function Field({ label, changed, children }: { label: string; changed?: boolean;
       <div className={changed ? "rounded-md ring-1 ring-primary/60" : ""}>
         {children}
       </div>
-    </div>
-  );
-}
-
-function DimensionRow({
-  label, value, unit, onValue, onUnit, changed,
-}: {
-  label: string;
-  value: number | null;
-  unit: "mm" | "in";
-  onValue: (v: number | null) => void;
-  onUnit: (u: "mm" | "in") => void;
-  changed?: boolean;
-}) {
-  return (
-    <div className="flex items-end gap-2">
-      <div className="flex-1">
-        <Field label={label} changed={changed}>
-          <NumberInput step="0.01" className="h-9" value={value ?? ""} onChange={(e) => onValue(e.target.value === "" ? null : parseFloat(e.target.value))} />
-        </Field>
-      </div>
-      <UnitSwitch value={unit} onChange={onUnit} />
-    </div>
-  );
-}
-
-function UnitSwitch({ value, onChange }: { value: "mm" | "in"; onChange: (u: "mm" | "in") => void }) {
-  return (
-    <div className="flex items-center gap-1.5 pb-0.5">
-      <span className={`text-xs ${value === "mm" ? "text-foreground font-medium" : "text-muted-foreground"}`}>mm</span>
-      <Switch
-        checked={value === "in"}
-        onCheckedChange={(checked) => onChange(checked ? "in" : "mm")}
-        className="h-5 w-9"
-      />
-      <span className={`text-xs ${value === "in" ? "text-foreground font-medium" : "text-muted-foreground"}`}>in</span>
     </div>
   );
 }
