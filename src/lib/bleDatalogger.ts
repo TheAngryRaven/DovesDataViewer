@@ -208,7 +208,8 @@ function parseFileList(fileListStr: string): FileInfo[] {
     }
   });
 
-  return files;
+  // Exclude non-log files (e.g. SETTINGS.json) from the download list
+  return files.filter(f => f.name.toUpperCase() !== 'SETTINGS.JSON');
 }
 
 // Download a file from the device
