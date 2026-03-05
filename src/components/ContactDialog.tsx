@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 
 export const MESSAGE_CATEGORIES = ["Comment", "Feature Request", "Complaint", "Bug Report"] as const;
 
-export function ContactDialog() {
+export function ContactDialog({ variant = "footer" }: { variant?: "header" | "footer" }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<string>("");
   const [email, setEmail] = useState("");
@@ -57,10 +57,17 @@ export function ContactDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
-          <Mail className="w-3 h-3" />
-          Contact
-        </button>
+        {variant === "header" ? (
+          <Button variant="outline" size="sm" className="gap-2">
+            <Mail className="w-4 h-4" />
+            <span className="hidden sm:inline">Contact</span>
+          </Button>
+        ) : (
+          <button className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+            <Mail className="w-3 h-3" />
+            Contact
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
