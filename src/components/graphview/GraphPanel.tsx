@@ -5,7 +5,7 @@ import { RangeSlider } from '@/components/RangeSlider';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
-import { computeBrakingGSeriesSG } from '@/lib/brakingZones';
+import { computeBrakingGSeriesSG, gToBrakePercent } from '@/lib/brakingZones';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { saveGraphPrefs, loadGraphPrefs } from '@/lib/graphPrefsStorage';
 
@@ -57,13 +57,13 @@ export function GraphPanel({
   // Compute braking G series from FULL dataset using SG filter for smooth graph
   const brakingGFull = useMemo(() => {
     if (filteredSamples.length < 3) return [];
-    return computeBrakingGSeriesSG(filteredSamples, brakingZoneSettings.graphWindow);
+    return gToBrakePercent(computeBrakingGSeriesSG(filteredSamples, brakingZoneSettings.graphWindow));
   }, [filteredSamples, brakingZoneSettings.graphWindow]);
 
   // Compute braking G for reference samples using SG filter
   const brakingGRefFull = useMemo(() => {
     if (!hasReference || referenceSamples.length < 3) return [];
-    return computeBrakingGSeriesSG(referenceSamples, brakingZoneSettings.graphWindow);
+    return gToBrakePercent(computeBrakingGSeriesSG(referenceSamples, brakingZoneSettings.graphWindow));
   }, [referenceSamples, brakingZoneSettings.graphWindow, hasReference]);
 
   // Precompute reference values for each channel from FULL dataset, then slice for visible range
@@ -146,7 +146,7 @@ export function GraphPanel({
     if (hasReference) {
       sources.push({ key: '__pace__', label: 'Pace (Δs)' });
     }
-    sources.push({ key: '__braking_g__', label: hasBothSources ? 'Braking G (GPS)' : 'Braking G' });
+    sources.push({ key: '__braking_g__', label: hasBothSources ? 'Brake % (GPS)' : 'Brake % (computed)' });
     fieldMappings.forEach(f => {
       let label = f.name + (f.unit ? ` (${f.unit})` : '');
       // Add source indicator when both GPS and HW G-force data exist

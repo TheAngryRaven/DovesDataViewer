@@ -36,15 +36,15 @@ export function buildDataSources(
     },
   });
 
-  // Braking G (computed from GPS speed via Savitzky-Golay filter)
+  // Brake % (computed from GPS speed deceleration)
   sources.push({
     id: "__braking_g__",
-    label: "Braking G (computed)",
-    unit: "G",
+    label: "Brake % (computed)",
+    unit: "%",
     isSpecial: true,
     getValue: () => null, // resolved via brakingGData
-    getMin: () => -3,
-    getMax: () => 3,
+    getMin: () => 0,
+    getMax: () => 100,
   });
 
 
@@ -121,14 +121,8 @@ export function resolveRange(
   paceData: number[],
   brakingGData?: number[],
 ): { min: number; max: number } {
-  if (sourceId === "__braking_g__" && brakingGData) {
-    let min = Infinity, max = -Infinity;
-    for (const v of brakingGData) {
-      if (v < min) min = v;
-      if (v > max) max = v;
-    }
-    const absMax = Math.max(Math.abs(min), Math.abs(max), 0.5);
-    return { min: -absMax, max: absMax };
+  if (sourceId === "__braking_g__") {
+    return { min: 0, max: 100 };
   }
   if (sourceId === "__pace__") {
     let min = Infinity, max = -Infinity;

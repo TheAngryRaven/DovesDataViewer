@@ -232,6 +232,20 @@ export function computeBrakingGSeriesSG(
 }
 
 /**
+ * Convert a braking G series to 0-100 brake percentage.
+ * Only negative G (deceleration) counts as braking.
+ * Maps 0G → 0%, -1.5G → 100% (tuned for karts; heavier cars rarely exceed -1.5G).
+ * Positive G (acceleration) is clamped to 0.
+ */
+const BRAKE_MAX_G = 1.5;
+export function gToBrakePercent(gSeries: number[]): number[] {
+  return gSeries.map(g => {
+    if (g >= 0) return 0; // not braking
+    return Math.min(100, (-g / BRAKE_MAX_G) * 100);
+  });
+}
+
+/**
  * Create a BrakingZone object from sample indices
  */
 function createZone(samples: GpsSample[], startIdx: number, endIdx: number): BrakingZone {
