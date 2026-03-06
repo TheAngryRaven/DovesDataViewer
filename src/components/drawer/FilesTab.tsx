@@ -54,14 +54,23 @@ export function FilesTab({
   const [confirmLoad, setConfirmLoad] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [videoFiles, setVideoFiles] = useState<Set<string>>(new Set());
+  const [videoFiles, setVideoFiles] = useState<Map<string, StoredVideoMeta>>(new Map());
 
   // Load stored video metadata to show video icons
   useEffect(() => {
     listSessionVideos().then(videos => {
-      setVideoFiles(new Set(videos.map(v => v.sessionFileName)));
+      setVideoFiles(new Map(videos.map(v => [v.sessionFileName, v])));
     }).catch(() => {});
-  }, [files]); // Refresh when files list changes
+  }, [files]);
+
+  const handleDeleteVideo = useCallback(async (sessionFileName: string) => {
+    await deleteSessionVideo(sessionFileName);
+    setVideoFiles(prev => {
+      const next = new Map(prev);
+      next.delete(sessionFileName);
+      return next;
+    });
+  }, []);
 
   const handleLoadConfirm = useCallback(async () => {
     if (!confirmLoad) return;
