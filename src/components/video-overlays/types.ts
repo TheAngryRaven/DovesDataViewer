@@ -24,6 +24,7 @@ export interface OverlayInstance {
   color?: string;
   graphLength?: number; // graph: number of samples to show
   showAnimation?: boolean; // sector: sparkle toggle
+  showPaceMode?: boolean; // laptime: show pace delta + best lap
 }
 
 export interface OverlaySettings {

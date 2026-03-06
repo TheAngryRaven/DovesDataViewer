@@ -217,6 +217,7 @@ function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstanc
     case "map": return <MapOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
     case "pace": return <PaceOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
     case "sector": return <SectorOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "laptime": return <LapTimeOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
     default: return null;
   }
 }
