@@ -252,6 +252,16 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
                         />
                       </div>
                     )}
+
+                    {overlay.type === "map" && hasSectors && (
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Sector Colors</Label>
+                        <Switch
+                          checked={overlay.showSectors === true}
+                          onCheckedChange={(v) => updateOverlay(overlay.id, { showSectors: v })}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
