@@ -63,6 +63,11 @@ export function openDB(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAMES.SETUP_TEMPLATES, { keyPath: "id" });
       }
 
+      // v9: Session videos store
+      if (!db.objectStoreNames.contains(STORE_NAMES.SESSION_VIDEOS)) {
+        db.createObjectStore(STORE_NAMES.SESSION_VIDEOS, { keyPath: "sessionFileName" });
+      }
+
       // v8 migration: add vehicleId index to setups if upgrading from v7
       if (oldVersion < 8) {
         try {
