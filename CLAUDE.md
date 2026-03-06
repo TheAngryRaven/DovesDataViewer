@@ -193,7 +193,7 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 
 ## IndexedDB Storage (`src/lib/dbUtils.ts`)
 
-Single shared database: `"dove-file-manager"`, version 7.
+Single shared database: `"dove-file-manager"`, version 9.
 
 | Store | Key | Module |
 |-------|-----|--------|
@@ -204,6 +204,9 @@ Single shared database: `"dove-file-manager"`, version 7.
 | `setups` | `id` (indexed by `kartId`) | `setupStorage.ts` |
 | `video-sync` | `sessionFileName` | `videoStorage.ts` |
 | `graph-prefs` | `sessionFileName` | `graphPrefsStorage.ts` |
+| `vehicle-types` | `id` | `templateStorage.ts` |
+| `setup-templates` | `id` | `templateStorage.ts` |
+| `session-videos` | `sessionFileName` | `videoFileStorage.ts` |
 
 To add a new store: increment `DB_VERSION`, add store name to `STORE_NAMES`, add creation logic in `openDB()`, create a corresponding storage module.
 
