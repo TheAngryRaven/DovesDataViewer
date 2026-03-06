@@ -67,6 +67,7 @@ src/
 │   │   ├── MapOverlay.tsx       # Mini canvas race line with position dot
 │   │   ├── PaceOverlay.tsx      # Horizontal pace delta indicator
 │   │   ├── SectorOverlay.tsx    # 3 sector bubbles with delta + sparkle animation
+│   │   ├── LapTimeOverlay.tsx   # Lap timer with optional pace mode (delta + best lap)
 │   │   ├── OverlaySettingsPanel.tsx # Add/configure/remove overlay instances
 │   │   └── VideoExportDialog.tsx    # Export dialog with quality options
 │   ├── FileImport.tsx     # Drag-and-drop file import
