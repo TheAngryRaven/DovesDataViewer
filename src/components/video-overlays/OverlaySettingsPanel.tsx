@@ -40,7 +40,7 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
     if (!typeDef) return;
 
     const defaultSource = typeDef.isSpecial
-      ? (addType === "pace" ? "__pace__" : addType === "sector" ? "__sector__" : "__map__")
+      ? (addType === "pace" ? "__pace__" : addType === "sector" ? "__sector__" : addType === "laptime" ? "__laptime__" : "__map__")
       : (dataSources[0]?.id ?? "speed");
 
     const newOverlay: OverlayInstance = {
@@ -239,6 +239,16 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
                         <Switch
                           checked={overlay.showAnimation !== false}
                           onCheckedChange={(v) => updateOverlay(overlay.id, { showAnimation: v })}
+                        />
+                      </div>
+                    )}
+
+                    {overlay.type === "laptime" && (
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Pace Mode (delta + best)</Label>
+                        <Switch
+                          checked={overlay.showPaceMode === true}
+                          onCheckedChange={(v) => updateOverlay(overlay.id, { showPaceMode: v })}
                         />
                       </div>
                     )}

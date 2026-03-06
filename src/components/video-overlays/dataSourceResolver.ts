@@ -36,16 +36,6 @@ export function buildDataSources(
     },
   });
 
-  // Lap Time (special — computed from sample.t relative to lap start)
-  sources.push({
-    id: "__laptime__",
-    label: "Lap Time",
-    unit: "",
-    isSpecial: true,
-    getValue: () => null, // resolved externally via context
-    getMin: () => 0,
-    getMax: () => 120,
-  });
 
   // Pace (special)
   if (hasReference) {
@@ -99,14 +89,9 @@ export function resolveValue(
   currentIndex: number,
   dataSources: DataSourceDef[],
   paceData: number[],
-  lapStartTimeMs?: number,
 ): number | null {
   if (sourceId === "__pace__") {
     return paceData[currentIndex] ?? null;
-  }
-  if (sourceId === "__laptime__") {
-    if (lapStartTimeMs == null) return null;
-    return (sample.t - lapStartTimeMs) / 1000; // seconds since lap start
   }
   const src = dataSources.find((d) => d.id === sourceId);
   if (!src) return null;

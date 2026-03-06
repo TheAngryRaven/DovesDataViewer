@@ -66,6 +66,14 @@ export const OVERLAY_TYPES: OverlayTypeDef[] = [
     isSpecial: true,
     defaultConfig: { showAnimation: true },
   },
+  {
+    type: "laptime",
+    label: "Lap Time",
+    icon: "Clock",
+    description: "Current lap time with optional pace mode",
+    isSpecial: true,
+    defaultConfig: { showPaceMode: false },
+  },
 ];
 
 export function getOverlayTypeDef(type: OverlayType): OverlayTypeDef | undefined {

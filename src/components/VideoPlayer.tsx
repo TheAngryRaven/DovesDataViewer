@@ -22,6 +22,7 @@ import { BubbleOverlay } from "@/components/video-overlays/BubbleOverlay";
 import { MapOverlay } from "@/components/video-overlays/MapOverlay";
 import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
 import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
+import { LapTimeOverlay } from "@/components/video-overlays/LapTimeOverlay";
 import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
@@ -217,6 +218,7 @@ function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstanc
     case "map": return <MapOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
     case "pace": return <PaceOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
     case "sector": return <SectorOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "laptime": return <LapTimeOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
     default: return null;
   }
 }
