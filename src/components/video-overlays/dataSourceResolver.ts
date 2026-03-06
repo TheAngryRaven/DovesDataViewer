@@ -121,14 +121,8 @@ export function resolveRange(
   paceData: number[],
   brakingGData?: number[],
 ): { min: number; max: number } {
-  if (sourceId === "__braking_g__" && brakingGData) {
-    let min = Infinity, max = -Infinity;
-    for (const v of brakingGData) {
-      if (v < min) min = v;
-      if (v > max) max = v;
-    }
-    const absMax = Math.max(Math.abs(min), Math.abs(max), 0.5);
-    return { min: -absMax, max: absMax };
+  if (sourceId === "__braking_g__") {
+    return { min: 0, max: 100 };
   }
   if (sourceId === "__pace__") {
     let min = Infinity, max = -Infinity;
