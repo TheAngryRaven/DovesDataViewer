@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Pencil, Cloud, Thermometer, Droplets, Gauge } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GpsSample, Course } from '@/types/racing';
+import { GpsSample, Course, FieldMapping, Lap } from '@/types/racing';
 import { findSpeedEvents } from '@/lib/speedEvents';
 import { formatLapTime } from '@/lib/lapCalculation';
 import { Vehicle } from '@/lib/vehicleStorage';
@@ -39,6 +39,15 @@ interface InfoBoxProps {
   videoActions?: VideoSyncActions;
   onVideoLoadedMetadata?: () => void;
   currentSample?: GpsSample | null;
+  // New props for video overlay system
+  visibleSamples?: GpsSample[];
+  allSamples?: GpsSample[];
+  currentIndex?: number;
+  fieldMappings?: FieldMapping[];
+  laps?: Lap[];
+  selectedLapNumber?: number | null;
+  referenceSamples?: GpsSample[];
+  paceData?: number[];
 }
 
 type InfoTab = 'data' | 'vehicle' | 'video';
@@ -49,6 +58,8 @@ export function InfoBox({
   sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved,
   vehicles, setups, templates, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor,
   videoState, videoActions, onVideoLoadedMetadata, currentSample,
+  visibleSamples, allSamples, currentIndex, fieldMappings, laps, selectedLapNumber,
+  referenceSamples, paceData,
 }: InfoBoxProps) {
   const { useKph } = useSettingsContext();
   const [tab, setTab] = useState<InfoTab>('data');
@@ -103,7 +114,21 @@ export function InfoBox({
       <div className="flex-1 min-h-0 overflow-y-auto">
         {tab === 'video' && videoState && videoActions && onVideoLoadedMetadata ? (
           <div className="h-full">
-            <VideoPlayer state={videoState} actions={videoActions} onLoadedMetadata={onVideoLoadedMetadata} currentSample={currentSample ?? null} />
+            <VideoPlayer
+              state={videoState}
+              actions={videoActions}
+              onLoadedMetadata={onVideoLoadedMetadata}
+              currentSample={currentSample ?? null}
+              samples={visibleSamples}
+              allSamples={allSamples}
+              currentIndex={currentIndex}
+              fieldMappings={fieldMappings}
+              laps={laps}
+              selectedLapNumber={selectedLapNumber}
+              course={course}
+              referenceSamples={referenceSamples}
+              paceData={paceData}
+            />
           </div>
         ) : (
         <div className="p-3 space-y-3">
@@ -247,7 +272,6 @@ function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: Se
     }
   };
 
-  // Dynamic custom fields from template
   if (template) {
     for (const section of template.sections) {
       for (const field of section.fields) {
@@ -256,7 +280,6 @@ function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: Se
         add(field.name, val, displayUnit ? ` ${displayUnit}` : "");
       }
     }
-    // Sprocket ratio calculation for kart template
     const frontSprocket = setup.customFields["f-front-sprocket"];
     const rearSprocket = setup.customFields["f-rear-sprocket"];
     if (typeof frontSprocket === "number" && typeof rearSprocket === "number" && frontSprocket > 0) {
@@ -265,8 +288,6 @@ function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: Se
   }
 
   add('Tire Brand', setup.tireBrand);
-
-  // PSI
   if (setup.psiFrontLeft !== null) {
     if (setup.psiFrontLeft === setup.psiFrontRight && setup.psiRearLeft === setup.psiRearRight && setup.psiFrontLeft === setup.psiRearLeft) {
       add('PSI (all)', setup.psiFrontLeft?.toFixed(2));
@@ -280,8 +301,6 @@ function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: Se
       add('PSI RR', setup.psiRearRight?.toFixed(2));
     }
   }
-
-  // Tire width
   const wu = setup.unitSystem || "mm";
   if (setup.tireWidthFrontLeft !== null) {
     if (setup.tireWidthFrontLeft === setup.tireWidthFrontRight && setup.tireWidthRearLeft === setup.tireWidthRearRight) {
@@ -294,8 +313,6 @@ function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: Se
       add('Tire Width RR', setup.tireWidthRearRight?.toFixed(2), ` ${wu}`);
     }
   }
-
-  // Tire diameter
   if (setup.tireDiameterFrontLeft !== null) {
     if (setup.tireDiameterFrontLeft === setup.tireDiameterFrontRight && setup.tireDiameterRearLeft === setup.tireDiameterRearRight) {
       add('Tire Diameter Front', setup.tireDiameterFrontLeft?.toFixed(2), ` ${wu}`);

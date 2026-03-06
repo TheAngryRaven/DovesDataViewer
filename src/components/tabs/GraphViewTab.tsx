@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { GraphViewPanel, type GraphViewPanelProps } from '@/components/graphview/GraphViewPanel';
 import type { VideoSyncState, VideoSyncActions } from '@/hooks/useVideoSync';
-import type { GpsSample } from '@/types/racing';
+import type { GpsSample, Lap } from '@/types/racing';
 
 export interface GraphViewTabProps extends GraphViewPanelProps {
   videoState: VideoSyncState;
