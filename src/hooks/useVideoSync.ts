@@ -77,6 +77,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
+  const [storedVideoMeta, setStoredVideoMeta] = useState<StoredVideoMeta | null>(null);
 
   const revokeUrl = useCallback(() => {
     setVideoUrl(prev => {
