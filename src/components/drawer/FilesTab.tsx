@@ -1,11 +1,11 @@
 import { useCallback, useRef, useState, useEffect } from "react";
-import { Trash2, Download, Upload, FolderOpen, Loader2, Video } from "lucide-react";
+import { Trash2, Download, Upload, FolderOpen, Loader2, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
 import { DataloggerDownload } from "@/components/DataloggerDownload";
-import { listSessionVideos, StoredVideoMeta } from "@/lib/videoFileStorage";
+import { listSessionVideos, deleteSessionVideo, StoredVideoMeta } from "@/lib/videoFileStorage";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
