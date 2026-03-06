@@ -271,7 +271,7 @@ function drawGraph(
 
 function drawBar(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const range = max - min || 1;
