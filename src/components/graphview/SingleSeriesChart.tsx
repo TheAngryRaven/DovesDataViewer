@@ -159,7 +159,7 @@ export function SingleSeriesChart({
     }
 
     // Draw zero line for pace and braking G
-    if (isPace || isBrakingG) {
+    if (isPace) {
       const zeroY = padding.top + (1 - (0 - minVal) / range) * chartHeight;
       ctx.beginPath();
       ctx.strokeStyle = chartColors.zeroLine;
