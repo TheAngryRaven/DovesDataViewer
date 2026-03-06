@@ -119,7 +119,7 @@ export function startVideoExport(
       recorder.onerror = () => callbacks.onError("MediaRecorder error");
 
       // Start recording
-      recorder.start(500);
+      recorder.start(100);
 
       // Seek to start
       const wasMuted = videoElement.muted;

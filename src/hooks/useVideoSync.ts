@@ -37,6 +37,7 @@ export interface VideoSyncActions {
     seekVideo: (timeSec: number) => void;
     updateOverlaySettings: (settings: OverlaySettings) => void;
     deleteStoredVideo: () => Promise<void>;
+    refreshStoredMeta: () => Promise<void>;
     videoRef: React.RefObject<HTMLVideoElement | null>;
   }
 
@@ -381,12 +382,25 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     return () => { active = false; };
   }, [isPlaying, isLocked, videoUrl]);
 
+  const refreshStoredMeta = useCallback(async () => {
+    if (!sessionFileName) return;
+    const has = await hasSessionVideo(sessionFileName);
+    setStoredVideoAvailable(has);
+    const meta = has ? await getSessionVideoMeta(sessionFileName) : null;
+    setStoredVideoMeta(meta);
+  }, [sessionFileName]);
+
   const handleDeleteStoredVideo = useCallback(async () => {
     if (!sessionFileName) return;
     await deleteSessionVideo(sessionFileName);
     setStoredVideoAvailable(false);
     setStoredVideoMeta(null);
-  }, [sessionFileName]);
+    // If current video was loaded from storage (no file handle), clear it
+    if (!fileHandle) {
+      revokeUrl();
+      setVideoFileName(null);
+    }
+  }, [sessionFileName, fileHandle, revokeUrl]);
 
   const updateOverlaySettings = useCallback((newSettings: OverlaySettings) => {
     setOverlaySettings(newSettings);
@@ -412,7 +426,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
 
   const actions: VideoSyncActions = {
     loadVideo, toggleLock, togglePlay, stepFrame, setSyncPoint,
-    seekVideo, updateOverlaySettings, deleteStoredVideo: handleDeleteStoredVideo, videoRef,
+    seekVideo, updateOverlaySettings, deleteStoredVideo: handleDeleteStoredVideo, refreshStoredMeta, videoRef,
   };
 
   return { state, actions, handleLoadedMetadata };
