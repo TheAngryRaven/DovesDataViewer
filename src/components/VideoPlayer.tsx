@@ -300,11 +300,12 @@ export const VideoPlayer = memo(function VideoPlayer({
       course,
       referenceSamples,
       paceData,
+      brakingGData,
       useKph,
       containerWidth: 0,
       containerHeight: 0,
     };
-  }, [currentSample, currentIndex, samples, allSamples, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, paceData, useKph]);
+  }, [currentSample, currentIndex, samples, allSamples, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, paceData, brakingGData, useKph]);
 
   const handleOverlayMove = useCallback((id: string, pos: OverlayPosition) => {
     const updated = {
