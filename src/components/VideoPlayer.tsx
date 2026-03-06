@@ -271,7 +271,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   // Compute braking G from visible samples for overlays
   const brakingGData = useMemo(() => {
     if (allSamples.length < 3) return [];
-    return computeBrakingGSeriesSG(allSamples, 25);
+    return gToBrakePercent(computeBrakingGSeriesSG(allSamples, 25));
   }, [allSamples]);
   const brakingGDataRef = useRef(brakingGData);
   brakingGDataRef.current = brakingGData;

@@ -36,15 +36,15 @@ export function buildDataSources(
     },
   });
 
-  // Braking G (computed from GPS speed via Savitzky-Golay filter)
+  // Brake % (computed from GPS speed deceleration)
   sources.push({
     id: "__braking_g__",
-    label: "Braking G (computed)",
-    unit: "G",
+    label: "Brake % (computed)",
+    unit: "%",
     isSpecial: true,
     getValue: () => null, // resolved via brakingGData
-    getMin: () => -3,
-    getMax: () => 3,
+    getMin: () => 0,
+    getMax: () => 100,
   });
 
 

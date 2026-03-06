@@ -146,7 +146,7 @@ export function GraphPanel({
     if (hasReference) {
       sources.push({ key: '__pace__', label: 'Pace (Δs)' });
     }
-    sources.push({ key: '__braking_g__', label: hasBothSources ? 'Braking G (GPS)' : 'Braking G' });
+    sources.push({ key: '__braking_g__', label: hasBothSources ? 'Brake % (GPS)' : 'Brake % (computed)' });
     fieldMappings.forEach(f => {
       let label = f.name + (f.unit ? ` (${f.unit})` : '');
       // Add source indicator when both GPS and HW G-force data exist
