@@ -62,10 +62,10 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
 
   const updateOverlay = useCallback((id: string, patch: Partial<OverlayInstance>) => {
     onUpdate({
-      ...settings,
-      overlays: settings.overlays.map(o => o.id === id ? { ...o, ...patch } : o),
+      ...safeSettings,
+      overlays: safeSettings.overlays.map(o => o.id === id ? { ...o, ...patch } : o),
     });
-  }, [settings, onUpdate]);
+  }, [safeSettings, onUpdate]);
 
   const removeOverlay = useCallback((id: string) => {
     onUpdate({
