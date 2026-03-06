@@ -174,7 +174,9 @@ export function FilesTab({
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-mono truncate text-foreground">{file.name}</span>
                   {videoFiles.has(file.name) && (
-                    <Video className="w-3.5 h-3.5 text-primary shrink-0" title="Has saved video" />
+                    <span title="Has saved video">
+                      <Video className="w-3.5 h-3.5 text-primary shrink-0" />
+                    </span>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
