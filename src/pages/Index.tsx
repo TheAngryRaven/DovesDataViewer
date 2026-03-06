@@ -379,12 +379,6 @@ export default function Index() {
                   <span className="hidden sm:inline">Sponsor</span>
                 </Button>
               </a>
-              {enableAdmin && (
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/admin')}>
-                  <Shield className="w-4 h-4" />
-                  <span className="hidden sm:inline">Admin</span>
-                </Button>
-              )}
             </div>
           </div>
         </header>
