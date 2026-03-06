@@ -55,7 +55,7 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
       ...(typeDef.defaultConfig as Partial<OverlayInstance>),
     };
 
-    onUpdate({ ...settings, overlays: [...settings.overlays, newOverlay] });
+    onUpdate({ ...safeSettings, overlays: [...safeSettings.overlays, newOverlay] });
     setAddType("");
     setExpandedId(newOverlay.id);
   }, [addType, settings, onUpdate, dataSources]);
