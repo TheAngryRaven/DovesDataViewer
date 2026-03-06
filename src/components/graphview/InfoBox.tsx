@@ -60,7 +60,7 @@ export function InfoBox({
   vehicles, setups, templates, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor,
   videoState, videoActions, onVideoLoadedMetadata, currentSample,
   visibleSamples, allSamples, currentIndex, fieldMappings, laps, selectedLapNumber,
-  referenceSamples, paceData,
+  referenceSamples, paceData, sessionFileName,
 }: InfoBoxProps) {
   const { useKph } = useSettingsContext();
   const [tab, setTab] = useState<InfoTab>('data');
