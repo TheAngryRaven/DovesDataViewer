@@ -50,7 +50,7 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
       theme: "classic",
       colorMode: "dark",
       opacity: 1,
-      position: { x: 5, y: 5 + settings.overlays.length * 12 },
+      position: { x: 5, y: 5 + safeSettings.overlays.length * 12 },
       visible: true,
       ...(typeDef.defaultConfig as Partial<OverlayInstance>),
     };
