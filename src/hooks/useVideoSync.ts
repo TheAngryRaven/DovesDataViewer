@@ -25,6 +25,7 @@ export interface VideoSyncState {
   isOutOfRange: boolean;
   overlaySettings: OverlaySettings;
   hasStoredVideo: boolean;
+  storedVideoMeta: StoredVideoMeta | null;
 }
 
 export interface VideoSyncActions {
