@@ -19,6 +19,10 @@ interface OverlaySettingsPanelProps {
 }
 
 export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasReference, hasSectors }: OverlaySettingsPanelProps) {
+  const safeSettings: OverlaySettings = {
+    overlaysLocked: settings?.overlaysLocked ?? true,
+    overlays: settings?.overlays ?? [],
+  };
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addType, setAddType] = useState<OverlayType | "">("");
 
@@ -46,29 +50,29 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
       theme: "classic",
       colorMode: "dark",
       opacity: 1,
-      position: { x: 5, y: 5 + settings.overlays.length * 12 },
+      position: { x: 5, y: 5 + safeSettings.overlays.length * 12 },
       visible: true,
       ...(typeDef.defaultConfig as Partial<OverlayInstance>),
     };
 
-    onUpdate({ ...settings, overlays: [...settings.overlays, newOverlay] });
+    onUpdate({ ...safeSettings, overlays: [...safeSettings.overlays, newOverlay] });
     setAddType("");
     setExpandedId(newOverlay.id);
-  }, [addType, settings, onUpdate, dataSources]);
+  }, [addType, safeSettings, onUpdate, dataSources]);
 
   const updateOverlay = useCallback((id: string, patch: Partial<OverlayInstance>) => {
     onUpdate({
-      ...settings,
-      overlays: settings.overlays.map(o => o.id === id ? { ...o, ...patch } : o),
+      ...safeSettings,
+      overlays: safeSettings.overlays.map(o => o.id === id ? { ...o, ...patch } : o),
     });
-  }, [settings, onUpdate]);
+  }, [safeSettings, onUpdate]);
 
   const removeOverlay = useCallback((id: string) => {
     onUpdate({
-      ...settings,
-      overlays: settings.overlays.filter(o => o.id !== id),
+      ...safeSettings,
+      overlays: safeSettings.overlays.filter(o => o.id !== id),
     });
-  }, [settings, onUpdate]);
+  }, [safeSettings, onUpdate]);
 
   return (
     <div className="space-y-4">
@@ -95,11 +99,11 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
       </div>
 
       {/* Overlay list */}
-      {settings.overlays.length === 0 ? (
+      {safeSettings.overlays.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">No overlays configured. Add one above.</p>
       ) : (
         <div className="space-y-1">
-          {settings.overlays.map(overlay => {
+          {safeSettings.overlays.map(overlay => {
             const typeDef = getOverlayTypeDef(overlay.type);
             const isExpanded = expandedId === overlay.id;
 
