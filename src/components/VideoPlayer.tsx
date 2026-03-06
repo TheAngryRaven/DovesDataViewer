@@ -268,11 +268,11 @@ export const VideoPlayer = memo(function VideoPlayer({
   const paceDataRef = useRef(paceData);
   paceDataRef.current = paceData;
 
-  // Compute braking G from visible samples for overlays
+  // Compute brake % from visible samples for overlays (must match currentIndex which indexes into samples)
   const brakingGData = useMemo(() => {
-    if (allSamples.length < 3) return [];
-    return gToBrakePercent(computeBrakingGSeriesSG(allSamples, brakingZoneSettings.graphWindow), brakingZoneSettings.brakeMaxG);
-  }, [allSamples, brakingZoneSettings.graphWindow, brakingZoneSettings.brakeMaxG]);
+    if (samples.length < 3) return [];
+    return gToBrakePercent(computeBrakingGSeriesSG(samples, brakingZoneSettings.graphWindow), brakingZoneSettings.brakeMaxG);
+  }, [samples, brakingZoneSettings.graphWindow, brakingZoneSettings.brakeMaxG]);
   const brakingGDataRef = useRef(brakingGData);
   brakingGDataRef.current = brakingGData;
 
