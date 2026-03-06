@@ -324,6 +324,7 @@ export default function Index() {
               <Gauge className="w-8 h-8 text-primary" />
               <div>
                 <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
+                <p className="text-sm text-muted-foreground">Experimental Data Viewer</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -503,14 +504,6 @@ export default function Index() {
                 </Button>
               </div>
 
-              <div className="mt-4 p-4 bg-muted/30 rounded-lg text-left border border-border/50">
-                <h3 className="font-medium text-foreground mb-2">Experimental Data Viewer</h3>
-                <p className="text-xs leading-relaxed">
-                  This viewer supports <span className="font-medium text-foreground">NMEA Enhanced</span> format —
-                  standard NMEA sentences (RMC, GGA) organized as tab-delimited CSV with optional additional data
-                  columns.
-                </p>
-              </div>
             </div>
 
             <div className="flex items-center justify-center gap-8 mt-4">
