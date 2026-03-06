@@ -245,7 +245,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   course = null, referenceSamples = [], paceData = [],
   sessionFileName = null,
 }: VideoPlayerProps) {
-  const { useKph, brakingZoneSettings } = useSettingsContext();
+  const { useKph, brakingZoneSettings, enableLabs } = useSettingsContext();
   const progressRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -684,15 +684,17 @@ export const VideoPlayer = memo(function VideoPlayer({
             <Sliders className="w-3.5 h-3.5" />
           </Button>
 
-          {/* Export */}
-          <Button
-            variant="ghost" size="icon"
-            className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30"
-            onClick={() => setShowExportDialog(true)}
-            title="Export video"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </Button>
+          {/* Export (Labs only) */}
+          {enableLabs && (
+            <Button
+              variant="ghost" size="icon"
+              className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30"
+              onClick={() => setShowExportDialog(true)}
+              title="Export video"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
 
         {/* Progress bar row */}
