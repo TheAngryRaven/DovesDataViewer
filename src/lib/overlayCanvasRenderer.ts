@@ -83,13 +83,37 @@ export function renderOverlaysToCanvas(
   }
 }
 
+function formatLapTimeCanvas(seconds: number): string {
+  if (seconds < 0) seconds = 0;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds - mins * 60;
+  const whole = Math.floor(secs);
+  const ms = Math.round((secs - whole) * 1000);
+  if (mins > 0) {
+    return `${mins}:${String(whole).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
+  }
+  return `${whole}.${String(ms).padStart(3, "0")}`;
+}
+
+function getLapStartTimeCanvas(ctx: OverlayRenderContext): number | undefined {
+  if (ctx.selectedLapNumber == null || ctx.laps.length === 0) {
+    return ctx.samples.length > 0 ? ctx.samples[0].t : undefined;
+  }
+  const lap = ctx.laps.find((l) => l.lapNumber === ctx.selectedLapNumber);
+  return lap?.startTime;
+}
+
 function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const isLapTime = inst.dataSource === "__laptime__";
+  const lapStartMs = isLapTime ? getLapStartTimeCanvas(ctx) : undefined;
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, lapStartMs);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
-  const displayVal = value !== null ? value.toFixed(1) : "—";
+  const displayVal = isLapTime
+    ? (value !== null ? formatLapTimeCanvas(value) : "0.000")
+    : (value !== null ? value.toFixed(1) : "—");
 
-  const textW = displayVal.length * l.fontSize * 0.65 + unit.length * l.fontSize * 0.35 + l.fontSize * 0.6;
+  const textW = displayVal.length * l.fontSize * 0.65 + (unit.length > 0 ? unit.length * l.fontSize * 0.35 + l.fontSize * 0.15 : 0) + l.fontSize * 0.6;
   const h = l.fontSize * 1.5;
 
   // Background
@@ -108,9 +132,11 @@ function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ov
   c.fillText(displayVal, l.x + l.fontSize * 0.3, l.y + h / 2);
 
   // Unit
-  c.fillStyle = theme.textSecondary(inst.colorMode);
-  c.font = `${l.fontSize * 0.55}px "JetBrains Mono", monospace`;
-  c.fillText(unit, l.x + l.fontSize * 0.3 + displayVal.length * l.fontSize * 0.65 + l.fontSize * 0.15, l.y + h / 2);
+  if (unit) {
+    c.fillStyle = theme.textSecondary(inst.colorMode);
+    c.font = `${l.fontSize * 0.55}px "JetBrains Mono", monospace`;
+    c.fillText(unit, l.x + l.fontSize * 0.3 + displayVal.length * l.fontSize * 0.65 + l.fontSize * 0.15, l.y + h / 2);
+  }
 }
 
 function drawAnalog(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
