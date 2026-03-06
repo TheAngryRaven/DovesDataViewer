@@ -407,6 +407,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     videoUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
     videoDuration, videoCurrentTime, isOutOfRange, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
+    storedVideoMeta,
   };
 
   const actions: VideoSyncActions = {
