@@ -470,12 +470,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           const lapNum = options.range === "lap" && selectedLapNumber != null ? selectedLapNumber : undefined;
           saveSessionVideo(sessionFileName, blob, vidName, exportType, options.includeOverlays, lapNum).then(() => {
             console.log("Video saved to app storage");
-            // Refresh stored video state
-            import("@/lib/videoFileStorage").then(({ getSessionVideoMeta }) => {
-              getSessionVideoMeta(sessionFileName).then(meta => {
-                // The state will be refreshed via useVideoSync
-              });
-            });
+            actions.refreshStoredMeta();
           }).catch(err => {
             console.error("Failed to save video:", err);
             // Fallback to download
