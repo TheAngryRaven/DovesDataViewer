@@ -131,9 +131,9 @@ export function SingleSeriesChart({
     }
 
     if (isSpeed) { minVal = 0; maxVal = Math.ceil(maxVal / 10) * 10; }
-    if (isPace || isBrakingG) {
-      // Center around zero with symmetric range
-      const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), isPace ? 0.5 : 0.1);
+    if (isBrakingG) { minVal = 0; maxVal = 100; } // 0-100% fixed range
+    if (isPace) {
+      const absMax = Math.max(Math.abs(minVal), Math.abs(maxVal), 0.5);
       minVal = -absMax;
       maxVal = absMax;
     }
