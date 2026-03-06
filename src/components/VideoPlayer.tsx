@@ -287,22 +287,19 @@ export const VideoPlayer = memo(function VideoPlayer({
   const resetHideTimer = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     setControlsVisible(true);
-    if (state.isPlaying) {
+    if (state.isPlaying && overlaysLocked) {
       hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
     }
-  }, [state.isPlaying]);
+  }, [state.isPlaying, overlaysLocked]);
 
   useEffect(() => {
-    if (!controlsVisible && !overlaysLocked) {
-      wasUnlockedBeforeFade.current = true;
-      actions.updateOverlaySettings({ ...state.overlaySettings, overlaysLocked: true });
-    } else if (controlsVisible && wasUnlockedBeforeFade.current) {
-      wasUnlockedBeforeFade.current = false;
-      actions.updateOverlaySettings({ ...state.overlaySettings, overlaysLocked: false });
+    // When overlays are unlocked, always keep controls visible
+    if (!overlaysLocked) {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      setControlsVisible(true);
+      return;
     }
-  }, [controlsVisible]); // intentionally narrow deps
 
-  useEffect(() => {
     if (state.isPlaying) {
       hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
     } else {
@@ -310,7 +307,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       setControlsVisible(true);
     }
     return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
-  }, [state.isPlaying]);
+  }, [state.isPlaying, overlaysLocked]);
 
   // Video rect tracking
   const [videoRect, setVideoRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
