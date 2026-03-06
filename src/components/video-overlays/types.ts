@@ -1,6 +1,6 @@
 import type { GpsSample, FieldMapping, Lap, Course } from "@/types/racing";
 
-export type OverlayType = "digital" | "analog" | "graph" | "bar" | "bubble" | "map" | "pace" | "sector";
+export type OverlayType = "digital" | "analog" | "graph" | "bar" | "bubble" | "map" | "pace" | "sector" | "laptime";
 export type ThemeId = "classic" | "neon";
 export type ColorMode = "light" | "dark";
 
