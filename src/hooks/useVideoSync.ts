@@ -92,8 +92,9 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   useEffect(() => {
     if (!sessionFileName) return;
 
-    // Check if there's a stored video
+    // Check if there's a stored video and load metadata
     hasSessionVideo(sessionFileName).then(has => setStoredVideoAvailable(has));
+    getSessionVideoMeta(sessionFileName).then(meta => setStoredVideoMeta(meta)).catch(() => {});
 
     loadVideoSync(sessionFileName).then(async (record) => {
       if (!record) {
