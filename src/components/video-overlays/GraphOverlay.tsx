@@ -14,7 +14,7 @@ export const GraphOverlay = memo(function GraphOverlay({ instance, ctx, fontSize
   const historyRef = useRef<number[]>([]);
   const theme = getTheme(instance.theme);
 
-  const value = resolveValue(instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const { min, max } = resolveRange(instance.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const unit = resolveUnit(instance.dataSource, ctx.dataSources);
   const graphLength = instance.graphLength ?? 100;
