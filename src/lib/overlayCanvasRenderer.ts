@@ -404,18 +404,64 @@ function drawMap(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Overla
   const toX = (lon: number) => offsetX + (lon - minLon) * scale;
   const toY = (lat: number) => offsetY + (maxLat - lat) * scale;
 
-  // Track line
-  c.beginPath();
-  for (let i = 0; i < samples.length; i++) {
-    const x = toX(samples[i].lon);
-    const y = toY(samples[i].lat);
-    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
-  }
-  c.strokeStyle = theme.ringColor(inst.colorMode);
-  c.lineWidth = 2;
   c.lineCap = "round";
   c.lineJoin = "round";
-  c.stroke();
+
+  const showSectors = inst.showSectors === true && courseHasSectors(ctx.course);
+
+  if (showSectors) {
+    // Find current lap
+    let currentLap = ctx.selectedLapNumber !== null
+      ? ctx.laps.find(lap => lap.lapNumber === ctx.selectedLapNumber) ?? null
+      : null;
+    if (!currentLap) {
+      const t = ctx.currentSample.t;
+      for (const lap of ctx.laps) {
+        if (t >= lap.startTime && t <= lap.endTime) { currentLap = lap; break; }
+      }
+    }
+
+    const segments = computeSectorSegments(samples, currentLap, ctx.currentSample.t, ctx.laps);
+
+    // Base track line (faint)
+    c.beginPath();
+    for (let i = 0; i < samples.length; i++) {
+      const x = toX(samples[i].lon);
+      const y = toY(samples[i].lat);
+      if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.strokeStyle = theme.ringColor(inst.colorMode);
+    c.lineWidth = 1.5;
+    c.stroke();
+
+    // Colored sector segments
+    for (const seg of segments) {
+      const startI = Math.max(0, seg.startIdx);
+      const endI = Math.min(samples.length - 1, seg.endIdx);
+      if (endI <= startI) continue;
+
+      c.beginPath();
+      for (let i = startI; i <= endI; i++) {
+        const x = toX(samples[i].lon);
+        const y = toY(samples[i].lat);
+        if (i === startI) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      c.strokeStyle = SECTOR_COLORS[seg.status];
+      c.lineWidth = 3;
+      c.stroke();
+    }
+  } else {
+    // Default single-color track line
+    c.beginPath();
+    for (let i = 0; i < samples.length; i++) {
+      const x = toX(samples[i].lon);
+      const y = toY(samples[i].lat);
+      if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.strokeStyle = theme.ringColor(inst.colorMode);
+    c.lineWidth = 2;
+    c.stroke();
+  }
 
   // Position dot
   const current = ctx.currentSample;
