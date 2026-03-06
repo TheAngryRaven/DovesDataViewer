@@ -5,7 +5,7 @@ import { RangeSlider } from '@/components/RangeSlider';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
-import { computeBrakingGSeriesSG } from '@/lib/brakingZones';
+import { computeBrakingGSeriesSG, gToBrakePercent } from '@/lib/brakingZones';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { saveGraphPrefs, loadGraphPrefs } from '@/lib/graphPrefsStorage';
 
