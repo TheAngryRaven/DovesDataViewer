@@ -22,6 +22,7 @@ import { BubbleOverlay } from "@/components/video-overlays/BubbleOverlay";
 import { MapOverlay } from "@/components/video-overlays/MapOverlay";
 import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
 import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
+import { LapTimeOverlay } from "@/components/video-overlays/LapTimeOverlay";
 import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";

@@ -105,15 +105,11 @@ function getLapStartTimeCanvas(ctx: OverlayRenderContext): number | undefined {
 
 function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const isLapTime = inst.dataSource === "__laptime__";
-  const lapStartMs = isLapTime ? getLapStartTimeCanvas(ctx) : undefined;
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, lapStartMs);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
-  const displayVal = isLapTime
-    ? (value !== null ? formatLapTimeCanvas(value) : "0.000")
-    : (value !== null ? value.toFixed(1) : "—");
+  const displayVal = value !== null ? value.toFixed(1) : "—";
 
-  const textW = displayVal.length * l.fontSize * 0.65 + (unit.length > 0 ? unit.length * l.fontSize * 0.35 + l.fontSize * 0.15 : 0) + l.fontSize * 0.6;
+  const textW = displayVal.length * l.fontSize * 0.65 + unit.length * l.fontSize * 0.35 + l.fontSize * 0.6;
   const h = l.fontSize * 1.5;
 
   // Background
@@ -132,11 +128,9 @@ function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ov
   c.fillText(displayVal, l.x + l.fontSize * 0.3, l.y + h / 2);
 
   // Unit
-  if (unit) {
-    c.fillStyle = theme.textSecondary(inst.colorMode);
-    c.font = `${l.fontSize * 0.55}px "JetBrains Mono", monospace`;
-    c.fillText(unit, l.x + l.fontSize * 0.3 + displayVal.length * l.fontSize * 0.65 + l.fontSize * 0.15, l.y + h / 2);
-  }
+  c.fillStyle = theme.textSecondary(inst.colorMode);
+  c.font = `${l.fontSize * 0.55}px "JetBrains Mono", monospace`;
+  c.fillText(unit, l.x + l.fontSize * 0.3 + displayVal.length * l.fontSize * 0.65 + l.fontSize * 0.15, l.y + h / 2);
 }
 
 function drawAnalog(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
