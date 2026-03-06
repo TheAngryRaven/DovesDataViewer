@@ -100,9 +100,13 @@ export function resolveValue(
   currentIndex: number,
   dataSources: DataSourceDef[],
   paceData: number[],
+  brakingGData?: number[],
 ): number | null {
   if (sourceId === "__pace__") {
     return paceData[currentIndex] ?? null;
+  }
+  if (sourceId === "__braking_g__") {
+    return brakingGData?.[currentIndex] ?? null;
   }
   const src = dataSources.find((d) => d.id === sourceId);
   if (!src) return null;
