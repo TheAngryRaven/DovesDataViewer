@@ -344,15 +344,15 @@ export default function Index() {
                   </DialogHeader>
                   <div className="space-y-3 text-sm">
                     <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
-                      <p className="font-semibold text-foreground">NMEA / CSV (Tab-Delimited)</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Tab-delimited CSV with NMEA sentences — the native format used by our custom dataloggers. Extensions: <code className="text-primary">.nmea</code>, <code className="text-primary">.csv</code>, <code className="text-primary">.txt</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
                       <p className="font-semibold text-foreground">Dove CSV</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Simple CSV with millisecond Unix timestamps, GPS data, RPM, and hardware accelerometer readings. The native format of <a href="https://github.com/TheAngryRaven/DovesDataLogger" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">DovesDataLogger</a>. Extension: <code className="text-primary">.dove</code>
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
+                      <p className="font-semibold text-foreground">NMEA / CSV (Tab-Delimited)</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code className="text-primary">.nmea</code>, <code className="text-primary">.csv</code>, <code className="text-primary">.txt</code>
                       </p>
                     </div>
 
