@@ -63,7 +63,7 @@ export function GraphPanel({
   // Compute braking G for reference samples using SG filter
   const brakingGRefFull = useMemo(() => {
     if (!hasReference || referenceSamples.length < 3) return [];
-    return computeBrakingGSeriesSG(referenceSamples, brakingZoneSettings.graphWindow);
+    return gToBrakePercent(computeBrakingGSeriesSG(referenceSamples, brakingZoneSettings.graphWindow));
   }, [referenceSamples, brakingZoneSettings.graphWindow, hasReference]);
 
   // Precompute reference values for each channel from FULL dataset, then slice for visible range
