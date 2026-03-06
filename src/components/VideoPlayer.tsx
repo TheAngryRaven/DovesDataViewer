@@ -503,6 +503,12 @@ export const VideoPlayer = memo(function VideoPlayer({
     }
   }, [sessionFileName]);
 
+  // Delete stored video
+  const handleDeleteStored = useCallback(async () => {
+    if (!sessionFileName) return;
+    await actions.deleteStoredVideo();
+  }, [sessionFileName, actions]);
+
   const hasSectors = courseHasSectors(course);
 
   // No video loaded
