@@ -129,6 +129,7 @@ export function InfoBox({
               course={course}
               referenceSamples={referenceSamples}
               paceData={paceData}
+              sessionFileName={sessionFileName}
             />
           </div>
         ) : (
