@@ -320,8 +320,8 @@ function drawBar(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Overla
 
 function drawBubble(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const valueX = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
-  const valueY = resolveValue(inst.dataSourceSecondary ?? inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const valueX = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  const valueY = resolveValue(inst.dataSourceSecondary ?? inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const rangeX = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const rangeY = resolveRange(inst.dataSourceSecondary ?? inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
 
