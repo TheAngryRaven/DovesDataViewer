@@ -57,7 +57,7 @@ export function GraphPanel({
   // Compute braking G series from FULL dataset using SG filter for smooth graph
   const brakingGFull = useMemo(() => {
     if (filteredSamples.length < 3) return [];
-    return computeBrakingGSeriesSG(filteredSamples, brakingZoneSettings.graphWindow);
+    return gToBrakePercent(computeBrakingGSeriesSG(filteredSamples, brakingZoneSettings.graphWindow));
   }, [filteredSamples, brakingZoneSettings.graphWindow]);
 
   // Compute braking G for reference samples using SG filter
