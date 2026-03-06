@@ -447,7 +447,7 @@ export default function Index() {
               </a>
             </div>
 
-            <div className="flex items-center gap-3 mt-3">
+            <div className="flex items-center justify-center gap-6 mt-3 flex-wrap">
               <Link to="/privacy" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
                 <Shield className="w-3 h-3" />
                 Privacy Policy
