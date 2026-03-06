@@ -34,10 +34,11 @@ export interface VideoSyncActions {
   togglePlay: () => void;
   stepFrame: (direction: 1 | -1) => void;
   setSyncPoint: () => void;
-  seekVideo: (timeSec: number) => void;
-  updateOverlaySettings: (settings: OverlaySettings) => void;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-}
+    seekVideo: (timeSec: number) => void;
+    updateOverlaySettings: (settings: OverlaySettings) => void;
+    deleteStoredVideo: () => Promise<void>;
+    videoRef: React.RefObject<HTMLVideoElement | null>;
+  }
 
 function findNearestIndex(samples: GpsSample[], targetMs: number): number {
   if (samples.length === 0) return 0;
