@@ -500,6 +500,15 @@ export default function Index() {
                   </div>
                 </DialogContent>
               </Dialog>
+              {enableAdmin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                >
+                  <Shield className="w-3 h-3" />
+                  Track Management
+                </button>
+              )}
             </div>
           </div>
         </main>
