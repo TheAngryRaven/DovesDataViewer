@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState } from "react";
-import { Trash2, Download, Upload, FolderOpen, Loader2 } from "lucide-react";
+import { useCallback, useRef, useState, useEffect } from "react";
+import { Trash2, Download, Upload, FolderOpen, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
 import { DataloggerDownload } from "@/components/DataloggerDownload";
+import { listSessionVideos, StoredVideoMeta } from "@/lib/videoFileStorage";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -53,6 +54,14 @@ export function FilesTab({
   const [confirmLoad, setConfirmLoad] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [videoFiles, setVideoFiles] = useState<Set<string>>(new Set());
+
+  // Load stored video metadata to show video icons
+  useEffect(() => {
+    listSessionVideos().then(videos => {
+      setVideoFiles(new Set(videos.map(v => v.sessionFileName)));
+    }).catch(() => {});
+  }, [files]); // Refresh when files list changes
 
   const handleLoadConfirm = useCallback(async () => {
     if (!confirmLoad) return;
@@ -162,7 +171,12 @@ export function FilesTab({
                 className="flex-1 text-left min-w-0 cursor-pointer"
                 onClick={() => setConfirmLoad(file.name)}
               >
-                <div className="text-sm font-mono truncate text-foreground">{file.name}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-mono truncate text-foreground">{file.name}</span>
+                  {videoFiles.has(file.name) && (
+                    <Video className="w-3.5 h-3.5 text-primary shrink-0" title="Has saved video" />
+                  )}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {formatSize(file.size)} · {new Date(file.savedAt).toLocaleDateString()}
                   {fileMetadataMap.get(file.name)?.fastestLapMs != null && (

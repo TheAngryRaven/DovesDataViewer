@@ -22,7 +22,8 @@ import { BubbleOverlay } from "@/components/video-overlays/BubbleOverlay";
 import { MapOverlay } from "@/components/video-overlays/MapOverlay";
 import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
 import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
-import { startVideoExport, downloadBlob } from "@/lib/videoExport";
+import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport";
+import { saveSessionVideo, loadSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
 
 interface VideoPlayerProps {
@@ -40,6 +41,7 @@ interface VideoPlayerProps {
   course?: Course | null;
   referenceSamples?: GpsSample[];
   paceData?: number[];
+  sessionFileName?: string | null;
 }
 
 /** Base font size in px when video container is 640px wide */
@@ -219,11 +221,26 @@ function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstanc
   }
 }
 
+function findNearestIndex(samples: GpsSample[], targetMs: number): number {
+  if (samples.length === 0) return 0;
+  let lo = 0, hi = samples.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid].t < targetMs) lo = mid + 1;
+    else hi = mid;
+  }
+  if (lo > 0 && Math.abs(samples[lo - 1].t - targetMs) < Math.abs(samples[lo].t - targetMs)) {
+    return lo - 1;
+  }
+  return lo;
+}
+
 export const VideoPlayer = memo(function VideoPlayer({
   state, actions, onLoadedMetadata, currentSample,
   samples = [], allSamples = [], currentIndex = 0,
   fieldMappings = [], laps = [], selectedLapNumber = null,
   course = null, referenceSamples = [], paceData = [],
+  sessionFileName = null,
 }: VideoPlayerProps) {
   const { useKph } = useSettingsContext();
   const progressRef = useRef<HTMLDivElement>(null);
@@ -240,7 +257,13 @@ export const VideoPlayer = memo(function VideoPlayer({
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-
+  // Keep refs for export context building
+  const samplesRef = useRef(samples);
+  samplesRef.current = samples;
+  const allSamplesRef = useRef(allSamples);
+  allSamplesRef.current = allSamples;
+  const paceDataRef = useRef(paceData);
+  paceDataRef.current = paceData;
 
   const overlaysLocked = state.overlaySettings.overlaysLocked ?? true;
   const overlays = state.overlaySettings.overlays ?? [];
@@ -276,7 +299,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   const handleOverlayMove = useCallback((id: string, pos: OverlayPosition) => {
     const updated = {
       ...state.overlaySettings,
-      overlays: state.overlaySettings.overlays.map(o =>
+      overlays: (state.overlaySettings.overlays ?? []).map(o =>
         o.id === id ? { ...o, position: pos } : o
       ),
     };
@@ -335,12 +358,14 @@ export const VideoPlayer = memo(function VideoPlayer({
 
   const handleVideoClick = useCallback((e: React.MouseEvent) => {
     if (toolbarRef.current?.contains(e.target as Node)) return;
+    // Don't toggle controls when overlays are unlocked (user is repositioning)
+    if (!overlaysLocked) return;
     setControlsVisible(v => !v);
     if (state.isPlaying) {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
     }
-  }, [state.isPlaying]);
+  }, [state.isPlaying, overlaysLocked]);
 
   // Progress bar
   const seekFromPointer = useCallback((clientX: number) => {
@@ -368,6 +393,38 @@ export const VideoPlayer = memo(function VideoPlayer({
     ? Math.max(0, Math.min(1, state.videoCurrentTime / state.videoDuration))
     : 0;
 
+  // Build export context that resolves overlay data from video time
+  const buildExportRenderCtx = useCallback((_videoTime: number): OverlayRenderContext | null => {
+    // During export, the video element's currentTime is the source of truth.
+    // We map that to the telemetry timeline using the sync offset.
+    const video = actions.videoRef.current;
+    if (!video) return null;
+    const videoMs = video.currentTime * 1000;
+    const telemetryMs = videoMs + state.syncOffsetMs;
+    const s = allSamplesRef.current;
+    if (s.length === 0) return null;
+    const idx = findNearestIndex(s, telemetryMs);
+    const sample = s[idx];
+    if (!sample) return null;
+
+    return {
+      currentSample: sample,
+      currentIndex: idx,
+      samples: samplesRef.current,
+      allSamples: allSamplesRef.current,
+      dataSources,
+      fieldMappings,
+      laps,
+      selectedLapNumber,
+      course,
+      referenceSamples,
+      paceData: paceDataRef.current,
+      useKph,
+      containerWidth: 0,
+      containerHeight: 0,
+    };
+  }, [actions.videoRef, state.syncOffsetMs, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, useKph]);
+
   // Export
   const handleExport = useCallback((options: ExportOptions) => {
     const video = actions.videoRef.current;
@@ -375,20 +432,68 @@ export const VideoPlayer = memo(function VideoPlayer({
     setIsExporting(true);
     setExportProgress(0);
 
-    startVideoExport(video, null, options, {
+    // Compute time range for lap export
+    let startTime: number | undefined;
+    let endTime: number | undefined;
+    if (options.range === "lap" && selectedLapNumber !== null) {
+      const lap = laps.find(l => l.lapNumber === selectedLapNumber);
+      if (lap) {
+        // Convert telemetry time to video time using sync offset
+        startTime = Math.max(0, (lap.startTime - state.syncOffsetMs) / 1000);
+        endTime = Math.min(video.duration, (lap.endTime - state.syncOffsetMs) / 1000);
+      }
+    }
+
+    const exportOptions: ExportOptions = {
+      ...options,
+      startTime,
+      endTime,
+    };
+
+    const exportContext: ExportContext = {
+      overlays: overlays.filter(o => o.visible),
+      buildRenderCtx: buildExportRenderCtx,
+    };
+
+    const destination = options.destination;
+
+    startVideoExport(video, exportContext, exportOptions, {
       onProgress: (p) => setExportProgress(p),
       onComplete: (blob) => {
         setIsExporting(false);
         setShowExportDialog(false);
-        const baseName = state.videoFileName?.replace(/\.[^.]+$/, "") ?? "export";
-        downloadBlob(blob, `${baseName}-overlay.webm`);
+
+        if (destination === "app" && sessionFileName) {
+          // Save to IndexedDB
+          const vidName = state.videoFileName ?? "export.webm";
+          saveSessionVideo(sessionFileName, blob, vidName).then(() => {
+            console.log("Video saved to app storage");
+          }).catch(err => {
+            console.error("Failed to save video:", err);
+            // Fallback to download
+            const baseName = state.videoFileName?.replace(/\.[^.]+$/, "") ?? "export";
+            downloadBlob(blob, `${baseName}-overlay.webm`);
+          });
+        } else {
+          const baseName = state.videoFileName?.replace(/\.[^.]+$/, "") ?? "export";
+          downloadBlob(blob, `${baseName}-overlay.webm`);
+        }
       },
       onError: (err) => {
         setIsExporting(false);
         console.error("Export error:", err);
       },
     });
-  }, [actions.videoRef, state.videoFileName]);
+  }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps]);
+
+  // Download existing stored video
+  const handleSaveExisting = useCallback(async () => {
+    if (!sessionFileName) return;
+    const stored = await loadSessionVideo(sessionFileName);
+    if (stored) {
+      downloadBlob(stored.blob, stored.videoFileName);
+    }
+  }, [sessionFileName]);
 
   const hasSectors = courseHasSectors(course);
 
@@ -488,6 +593,9 @@ export const VideoPlayer = memo(function VideoPlayer({
         isExporting={isExporting}
         progress={exportProgress}
         videoFileName={state.videoFileName}
+        hasStoredVideo={state.hasStoredVideo ?? false}
+        hasLapSelected={selectedLapNumber !== null}
+        onSaveExisting={handleSaveExisting}
       />
 
       {/* Unified bottom toolbar + progress bar */}
