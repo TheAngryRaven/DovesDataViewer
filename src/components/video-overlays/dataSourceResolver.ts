@@ -36,7 +36,6 @@ export function buildDataSources(
     },
   });
 
-  });
 
   // Pace (special)
   if (hasReference) {
