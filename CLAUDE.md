@@ -117,8 +117,8 @@ src/
 │   ├── noteStorage.ts         # IndexedDB: session notes
 │   ├── setupStorage.ts        # IndexedDB: kart setups
 │   ├── videoStorage.ts        # IndexedDB: video sync points + overlay settings
-│   ├── videoFileStorage.ts    # ★ IndexedDB: video file blobs (one per session)
-│   ├── videoExport.ts         # Video export pipeline (canvas + MediaRecorder)
+│   ├── videoFileStorage.ts    # ★ IndexedDB: video file blobs + metadata (exportType, lapNumber, hasOverlays)
+│   ├── videoExport.ts         # Video export pipeline (canvas + MediaRecorder + fix-webm-duration)
 │   ├── overlayCanvasRenderer.ts # Canvas-based overlay drawing for export
 │   ├── graphPrefsStorage.ts   # IndexedDB: per-session graph selections
 │   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol (files + settings + tracks)

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { GpsSample } from "@/types/racing";
 import { saveVideoSync, loadVideoSync, VideoSyncRecord } from "@/lib/videoStorage";
-import { loadSessionVideo, hasSessionVideo } from "@/lib/videoFileStorage";
+import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoMeta, type StoredVideoMeta } from "@/lib/videoFileStorage";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 
@@ -25,6 +25,7 @@ export interface VideoSyncState {
   isOutOfRange: boolean;
   overlaySettings: OverlaySettings;
   hasStoredVideo: boolean;
+  storedVideoMeta: StoredVideoMeta | null;
 }
 
 export interface VideoSyncActions {
@@ -33,10 +34,11 @@ export interface VideoSyncActions {
   togglePlay: () => void;
   stepFrame: (direction: 1 | -1) => void;
   setSyncPoint: () => void;
-  seekVideo: (timeSec: number) => void;
-  updateOverlaySettings: (settings: OverlaySettings) => void;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-}
+    seekVideo: (timeSec: number) => void;
+    updateOverlaySettings: (settings: OverlaySettings) => void;
+    deleteStoredVideo: () => Promise<void>;
+    videoRef: React.RefObject<HTMLVideoElement | null>;
+  }
 
 function findNearestIndex(samples: GpsSample[], targetMs: number): number {
   if (samples.length === 0) return 0;
@@ -75,6 +77,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
+  const [storedVideoMeta, setStoredVideoMeta] = useState<StoredVideoMeta | null>(null);
 
   const revokeUrl = useCallback(() => {
     setVideoUrl(prev => {
@@ -89,8 +92,9 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   useEffect(() => {
     if (!sessionFileName) return;
 
-    // Check if there's a stored video
+    // Check if there's a stored video and load metadata
     hasSessionVideo(sessionFileName).then(has => setStoredVideoAvailable(has));
+    getSessionVideoMeta(sessionFileName).then(meta => setStoredVideoMeta(meta)).catch(() => {});
 
     loadVideoSync(sessionFileName).then(async (record) => {
       if (!record) {
@@ -134,6 +138,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         setVideoUrl(url);
         setVideoFileName(stored.videoFileName);
         setStoredVideoAvailable(true);
+        setStoredVideoMeta(stored.meta);
       }
     } catch (e) {
       console.error("Failed to load stored video:", e);
@@ -376,6 +381,13 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     return () => { active = false; };
   }, [isPlaying, isLocked, videoUrl]);
 
+  const handleDeleteStoredVideo = useCallback(async () => {
+    if (!sessionFileName) return;
+    await deleteSessionVideo(sessionFileName);
+    setStoredVideoAvailable(false);
+    setStoredVideoMeta(null);
+  }, [sessionFileName]);
+
   const updateOverlaySettings = useCallback((newSettings: OverlaySettings) => {
     setOverlaySettings(newSettings);
     // Persist immediately
@@ -395,11 +407,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     videoUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
     videoDuration, videoCurrentTime, isOutOfRange, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
+    storedVideoMeta,
   };
 
   const actions: VideoSyncActions = {
     loadVideo, toggleLock, togglePlay, stepFrame, setSyncPoint,
-    seekVideo, updateOverlaySettings, videoRef,
+    seekVideo, updateOverlaySettings, deleteStoredVideo: handleDeleteStoredVideo, videoRef,
   };
 
   return { state, actions, handleLoadedMetadata };

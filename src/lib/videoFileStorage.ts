@@ -11,6 +11,12 @@ export interface StoredVideo {
   videoFileName: string;
   savedAt: number;
   size: number;
+  /** What was exported: full session, single lap, or raw source video */
+  exportType: "session" | "lap" | "raw";
+  /** Which lap number if exportType === "lap" */
+  lapNumber?: number;
+  /** Whether overlays were baked into the video */
+  hasOverlays: boolean;
 }
 
 export interface StoredVideoMeta {
@@ -18,12 +24,18 @@ export interface StoredVideoMeta {
   videoFileName: string;
   savedAt: number;
   size: number;
+  exportType: "session" | "lap" | "raw";
+  lapNumber?: number;
+  hasOverlays: boolean;
 }
 
 export async function saveSessionVideo(
   sessionFileName: string,
   blob: Blob,
   videoFileName: string,
+  exportType: "session" | "lap" | "raw" = "raw",
+  hasOverlays: boolean = false,
+  lapNumber?: number,
 ): Promise<void> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAMES.SESSION_VIDEOS, "readwrite");
@@ -33,6 +45,9 @@ export async function saveSessionVideo(
     videoFileName,
     savedAt: Date.now(),
     size: blob.size,
+    exportType,
+    lapNumber,
+    hasOverlays,
   });
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
@@ -43,7 +58,7 @@ export async function saveSessionVideo(
 
 export async function loadSessionVideo(
   sessionFileName: string,
-): Promise<{ blob: Blob; videoFileName: string } | null> {
+): Promise<{ blob: Blob; videoFileName: string; meta: StoredVideoMeta } | null> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAMES.SESSION_VIDEOS, "readonly");
   const request = tx.objectStore(STORE_NAMES.SESSION_VIDEOS).get(sessionFileName);
@@ -53,7 +68,19 @@ export async function loadSessionVideo(
   });
   db.close();
   if (!result) return null;
-  return { blob: result.videoBlob, videoFileName: result.videoFileName };
+  return {
+    blob: result.videoBlob,
+    videoFileName: result.videoFileName,
+    meta: {
+      sessionFileName: result.sessionFileName,
+      videoFileName: result.videoFileName,
+      savedAt: result.savedAt,
+      size: result.size,
+      exportType: result.exportType ?? "raw",
+      lapNumber: result.lapNumber,
+      hasOverlays: result.hasOverlays ?? false,
+    },
+  };
 }
 
 export async function deleteSessionVideo(sessionFileName: string): Promise<void> {
@@ -81,6 +108,28 @@ export async function hasSessionVideo(sessionFileName: string): Promise<boolean>
   return count > 0;
 }
 
+/** Get metadata for a specific session's video (no blob) */
+export async function getSessionVideoMeta(sessionFileName: string): Promise<StoredVideoMeta | null> {
+  const db = await openDB();
+  const tx = db.transaction(STORE_NAMES.SESSION_VIDEOS, "readonly");
+  const request = tx.objectStore(STORE_NAMES.SESSION_VIDEOS).get(sessionFileName);
+  const result = await new Promise<StoredVideo | undefined>((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  if (!result) return null;
+  return {
+    sessionFileName: result.sessionFileName,
+    videoFileName: result.videoFileName,
+    savedAt: result.savedAt,
+    size: result.size,
+    exportType: result.exportType ?? "raw",
+    lapNumber: result.lapNumber,
+    hasOverlays: result.hasOverlays ?? false,
+  };
+}
+
 /** List all stored videos (metadata only, no blobs) */
 export async function listSessionVideos(): Promise<StoredVideoMeta[]> {
   const db = await openDB();
@@ -91,11 +140,13 @@ export async function listSessionVideos(): Promise<StoredVideoMeta[]> {
     request.onerror = () => reject(request.error);
   });
   db.close();
-  // Return metadata only — omit the blob to save memory
-  return results.map(({ sessionFileName, videoFileName, savedAt, size }) => ({
+  return results.map(({ sessionFileName, videoFileName, savedAt, size, exportType, lapNumber, hasOverlays }) => ({
     sessionFileName,
     videoFileName,
     savedAt,
     size,
+    exportType: exportType ?? "raw",
+    lapNumber,
+    hasOverlays: hasOverlays ?? false,
   }));
 }

@@ -23,7 +23,7 @@ import { MapOverlay } from "@/components/video-overlays/MapOverlay";
 import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
 import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
 import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport";
-import { saveSessionVideo, loadSessionVideo } from "@/lib/videoFileStorage";
+import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
 
 interface VideoPlayerProps {
@@ -464,10 +464,18 @@ export const VideoPlayer = memo(function VideoPlayer({
         setShowExportDialog(false);
 
         if (destination === "app" && sessionFileName) {
-          // Save to IndexedDB
+          // Save to IndexedDB with metadata
           const vidName = state.videoFileName ?? "export.webm";
-          saveSessionVideo(sessionFileName, blob, vidName).then(() => {
+          const exportType = options.range === "lap" ? "lap" as const : "session" as const;
+          const lapNum = options.range === "lap" && selectedLapNumber != null ? selectedLapNumber : undefined;
+          saveSessionVideo(sessionFileName, blob, vidName, exportType, options.includeOverlays, lapNum).then(() => {
             console.log("Video saved to app storage");
+            // Refresh stored video state
+            import("@/lib/videoFileStorage").then(({ getSessionVideoMeta }) => {
+              getSessionVideoMeta(sessionFileName).then(meta => {
+                // The state will be refreshed via useVideoSync
+              });
+            });
           }).catch(err => {
             console.error("Failed to save video:", err);
             // Fallback to download
@@ -494,6 +502,12 @@ export const VideoPlayer = memo(function VideoPlayer({
       downloadBlob(stored.blob, stored.videoFileName);
     }
   }, [sessionFileName]);
+
+  // Delete stored video
+  const handleDeleteStored = useCallback(async () => {
+    if (!sessionFileName) return;
+    await actions.deleteStoredVideo();
+  }, [sessionFileName, actions]);
 
   const hasSectors = courseHasSectors(course);
 
@@ -593,9 +607,10 @@ export const VideoPlayer = memo(function VideoPlayer({
         isExporting={isExporting}
         progress={exportProgress}
         videoFileName={state.videoFileName}
-        hasStoredVideo={state.hasStoredVideo ?? false}
+        storedVideoMeta={state.storedVideoMeta}
         hasLapSelected={selectedLapNumber !== null}
         onSaveExisting={handleSaveExisting}
+        onDeleteStored={handleDeleteStored}
       />
 
       {/* Unified bottom toolbar + progress bar */}

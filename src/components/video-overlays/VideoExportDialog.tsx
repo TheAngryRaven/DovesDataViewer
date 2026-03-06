@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Download, Save, Loader2, HardDrive, Video } from "lucide-react";
+import { Download, Save, Loader2, HardDrive, Video, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { StoredVideoMeta } from "@/lib/videoFileStorage";
 
 interface VideoExportDialogProps {
   open: boolean;
@@ -18,9 +20,10 @@ interface VideoExportDialogProps {
   isExporting: boolean;
   progress: number; // 0-1
   videoFileName: string | null;
-  hasStoredVideo?: boolean;
+  storedVideoMeta?: StoredVideoMeta | null;
   hasLapSelected?: boolean;
   onSaveExisting?: () => void;
+  onDeleteStored?: () => void;
 }
 
 export interface ExportOptions {
@@ -32,20 +35,51 @@ export interface ExportOptions {
   endTime?: number;
 }
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function describeStoredVideo(meta: StoredVideoMeta): string {
+  const parts: string[] = [];
+  if (meta.exportType === "lap" && meta.lapNumber != null) {
+    parts.push(`Lap ${meta.lapNumber} video`);
+  } else if (meta.exportType === "session") {
+    parts.push("Full session video");
+  } else {
+    parts.push("Source video");
+  }
+  if (meta.hasOverlays) parts.push("with overlays");
+  parts.push(`(${formatSize(meta.size)})`);
+  return parts.join(" ");
+}
+
 export function VideoExportDialog({
   open, onOpenChange, onExport, isExporting, progress, videoFileName,
-  hasStoredVideo = false, hasLapSelected = false, onSaveExisting,
+  storedVideoMeta = null, hasLapSelected = false, onSaveExisting, onDeleteStored,
 }: VideoExportDialogProps) {
   const [includeOverlays, setIncludeOverlays] = useState(true);
   const [quality, setQuality] = useState<"standard" | "high">("standard");
   const [range, setRange] = useState<"full" | "lap">("full");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleExport = useCallback((destination: "device" | "app") => {
     onExport({ includeOverlays, quality, range, destination });
   }, [includeOverlays, quality, range, onExport]);
 
+  const handleDelete = useCallback(() => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    onDeleteStored?.();
+    setConfirmDelete(false);
+  }, [confirmDelete, onDeleteStored]);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setConfirmDelete(false); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -59,21 +93,44 @@ export function VideoExportDialog({
             <p className="text-xs text-muted-foreground">Source: {videoFileName}</p>
           )}
 
-          {/* Already saved notice */}
-          {hasStoredVideo && (
+          {/* Already saved notice with metadata */}
+          {storedVideoMeta && (
             <div className="flex items-center gap-2 p-2 rounded-md bg-primary/10 border border-primary/20">
               <Video className="w-4 h-4 text-primary shrink-0" />
-              <p className="text-xs text-foreground">
-                Video already saved to app.{" "}
-                {onSaveExisting && (
-                  <button
-                    className="text-primary underline hover:no-underline"
-                    onClick={onSaveExisting}
-                  >
-                    Download copy
-                  </button>
-                )}
-              </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-foreground">
+                  {describeStoredVideo(storedVideoMeta)}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  {onSaveExisting && (
+                    <button
+                      className="text-xs text-primary underline hover:no-underline"
+                      onClick={onSaveExisting}
+                    >
+                      Download copy
+                    </button>
+                  )}
+                  {onDeleteStored && (
+                    <button
+                      className={`text-xs underline hover:no-underline ${confirmDelete ? "text-destructive font-medium" : "text-muted-foreground"}`}
+                      onClick={handleDelete}
+                    >
+                      {confirmDelete ? "Confirm delete?" : "Delete"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {onDeleteStored && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={handleDelete}
+                  title="Delete stored video"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              )}
             </div>
           )}
 
@@ -86,6 +143,16 @@ export function VideoExportDialog({
               disabled={isExporting}
             />
           </div>
+
+          {/* Overlay bake-in warning for "Save to App" */}
+          {includeOverlays && (
+            <Alert variant="default" className="border-amber-500/30 bg-amber-500/10">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-xs">
+                If you "Save to App" with overlays enabled, they will be <strong>permanently baked</strong> into the video. This video will auto-load with your session and overlays cannot be changed later.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-1">
             <Label>Quality</Label>

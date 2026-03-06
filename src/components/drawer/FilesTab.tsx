@@ -1,11 +1,11 @@
 import { useCallback, useRef, useState, useEffect } from "react";
-import { Trash2, Download, Upload, FolderOpen, Loader2, Video } from "lucide-react";
+import { Trash2, Download, Upload, FolderOpen, Loader2, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
 import { DataloggerDownload } from "@/components/DataloggerDownload";
-import { listSessionVideos, StoredVideoMeta } from "@/lib/videoFileStorage";
+import { listSessionVideos, deleteSessionVideo, StoredVideoMeta } from "@/lib/videoFileStorage";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -54,14 +54,23 @@ export function FilesTab({
   const [confirmLoad, setConfirmLoad] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [videoFiles, setVideoFiles] = useState<Set<string>>(new Set());
+  const [videoFiles, setVideoFiles] = useState<Map<string, StoredVideoMeta>>(new Map());
 
   // Load stored video metadata to show video icons
   useEffect(() => {
     listSessionVideos().then(videos => {
-      setVideoFiles(new Set(videos.map(v => v.sessionFileName)));
+      setVideoFiles(new Map(videos.map(v => [v.sessionFileName, v])));
     }).catch(() => {});
-  }, [files]); // Refresh when files list changes
+  }, [files]);
+
+  const handleDeleteVideo = useCallback(async (sessionFileName: string) => {
+    await deleteSessionVideo(sessionFileName);
+    setVideoFiles(prev => {
+      const next = new Map(prev);
+      next.delete(sessionFileName);
+      return next;
+    });
+  }, []);
 
   const handleLoadConfirm = useCallback(async () => {
     if (!confirmLoad) return;
@@ -174,7 +183,13 @@ export function FilesTab({
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-mono truncate text-foreground">{file.name}</span>
                   {videoFiles.has(file.name) && (
-                    <span title="Has saved video">
+                    <span title={(() => {
+                      const m = videoFiles.get(file.name)!;
+                      const parts = [m.exportType === "lap" && m.lapNumber != null ? `Lap ${m.lapNumber}` : m.exportType === "session" ? "Session" : "Source"];
+                      if (m.hasOverlays) parts.push("w/ overlays");
+                      parts.push(`(${formatSize(m.size)})`);
+                      return parts.join(" ");
+                    })()}>
                       <Video className="w-3.5 h-3.5 text-primary shrink-0" />
                     </span>
                   )}
