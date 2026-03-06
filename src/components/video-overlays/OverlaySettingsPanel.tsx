@@ -40,7 +40,7 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
     if (!typeDef) return;
 
     const defaultSource = typeDef.isSpecial
-      ? (addType === "pace" ? "__pace__" : addType === "sector" ? "__sector__" : "__map__")
+      ? (addType === "pace" ? "__pace__" : addType === "sector" ? "__sector__" : addType === "laptime" ? "__laptime__" : "__map__")
       : (dataSources[0]?.id ?? "speed");
 
     const newOverlay: OverlayInstance = {
