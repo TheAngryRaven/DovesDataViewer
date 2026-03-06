@@ -242,6 +242,16 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
                         />
                       </div>
                     )}
+
+                    {overlay.type === "laptime" && (
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Pace Mode (delta + best)</Label>
+                        <Switch
+                          checked={overlay.showPaceMode === true}
+                          onCheckedChange={(v) => updateOverlay(overlay.id, { showPaceMode: v })}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

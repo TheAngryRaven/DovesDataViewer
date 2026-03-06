@@ -560,6 +560,96 @@ function drawSector(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ove
   }
 }
 
+function drawLapTime(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
+  const theme = getTheme(inst.theme);
+  const showPace = inst.showPaceMode ?? false;
+
+  // Get lap start time
+  let lapStartMs: number | undefined;
+  if (ctx.selectedLapNumber != null && ctx.laps.length > 0) {
+    const lap = ctx.laps.find((la) => la.lapNumber === ctx.selectedLapNumber);
+    lapStartMs = lap?.startTime;
+  }
+  if (lapStartMs == null && ctx.samples.length > 0) {
+    lapStartMs = ctx.samples[0].t;
+  }
+
+  const currentTimeSec = lapStartMs != null ? Math.max(0, (ctx.currentSample.t - lapStartMs) / 1000) : 0;
+  const lapTimeStr = formatLapTimeCanvas(currentTimeSec);
+
+  const boxW = l.fontSize * (showPace ? 8 : 5);
+  const boxH = l.fontSize * (showPace ? 3.2 : 2);
+
+  // Background
+  c.fillStyle = theme.bg(inst.colorMode, inst.opacity);
+  roundRect(c, l.x, l.y, boxW, boxH, l.fontSize * 0.25);
+  c.fill();
+  c.strokeStyle = theme.border(inst.colorMode);
+  c.lineWidth = 1;
+  c.stroke();
+
+  // Lap time
+  c.fillStyle = theme.text(inst.colorMode);
+  c.font = `bold ${l.fontSize * 1.1}px "JetBrains Mono", monospace`;
+  c.textAlign = "center";
+  c.textBaseline = "middle";
+  c.fillText(lapTimeStr, l.x + boxW / 2, l.y + l.fontSize * 0.75);
+
+  // Label
+  c.fillStyle = theme.textSecondary(inst.colorMode);
+  c.font = `${l.fontSize * 0.35}px "JetBrains Mono", monospace`;
+  c.fillText("LAP TIME", l.x + boxW / 2, l.y + l.fontSize * 1.35);
+
+  if (showPace) {
+    // Divider
+    const divY = l.y + l.fontSize * 1.65;
+    c.strokeStyle = theme.border(inst.colorMode);
+    c.beginPath();
+    c.moveTo(l.x + l.fontSize * 0.3, divY);
+    c.lineTo(l.x + boxW - l.fontSize * 0.3, divY);
+    c.stroke();
+
+    // Pace delta
+    const paceValue = ctx.paceData[ctx.currentIndex] ?? null;
+    const paceStr = paceValue !== null
+      ? `${paceValue > 0 ? "+" : ""}${paceValue.toFixed(3)}s`
+      : "—";
+    const paceColor = paceValue !== null
+      ? (paceValue < 0 ? "#22c55e" : paceValue > 0 ? "#ef4444" : theme.text(inst.colorMode))
+      : theme.textSecondary(inst.colorMode);
+
+    c.fillStyle = paceColor;
+    c.font = `bold ${l.fontSize * 0.6}px "JetBrains Mono", monospace`;
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText(paceStr, l.x + boxW * 0.3, l.y + l.fontSize * 2.2);
+
+    c.fillStyle = theme.textSecondary(inst.colorMode);
+    c.font = `${l.fontSize * 0.28}px "JetBrains Mono", monospace`;
+    c.fillText("DELTA", l.x + boxW * 0.3, l.y + l.fontSize * 2.7);
+
+    // Best lap
+    let bestTimeStr = "—";
+    let bestLabel = "BEST";
+    if (ctx.laps.length > 0) {
+      let best = ctx.laps[0];
+      for (const la of ctx.laps) {
+        if (la.lapTimeMs < best.lapTimeMs) best = la;
+      }
+      bestTimeStr = formatLapTimeCanvas(best.lapTimeMs / 1000);
+      bestLabel = `BEST L${best.lapNumber}`;
+    }
+
+    c.fillStyle = theme.text(inst.colorMode);
+    c.font = `bold ${l.fontSize * 0.6}px "JetBrains Mono", monospace`;
+    c.fillText(bestTimeStr, l.x + boxW * 0.7, l.y + l.fontSize * 2.2);
+
+    c.fillStyle = theme.textSecondary(inst.colorMode);
+    c.font = `${l.fontSize * 0.28}px "JetBrains Mono", monospace`;
+    c.fillText(bestLabel, l.x + boxW * 0.7, l.y + l.fontSize * 2.7);
+  }
+}
+
 /** Helper: draw a rounded rect path */
 function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   c.beginPath();
