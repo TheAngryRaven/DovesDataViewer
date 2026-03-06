@@ -36,6 +36,7 @@ const defaultSettings: AppSettings = {
   brakingZoneColor: 'hsl(210, 90%, 55%)',  // Blue
   brakingZoneWidth: 10,           // 10px
   brakingGraphWindow: 25,         // SG window size (25 @ 25Hz = 1s)
+  brakeMaxG: 150,                 // 1.5G = 100% brake
   autoSaveFiles: true,
   enableLabs: false,
   darkMode: true,
