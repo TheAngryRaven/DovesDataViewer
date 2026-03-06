@@ -24,7 +24,7 @@ export const MapOverlay = memo(function MapOverlay({ instance, ctx, fontSize }: 
     c.scale(dpr, dpr);
     c.clearRect(0, 0, size, size);
 
-    const samples = ctx.allSamples;
+    const samples = ctx.samples.length > 1 ? ctx.samples : ctx.allSamples;
     if (samples.length < 2) return;
 
     const pad = size * 0.08;

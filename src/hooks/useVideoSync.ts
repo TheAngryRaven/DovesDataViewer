@@ -381,12 +381,25 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     return () => { active = false; };
   }, [isPlaying, isLocked, videoUrl]);
 
+  const refreshStoredMeta = useCallback(async () => {
+    if (!sessionFileName) return;
+    const has = await hasSessionVideo(sessionFileName);
+    setStoredVideoAvailable(has);
+    const meta = has ? await getSessionVideoMeta(sessionFileName) : null;
+    setStoredVideoMeta(meta);
+  }, [sessionFileName]);
+
   const handleDeleteStoredVideo = useCallback(async () => {
     if (!sessionFileName) return;
     await deleteSessionVideo(sessionFileName);
     setStoredVideoAvailable(false);
     setStoredVideoMeta(null);
-  }, [sessionFileName]);
+    // If current video was loaded from storage (no file handle), clear it
+    if (!fileHandle) {
+      revokeUrl();
+      setVideoFileName(null);
+    }
+  }, [sessionFileName, fileHandle, revokeUrl]);
 
   const updateOverlaySettings = useCallback((newSettings: OverlaySettings) => {
     setOverlaySettings(newSettings);

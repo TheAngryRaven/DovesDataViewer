@@ -80,7 +80,8 @@ export const PaceOverlay = memo(function PaceOverlay({ instance, ctx, fontSize }
             top: 0,
             bottom: 0,
             // Negative pace (ahead) fills right from center, positive fills left
-            left: fraction < 0 ? `${50 + fraction * 50}%` : "50%",
+            left: fraction > 0 ? "50%" : undefined,
+            right: fraction < 0 ? "50%" : undefined,
             width: `${Math.abs(fraction) * 50}%`,
             background: isGood ? "#22c55e" : "#ef4444",
             borderRadius: barHeight / 2,
