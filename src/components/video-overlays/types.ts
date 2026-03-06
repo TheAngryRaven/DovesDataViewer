@@ -62,6 +62,7 @@ export interface OverlayRenderContext {
   course: Course | null;
   referenceSamples: GpsSample[];
   paceData: number[];
+  brakingGData: number[];
   useKph: boolean;
   containerWidth: number;
   containerHeight: number;

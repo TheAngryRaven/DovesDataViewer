@@ -11,7 +11,7 @@ interface DigitalOverlayProps {
 
 export const DigitalOverlay = memo(function DigitalOverlay({ instance, ctx, fontSize }: DigitalOverlayProps) {
   const theme = getTheme(instance.theme);
-  const value = resolveValue(instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const unit = resolveUnit(instance.dataSource, ctx.dataSources);
 
   const displayValue = value !== null ? value.toFixed(1) : "—";

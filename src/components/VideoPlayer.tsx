@@ -24,6 +24,7 @@ import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
 import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
 import { LapTimeOverlay } from "@/components/video-overlays/LapTimeOverlay";
 import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport";
+import { computeBrakingGSeriesSG } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
 
@@ -267,6 +268,14 @@ export const VideoPlayer = memo(function VideoPlayer({
   const paceDataRef = useRef(paceData);
   paceDataRef.current = paceData;
 
+  // Compute braking G from visible samples for overlays
+  const brakingGData = useMemo(() => {
+    if (allSamples.length < 3) return [];
+    return computeBrakingGSeriesSG(allSamples, 25);
+  }, [allSamples]);
+  const brakingGDataRef = useRef(brakingGData);
+  brakingGDataRef.current = brakingGData;
+
   const overlaysLocked = state.overlaySettings.overlaysLocked ?? true;
   const overlays = state.overlaySettings.overlays ?? [];
 
@@ -292,11 +301,12 @@ export const VideoPlayer = memo(function VideoPlayer({
       course,
       referenceSamples,
       paceData,
+      brakingGData,
       useKph,
       containerWidth: 0,
       containerHeight: 0,
     };
-  }, [currentSample, currentIndex, samples, allSamples, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, paceData, useKph]);
+  }, [currentSample, currentIndex, samples, allSamples, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, paceData, brakingGData, useKph]);
 
   const handleOverlayMove = useCallback((id: string, pos: OverlayPosition) => {
     const updated = {
@@ -421,6 +431,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       course,
       referenceSamples,
       paceData: paceDataRef.current,
+      brakingGData: brakingGDataRef.current,
       useKph,
       containerWidth: 0,
       containerHeight: 0,

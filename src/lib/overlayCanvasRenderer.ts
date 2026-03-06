@@ -108,7 +108,7 @@ function getLapStartTimeCanvas(ctx: OverlayRenderContext): number | undefined {
 
 function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const displayVal = value !== null ? value.toFixed(1) : "—";
 
@@ -138,7 +138,7 @@ function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ov
 
 function drawAnalog(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
 
@@ -215,7 +215,7 @@ function drawGraph(
   histories: Map<string, number[]>,
 ) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const graphLength = inst.graphLength ?? 100;
@@ -271,7 +271,7 @@ function drawGraph(
 
 function drawBar(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const range = max - min || 1;
@@ -320,8 +320,8 @@ function drawBar(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Overla
 
 function drawBubble(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const valueX = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
-  const valueY = resolveValue(inst.dataSourceSecondary ?? inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const valueX = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  const valueY = resolveValue(inst.dataSourceSecondary ?? inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const rangeX = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const rangeY = resolveRange(inst.dataSourceSecondary ?? inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
 
