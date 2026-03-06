@@ -379,12 +379,6 @@ export default function Index() {
                   <span className="hidden sm:inline">Sponsor</span>
                 </Button>
               </a>
-              {enableAdmin && (
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/admin')}>
-                  <Shield className="w-4 h-4" />
-                  <span className="hidden sm:inline">Admin</span>
-                </Button>
-              )}
             </div>
           </div>
         </header>
@@ -506,6 +500,15 @@ export default function Index() {
                   </div>
                 </DialogContent>
               </Dialog>
+              {enableAdmin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                >
+                  <Shield className="w-3 h-3" />
+                  Track Management
+                </button>
+              )}
             </div>
           </div>
         </main>

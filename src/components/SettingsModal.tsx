@@ -460,8 +460,8 @@ export function SettingsModal({
                 <Label htmlFor="settings-enable-labs" className="text-sm text-muted-foreground">
                   Enable Labs mode
                 </Label>
-                <p className="text-xs text-muted-foreground/70 mt-0.5 max-w-[220px]">
-                  Enables experimental features like video export (save/download overlaid video for playback — still a bit buggy!) and track layout drawing.
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  shhhhhh!
                 </p>
               </div>
               <Switch
