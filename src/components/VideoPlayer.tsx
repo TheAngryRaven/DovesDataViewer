@@ -245,7 +245,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   course = null, referenceSamples = [], paceData = [],
   sessionFileName = null,
 }: VideoPlayerProps) {
-  const { useKph, brakingZoneSettings } = useSettingsContext();
+  const { useKph, brakingZoneSettings, enableLabs } = useSettingsContext();
   const progressRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
