@@ -5,7 +5,7 @@
  */
 
 export const DB_NAME = "dove-file-manager";
-export const DB_VERSION = 8;
+export const DB_VERSION = 9;
 
 export const STORE_NAMES = {
   FILES: "files",
@@ -17,6 +17,7 @@ export const STORE_NAMES = {
   GRAPH_PREFS: "graph-prefs",
   VEHICLE_TYPES: "vehicle-types",
   SETUP_TEMPLATES: "setup-templates",
+  SESSION_VIDEOS: "session-videos",
 } as const;
 
 /**
