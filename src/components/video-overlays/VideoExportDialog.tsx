@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from "react";
-import { Download, X, Loader2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Download, Save, Loader2, HardDrive, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -18,20 +18,31 @@ interface VideoExportDialogProps {
   isExporting: boolean;
   progress: number; // 0-1
   videoFileName: string | null;
+  hasStoredVideo?: boolean;
+  hasLapSelected?: boolean;
+  onSaveExisting?: () => void;
 }
 
 export interface ExportOptions {
   includeOverlays: boolean;
   quality: "standard" | "high";
+  range: "full" | "lap";
+  destination: "device" | "app";
+  startTime?: number;
+  endTime?: number;
 }
 
-export function VideoExportDialog({ open, onOpenChange, onExport, isExporting, progress, videoFileName }: VideoExportDialogProps) {
+export function VideoExportDialog({
+  open, onOpenChange, onExport, isExporting, progress, videoFileName,
+  hasStoredVideo = false, hasLapSelected = false, onSaveExisting,
+}: VideoExportDialogProps) {
   const [includeOverlays, setIncludeOverlays] = useState(true);
   const [quality, setQuality] = useState<"standard" | "high">("standard");
+  const [range, setRange] = useState<"full" | "lap">("full");
 
-  const handleExport = useCallback(() => {
-    onExport({ includeOverlays, quality });
-  }, [includeOverlays, quality, onExport]);
+  const handleExport = useCallback((destination: "device" | "app") => {
+    onExport({ includeOverlays, quality, range, destination });
+  }, [includeOverlays, quality, range, onExport]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,6 +57,24 @@ export function VideoExportDialog({ open, onOpenChange, onExport, isExporting, p
         <div className="space-y-4 py-4">
           {videoFileName && (
             <p className="text-xs text-muted-foreground">Source: {videoFileName}</p>
+          )}
+
+          {/* Already saved notice */}
+          {hasStoredVideo && (
+            <div className="flex items-center gap-2 p-2 rounded-md bg-primary/10 border border-primary/20">
+              <Video className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-xs text-foreground">
+                Video already saved to app.{" "}
+                {onSaveExisting && (
+                  <button
+                    className="text-primary underline hover:no-underline"
+                    onClick={onSaveExisting}
+                  >
+                    Download copy
+                  </button>
+                )}
+              </p>
+            </div>
           )}
 
           <div className="flex items-center justify-between">
@@ -69,6 +98,22 @@ export function VideoExportDialog({ open, onOpenChange, onExport, isExporting, p
                 <SelectItem value="high">High (Original resolution)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label>Range</Label>
+            <Select value={range} onValueChange={(v) => setRange(v as "full" | "lap")} disabled={isExporting || !hasLapSelected}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="full">Full Session</SelectItem>
+                <SelectItem value="lap" disabled={!hasLapSelected}>Current Lap</SelectItem>
+              </SelectContent>
+            </Select>
+            {!hasLapSelected && range === "full" && (
+              <p className="text-xs text-muted-foreground">Select a lap to enable lap export</p>
+            )}
           </div>
 
           {isExporting && (
@@ -96,17 +141,29 @@ export function VideoExportDialog({ open, onOpenChange, onExport, isExporting, p
               Cancel
             </Button>
             <Button
+              variant="outline"
               className="flex-1 gap-2"
-              onClick={handleExport}
+              onClick={() => handleExport("app")}
               disabled={isExporting}
+              title="Save exported video to the app for auto-loading"
             >
-              <Download className="w-4 h-4" />
-              Export
+              <Save className="w-4 h-4" />
+              Save to App
+            </Button>
+            <Button
+              className="flex-1 gap-2"
+              onClick={() => handleExport("device")}
+              disabled={isExporting}
+              title="Download exported video file"
+            >
+              <HardDrive className="w-4 h-4" />
+              Save to Device
             </Button>
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Video export uses your browser's built-in encoding. Large videos may take a while. The export plays through the video in real-time to capture each frame with overlays.
+            Video export plays through the video in real-time to capture each frame with overlays.
+            "Save to App" stores the video for auto-loading next session.
           </p>
         </div>
       </DialogContent>
