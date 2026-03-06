@@ -39,8 +39,8 @@ export function buildDataSources(
   // Brake % (computed from GPS speed deceleration)
   sources.push({
     id: "__braking_g__",
-    label: "Brake % (computed)",
-    unit: "%",
+    label: "Brake %",
+    unit: "Brake %",
     isSpecial: true,
     getValue: () => null, // resolved via brakingGData
     getMin: () => 0,
