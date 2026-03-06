@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { GpsSample, Course, FieldMapping } from '@/types/racing';
+import { GpsSample, Course, FieldMapping, Lap } from '@/types/racing';
 import { Vehicle } from '@/lib/vehicleStorage';
 import { VehicleSetup } from '@/lib/setupStorage';
 import { SetupTemplate } from '@/lib/templateStorage';
@@ -57,6 +57,11 @@ export interface GraphViewPanelProps {
   // Session
   sessionFileName: string | null;
   isAllLaps?: boolean;
+  // New: for video overlays
+  allSamples?: GpsSample[];
+  laps?: Lap[];
+  selectedLapNumber?: number | null;
+  paceData?: number[];
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
@@ -80,11 +85,9 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
 
   return (
     <ResizablePanelGroup direction="horizontal" className="h-full">
-      {/* Left sidebar - 30% */}
       <ResizablePanel defaultSize={30} minSize={20} maxSize={45}>
         <div className="h-full relative">
           <ResizablePanelGroup direction="vertical" className="h-full">
-            {/* Info box */}
             <ResizablePanel defaultSize={70} minSize={30}>
               <InfoBox
                 filteredSamples={props.filteredSamples}
@@ -111,12 +114,20 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 videoActions={props.videoActions}
                 onVideoLoadedMetadata={props.onVideoLoadedMetadata}
                 currentSample={props.currentSample}
+                // New overlay props
+                visibleSamples={props.visibleSamples}
+                allSamples={props.allSamples}
+                currentIndex={props.currentIndex}
+                fieldMappings={props.fieldMappings}
+                laps={props.laps}
+                selectedLapNumber={props.selectedLapNumber}
+                referenceSamples={props.referenceSamples}
+                paceData={props.paceData}
               />
             </ResizablePanel>
 
             <ResizableHandle />
 
-            {/* Map panel - collapsible */}
             <ResizablePanel
               ref={mapPanelRef}
               defaultSize={30}
@@ -138,7 +149,6 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
             </ResizablePanel>
           </ResizablePanelGroup>
 
-          {/* Map toggle button */}
           <button
             onClick={toggleMap}
             className="absolute bottom-1 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-1 px-2 py-0.5 rounded bg-card/90 backdrop-blur-sm border border-border hover:bg-muted/50 text-muted-foreground text-xs"
@@ -150,7 +160,6 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
 
       <ResizableHandle />
 
-      {/* Right panel - 70% */}
       <ResizablePanel defaultSize={70} minSize={40}>
         <GraphPanel
           samples={props.visibleSamples}

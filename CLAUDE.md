@@ -53,7 +53,22 @@ src/
 │   ├── track-editor/      # Track editor sub-components
 │   ├── RaceLineView.tsx   # Leaflet map with race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas-based speed/telemetry chart (simple mode)
-│   ├── VideoPlayer.tsx    # Synced video playback overlay
+│   ├── VideoPlayer.tsx    # Synced video playback with modular overlay system
+│   ├── video-overlays/   # Overlay system for video export
+│   │   ├── types.ts             # OverlayInstance, OverlaySettings, DataSourceDef, ThemeDef
+│   │   ├── registry.ts          # Overlay type definitions + factory
+│   │   ├── themes.ts            # Classic + Neon theme definitions
+│   │   ├── dataSourceResolver.ts # Maps data source IDs → values/ranges/units
+│   │   ├── DigitalOverlay.tsx   # Numeric value + unit display
+│   │   ├── AnalogOverlay.tsx    # Canvas needle gauge (~252° arc)
+│   │   ├── GraphOverlay.tsx     # Rolling canvas line chart
+│   │   ├── BarOverlay.tsx       # Horizontal 0-100% progress bar
+│   │   ├── BubbleOverlay.tsx    # XY joystick-style circular widget
+│   │   ├── MapOverlay.tsx       # Mini canvas race line with position dot
+│   │   ├── PaceOverlay.tsx      # Horizontal pace delta indicator
+│   │   ├── SectorOverlay.tsx    # 3 sector bubbles with delta + sparkle animation
+│   │   ├── OverlaySettingsPanel.tsx # Add/configure/remove overlay instances
+│   │   └── VideoExportDialog.tsx    # Export dialog with quality options
 │   ├── FileImport.tsx     # Drag-and-drop file import
 │   ├── DataloggerDownload.tsx  # BLE device download UI
 │   ├── ContactDialog.tsx  # Public contact form dialog (categories shared const)

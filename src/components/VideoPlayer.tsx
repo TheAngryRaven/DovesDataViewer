@@ -1,9 +1,6 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw, Sliders, Move } from "lucide-react";
+import { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw, Sliders, Move, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -11,15 +8,38 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSettingsContext } from "@/contexts/SettingsContext";
-import { GpsSample } from "@/types/racing";
+import { GpsSample, FieldMapping, Lap, Course } from "@/types/racing";
 import type { VideoSyncState, VideoSyncActions } from "@/hooks/useVideoSync";
-import type { OverlayPosition } from "@/lib/videoStorage";
+import type { OverlayPosition, OverlayInstance, OverlayRenderContext, OverlaySettings, DataSourceDef } from "@/components/video-overlays/types";
+import { buildDataSources, resolveValue } from "@/components/video-overlays/dataSourceResolver";
+import { OverlaySettingsPanel } from "@/components/video-overlays/OverlaySettingsPanel";
+import { VideoExportDialog, ExportOptions } from "@/components/video-overlays/VideoExportDialog";
+import { DigitalOverlay } from "@/components/video-overlays/DigitalOverlay";
+import { AnalogOverlay } from "@/components/video-overlays/AnalogOverlay";
+import { GraphOverlay } from "@/components/video-overlays/GraphOverlay";
+import { BarOverlay } from "@/components/video-overlays/BarOverlay";
+import { BubbleOverlay } from "@/components/video-overlays/BubbleOverlay";
+import { MapOverlay } from "@/components/video-overlays/MapOverlay";
+import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
+import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
+import { startVideoExport, downloadBlob } from "@/lib/videoExport";
+import { courseHasSectors } from "@/types/racing";
 
 interface VideoPlayerProps {
   state: VideoSyncState;
   actions: VideoSyncActions;
   onLoadedMetadata: () => void;
   currentSample: GpsSample | null;
+  // New props for overlay system
+  samples?: GpsSample[];
+  allSamples?: GpsSample[];
+  currentIndex?: number;
+  fieldMappings?: FieldMapping[];
+  laps?: Lap[];
+  selectedLapNumber?: number | null;
+  course?: Course | null;
+  referenceSamples?: GpsSample[];
+  paceData?: number[];
 }
 
 /** Base font size in px when video container is 640px wide */
@@ -50,25 +70,20 @@ function DraggableOverlay({
   const resizeStartY = useRef(0);
   const resizeStartScale = useRef(1);
 
-  // Sync from prop when not interacting
   useEffect(() => {
     if (!dragging.current && !resizing.current) setLocalPos(position);
   }, [position]);
 
-  // Deselect when locked
   useEffect(() => {
     if (locked) setSelected(false);
   }, [locked]);
 
-  // Compute video-relative font size
   const [containerWidth, setContainerWidth] = useState(BASE_WIDTH);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width || BASE_WIDTH);
-      }
+      for (const entry of entries) setContainerWidth(entry.contentRect.width || BASE_WIDTH);
     });
     ro.observe(el);
     setContainerWidth(el.clientWidth || BASE_WIDTH);
@@ -82,14 +97,7 @@ function DraggableOverlay({
     if (locked) return;
     e.preventDefault();
     e.stopPropagation();
-
-    // If not selected yet, just select
-    if (!selected) {
-      setSelected(true);
-      return;
-    }
-
-    // Already selected — start drag
+    if (!selected) { setSelected(true); return; }
     dragging.current = true;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const container = containerRef.current;
@@ -119,7 +127,6 @@ function DraggableOverlay({
     }
   }, [id, onMove, localPos]);
 
-  // Resize handle
   const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -132,7 +139,6 @@ function DraggableOverlay({
   const handleResizePointerMove = useCallback((e: React.PointerEvent) => {
     if (!resizing.current) return;
     e.stopPropagation();
-    // Dragging down = bigger, up = smaller
     const delta = e.clientY - resizeStartY.current;
     const newScale = Math.max(0.4, Math.min(4, resizeStartScale.current + delta / 100));
     setLocalPos(prev => ({ ...prev, scale: newScale }));
@@ -145,21 +151,14 @@ function DraggableOverlay({
     }
   }, [id, onMove, localPos]);
 
-  // Click outside deselects (via video area click)
   useEffect(() => {
     if (!selected || locked) return;
     const handleClick = (e: MouseEvent) => {
       const el = document.getElementById(`overlay-${id}`);
-      if (el && !el.contains(e.target as Node)) {
-        setSelected(false);
-      }
+      if (el && !el.contains(e.target as Node)) setSelected(false);
     };
-    // Delayed to avoid catching the selecting click
     const timer = setTimeout(() => document.addEventListener("pointerdown", handleClick), 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("pointerdown", handleClick);
-    };
+    return () => { clearTimeout(timer); document.removeEventListener("pointerdown", handleClick); };
   }, [selected, locked, id]);
 
   return (
@@ -178,18 +177,15 @@ function DraggableOverlay({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
-      {/* Selection ring */}
       {!locked && selected && (
         <div className="absolute inset-0 ring-2 ring-white/60 rounded-md pointer-events-none" style={{ margin: -2 }} />
       )}
-      {/* Move hint when unlocked but not selected */}
       {!locked && !selected && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-white/40 rounded-full flex items-center justify-center pointer-events-none">
           <Move className="w-2 h-2 text-white" />
         </div>
       )}
       {children(scaledFontPx)}
-      {/* Resize handle — bottom-right corner, only when selected */}
       {!locked && selected && (
         <div
           className="absolute -bottom-2 -right-2 w-5 h-5 bg-white/80 rounded-sm border border-white/40 cursor-ns-resize flex items-center justify-center"
@@ -208,7 +204,27 @@ function DraggableOverlay({
   );
 }
 
-export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedMetadata, currentSample }: VideoPlayerProps) {
+/** Render the appropriate overlay component for an instance */
+function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstance; ctx: OverlayRenderContext; fontSize: number }) {
+  switch (instance.type) {
+    case "digital": return <DigitalOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "analog": return <AnalogOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "graph": return <GraphOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "bar": return <BarOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "bubble": return <BubbleOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "map": return <MapOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "pace": return <PaceOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    case "sector": return <SectorOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
+    default: return null;
+  }
+}
+
+export const VideoPlayer = memo(function VideoPlayer({
+  state, actions, onLoadedMetadata, currentSample,
+  samples = [], allSamples = [], currentIndex = 0,
+  fieldMappings = [], laps = [], selectedLapNumber = null,
+  course = null, referenceSamples = [], paceData = [],
+}: VideoPlayerProps) {
   const { useKph } = useSettingsContext();
   const progressRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -220,23 +236,52 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
   const [isDragging, setIsDragging] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [showOverlayDialog, setShowOverlayDialog] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
 
-  // Track whether overlays were unlocked before auto-locking on fade
   const wasUnlockedBeforeFade = useRef(false);
 
-  const speed = currentSample
-    ? useKph ? currentSample.speedKph : currentSample.speedMph
-    : null;
-  const speedUnit = useKph ? "KPH" : "MPH";
-
   const overlaysLocked = state.overlaySettings.overlaysLocked ?? true;
-  const positions = state.overlaySettings.positions ?? { speed: { x: 3, y: 3 } };
+  const overlays = state.overlaySettings.overlays ?? [];
+
+  // Build data sources for overlays
+  const hasReference = referenceSamples.length > 0;
+  const dataSources = useMemo(() =>
+    buildDataSources(fieldMappings, useKph, hasReference),
+    [fieldMappings, useKph, hasReference]
+  );
+
+  // Build render context
+  const renderCtx: OverlayRenderContext | null = useMemo(() => {
+    if (!currentSample) return null;
+    return {
+      currentSample,
+      currentIndex,
+      samples,
+      allSamples,
+      dataSources,
+      fieldMappings,
+      laps,
+      selectedLapNumber,
+      course,
+      referenceSamples,
+      paceData,
+      useKph,
+      containerWidth: 0,
+      containerHeight: 0,
+    };
+  }, [currentSample, currentIndex, samples, allSamples, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, paceData, useKph]);
 
   const handleOverlayMove = useCallback((id: string, pos: OverlayPosition) => {
-    actions.updateOverlaySettings({
-      positions: { ...positions, [id]: pos },
-    });
-  }, [actions, positions]);
+    const updated = {
+      ...state.overlaySettings,
+      overlays: state.overlaySettings.overlays.map(o =>
+        o.id === id ? { ...o, position: pos } : o
+      ),
+    };
+    actions.updateOverlaySettings(updated);
+  }, [actions, state.overlaySettings]);
 
   // Auto-hide logic
   const resetHideTimer = useCallback(() => {
@@ -247,16 +292,13 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
     }
   }, [state.isPlaying]);
 
-  // Auto-lock overlays when controls fade, restore when they reappear
   useEffect(() => {
     if (!controlsVisible && !overlaysLocked) {
-      // Controls just faded — auto-lock overlays
       wasUnlockedBeforeFade.current = true;
-      actions.updateOverlaySettings({ overlaysLocked: true });
+      actions.updateOverlaySettings({ ...state.overlaySettings, overlaysLocked: true });
     } else if (controlsVisible && wasUnlockedBeforeFade.current) {
-      // Controls reappeared — restore unlocked state
       wasUnlockedBeforeFade.current = false;
-      actions.updateOverlaySettings({ overlaysLocked: false });
+      actions.updateOverlaySettings({ ...state.overlaySettings, overlaysLocked: false });
     }
   }, [controlsVisible]); // intentionally narrow deps
 
@@ -270,13 +312,12 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
     return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
   }, [state.isPlaying]);
 
-  // Track the actual video rendered rectangle (accounting for object-contain letterboxing)
+  // Video rect tracking
   const [videoRect, setVideoRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   useEffect(() => {
     const videoEl = actions.videoRef?.current;
     const containerEl = videoAreaRef.current;
     if (!videoEl || !containerEl) return;
-
     const updateRect = () => {
       const vw = videoEl.videoWidth;
       const vh = videoEl.videoHeight;
@@ -286,22 +327,13 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
       const scale = Math.min(cw / vw, ch / vh);
       const rw = vw * scale;
       const rh = vh * scale;
-      setVideoRect({
-        left: (cw - rw) / 2,
-        top: (ch - rh) / 2,
-        width: rw,
-        height: rh,
-      });
+      setVideoRect({ left: (cw - rw) / 2, top: (ch - rh) / 2, width: rw, height: rh });
     };
-
     updateRect();
     const ro = new ResizeObserver(updateRect);
     ro.observe(containerEl);
     videoEl.addEventListener("loadedmetadata", updateRect);
-    return () => {
-      ro.disconnect();
-      videoEl.removeEventListener("loadedmetadata", updateRect);
-    };
+    return () => { ro.disconnect(); videoEl.removeEventListener("loadedmetadata", updateRect); };
   }, [actions.videoRef, state.videoUrl]);
 
   const handleVideoClick = useCallback((e: React.MouseEvent) => {
@@ -313,7 +345,7 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
     }
   }, [state.isPlaying]);
 
-  // Progress bar interaction
+  // Progress bar
   const seekFromPointer = useCallback((clientX: number) => {
     if (state.isLocked || !progressRef.current || state.videoDuration <= 0) return;
     const rect = progressRef.current.getBoundingClientRect();
@@ -333,13 +365,35 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
     seekFromPointer(e.clientX);
   }, [isDragging, seekFromPointer]);
 
-  const handlePointerUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  const handlePointerUp = useCallback(() => setIsDragging(false), []);
 
   const progressFraction = state.videoDuration > 0
     ? Math.max(0, Math.min(1, state.videoCurrentTime / state.videoDuration))
     : 0;
+
+  // Export
+  const handleExport = useCallback((options: ExportOptions) => {
+    const video = actions.videoRef.current;
+    if (!video) return;
+    setIsExporting(true);
+    setExportProgress(0);
+
+    startVideoExport(video, null, options, {
+      onProgress: (p) => setExportProgress(p),
+      onComplete: (blob) => {
+        setIsExporting(false);
+        setShowExportDialog(false);
+        const baseName = state.videoFileName?.replace(/\.[^.]+$/, "") ?? "export";
+        downloadBlob(blob, `${baseName}-overlay.webm`);
+      },
+      onError: (err) => {
+        setIsExporting(false);
+        console.error("Export error:", err);
+      },
+    });
+  }, [actions.videoRef, state.videoFileName]);
+
+  const hasSectors = courseHasSectors(course);
 
   // No video loaded
   if (!state.videoUrl) {
@@ -378,8 +432,8 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
           </div>
         )}
 
-        {/* Overlay container positioned over the actual video (not letterbox bars) */}
-        {videoRect && (
+        {/* Overlay container positioned over the actual video */}
+        {videoRect && renderCtx && !state.isOutOfRange && (
           <div
             ref={videoRectRef}
             className="absolute pointer-events-none"
@@ -390,25 +444,20 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
               height: videoRect.height,
             }}
           >
-            {/* Draggable speed overlay */}
-            {state.overlaySettings.showSpeed && speed !== null && !state.isOutOfRange && (
+            {overlays.filter(o => o.visible).map(overlay => (
               <DraggableOverlay
-                id="speed"
-                position={positions.speed || { x: 3, y: 3 }}
+                key={overlay.id}
+                id={overlay.id}
+                position={overlay.position}
                 locked={overlaysLocked}
                 onMove={handleOverlayMove}
                 containerRef={videoRectRef}
               >
                 {(fontSize) => (
-                  <div className={`bg-black/60 backdrop-blur-sm rounded-md select-none`}
-                    style={{ padding: `${fontSize * 0.15}px ${fontSize * 0.3}px` }}
-                  >
-                    <span className="text-white font-mono font-bold" style={{ fontSize }}>{speed.toFixed(1)}</span>
-                    <span className="text-white/70 font-mono" style={{ fontSize: fontSize * 0.6, marginLeft: fontSize * 0.15 }}>{speedUnit}</span>
-                  </div>
+                  <OverlayRenderer instance={overlay} ctx={renderCtx} fontSize={fontSize} />
                 )}
               </DraggableOverlay>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -422,48 +471,27 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
               Overlay Settings
             </DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0 pr-3 scrollbar-thin">
-            {/* Data Overlays Section */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Video className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium">Data Overlays</h3>
-              </div>
-              <p className="text-xs text-muted-foreground pl-6">
-                Toggle which data values are shown on the video. Unlock overlays in the toolbar to drag them to your preferred position.
-              </p>
-
-              <div className="flex items-center justify-between pl-6">
-                <div>
-                  <Label htmlFor="overlay-speed" className="text-sm">Speed</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Current speed in {useKph ? "KPH" : "MPH"}
-                  </p>
-                </div>
-                <Switch
-                  id="overlay-speed"
-                  checked={state.overlaySettings.showSpeed}
-                  onCheckedChange={(checked) => actions.updateOverlaySettings({ showSpeed: checked })}
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* More sections will go here */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium">More Options</h3>
-              </div>
-              <p className="text-xs text-muted-foreground pl-6">
-                Additional overlay options coming soon — lap timer, G-force indicator, throttle position, and more.
-              </p>
-            </div>
+          <div className="flex-1 min-h-0 overflow-y-auto pr-3 scrollbar-thin">
+            <OverlaySettingsPanel
+              settings={state.overlaySettings}
+              onUpdate={actions.updateOverlaySettings}
+              dataSources={dataSources}
+              hasReference={hasReference}
+              hasSectors={hasSectors}
+            />
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Video Export Dialog */}
+      <VideoExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        onExport={handleExport}
+        isExporting={isExporting}
+        progress={exportProgress}
+        videoFileName={state.videoFileName}
+      />
 
       {/* Unified bottom toolbar + progress bar */}
       <div
@@ -474,32 +502,19 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
           controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
-        {/* Toolbar row */}
         <div className="flex items-center gap-1 px-3 py-1.5 bg-black/70 backdrop-blur-sm">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25"
-            onClick={actions.togglePlay}
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25" onClick={actions.togglePlay}>
             {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25"
-            onClick={() => setIsMuted(m => !m)}
-            title={isMuted ? "Unmute" : "Mute"}
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25" onClick={() => setIsMuted(m => !m)} title={isMuted ? "Unmute" : "Mute"}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </Button>
 
           <div className="w-px h-5 bg-white/20 mx-1" />
 
           <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 backdrop-blur-sm text-white ${state.isLocked ? "bg-primary/70 hover:bg-primary/50 active:bg-primary/40" : "bg-white/15 hover:bg-white/30 active:bg-white/25"}`}
+            variant="ghost" size="icon"
+            className={`h-7 w-7 backdrop-blur-sm text-white ${state.isLocked ? "bg-primary/70 hover:bg-primary/50" : "bg-white/15 hover:bg-white/30"}`}
             onClick={actions.toggleLock}
             title={state.isLocked ? "Unlock sync" : "Lock sync"}
           >
@@ -507,31 +522,13 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
           </Button>
           {!state.isLocked && (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25"
-                onClick={() => actions.stepFrame(-1)}
-                title="Previous frame"
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={() => actions.stepFrame(-1)} title="Previous frame">
                 <Minus className="w-3.5 h-3.5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25"
-                onClick={() => actions.stepFrame(1)}
-                title="Next frame"
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={() => actions.stepFrame(1)} title="Next frame">
                 <Plus className="w-3.5 h-3.5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25 text-xs gap-1.5"
-                onClick={actions.setSyncPoint}
-                title="Set sync point: aligns current video position with current telemetry cursor"
-              >
+              <Button variant="ghost" size="sm" className="h-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 text-xs gap-1.5" onClick={actions.setSyncPoint} title="Set sync point">
                 <Crosshair className="w-3.5 h-3.5" /> Sync
               </Button>
             </>
@@ -541,24 +538,32 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
 
           {/* Overlay position lock */}
           <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 backdrop-blur-sm text-white ${!overlaysLocked ? "bg-amber-500/60 hover:bg-amber-500/40 active:bg-amber-500/30" : "bg-white/15 hover:bg-white/30 active:bg-white/25"}`}
-            onClick={() => actions.updateOverlaySettings({ overlaysLocked: !overlaysLocked })}
-            title={overlaysLocked ? "Unlock overlays to reposition" : "Lock overlay positions"}
+            variant="ghost" size="icon"
+            className={`h-7 w-7 backdrop-blur-sm text-white ${!overlaysLocked ? "bg-amber-500/60 hover:bg-amber-500/40" : "bg-white/15 hover:bg-white/30"}`}
+            onClick={() => actions.updateOverlaySettings({ ...state.overlaySettings, overlaysLocked: !overlaysLocked })}
+            title={overlaysLocked ? "Unlock overlays" : "Lock overlays"}
           >
             {overlaysLocked ? <Lock className="w-3.5 h-3.5" /> : <Move className="w-3.5 h-3.5" />}
           </Button>
 
           {/* Overlay config */}
           <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 backdrop-blur-sm text-white ${showOverlayDialog ? "bg-white/30" : "bg-white/15"} hover:bg-white/30 active:bg-white/25`}
+            variant="ghost" size="icon"
+            className={`h-7 w-7 backdrop-blur-sm text-white ${showOverlayDialog ? "bg-white/30" : "bg-white/15"} hover:bg-white/30`}
             onClick={() => setShowOverlayDialog(v => !v)}
             title="Overlay settings"
           >
             <Sliders className="w-3.5 h-3.5" />
+          </Button>
+
+          {/* Export */}
+          <Button
+            variant="ghost" size="icon"
+            className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30"
+            onClick={() => setShowExportDialog(true)}
+            title="Export video"
+          >
+            <Download className="w-3.5 h-3.5" />
           </Button>
         </div>
 
@@ -577,17 +582,10 @@ export const VideoPlayer = memo(function VideoPlayer({ state, actions, onLoadedM
               style={{ width: `${progressFraction * 100}%` }}
             />
           </div>
-
           <span className="text-white/60 text-xs font-mono min-w-[80px] text-right">
             {formatTime(state.videoCurrentTime)} / {formatTime(state.videoDuration)}
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25"
-            onClick={actions.loadVideo}
-            title="Replace video"
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={actions.loadVideo} title="Replace video">
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
         </div>

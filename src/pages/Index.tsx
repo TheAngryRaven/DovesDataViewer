@@ -657,6 +657,10 @@ export default function Index() {
               currentSample={currentSample}
               sessionFileName={currentFileName}
               isAllLaps={isAllLaps}
+              allSamples={data?.samples ?? []}
+              laps={laps}
+              selectedLapNumber={selectedLapNumber}
+              paceData={slicedPaceData}
             />
           )}
           {topPanelView === "labs" && settings.enableLabs && (
