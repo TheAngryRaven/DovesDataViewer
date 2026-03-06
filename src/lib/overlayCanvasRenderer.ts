@@ -7,7 +7,9 @@
 import type { OverlayInstance, OverlayRenderContext, DataSourceDef } from "@/components/video-overlays/types";
 import { getTheme } from "@/components/video-overlays/themes";
 import { resolveValue, resolveRange, resolveUnit, resolveLabel } from "@/components/video-overlays/dataSourceResolver";
+import { computeSectorSegments, SECTOR_COLORS } from "@/components/video-overlays/sectorUtils";
 import type { SectorTimes } from "@/types/racing";
+import { courseHasSectors } from "@/types/racing";
 
 const START_ANGLE = Math.PI * 0.8;
 const END_ANGLE = Math.PI * 2.2;
