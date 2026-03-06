@@ -412,7 +412,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
 
   const actions: VideoSyncActions = {
     loadVideo, toggleLock, togglePlay, stepFrame, setSyncPoint,
-    seekVideo, updateOverlaySettings, videoRef,
+    seekVideo, updateOverlaySettings, deleteStoredVideo: handleDeleteStoredVideo, videoRef,
   };
 
   return { state, actions, handleLoadedMetadata };
