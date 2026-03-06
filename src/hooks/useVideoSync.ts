@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { GpsSample } from "@/types/racing";
 import { saveVideoSync, loadVideoSync, VideoSyncRecord } from "@/lib/videoStorage";
-import { loadSessionVideo, hasSessionVideo } from "@/lib/videoFileStorage";
+import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoMeta, type StoredVideoMeta } from "@/lib/videoFileStorage";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 
