@@ -69,10 +69,10 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
 
   const removeOverlay = useCallback((id: string) => {
     onUpdate({
-      ...settings,
-      overlays: settings.overlays.filter(o => o.id !== id),
+      ...safeSettings,
+      overlays: safeSettings.overlays.filter(o => o.id !== id),
     });
-  }, [settings, onUpdate]);
+  }, [safeSettings, onUpdate]);
 
   return (
     <div className="space-y-4">
