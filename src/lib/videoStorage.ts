@@ -4,26 +4,13 @@
  */
 
 import { openDB, STORE_NAMES } from "./dbUtils";
+import type { OverlaySettings, OverlayInstance, LegacyOverlaySettings, OverlayPosition } from "@/components/video-overlays/types";
+import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
+import { generateOverlayId } from "@/components/video-overlays/registry";
 
-export interface OverlayPosition {
-  x: number; // percentage 0-100
-  y: number; // percentage 0-100
-  scale?: number; // multiplier, default 1
-}
-
-export interface OverlaySettings {
-  showSpeed: boolean;
-  overlaysLocked: boolean;
-  positions: Record<string, OverlayPosition>;
-}
-
-export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
-  showSpeed: true,
-  overlaysLocked: true,
-  positions: {
-    speed: { x: 3, y: 3 },
-  },
-};
+// Re-export for backward compat
+export type { OverlayPosition, OverlaySettings };
+export { DEFAULT_OVERLAY_SETTINGS };
 
 export interface VideoSyncRecord {
   sessionFileName: string;
@@ -32,6 +19,39 @@ export interface VideoSyncRecord {
   videoFileName: string;
   isLocked?: boolean;
   overlaySettings?: OverlaySettings;
+}
+
+/** Migrate old overlay settings format to new */
+function migrateOverlaySettings(raw: any): OverlaySettings {
+  if (!raw) return DEFAULT_OVERLAY_SETTINGS;
+
+  // New format already — has overlays array
+  if (Array.isArray(raw.overlays)) {
+    return raw as OverlaySettings;
+  }
+
+  // Old format: { showSpeed, overlaysLocked, positions }
+  const legacy = raw as LegacyOverlaySettings;
+  const overlays: OverlayInstance[] = [];
+
+  if (legacy.showSpeed) {
+    const pos = legacy.positions?.speed ?? { x: 3, y: 3 };
+    overlays.push({
+      id: generateOverlayId(),
+      type: "digital",
+      dataSource: "speed",
+      theme: "classic",
+      colorMode: "dark",
+      opacity: 1,
+      position: { x: pos.x, y: pos.y, scale: pos.scale ?? 1 },
+      visible: true,
+    });
+  }
+
+  return {
+    overlaysLocked: legacy.overlaysLocked ?? true,
+    overlays,
+  };
 }
 
 export async function saveVideoSync(record: VideoSyncRecord): Promise<void> {
@@ -50,7 +70,13 @@ export async function loadVideoSync(sessionFileName: string): Promise<VideoSyncR
   const tx = db.transaction(STORE_NAMES.VIDEO_SYNC, "readonly");
   const request = tx.objectStore(STORE_NAMES.VIDEO_SYNC).get(sessionFileName);
   const result = await new Promise<VideoSyncRecord | undefined>((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const record = request.result;
+      if (record && record.overlaySettings) {
+        record.overlaySettings = migrateOverlaySettings(record.overlaySettings);
+      }
+      resolve(record);
+    };
     request.onerror = () => reject(request.error);
   });
   db.close();

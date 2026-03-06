@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { GpsSample } from "@/types/racing";
-import { saveVideoSync, loadVideoSync, VideoSyncRecord, OverlaySettings, DEFAULT_OVERLAY_SETTINGS } from "@/lib/videoStorage";
+import { saveVideoSync, loadVideoSync, VideoSyncRecord } from "@/lib/videoStorage";
+import type { OverlaySettings } from "@/components/video-overlays/types";
+import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
@@ -30,13 +32,10 @@ export interface VideoSyncActions {
   stepFrame: (direction: 1 | -1) => void;
   setSyncPoint: () => void;
   seekVideo: (timeSec: number) => void;
-  updateOverlaySettings: (settings: Partial<OverlaySettings>) => void;
+  updateOverlaySettings: (settings: OverlaySettings) => void;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
-/**
- * Binary search for nearest sample by timestamp.
- */
 function findNearestIndex(samples: GpsSample[], targetMs: number): number {
   if (samples.length === 0) return 0;
   let lo = 0, hi = samples.length - 1;
@@ -45,7 +44,6 @@ function findNearestIndex(samples: GpsSample[], targetMs: number): number {
     if (samples[mid].t < targetMs) lo = mid + 1;
     else hi = mid;
   }
-  // Check if lo-1 is closer
   if (lo > 0 && Math.abs(samples[lo - 1].t - targetMs) < Math.abs(samples[lo].t - targetMs)) {
     return lo - 1;
   }
@@ -57,7 +55,6 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastSeekTimeRef = useRef(0);
 
-  // Refs for values used inside frame callbacks to avoid effect dependency churn
   const onScrubRef = useRef(onScrub);
   onScrubRef.current = onScrub;
   const samplesRef = useRef(samples);
@@ -76,7 +73,6 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
 
-  // Cleanup object URL on unmount or video change
   const revokeUrl = useCallback(() => {
     setVideoUrl(prev => {
       if (prev) URL.revokeObjectURL(prev);
@@ -96,7 +92,6 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       setVideoFileName(record.videoFileName);
       if (record.isLocked !== undefined) setIsLocked(record.isLocked);
       if (record.overlaySettings) setOverlaySettings(record.overlaySettings);
-      // Try restoring file handle (Chromium only)
       if (record.fileHandle) {
         try {
           const permission = await (record.fileHandle as any).queryPermission({ mode: "read" });
@@ -106,9 +101,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
             setVideoUrl(url);
             setFileHandle(record.fileHandle);
           }
-        } catch {
-          // Handle not restorable, user will need to re-attach
-        }
+        } catch {}
       }
     });
   }, [sessionFileName]);
@@ -129,7 +122,6 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
 
   // Load video file
   const loadVideo = useCallback(async () => {
-    // Try File System Access API first
     if ("showOpenFilePicker" in window) {
       try {
         const [handle] = await (window as any).showOpenFilePicker({
@@ -144,10 +136,9 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         persistSync(syncOffsetMsRef.current, handle, file.name);
         return;
       } catch (e: any) {
-        if (e.name === "AbortError") return; // User cancelled
+        if (e.name === "AbortError") return;
       }
     }
-    // Fallback: hidden file input
     if (!fileInputRef.current) {
       const input = document.createElement("input");
       input.type = "file";
@@ -170,45 +161,39 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     input.click();
   }, [revokeUrl, persistSync]);
 
-  // Video metadata loaded
   const handleLoadedMetadata = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     setVideoDuration(video.duration);
   }, []);
 
-  // Detect FPS via requestVideoFrameCallback
+  // Detect FPS
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
-
     if ("requestVideoFrameCallback" in video) {
       let lastTime = 0;
       let frameCount = 0;
       const frameTimes: number[] = [];
-
       const callback = (_now: number, metadata: any) => {
         if (lastTime > 0) {
           const delta = metadata.mediaTime - lastTime;
-          if (delta > 0 && delta < 0.2) { // Ignore large jumps
+          if (delta > 0 && delta < 0.2) {
             frameTimes.push(delta);
             frameCount++;
             if (frameCount >= 10) {
               const avgDelta = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
               const detectedFps = Math.round(1 / avgDelta);
               if (detectedFps > 0 && detectedFps <= 120) setFps(detectedFps);
-              return; // Stop after detection
+              return;
             }
           }
         }
         lastTime = metadata.mediaTime;
         (video as any).requestVideoFrameCallback(callback);
       };
-
-      // Need to play briefly to detect fps
       const origPaused = video.paused;
       if (origPaused) {
-        // We'll detect on next actual play
         const onPlay = () => {
           (video as any).requestVideoFrameCallback(callback);
           video.removeEventListener("play", onPlay);
@@ -221,15 +206,11 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     }
   }, [videoUrl]);
 
-  // Video-drives-data: when locked + playing, sync telemetry to video.
-  // Uses refs for onScrub/samples to avoid restarting the frame callback
-  // chain when those values get new identities.
+  // Video-drives-data
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl || !isLocked || !isPlaying) return;
-
     let active = true;
-
     if ("requestVideoFrameCallback" in video) {
       const callback = () => {
         if (!active) return;
@@ -239,22 +220,17 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         const telemetryMs = videoMs + syncOffsetMs;
         const s = samplesRef.current;
         const idx = findNearestIndex(s, telemetryMs);
-
-        // Out of range if telemetry time is outside visible samples' window
         const outOfRange = s.length === 0 || telemetryMs < s[0].t || telemetryMs > s[s.length - 1].t;
         onScrubRef.current(idx);
         setVideoCurrentTime(v.currentTime);
         setIsOutOfRange(outOfRange);
-
         if (active) (v as any).requestVideoFrameCallback(callback);
       };
       (video as any).requestVideoFrameCallback(callback);
     } else {
-      // rAF fallback for Firefox — skip frames if behind
       let lastRaf = 0;
       const loop = (ts: number) => {
         if (!active) return;
-        // Throttle to ~30fps to reduce overhead
         if (ts - lastRaf < 33) { requestAnimationFrame(loop); return; }
         lastRaf = ts;
         const v = videoRef.current;
@@ -263,7 +239,6 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         const telemetryMs = videoMs + syncOffsetMs;
         const s = samplesRef.current;
         const idx = findNearestIndex(s, telemetryMs);
-
         const outOfRange = s.length === 0 || telemetryMs < s[0].t || telemetryMs > s[s.length - 1].t;
         onScrubRef.current(idx);
         setVideoCurrentTime(v.currentTime);
@@ -275,29 +250,23 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     return () => { active = false; };
   }, [videoUrl, isLocked, isPlaying, syncOffsetMs]);
 
-  // Data-drives-video: when locked, paused, and user scrubs the graph.
-  // Guarded by !isPlaying so it never fights the video-drives-data loop.
+  // Data-drives-video
   useEffect(() => {
     if (!isLocked || isPlaying) return;
     const video = videoRef.current;
     if (!video || !videoUrl || samples.length === 0) return;
-
     const now = performance.now();
-    if (now - lastSeekTimeRef.current < 50) return; // Throttle to ~20 seeks/sec
+    if (now - lastSeekTimeRef.current < 50) return;
     lastSeekTimeRef.current = now;
-
     const sample = samples[currentIndex];
     if (!sample) return;
-
     const videoSec = (sample.t - syncOffsetMs) / 1000;
     const clampedSec = Math.max(0, videoSec);
-
     if (videoSec < 0 || videoSec > video.duration) {
       setIsOutOfRange(true);
       if (!video.paused) video.pause();
     } else {
       setIsOutOfRange(false);
-      // Only seek if the difference is meaningful (> half a frame)
       if (Math.abs(video.currentTime - clampedSec) > 0.5 / fps) {
         video.currentTime = clampedSec;
       }
@@ -305,20 +274,13 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     setVideoCurrentTime(clampedSec);
   }, [currentIndex, isLocked, isPlaying, syncOffsetMs, samples, videoUrl, fps]);
 
-  // Play/pause sync
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) {
-      video.play();
-      setIsPlaying(true);
-    } else {
-      video.pause();
-      setIsPlaying(false);
-    }
+    if (video.paused) { video.play(); setIsPlaying(true); }
+    else { video.pause(); setIsPlaying(false); }
   }, []);
 
-  // Listen for video ending
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -366,7 +328,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     setVideoCurrentTime(clampedTime);
   }, [isLocked]);
 
-  // Update current time periodically when playing unlocked
+  // Update current time when playing unlocked
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !isPlaying || isLocked) return;
@@ -380,46 +342,29 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     return () => { active = false; };
   }, [isPlaying, isLocked, videoUrl]);
 
-  const updateOverlaySettings = useCallback((partial: Partial<OverlaySettings>) => {
-    setOverlaySettings(prev => {
-      const next = { ...prev, ...partial };
-      // Persist immediately
-      if (sessionFileName) {
-        const record: VideoSyncRecord = {
-          sessionFileName,
-          syncOffsetMs,
-          videoFileName: videoFileName || "",
-          fileHandle: fileHandle || undefined,
-          overlaySettings: next,
-        };
-        saveVideoSync(record);
-      }
-      return next;
-    });
+  const updateOverlaySettings = useCallback((newSettings: OverlaySettings) => {
+    setOverlaySettings(newSettings);
+    // Persist immediately
+    if (sessionFileName) {
+      const record: VideoSyncRecord = {
+        sessionFileName,
+        syncOffsetMs,
+        videoFileName: videoFileName || "",
+        fileHandle: fileHandle || undefined,
+        overlaySettings: newSettings,
+      };
+      saveVideoSync(record);
+    }
   }, [sessionFileName, syncOffsetMs, videoFileName, fileHandle]);
 
   const state: VideoSyncState = {
-    videoUrl,
-    videoFileName,
-    isLocked,
-    isPlaying,
-    syncOffsetMs,
-    fps,
-    videoDuration,
-    videoCurrentTime,
-    isOutOfRange,
-    overlaySettings,
+    videoUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
+    videoDuration, videoCurrentTime, isOutOfRange, overlaySettings,
   };
 
   const actions: VideoSyncActions = {
-    loadVideo,
-    toggleLock,
-    togglePlay,
-    stepFrame,
-    setSyncPoint,
-    seekVideo,
-    updateOverlaySettings,
-    videoRef,
+    loadVideo, toggleLock, togglePlay, stepFrame, setSyncPoint,
+    seekVideo, updateOverlaySettings, videoRef,
   };
 
   return { state, actions, handleLoadedMetadata };
