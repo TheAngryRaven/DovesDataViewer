@@ -240,7 +240,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-  const wasUnlockedBeforeFade = useRef(false);
+
 
   const overlaysLocked = state.overlaySettings.overlaysLocked ?? true;
   const overlays = state.overlaySettings.overlays ?? [];
