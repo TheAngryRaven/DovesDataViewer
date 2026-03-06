@@ -99,9 +99,14 @@ export function resolveValue(
   currentIndex: number,
   dataSources: DataSourceDef[],
   paceData: number[],
+  lapStartTimeMs?: number,
 ): number | null {
   if (sourceId === "__pace__") {
     return paceData[currentIndex] ?? null;
+  }
+  if (sourceId === "__laptime__") {
+    if (lapStartTimeMs == null) return null;
+    return (sample.t - lapStartTimeMs) / 1000; // seconds since lap start
   }
   const src = dataSources.find((d) => d.id === sourceId);
   if (!src) return null;
