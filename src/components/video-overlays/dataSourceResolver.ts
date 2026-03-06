@@ -36,15 +36,6 @@ export function buildDataSources(
     },
   });
 
-  // Lap Time (special — computed from sample.t relative to lap start)
-  sources.push({
-    id: "__laptime__",
-    label: "Lap Time",
-    unit: "",
-    isSpecial: true,
-    getValue: () => null, // resolved externally via context
-    getMin: () => 0,
-    getMax: () => 120,
   });
 
   // Pace (special)
