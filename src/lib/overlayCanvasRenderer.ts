@@ -215,7 +215,7 @@ function drawGraph(
   histories: Map<string, number[]>,
 ) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const graphLength = inst.graphLength ?? 100;
