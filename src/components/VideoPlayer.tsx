@@ -430,6 +430,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       course,
       referenceSamples,
       paceData: paceDataRef.current,
+      brakingGData: brakingGDataRef.current,
       useKph,
       containerWidth: 0,
       containerHeight: 0,
