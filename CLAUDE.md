@@ -64,7 +64,8 @@ src/
 │   │   ├── GraphOverlay.tsx     # Rolling canvas line chart
 │   │   ├── BarOverlay.tsx       # Horizontal 0-100% progress bar
 │   │   ├── BubbleOverlay.tsx    # XY joystick-style circular widget
-│   │   ├── MapOverlay.tsx       # Mini canvas race line with position dot
+│   │   ├── sectorUtils.ts        # Shared sector status logic (colors, segment computation)
+│   │   ├── MapOverlay.tsx       # Mini canvas race line with position dot + optional sector coloring
 │   │   ├── PaceOverlay.tsx      # Horizontal pace delta indicator
 │   │   ├── SectorOverlay.tsx    # 3 sector bubbles with delta + sparkle animation
 │   │   ├── LapTimeOverlay.tsx   # Lap timer with optional pace mode (delta + best lap)
