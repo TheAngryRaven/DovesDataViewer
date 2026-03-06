@@ -183,7 +183,13 @@ export function FilesTab({
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-mono truncate text-foreground">{file.name}</span>
                   {videoFiles.has(file.name) && (
-                    <span title="Has saved video">
+                    <span title={(() => {
+                      const m = videoFiles.get(file.name)!;
+                      const parts = [m.exportType === "lap" && m.lapNumber != null ? `Lap ${m.lapNumber}` : m.exportType === "session" ? "Session" : "Source"];
+                      if (m.hasOverlays) parts.push("w/ overlays");
+                      parts.push(`(${formatSize(m.size)})`);
+                      return parts.join(" ");
+                    })()}>
                       <Video className="w-3.5 h-3.5 text-primary shrink-0" />
                     </span>
                   )}
