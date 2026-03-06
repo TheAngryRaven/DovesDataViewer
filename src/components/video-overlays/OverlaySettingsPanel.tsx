@@ -99,11 +99,11 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
       </div>
 
       {/* Overlay list */}
-      {settings.overlays.length === 0 ? (
+      {safeSettings.overlays.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">No overlays configured. Add one above.</p>
       ) : (
         <div className="space-y-1">
-          {settings.overlays.map(overlay => {
+          {safeSettings.overlays.map(overlay => {
             const typeDef = getOverlayTypeDef(overlay.type);
             const isExpanded = expandedId === overlay.id;
 
