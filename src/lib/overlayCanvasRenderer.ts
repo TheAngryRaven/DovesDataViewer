@@ -108,7 +108,7 @@ function getLapStartTimeCanvas(ctx: OverlayRenderContext): number | undefined {
 
 function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
-  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData);
+  const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const displayVal = value !== null ? value.toFixed(1) : "—";
 
