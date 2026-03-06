@@ -5,7 +5,7 @@
  */
 
 export const DB_NAME = "dove-file-manager";
-export const DB_VERSION = 8;
+export const DB_VERSION = 9;
 
 export const STORE_NAMES = {
   FILES: "files",
@@ -17,6 +17,7 @@ export const STORE_NAMES = {
   GRAPH_PREFS: "graph-prefs",
   VEHICLE_TYPES: "vehicle-types",
   SETUP_TEMPLATES: "setup-templates",
+  SESSION_VIDEOS: "session-videos",
 } as const;
 
 /**
@@ -60,6 +61,11 @@ export function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_NAMES.SETUP_TEMPLATES)) {
         db.createObjectStore(STORE_NAMES.SETUP_TEMPLATES, { keyPath: "id" });
+      }
+
+      // v9: Session videos store
+      if (!db.objectStoreNames.contains(STORE_NAMES.SESSION_VIDEOS)) {
+        db.createObjectStore(STORE_NAMES.SESSION_VIDEOS, { keyPath: "sessionFileName" });
       }
 
       // v8 migration: add vehicleId index to setups if upgrading from v7

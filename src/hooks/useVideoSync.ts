@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { GpsSample } from "@/types/racing";
 import { saveVideoSync, loadVideoSync, VideoSyncRecord } from "@/lib/videoStorage";
+import { loadSessionVideo, hasSessionVideo } from "@/lib/videoFileStorage";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 
@@ -23,6 +24,7 @@ export interface VideoSyncState {
   videoCurrentTime: number;
   isOutOfRange: boolean;
   overlaySettings: OverlaySettings;
+  hasStoredVideo: boolean;
 }
 
 export interface VideoSyncActions {
@@ -72,6 +74,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [isOutOfRange, setIsOutOfRange] = useState(false);
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
+  const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
 
   const revokeUrl = useCallback(() => {
     setVideoUrl(prev => {
@@ -82,16 +85,27 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
 
   useEffect(() => revokeUrl, [revokeUrl]);
 
-  // Restore persisted sync state
+  // Restore persisted sync state + auto-load video from IndexedDB
   useEffect(() => {
     if (!sessionFileName) return;
+
+    // Check if there's a stored video
+    hasSessionVideo(sessionFileName).then(has => setStoredVideoAvailable(has));
+
     loadVideoSync(sessionFileName).then(async (record) => {
-      if (!record) return;
+      if (!record) {
+        // No sync record, but check for stored video anyway
+        await tryLoadStoredVideo(sessionFileName);
+        return;
+      }
       syncOffsetMsRef.current = record.syncOffsetMs;
       setSyncOffsetMs(record.syncOffsetMs);
       setVideoFileName(record.videoFileName);
       if (record.isLocked !== undefined) setIsLocked(record.isLocked);
       if (record.overlaySettings) setOverlaySettings(record.overlaySettings);
+
+      // Try FileSystemFileHandle first
+      let loaded = false;
       if (record.fileHandle) {
         try {
           const permission = await (record.fileHandle as any).queryPermission({ mode: "read" });
@@ -100,11 +114,31 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
             const url = URL.createObjectURL(file);
             setVideoUrl(url);
             setFileHandle(record.fileHandle);
+            loaded = true;
           }
         } catch {}
       }
+
+      // Fallback: load from IndexedDB stored video
+      if (!loaded) {
+        await tryLoadStoredVideo(sessionFileName);
+      }
     });
   }, [sessionFileName]);
+
+  const tryLoadStoredVideo = useCallback(async (fileName: string) => {
+    try {
+      const stored = await loadSessionVideo(fileName);
+      if (stored) {
+        const url = URL.createObjectURL(stored.blob);
+        setVideoUrl(url);
+        setVideoFileName(stored.videoFileName);
+        setStoredVideoAvailable(true);
+      }
+    } catch (e) {
+      console.error("Failed to load stored video:", e);
+    }
+  }, []);
 
   // Persist sync state
   const persistSync = useCallback((offset: number, handle?: FileSystemFileHandle, fileName?: string, locked?: boolean) => {
@@ -360,6 +394,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const state: VideoSyncState = {
     videoUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
     videoDuration, videoCurrentTime, isOutOfRange, overlaySettings,
+    hasStoredVideo: storedVideoAvailable,
   };
 
   const actions: VideoSyncActions = {

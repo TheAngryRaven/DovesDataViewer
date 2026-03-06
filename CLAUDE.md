@@ -116,7 +116,10 @@ src/
 │   ├── templateStorage.ts    # ★ Vehicle types + setup templates, default kart schema
 │   ├── noteStorage.ts         # IndexedDB: session notes
 │   ├── setupStorage.ts        # IndexedDB: kart setups
-│   ├── videoStorage.ts        # IndexedDB: video sync points
+│   ├── videoStorage.ts        # IndexedDB: video sync points + overlay settings
+│   ├── videoFileStorage.ts    # ★ IndexedDB: video file blobs (one per session)
+│   ├── videoExport.ts         # Video export pipeline (canvas + MediaRecorder)
+│   ├── overlayCanvasRenderer.ts # Canvas-based overlay drawing for export
 │   ├── graphPrefsStorage.ts   # IndexedDB: per-session graph selections
 │   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol (files + settings + tracks)
 │   ├── deviceTrackSync.ts     # Track sync logic: merge/compare app↔device tracks, coordinate diff
@@ -190,7 +193,7 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 
 ## IndexedDB Storage (`src/lib/dbUtils.ts`)
 
-Single shared database: `"dove-file-manager"`, version 7.
+Single shared database: `"dove-file-manager"`, version 9.
 
 | Store | Key | Module |
 |-------|-----|--------|
@@ -201,6 +204,9 @@ Single shared database: `"dove-file-manager"`, version 7.
 | `setups` | `id` (indexed by `kartId`) | `setupStorage.ts` |
 | `video-sync` | `sessionFileName` | `videoStorage.ts` |
 | `graph-prefs` | `sessionFileName` | `graphPrefsStorage.ts` |
+| `vehicle-types` | `id` | `templateStorage.ts` |
+| `setup-templates` | `id` | `templateStorage.ts` |
+| `session-videos` | `sessionFileName` | `videoFileStorage.ts` |
 
 To add a new store: increment `DB_VERSION`, add store name to `STORE_NAMES`, add creation logic in `openDB()`, create a corresponding storage module.
 

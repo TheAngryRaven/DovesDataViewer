@@ -48,6 +48,7 @@ interface InfoBoxProps {
   selectedLapNumber?: number | null;
   referenceSamples?: GpsSample[];
   paceData?: number[];
+  sessionFileName?: string | null;
 }
 
 type InfoTab = 'data' | 'vehicle' | 'video';
@@ -59,7 +60,7 @@ export function InfoBox({
   vehicles, setups, templates, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor,
   videoState, videoActions, onVideoLoadedMetadata, currentSample,
   visibleSamples, allSamples, currentIndex, fieldMappings, laps, selectedLapNumber,
-  referenceSamples, paceData,
+  referenceSamples, paceData, sessionFileName,
 }: InfoBoxProps) {
   const { useKph } = useSettingsContext();
   const [tab, setTab] = useState<InfoTab>('data');
@@ -128,6 +129,7 @@ export function InfoBox({
               course={course}
               referenceSamples={referenceSamples}
               paceData={paceData}
+              sessionFileName={sessionFileName}
             />
           </div>
         ) : (

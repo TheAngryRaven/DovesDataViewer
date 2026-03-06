@@ -123,6 +123,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 selectedLapNumber={props.selectedLapNumber}
                 referenceSamples={props.referenceSamples}
                 paceData={props.paceData}
+                sessionFileName={props.sessionFileName}
               />
             </ResizablePanel>
 
