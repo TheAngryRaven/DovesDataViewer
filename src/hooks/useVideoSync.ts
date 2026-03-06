@@ -138,6 +138,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         setVideoUrl(url);
         setVideoFileName(stored.videoFileName);
         setStoredVideoAvailable(true);
+        setStoredVideoMeta(stored.meta);
       }
     } catch (e) {
       console.error("Failed to load stored video:", e);
