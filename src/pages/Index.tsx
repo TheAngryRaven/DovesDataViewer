@@ -234,7 +234,8 @@ export default function Index() {
     color: settings.brakingZoneColor,
     width: settings.brakingZoneWidth,
     graphWindow: settings.brakingGraphWindow,
-  }), [settings.brakingEntryThreshold, settings.brakingExitThreshold, settings.brakingMinDuration, settings.brakingSmoothingAlpha, settings.brakingZoneColor, settings.brakingZoneWidth, settings.brakingGraphWindow]);
+    brakeMaxG: (settings.brakeMaxG ?? 150) / 100,
+  }), [settings.brakingEntryThreshold, settings.brakingExitThreshold, settings.brakingMinDuration, settings.brakingSmoothingAlpha, settings.brakingZoneColor, settings.brakingZoneWidth, settings.brakingGraphWindow, settings.brakeMaxG]);
 
   const selectedLapTimeMs = selectedLapNumber !== null
     ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null)

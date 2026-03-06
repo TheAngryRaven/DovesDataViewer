@@ -57,14 +57,14 @@ export function GraphPanel({
   // Compute braking G series from FULL dataset using SG filter for smooth graph
   const brakingGFull = useMemo(() => {
     if (filteredSamples.length < 3) return [];
-    return gToBrakePercent(computeBrakingGSeriesSG(filteredSamples, brakingZoneSettings.graphWindow));
-  }, [filteredSamples, brakingZoneSettings.graphWindow]);
+    return gToBrakePercent(computeBrakingGSeriesSG(filteredSamples, brakingZoneSettings.graphWindow), brakingZoneSettings.brakeMaxG);
+  }, [filteredSamples, brakingZoneSettings.graphWindow, brakingZoneSettings.brakeMaxG]);
 
   // Compute braking G for reference samples using SG filter
   const brakingGRefFull = useMemo(() => {
     if (!hasReference || referenceSamples.length < 3) return [];
-    return gToBrakePercent(computeBrakingGSeriesSG(referenceSamples, brakingZoneSettings.graphWindow));
-  }, [referenceSamples, brakingZoneSettings.graphWindow, hasReference]);
+    return gToBrakePercent(computeBrakingGSeriesSG(referenceSamples, brakingZoneSettings.graphWindow), brakingZoneSettings.brakeMaxG);
+  }, [referenceSamples, brakingZoneSettings.graphWindow, hasReference, brakingZoneSettings.brakeMaxG]);
 
   // Precompute reference values for each channel from FULL dataset, then slice for visible range
   const referenceValuesByKey = useMemo(() => {

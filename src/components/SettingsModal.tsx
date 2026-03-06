@@ -318,14 +318,13 @@ export function SettingsModal({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground/70">
-                Savitzky-Golay filter window for the Braking G chart. Larger = smoother.
+                Savitzky-Golay filter window for the Brake % chart. Larger = smoother.
               </p>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">5</span>
                 <Slider
                   value={[settings.brakingGraphWindow]}
                   onValueChange={([value]) => {
-                    // Ensure odd
                     const odd = value % 2 === 0 ? value + 1 : value;
                     onSettingsChange({ brakingGraphWindow: odd });
                   }}
@@ -335,6 +334,31 @@ export function SettingsModal({
                   className="flex-1"
                 />
                 <span className="text-xs text-muted-foreground">51</span>
+              </div>
+            </div>
+
+            {/* Brake Max G (100% calibration) */}
+            <div className="pl-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Brake 100% = </Label>
+                <span className="text-xs font-mono text-muted-foreground">
+                  {((settings.brakeMaxG ?? 150) / 100).toFixed(2)}G
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground/70">
+                The deceleration G-force that maps to 100% brake. Lower = more sensitive.
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">0.5G</span>
+                <Slider
+                  value={[settings.brakeMaxG ?? 150]}
+                  onValueChange={([value]) => onSettingsChange({ brakeMaxG: value })}
+                  min={50}
+                  max={300}
+                  step={5}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground">3.0G</span>
               </div>
             </div>
 

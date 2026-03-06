@@ -8,6 +8,7 @@ export interface BrakingZoneSettings {
   color: string;
   width: number;
   graphWindow: number;
+  brakeMaxG: number; // G value that maps to 100%
 }
 
 export interface SettingsContextValue {

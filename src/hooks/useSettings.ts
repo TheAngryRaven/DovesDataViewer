@@ -14,6 +14,7 @@ export interface AppSettings {
   brakingZoneColor: string;         // HSL color string (default: blue)
   brakingZoneWidth: number;         // 6-16 pixels (default: 10)
   brakingGraphWindow: number;       // 5-51 odd, SG filter window for graph (default: 25)
+  brakeMaxG: number;                // 50-300, represents 0.5-3.0G, the G value that = 100% brake (default: 150 = 1.5G)
   autoSaveFiles: boolean;           // Auto-save imported/uploaded files to device (default: true)
   enableLabs: boolean;              // Enable experimental Labs tab (default: false)
   darkMode: boolean;                // Dark mode enabled (default: true)
@@ -35,6 +36,7 @@ const defaultSettings: AppSettings = {
   brakingZoneColor: 'hsl(210, 90%, 55%)',  // Blue
   brakingZoneWidth: 10,           // 10px
   brakingGraphWindow: 25,         // SG window size (25 @ 25Hz = 1s)
+  brakeMaxG: 150,                 // 1.5G = 100% brake
   autoSaveFiles: true,
   enableLabs: false,
   darkMode: true,
