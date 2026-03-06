@@ -24,7 +24,7 @@ import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
 import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
 import { LapTimeOverlay } from "@/components/video-overlays/LapTimeOverlay";
 import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport";
-import { computeBrakingGSeriesSG } from "@/lib/brakingZones";
+import { computeBrakingGSeriesSG, gToBrakePercent } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
 
