@@ -77,6 +77,9 @@ export function renderOverlaysToCanvas(
       case "sector":
         drawSector(ctx2d, overlay, renderCtx, layout);
         break;
+      case "laptime":
+        drawLapTime(ctx2d, overlay, renderCtx, layout);
+        break;
     }
 
     ctx2d.restore();
