@@ -607,9 +607,10 @@ export const VideoPlayer = memo(function VideoPlayer({
         isExporting={isExporting}
         progress={exportProgress}
         videoFileName={state.videoFileName}
-        hasStoredVideo={state.hasStoredVideo ?? false}
+        storedVideoMeta={state.storedVideoMeta}
         hasLapSelected={selectedLapNumber !== null}
         onSaveExisting={handleSaveExisting}
+        onDeleteStored={handleDeleteStored}
       />
 
       {/* Unified bottom toolbar + progress bar */}
