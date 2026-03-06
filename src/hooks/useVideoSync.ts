@@ -37,6 +37,7 @@ export interface VideoSyncActions {
     seekVideo: (timeSec: number) => void;
     updateOverlaySettings: (settings: OverlaySettings) => void;
     deleteStoredVideo: () => Promise<void>;
+    refreshStoredMeta: () => Promise<void>;
     videoRef: React.RefObject<HTMLVideoElement | null>;
   }
 
