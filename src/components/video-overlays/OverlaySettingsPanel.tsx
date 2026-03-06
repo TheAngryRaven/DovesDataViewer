@@ -58,7 +58,7 @@ export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasRefer
     onUpdate({ ...safeSettings, overlays: [...safeSettings.overlays, newOverlay] });
     setAddType("");
     setExpandedId(newOverlay.id);
-  }, [addType, settings, onUpdate, dataSources]);
+  }, [addType, safeSettings, onUpdate, dataSources]);
 
   const updateOverlay = useCallback((id: string, patch: Partial<OverlayInstance>) => {
     onUpdate({
