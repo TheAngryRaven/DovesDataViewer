@@ -116,7 +116,10 @@ src/
 │   ├── templateStorage.ts    # ★ Vehicle types + setup templates, default kart schema
 │   ├── noteStorage.ts         # IndexedDB: session notes
 │   ├── setupStorage.ts        # IndexedDB: kart setups
-│   ├── videoStorage.ts        # IndexedDB: video sync points
+│   ├── videoStorage.ts        # IndexedDB: video sync points + overlay settings
+│   ├── videoFileStorage.ts    # ★ IndexedDB: video file blobs (one per session)
+│   ├── videoExport.ts         # Video export pipeline (canvas + MediaRecorder)
+│   ├── overlayCanvasRenderer.ts # Canvas-based overlay drawing for export
 │   ├── graphPrefsStorage.ts   # IndexedDB: per-session graph selections
 │   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol (files + settings + tracks)
 │   ├── deviceTrackSync.ts     # Track sync logic: merge/compare app↔device tracks, coordinate diff
