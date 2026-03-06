@@ -48,6 +48,7 @@ interface InfoBoxProps {
   selectedLapNumber?: number | null;
   referenceSamples?: GpsSample[];
   paceData?: number[];
+  sessionFileName?: string | null;
 }
 
 type InfoTab = 'data' | 'vehicle' | 'video';
