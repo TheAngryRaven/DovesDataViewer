@@ -381,6 +381,13 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     return () => { active = false; };
   }, [isPlaying, isLocked, videoUrl]);
 
+  const handleDeleteStoredVideo = useCallback(async () => {
+    if (!sessionFileName) return;
+    await deleteSessionVideo(sessionFileName);
+    setStoredVideoAvailable(false);
+    setStoredVideoMeta(null);
+  }, [sessionFileName]);
+
   const updateOverlaySettings = useCallback((newSettings: OverlaySettings) => {
     setOverlaySettings(newSettings);
     // Persist immediately
