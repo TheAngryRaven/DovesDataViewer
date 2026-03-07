@@ -21,16 +21,6 @@ export const LabsTab = memo(function LabsTab() {
               </p>
             </div>
           </div>
-
-          <div className="flex gap-3 p-3 rounded-md border border-border bg-muted/30">
-            <PenLine className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Track Layout Drawing</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Draw track outlines on the satellite map in the Track Editor. Used for future automatic track detection on DovesDataLogger hardware.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
