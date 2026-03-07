@@ -353,6 +353,27 @@ function waitForSeeked(video: HTMLVideoElement): Promise<void> {
   });
 }
 
+/**
+ * Wait for a video frame to be fully decoded and ready for canvas capture.
+ * Uses requestVideoFrameCallback when available (Chrome 83+) for precise
+ * frame-level readiness, falling back to seeked + rAF for other browsers.
+ */
+function waitForFrameReady(video: HTMLVideoElement): Promise<void> {
+  return new Promise((resolve) => {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      // After seeked, wait for the frame to actually be painted
+      if ("requestVideoFrameCallback" in video) {
+        (video as any).requestVideoFrameCallback(() => resolve());
+      } else {
+        // Double rAF ensures the frame has been composited
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }
+    };
+    video.addEventListener("seeked", onSeeked);
+  });
+}
+
 /** Trigger download of the exported blob */
 export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
