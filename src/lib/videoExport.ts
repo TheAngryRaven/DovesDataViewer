@@ -177,7 +177,7 @@ async function encodeAudioToMuxer(
         numberOfFrames: remaining,
         numberOfChannels: channels,
         timestamp,
-        data: buildPlanarBuffer(audioBuffer, offset, remaining, channels),
+        data: buildPlanarBuffer(audioBuffer, offset, remaining, channels).buffer as ArrayBuffer,
       });
 
       encoder.encode(audioData);
