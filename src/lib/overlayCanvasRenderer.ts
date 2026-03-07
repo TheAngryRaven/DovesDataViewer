@@ -4,12 +4,12 @@
  * so overlays appear in exported videos without needing DOM rendering.
  */
 
-import type { OverlayInstance, OverlayRenderContext, DataSourceDef } from "@/components/video-overlays/types";
+import type { OverlayInstance, OverlayRenderContext } from "@/components/video-overlays/types";
 import { getTheme } from "@/components/video-overlays/themes";
-import { resolveValue, resolveRange, resolveUnit, resolveLabel } from "@/components/video-overlays/dataSourceResolver";
-import { computeSectorSegments, SECTOR_COLORS } from "@/components/video-overlays/sectorUtils";
-import type { SectorTimes } from "@/types/racing";
+import { resolveValue, resolveRange, resolveUnit } from "@/components/video-overlays/dataSourceResolver";
+import { computeBestSectors, computeSectorSegments, SECTOR_COLORS } from "@/components/video-overlays/sectorUtils";
 import { courseHasSectors } from "@/types/racing";
+import { findCurrentLap, formatOverlayLapTime, getOverlayLapStartTime } from "@/components/video-overlays/overlayUtils";
 
 const START_ANGLE = Math.PI * 0.8;
 const END_ANGLE = Math.PI * 2.2;
@@ -52,7 +52,9 @@ export function renderOverlaysToCanvas(
     const layout = computeLayout(overlay, width, height);
 
     ctx2d.save();
-    ctx2d.globalAlpha = overlay.opacity;
+    // Opacity is already baked into theme.bg() RGBA values — do NOT set globalAlpha
+    // here, or backgrounds get double-opacity and text/lines become semi-transparent
+    // (mismatching the React preview which has no globalAlpha).
 
     switch (overlay.type) {
       case "digital":
@@ -88,25 +90,6 @@ export function renderOverlaysToCanvas(
   }
 }
 
-function formatLapTimeCanvas(seconds: number): string {
-  if (seconds < 0) seconds = 0;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds - mins * 60;
-  const whole = Math.floor(secs);
-  const ms = Math.round((secs - whole) * 1000);
-  if (mins > 0) {
-    return `${mins}:${String(whole).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
-  }
-  return `${whole}.${String(ms).padStart(3, "0")}`;
-}
-
-function getLapStartTimeCanvas(ctx: OverlayRenderContext): number | undefined {
-  if (ctx.selectedLapNumber == null || ctx.laps.length === 0) {
-    return ctx.samples.length > 0 ? ctx.samples[0].t : undefined;
-  }
-  const lap = ctx.laps.find((l) => l.lapNumber === ctx.selectedLapNumber);
-  return lap?.startTime;
-}
 
 function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
@@ -410,17 +393,7 @@ function drawMap(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Overla
   const showSectors = inst.showSectors === true && courseHasSectors(ctx.course);
 
   if (showSectors) {
-    // Find current lap
-    let currentLap = ctx.selectedLapNumber !== null
-      ? ctx.laps.find(lap => lap.lapNumber === ctx.selectedLapNumber) ?? null
-      : null;
-    if (!currentLap) {
-      const t = ctx.currentSample.t;
-      for (const lap of ctx.laps) {
-        if (t >= lap.startTime && t <= lap.endTime) { currentLap = lap; break; }
-      }
-    }
-
+    const currentLap = findCurrentLap(ctx.laps, ctx.selectedLapNumber, ctx.currentSample.t);
     const segments = computeSectorSegments(samples, currentLap, ctx.currentSample.t, ctx.laps);
 
     // Base track line (faint)
@@ -537,25 +510,9 @@ function drawPace(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Overl
 function drawSector(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
 
-  // Compute best sectors
-  const best = { s1: Infinity, s2: Infinity, s3: Infinity };
-  for (const lap of ctx.laps) {
-    if (!lap.sectors) continue;
-    if (lap.sectors.s1 !== undefined && lap.sectors.s1 < best.s1) best.s1 = lap.sectors.s1;
-    if (lap.sectors.s2 !== undefined && lap.sectors.s2 < best.s2) best.s2 = lap.sectors.s2;
-    if (lap.sectors.s3 !== undefined && lap.sectors.s3 < best.s3) best.s3 = lap.sectors.s3;
-  }
-
-  // Find current lap
+  const best = computeBestSectors(ctx.laps);
   const t = ctx.currentSample.t;
-  let currentLap = ctx.selectedLapNumber !== null
-    ? ctx.laps.find(lap => lap.lapNumber === ctx.selectedLapNumber) ?? null
-    : null;
-  if (!currentLap) {
-    for (const lap of ctx.laps) {
-      if (t >= lap.startTime && t <= lap.endTime) { currentLap = lap; break; }
-    }
-  }
+  const currentLap = findCurrentLap(ctx.laps, ctx.selectedLapNumber, t);
 
   const sectorW = l.fontSize * 3;
   const sectorH = l.fontSize * 1.6;
@@ -636,18 +593,9 @@ function drawLapTime(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ov
   const theme = getTheme(inst.theme);
   const showPace = inst.showPaceMode ?? false;
 
-  // Get lap start time
-  let lapStartMs: number | undefined;
-  if (ctx.selectedLapNumber != null && ctx.laps.length > 0) {
-    const lap = ctx.laps.find((la) => la.lapNumber === ctx.selectedLapNumber);
-    lapStartMs = lap?.startTime;
-  }
-  if (lapStartMs == null && ctx.samples.length > 0) {
-    lapStartMs = ctx.samples[0].t;
-  }
-
+  const lapStartMs = getOverlayLapStartTime(ctx.samples, ctx.laps, ctx.selectedLapNumber);
   const currentTimeSec = lapStartMs != null ? Math.max(0, (ctx.currentSample.t - lapStartMs) / 1000) : 0;
-  const lapTimeStr = formatLapTimeCanvas(currentTimeSec);
+  const lapTimeStr = formatOverlayLapTime(currentTimeSec);
 
   const boxW = l.fontSize * (showPace ? 8 : 5);
   const boxH = l.fontSize * (showPace ? 3.2 : 2);
@@ -708,7 +656,7 @@ function drawLapTime(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ov
       for (const la of ctx.laps) {
         if (la.lapTimeMs < best.lapTimeMs) best = la;
       }
-      bestTimeStr = formatLapTimeCanvas(best.lapTimeMs / 1000);
+      bestTimeStr = formatOverlayLapTime(best.lapTimeMs / 1000);
       bestLabel = `BEST L${best.lapNumber}`;
     }
 
@@ -722,17 +670,8 @@ function drawLapTime(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ov
   }
 }
 
-/** Helper: draw a rounded rect path */
+/** Helper: begin a rounded rect path (uses native Canvas roundRect) */
 function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   c.beginPath();
-  c.moveTo(x + r, y);
-  c.lineTo(x + w - r, y);
-  c.arcTo(x + w, y, x + w, y + r, r);
-  c.lineTo(x + w, y + h - r);
-  c.arcTo(x + w, y + h, x + w - r, y + h, r);
-  c.lineTo(x + r, y + h);
-  c.arcTo(x, y + h, x, y + h - r, r);
-  c.lineTo(x, y + r);
-  c.arcTo(x, y, x + r, y, r);
-  c.closePath();
+  c.roundRect(x, y, w, h, r);
 }

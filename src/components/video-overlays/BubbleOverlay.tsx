@@ -15,8 +15,8 @@ export const BubbleOverlay = memo(function BubbleOverlay({ instance, ctx, fontSi
 
   const valueX = resolveValue(instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const valueY = resolveValue(instance.dataSourceSecondary ?? instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
-  const rangeX = resolveRange(instance.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
-  const rangeY = resolveRange(instance.dataSourceSecondary ?? instance.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
+  const rangeX = resolveRange(instance.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  const rangeY = resolveRange(instance.dataSourceSecondary ?? instance.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
 
   const size = Math.round(fontSize * 6);
 

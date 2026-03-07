@@ -23,7 +23,7 @@ export default function Login() {
     try {
       // Check rate limit before attempting login
       const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', {
-        body: { success: false },
+        body: {},
       });
 
       if (rateCheck && !rateCheck.allowed) {
@@ -37,10 +37,6 @@ export default function Login() {
       if (error) {
         toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
       } else {
-        // Report success to reset rate limit counter
-        await supabase.functions.invoke('check-login-rate', {
-          body: { success: true },
-        });
         toast({ title: 'Logged in successfully' });
         navigate('/admin');
       }

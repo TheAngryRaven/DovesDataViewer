@@ -4,6 +4,7 @@ import { saveVideoSync, loadVideoSync, VideoSyncRecord } from "@/lib/videoStorag
 import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoMeta, type StoredVideoMeta } from "@/lib/videoFileStorage";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
+import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
@@ -40,20 +41,6 @@ export interface VideoSyncActions {
     refreshStoredMeta: () => Promise<void>;
     videoRef: React.RefObject<HTMLVideoElement | null>;
   }
-
-function findNearestIndex(samples: GpsSample[], targetMs: number): number {
-  if (samples.length === 0) return 0;
-  let lo = 0, hi = samples.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (samples[mid].t < targetMs) lo = mid + 1;
-    else hi = mid;
-  }
-  if (lo > 0 && Math.abs(samples[lo - 1].t - targetMs) < Math.abs(samples[lo].t - targetMs)) {
-    return lo - 1;
-  }
-  return lo;
-}
 
 export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessionFileName }: UseVideoSyncOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -411,11 +398,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         syncOffsetMs,
         videoFileName: videoFileName || "",
         fileHandle: fileHandle || undefined,
+        isLocked,
         overlaySettings: newSettings,
       };
       saveVideoSync(record);
     }
-  }, [sessionFileName, syncOffsetMs, videoFileName, fileHandle]);
+  }, [sessionFileName, syncOffsetMs, videoFileName, fileHandle, isLocked]);
 
   const state: VideoSyncState = {
     videoUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,

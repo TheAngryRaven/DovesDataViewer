@@ -11,8 +11,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { success } = await req.json();
-
     // Derive IP server-side — never trust client-provided IP
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                req.headers.get('cf-connecting-ip') || 'unknown';
@@ -28,13 +26,11 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // If login succeeded, reset counter
-    if (success) {
-      await supabase.from('login_attempts').delete().eq('ip_address', ip);
-      return new Response(JSON.stringify({ allowed: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Clean up expired lockouts (TTL-based reset: entries older than 1 hour)
+    await supabase
+      .from('login_attempts')
+      .delete()
+      .lt('locked_until', new Date().toISOString());
 
     // Check current attempts
     const { data: existing } = await supabase
@@ -51,6 +47,15 @@ Deno.serve(async (req) => {
           locked_until: existing.locked_until,
           message: 'Too many failed attempts. Try again later.' 
         }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // If lock expired, we already cleaned it above, but handle edge case
+      if (existing.locked_until) {
+        // Lock expired — reset and allow
+        await supabase.from('login_attempts').delete().eq('ip_address', ip);
+        return new Response(JSON.stringify({ allowed: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
