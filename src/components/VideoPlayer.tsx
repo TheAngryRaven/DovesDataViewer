@@ -492,7 +492,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           });
         } else {
           const baseName = state.videoFileName?.replace(/\.[^.]+$/, "") ?? "export";
-          downloadBlob(blob, `${baseName}-overlay.webm`);
+          downloadBlob(blob, `${baseName}-overlay.mp4`);
         }
       },
       onError: (err) => {
