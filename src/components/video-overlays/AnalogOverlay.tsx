@@ -18,7 +18,7 @@ export const AnalogOverlay = memo(function AnalogOverlay({ instance, ctx, fontSi
   const theme = getTheme(instance.theme);
 
   const value = resolveValue(instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
-  const { min, max } = resolveRange(instance.dataSource, ctx.samples, ctx.dataSources, ctx.paceData);
+  const { min, max } = resolveRange(instance.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const unit = resolveUnit(instance.dataSource, ctx.dataSources);
 
   const size = Math.round(fontSize * 5);

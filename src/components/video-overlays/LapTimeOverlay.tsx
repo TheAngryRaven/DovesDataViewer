@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import type { OverlayInstance, OverlayRenderContext } from "./types";
 import { getTheme } from "./themes";
+import { formatOverlayLapTime, getOverlayLapStartTime } from "./overlayUtils";
 
 interface LapTimeOverlayProps {
   instance: OverlayInstance;
@@ -8,34 +9,14 @@ interface LapTimeOverlayProps {
   fontSize: number;
 }
 
-function formatLapTime(seconds: number): string {
-  if (seconds < 0) seconds = 0;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds - mins * 60;
-  const whole = Math.floor(secs);
-  const ms = Math.round((secs - whole) * 1000);
-  if (mins > 0) {
-    return `${mins}:${String(whole).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
-  }
-  return `${whole}.${String(ms).padStart(3, "0")}`;
-}
-
-function getLapStartTime(ctx: OverlayRenderContext): number | undefined {
-  if (ctx.selectedLapNumber == null || ctx.laps.length === 0) {
-    return ctx.samples.length > 0 ? ctx.samples[0].t : undefined;
-  }
-  const lap = ctx.laps.find((l) => l.lapNumber === ctx.selectedLapNumber);
-  return lap?.startTime;
-}
-
 export const LapTimeOverlay = memo(function LapTimeOverlay({ instance, ctx, fontSize }: LapTimeOverlayProps) {
   const theme = getTheme(instance.theme);
   const showPace = instance.showPaceMode ?? false;
 
   // Current lap time
-  const lapStartMs = getLapStartTime(ctx);
+  const lapStartMs = getOverlayLapStartTime(ctx.samples, ctx.laps, ctx.selectedLapNumber);
   const currentTimeSec = lapStartMs != null ? (ctx.currentSample.t - lapStartMs) / 1000 : 0;
-  const lapTimeDisplay = formatLapTime(Math.max(0, currentTimeSec));
+  const lapTimeDisplay = formatOverlayLapTime(Math.max(0, currentTimeSec));
 
   // Best lap info
   const bestLap = useMemo(() => {
@@ -57,7 +38,7 @@ export const LapTimeOverlay = memo(function LapTimeOverlay({ instance, ctx, font
     ? (paceValue < 0 ? "#22c55e" : paceValue > 0 ? "#ef4444" : theme.text(instance.colorMode))
     : theme.textSecondary(instance.colorMode);
 
-  const bestTimeDisplay = bestLap ? formatLapTime(bestLap.lapTimeMs / 1000) : "—";
+  const bestTimeDisplay = bestLap ? formatOverlayLapTime(bestLap.lapTimeMs / 1000) : "—";
 
   return (
     <div

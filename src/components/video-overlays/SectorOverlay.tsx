@@ -1,7 +1,8 @@
 import { memo, useMemo, useState, useEffect, useRef } from "react";
 import type { OverlayInstance, OverlayRenderContext } from "./types";
 import { getTheme } from "./themes";
-import type { SectorTimes } from "@/types/racing";
+import { computeBestSectors } from "./sectorUtils";
+import { findCurrentLap } from "./overlayUtils";
 
 interface SectorOverlayProps {
   instance: OverlayInstance;
@@ -20,28 +21,13 @@ export const SectorOverlay = memo(function SectorOverlay({ instance, ctx, fontSi
   const showAnimation = instance.showAnimation !== false;
 
   // Compute best sectors across all laps
-  const bestSectors = useMemo(() => {
-    const best = { s1: Infinity, s2: Infinity, s3: Infinity };
-    for (const lap of ctx.laps) {
-      if (!lap.sectors) continue;
-      if (lap.sectors.s1 !== undefined && lap.sectors.s1 < best.s1) best.s1 = lap.sectors.s1;
-      if (lap.sectors.s2 !== undefined && lap.sectors.s2 < best.s2) best.s2 = lap.sectors.s2;
-      if (lap.sectors.s3 !== undefined && lap.sectors.s3 < best.s3) best.s3 = lap.sectors.s3;
-    }
-    return best;
-  }, [ctx.laps]);
+  const bestSectors = useMemo(() => computeBestSectors(ctx.laps), [ctx.laps]);
 
   // Find current lap
-  const currentLap = useMemo(() => {
-    if (ctx.selectedLapNumber !== null) {
-      return ctx.laps.find(l => l.lapNumber === ctx.selectedLapNumber) ?? null;
-    }
-    const t = ctx.currentSample.t;
-    for (const lap of ctx.laps) {
-      if (t >= lap.startTime && t <= lap.endTime) return lap;
-    }
-    return null;
-  }, [ctx.laps, ctx.selectedLapNumber, ctx.currentSample.t]);
+  const currentLap = useMemo(() =>
+    findCurrentLap(ctx.laps, ctx.selectedLapNumber, ctx.currentSample.t),
+    [ctx.laps, ctx.selectedLapNumber, ctx.currentSample.t]
+  );
 
   // Build time-aware sector states based on cursor position
   const sectors = useMemo((): SectorState[] => {

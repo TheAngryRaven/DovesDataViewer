@@ -3,6 +3,7 @@ import type { OverlayInstance, OverlayRenderContext } from "./types";
 import { getTheme } from "./themes";
 import { computeSectorSegments, SECTOR_COLORS } from "./sectorUtils";
 import { courseHasSectors } from "@/types/racing";
+import { findCurrentLap } from "./overlayUtils";
 
 interface MapOverlayProps {
   instance: OverlayInstance;
@@ -18,16 +19,10 @@ export const MapOverlay = memo(function MapOverlay({ instance, ctx, fontSize }: 
   const showSectors = instance.showSectors === true && courseHasSectors(ctx.course);
 
   // Find current lap
-  const currentLap = useMemo(() => {
-    if (ctx.selectedLapNumber !== null) {
-      return ctx.laps.find(l => l.lapNumber === ctx.selectedLapNumber) ?? null;
-    }
-    const t = ctx.currentSample.t;
-    for (const lap of ctx.laps) {
-      if (t >= lap.startTime && t <= lap.endTime) return lap;
-    }
-    return null;
-  }, [ctx.laps, ctx.selectedLapNumber, ctx.currentSample.t]);
+  const currentLap = useMemo(() =>
+    findCurrentLap(ctx.laps, ctx.selectedLapNumber, ctx.currentSample.t),
+    [ctx.laps, ctx.selectedLapNumber, ctx.currentSample.t]
+  );
 
   // Compute sector segments
   const sectorSegments = useMemo(() => {

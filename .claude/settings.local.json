@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)",
+      "Bash(node:*)",
+      "Read(//c/Users/MikeA/AppData/Roaming/**)",
+      "Read(//c/Users/MikeA/AppData/Local/**)",
+      "Read(//c/Users/MikeA/**)",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\" node --version)",
+      "Read(//c/nodejs//**)",
+      "Read(//c//**)",
+      "Bash(/c/nodejs/node.exe:*)"
+    ]
+  }
+}

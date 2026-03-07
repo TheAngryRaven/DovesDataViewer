@@ -160,15 +160,6 @@ async function encodeAudioToMuxer(
     for (let offset = 0; offset < totalSamples; offset += frameSize) {
       const remaining = Math.min(frameSize, totalSamples - offset);
 
-      // Interleave channels into a single Float32Array for AudioData
-      const interleaved = new Float32Array(remaining * channels);
-      for (let ch = 0; ch < channels; ch++) {
-        const channelData = audioBuffer.getChannelData(ch);
-        for (let i = 0; i < remaining; i++) {
-          interleaved[i * channels + ch] = channelData[offset + i];
-        }
-      }
-
       const timestamp = Math.round((offset / sampleRate) * 1_000_000); // microseconds
 
       const audioData = new AudioData({
@@ -529,16 +520,22 @@ function waitForSeeked(video: HTMLVideoElement): Promise<void> {
 /**
  * Wait for a video seek to complete and the frame to be ready for canvas capture.
  * Uses double-rAF after seeked to ensure the frame is fully composited.
- * Note: requestVideoFrameCallback does NOT fire on paused videos, so we avoid it here.
+ * Includes a timeout guard in case the browser skips the seeked event
+ * (e.g. when seeking to the current time).
  */
 function waitForFrameReady(video: HTMLVideoElement): Promise<void> {
   return new Promise((resolve) => {
-    const onSeeked = () => {
+    let resolved = false;
+    const done = () => {
+      if (resolved) return;
+      resolved = true;
       video.removeEventListener("seeked", onSeeked);
-      // Double rAF ensures the decoded frame has been composited
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     };
+    const onSeeked = () => done();
     video.addEventListener("seeked", onSeeked);
+    // Guard: if seeked doesn't fire within 500ms, resolve anyway
+    setTimeout(done, 500);
   });
 }
 

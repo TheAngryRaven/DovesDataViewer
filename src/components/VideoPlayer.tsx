@@ -27,6 +27,7 @@ import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport
 import { computeBrakingGSeriesSG, gToBrakePercent } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
+import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
 
 interface VideoPlayerProps {
   state: VideoSyncState;
@@ -222,20 +223,6 @@ function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstanc
     case "laptime": return <LapTimeOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
     default: return null;
   }
-}
-
-function findNearestIndex(samples: GpsSample[], targetMs: number): number {
-  if (samples.length === 0) return 0;
-  let lo = 0, hi = samples.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (samples[mid].t < targetMs) lo = mid + 1;
-    else hi = mid;
-  }
-  if (lo > 0 && Math.abs(samples[lo - 1].t - targetMs) < Math.abs(samples[lo].t - targetMs)) {
-    return lo - 1;
-  }
-  return lo;
 }
 
 export const VideoPlayer = memo(function VideoPlayer({
