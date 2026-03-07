@@ -23,7 +23,7 @@ export default function Login() {
     try {
       // Check rate limit before attempting login
       const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', {
-        body: { success: false },
+        body: {},
       });
 
       if (rateCheck && !rateCheck.allowed) {
