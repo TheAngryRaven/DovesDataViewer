@@ -354,21 +354,16 @@ function waitForSeeked(video: HTMLVideoElement): Promise<void> {
 }
 
 /**
- * Wait for a video frame to be fully decoded and ready for canvas capture.
- * Uses requestVideoFrameCallback when available (Chrome 83+) for precise
- * frame-level readiness, falling back to seeked + rAF for other browsers.
+ * Wait for a video seek to complete and the frame to be ready for canvas capture.
+ * Uses double-rAF after seeked to ensure the frame is fully composited.
+ * Note: requestVideoFrameCallback does NOT fire on paused videos, so we avoid it here.
  */
 function waitForFrameReady(video: HTMLVideoElement): Promise<void> {
   return new Promise((resolve) => {
     const onSeeked = () => {
       video.removeEventListener("seeked", onSeeked);
-      // After seeked, wait for the frame to actually be painted
-      if ("requestVideoFrameCallback" in video) {
-        (video as any).requestVideoFrameCallback(() => resolve());
-      } else {
-        // Double rAF ensures the frame has been composited
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      }
+      // Double rAF ensures the decoded frame has been composited
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     };
     video.addEventListener("seeked", onSeeked);
   });
