@@ -98,6 +98,7 @@ async function runWebCodecsExport(
     const duration = endTime - startTime;
     const totalFrames = Math.ceil(duration * fps);
     const frameInterval = 1 / fps;
+    const keyFrameInterval = fps; // keyframe every 1 second for smoother playback
 
     // Canvas for compositing
     const canvas = document.createElement("canvas");
@@ -154,9 +155,9 @@ async function runWebCodecsExport(
 
       const t = startTime + i * frameInterval;
 
-      // Seek to frame time
+      // Seek to frame time and wait for frame to be fully ready
       video.currentTime = t;
-      await waitForSeeked(video);
+      await waitForFrameReady(video);
 
       if (isCancelled()) break;
 
@@ -174,7 +175,7 @@ async function runWebCodecsExport(
       // Create VideoFrame and encode
       const timestamp = Math.round(i * frameInterval * 1_000_000); // microseconds
       const frame = new VideoFrame(canvas, { timestamp });
-      const keyFrame = i % (fps * 2) === 0; // keyframe every 2 seconds
+      const keyFrame = i % keyFrameInterval === 0; // keyframe every 1 second
       encoder.encode(frame, { keyFrame });
       frame.close();
 
@@ -347,6 +348,27 @@ function waitForSeeked(video: HTMLVideoElement): Promise<void> {
     const onSeeked = () => {
       video.removeEventListener("seeked", onSeeked);
       resolve();
+    };
+    video.addEventListener("seeked", onSeeked);
+  });
+}
+
+/**
+ * Wait for a video frame to be fully decoded and ready for canvas capture.
+ * Uses requestVideoFrameCallback when available (Chrome 83+) for precise
+ * frame-level readiness, falling back to seeked + rAF for other browsers.
+ */
+function waitForFrameReady(video: HTMLVideoElement): Promise<void> {
+  return new Promise((resolve) => {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      // After seeked, wait for the frame to actually be painted
+      if ("requestVideoFrameCallback" in video) {
+        (video as any).requestVideoFrameCallback(() => resolve());
+      } else {
+        // Double rAF ensures the frame has been composited
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }
     };
     video.addEventListener("seeked", onSeeked);
   });
