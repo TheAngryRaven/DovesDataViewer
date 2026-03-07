@@ -49,6 +49,7 @@ All formats are auto-detected on import:
 | Styling | Tailwind CSS + shadcn/ui |
 | Mapping | Leaflet (OpenStreetMap) |
 | Charts | Custom Canvas 2D renderer |
+| Video Export | WebCodecs + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) (H.264 MP4) |
 | State | React Query |
 | Backend | **None** – zero server dependencies (optional admin backend via Lovable Cloud) |
 | BLE | Web Bluetooth API for DovesDataLogger device communication & settings |

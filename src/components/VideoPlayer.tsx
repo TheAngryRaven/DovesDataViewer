@@ -478,7 +478,7 @@ export const VideoPlayer = memo(function VideoPlayer({
 
         if (destination === "app" && sessionFileName) {
           // Save to IndexedDB with metadata
-          const vidName = state.videoFileName ?? "export.webm";
+          const vidName = state.videoFileName ?? "export.mp4";
           const exportType = options.range === "lap" ? "lap" as const : "session" as const;
           const lapNum = options.range === "lap" && selectedLapNumber != null ? selectedLapNumber : undefined;
           saveSessionVideo(sessionFileName, blob, vidName, exportType, options.includeOverlays, lapNum).then(() => {
@@ -488,11 +488,11 @@ export const VideoPlayer = memo(function VideoPlayer({
             console.error("Failed to save video:", err);
             // Fallback to download
             const baseName = state.videoFileName?.replace(/\.[^.]+$/, "") ?? "export";
-            downloadBlob(blob, `${baseName}-overlay.webm`);
+            downloadBlob(blob, `${baseName}-overlay.mp4`);
           });
         } else {
           const baseName = state.videoFileName?.replace(/\.[^.]+$/, "") ?? "export";
-          downloadBlob(blob, `${baseName}-overlay.webm`);
+          downloadBlob(blob, `${baseName}-overlay.mp4`);
         }
       },
       onError: (err) => {
