@@ -1,0 +1,63 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.98.0"
+  },
+  "remote": {
+    "https://esm.sh/@supabase/supabase-js@2.98.0": "7c91584aa8d7c3b272be04122a907e00a7028a20d0eaf5e40b2eb1eed10f06b3"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@eslint/js@^9.32.0",
+        "npm:@radix-ui/react-collapsible@^1.1.11",
+        "npm:@radix-ui/react-dialog@^1.1.14",
+        "npm:@radix-ui/react-label@^2.1.7",
+        "npm:@radix-ui/react-select@^2.2.5",
+        "npm:@radix-ui/react-separator@^1.1.7",
+        "npm:@radix-ui/react-slider@^1.3.5",
+        "npm:@radix-ui/react-slot@^1.2.3",
+        "npm:@radix-ui/react-switch@^1.2.5",
+        "npm:@radix-ui/react-tabs@^1.1.12",
+        "npm:@radix-ui/react-toast@^1.2.14",
+        "npm:@radix-ui/react-tooltip@^1.2.7",
+        "npm:@supabase/supabase-js@^2.95.3",
+        "npm:@tailwindcss/typography@~0.5.16",
+        "npm:@tanstack/react-query@^5.83.0",
+        "npm:@types/leaflet@^1.9.21",
+        "npm:@types/node@^22.16.5",
+        "npm:@types/react-dom@^18.3.7",
+        "npm:@types/react@^18.3.23",
+        "npm:@types/web-bluetooth@^0.0.21",
+        "npm:@vitejs/plugin-react-swc@^3.11.0",
+        "npm:autoprefixer@^10.4.21",
+        "npm:class-variance-authority@~0.7.1",
+        "npm:clsx@^2.1.1",
+        "npm:eslint-plugin-react-hooks@^5.2.0",
+        "npm:eslint-plugin-react-refresh@~0.4.20",
+        "npm:eslint@^9.32.0",
+        "npm:fix-webm-duration@^1.0.6",
+        "npm:globals@^15.15.0",
+        "npm:jszip@^3.10.1",
+        "npm:leaflet@^1.9.4",
+        "npm:lovable-tagger@^1.1.13",
+        "npm:lucide-react@0.462",
+        "npm:ml-savitzky-golay@5",
+        "npm:mp4-muxer@^5.2.2",
+        "npm:postcss@^8.5.6",
+        "npm:react-dom@^18.3.1",
+        "npm:react-resizable-panels@^2.1.9",
+        "npm:react-router-dom@^6.30.1",
+        "npm:react@^18.3.1",
+        "npm:sonner@^1.7.4",
+        "npm:tailwind-merge@^2.6.0",
+        "npm:tailwindcss-animate@^1.0.7",
+        "npm:tailwindcss@^3.4.17",
+        "npm:typescript-eslint@^8.38.0",
+        "npm:typescript@^5.8.3",
+        "npm:vite-plugin-pwa@^1.2.0",
+        "npm:vite@^5.4.19"
+      ]
+    }
+  }
+}
