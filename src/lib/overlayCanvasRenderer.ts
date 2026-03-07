@@ -521,11 +521,13 @@ function drawPace(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Overl
   if (paceValue !== null) {
     const fillColor = isGood ? "#22c55e" : "#ef4444";
     c.fillStyle = fillColor;
-    if (fraction < 0) {
-      const fw = Math.abs(fraction) * barW / 2;
+    if (fraction > 0) {
+      // Positive pace (slower) fills left from center toward SLOW label
+      const fw = fraction * barW / 2;
       roundRect(c, barX + barW / 2 - fw, barY, fw, barH, barH / 2);
     } else {
-      const fw = fraction * barW / 2;
+      // Negative pace (faster) fills right from center toward FAST label
+      const fw = Math.abs(fraction) * barW / 2;
       roundRect(c, barX + barW / 2, barY, fw, barH, barH / 2);
     }
     c.fill();
