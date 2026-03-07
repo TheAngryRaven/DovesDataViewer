@@ -6,6 +6,9 @@
  * and mux into a standard MP4 file. This produces universally playable files
  * and correctly animates overlays since each frame gets its own render context.
  *
+ * Audio is extracted from the source video via Web Audio API, encoded with
+ * AudioEncoder (AAC), and muxed alongside the video track.
+ *
  * Falls back to MediaRecorder (WebM) if WebCodecs is unavailable.
  */
 
@@ -63,6 +66,153 @@ function supportsWebCodecs(): boolean {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Audio extraction + encoding                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Extract the audio from a video element's source as an AudioBuffer.
+ * Returns null if the video has no audio or decoding fails.
+ */
+async function extractAudioBuffer(
+  video: HTMLVideoElement,
+  startTime: number,
+  endTime: number,
+): Promise<AudioBuffer | null> {
+  try {
+    // Fetch the raw video data from the blob URL
+    const response = await fetch(video.src);
+    const arrayBuffer = await response.arrayBuffer();
+
+    // Decode audio from the video file
+    const audioCtx = new OfflineAudioContext(2, 1, 44100); // temp context for decoding
+    let fullBuffer: AudioBuffer;
+    try {
+      fullBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    } catch {
+      console.log("Video has no audio track or audio decode failed");
+      return null;
+    }
+
+    // If we need a sub-range, slice the buffer
+    const sampleRate = fullBuffer.sampleRate;
+    const channels = fullBuffer.numberOfChannels;
+    const startSample = Math.floor(startTime * sampleRate);
+    const endSample = Math.min(Math.ceil(endTime * sampleRate), fullBuffer.length);
+    const length = endSample - startSample;
+
+    if (length <= 0) return null;
+
+    const sliced = new OfflineAudioContext(channels, length, sampleRate);
+    const slicedBuffer = sliced.createBuffer(channels, length, sampleRate);
+    for (let ch = 0; ch < channels; ch++) {
+      const src = fullBuffer.getChannelData(ch);
+      const dst = slicedBuffer.getChannelData(ch);
+      dst.set(src.subarray(startSample, endSample));
+    }
+
+    return slicedBuffer;
+  } catch (e) {
+    console.warn("Audio extraction failed:", e);
+    return null;
+  }
+}
+
+/**
+ * Encode an AudioBuffer to AAC chunks and feed them to the muxer.
+ * Returns true if audio was successfully encoded.
+ */
+async function encodeAudioToMuxer(
+  audioBuffer: AudioBuffer,
+  muxer: Muxer<ArrayBufferTarget>,
+): Promise<boolean> {
+  if (typeof AudioEncoder === "undefined") {
+    console.log("AudioEncoder not available, skipping audio");
+    return false;
+  }
+
+  return new Promise<boolean>((resolve) => {
+    let hadError = false;
+
+    const encoder = new AudioEncoder({
+      output: (chunk, meta) => {
+        muxer.addAudioChunk(chunk, meta ?? undefined);
+      },
+      error: (e) => {
+        console.warn("AudioEncoder error:", e);
+        hadError = true;
+      },
+    });
+
+    const sampleRate = audioBuffer.sampleRate;
+    const channels = audioBuffer.numberOfChannels;
+
+    encoder.configure({
+      codec: "mp4a.40.2", // AAC-LC
+      sampleRate,
+      numberOfChannels: channels,
+      bitrate: 128_000,
+    });
+
+    // Feed audio in chunks of ~1024 samples (standard AAC frame size)
+    const frameSize = 1024;
+    const totalSamples = audioBuffer.length;
+
+    for (let offset = 0; offset < totalSamples; offset += frameSize) {
+      const remaining = Math.min(frameSize, totalSamples - offset);
+
+      // Interleave channels into a single Float32Array for AudioData
+      const interleaved = new Float32Array(remaining * channels);
+      for (let ch = 0; ch < channels; ch++) {
+        const channelData = audioBuffer.getChannelData(ch);
+        for (let i = 0; i < remaining; i++) {
+          interleaved[i * channels + ch] = channelData[offset + i];
+        }
+      }
+
+      const timestamp = Math.round((offset / sampleRate) * 1_000_000); // microseconds
+
+      const audioData = new AudioData({
+        format: "f32-planar" as AudioSampleFormat,
+        sampleRate,
+        numberOfFrames: remaining,
+        numberOfChannels: channels,
+        timestamp,
+        data: buildPlanarBuffer(audioBuffer, offset, remaining, channels),
+      });
+
+      encoder.encode(audioData);
+      audioData.close();
+    }
+
+    encoder.flush().then(() => {
+      encoder.close();
+      resolve(!hadError);
+    }).catch(() => {
+      try { encoder.close(); } catch {}
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * Build a planar Float32Array from an AudioBuffer for a given range.
+ * Layout: [ch0_sample0..ch0_sampleN, ch1_sample0..ch1_sampleN, ...]
+ */
+function buildPlanarBuffer(
+  audioBuffer: AudioBuffer,
+  offset: number,
+  length: number,
+  channels: number,
+): Float32Array {
+  const buf = new Float32Array(length * channels);
+  for (let ch = 0; ch < channels; ch++) {
+    const src = audioBuffer.getChannelData(ch);
+    buf.set(src.subarray(offset, offset + length), ch * length);
+  }
+  return buf;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Primary pipeline: WebCodecs + mp4-muxer                           */
 /* ------------------------------------------------------------------ */
 
@@ -98,7 +248,10 @@ async function runWebCodecsExport(
     const duration = endTime - startTime;
     const totalFrames = Math.ceil(duration * fps);
     const frameInterval = 1 / fps;
-    const keyFrameInterval = fps; // keyframe every 1 second for smoother playback
+    const keyFrameInterval = fps; // keyframe every 1 second
+
+    // Extract audio in parallel with video setup
+    const audioPromise = extractAudioBuffer(video, startTime, endTime);
 
     // Canvas for compositing
     const canvas = document.createElement("canvas");
@@ -107,8 +260,12 @@ async function runWebCodecsExport(
     const ctx = canvas.getContext("2d");
     if (!ctx) { callbacks.onError("Failed to get canvas context"); return; }
 
-    // mp4-muxer setup
-    const muxer = new Muxer({
+    // Wait for audio extraction
+    const audioBuffer = await audioPromise;
+    if (isCancelled()) return;
+
+    // mp4-muxer setup — include audio track if we have audio
+    const muxerConfig: any = {
       target: new ArrayBufferTarget(),
       video: {
         codec: "avc",
@@ -116,7 +273,17 @@ async function runWebCodecsExport(
         height: targetH,
       },
       fastStart: "in-memory",
-    });
+    };
+
+    if (audioBuffer) {
+      muxerConfig.audio = {
+        codec: "aac",
+        numberOfChannels: audioBuffer.numberOfChannels,
+        sampleRate: audioBuffer.sampleRate,
+      };
+    }
+
+    const muxer = new Muxer(muxerConfig);
 
     // VideoEncoder setup
     let encoderError: string | null = null;
@@ -164,7 +331,7 @@ async function runWebCodecsExport(
       // Draw video frame to canvas
       ctx.drawImage(video, 0, 0, targetW, targetH);
 
-      // Draw overlays (buildRenderCtx reads video.currentTime which is now `t`)
+      // Draw overlays
       if (options.includeOverlays && exportCtx) {
         const renderCtx = exportCtx.buildRenderCtx(t);
         if (renderCtx) {
@@ -175,7 +342,7 @@ async function runWebCodecsExport(
       // Create VideoFrame and encode
       const timestamp = Math.round(i * frameInterval * 1_000_000); // microseconds
       const frame = new VideoFrame(canvas, { timestamp });
-      const keyFrame = i % keyFrameInterval === 0; // keyframe every 1 second
+      const keyFrame = i % keyFrameInterval === 0;
       encoder.encode(frame, { keyFrame });
       frame.close();
 
@@ -188,9 +355,15 @@ async function runWebCodecsExport(
       return;
     }
 
-    // Flush encoder
+    // Flush video encoder
     await encoder.flush();
     encoder.close();
+
+    // Encode audio if available
+    if (audioBuffer) {
+      await encodeAudioToMuxer(audioBuffer, muxer);
+    }
+
     muxer.finalize();
 
     const buf = (muxer.target as ArrayBufferTarget).buffer;
