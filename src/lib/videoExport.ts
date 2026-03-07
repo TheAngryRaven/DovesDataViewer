@@ -98,6 +98,7 @@ async function runWebCodecsExport(
     const duration = endTime - startTime;
     const totalFrames = Math.ceil(duration * fps);
     const frameInterval = 1 / fps;
+    const keyFrameInterval = fps; // keyframe every 1 second for smoother playback
 
     // Canvas for compositing
     const canvas = document.createElement("canvas");
