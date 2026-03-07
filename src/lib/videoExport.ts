@@ -177,7 +177,7 @@ async function encodeAudioToMuxer(
         numberOfFrames: remaining,
         numberOfChannels: channels,
         timestamp,
-        data: buildPlanarBuffer(audioBuffer, offset, remaining, channels).buffer as ArrayBuffer,
+        data: buildPlanarBuffer(audioBuffer, offset, remaining, channels).buffer as ArrayBuffer.buffer as ArrayBuffer,
       });
 
       encoder.encode(audioData);
@@ -283,7 +283,7 @@ async function runWebCodecsExport(
       };
     }
 
-    const muxer = new Muxer(muxerConfig);
+    c<ArrayBufferTarget>onst muxer = new Muxer(muxerConfig);
 
     // VideoEncoder setup
     let encoderError: string | null = null;
