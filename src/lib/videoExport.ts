@@ -175,7 +175,7 @@ async function runWebCodecsExport(
       // Create VideoFrame and encode
       const timestamp = Math.round(i * frameInterval * 1_000_000); // microseconds
       const frame = new VideoFrame(canvas, { timestamp });
-      const keyFrame = i % (fps * 2) === 0; // keyframe every 2 seconds
+      const keyFrame = i % keyFrameInterval === 0; // keyframe every 1 second
       encoder.encode(frame, { keyFrame });
       frame.close();
 
