@@ -155,9 +155,9 @@ async function runWebCodecsExport(
 
       const t = startTime + i * frameInterval;
 
-      // Seek to frame time
+      // Seek to frame time and wait for frame to be fully ready
       video.currentTime = t;
-      await waitForSeeked(video);
+      await waitForFrameReady(video);
 
       if (isCancelled()) break;
 
