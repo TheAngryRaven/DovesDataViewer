@@ -283,7 +283,7 @@ async function runWebCodecsExport(
       };
     }
 
-    c<ArrayBufferTarget>onst muxer = new Muxer(muxerConfig);
+    const muxer = new Muxer<ArrayBufferTarget>(muxerConfig);
 
     // VideoEncoder setup
     let encoderError: string | null = null;
