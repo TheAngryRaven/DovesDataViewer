@@ -419,7 +419,7 @@ export const VideoPlayer = memo(function VideoPlayer({
     // Use visible-range samples for index so paceData/brakingGData align
     const idx = vis.length > 0 ? findNearestIndex(vis, telemetryMs) : findNearestIndex(all, telemetryMs);
     const sample = vis.length > 0 ? vis[idx] : all[idx];
-    const sample = s[idx];
+    
     if (!sample) return null;
 
     return {
