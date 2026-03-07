@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { FlaskConical, Download, PenLine } from "lucide-react";
+import { FlaskConical, PenLine } from "lucide-react";
 
 export const LabsTab = memo(function LabsTab() {
   return (
