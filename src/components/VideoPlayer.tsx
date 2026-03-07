@@ -687,8 +687,8 @@ export const VideoPlayer = memo(function VideoPlayer({
             <Sliders className="w-3.5 h-3.5" />
           </Button>
 
-          {/* Export (Labs only) */}
-          {enableLabs && (
+          {/* Export */}
+          {(
             <Button
               variant="ghost" size="icon"
               className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30"
