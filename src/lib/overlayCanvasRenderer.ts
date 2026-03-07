@@ -559,52 +559,74 @@ function drawSector(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Ove
   const sectorH = l.fontSize * 1.6;
   const gap = l.fontSize * 0.2;
 
-  const keys: (keyof SectorTimes)[] = ["s1", "s2", "s3"];
-  const bestKeys: ("s1" | "s2" | "s3")[] = ["s1", "s2", "s3"];
+  // Build time-aware sector states (mirrors SectorOverlay.tsx logic)
+  interface SState { bg: string; textColor: string; delta: string; }
+  const states: SState[] = [];
+
+  if (!currentLap?.sectors) {
+    for (let i = 0; i < 3; i++) {
+      states.push({ bg: "rgba(128,128,128,0.25)", textColor: theme.textSecondary(inst.colorMode), delta: "—" });
+    }
+  } else {
+    const s = currentLap.sectors;
+    const lapStart = currentLap.startTime;
+    const isFirstLap = currentLap.lapNumber === 1;
+
+    const s1Time = s.s1 !== undefined && s.s1 > 0 ? s.s1 : 0;
+    const s2Time = s.s2 !== undefined && s.s2 > 0 ? s.s2 : 0;
+    const s3Time = s.s3 !== undefined && s.s3 > 0 ? s.s3 : 0;
+
+    const s2Crossing = s1Time > 0 ? lapStart + s1Time : Infinity;
+    const s3Crossing = s2Time > 0 ? s2Crossing + s2Time : Infinity;
+    const lapEnd = currentLap.endTime;
+
+    const buildResult = (sectorTime: number, bestTime: number): SState => {
+      const isFirst = isFirstLap && bestTime === sectorTime;
+      if (isFirst) return { bg: "rgba(34,197,94,0.7)", textColor: "#ffffff", delta: "0.000" };
+      if (sectorTime <= bestTime) return { bg: "rgba(168,85,247,0.7)", textColor: "#ffffff", delta: `${((sectorTime - bestTime) / 1000).toFixed(3)}` };
+      return { bg: "rgba(239,68,68,0.7)", textColor: "#ffffff", delta: `+${((sectorTime - bestTime) / 1000).toFixed(3)}` };
+    };
+    const outlap: SState = { bg: "rgba(128,128,128,0.25)", textColor: theme.textSecondary(inst.colorMode), delta: "—" };
+    const active: SState = { bg: "rgba(59,130,246,0.5)", textColor: "#ffffff", delta: "•••" };
+
+    // S1
+    if (t < s2Crossing && s1Time > 0) states.push(active);
+    else if (s1Time > 0) states.push(buildResult(s1Time, best.s1));
+    else states.push(outlap);
+
+    // S2
+    if (t < s2Crossing) states.push(outlap);
+    else if (t < s3Crossing && s2Time > 0) states.push(active);
+    else if (s2Time > 0) states.push(buildResult(s2Time, best.s2));
+    else states.push(outlap);
+
+    // S3
+    if (t < s3Crossing) states.push(outlap);
+    else if (t < lapEnd && s3Time > 0) states.push(active);
+    else if (s3Time > 0) states.push(buildResult(s3Time, best.s3));
+    else states.push(outlap);
+  }
 
   for (let i = 0; i < 3; i++) {
     const sx = l.x + i * (sectorW + gap);
-    let bgColor = "rgba(128,128,128,0.25)";
-    let textColor = theme.textSecondary(inst.colorMode);
-    let deltaStr = "—";
+    const st = states[i];
 
-    if (currentLap?.sectors) {
-      const val = currentLap.sectors[keys[i]];
-      const bestVal = best[bestKeys[i]];
-      if (val !== undefined && val > 0) {
-        const isFirst = currentLap.lapNumber === 1 && bestVal === val;
-        if (isFirst) {
-          bgColor = "rgba(34,197,94,0.7)";
-          textColor = "#ffffff";
-          deltaStr = "0.000";
-        } else if (val <= bestVal) {
-          bgColor = "rgba(168,85,247,0.7)";
-          textColor = "#ffffff";
-          deltaStr = `${((val - bestVal) / 1000).toFixed(3)}`;
-        } else {
-          bgColor = "rgba(239,68,68,0.7)";
-          textColor = "#ffffff";
-          deltaStr = `+${((val - bestVal) / 1000).toFixed(3)}`;
-        }
-      }
-    }
-
-    c.fillStyle = bgColor;
+    c.fillStyle = st.bg;
     roundRect(c, sx, l.y, sectorW, sectorH, l.fontSize * 0.2);
     c.fill();
 
     // S1/S2/S3 label
-    c.fillStyle = textColor === "#ffffff" ? "rgba(255,255,255,0.7)" : textColor;
+    c.fillStyle = st.textColor === "#ffffff" ? "rgba(255,255,255,0.7)" : st.textColor;
     c.font = `${l.fontSize * 0.35}px "JetBrains Mono", monospace`;
     c.textAlign = "center";
     c.textBaseline = "top";
     c.fillText(`S${i + 1}`, sx + sectorW / 2, l.y + l.fontSize * 0.12);
 
     // Delta value
-    c.fillStyle = textColor;
+    c.fillStyle = st.textColor;
     c.font = `bold ${l.fontSize * 0.65}px "JetBrains Mono", monospace`;
     c.textBaseline = "bottom";
-    c.fillText(deltaStr, sx + sectorW / 2, l.y + sectorH - l.fontSize * 0.12);
+    c.fillText(st.delta, sx + sectorW / 2, l.y + sectorH - l.fontSize * 0.12);
   }
 }
 
