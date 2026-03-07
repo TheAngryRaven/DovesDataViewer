@@ -28,7 +28,7 @@
 | Styling | Tailwind CSS + shadcn/ui (HSL design tokens in `index.css`) |
 | Mapping | Leaflet (CartoDB + Esri tiles, cached 30 days by SW) |
 | Charts | Custom Canvas 2D (not a library — see `TelemetryChart.tsx`, `SingleSeriesChart.tsx`) |
-| Video Export | WebCodecs + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) (H.264 MP4 output) |
+| Video Export | WebCodecs + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) (H.264 video + AAC audio video + AAC audio MP4 output) |
 | State | React hooks + React Query (for admin only) |
 | Local Storage | IndexedDB (`dbUtils.ts`) for files/metadata/karts/notes/setups/video-sync/graph-prefs; localStorage for tracks & settings |
 | Backend | None for core features. Optional admin via Supabase (Lovable Cloud) |
@@ -121,7 +121,7 @@ src/
 │   ├── setupStorage.ts        # IndexedDB: kart setups
 │   ├── videoStorage.ts        # IndexedDB: video sync points + overlay settings
 │   ├── videoFileStorage.ts    # ★ IndexedDB: video file blobs + metadata (exportType, lapNumber, hasOverlays)
-│   ├── videoExport.ts         # Video export pipeline (canvas + MediaRecorder + fix-webm-duration)
+│   ├── videoExport.ts         # VideoWebCodecs H.264+AAC, fallback MediaRecorder fix-webm-duration)
 │   ├── overlayCanvasRenderer.ts # Canvas-based overlay drawing for export
 │   ├── graphPrefsStorage.ts   # IndexedDB: per-session graph selections
 │   ├── bleDatalogger.ts       # Web Bluetooth: DovesLapTimer BLE protocol (files + settings + tracks)

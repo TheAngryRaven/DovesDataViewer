@@ -1,43 +1,27 @@
 
 
-## Add Audio to MP4 Video Export
+# Plan Update: Global Unit Toggle
 
-### Current State
-Video export works perfectly with overlays and plays in external players, but has **no audio track**. The source video's audio is completely ignored during the frame-stepping export.
+The approved plan currently has unit switches per-field for measurement fields. The user wants a single global unit toggle button (mm ↔ in) that applies to the entire setup form at once, rather than individual toggles on each row.
 
-### Approach: AudioEncoder + mp4-muxer (no ffmpeg needed)
+## Change to the Plan
 
-**mp4-muxer already supports audio** — it has `addAudioChunk()` and accepts AAC audio config. We just need to extract the audio from the source video and encode it alongside the video frames. No need for ffmpeg.wasm (~25MB bundle) when we already have the right tool.
+**Remove**: Per-field `<UnitSwitch>` next to each measurement input.
 
-### How it works
+**Add**: A single toggle button at the top of the setup form (e.g., "mm / in" button) that controls the display unit for ALL measurement fields in that setup simultaneously.
 
-1. **Extract audio** from the source `<video>` element using the Web Audio API:
-   - Create an `OfflineAudioContext` for the export duration
-   - Fetch the video file's raw data from IndexedDB (we already store video blobs)
-   - Decode the audio buffer via `decodeAudioData()`
+### How it works:
+- The setup stores a single `unitSystem: "mm" | "in"` field (replaces the per-field `frontWidthUnit`, `rearWidthUnit`, `rearHeightUnit`, `tireWidthUnit`, `tireDiameterUnit` fields on the current setup)
+- Template fields that have a unit of `"mm"` or `"in"` all follow the global toggle
+- Values are stored as-entered (no conversion) — the unit just labels what the user typed
+- The toggle button sits at the top of the form, styled distinctly (like a segmented control or small outlined button showing the active unit)
 
-2. **Encode audio** using the WebCodecs `AudioEncoder` API:
-   - Configure with AAC codec (`mp4a.40.2`), matching the source sample rate
-   - Feed `AudioData` frames from the decoded buffer
-   - Chunks go to `muxer.addAudioChunk()`
+### Impact on template creator:
+- When defining a field, the user still types a unit string (e.g., "psi", "teeth", "degrees") — these are just labels
+- The special `"mm"` / `"in"` pair is recognized as switchable and follows the global toggle
+- Other units display as static suffixes
 
-3. **Update muxer config** to include an audio track:
-   ```typescript
-   const muxer = new Muxer({
-     target: new ArrayBufferTarget(),
-     video: { codec: "avc", width, height },
-     audio: { codec: "aac", numberOfChannels: 2, sampleRate: 44100 },
-     fastStart: "in-memory",
-   });
-   ```
+This is a minor simplification — fewer controls per row, cleaner form, one source of truth for measurement units.
 
-4. **Graceful degradation**: If the video has no audio track or `AudioEncoder` is unavailable, export proceeds as video-only (current behavior).
-
-### Files to change
-- `src/lib/videoExport.ts` — add audio extraction, encoding, and muxing alongside existing video pipeline
-- `src/lib/videoFileStorage.ts` — may need to expose raw blob access for audio decoding (check if already available)
-- `CLAUDE.md` — note audio support in video export section
-
-### No new dependencies needed
-mp4-muxer already handles audio muxing. AudioEncoder is part of the same WebCodecs API we already use for VideoEncoder.
+No other changes to the approved plan.
 
