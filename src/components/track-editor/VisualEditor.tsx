@@ -27,8 +27,10 @@ interface VisualEditorProps {
   isNewTrack?: boolean;
   /** Initial map center from loaded GPS data */
   initialCenter?: GpsPoint | null;
-  /** Whether to show the Draw button */
+  /** Whether to show the Draw/Generate tools */
   showDrawTool?: boolean;
+  /** Whether the caller is an admin (shows manual Draw button) */
+  isAdminEditor?: boolean;
   /** Existing layout drawing to display as a static polyline */
   layoutPoints?: Array<{ lat: number; lon: number }>;
   /** Callback when layout drawing changes */
@@ -44,6 +46,7 @@ interface VisualEditorToolbarProps {
   onToolChange: (tool: VisualEditorTool) => void;
   onDone: () => void;
   showDrawTool?: boolean;
+  isAdminEditor?: boolean;
   drawPointCount?: number;
   onUndoDraw?: () => void;
   onClearDraw?: () => void;
@@ -51,7 +54,7 @@ interface VisualEditorToolbarProps {
   onGenerateFromLap?: (lapNumber: number) => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, isAdminEditor, drawPointCount = 0, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
   const [showLapPicker, setShowLapPicker] = useState(false);
 
   const handleStartFinish = () => {
@@ -123,8 +126,7 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, d
           <Timer className="w-3.5 h-3.5" />
           Sector 3
         </Button>
-        {showDrawTool && (
-          <>
+        {showDrawTool && isAdminEditor && (
             <Button
               variant={activeTool === 'draw' ? 'default' : 'outline'}
               size="sm"
@@ -134,7 +136,8 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, d
               <Pencil className="w-3.5 h-3.5" />
               Draw
             </Button>
-            {laps && laps.length > 0 && (
+        )}
+        {showDrawTool && laps && laps.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -144,8 +147,6 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, d
                 <Route className="w-3.5 h-3.5" />
                 Generate
               </Button>
-            )}
-          </>
         )}
         {activeTool === 'draw' && drawPointCount > 0 && (
           <>
@@ -209,7 +210,7 @@ export function VisualEditor({
   startFinishA, startFinishB, sector2, sector3,
   onStartFinishChange, onSector2Change, onSector3Change, onDone,
   isNewTrack = false, initialCenter: initialCenterProp = null,
-  showDrawTool = false, layoutPoints: layoutPointsProp, onLayoutChange,
+  showDrawTool = false, isAdminEditor = false, layoutPoints: layoutPointsProp, onLayoutChange,
   laps, samples,
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -828,6 +829,7 @@ export function VisualEditor({
         onToolChange={handleToolChange}
         onDone={handleDone}
         showDrawTool={showDrawTool}
+        isAdminEditor={isAdminEditor}
         drawPointCount={drawPoints.length}
         onUndoDraw={handleUndoDraw}
         onClearDraw={handleClearDraw}

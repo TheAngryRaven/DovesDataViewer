@@ -228,9 +228,9 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 
 **Access**: Admin-only RLS (same pattern as courses table). Layout data is NOT exported to `tracks.json`.
 
-**Draw tool**: In the VisualEditor, a "Draw" button allows clicking on the satellite map to build a polyline outline. Always visible in admin CoursesTab, gated behind `enableLabs` setting for user-side TrackEditor.
+**Draw tool**: In the VisualEditor, a "Draw" button allows clicking on the satellite map to build a polyline outline. This manual drawing tool is **admin-only** (`isAdminEditor={true}` in CoursesTab).
 
-**Generate Drawing**: A "Generate" button (next to Draw, visible when laps are available and `showDrawTool` is true) lets users select a lap and auto-populate the drawing from that lap's GPS samples. This produces the most accurate course outlines for length calculation and future course detection. Laps and samples are threaded from `Index.tsx` → `TrackEditor` → `VisualEditor`.
+**Generate Drawing**: A "Generate" button (visible when laps are available and `showDrawTool` is true) lets users select a lap and auto-populate the drawing from that lap's GPS samples. This is the only way for non-admin users to create a layout drawing. Available in user-side TrackEditor when `enableLabs` is on and session data is loaded. Laps and samples are threaded from `Index.tsx` → `TrackEditor` → `VisualEditor`.
 
 **"Generate Course Mapping" button**: Placeholder in admin CoursesTab — will eventually produce fingerprint data for automatic track detection on the DovesDataLogger hardware.
 
