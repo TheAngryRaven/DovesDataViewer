@@ -194,8 +194,6 @@ export function CoursesTab() {
   useEffect(() => { loadTracks(); }, [loadTracks]);
   useEffect(() => { loadCourses(); }, [loadCourses]);
 
-  // Build a set of course IDs that have layouts for quick lookup
-  const courseIdsWithLayout = new Set(trackLayouts.map(l => l.course_id));
 
   const setField = (key: keyof CourseFormState, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
