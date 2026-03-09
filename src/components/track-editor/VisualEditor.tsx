@@ -829,6 +829,7 @@ export function VisualEditor({
         onToolChange={handleToolChange}
         onDone={handleDone}
         showDrawTool={showDrawTool}
+        isAdminEditor={isAdminEditor}
         drawPointCount={drawPoints.length}
         onUndoDraw={handleUndoDraw}
         onClearDraw={handleClearDraw}
