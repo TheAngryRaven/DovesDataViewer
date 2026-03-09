@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed, Pencil, Undo2, Trash2 } from 'lucide-react';
+import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed, Pencil, Undo2, Trash2, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { SectorLine } from '@/types/racing';
+import type { Lap, GpsSample } from '@/types/racing';
 import L from 'leaflet';
 
 export interface GpsPoint {
@@ -32,6 +33,10 @@ interface VisualEditorProps {
   layoutPoints?: Array<{ lat: number; lon: number }>;
   /** Callback when layout drawing changes */
   onLayoutChange?: (points: Array<{ lat: number; lon: number }>) => void;
+  /** Laps available for "Generate Drawing" */
+  laps?: Lap[];
+  /** GPS samples for generating drawing from lap data */
+  samples?: GpsSample[];
 }
 
 interface VisualEditorToolbarProps {
@@ -42,9 +47,13 @@ interface VisualEditorToolbarProps {
   drawPointCount?: number;
   onUndoDraw?: () => void;
   onClearDraw?: () => void;
+  laps?: Lap[];
+  onGenerateFromLap?: (lapNumber: number) => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
+  const [showLapPicker, setShowLapPicker] = useState(false);
+
   const handleStartFinish = () => {
     onToolChange(activeTool === 'startFinish' ? null : 'startFinish');
   };
@@ -65,78 +74,133 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, d
     onDone();
   };
 
+  const handleGenerateClick = () => {
+    if (!laps || laps.length === 0) {
+      return;
+    }
+    setShowLapPicker(true);
+  };
+
+  const handleLapSelect = (lapNumber: number) => {
+    setShowLapPicker(false);
+    onGenerateFromLap?.(lapNumber);
+  };
+
+  const formatLapTime = (ms: number) => {
+    const totalSecs = ms / 1000;
+    const mins = Math.floor(totalSecs / 60);
+    const secs = (totalSecs % 60).toFixed(3);
+    return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : `${secs}s`;
+  };
+
   return (
-    <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg flex-wrap">
-      <Button
-        variant={activeTool === 'startFinish' ? 'default' : 'outline'}
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleStartFinish}
-      >
-        <Flag className="w-3.5 h-3.5" />
-        Start/Finish
-      </Button>
-      <Button
-        variant={activeTool === 'sector2' ? 'default' : 'outline'}
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleSector2}
-      >
-        <Timer className="w-3.5 h-3.5" />
-        Sector 2
-      </Button>
-      <Button
-        variant={activeTool === 'sector3' ? 'default' : 'outline'}
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleSector3}
-      >
-        <Timer className="w-3.5 h-3.5" />
-        Sector 3
-      </Button>
-      {showDrawTool && (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg flex-wrap">
         <Button
-          variant={activeTool === 'draw' ? 'default' : 'outline'}
+          variant={activeTool === 'startFinish' ? 'default' : 'outline'}
           size="sm"
           className="h-8 gap-1.5 text-xs"
-          onClick={handleDraw}
+          onClick={handleStartFinish}
         >
-          <Pencil className="w-3.5 h-3.5" />
-          Draw
+          <Flag className="w-3.5 h-3.5" />
+          Start/Finish
         </Button>
-      )}
-      {activeTool === 'draw' && drawPointCount > 0 && (
-        <>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={onUndoDraw}
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-            Undo
+        <Button
+          variant={activeTool === 'sector2' ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleSector2}
+        >
+          <Timer className="w-3.5 h-3.5" />
+          Sector 2
+        </Button>
+        <Button
+          variant={activeTool === 'sector3' ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleSector3}
+        >
+          <Timer className="w-3.5 h-3.5" />
+          Sector 3
+        </Button>
+        {showDrawTool && (
+          <>
+            <Button
+              variant={activeTool === 'draw' ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={handleDraw}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Draw
+            </Button>
+            {laps && laps.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={handleGenerateClick}
+              >
+                <Route className="w-3.5 h-3.5" />
+                Generate
+              </Button>
+            )}
+          </>
+        )}
+        {activeTool === 'draw' && drawPointCount > 0 && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={onUndoDraw}
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              Undo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
+              onClick={onClearDraw}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear
+            </Button>
+          </>
+        )}
+        <div className="flex-1" />
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleDone}
+        >
+          <Check className="w-3.5 h-3.5" />
+          Done
+        </Button>
+      </div>
+      {showLapPicker && laps && laps.length > 0 && (
+        <div className="p-3 bg-card border border-border rounded-lg space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Select a lap to generate drawing from:</p>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+            {laps.map(lap => (
+              <Button
+                key={lap.lapNumber}
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs font-mono"
+                onClick={() => handleLapSelect(lap.lapNumber)}
+              >
+                Lap {lap.lapNumber} — {formatLapTime(lap.lapTimeMs)}
+              </Button>
+            ))}
+          </div>
+          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowLapPicker(false)}>
+            Cancel
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
-            onClick={onClearDraw}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Clear
-          </Button>
-        </>
+        </div>
       )}
-      <div className="flex-1" />
-      <Button
-        variant="secondary"
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleDone}
-      >
-        <Check className="w-3.5 h-3.5" />
-        Done
-      </Button>
     </div>
   );
 }
@@ -146,6 +210,7 @@ export function VisualEditor({
   onStartFinishChange, onSector2Change, onSector3Change, onDone,
   isNewTrack = false, initialCenter: initialCenterProp = null,
   showDrawTool = false, layoutPoints: layoutPointsProp, onLayoutChange,
+  laps, samples,
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -500,6 +565,28 @@ export function VisualEditor({
     }
   }, []);
 
+  const handleGenerateFromLap = useCallback((lapNumber: number) => {
+    if (!samples || !laps) return;
+    const lap = laps.find(l => l.lapNumber === lapNumber);
+    if (!lap) return;
+    const lapSamples = samples.slice(lap.startIndex, lap.endIndex + 1);
+    const points = lapSamples
+      .filter(s => s.lat !== 0 && s.lon !== 0)
+      .map(s => ({ lat: s.lat, lon: s.lon }));
+    if (points.length < 2) {
+      toast({ title: 'Not enough GPS data', description: 'This lap has insufficient GPS points for a drawing', variant: 'destructive' });
+      return;
+    }
+    setDrawPoints(points);
+    updateDrawPolyline(points);
+    // Fit map to the generated drawing
+    if (mapRef.current && points.length > 1) {
+      const bounds = L.latLngBounds(points.map(p => [p.lat, p.lon] as [number, number]));
+      mapRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
+    }
+    toast({ title: 'Drawing generated', description: `Generated from Lap ${lapNumber} (${points.length} points). Click Done to save.` });
+  }, [samples, laps, updateDrawPolyline]);
+
   // Render static layout polyline when not in draw mode
   useEffect(() => {
     const map = mapRef.current;
@@ -744,6 +831,8 @@ export function VisualEditor({
         drawPointCount={drawPoints.length}
         onUndoDraw={handleUndoDraw}
         onClearDraw={handleClearDraw}
+        laps={laps}
+        onGenerateFromLap={handleGenerateFromLap}
       />
       <div
         ref={mapContainerRef}

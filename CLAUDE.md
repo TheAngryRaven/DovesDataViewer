@@ -230,6 +230,8 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 
 **Draw tool**: In the VisualEditor, a "Draw" button allows clicking on the satellite map to build a polyline outline. Always visible in admin CoursesTab, gated behind `enableLabs` setting for user-side TrackEditor.
 
+**Generate Drawing**: A "Generate" button (next to Draw, visible when laps are available and `showDrawTool` is true) lets users select a lap and auto-populate the drawing from that lap's GPS samples. This produces the most accurate course outlines for length calculation and future course detection. Laps and samples are threaded from `Index.tsx` → `TrackEditor` → `VisualEditor`.
+
 **"Generate Course Mapping" button**: Placeholder in admin CoursesTab — will eventually produce fingerprint data for automatic track detection on the DovesDataLogger hardware.
 
 **Submissions**: The `submissions` table has `has_layout` (bool) and `layout_data` (jsonb) columns to carry drawing data through the submission workflow.

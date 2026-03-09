@@ -637,7 +637,7 @@ export default function Index() {
             </Tooltip>
           </TooltipProvider>
 
-          <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact />
+          <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact laps={laps} samples={data?.samples} />
 
           {laps.length > 0 && (
             <Select value={selectedLapNumber?.toString() ?? "all"} onValueChange={handleLapDropdownChange}>
