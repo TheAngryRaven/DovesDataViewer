@@ -47,6 +47,7 @@ interface VisualEditorToolbarProps {
   onDone: () => void;
   showDrawTool?: boolean;
   isAdminEditor?: boolean;
+  drawPointCount?: number;
   onUndoDraw?: () => void;
   onClearDraw?: () => void;
   laps?: Lap[];
