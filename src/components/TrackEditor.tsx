@@ -317,7 +317,9 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
                   onStartFinishChange={form.handleVisualStartFinishChange}
                   onSector2Change={form.handleVisualSector2Change}
                   onSector3Change={form.handleVisualSector3Change}
-                  showDrawTool={enableLabs}
+                   showDrawTool={enableLabs}
+                   laps={laps}
+                   samples={samples}
                 />
                 <div className="flex gap-2">
                   <Button onClick={handleUpdateCourse} className="flex-1">
