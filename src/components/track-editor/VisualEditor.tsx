@@ -51,7 +51,9 @@ interface VisualEditorToolbarProps {
   onGenerateFromLap?: (lapNumber: number) => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
+  const [showLapPicker, setShowLapPicker] = useState(false);
+
   const handleStartFinish = () => {
     onToolChange(activeTool === 'startFinish' ? null : 'startFinish');
   };
@@ -72,78 +74,133 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, d
     onDone();
   };
 
+  const handleGenerateClick = () => {
+    if (!laps || laps.length === 0) {
+      return;
+    }
+    setShowLapPicker(true);
+  };
+
+  const handleLapSelect = (lapNumber: number) => {
+    setShowLapPicker(false);
+    onGenerateFromLap?.(lapNumber);
+  };
+
+  const formatLapTime = (ms: number) => {
+    const totalSecs = ms / 1000;
+    const mins = Math.floor(totalSecs / 60);
+    const secs = (totalSecs % 60).toFixed(3);
+    return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : `${secs}s`;
+  };
+
   return (
-    <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg flex-wrap">
-      <Button
-        variant={activeTool === 'startFinish' ? 'default' : 'outline'}
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleStartFinish}
-      >
-        <Flag className="w-3.5 h-3.5" />
-        Start/Finish
-      </Button>
-      <Button
-        variant={activeTool === 'sector2' ? 'default' : 'outline'}
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleSector2}
-      >
-        <Timer className="w-3.5 h-3.5" />
-        Sector 2
-      </Button>
-      <Button
-        variant={activeTool === 'sector3' ? 'default' : 'outline'}
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleSector3}
-      >
-        <Timer className="w-3.5 h-3.5" />
-        Sector 3
-      </Button>
-      {showDrawTool && (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg flex-wrap">
         <Button
-          variant={activeTool === 'draw' ? 'default' : 'outline'}
+          variant={activeTool === 'startFinish' ? 'default' : 'outline'}
           size="sm"
           className="h-8 gap-1.5 text-xs"
-          onClick={handleDraw}
+          onClick={handleStartFinish}
         >
-          <Pencil className="w-3.5 h-3.5" />
-          Draw
+          <Flag className="w-3.5 h-3.5" />
+          Start/Finish
         </Button>
-      )}
-      {activeTool === 'draw' && drawPointCount > 0 && (
-        <>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={onUndoDraw}
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-            Undo
+        <Button
+          variant={activeTool === 'sector2' ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleSector2}
+        >
+          <Timer className="w-3.5 h-3.5" />
+          Sector 2
+        </Button>
+        <Button
+          variant={activeTool === 'sector3' ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleSector3}
+        >
+          <Timer className="w-3.5 h-3.5" />
+          Sector 3
+        </Button>
+        {showDrawTool && (
+          <>
+            <Button
+              variant={activeTool === 'draw' ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={handleDraw}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Draw
+            </Button>
+            {laps && laps.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={handleGenerateClick}
+              >
+                <Route className="w-3.5 h-3.5" />
+                Generate
+              </Button>
+            )}
+          </>
+        )}
+        {activeTool === 'draw' && drawPointCount > 0 && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={onUndoDraw}
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              Undo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
+              onClick={onClearDraw}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear
+            </Button>
+          </>
+        )}
+        <div className="flex-1" />
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleDone}
+        >
+          <Check className="w-3.5 h-3.5" />
+          Done
+        </Button>
+      </div>
+      {showLapPicker && laps && laps.length > 0 && (
+        <div className="p-3 bg-card border border-border rounded-lg space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Select a lap to generate drawing from:</p>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+            {laps.map(lap => (
+              <Button
+                key={lap.lapNumber}
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs font-mono"
+                onClick={() => handleLapSelect(lap.lapNumber)}
+              >
+                Lap {lap.lapNumber} — {formatLapTime(lap.lapTimeMs)}
+              </Button>
+            ))}
+          </div>
+          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowLapPicker(false)}>
+            Cancel
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
-            onClick={onClearDraw}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Clear
-          </Button>
-        </>
+        </div>
       )}
-      <div className="flex-1" />
-      <Button
-        variant="secondary"
-        size="sm"
-        className="h-8 gap-1.5 text-xs"
-        onClick={handleDone}
-      >
-        <Check className="w-3.5 h-3.5" />
-        Done
-      </Button>
     </div>
   );
 }
