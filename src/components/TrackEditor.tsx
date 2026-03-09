@@ -37,11 +37,14 @@ import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { SubmitTrackDialog } from '@/components/SubmitTrackDialog';
 import { Send } from 'lucide-react';
 import { useSettingsContext } from '@/contexts/SettingsContext';
+import type { Lap, GpsSample } from '@/types/racing';
 
 interface TrackCourseEditorProps {
   selection: TrackCourseSelection | null;
   onSelectionChange: (selection: TrackCourseSelection | null) => void;
   compact?: boolean;
+  laps?: Lap[];
+  samples?: GpsSample[];
 }
 
 export function TrackEditor({ selection, onSelectionChange, compact = false }: TrackCourseEditorProps) {
