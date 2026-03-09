@@ -256,18 +256,16 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
               </div>
             </>
           )}
-          <div>
-            <span className="text-muted-foreground">Max Speed: </span>
-            <span className="font-mono text-accent font-semibold">
-              {getMaxSpeed(laps[fastestSpeedIdx]).toFixed(1)} {speedUnit}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Slowest Min: </span>
-            <span className="font-mono text-orange-500 font-semibold">
-              {getMinSpeed(laps[slowestMinSpeedIdx]).toFixed(1)} {speedUnit}
-            </span>
-          </div>
+          {avgLapLength !== null && (
+            <div>
+              <span className="text-muted-foreground">Avg Lap Length: </span>
+              <span className="font-mono text-foreground font-semibold">
+                {useKph
+                  ? `${avgLapLength.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`
+                  : `${(avgLapLength * 3.28084).toLocaleString(undefined, { maximumFractionDigits: 0 })} ft`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
