@@ -82,6 +82,25 @@ export function findNearestTrack(
 }
 
 /**
+ * Calculate the total length of a polyline in meters.
+ */
+export function calculatePolylineLength(points: Array<{ lat: number; lon: number }>): number {
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    total += haversineDist(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);
+  }
+  return total;
+}
+
+/**
+ * Format a distance in meters to a compact ft / m string.
+ */
+export function formatTrackLength(meters: number): string {
+  const feet = meters * 3.28084;
+  return `${Math.round(feet).toLocaleString()} ft / ${Math.round(meters).toLocaleString()} m`;
+}
+
+/**
  * Resample a polyline to evenly spaced points.
  * Walks along the path segment-by-segment, emitting a new interpolated
  * point every `spacingMeters` meters. Always includes the first point.
