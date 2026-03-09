@@ -408,7 +408,8 @@ export function CoursesTab() {
         <div className="space-y-2">
           {courses.map((course, index) => {
             const color = COURSE_COLORS[index % COURSE_COLORS.length];
-            const hasLayout = courseIdsWithLayout.has(course.id);
+            const layout = trackLayouts.find(l => l.course_id === course.id);
+            const hasLayout = Boolean(layout);
             return (
               <div key={course.id} className="racing-card p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -421,6 +422,11 @@ export function CoursesTab() {
                     />
                   )}
                   <span className="font-medium text-foreground">{course.name}</span>
+                  {layout && layout.layout_data.length >= 2 && (
+                    <span className="text-xs text-muted-foreground">
+                      ({formatTrackLength(calculatePolylineLength(layout.layout_data))})
+                    </span>
+                  )}
                   {course.superseded_by && <span className="text-xs text-muted-foreground">(superseded)</span>}
                 </div>
                 <div className="flex items-center gap-1">
