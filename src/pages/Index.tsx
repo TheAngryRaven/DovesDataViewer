@@ -705,6 +705,7 @@ export default function Index() {
             <LapTimesTab
               laps={laps}
               course={selectedCourse}
+              samples={data?.samples}
               onLapSelect={handleLapSelect}
               selectedLapNumber={selectedLapNumber}
               referenceLapNumber={referenceLapNumber}
