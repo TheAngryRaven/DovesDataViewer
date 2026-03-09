@@ -210,6 +210,7 @@ export function VisualEditor({
   onStartFinishChange, onSector2Change, onSector3Change, onDone,
   isNewTrack = false, initialCenter: initialCenterProp = null,
   showDrawTool = false, layoutPoints: layoutPointsProp, onLayoutChange,
+  laps, samples,
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
