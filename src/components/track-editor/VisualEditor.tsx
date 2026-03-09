@@ -27,8 +27,10 @@ interface VisualEditorProps {
   isNewTrack?: boolean;
   /** Initial map center from loaded GPS data */
   initialCenter?: GpsPoint | null;
-  /** Whether to show the Draw button */
+  /** Whether to show the Draw/Generate tools */
   showDrawTool?: boolean;
+  /** Whether the caller is an admin (shows manual Draw button) */
+  isAdminEditor?: boolean;
   /** Existing layout drawing to display as a static polyline */
   layoutPoints?: Array<{ lat: number; lon: number }>;
   /** Callback when layout drawing changes */
