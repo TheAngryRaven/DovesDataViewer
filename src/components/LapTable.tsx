@@ -1,15 +1,17 @@
 import { memo, useMemo } from 'react';
-import { Lap, courseHasSectors, Course } from '@/types/racing';
+import { Lap, courseHasSectors, Course, GpsSample } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalRefBar } from '@/components/ExternalRefBar';
 import { FileEntry } from '@/lib/fileStorage';
 import { useSettingsContext } from '@/contexts/SettingsContext';
+import { haversineDistance } from '@/lib/parserUtils';
 
 interface LapTableProps {
   laps: Lap[];
   course: Course | null;
+  samples?: GpsSample[];
   onLapSelect?: (lap: Lap) => void;
   selectedLapNumber?: number | null;
   referenceLapNumber?: number | null;
@@ -23,7 +25,7 @@ interface LapTableProps {
   onRefreshSavedFiles?: () => void;
 }
 
-export const LapTable = memo(function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
+export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
   const { useKph } = useSettingsContext();
 
   const showSectors = courseHasSectors(course);
@@ -75,6 +77,27 @@ export const LapTable = memo(function LapTable({ laps, course, onLapSelect, sele
 
     return { fastestLapIdx, fastestSpeedIdx, slowestMinSpeedIdx, fastestS1Idx, fastestS2Idx, fastestS3Idx, optimalLap };
   }, [laps, useKph, showSectors]);
+
+  // Calculate average lap distance
+  const avgLapLength = useMemo(() => {
+    if (!samples || samples.length === 0 || laps.length === 0) return null;
+    let totalDist = 0;
+    let validLaps = 0;
+    for (const lap of laps) {
+      let lapDist = 0;
+      for (let i = lap.startIndex + 1; i <= lap.endIndex && i < samples.length; i++) {
+        lapDist += haversineDistance(
+          samples[i - 1].lat, samples[i - 1].lon,
+          samples[i].lat, samples[i].lon
+        );
+      }
+      if (lapDist > 0) {
+        totalDist += lapDist;
+        validLaps++;
+      }
+    }
+    return validLaps > 0 ? totalDist / validLaps : null;
+  }, [samples, laps]);
 
   if (laps.length === 0 || !lapStats) {
     return (
@@ -233,18 +256,16 @@ export const LapTable = memo(function LapTable({ laps, course, onLapSelect, sele
               </div>
             </>
           )}
-          <div>
-            <span className="text-muted-foreground">Max Speed: </span>
-            <span className="font-mono text-accent font-semibold">
-              {getMaxSpeed(laps[fastestSpeedIdx]).toFixed(1)} {speedUnit}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Slowest Min: </span>
-            <span className="font-mono text-orange-500 font-semibold">
-              {getMinSpeed(laps[slowestMinSpeedIdx]).toFixed(1)} {speedUnit}
-            </span>
-          </div>
+          {avgLapLength !== null && (
+            <div>
+              <span className="text-muted-foreground">Avg Lap Length: </span>
+              <span className="font-mono text-foreground font-semibold">
+                {useKph
+                  ? `${avgLapLength.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`
+                  : `${(avgLapLength * 3.28084).toLocaleString(undefined, { maximumFractionDigits: 0 })} ft`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
