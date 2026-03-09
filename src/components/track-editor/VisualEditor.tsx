@@ -47,6 +47,8 @@ interface VisualEditorToolbarProps {
   drawPointCount?: number;
   onUndoDraw?: () => void;
   onClearDraw?: () => void;
+  laps?: Lap[];
+  onGenerateFromLap?: (lapNumber: number) => void;
 }
 
 function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw }: VisualEditorToolbarProps) {
