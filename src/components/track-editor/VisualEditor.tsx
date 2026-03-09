@@ -33,6 +33,10 @@ interface VisualEditorProps {
   layoutPoints?: Array<{ lat: number; lon: number }>;
   /** Callback when layout drawing changes */
   onLayoutChange?: (points: Array<{ lat: number; lon: number }>) => void;
+  /** Laps available for "Generate Drawing" */
+  laps?: Lap[];
+  /** GPS samples for generating drawing from lap data */
+  samples?: GpsSample[];
 }
 
 interface VisualEditorToolbarProps {
