@@ -78,6 +78,27 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
     return { fastestLapIdx, fastestSpeedIdx, slowestMinSpeedIdx, fastestS1Idx, fastestS2Idx, fastestS3Idx, optimalLap };
   }, [laps, useKph, showSectors]);
 
+  // Calculate average lap distance
+  const avgLapLength = useMemo(() => {
+    if (!samples || samples.length === 0 || laps.length === 0) return null;
+    let totalDist = 0;
+    let validLaps = 0;
+    for (const lap of laps) {
+      let lapDist = 0;
+      for (let i = lap.startIndex + 1; i <= lap.endIndex && i < samples.length; i++) {
+        lapDist += haversineDistance(
+          samples[i - 1].lat, samples[i - 1].lon,
+          samples[i].lat, samples[i].lon
+        );
+      }
+      if (lapDist > 0) {
+        totalDist += lapDist;
+        validLaps++;
+      }
+    }
+    return validLaps > 0 ? totalDist / validLaps : null;
+  }, [samples, laps]);
+
   if (laps.length === 0 || !lapStats) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
