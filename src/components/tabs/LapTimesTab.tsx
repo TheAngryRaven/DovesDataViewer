@@ -1,11 +1,12 @@
 import { memo } from "react";
 import { LapTable } from "@/components/LapTable";
-import { Lap, Course } from "@/types/racing";
+import { Lap, Course, GpsSample } from "@/types/racing";
 import { FileEntry } from "@/lib/fileStorage";
 
 interface LapTimesTabProps {
   laps: Lap[];
   course: Course | null;
+  samples?: GpsSample[];
   onLapSelect: (lap: Lap) => void;
   selectedLapNumber: number | null;
   referenceLapNumber: number | null;
@@ -24,6 +25,7 @@ export const LapTimesTab = memo(function LapTimesTab(props: LapTimesTabProps) {
       <LapTable
         laps={props.laps}
         course={props.course}
+        samples={props.samples}
         onLapSelect={props.onLapSelect}
         selectedLapNumber={props.selectedLapNumber}
         referenceLapNumber={props.referenceLapNumber}

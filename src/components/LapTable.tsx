@@ -1,15 +1,17 @@
 import { memo, useMemo } from 'react';
-import { Lap, courseHasSectors, Course } from '@/types/racing';
+import { Lap, courseHasSectors, Course, GpsSample } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalRefBar } from '@/components/ExternalRefBar';
 import { FileEntry } from '@/lib/fileStorage';
 import { useSettingsContext } from '@/contexts/SettingsContext';
+import { haversineDistance } from '@/lib/parserUtils';
 
 interface LapTableProps {
   laps: Lap[];
   course: Course | null;
+  samples?: GpsSample[];
   onLapSelect?: (lap: Lap) => void;
   selectedLapNumber?: number | null;
   referenceLapNumber?: number | null;
