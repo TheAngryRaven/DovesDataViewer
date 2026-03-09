@@ -12,7 +12,7 @@ import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 import { VisualEditor, EditorModeToggle } from '@/components/track-editor/VisualEditor';
 import { Plus, Edit2, Check, X, Trash2, Cpu, RefreshCw } from 'lucide-react';
-import { resamplePolyline } from '@/lib/trackUtils';
+import { resamplePolyline, calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
 import L from 'leaflet';
 
 type EditorMode = 'manual' | 'visual';
@@ -194,8 +194,6 @@ export function CoursesTab() {
   useEffect(() => { loadTracks(); }, [loadTracks]);
   useEffect(() => { loadCourses(); }, [loadCourses]);
 
-  // Build a set of course IDs that have layouts for quick lookup
-  const courseIdsWithLayout = new Set(trackLayouts.map(l => l.course_id));
 
   const setField = (key: keyof CourseFormState, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -408,7 +406,8 @@ export function CoursesTab() {
         <div className="space-y-2">
           {courses.map((course, index) => {
             const color = COURSE_COLORS[index % COURSE_COLORS.length];
-            const hasLayout = courseIdsWithLayout.has(course.id);
+            const layout = trackLayouts.find(l => l.course_id === course.id);
+            const hasLayout = Boolean(layout);
             return (
               <div key={course.id} className="racing-card p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -421,6 +420,11 @@ export function CoursesTab() {
                     />
                   )}
                   <span className="font-medium text-foreground">{course.name}</span>
+                  {layout && layout.layout_data.length >= 2 && (
+                    <span className="text-xs text-muted-foreground">
+                      ({formatTrackLength(calculatePolylineLength(layout.layout_data))})
+                    </span>
+                  )}
                   {course.superseded_by && <span className="text-xs text-muted-foreground">(superseded)</span>}
                 </div>
                 <div className="flex items-center gap-1">
