@@ -260,9 +260,8 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
             <div>
               <span className="text-muted-foreground">Avg Lap Length: </span>
               <span className="font-mono text-foreground font-semibold">
-                {useKph
-                  ? `${avgLapLength.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`
-                  : `${(avgLapLength * 3.28084).toLocaleString(undefined, { maximumFractionDigits: 0 })} ft`}
+                {`${(avgLapLength * 3.28084).toLocaleString(undefined, { maximumFractionDigits: 0 })} ft / ${avgLapLength.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`}
+              </span>
               </span>
             </div>
           )}
