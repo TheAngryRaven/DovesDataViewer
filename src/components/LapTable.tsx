@@ -25,7 +25,7 @@ interface LapTableProps {
   onRefreshSavedFiles?: () => void;
 }
 
-export const LapTable = memo(function LapTable({ laps, course, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
+export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
   const { useKph } = useSettingsContext();
 
   const showSectors = courseHasSectors(course);
