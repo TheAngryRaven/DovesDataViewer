@@ -831,6 +831,8 @@ export function VisualEditor({
         drawPointCount={drawPoints.length}
         onUndoDraw={handleUndoDraw}
         onClearDraw={handleClearDraw}
+        laps={laps}
+        onGenerateFromLap={handleGenerateFromLap}
       />
       <div
         ref={mapContainerRef}
