@@ -47,7 +47,7 @@ interface TrackCourseEditorProps {
   samples?: GpsSample[];
 }
 
-export function TrackEditor({ selection, onSelectionChange, compact = false }: TrackCourseEditorProps) {
+export function TrackEditor({ selection, onSelectionChange, compact = false, laps, samples }: TrackCourseEditorProps) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSelectDialogOpen, setIsSelectDialogOpen] = useState(false);
