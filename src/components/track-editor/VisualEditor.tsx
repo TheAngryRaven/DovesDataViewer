@@ -53,7 +53,7 @@ interface VisualEditorToolbarProps {
   onGenerateFromLap?: (lapNumber: number) => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, drawPointCount = 0, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, isAdminEditor, drawPointCount = 0, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
   const [showLapPicker, setShowLapPicker] = useState(false);
 
   const handleStartFinish = () => {
