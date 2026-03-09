@@ -126,8 +126,7 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, i
           <Timer className="w-3.5 h-3.5" />
           Sector 3
         </Button>
-        {showDrawTool && (
-          <>
+        {showDrawTool && isAdminEditor && (
             <Button
               variant={activeTool === 'draw' ? 'default' : 'outline'}
               size="sm"
@@ -137,7 +136,8 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, i
               <Pencil className="w-3.5 h-3.5" />
               Draw
             </Button>
-            {laps && laps.length > 0 && (
+        )}
+        {showDrawTool && laps && laps.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -147,8 +147,6 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, i
                 <Route className="w-3.5 h-3.5" />
                 Generate
               </Button>
-            )}
-          </>
         )}
         {activeTool === 'draw' && drawPointCount > 0 && (
           <>
