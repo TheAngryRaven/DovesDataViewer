@@ -565,6 +565,28 @@ export function VisualEditor({
     }
   }, []);
 
+  const handleGenerateFromLap = useCallback((lapNumber: number) => {
+    if (!samples || !laps) return;
+    const lap = laps.find(l => l.lapNumber === lapNumber);
+    if (!lap) return;
+    const lapSamples = samples.slice(lap.startIndex, lap.endIndex + 1);
+    const points = lapSamples
+      .filter(s => s.lat !== 0 && s.lon !== 0)
+      .map(s => ({ lat: s.lat, lon: s.lon }));
+    if (points.length < 2) {
+      toast({ title: 'Not enough GPS data', description: 'This lap has insufficient GPS points for a drawing', variant: 'destructive' });
+      return;
+    }
+    setDrawPoints(points);
+    updateDrawPolyline(points);
+    // Fit map to the generated drawing
+    if (mapRef.current && points.length > 1) {
+      const bounds = L.latLngBounds(points.map(p => [p.lat, p.lon] as [number, number]));
+      mapRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
+    }
+    toast({ title: 'Drawing generated', description: `Generated from Lap ${lapNumber} (${points.length} points). Click Done to save.` });
+  }, [samples, laps, updateDrawPolyline]);
+
   // Render static layout polyline when not in draw mode
   useEffect(() => {
     const map = mapRef.current;
