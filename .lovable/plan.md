@@ -1,35 +1,27 @@
 
 
-## Browser Compatibility Checklist Button + Dialog
+# Plan Update: Global Unit Toggle
 
-### Concept
-A button on the homepage below the "Try it out" section, styled like the weather button. Greyed out when all features pass, turns **blue** (not red) when any feature is degraded/unavailable. Clicking opens a dialog with a live-detected checklist.
+The approved plan currently has unit switches per-field for measurement fields. The user wants a single global unit toggle button (mm ↔ in) that applies to the entire setup form at once, rather than individual toggles on each row.
 
-### Feature Detection (`src/lib/browserCompat.ts`)
-Runtime checks returning `{ feature, status, level: 'green' | 'yellow' | 'red' }`:
+## Change to the Plan
 
-| Feature | Detection | Green | Yellow | Red |
-|---|---|---|---|---|
-| GPS File Parsing | `'indexedDB' in window` | Supported | — | Not Available |
-| Video Sync | `'requestVideoFrameCallback' in HTMLVideoElement.prototype` | Frame-accurate | Approximate sync | — |
-| Video Export (MP4) | `typeof VideoEncoder !== 'undefined'` | MP4 (H.264) | WebM fallback | — |
-| Audio in Export | `typeof AudioEncoder !== 'undefined'` | Supported | Silent exports | — |
-| BLE Datalogger | `navigator.bluetooth` | Supported | — | Not Available |
-| File Picker | `'showOpenFilePicker' in window` | Native | File input fallback | — |
-| PWA / Offline | `'serviceWorker' in navigator` | Supported | — | Not Available |
+**Remove**: Per-field `<UnitSwitch>` next to each measurement input.
 
-### Button Behavior
-- Default: greyed out outline button with `Monitor` icon + "Browser Compatibility"
-- If any check is yellow or red: button border/text turns blue (`text-blue-500 border-blue-500`)
-- Always clickable regardless of state
+**Add**: A single toggle button at the top of the setup form (e.g., "mm / in" button) that controls the display unit for ALL measurement fields in that setup simultaneously.
 
-### Dialog
-- Lists all checks with CheckCircle (green), AlertTriangle (yellow/blue tint), XCircle (red/muted) icons
-- Small note at bottom: "All core features work across modern browsers. Some advanced features work best in Chrome or Edge."
-- No aggressive "download Chrome" messaging
+### How it works:
+- The setup stores a single `unitSystem: "mm" | "in"` field (replaces the per-field `frontWidthUnit`, `rearWidthUnit`, `rearHeightUnit`, `tireWidthUnit`, `tireDiameterUnit` fields on the current setup)
+- Template fields that have a unit of `"mm"` or `"in"` all follow the global toggle
+- Values are stored as-entered (no conversion) — the unit just labels what the user typed
+- The toggle button sits at the top of the form, styled distinctly (like a segmented control or small outlined button showing the active unit)
 
-### Files
-- **New**: `src/lib/browserCompat.ts` — `detectCapabilities()` function
-- **New**: `src/components/BrowserCompatDialog.tsx` — button + dialog component
-- **Edit**: `src/pages/Index.tsx` — add `<BrowserCompatDialog />` after the "Try it out" card (around line 526)
+### Impact on template creator:
+- When defining a field, the user still types a unit string (e.g., "psi", "teeth", "degrees") — these are just labels
+- The special `"mm"` / `"in"` pair is recognized as switchable and follows the global toggle
+- Other units display as static suffixes
+
+This is a minor simplification — fewer controls per row, cleaner form, one source of truth for measurement units.
+
+No other changes to the approved plan.
 

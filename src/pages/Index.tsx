@@ -11,6 +11,7 @@ import { LapTimesTab } from "@/components/tabs/LapTimesTab";
 import { GraphViewTab } from "@/components/tabs/GraphViewTab";
 import { LabsTab } from "@/components/tabs/LabsTab";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { BrowserCompatDialog } from "@/components/BrowserCompatDialog";
 import { SettingsModal } from "@/components/SettingsModal";
 import { FileManagerDrawer } from "@/components/FileManagerDrawer";
 import { Button } from "@/components/ui/button";
@@ -523,6 +524,10 @@ export default function Index() {
                 </Button>
               </div>
 
+            </div>
+
+            <div className="flex justify-center mt-3">
+              <BrowserCompatDialog />
             </div>
 
             <div className="flex items-center justify-center gap-8 mt-4">
