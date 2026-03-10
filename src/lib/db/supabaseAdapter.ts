@@ -188,9 +188,11 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
       const courseList = trackCourses.map(c => {
         const layout = layoutMap.get(c.id);
-        const lengthFt = layout && layout.layout_data.length >= 2
-          ? Math.round(calculatePolylineLength(layout.layout_data) * 3.28084)
-          : 0;
+        const lengthFt = c.length_ft_override != null
+          ? c.length_ft_override
+          : (layout && layout.layout_data.length >= 2
+            ? Math.round(calculatePolylineLength(layout.layout_data) * 3.28084)
+            : 0);
 
         const obj: Record<string, unknown> = {
           name: c.name,
