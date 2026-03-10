@@ -253,6 +253,7 @@ export type Database = {
       tracks: {
         Row: {
           created_at: string | null
+          default_course_id: string | null
           enabled: boolean | null
           id: string
           name: string
@@ -261,6 +262,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          default_course_id?: string | null
           enabled?: boolean | null
           id?: string
           name: string
@@ -269,13 +271,22 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          default_course_id?: string | null
           enabled?: boolean | null
           id?: string
           name?: string
           short_name?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tracks_default_course_id_fkey"
+            columns: ["default_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

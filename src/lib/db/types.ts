@@ -95,5 +95,6 @@ export interface ITrackDatabase {
 
   // Build
   buildTracksJson(): Promise<string>;
+  buildTrackManifest(): Promise<string>;
   importFromTracksJson(json: string): Promise<void>;
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.tracks ADD COLUMN default_course_id uuid REFERENCES public.courses(id) ON DELETE SET NULL;
