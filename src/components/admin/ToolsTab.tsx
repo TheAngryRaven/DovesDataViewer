@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
-import { Download, Upload, FileJson, Archive } from 'lucide-react';
+import { Download, Upload, FileJson, Archive, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import JSZip from 'jszip';
 
 export function ToolsTab() {
   const [jsonOutput, setJsonOutput] = useState('');
+  const [manifestOutput, setManifestOutput] = useState('');
   const [importJson, setImportJson] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +46,6 @@ export function ToolsTab() {
       });
       if (resp.error) throw resp.error;
       
-      // Edge function returns JSON map of {path: content}, build a real zip client-side
       const files: Record<string, string> = resp.data;
       const zip = new JSZip();
       for (const [path, content] of Object.entries(files)) {
@@ -65,6 +65,28 @@ export function ToolsTab() {
     setLoading(false);
   };
 
+  const handleBuildManifest = async () => {
+    setLoading(true);
+    try {
+      const json = await db.buildTrackManifest();
+      setManifestOutput(json);
+      toast({ title: 'track_manifest.json built' });
+    } catch (e: unknown) {
+      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+    }
+    setLoading(false);
+  };
+
+  const handleDownloadManifest = () => {
+    const blob = new Blob([manifestOutput], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'track_manifest.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleImport = async () => {
     if (!importJson.trim()) return;
     setLoading(true);
@@ -82,7 +104,7 @@ export function ToolsTab() {
     <div className="space-y-6 mt-4">
       <div className="racing-card p-4 space-y-3">
         <h3 className="font-semibold text-foreground">Build tracks.json from Database</h3>
-        <p className="text-sm text-muted-foreground">Generates the tracks.json file from all enabled tracks and courses in the database.</p>
+        <p className="text-sm text-muted-foreground">Generates tracks.json with longName, shortName, defaultCourse, and lengthFt per course (from layout drawings).</p>
         <div className="flex gap-2">
           <Button onClick={handleBuildJson} disabled={loading}>
             <FileJson className="w-4 h-4 mr-2" /> Build JSON
@@ -100,15 +122,33 @@ export function ToolsTab() {
 
       <div className="racing-card p-4 space-y-3">
         <h3 className="font-semibold text-foreground">Build Tracks ZIP</h3>
-        <p className="text-sm text-muted-foreground">Downloads individual track JSON files in a TRACKS/ folder, named by short name.</p>
+        <p className="text-sm text-muted-foreground">Downloads individual track JSON files (with longName, shortName, defaultCourse, lengthFt) in a TRACKS/ folder.</p>
         <Button onClick={handleBuildZip} disabled={loading}>
           <Archive className="w-4 h-4 mr-2" /> Build & Download ZIP
         </Button>
       </div>
 
       <div className="racing-card p-4 space-y-3">
+        <h3 className="font-semibold text-foreground">Build Track Manifest</h3>
+        <p className="text-sm text-muted-foreground">Generates track_manifest.json — a lightweight index of all tracks with filenames and GPS coordinates for fast detection.</p>
+        <div className="flex gap-2">
+          <Button onClick={handleBuildManifest} disabled={loading}>
+            <MapPin className="w-4 h-4 mr-2" /> Build Manifest
+          </Button>
+          {manifestOutput && (
+            <Button variant="outline" onClick={handleDownloadManifest}>
+              <Download className="w-4 h-4 mr-2" /> Download
+            </Button>
+          )}
+        </div>
+        {manifestOutput && (
+          <Textarea readOnly value={manifestOutput} className="font-mono text-xs h-48 resize-none bg-muted" />
+        )}
+      </div>
+
+      <div className="racing-card p-4 space-y-3">
         <h3 className="font-semibold text-foreground">Import tracks.json into Database</h3>
-        <p className="text-sm text-muted-foreground">Paste a tracks.json file to rebuild the database. Existing tracks are updated, new tracks are added.</p>
+        <p className="text-sm text-muted-foreground">Paste a tracks.json file to rebuild the database. Supports both old and new formats. lengthFt is ignored on import.</p>
         <Textarea
           value={importJson}
           onChange={e => setImportJson(e.target.value)}

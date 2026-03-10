@@ -226,7 +226,7 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 | `layout_data` | jsonb | Array of `{lat, lon}` coordinate points |
 | `created_at` / `updated_at` | timestamptz | Timestamps |
 
-**Access**: Admin-only RLS (same pattern as courses table). Layout data is NOT exported to `tracks.json`.
+**Access**: Admin-only RLS (same pattern as courses table). Layout lengths (in feet) ARE exported to track JSON files as `lengthFt`.
 
 **Draw tool**: In the VisualEditor, a "Draw" button allows clicking on the satellite map to build a polyline outline. This manual drawing tool is **admin-only** (`isAdminEditor={true}` in CoursesTab).
 
@@ -332,7 +332,8 @@ npm run preview   # Preview production build
 - **Hooks are composable** — each hook does one thing, `Index.tsx` orchestrates
 - **Parsers**: always export `isXxxFormat()` + `parseXxxFile()`, register in `datalogParser.ts`
 - **IndexedDB stores**: all registered in `dbUtils.ts`, individual modules use `withReadTransaction` / `withWriteTransaction`
-- **Tracks**: `public/tracks.json` is the source of truth at runtime; admin DB builds this file
+- **Tracks**: `public/tracks.json` is the source of truth at runtime; admin DB builds this file. Export format includes `longName`, `shortName`, `defaultCourse`, and per-course `lengthFt`. Tracks table has `default_course_id` FK.
+- **Track Manifest**: `track_manifest.json` is a lightweight index with `filename`, `lat`, `lng` per track for fast GPS-based detection.
 - **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors in components
 - **Admin code** is fully optional and gated behind env vars — core app has zero admin dependencies
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in `supabase/config.toml`

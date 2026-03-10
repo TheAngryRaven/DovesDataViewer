@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp, DbCourseLayout } from './types';
+import { calculatePolylineLength } from '@/lib/trackUtils';
 
 export class SupabaseTrackDatabase implements ITrackDatabase {
   // Tracks
@@ -25,11 +26,12 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
     return data as DbTrack;
   }
 
-  async updateTrack(id: string, updates: Partial<Pick<DbTrack, 'name' | 'short_name' | 'enabled'>>): Promise<DbTrack> {
+  async updateTrack(id: string, updates: Partial<Pick<DbTrack, 'name' | 'short_name' | 'enabled' | 'default_course_id'>>): Promise<DbTrack> {
     const clean: Record<string, unknown> = {};
     if (updates.name !== undefined) clean.name = updates.name.trim();
     if (updates.short_name !== undefined) clean.short_name = updates.short_name.trim();
     if (updates.enabled !== undefined) clean.enabled = updates.enabled;
+    if (updates.default_course_id !== undefined) clean.default_course_id = updates.default_course_id;
     const { data, error } = await supabase.from('tracks').update(clean).eq('id', id).select().single();
     if (error) throw error;
     return data as DbTrack;
@@ -165,18 +167,34 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
     if (error) throw error;
   }
 
-  // Build tracks.json from DB
+  // Build tracks.json from DB — new format with longName, shortName, defaultCourse, lengthFt
   async buildTracksJson(): Promise<string> {
     const tracks = await this.getTracks();
     const courses = await this.getAllCourses();
+
+    // Fetch all layouts for length calculation
+    const allCourseIds = courses.filter(c => c.enabled).map(c => c.id);
+    const layouts = await this.getLayoutsForCourses(allCourseIds);
+    const layoutMap = new Map(layouts.map(l => [l.course_id, l]));
 
     const result: Record<string, unknown> = {};
     for (const track of tracks) {
       if (!track.enabled) continue;
       const trackCourses = courses.filter(c => c.track_id === track.id && c.enabled);
+
+      // Determine default course name
+      const defaultCourse = trackCourses.find(c => c.id === track.default_course_id);
+      const defaultCourseName = defaultCourse?.name ?? trackCourses[0]?.name ?? '';
+
       const courseList = trackCourses.map(c => {
+        const layout = layoutMap.get(c.id);
+        const lengthFt = layout && layout.layout_data.length >= 2
+          ? Math.round(calculatePolylineLength(layout.layout_data) * 3.28084)
+          : 0;
+
         const obj: Record<string, unknown> = {
           name: c.name,
+          lengthFt,
           start_a_lat: c.start_a_lat,
           start_a_lng: c.start_a_lng,
           start_b_lat: c.start_b_lat,
@@ -196,14 +214,41 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
         }
         return obj;
       });
-      result[track.name] = { short_name: track.short_name, courses: courseList };
+      result[track.name] = {
+        shortName: track.short_name,
+        defaultCourse: defaultCourseName,
+        courses: courseList,
+      };
     }
     return JSON.stringify(result, null, 2);
   }
 
+  // Build track_manifest.json
+  async buildTrackManifest(): Promise<string> {
+    const tracks = await this.getTracks();
+    const courses = await this.getAllCourses();
+
+    const manifestTracks: Array<{ filename: string; lat: number; lng: number }> = [];
+    for (const track of tracks) {
+      if (!track.enabled) continue;
+      const trackCourses = courses.filter(c => c.track_id === track.id && c.enabled);
+      if (trackCourses.length === 0) continue;
+
+      // Use default course or first course
+      const defaultCourse = trackCourses.find(c => c.id === track.default_course_id) ?? trackCourses[0];
+      manifestTracks.push({
+        filename: `${track.short_name.toLowerCase()}.json`,
+        lat: defaultCourse.start_a_lat,
+        lng: defaultCourse.start_a_lng,
+      });
+    }
+
+    return JSON.stringify({ tracks: manifestTracks }, null, 2);
+  }
+
   // Import tracks.json into DB (rebuilds DB from JSON)
   async importFromTracksJson(json: string): Promise<void> {
-    let parsed: Record<string, { short_name?: string; courses: Array<Record<string, unknown>> }>;
+    let parsed: Record<string, { short_name?: string; shortName?: string; defaultCourse?: string; courses: Array<Record<string, unknown>> }>;
     try {
       parsed = JSON.parse(json);
     } catch {
@@ -223,7 +268,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
         throw new Error(`Track "${trackName}" must have a courses array`);
       }
 
-      const shortName = (trackData.short_name || trackName.split(/\s+/).map(w => w[0]).join('').slice(0, 8).toUpperCase()).slice(0, 8);
+      const shortName = (trackData.shortName || trackData.short_name || trackName.split(/\s+/).map(w => w[0]).join('').slice(0, 8).toUpperCase()).slice(0, 8);
       
       // Upsert track
       let track: DbTrack;
@@ -304,6 +349,18 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
           await supabase.from('courses').update(courseData).eq('id', existingCourse.id);
         } else {
           await supabase.from('courses').insert({ ...courseData, superseded_by: null });
+        }
+      }
+
+      // Set default_course_id based on defaultCourse name
+      if (trackData.defaultCourse) {
+        const { data: defaultCourseRow } = await supabase.from('courses')
+          .select('id')
+          .eq('track_id', track.id)
+          .eq('name', trackData.defaultCourse.trim())
+          .maybeSingle();
+        if (defaultCourseRow) {
+          await supabase.from('tracks').update({ default_course_id: defaultCourseRow.id }).eq('id', track.id);
         }
       }
     }
