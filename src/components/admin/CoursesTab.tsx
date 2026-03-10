@@ -11,7 +11,7 @@ import type { DbTrack, DbCourse, DbCourseLayout } from '@/lib/db/types';
 import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 import { VisualEditor, EditorModeToggle } from '@/components/track-editor/VisualEditor';
-import { Plus, Edit2, Check, X, Trash2, Cpu, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Check, X, Trash2, Cpu, RefreshCw, Star } from 'lucide-react';
 import { resamplePolyline, calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
 import L from 'leaflet';
 
