@@ -167,18 +167,34 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
     if (error) throw error;
   }
 
-  // Build tracks.json from DB
+  // Build tracks.json from DB — new format with longName, shortName, defaultCourse, lengthFt
   async buildTracksJson(): Promise<string> {
     const tracks = await this.getTracks();
     const courses = await this.getAllCourses();
+
+    // Fetch all layouts for length calculation
+    const allCourseIds = courses.filter(c => c.enabled).map(c => c.id);
+    const layouts = await this.getLayoutsForCourses(allCourseIds);
+    const layoutMap = new Map(layouts.map(l => [l.course_id, l]));
 
     const result: Record<string, unknown> = {};
     for (const track of tracks) {
       if (!track.enabled) continue;
       const trackCourses = courses.filter(c => c.track_id === track.id && c.enabled);
+
+      // Determine default course name
+      const defaultCourse = trackCourses.find(c => c.id === track.default_course_id);
+      const defaultCourseName = defaultCourse?.name ?? trackCourses[0]?.name ?? '';
+
       const courseList = trackCourses.map(c => {
+        const layout = layoutMap.get(c.id);
+        const lengthFt = layout && layout.layout_data.length >= 2
+          ? Math.round(calculatePolylineLength(layout.layout_data) * 3.28084)
+          : 0;
+
         const obj: Record<string, unknown> = {
           name: c.name,
+          lengthFt,
           start_a_lat: c.start_a_lat,
           start_a_lng: c.start_a_lng,
           start_b_lat: c.start_b_lat,
@@ -198,9 +214,36 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
         }
         return obj;
       });
-      result[track.name] = { short_name: track.short_name, courses: courseList };
+      result[track.name] = {
+        shortName: track.short_name,
+        defaultCourse: defaultCourseName,
+        courses: courseList,
+      };
     }
     return JSON.stringify(result, null, 2);
+  }
+
+  // Build track_manifest.json
+  async buildTrackManifest(): Promise<string> {
+    const tracks = await this.getTracks();
+    const courses = await this.getAllCourses();
+
+    const manifestTracks: Array<{ filename: string; lat: number; lng: number }> = [];
+    for (const track of tracks) {
+      if (!track.enabled) continue;
+      const trackCourses = courses.filter(c => c.track_id === track.id && c.enabled);
+      if (trackCourses.length === 0) continue;
+
+      // Use default course or first course
+      const defaultCourse = trackCourses.find(c => c.id === track.default_course_id) ?? trackCourses[0];
+      manifestTracks.push({
+        filename: `${track.short_name.toLowerCase()}.json`,
+        lat: defaultCourse.start_a_lat,
+        lng: defaultCourse.start_a_lng,
+      });
+    }
+
+    return JSON.stringify({ tracks: manifestTracks }, null, 2);
   }
 
   // Import tracks.json into DB (rebuilds DB from JSON)
