@@ -11,8 +11,8 @@ import type { DbTrack, DbCourse, DbCourseLayout } from '@/lib/db/types';
 import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 import { VisualEditor, EditorModeToggle } from '@/components/track-editor/VisualEditor';
-import { Plus, Edit2, Check, X, Trash2, Cpu, RefreshCw, Star } from 'lucide-react';
-import { resamplePolyline, calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
+import { Plus, Edit2, Check, X, Trash2, Star } from 'lucide-react';
+import { calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
 import L from 'leaflet';
 
 type EditorMode = 'manual' | 'visual';
@@ -475,39 +475,46 @@ export function CoursesTab() {
         <div className="racing-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-base font-semibold">Course Layouts</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                disabled={trackLayouts.length === 0}
-                onClick={() => {
-                  const resampled = trackLayouts.map(layout => ({
-                    ...layout,
-                    layout_data: resamplePolyline(layout.layout_data, 5),
-                  }));
-                  const totalBefore = trackLayouts.reduce((s, l) => s + l.layout_data.length, 0);
-                  const totalAfter = resampled.reduce((s, l) => s + l.layout_data.length, 0);
-                  setTrackLayouts(resampled);
-                  toast({ title: 'Resampled (preview only)', description: `${totalBefore} → ${totalAfter} points (~5m spacing). Not saved.` });
-                }}
-              >
-                <RefreshCw className="w-4 h-4" /> Resample
-              </Button>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="sm" variant="outline" disabled className="gap-1.5 opacity-50">
-                      <Cpu className="w-4 h-4" /> Generate Course Mapping
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Coming soon — will generate fingerprint data for automatic track detection</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
           </div>
+
+          {/* Length overrides */}
+          <div className="space-y-2">
+            {courses.map((course) => {
+              const layout = trackLayouts.find(l => l.course_id === course.id);
+              const calculatedFt = layout && layout.layout_data.length >= 2
+                ? Math.round(calculatePolylineLength(layout.layout_data) * 3.28084)
+                : null;
+              const overrideVal = (course as any).length_ft_override as number | null;
+              return (
+                <div key={course.id} className="flex items-center gap-3 text-sm">
+                  <span className="w-32 truncate font-medium text-foreground">{course.name}</span>
+                  {calculatedFt != null && (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">Drawn: {calculatedFt} ft</span>
+                  )}
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap">Override (ft)</Label>
+                    <Input
+                      type="number"
+                      className="w-24 h-7 text-xs"
+                      placeholder="auto"
+                      value={overrideVal ?? ''}
+                      onChange={async (e) => {
+                        const val = e.target.value.trim();
+                        const newOverride = val === '' ? null : parseInt(val, 10);
+                        try {
+                          await db.updateCourse(course.id, { length_ft_override: newOverride } as any);
+                          setCourses(prev => prev.map(c => c.id === course.id ? { ...c, length_ft_override: newOverride } as any : c));
+                        } catch (err: unknown) {
+                          toast({ title: 'Error', description: (err as Error).message, variant: 'destructive' });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           {trackLayouts.length > 0 ? (
             <LayoutsOverviewMap courses={courses} layouts={trackLayouts} />
           ) : (
