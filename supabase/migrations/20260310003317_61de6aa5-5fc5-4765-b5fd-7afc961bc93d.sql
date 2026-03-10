@@ -1,0 +1,1 @@
+ALTER TABLE public.courses ADD COLUMN length_ft_override integer DEFAULT NULL;

@@ -75,6 +75,7 @@ export type Database = {
           created_at: string | null
           enabled: boolean | null
           id: string
+          length_ft_override: number | null
           name: string
           sector_2_a_lat: number | null
           sector_2_a_lng: number | null
@@ -96,6 +97,7 @@ export type Database = {
           created_at?: string | null
           enabled?: boolean | null
           id?: string
+          length_ft_override?: number | null
           name: string
           sector_2_a_lat?: number | null
           sector_2_a_lng?: number | null
@@ -117,6 +119,7 @@ export type Database = {
           created_at?: string | null
           enabled?: boolean | null
           id?: string
+          length_ft_override?: number | null
           name?: string
           sector_2_a_lat?: number | null
           sector_2_a_lng?: number | null
