@@ -26,11 +26,12 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
     return data as DbTrack;
   }
 
-  async updateTrack(id: string, updates: Partial<Pick<DbTrack, 'name' | 'short_name' | 'enabled'>>): Promise<DbTrack> {
+  async updateTrack(id: string, updates: Partial<Pick<DbTrack, 'name' | 'short_name' | 'enabled' | 'default_course_id'>>): Promise<DbTrack> {
     const clean: Record<string, unknown> = {};
     if (updates.name !== undefined) clean.name = updates.name.trim();
     if (updates.short_name !== undefined) clean.short_name = updates.short_name.trim();
     if (updates.enabled !== undefined) clean.enabled = updates.enabled;
+    if (updates.default_course_id !== undefined) clean.default_course_id = updates.default_course_id;
     const { data, error } = await supabase.from('tracks').update(clean).eq('id', id).select().single();
     if (error) throw error;
     return data as DbTrack;
