@@ -5,6 +5,7 @@ export interface DbTrack {
   name: string;
   short_name: string;
   enabled: boolean;
+  default_course_id: string | null;
   created_at: string;
   updated_at: string;
 }
