@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp, DbCourseLayout } from './types';
+import { calculatePolylineLength } from '@/lib/trackUtils';
 
 export class SupabaseTrackDatabase implements ITrackDatabase {
   // Tracks
