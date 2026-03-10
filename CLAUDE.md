@@ -226,7 +226,7 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 | `layout_data` | jsonb | Array of `{lat, lon}` coordinate points |
 | `created_at` / `updated_at` | timestamptz | Timestamps |
 
-**Access**: Admin-only RLS (same pattern as courses table). Layout data is NOT exported to `tracks.json`.
+**Access**: Admin-only RLS (same pattern as courses table). Layout lengths (in feet) ARE exported to track JSON files as `lengthFt`.
 
 **Draw tool**: In the VisualEditor, a "Draw" button allows clicking on the satellite map to build a polyline outline. This manual drawing tool is **admin-only** (`isAdminEditor={true}` in CoursesTab).
 
