@@ -351,6 +351,18 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
           await supabase.from('courses').insert({ ...courseData, superseded_by: null });
         }
       }
+
+      // Set default_course_id based on defaultCourse name
+      if (trackData.defaultCourse) {
+        const { data: defaultCourseRow } = await supabase.from('courses')
+          .select('id')
+          .eq('track_id', track.id)
+          .eq('name', trackData.defaultCourse.trim())
+          .maybeSingle();
+        if (defaultCourseRow) {
+          await supabase.from('tracks').update({ default_course_id: defaultCourseRow.id }).eq('id', track.id);
+        }
+      }
     }
   }
 }
