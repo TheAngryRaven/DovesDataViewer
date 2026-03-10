@@ -424,11 +424,16 @@ export function CoursesTab() {
                   )}
                   <span className="font-medium text-foreground">{course.name}</span>
                   {isDefault && <span className="text-xs text-primary font-medium">(default)</span>}
-                  {layout && layout.layout_data.length >= 2 && (
-                    <span className="text-xs text-muted-foreground">
-                      ({formatTrackLength(calculatePolylineLength(layout.layout_data))})
-                    </span>
-                  )}
+                  {(() => {
+                    const overrideFt = (course as any).length_ft_override;
+                    if (overrideFt != null) {
+                      return <span className="text-xs text-yellow-500" title="Manual override">{overrideFt} ft ⚡</span>;
+                    }
+                    if (layout && layout.layout_data.length >= 2) {
+                      return <span className="text-xs text-muted-foreground">({formatTrackLength(calculatePolylineLength(layout.layout_data))})</span>;
+                    }
+                    return null;
+                  })()}
                   {course.superseded_by && <span className="text-xs text-muted-foreground">(superseded)</span>}
                 </div>
                 <div className="flex items-center gap-1">

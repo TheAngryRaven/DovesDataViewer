@@ -93,9 +93,11 @@ Deno.serve(async (req) => {
 
       const courseList = trackCourses.map((c: Record<string, unknown>) => {
         const layoutPoints = layoutMap.get(c.id as string);
-        const lengthFt = layoutPoints && layoutPoints.length >= 2
-          ? Math.round(polylineLengthMeters(layoutPoints) * 3.28084)
-          : 0;
+        const lengthFt = (c.length_ft_override as number | null) != null
+          ? (c.length_ft_override as number)
+          : (layoutPoints && layoutPoints.length >= 2
+            ? Math.round(polylineLengthMeters(layoutPoints) * 3.28084)
+            : 0);
 
         const obj: Record<string, unknown> = {
           name: c.name,

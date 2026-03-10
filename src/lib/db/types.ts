@@ -28,6 +28,7 @@ export interface DbCourse {
   sector_3_b_lat: number | null;
   sector_3_b_lng: number | null;
   superseded_by: string | null;
+  length_ft_override: number | null;
   created_at: string;
   updated_at: string;
 }
