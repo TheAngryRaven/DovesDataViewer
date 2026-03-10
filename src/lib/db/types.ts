@@ -68,7 +68,7 @@ export interface ITrackDatabase {
   getTracks(): Promise<DbTrack[]>;
   getTrack(id: string): Promise<DbTrack | null>;
   createTrack(data: { name: string; short_name: string; enabled?: boolean }): Promise<DbTrack>;
-  updateTrack(id: string, data: Partial<Pick<DbTrack, 'name' | 'short_name' | 'enabled'>>): Promise<DbTrack>;
+  updateTrack(id: string, data: Partial<Pick<DbTrack, 'name' | 'short_name' | 'enabled' | 'default_course_id'>>): Promise<DbTrack>;
   deleteTrack(id: string): Promise<void>;
 
   // Courses
