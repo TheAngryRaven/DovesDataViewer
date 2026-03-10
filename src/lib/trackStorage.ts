@@ -94,7 +94,7 @@ export async function loadDefaultTracks(): Promise<Track[]> {
       });
       tracks.push({
         name: trackName,
-        shortName: trackData.short_name,
+        shortName: trackData.shortName || trackData.short_name,
         courses,
         isUserDefined: false,
       });

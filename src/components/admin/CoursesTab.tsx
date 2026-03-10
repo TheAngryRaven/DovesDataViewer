@@ -409,6 +409,8 @@ export function CoursesTab() {
             const color = COURSE_COLORS[index % COURSE_COLORS.length];
             const layout = trackLayouts.find(l => l.course_id === course.id);
             const hasLayout = Boolean(layout);
+            const selectedTrack = tracks.find(t => t.id === selectedTrackId);
+            const isDefault = selectedTrack?.default_course_id === course.id;
             return (
               <div key={course.id} className="racing-card p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -421,6 +423,7 @@ export function CoursesTab() {
                     />
                   )}
                   <span className="font-medium text-foreground">{course.name}</span>
+                  {isDefault && <span className="text-xs text-primary font-medium">(default)</span>}
                   {layout && layout.layout_data.length >= 2 && (
                     <span className="text-xs text-muted-foreground">
                       ({formatTrackLength(calculatePolylineLength(layout.layout_data))})
@@ -429,6 +432,29 @@ export function CoursesTab() {
                   {course.superseded_by && <span className="text-xs text-muted-foreground">(superseded)</span>}
                 </div>
                 <div className="flex items-center gap-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 ${isDefault ? 'text-primary' : 'text-muted-foreground'}`}
+                          onClick={async () => {
+                            try {
+                              await db.updateTrack(selectedTrackId, { default_course_id: course.id });
+                              setTracks(prev => prev.map(t => t.id === selectedTrackId ? { ...t, default_course_id: course.id } : t));
+                              toast({ title: `"${course.name}" set as default course` });
+                            } catch (e: unknown) {
+                              toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <Star className={`w-4 h-4 ${isDefault ? 'fill-current' : ''}`} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Set as default course</p></TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(course)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
