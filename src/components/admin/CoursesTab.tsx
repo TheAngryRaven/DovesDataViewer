@@ -218,7 +218,7 @@ export function CoursesTab() {
     if (!form.name.trim() || !selectedTrackId) return;
     try {
       const data = formToCourseData(form);
-      const course = await db.createCourse({ track_id: selectedTrackId, enabled: true, superseded_by: null, ...data });
+      const course = await db.createCourse({ track_id: selectedTrackId, enabled: true, superseded_by: null, length_ft_override: null, ...data });
       if (layoutPoints.length > 0) {
         await db.saveLayout(course.id, layoutPoints);
       }
