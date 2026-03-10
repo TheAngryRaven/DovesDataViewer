@@ -248,7 +248,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
   // Import tracks.json into DB (rebuilds DB from JSON)
   async importFromTracksJson(json: string): Promise<void> {
-    let parsed: Record<string, { short_name?: string; courses: Array<Record<string, unknown>> }>;
+    let parsed: Record<string, { short_name?: string; shortName?: string; defaultCourse?: string; courses: Array<Record<string, unknown>> }>;
     try {
       parsed = JSON.parse(json);
     } catch {
