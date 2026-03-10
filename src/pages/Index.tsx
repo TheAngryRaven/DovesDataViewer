@@ -526,6 +526,10 @@ export default function Index() {
 
             </div>
 
+            <div className="flex justify-center mt-3">
+              <BrowserCompatDialog />
+            </div>
+
             <div className="flex items-center justify-center gap-8 mt-4">
               <a href="https://github.com/TheAngryRaven/DovesDataViewer" target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
