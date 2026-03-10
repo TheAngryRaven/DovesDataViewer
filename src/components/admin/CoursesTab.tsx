@@ -12,7 +12,7 @@ import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 import { VisualEditor, EditorModeToggle } from '@/components/track-editor/VisualEditor';
 import { Plus, Edit2, Check, X, Trash2, Star } from 'lucide-react';
-import { resamplePolyline, calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
+import { calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
 import L from 'leaflet';
 
 type EditorMode = 'manual' | 'visual';
