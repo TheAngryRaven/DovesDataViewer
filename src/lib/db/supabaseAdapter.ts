@@ -268,7 +268,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
         throw new Error(`Track "${trackName}" must have a courses array`);
       }
 
-      const shortName = (trackData.short_name || trackName.split(/\s+/).map(w => w[0]).join('').slice(0, 8).toUpperCase()).slice(0, 8);
+      const shortName = (trackData.shortName || trackData.short_name || trackName.split(/\s+/).map(w => w[0]).join('').slice(0, 8).toUpperCase()).slice(0, 8);
       
       // Upsert track
       let track: DbTrack;
