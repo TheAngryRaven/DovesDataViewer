@@ -5,11 +5,11 @@ const LEGACY_STORAGE_KEY = 'racing-datalog-tracks';
 
 interface DefaultCourseJson {
   name: string;
+  lengthFt?: number;
   start_a_lat: number;
   start_a_lng: number;
   start_b_lat: number;
   start_b_lng: number;
-  // Optional sector lines (flat format from JSON)
   sector_2_a_lat?: number;
   sector_2_a_lng?: number;
   sector_2_b_lat?: number;
@@ -23,6 +23,8 @@ interface DefaultCourseJson {
 interface DefaultTracksJson {
   [trackName: string]: {
     short_name?: string;
+    shortName?: string;
+    defaultCourse?: string;
     courses: DefaultCourseJson[];
   };
 }
