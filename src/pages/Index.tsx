@@ -52,13 +52,9 @@ export default function Index() {
   const navigate = useNavigate();
   const useKph = settings.useKph;
 
-  // Apply dark/light mode class to document root
+  // Sync dark mode class when settings change (global init is in App.tsx)
   useEffect(() => {
-    if (settings.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', settings.darkMode);
   }, [settings.darkMode]);
 
   // Core session data
