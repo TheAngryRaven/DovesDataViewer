@@ -94,6 +94,10 @@ export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
       return parseMotecCsvFile(text);
     }
     
+    if (isDovexFormat(text)) {
+      return parseDovexFile(text);
+    }
+    
     if (isDoveFormat(text)) {
       return parseDoveFile(text);
     }
@@ -116,6 +120,10 @@ export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
   
   if (isMotecCsvFormat(content)) {
     return parseMotecCsvFile(content);
+  }
+  
+  if (isDovexFormat(content)) {
+    return parseDovexFile(content);
   }
   
   if (isDoveFormat(content)) {

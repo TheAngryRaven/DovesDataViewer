@@ -81,7 +81,7 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
         <label>
           <input
             type="file"
-            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove,.ld"
+            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove,.dovex,.ld"
             onChange={handleFileChange}
             className="hidden"
             disabled={isLoading}
