@@ -82,6 +82,16 @@ export interface FieldMapping {
   enabled: boolean;
 }
 
+export interface DovexMetadata {
+  datetime?: string;
+  driver?: string;
+  course?: string;
+  shortName?: string;
+  bestLapMs?: number;
+  optimalMs?: number;
+  lapTimesMs?: number[];
+}
+
 export interface ParsedData {
   samples: GpsSample[];
   fieldMappings: FieldMapping[];
@@ -93,6 +103,19 @@ export interface ParsedData {
   };
   duration: number;
   startDate?: Date;
+  dovexMetadata?: DovexMetadata;
+}
+
+// Course detection result types
+export type CourseDirection = 'forward' | 'reverse';
+
+export interface CourseDetectionResult {
+  track: Track;
+  course: Course;
+  direction?: CourseDirection;
+  laps: Lap[];
+  isWaypointMode: boolean;
+  waypointNotice?: string;
 }
 
 // Selection state for track + course
