@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MapPin, Plus, Check } from 'lucide-react';
+import { MapPin, Plus, Check, AlertTriangle, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Track, TrackCourseSelection, Course } from '@/types/racing';
+import { Track, TrackCourseSelection, Course, CourseDetectionResult } from '@/types/racing';
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
@@ -31,6 +31,8 @@ interface TrackPromptDialogProps {
   onSelect: (selection: TrackCourseSelection) => void;
   /** GPS center from loaded data for map positioning */
   initialCenter?: { lat: number; lon: number } | null;
+  /** Auto-detection result with direction and waypoint info */
+  detectionResult?: CourseDetectionResult | null;
 }
 
 export function TrackPromptDialog({
