@@ -97,11 +97,13 @@ src/
 │   ├── ubxParser.ts           # u-blox UBX binary parser
 │   ├── vboParser.ts           # Racelogic VBO parser
 │   ├── doveParser.ts          # DovesDataLogger CSV parser
+│   ├── dovexParser.ts         # DovesDataLogger extended format (.dovex) with 4096-byte metadata header
 │   ├── alfanoParser.ts        # Alfano CSV parser
 │   ├── aimParser.ts           # AiM MyChron CSV parser
 │   ├── motecParser.ts         # MoTeC LD binary + CSV parser
 │   ├── parserUtils.ts         # Shared parser helpers (haversine, speed calc, etc.)
 │   ├── fieldResolver.ts       # Canonical field name mapping across parsers
+│   ├── courseDetection.ts     # ★ Auto course detection, direction detection, waypoint mode
 │   ├── lapCalculation.ts      # Start/finish line crossing detection → Lap[]
 │   ├── brakingZones.ts        # Braking zone detection from G-force data
 │   ├── speedEvents.ts         # Min/max speed event detection
@@ -109,7 +111,7 @@ src/
 │   ├── gforceCalculation.ts   # G-force derivation from GPS data
 │   ├── chartUtils.ts          # Canvas chart rendering helpers
 │   ├── chartColors.ts         # Color palette for multi-series charts
-│   ├── trackUtils.ts          # Track geometry utilities
+│   ├── trackUtils.ts          # Track geometry utilities (findNearestTrack: 5mi radius)
 │   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json)
 │   ├── referenceUtils.ts      # Reference lap comparison utilities
 │   ├── dbUtils.ts             # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), transaction helpers

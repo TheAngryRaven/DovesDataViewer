@@ -104,7 +104,7 @@ src/lib/db/
 - **Submissions** — Approve/deny user-submitted tracks and courses
 - **Tracks CRUD** — Add, edit, enable/disable, delete tracks (with short names)
 - **Courses CRUD** — Manage courses per track with coordinate editing
-- **Tools** — Build `tracks.json` from DB, download tracks ZIP (per-track files), import JSON to rebuild DB
+- **Tools** — Build `tracks.json` from DB, download tracks ZIP, import JSON to rebuild DB, export/import course drawings
 - **Banned IPs** — View and manage banned IP addresses
 
 ### Edge Functions
