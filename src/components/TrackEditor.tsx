@@ -59,7 +59,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
   const [isJsonViewOpen, setIsJsonViewOpen] = useState(false);
 
   const form = useTrackEditorForm();
-  const { enableLabs } = useSettingsContext();
+  
 
   useEffect(() => {
     let mounted = true;
