@@ -177,9 +177,46 @@ export default function Index() {
         );
         if (validSample) {
           setGpsCenter({ lat: validSample.lat, lon: validSample.lon });
-          const nearest = findNearestTrack(validSample.lat, validSample.lon, tracks);
-          setDetectedTrack(nearest as Track | null);
-          setTrackPromptOpen(true);
+
+          // Run auto-detection
+          const detection = autoDetectCourse(parsedData.samples, tracks);
+          setDetectionResult(detection);
+
+          if (detection && !detection.isWaypointMode) {
+            // Auto-detected a real course — apply it directly
+            const sel: TrackCourseSelection = {
+              trackName: detection.track.name,
+              courseName: detection.course.name,
+              course: detection.course,
+            };
+            lapMgmt.setSelection(sel);
+            lapMgmt.setLaps(detection.laps);
+            if (detection.laps.length > 0) {
+              const fastest = detection.laps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), detection.laps[0]);
+              setSelectedLapNumber(fastest.lapNumber);
+            }
+
+            // If there are multiple courses, still show dialog to confirm
+            const nearestTrack = tracks.find(t => t.name === detection.track.name);
+            if (nearestTrack && nearestTrack.courses.length > 1) {
+              setDetectedTrack(nearestTrack);
+              setTrackPromptOpen(true);
+            }
+          } else if (detection && detection.isWaypointMode) {
+            // Waypoint mode — apply laps and show prompt
+            lapMgmt.setLaps(detection.laps);
+            if (detection.laps.length > 0) {
+              const fastest = detection.laps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), detection.laps[0]);
+              setSelectedLapNumber(fastest.lapNumber);
+            }
+            setDetectedTrack(null);
+            setTrackPromptOpen(true);
+          } else {
+            // No detection at all
+            const nearest = findNearestTrack(validSample.lat, validSample.lon, tracks);
+            setDetectedTrack(nearest as Track | null);
+            setTrackPromptOpen(true);
+          }
         }
       }
     },
