@@ -180,7 +180,7 @@ Each parser exports two functions:
 3. Update `README.md` supported formats table
 4. Update this file's architecture map
 
-Detection order matters: binary formats first (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dove → Alfano → AiM → NMEA fallback).
+Detection order matters: binary formats first (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM → NMEA fallback).
 
 ---
 
