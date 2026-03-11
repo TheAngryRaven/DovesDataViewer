@@ -19,6 +19,7 @@ export interface SectorLine {
 
 export interface Course {
   name: string;
+  lengthFt?: number; // known course length in feet (from track database)
   startFinishA: { lat: number; lon: number };
   startFinishB: { lat: number; lon: number };
   sector2?: SectorLine; // Optional sector 2 line
