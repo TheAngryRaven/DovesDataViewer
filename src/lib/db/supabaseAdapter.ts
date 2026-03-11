@@ -408,9 +408,9 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
         }
 
         if (existingCourse) {
-          await supabase.from('courses').update(courseData).eq('id', existingCourse.id);
+          await supabase.from('courses').update(courseData as any).eq('id', existingCourse.id);
         } else {
-          await supabase.from('courses').insert({ ...courseData, superseded_by: null });
+          await supabase.from('courses').insert({ ...courseData, superseded_by: null } as any);
         }
       }
 
