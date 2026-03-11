@@ -19,7 +19,24 @@ import Admin from "./pages/Admin";
 import Register from "./pages/Register";
 import Privacy from "./pages/Privacy";
 
-const App = () => (
+const SETTINGS_KEY = "dove-dataviewer-settings";
+
+const App = () => {
+  // Apply dark/light mode globally so Admin and all routes respect the theme
+  useEffect(() => {
+    const apply = () => {
+      try {
+        const stored = localStorage.getItem(SETTINGS_KEY);
+        const dark = stored ? JSON.parse(stored).darkMode : false;
+        document.documentElement.classList.toggle('dark', !!dark);
+      } catch {}
+    };
+    apply();
+    window.addEventListener('storage', apply);
+    return () => window.removeEventListener('storage', apply);
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
