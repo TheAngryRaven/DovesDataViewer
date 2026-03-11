@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { FlaskConical, PenLine } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 
 export const LabsTab = memo(function LabsTab() {
   return (
@@ -8,20 +8,8 @@ export const LabsTab = memo(function LabsTab() {
         <FlaskConical className="w-10 h-10 text-muted-foreground/40 mx-auto" />
         <p className="text-sm font-medium text-foreground">Labs Features</p>
         <p className="text-xs text-muted-foreground">
-          These are experimental — expect rough edges and the occasional gremlin.
+          Nothing cooking right now — check back later!
         </p>
-
-        <div className="space-y-3 text-left">
-          <div className="flex gap-3 p-3 rounded-md border border-border bg-muted/30">
-            <PenLine className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Track Layout Drawing</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Draw track outlines on the satellite map in the Track Editor. Used for future automatic track detection on DovesDataLogger hardware.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
