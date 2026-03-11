@@ -156,7 +156,9 @@ File Import (drag-drop / BLE download / file manager)
   → fileStorage.ts (save raw blob to IndexedDB)
   → useSessionData.ts (read blob, call parseDatalogFile)
     → datalogParser.ts (auto-detect format, route to specific parser)
-      → returns ParsedData { samples: GpsSample[], fieldMappings, bounds, duration, startDate }
+      → returns ParsedData { samples: GpsSample[], fieldMappings, bounds, duration, startDate, dovexMetadata? }
+  → courseDetection.ts (auto-detect track, course, direction; waypoint fallback)
+    → returns CourseDetectionResult { track, course, direction, laps, isWaypointMode }
   → useLapManagement.ts (detect laps via lapCalculation.ts using selected course's start/finish line)
     → returns Lap[] with timing, speed stats, sector times
   → Visualization:
