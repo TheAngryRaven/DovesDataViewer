@@ -819,6 +819,7 @@ export default function Index() {
         tracks={allTracks}
         onSelect={handleTrackPromptSelect}
         initialCenter={gpsCenter}
+        detectionResult={detectionResult}
       />
     </div>
     </SettingsProvider>
