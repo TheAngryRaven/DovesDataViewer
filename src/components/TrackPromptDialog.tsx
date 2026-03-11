@@ -52,12 +52,14 @@ export function TrackPromptDialog({
   }, [initialTracks]);
 
   useEffect(() => {
-    if (open && courses.length === 1) {
+    if (open && detectionResult && !detectionResult.isWaypointMode) {
+      setSelectedCourseName(detectionResult.course.name);
+    } else if (open && courses.length === 1) {
       setSelectedCourseName(courses[0].name);
     } else if (open) {
       setSelectedCourseName('');
     }
-  }, [open, courses]);
+  }, [open, courses, detectionResult]);
 
   const refreshTracks = useCallback(async () => {
     const loaded = await loadTracks();
