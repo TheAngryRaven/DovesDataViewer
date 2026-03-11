@@ -201,6 +201,36 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 
 ---
 
+## Automatic Course Detection (`src/lib/courseDetection.ts`)
+
+When a file is loaded and no track/course is saved in metadata, the system auto-detects:
+
+1. **Track discovery**: Find first valid GPS sample within **5 miles** (~8047m) of any known track
+2. **Course matching**: Try each course's S/F line → calculate laps → compare average lap distance (ft) to course `lengthFt` → pick closest match within 25% tolerance
+3. **Direction detection**: After S/F crossing, check which sector is crossed first — Sector 2 = forward, Sector 3 = reverse. Only works on courses with known sector lines.
+4. **Waypoint mode fallback**: If no track matches or no course produces valid laps:
+   - Drop a waypoint at the first sample where speed ≥ 30 MPH
+   - Track returns to waypoint (within 30m after traveling 100m+) for rough lap timing
+   - Divide lap distance by 3 for approximate sector boundaries
+   - Show notice: "Waypoint timing — lower accuracy. Create a track for precise timing."
+
+---
+
+## .dovex Format (`src/lib/dovexParser.ts`)
+
+Extended Dove format with a 4096-byte metadata header:
+```
+Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms
+Line 2: 2024-03-15 14:30:00,Mike,Full CW,OKC,62345,61200
+Line 3: 65432,64321,62345,63456   (lap times in ms, comma-separated)
+\n padding to byte 4096
+Byte 4096+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
+```
+
+GPS data is always parseable even if metadata is corrupted. Metadata is attached as `ParsedData.dovexMetadata`.
+
+---
+
 ## IndexedDB Storage (`src/lib/dbUtils.ts`)
 
 Single shared database: `"dove-file-manager"`, version 9.
