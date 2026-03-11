@@ -390,6 +390,12 @@ export default function Index() {
                       </p>
                     </div>
                     <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
+                      <p className="font-semibold text-foreground">Dovex (Extended Dove)</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Extended Dove format with a 4096-byte metadata header containing session info (driver, course, lap times) followed by standard Dove CSV GPS data. Extension: <code className="text-primary">.dovex</code>
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
                       <p className="font-semibold text-foreground">NMEA / CSV (Tab-Delimited)</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code className="text-primary">.nmea</code>, <code className="text-primary">.csv</code>, <code className="text-primary">.txt</code>
