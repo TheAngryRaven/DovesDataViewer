@@ -225,27 +225,79 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
     return JSON.stringify(result, null, 2);
   }
 
-  // Build track_manifest.json
-  async buildTrackManifest(): Promise<string> {
+  // Build course drawings JSON
+  async buildDrawingsJson(): Promise<string> {
     const tracks = await this.getTracks();
     const courses = await this.getAllCourses();
+    const allCourseIds = courses.filter(c => c.enabled).map(c => c.id);
+    const layouts = await this.getLayoutsForCourses(allCourseIds);
+    const layoutMap = new Map(layouts.map(l => [l.course_id, l]));
 
-    const manifestTracks: Array<{ filename: string; lat: number; lng: number }> = [];
+    const result: Record<string, Array<{ lat: number; lon: number }>> = {};
+
     for (const track of tracks) {
       if (!track.enabled) continue;
       const trackCourses = courses.filter(c => c.track_id === track.id && c.enabled);
-      if (trackCourses.length === 0) continue;
-
-      // Use default course or first course
-      const defaultCourse = trackCourses.find(c => c.id === track.default_course_id) ?? trackCourses[0];
-      manifestTracks.push({
-        filename: `${track.short_name.toLowerCase()}.json`,
-        lat: defaultCourse.start_a_lat,
-        lng: defaultCourse.start_a_lng,
-      });
+      for (const c of trackCourses) {
+        // Skip courses with manual length override — drawing isn't source of truth
+        if (c.length_ft_override != null) continue;
+        const layout = layoutMap.get(c.id);
+        if (layout && Array.isArray(layout.layout_data) && layout.layout_data.length >= 2) {
+          const key = `${track.short_name}/${c.name}`;
+          result[key] = layout.layout_data as Array<{ lat: number; lon: number }>;
+        }
+      }
     }
 
-    return JSON.stringify({ tracks: manifestTracks }, null, 2);
+    return JSON.stringify(result, null, 2);
+  }
+
+  // Import course drawings JSON
+  async importDrawingsJson(json: string): Promise<void> {
+    let parsed: Record<string, Array<{ lat: number; lon: number }>>;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      throw new Error('Invalid JSON format');
+    }
+
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Expected a JSON object with "shortName/courseName" keys');
+    }
+
+    const tracks = await this.getTracks();
+    const courses = await this.getAllCourses();
+
+    const trackByShortName = new Map(tracks.map(t => [t.short_name, t]));
+
+    for (const [key, layoutData] of Object.entries(parsed)) {
+      const slashIdx = key.indexOf('/');
+      if (slashIdx < 0) continue;
+      const shortName = key.substring(0, slashIdx);
+      const courseName = key.substring(slashIdx + 1);
+
+      const track = trackByShortName.get(shortName);
+      if (!track) {
+        console.warn(`Import drawings: track with shortName "${shortName}" not found, skipping`);
+        continue;
+      }
+
+      const course = courses.find(c => c.track_id === track.id && c.name === courseName);
+      if (!course) {
+        console.warn(`Import drawings: course "${courseName}" not found in track "${track.name}", skipping`);
+        continue;
+      }
+
+      if (!Array.isArray(layoutData) || layoutData.length < 2) continue;
+
+      // Save the drawing
+      await this.saveLayout(course.id, layoutData);
+
+      // Clear length_ft_override — drawing is now the source of truth
+      if (course.length_ft_override != null) {
+        await supabase.from('courses').update({ length_ft_override: null }).eq('id', course.id);
+      }
+    }
   }
 
   // Import tracks.json into DB (rebuilds DB from JSON)
