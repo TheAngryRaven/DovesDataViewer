@@ -36,7 +36,7 @@ interface TrackPromptDialogProps {
 }
 
 export function TrackPromptDialog({
-  open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect, initialCenter,
+  open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect, initialCenter, detectionResult,
 }: TrackPromptDialogProps) {
   const [tracks, setTracks] = useState(initialTracks);
   const [selectedCourseName, setSelectedCourseName] = useState('');
