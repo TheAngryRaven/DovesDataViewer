@@ -29,6 +29,45 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     max: 9999,
     description: 'Pairing PIN code (4 digits)',
   },
+  {
+    key: 'driver_name',
+    label: 'Driver Name',
+    type: 'string',
+    maxLength: 30,
+    description: 'Logged in DOVEX session header',
+  },
+  {
+    key: 'lap_detection_distance',
+    label: 'Lap Detection Distance',
+    type: 'number',
+    min: 1,
+    max: 50,
+    description: 'Start/finish crossing threshold in meters',
+  },
+  {
+    key: 'waypoint_detection_distance',
+    label: 'Waypoint Detection Distance',
+    type: 'number',
+    min: 5,
+    max: 100,
+    description: 'Waypoint / course detector proximity zone in meters',
+  },
+  {
+    key: 'waypoint_speed',
+    label: 'Waypoint Speed',
+    type: 'number',
+    min: 5,
+    max: 100,
+    description: 'Minimum speed (MPH) to activate lap/waypoint detection',
+  },
+  {
+    key: 'use_legacy_csv',
+    label: 'Use Legacy CSV',
+    type: 'number',
+    min: 0,
+    max: 1,
+    description: 'Save as .dove instead of .dovex (0 = off, 1 = on)',
+  },
 ];
 
 /** Look up schema definition for a key, or return null for unknown keys */
