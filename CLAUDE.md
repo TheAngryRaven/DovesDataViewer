@@ -189,10 +189,13 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 | Type | Key Fields |
 |------|------------|
 | `GpsSample` | `t` (ms), `lat`, `lon`, `speedMps/Mph/Kph`, `heading?`, `extraFields: Record<string,number>` |
-| `ParsedData` | `samples[]`, `fieldMappings[]`, `bounds`, `duration`, `startDate?` |
+| `ParsedData` | `samples[]`, `fieldMappings[]`, `bounds`, `duration`, `startDate?`, `dovexMetadata?` |
+| `DovexMetadata` | `datetime?`, `driver?`, `course?`, `shortName?`, `bestLapMs?`, `optimalMs?`, `lapTimesMs?[]` |
 | `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` |
-| `Course` | `name`, `startFinishA/B` (lat/lon), optional `sector2/sector3` lines |
+| `Course` | `name`, `lengthFt?`, `startFinishA/B` (lat/lon), optional `sector2/sector3` lines |
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
+| `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
+| `CourseDirection` | `'forward' \| 'reverse'` |
 | `FieldMapping` | `index`, `name`, `unit?`, `enabled` — maps extraFields to UI toggles |
 | `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `fastestLapMs?`, `fastestLapNumber?` |
 
