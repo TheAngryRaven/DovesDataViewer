@@ -112,6 +112,7 @@ export default function Index() {
   const [detectedTrack, setDetectedTrack] = useState<Track | null>(null);
   const [allTracks, setAllTracks] = useState<Track[]>([]);
   const [gpsCenter, setGpsCenter] = useState<{ lat: number; lon: number } | null>(null);
+  const [detectionResult, setDetectionResult] = useState<CourseDetectionResult | null>(null);
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
