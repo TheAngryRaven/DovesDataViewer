@@ -65,7 +65,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export function findNearestTrack(
   lat: number, lon: number,
   tracks: { name: string; courses: { startFinishA: { lat: number; lon: number } }[] }[],
-  thresholdMeters = 2000
+  thresholdMeters = 8047 // 5 miles
 ): typeof tracks[number] | null {
   let best: typeof tracks[number] | null = null;
   let bestDist = Infinity;
