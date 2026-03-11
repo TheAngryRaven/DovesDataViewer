@@ -381,7 +381,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
         const { data: existingCourse } = await supabase.from('courses').select('id').eq('track_id', track.id).eq('name', courseName).maybeSingle();
         
-        const courseData = {
+        const courseData: Record<string, unknown> = {
           track_id: track.id,
           name: courseName,
           enabled: true,
@@ -398,6 +398,14 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
           sector_3_b_lat: toNumLat(c.sector_3_b_lat, 'sector_3_b_lat'),
           sector_3_b_lng: toNumLng(c.sector_3_b_lng, 'sector_3_b_lng'),
         };
+
+        // Import lengthFt as length_ft_override
+        if (c.lengthFt !== undefined && c.lengthFt !== null) {
+          const lengthFt = Number(c.lengthFt);
+          if (!isNaN(lengthFt) && lengthFt > 0) {
+            (courseData as any).length_ft_override = Math.round(lengthFt);
+          }
+        }
 
         if (existingCourse) {
           await supabase.from('courses').update(courseData).eq('id', existingCourse.id);

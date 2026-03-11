@@ -3,14 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
-import { Download, Upload, FileJson, Archive, MapPin } from 'lucide-react';
+import { Download, Upload, FileJson, Archive, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import JSZip from 'jszip';
 
 export function ToolsTab() {
   const [jsonOutput, setJsonOutput] = useState('');
-  const [manifestOutput, setManifestOutput] = useState('');
+  const [drawingsOutput, setDrawingsOutput] = useState('');
   const [importJson, setImportJson] = useState('');
+  const [importDrawingsJson, setImportDrawingsJson] = useState('');
   const [loading, setLoading] = useState(false);
 
   const db = getDatabase();
@@ -65,24 +66,24 @@ export function ToolsTab() {
     setLoading(false);
   };
 
-  const handleBuildManifest = async () => {
+  const handleBuildDrawings = async () => {
     setLoading(true);
     try {
-      const json = await db.buildTrackManifest();
-      setManifestOutput(json);
-      toast({ title: 'track_manifest.json built' });
+      const json = await db.buildDrawingsJson();
+      setDrawingsOutput(json);
+      toast({ title: 'Course drawings exported' });
     } catch (e: unknown) {
       toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
   };
 
-  const handleDownloadManifest = () => {
-    const blob = new Blob([manifestOutput], { type: 'application/json' });
+  const handleDownloadDrawings = () => {
+    const blob = new Blob([drawingsOutput], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'track_manifest.json';
+    a.download = 'course_drawings.json';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -100,11 +101,24 @@ export function ToolsTab() {
     setLoading(false);
   };
 
+  const handleImportDrawings = async () => {
+    if (!importDrawingsJson.trim()) return;
+    setLoading(true);
+    try {
+      await db.importDrawingsJson(importDrawingsJson);
+      setImportDrawingsJson('');
+      toast({ title: 'Course drawings imported. Overrides cleared for imported courses.' });
+    } catch (e: unknown) {
+      toast({ title: 'Import error', description: (e as Error).message, variant: 'destructive' });
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="space-y-6 mt-4">
       <div className="racing-card p-4 space-y-3">
         <h3 className="font-semibold text-foreground">Build tracks.json from Database</h3>
-        <p className="text-sm text-muted-foreground">Generates tracks.json with longName, shortName, defaultCourse, and lengthFt per course (from layout drawings).</p>
+        <p className="text-sm text-muted-foreground">Generates tracks.json with longName, shortName, defaultCourse, and lengthFt per course (from layout drawings or overrides).</p>
         <div className="flex gap-2">
           <Button onClick={handleBuildJson} disabled={loading}>
             <FileJson className="w-4 h-4 mr-2" /> Build JSON
@@ -129,26 +143,40 @@ export function ToolsTab() {
       </div>
 
       <div className="racing-card p-4 space-y-3">
-        <h3 className="font-semibold text-foreground">Build Track Manifest</h3>
-        <p className="text-sm text-muted-foreground">Generates track_manifest.json — a lightweight index of all tracks with filenames and GPS coordinates for fast detection.</p>
+        <h3 className="font-semibold text-foreground">Export Course Drawings</h3>
+        <p className="text-sm text-muted-foreground">Export all course layout drawings as JSON (keyed by shortName/courseName). Courses with manual length overrides are skipped.</p>
         <div className="flex gap-2">
-          <Button onClick={handleBuildManifest} disabled={loading}>
-            <MapPin className="w-4 h-4 mr-2" /> Build Manifest
+          <Button onClick={handleBuildDrawings} disabled={loading}>
+            <Pencil className="w-4 h-4 mr-2" /> Export Drawings
           </Button>
-          {manifestOutput && (
-            <Button variant="outline" onClick={handleDownloadManifest}>
+          {drawingsOutput && (
+            <Button variant="outline" onClick={handleDownloadDrawings}>
               <Download className="w-4 h-4 mr-2" /> Download
             </Button>
           )}
         </div>
-        {manifestOutput && (
-          <Textarea readOnly value={manifestOutput} className="font-mono text-xs h-48 resize-none bg-muted" />
+        {drawingsOutput && (
+          <Textarea readOnly value={drawingsOutput} className="font-mono text-xs h-48 resize-none bg-muted" />
         )}
       </div>
 
       <div className="racing-card p-4 space-y-3">
+        <h3 className="font-semibold text-foreground">Import Course Drawings</h3>
+        <p className="text-sm text-muted-foreground">Paste course drawings JSON. For each imported drawing, the length override is cleared (drawing becomes source of truth). Courses without a drawing are left alone.</p>
+        <Textarea
+          value={importDrawingsJson}
+          onChange={e => setImportDrawingsJson(e.target.value)}
+          placeholder='Paste course drawings JSON here... (e.g. {"OKC/Normal": [{lat, lon}, ...]})'
+          className="font-mono text-xs h-32"
+        />
+        <Button onClick={handleImportDrawings} disabled={loading || !importDrawingsJson.trim()}>
+          <Upload className="w-4 h-4 mr-2" /> Import Drawings
+        </Button>
+      </div>
+
+      <div className="racing-card p-4 space-y-3">
         <h3 className="font-semibold text-foreground">Import tracks.json into Database</h3>
-        <p className="text-sm text-muted-foreground">Paste a tracks.json file to rebuild the database. Supports both old and new formats. lengthFt is ignored on import.</p>
+        <p className="text-sm text-muted-foreground">Paste a tracks.json file to rebuild the database. Course lengthFt values are imported as length overrides.</p>
         <Textarea
           value={importJson}
           onChange={e => setImportJson(e.target.value)}
