@@ -36,7 +36,7 @@ import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { SubmitTrackDialog } from '@/components/SubmitTrackDialog';
 import { Send } from 'lucide-react';
-import { useSettingsContext } from '@/contexts/SettingsContext';
+
 import type { Lap, GpsSample } from '@/types/racing';
 
 interface TrackCourseEditorProps {
