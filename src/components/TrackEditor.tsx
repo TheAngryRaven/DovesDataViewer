@@ -36,7 +36,7 @@ import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { SubmitTrackDialog } from '@/components/SubmitTrackDialog';
 import { Send } from 'lucide-react';
-import { useSettingsContext } from '@/contexts/SettingsContext';
+
 import type { Lap, GpsSample } from '@/types/racing';
 
 interface TrackCourseEditorProps {
@@ -59,7 +59,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
   const [isJsonViewOpen, setIsJsonViewOpen] = useState(false);
 
   const form = useTrackEditorForm();
-  const { enableLabs } = useSettingsContext();
+  
 
   useEffect(() => {
     let mounted = true;
@@ -317,7 +317,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
                   onStartFinishChange={form.handleVisualStartFinishChange}
                   onSector2Change={form.handleVisualSector2Change}
                   onSector3Change={form.handleVisualSector3Change}
-                   showDrawTool={enableLabs}
+                   showDrawTool={true}
                    laps={laps}
                    samples={samples}
                 />

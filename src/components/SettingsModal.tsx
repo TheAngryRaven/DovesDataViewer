@@ -450,29 +450,7 @@ export function SettingsModal({
           <Separator />
 
           {/* Super Experimental Features */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">Super Experimental Features</h3>
-            </div>
-            <div className="flex items-center justify-between pl-6">
-              <div>
-                <Label htmlFor="settings-enable-labs" className="text-sm text-muted-foreground">
-                  Enable Labs mode
-                </Label>
-                <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  shhhhhh!
-                </p>
-              </div>
-              <Switch
-                id="settings-enable-labs"
-                checked={settings.enableLabs}
-                onCheckedChange={(checked) => onSettingsChange({ enableLabs: checked })}
-              />
-            </div>
-          </div>
-
-          <Separator />
+          {/* Labs toggle hidden — no active labs features */}
 
           {/* Force Update */}
           <ForceUpdateSection />
