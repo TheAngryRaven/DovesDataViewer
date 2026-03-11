@@ -424,6 +424,11 @@ export function CoursesTab() {
                   )}
                   <span className="font-medium text-foreground">{course.name}</span>
                   {isDefault && <span className="text-xs text-primary font-medium">(default)</span>}
+                  {course.sector_2_a_lat != null && course.sector_3_a_lat != null ? (
+                    <span className="text-[10px] font-medium bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded" title="Has sector 2 & 3 lines">Sectors</span>
+                  ) : (
+                    <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded" title="No sector lines defined">No Sectors</span>
+                  )}
                   {(() => {
                     const overrideFt = (course as any).length_ft_override;
                     if (overrideFt != null) {
