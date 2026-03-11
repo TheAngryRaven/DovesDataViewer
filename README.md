@@ -32,6 +32,7 @@ All formats are auto-detected on import:
 | UBX Binary | u-blox GPS receivers | `.ubx` |
 | VBO | Racelogic VBOX, RaceBox | `.vbo` |
 | Dove CSV | DovesDataLogger | `.dove` |
+| Dovex | DovesDataLogger (extended with metadata) | `.dovex` |
 | Alfano CSV | Alfano ADA app, Off Camber Data | `.csv` |
 | AiM CSV | MyChron 5/6, Race Studio 3 | `.csv` |
 | MoTeC CSV | MoTeC i2 Pro export | `.csv` |
