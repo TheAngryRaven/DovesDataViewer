@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MapPin, Plus, Check } from 'lucide-react';
+import { MapPin, Plus, Check, AlertTriangle, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Track, TrackCourseSelection, Course } from '@/types/racing';
+import { Track, TrackCourseSelection, Course, CourseDetectionResult } from '@/types/racing';
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
@@ -31,10 +31,12 @@ interface TrackPromptDialogProps {
   onSelect: (selection: TrackCourseSelection) => void;
   /** GPS center from loaded data for map positioning */
   initialCenter?: { lat: number; lon: number } | null;
+  /** Auto-detection result with direction and waypoint info */
+  detectionResult?: CourseDetectionResult | null;
 }
 
 export function TrackPromptDialog({
-  open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect, initialCenter,
+  open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect, initialCenter, detectionResult,
 }: TrackPromptDialogProps) {
   const [tracks, setTracks] = useState(initialTracks);
   const [selectedCourseName, setSelectedCourseName] = useState('');
@@ -50,12 +52,14 @@ export function TrackPromptDialog({
   }, [initialTracks]);
 
   useEffect(() => {
-    if (open && courses.length === 1) {
+    if (open && detectionResult && !detectionResult.isWaypointMode) {
+      setSelectedCourseName(detectionResult.course.name);
+    } else if (open && courses.length === 1) {
       setSelectedCourseName(courses[0].name);
     } else if (open) {
       setSelectedCourseName('');
     }
-  }, [open, courses]);
+  }, [open, courses, detectionResult]);
 
   const refreshTracks = useCallback(async () => {
     const loaded = await loadTracks();
@@ -143,10 +147,47 @@ export function TrackPromptDialog({
             </DialogTitle>
           </DialogHeader>
 
-          {track ? (
+          {/* Waypoint mode notice */}
+          {detectionResult?.isWaypointMode && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-md border border-yellow-500/30 bg-yellow-500/5">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Waypoint Timing</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      No known track matched this data. Lap times are estimated using a GPS waypoint — accuracy is lower than normal.
+                      Create a track and course for precise timing.
+                    </p>
+                    {detectionResult.laps.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Detected <span className="font-medium text-foreground">{detectionResult.laps.length} laps</span> from waypoint.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => { form.resetForm(); setIsAddTrackOpen(true); }} className="flex-1">
+                  <Plus className="w-4 h-4 mr-2" /> Create Track & Course
+                </Button>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Use Waypoint</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Normal track detected */}
+          {track && !detectionResult?.isWaypointMode ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Detected <span className="font-medium text-foreground">{track.name}</span>. Which course layout?
+                Detected <span className="font-medium text-foreground">{track.name}</span>.
+                {detectionResult?.direction && (
+                  <span className="inline-flex items-center gap-1 ml-1">
+                    <Navigation className="w-3 h-3" />
+                    <span className="font-medium text-foreground capitalize">{detectionResult.direction}</span>
+                  </span>
+                )}
+                {' '}Which course layout?
               </p>
               <div className="space-y-2">
                 <Label>Course</Label>
@@ -177,7 +218,7 @@ export function TrackPromptDialog({
                 <Button variant="outline" onClick={() => onOpenChange(false)}>Skip</Button>
               </div>
             </div>
-          ) : (
+          ) : !detectionResult?.isWaypointMode && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 No known track matches this GPS data. Create a new track and course to enable lap timing.

@@ -71,6 +71,7 @@ export async function loadDefaultTracks(): Promise<Track[]> {
       const courses: Course[] = trackData.courses.map(c => {
         const course: Course = {
           name: c.name,
+          lengthFt: c.lengthFt,
           startFinishA: { lat: c.start_a_lat, lon: c.start_a_lng },
           startFinishB: { lat: c.start_b_lat, lon: c.start_b_lng },
           isUserDefined: false,

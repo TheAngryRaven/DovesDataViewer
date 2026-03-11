@@ -97,11 +97,13 @@ src/
 │   ├── ubxParser.ts           # u-blox UBX binary parser
 │   ├── vboParser.ts           # Racelogic VBO parser
 │   ├── doveParser.ts          # DovesDataLogger CSV parser
+│   ├── dovexParser.ts         # DovesDataLogger extended format (.dovex) with 4096-byte metadata header
 │   ├── alfanoParser.ts        # Alfano CSV parser
 │   ├── aimParser.ts           # AiM MyChron CSV parser
 │   ├── motecParser.ts         # MoTeC LD binary + CSV parser
 │   ├── parserUtils.ts         # Shared parser helpers (haversine, speed calc, etc.)
 │   ├── fieldResolver.ts       # Canonical field name mapping across parsers
+│   ├── courseDetection.ts     # ★ Auto course detection, direction detection, waypoint mode
 │   ├── lapCalculation.ts      # Start/finish line crossing detection → Lap[]
 │   ├── brakingZones.ts        # Braking zone detection from G-force data
 │   ├── speedEvents.ts         # Min/max speed event detection
@@ -109,7 +111,7 @@ src/
 │   ├── gforceCalculation.ts   # G-force derivation from GPS data
 │   ├── chartUtils.ts          # Canvas chart rendering helpers
 │   ├── chartColors.ts         # Color palette for multi-series charts
-│   ├── trackUtils.ts          # Track geometry utilities
+│   ├── trackUtils.ts          # Track geometry utilities (findNearestTrack: 5mi radius)
 │   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json)
 │   ├── referenceUtils.ts      # Reference lap comparison utilities
 │   ├── dbUtils.ts             # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), transaction helpers
@@ -154,7 +156,9 @@ File Import (drag-drop / BLE download / file manager)
   → fileStorage.ts (save raw blob to IndexedDB)
   → useSessionData.ts (read blob, call parseDatalogFile)
     → datalogParser.ts (auto-detect format, route to specific parser)
-      → returns ParsedData { samples: GpsSample[], fieldMappings, bounds, duration, startDate }
+      → returns ParsedData { samples: GpsSample[], fieldMappings, bounds, duration, startDate, dovexMetadata? }
+  → courseDetection.ts (auto-detect track, course, direction; waypoint fallback)
+    → returns CourseDetectionResult { track, course, direction, laps, isWaypointMode }
   → useLapManagement.ts (detect laps via lapCalculation.ts using selected course's start/finish line)
     → returns Lap[] with timing, speed stats, sector times
   → Visualization:
@@ -176,7 +180,7 @@ Each parser exports two functions:
 3. Update `README.md` supported formats table
 4. Update this file's architecture map
 
-Detection order matters: binary formats first (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dove → Alfano → AiM → NMEA fallback).
+Detection order matters: binary formats first (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM → NMEA fallback).
 
 ---
 
@@ -185,12 +189,45 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 | Type | Key Fields |
 |------|------------|
 | `GpsSample` | `t` (ms), `lat`, `lon`, `speedMps/Mph/Kph`, `heading?`, `extraFields: Record<string,number>` |
-| `ParsedData` | `samples[]`, `fieldMappings[]`, `bounds`, `duration`, `startDate?` |
+| `ParsedData` | `samples[]`, `fieldMappings[]`, `bounds`, `duration`, `startDate?`, `dovexMetadata?` |
+| `DovexMetadata` | `datetime?`, `driver?`, `course?`, `shortName?`, `bestLapMs?`, `optimalMs?`, `lapTimesMs?[]` |
 | `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` |
-| `Course` | `name`, `startFinishA/B` (lat/lon), optional `sector2/sector3` lines |
+| `Course` | `name`, `lengthFt?`, `startFinishA/B` (lat/lon), optional `sector2/sector3` lines |
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
+| `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
+| `CourseDirection` | `'forward' \| 'reverse'` |
 | `FieldMapping` | `index`, `name`, `unit?`, `enabled` — maps extraFields to UI toggles |
 | `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `fastestLapMs?`, `fastestLapNumber?` |
+
+---
+
+## Automatic Course Detection (`src/lib/courseDetection.ts`)
+
+When a file is loaded and no track/course is saved in metadata, the system auto-detects:
+
+1. **Track discovery**: Find first valid GPS sample within **5 miles** (~8047m) of any known track
+2. **Course matching**: Try each course's S/F line → calculate laps → compare average lap distance (ft) to course `lengthFt` → pick closest match within 25% tolerance
+3. **Direction detection**: After S/F crossing, check which sector is crossed first — Sector 2 = forward, Sector 3 = reverse. Only works on courses with known sector lines.
+4. **Waypoint mode fallback**: If no track matches or no course produces valid laps:
+   - Drop a waypoint at the first sample where speed ≥ 30 MPH
+   - Track returns to waypoint (within 30m after traveling 100m+) for rough lap timing
+   - Divide lap distance by 3 for approximate sector boundaries
+   - Show notice: "Waypoint timing — lower accuracy. Create a track for precise timing."
+
+---
+
+## .dovex Format (`src/lib/dovexParser.ts`)
+
+Extended Dove format with a 4096-byte metadata header:
+```
+Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms
+Line 2: 2024-03-15 14:30:00,Mike,Full CW,OKC,62345,61200
+Line 3: 65432,64321,62345,63456   (lap times in ms, comma-separated)
+\n padding to byte 4096
+Byte 4096+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
+```
+
+GPS data is always parseable even if metadata is corrupted. Metadata is attached as `ParsedData.dovexMetadata`.
 
 ---
 
@@ -332,9 +369,22 @@ npm run preview   # Preview production build
 - **Hooks are composable** — each hook does one thing, `Index.tsx` orchestrates
 - **Parsers**: always export `isXxxFormat()` + `parseXxxFile()`, register in `datalogParser.ts`
 - **IndexedDB stores**: all registered in `dbUtils.ts`, individual modules use `withReadTransaction` / `withWriteTransaction`
-- **Tracks**: `public/tracks.json` is the source of truth at runtime; admin DB builds this file. Export format includes `longName`, `shortName`, `defaultCourse`, and per-course `lengthFt`. Tracks table has `default_course_id` FK.
-- **Track Manifest**: `track_manifest.json` is a lightweight index with `filename`, `lat`, `lng` per track for fast GPS-based detection.
+- **Tracks**: `public/tracks.json` is the source of truth at runtime; admin DB builds this file. Export format includes `longName`, `shortName`, `defaultCourse`, and per-course `lengthFt`. Tracks table has `default_course_id` FK. Course `lengthFt` values are imported as `length_ft_override` in the database.
+- **Course Detection**: `courseDetection.ts` handles auto-detection of track/course/direction on file load, with waypoint mode fallback. Find nearest track within 5mi, match course by lap distance vs `lengthFt`.
+- **Course Drawings**: Admin can export/import course layout drawings separately from tracks. Import clears `length_ft_override` for imported courses (drawing becomes source of truth).
 - **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors in components
 - **Admin code** is fully optional and gated behind env vars — core app has zero admin dependencies
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in `supabase/config.toml`
 - **Stale-state gotcha**: When calling a function immediately after `setState`, the new value isn't available in the current closure. Pass values explicitly (e.g., `calculateAndSetLaps(course, samples, fileName)`) instead of relying on state that was just set.
+
+---
+
+Update the readme when new parsers are added and when build parameters change. Make sure to ALWAYS note new environment variables and their values (use "???" When it is a secret value) in the readme.
+
+Update the credits list when new Foss libraries are added.
+
+Never do on a server what you can do on the client, the NUMBER ONE PRIORITY for this webapp is that 99% of the features are available offline. (Things like weather, satellite view etc, are obvious exceptions).
+
+Keep code modular and reusable, fuck line count as long as you can reuse the shit out of things, rewrites to make things more reusable are always cool.
+
+ALWAYS keep CLAUDE.md updated with new files and information to help it as well.

@@ -32,6 +32,7 @@ All formats are auto-detected on import:
 | UBX Binary | u-blox GPS receivers | `.ubx` |
 | VBO | Racelogic VBOX, RaceBox | `.vbo` |
 | Dove CSV | DovesDataLogger | `.dove` |
+| Dovex | DovesDataLogger (extended with metadata) | `.dovex` |
 | Alfano CSV | Alfano ADA app, Off Camber Data | `.csv` |
 | AiM CSV | MyChron 5/6, Race Studio 3 | `.csv` |
 | MoTeC CSV | MoTeC i2 Pro export | `.csv` |
@@ -103,7 +104,7 @@ src/lib/db/
 - **Submissions** — Approve/deny user-submitted tracks and courses
 - **Tracks CRUD** — Add, edit, enable/disable, delete tracks (with short names)
 - **Courses CRUD** — Manage courses per track with coordinate editing
-- **Tools** — Build `tracks.json` from DB, download tracks ZIP (per-track files), import JSON to rebuild DB
+- **Tools** — Build `tracks.json` from DB, download tracks ZIP, import JSON to rebuild DB, export/import course drawings
 - **Banned IPs** — View and manage banned IP addresses
 
 ### Edge Functions

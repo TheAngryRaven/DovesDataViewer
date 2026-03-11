@@ -3,6 +3,7 @@ import { parseDatalog } from './nmeaParser';
 import { parseUbxFile, isUbxFormat } from './ubxParser';
 import { parseVboFile, isVboFormat } from './vboParser';
 import { parseDoveFile, isDoveFormat } from './doveParser';
+import { parseDovexFile, isDovexFormat } from './dovexParser';
 import { parseAlfanoFile, isAlfanoFormat } from './alfanoParser';
 import { parseAimFile, isAimFormat } from './aimParser';
 import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile } from './motecParser';
@@ -14,6 +15,7 @@ import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile 
  * - UBX binary format (u-blox GPS receivers)
  * - VBO format (Racelogic VBOX, RaceBox exports)
  * - MoTeC CSV format (i2 Pro exports)
+ * - Dovex format (DovesDataLogger extended with metadata header)
  * - Dove CSV format (simple CSV with Unix timestamps)
  * - Alfano CSV format (Alfano data loggers)
  * - AiM CSV format (MyChron 5/6, Race Studio 3 exports)
@@ -43,6 +45,11 @@ export async function parseDatalogFile(file: File): Promise<ParsedData> {
   // Check if it's MoTeC CSV format (before Dove/Alfano/AiM since it's more specific)
   if (isMotecCsvFormat(text)) {
     return parseMotecCsvFile(text);
+  }
+  
+  // Check if it's Dovex format (before Dove since it contains Dove data)
+  if (isDovexFormat(text)) {
+    return parseDovexFile(text);
   }
   
   // Check if it's Dove CSV format
@@ -87,6 +94,10 @@ export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
       return parseMotecCsvFile(text);
     }
     
+    if (isDovexFormat(text)) {
+      return parseDovexFile(text);
+    }
+    
     if (isDoveFormat(text)) {
       return parseDoveFile(text);
     }
@@ -109,6 +120,10 @@ export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
   
   if (isMotecCsvFormat(content)) {
     return parseMotecCsvFile(content);
+  }
+  
+  if (isDovexFormat(content)) {
+    return parseDovexFile(content);
   }
   
   if (isDoveFormat(content)) {

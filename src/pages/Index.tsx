@@ -17,10 +17,11 @@ import { FileManagerDrawer } from "@/components/FileManagerDrawer";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ParsedData, Track, TrackCourseSelection } from "@/types/racing";
+import { ParsedData, Track, TrackCourseSelection, CourseDetectionResult } from "@/types/racing";
 import { getFileMetadata } from "@/lib/fileStorage";
 import { loadTracks } from "@/lib/trackStorage";
 import { findNearestTrack } from "@/lib/trackUtils";
+import { autoDetectCourse } from "@/lib/courseDetection";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
@@ -111,6 +112,7 @@ export default function Index() {
   const [detectedTrack, setDetectedTrack] = useState<Track | null>(null);
   const [allTracks, setAllTracks] = useState<Track[]>([]);
   const [gpsCenter, setGpsCenter] = useState<{ lat: number; lon: number } | null>(null);
+  const [detectionResult, setDetectionResult] = useState<CourseDetectionResult | null>(null);
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -175,9 +177,46 @@ export default function Index() {
         );
         if (validSample) {
           setGpsCenter({ lat: validSample.lat, lon: validSample.lon });
-          const nearest = findNearestTrack(validSample.lat, validSample.lon, tracks);
-          setDetectedTrack(nearest as Track | null);
-          setTrackPromptOpen(true);
+
+          // Run auto-detection
+          const detection = autoDetectCourse(parsedData.samples, tracks);
+          setDetectionResult(detection);
+
+          if (detection && !detection.isWaypointMode) {
+            // Auto-detected a real course — apply it directly
+            const sel: TrackCourseSelection = {
+              trackName: detection.track.name,
+              courseName: detection.course.name,
+              course: detection.course,
+            };
+            lapMgmt.setSelection(sel);
+            lapMgmt.setLaps(detection.laps);
+            if (detection.laps.length > 0) {
+              const fastest = detection.laps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), detection.laps[0]);
+              setSelectedLapNumber(fastest.lapNumber);
+            }
+
+            // If there are multiple courses, still show dialog to confirm
+            const nearestTrack = tracks.find(t => t.name === detection.track.name);
+            if (nearestTrack && nearestTrack.courses.length > 1) {
+              setDetectedTrack(nearestTrack);
+              setTrackPromptOpen(true);
+            }
+          } else if (detection && detection.isWaypointMode) {
+            // Waypoint mode — apply laps and show prompt
+            lapMgmt.setLaps(detection.laps);
+            if (detection.laps.length > 0) {
+              const fastest = detection.laps.reduce((min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min), detection.laps[0]);
+              setSelectedLapNumber(fastest.lapNumber);
+            }
+            setDetectedTrack(null);
+            setTrackPromptOpen(true);
+          } else {
+            // No detection at all
+            const nearest = findNearestTrack(validSample.lat, validSample.lon, tracks);
+            setDetectedTrack(nearest as Track | null);
+            setTrackPromptOpen(true);
+          }
         }
       }
     },
@@ -348,6 +387,12 @@ export default function Index() {
                       <p className="font-semibold text-foreground">Dove CSV</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Simple CSV with millisecond Unix timestamps, GPS data, RPM, and hardware accelerometer readings. The native format of <a href="https://github.com/TheAngryRaven/DovesDataLogger" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">DovesDataLogger</a>. Extension: <code className="text-primary">.dove</code>
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
+                      <p className="font-semibold text-foreground">Dovex (Extended Dove)</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Extended Dove format with a 4096-byte metadata header containing session info (driver, course, lap times) followed by standard Dove CSV GPS data. Extension: <code className="text-primary">.dovex</code>
                       </p>
                     </div>
                     <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
@@ -780,6 +825,7 @@ export default function Index() {
         tracks={allTracks}
         onSelect={handleTrackPromptSelect}
         initialCenter={gpsCenter}
+        detectionResult={detectionResult}
       />
     </div>
     </SettingsProvider>
