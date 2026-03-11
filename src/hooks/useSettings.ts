@@ -39,7 +39,7 @@ const defaultSettings: AppSettings = {
   brakeMaxG: 150,                 // 1.5G = 100% brake
   autoSaveFiles: true,
   enableLabs: false,
-  darkMode: true,
+  darkMode: false,
   gForceSource: 'hw',
 };
 
