@@ -493,7 +493,10 @@ export default function Index() {
                       <h3 className="font-semibold text-foreground mb-2">Features</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                         {[
-                          "Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM, Alfano, Dove CSV)",
+                          "Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM, Alfano, Dove, Dovex)",
+                          "Automatic track & course detection within 5 miles",
+                          "Automatic driving direction detection (forward/reverse)",
+                          "Waypoint mode — lap timing anywhere, no track needed",
                           "Interactive race line map with speed heatmap",
                           "Braking zone detection & visualization",
                           "Automatic lap detection via start/finish line",
@@ -509,7 +512,7 @@ export default function Index() {
                           "Device track sync over Bluetooth",
                           "Custom track & course editor with community submissions",
                           "Local weather lookup",
-                          "Dark mode",
+                          "Dark & light mode",
                           "PWA — installable & fully offline",
                         ].map((feat, i) => (
                           <div key={i} className="flex items-start gap-1.5">
