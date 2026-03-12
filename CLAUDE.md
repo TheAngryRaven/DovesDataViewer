@@ -97,7 +97,7 @@ src/
 │   ├── ubxParser.ts           # u-blox UBX binary parser
 │   ├── vboParser.ts           # Racelogic VBO parser
 │   ├── doveParser.ts          # DovesDataLogger CSV parser
-│   ├── dovexParser.ts         # DovesDataLogger extended format (.dovex) with 4096-byte metadata header
+│   ├── dovexParser.ts         # DovesDataLogger extended format (.dovex) with 8192-byte metadata header
 │   ├── alfanoParser.ts        # Alfano CSV parser
 │   ├── aimParser.ts           # AiM MyChron CSV parser
 │   ├── motecParser.ts         # MoTeC LD binary + CSV parser
