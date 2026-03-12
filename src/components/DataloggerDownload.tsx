@@ -88,6 +88,15 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
           setStatusMessage
         );
 
+        // Always save the raw file first so it's never lost
+        if (autoSave && autoSaveFile) {
+          try {
+            await autoSaveFile(file.name, new Blob([fileData.buffer as ArrayBuffer]));
+          } catch (e) {
+            console.warn("Auto-save failed:", e);
+          }
+        }
+
         // Parse the downloaded file
         setStatusMessage("Parsing file...");
         
@@ -97,21 +106,13 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
         
         const parsedData = parseDatalogContent(content);
         
-        // Auto-save to IndexedDB if enabled
-        if (autoSave && autoSaveFile) {
-          try {
-            await autoSaveFile(file.name, new Blob([fileData.buffer as ArrayBuffer]));
-          } catch (e) {
-            console.warn("Auto-save failed:", e);
-          }
-        }
-        
         // Close modal and load data
         handleClose();
         onDataLoaded(parsedData, file.name);
       } catch (err) {
-        console.error("Download error:", err);
-        setError(err instanceof Error ? err.message : "Download failed");
+        console.error("Download/parse error:", err);
+        const msg = err instanceof Error ? err.message : "Download failed";
+        setError(`${msg} — file was saved and can be found in Browse Files.`);
         setState("error");
       }
     },
