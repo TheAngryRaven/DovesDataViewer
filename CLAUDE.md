@@ -97,7 +97,7 @@ src/
 │   ├── ubxParser.ts           # u-blox UBX binary parser
 │   ├── vboParser.ts           # Racelogic VBO parser
 │   ├── doveParser.ts          # DovesDataLogger CSV parser
-│   ├── dovexParser.ts         # DovesDataLogger extended format (.dovex) with 4096-byte metadata header
+│   ├── dovexParser.ts         # DovesDataLogger extended format (.dovex) with 8192-byte metadata header
 │   ├── alfanoParser.ts        # Alfano CSV parser
 │   ├── aimParser.ts           # AiM MyChron CSV parser
 │   ├── motecParser.ts         # MoTeC LD binary + CSV parser
@@ -218,13 +218,14 @@ When a file is loaded and no track/course is saved in metadata, the system auto-
 
 ## .dovex Format (`src/lib/dovexParser.ts`)
 
-Extended Dove format with a 4096-byte metadata header:
+Extended Dove format with an 8192-byte (8 KB) metadata header:
 ```
 Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms
 Line 2: 2024-03-15 14:30:00,Mike,Full CW,OKC,62345,61200
-Line 3: 65432,64321,62345,63456   (lap times in ms, comma-separated)
-\n padding to byte 4096
-Byte 4096+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
+Line 3: lap_times_ms
+Line 4: 65432,64321,62345,63456   (lap times in ms, comma-separated)
+\n padding to byte 8192
+Byte 8192+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
 ```
 
 GPS data is always parseable even if metadata is corrupted. Metadata is attached as `ParsedData.dovexMetadata`.

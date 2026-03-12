@@ -4,17 +4,18 @@ import { parseDoveFile, isDoveFormat } from './doveParser';
 /**
  * .dovex Parser
  *
- * Extended Dove format with a 4096-byte metadata header:
- *   Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms
- *   Line 2: values
- *   Line 3: lap times (comma-separated ms values)
- *   Lines 4+: padding to byte 4096
- *   Byte 4096+: standard .dove CSV
+ * Extended Dove format with an 8192-byte (8 KB) metadata header:
+ *   Line 1: session metadata column names (datetime,driver,course,short_name,best_lap_ms,optimal_ms)
+ *   Line 2: session metadata values
+ *   Line 3: lap data column names (lap_times_ms)
+ *   Line 4: lap data values (comma-separated ms values)
+ *   Lines 5+: padding to byte 8192
+ *   Byte 8192+: standard .dove CSV
  *
  * GPS logs should always be valid even if the metadata header is corrupted.
  */
 
-const HEADER_SIZE = 4096;
+const HEADER_SIZE = 8192;
 
 /**
  * Check if content is .dovex format.
@@ -59,8 +60,7 @@ function parseMetadataHeader(headerText: string): DovexMetadata {
 
   if (lines.length < 2) return meta;
 
-  // Line 1: column headers
-  // Line 2: values
+  // Lines 1-2: session metadata (header row + values row)
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
   const values = lines[1].split(',').map(v => v.trim());
 
@@ -83,8 +83,15 @@ function parseMetadataHeader(headerText: string): DovexMetadata {
     if (!isNaN(v)) meta.optimalMs = v;
   }
 
-  // Line 3: lap times (comma-separated ms values)
-  if (lines.length >= 3) {
+  // Lines 3-4: lap data (header row + values row)
+  // Line 3 is a header like "lap_times_ms", line 4 is the comma-separated ms values
+  if (lines.length >= 4) {
+    const lapValues = lines[3].split(',').map(v => parseInt(v.trim(), 10)).filter(v => !isNaN(v) && v > 0);
+    if (lapValues.length > 0) {
+      meta.lapTimesMs = lapValues;
+    }
+  } else if (lines.length >= 3) {
+    // Fallback: try line 3 directly as lap values (backward compat)
     const lapValues = lines[2].split(',').map(v => parseInt(v.trim(), 10)).filter(v => !isNaN(v) && v > 0);
     if (lapValues.length > 0) {
       meta.lapTimesMs = lapValues;
