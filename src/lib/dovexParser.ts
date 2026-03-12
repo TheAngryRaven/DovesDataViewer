@@ -4,17 +4,18 @@ import { parseDoveFile, isDoveFormat } from './doveParser';
 /**
  * .dovex Parser
  *
- * Extended Dove format with a 4096-byte metadata header:
- *   Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms
- *   Line 2: values
- *   Line 3: lap times (comma-separated ms values)
- *   Lines 4+: padding to byte 4096
- *   Byte 4096+: standard .dove CSV
+ * Extended Dove format with an 8192-byte (8 KB) metadata header:
+ *   Line 1: session metadata column names (datetime,driver,course,short_name,best_lap_ms,optimal_ms)
+ *   Line 2: session metadata values
+ *   Line 3: lap data column names (lap_times_ms)
+ *   Line 4: lap data values (comma-separated ms values)
+ *   Lines 5+: padding to byte 8192
+ *   Byte 8192+: standard .dove CSV
  *
  * GPS logs should always be valid even if the metadata header is corrupted.
  */
 
-const HEADER_SIZE = 4096;
+const HEADER_SIZE = 8192;
 
 /**
  * Check if content is .dovex format.
