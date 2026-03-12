@@ -31,7 +31,8 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
         const data = await parseDatalogFile(file);
         onDataLoaded(data, file.name);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to parse file");
+        const msg = e instanceof Error ? e.message : "Failed to parse file";
+        setError(autoSave ? `${msg} — file was saved and can be found in Browse Files.` : msg);
       } finally {
         setIsLoading(false);
       }

@@ -110,8 +110,9 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
         handleClose();
         onDataLoaded(parsedData, file.name);
       } catch (err) {
-        console.error("Download error:", err);
-        setError(err instanceof Error ? err.message : "Download failed");
+        console.error("Download/parse error:", err);
+        const msg = err instanceof Error ? err.message : "Download failed";
+        setError(`${msg} — file was saved and can be found in Browse Files.`);
         setState("error");
       }
     },
