@@ -799,3 +799,62 @@ export async function uploadTrackFile(
     }
   });
 }
+
+/**
+ * Delete a track file from device via TDEL.
+ * Flow: TDEL:name.json → wait TOK or TERR
+ */
+export async function deleteTrackFile(
+  connection: BleConnection,
+  filename: string
+): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const raw = new TextDecoder().decode(target.value!);
+      bleLog('TDEL status:', raw);
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        if (line === 'TOK') {
+          cleanup();
+          resolve();
+          return;
+        } else if (line.startsWith('TERR:')) {
+          cleanup();
+          reject(new Error(line.substring(5)));
+          return;
+        }
+      }
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileStatus.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('TDEL:' + filename));
+
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for delete confirmation'));
+      }, 10000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
