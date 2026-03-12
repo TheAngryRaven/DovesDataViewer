@@ -24,10 +24,11 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
       setFileName(file.name);
 
       try {
-        const data = await parseDatalogFile(file);
+        // Always save the raw file first so it's never lost
         if (autoSave && autoSaveFile) {
           try { await autoSaveFile(file.name, file); } catch (e) { console.warn("Auto-save failed:", e); }
         }
+        const data = await parseDatalogFile(file);
         onDataLoaded(data, file.name);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to parse file");

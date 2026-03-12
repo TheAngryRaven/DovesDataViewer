@@ -88,6 +88,15 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
           setStatusMessage
         );
 
+        // Always save the raw file first so it's never lost
+        if (autoSave && autoSaveFile) {
+          try {
+            await autoSaveFile(file.name, new Blob([fileData.buffer as ArrayBuffer]));
+          } catch (e) {
+            console.warn("Auto-save failed:", e);
+          }
+        }
+
         // Parse the downloaded file
         setStatusMessage("Parsing file...");
         
@@ -96,15 +105,6 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
         const content = decoder.decode(fileData);
         
         const parsedData = parseDatalogContent(content);
-        
-        // Auto-save to IndexedDB if enabled
-        if (autoSave && autoSaveFile) {
-          try {
-            await autoSaveFile(file.name, new Blob([fileData.buffer as ArrayBuffer]));
-          } catch (e) {
-            console.warn("Auto-save failed:", e);
-          }
-        }
         
         // Close modal and load data
         handleClose();
