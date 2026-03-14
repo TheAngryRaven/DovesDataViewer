@@ -302,6 +302,9 @@ LIST → select file → GET:filename → receive SIZE → stream data chunks �
 - `TPUT:name.json` → device responds `TREADY` on fileStatus → app sends data chunks on fileRequest (64-byte max) → `TDONE` → device responds `TOK` or `TERR:reason`
 - `TDEL:name.json` → device responds `TOK` on fileStatus (success) or `TERR:reason` (failure). 10s timeout.
 
+### Battery Protocol
+- `BATT` → device responds `BATT:<percent>,<voltage>` on fileStatus (e.g., `BATT:85,3.98`). 5s timeout.
+
 Settings schema is defined in `src/lib/deviceSettingsSchema.ts` — maps keys to labels, types, and validation rules. Unknown keys from the device are displayed as raw string fields (forward-compatible).
 
 ---
