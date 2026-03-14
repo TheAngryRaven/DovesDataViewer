@@ -284,9 +284,9 @@ Connects to **DovesLapTimer** ESP32 device via Web Bluetooth.
 |------|---------------|---------|
 | `0x1820` | Service | Internet Protocol Support (container) |
 | `0x2A3D` | File List | Read: newline-separated `filename,size` pairs |
-| `0x2A3E` | File Request | Write: `GET:filename`, `LIST`, `SLIST`, `SGET:key`, `SSET:key=value`, `TLIST`, `TGET:name`, `TPUT:name`, `TDEL:name` |
+| `0x2A3E` | File Request | Write: `GET:filename`, `LIST`, `SLIST`, `SGET:key`, `SSET:key=value`, `TLIST`, `TGET:name`, `TPUT:name`, `TDEL:name`, `BATT` |
 | `0x2A3F` | File Data | Notify: chunked file data (reassembled client-side) |
-| `0x2A40` | File Status | Notify: `SIZE:n`, `DONE`, `ERROR:msg`, settings (`SVAL`, `SEND`, `SOK`, `SERR`), tracks (`TFILE`, `TEND`, `TREADY`, `TOK`, `TERR`) |
+| `0x2A40` | File Status | Notify: `SIZE:n`, `DONE`, `ERROR:msg`, settings (`SVAL`, `SEND`, `SOK`, `SERR`), tracks (`TFILE`, `TEND`, `TREADY`, `TOK`, `TERR`), battery (`BATT:<pct>,<volt>`) |
 
 ### File Protocol
 LIST → select file → GET:filename → receive SIZE → stream data chunks → DONE.
