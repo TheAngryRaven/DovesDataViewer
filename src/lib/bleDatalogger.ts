@@ -355,6 +355,70 @@ export function disconnect(connection: BleConnection): void {
   }
 }
 
+// ─── Battery Protocol ─────────────────────────────────────────────────────────
+
+export interface BatteryInfo {
+  percent: number;
+  voltage: number;
+}
+
+/** Request battery level from device. Sends BATT, expects BATT:<percent>,<voltage> on fileStatus. */
+export async function requestBatteryLevel(
+  connection: BleConnection
+): Promise<BatteryInfo> {
+  return new Promise(async (resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const raw = new TextDecoder().decode(target.value!);
+      bleLog('BATT raw notification:', JSON.stringify(raw));
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        if (line.startsWith('BATT:')) {
+          const payload = line.substring(5);
+          const [pctStr, voltStr] = payload.split(',');
+          const percent = parseInt(pctStr, 10);
+          const voltage = parseFloat(voltStr);
+          if (!isNaN(percent) && !isNaN(voltage)) {
+            cleanup();
+            resolve({ percent, voltage });
+            return;
+          }
+        }
+      }
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileStatus.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('BATT'));
+
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Battery request timed out'));
+      }, 5000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
 // ─── Device Settings Protocol ─────────────────────────────────────────────────
 // Uses the fileList characteristic (0x2A3D) for notifications and
 // fileRequest characteristic (0x2A3E) for sending commands.

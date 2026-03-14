@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, Gauge, Cpu, Bluetooth, BluetoothOff, Loader2, Settings, MapPin } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { X, Gauge, Cpu, Bluetooth, BluetoothOff, Loader2, Settings, MapPin, Battery, BatteryLow, BatteryMedium, BatteryFull, BatteryWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { Vehicle } from "@/lib/vehicleStorage";
