@@ -148,6 +148,10 @@ export function FileManagerDrawer({
                 {battery.percent}%
               </button>
             )}
+            {topTab === "device" && device.connection && (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={device.disconnectDevice}>Disconnect</Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}><X className="w-4 h-4" /></Button>
           </div>
         </div>
 
