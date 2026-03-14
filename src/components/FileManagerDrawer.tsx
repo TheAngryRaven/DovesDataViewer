@@ -88,14 +88,34 @@ export function FileManagerDrawer({
 
   const device = useDeviceContext();
   const bleAvailable = isBleSupported();
+  const [battery, setBattery] = useState<BatteryInfo | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setTopTab("garage");
       setGarageTab("files");
       setDeviceTab("settings");
+      setBattery(null);
     }
   }, [isOpen]);
+
+  // Fetch battery on connect / when switching to device tab
+  const fetchBattery = useCallback(async () => {
+    if (!device.connection) return;
+    try {
+      const info = await requestBatteryLevel(device.connection);
+      setBattery(info);
+    } catch {
+      // silent — device may not support BATT yet
+    }
+  }, [device.connection]);
+
+  useEffect(() => {
+    if (device.connection && topTab === "device") {
+      fetchBattery();
+    }
+    if (!device.connection) setBattery(null);
+  }, [device.connection, topTab, fetchBattery]);
 
   if (!isOpen) return null;
 
