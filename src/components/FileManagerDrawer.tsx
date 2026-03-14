@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, Gauge, Cpu, Bluetooth, BluetoothOff, Loader2, Settings, MapPin } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { X, Gauge, Cpu, Bluetooth, BluetoothOff, Loader2, Settings, MapPin, Battery, BatteryLow, BatteryMedium, BatteryFull, BatteryWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { Vehicle } from "@/lib/vehicleStorage";
@@ -14,7 +14,7 @@ import { NotesTab } from "./drawer/NotesTab";
 import { DeviceSettingsTab } from "./drawer/DeviceSettingsTab";
 import { DeviceTracksTab } from "./drawer/DeviceTracksTab";
 import { useDeviceContext } from "@/contexts/DeviceContext";
-import { isBleSupported } from "@/lib/bleDatalogger";
+import { isBleSupported, requestBatteryLevel, type BatteryInfo } from "@/lib/bleDatalogger";
 
 type TopTab = "garage" | "device";
 type GarageTab = "files" | "vehicles" | "setups" | "notes";
@@ -88,14 +88,34 @@ export function FileManagerDrawer({
 
   const device = useDeviceContext();
   const bleAvailable = isBleSupported();
+  const [battery, setBattery] = useState<BatteryInfo | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setTopTab("garage");
       setGarageTab("files");
       setDeviceTab("settings");
+      setBattery(null);
     }
   }, [isOpen]);
+
+  // Fetch battery on connect / when switching to device tab
+  const fetchBattery = useCallback(async () => {
+    if (!device.connection) return;
+    try {
+      const info = await requestBatteryLevel(device.connection);
+      setBattery(info);
+    } catch {
+      // silent — device may not support BATT yet
+    }
+  }, [device.connection]);
+
+  useEffect(() => {
+    if (device.connection && topTab === "device") {
+      fetchBattery();
+    }
+    if (!device.connection) setBattery(null);
+  }, [device.connection, topTab, fetchBattery]);
 
   if (!isOpen) return null;
 
@@ -113,6 +133,21 @@ export function FileManagerDrawer({
             )}
           </div>
           <div className="flex items-center gap-1">
+            {topTab === "device" && device.connection && battery && (
+              <button
+                onClick={fetchBattery}
+                className={`flex items-center gap-1 h-7 px-2 rounded text-xs font-medium transition-colors hover:bg-muted/50 ${
+                  battery.percent <= 15 ? "text-destructive" : battery.percent <= 30 ? "text-orange-500" : "text-muted-foreground"
+                }`}
+                title={`${battery.voltage.toFixed(2)}V — click to refresh`}
+              >
+                {battery.percent <= 15 ? <BatteryWarning className="w-4 h-4" /> :
+                 battery.percent <= 30 ? <BatteryLow className="w-4 h-4" /> :
+                 battery.percent <= 70 ? <BatteryMedium className="w-4 h-4" /> :
+                 <BatteryFull className="w-4 h-4" />}
+                {battery.percent}%
+              </button>
+            )}
             {topTab === "device" && device.connection && (
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={device.disconnectDevice}>Disconnect</Button>
             )}
