@@ -14,7 +14,7 @@ import { NotesTab } from "./drawer/NotesTab";
 import { DeviceSettingsTab } from "./drawer/DeviceSettingsTab";
 import { DeviceTracksTab } from "./drawer/DeviceTracksTab";
 import { useDeviceContext } from "@/contexts/DeviceContext";
-import { isBleSupported } from "@/lib/bleDatalogger";
+import { isBleSupported, requestBatteryLevel, type BatteryInfo } from "@/lib/bleDatalogger";
 
 type TopTab = "garage" | "device";
 type GarageTab = "files" | "vehicles" | "setups" | "notes";
