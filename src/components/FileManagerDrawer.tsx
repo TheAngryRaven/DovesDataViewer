@@ -133,10 +133,21 @@ export function FileManagerDrawer({
             )}
           </div>
           <div className="flex items-center gap-1">
-            {topTab === "device" && device.connection && (
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={device.disconnectDevice}>Disconnect</Button>
+            {topTab === "device" && device.connection && battery && (
+              <button
+                onClick={fetchBattery}
+                className={`flex items-center gap-1 h-7 px-2 rounded text-xs font-medium transition-colors hover:bg-muted/50 ${
+                  battery.percent <= 15 ? "text-destructive" : battery.percent <= 30 ? "text-orange-500" : "text-muted-foreground"
+                }`}
+                title={`${battery.voltage.toFixed(2)}V — click to refresh`}
+              >
+                {battery.percent <= 15 ? <BatteryWarning className="w-4 h-4" /> :
+                 battery.percent <= 30 ? <BatteryLow className="w-4 h-4" /> :
+                 battery.percent <= 70 ? <BatteryMedium className="w-4 h-4" /> :
+                 <BatteryFull className="w-4 h-4" />}
+                {battery.percent}%
+              </button>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}><X className="w-4 h-4" /></Button>
           </div>
         </div>
 
