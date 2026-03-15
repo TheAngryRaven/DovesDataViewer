@@ -635,7 +635,7 @@ export function VisualEditor({
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
     }
-  }, [activeTool, drawPoints, showKnownDrawing]);
+  }, [activeTool, drawPoints, showKnownDrawing, mapReady]);
 
   const handleToolChange = (tool: VisualEditorTool) => {
     const map = mapRef.current;
