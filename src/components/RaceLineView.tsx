@@ -56,7 +56,6 @@ interface RaceLineViewProps {
   cachedWeatherStation?: WeatherStation | null;
   onWeatherStationResolved?: (station: WeatherStation) => void;
   isAllLaps?: boolean;
-  courseDrawing?: CourseDrawing[] | null;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
