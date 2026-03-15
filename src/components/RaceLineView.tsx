@@ -154,6 +154,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   const sector3Ref = useRef<L.Polyline | null>(null);
   const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const drawingLayerRef = useRef<L.Polyline | null>(null);
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
   const [showBrakingZones, setShowBrakingZones] = useState(true);
