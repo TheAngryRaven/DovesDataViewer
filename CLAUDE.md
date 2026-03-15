@@ -112,7 +112,7 @@ src/
 │   ├── chartUtils.ts          # Canvas chart rendering helpers
 │   ├── chartColors.ts         # Color palette for multi-series charts
 │   ├── trackUtils.ts          # Track geometry utilities (findNearestTrack: 5mi radius)
-│   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json)
+│   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json) + course drawings loader
 │   ├── referenceUtils.ts      # Reference lap comparison utilities
 │   ├── dbUtils.ts             # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), transaction helpers
 │   ├── fileStorage.ts         # IndexedDB: raw file blobs
