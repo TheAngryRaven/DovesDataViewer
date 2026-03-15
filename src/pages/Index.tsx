@@ -192,12 +192,7 @@ export default function Index() {
               setSelectedLapNumber(fastest.lapNumber);
             }
 
-            // If there are multiple courses, still show dialog to confirm
-            const nearestTrack = tracks.find(t => t.name === detection.track.name);
-            if (nearestTrack && nearestTrack.courses.length > 1) {
-              setDetectedTrack(nearestTrack);
-              setTrackPromptOpen(true);
-            }
+            // Course was auto-detected — no need to prompt the user
           } else if (detection && detection.isWaypointMode) {
             // Waypoint mode — apply laps and show prompt
             lapMgmt.setLaps(detection.laps);
