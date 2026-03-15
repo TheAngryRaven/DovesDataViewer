@@ -115,6 +115,7 @@ export function coursesMatch(appCourse: Course, dc: DeviceCourseJson): boolean {
 export function deviceCourseToAppCourse(dc: DeviceCourseJson): Course {
   const course: Course = {
     name: dc.name,
+    lengthFt: dc.lengthFt,
     startFinishA: { lat: dc.start_a_lat, lon: dc.start_a_lng },
     startFinishB: { lat: dc.start_b_lat, lon: dc.start_b_lng },
     isUserDefined: true,
