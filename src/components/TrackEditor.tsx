@@ -405,8 +405,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             {selectedTrack && (
               <div className="mt-4 space-y-2">
                 {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => {
-                  const drawingKey = selectedTrack.shortName ? `${selectedTrack.shortName}/${course.name}` : null;
-                  const drawing = drawingKey ? courseDrawings[drawingKey] : null;
+                  const drawing = resolveCourseDrawing(selectedTrack, course.name);
                   return (
                   <div key={course.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
                     {drawing && drawing.length >= 2 && (
