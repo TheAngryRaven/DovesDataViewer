@@ -595,14 +595,18 @@ export function VisualEditor({
     toast({ title: 'Drawing generated', description: `Generated from Lap ${lapNumber} (${points.length} points). Click Done to save.` });
   }, [samples, laps, updateDrawPolyline]);
 
+  const handleToggleKnownDrawing = useCallback(() => {
+    setShowKnownDrawing(prev => !prev);
+  }, []);
+
   // Render static layout polyline when not in draw mode
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     // If we're in draw mode, the draw polyline is managed separately
     if (activeTool === 'draw') return;
-    // Show static layout if we have points
-    if (drawPoints.length > 0) {
+    // Show static layout if we have points and it is enabled
+    if (showKnownDrawing && drawPoints.length > 0) {
       if (!drawPolylineRef.current) {
         drawPolylineRef.current = L.polyline(
           drawPoints.map(p => [p.lat, p.lon] as [number, number]),
@@ -616,7 +620,7 @@ export function VisualEditor({
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
     }
-  }, [activeTool, drawPoints]);
+  }, [activeTool, drawPoints, showKnownDrawing]);
 
   const handleToolChange = (tool: VisualEditorTool) => {
     const map = mapRef.current;
