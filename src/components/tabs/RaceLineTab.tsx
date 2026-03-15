@@ -68,7 +68,7 @@ export const RaceLineTab = memo(function RaceLineTab(props: RaceLineTabProps) {
           cachedWeatherStation={props.cachedWeatherStation}
           onWeatherStationResolved={props.onWeatherStationResolved}
           isAllLaps={props.isAllLaps}
-      }
+        />
       bottomPanel={
         <div className="h-full flex flex-col">
           <div className="flex-1 min-h-0">
