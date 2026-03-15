@@ -153,7 +153,39 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, i
                 Generate
               </Button>
         )}
+        {canToggleKnownDrawing && (
+          <Button
+            variant={showKnownDrawing ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={onToggleKnownDrawing}
+          >
+            {showKnownDrawing ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            Toggle Known Drawing
+          </Button>
+        )}
         {activeTool === 'draw' && drawPointCount > 0 && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={onUndoDraw}
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              Undo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
+              onClick={onClearDraw}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear
+            </Button>
+          </>
+        )}
           <>
             <Button
               variant="outline"
