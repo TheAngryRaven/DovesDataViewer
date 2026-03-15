@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed, Pencil, Undo2, Trash2, Route } from 'lucide-react';
+import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed, Pencil, Undo2, Trash2, Route, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
@@ -33,6 +33,8 @@ interface VisualEditorProps {
   isAdminEditor?: boolean;
   /** Existing layout drawing to display as a static polyline */
   layoutPoints?: Array<{ lat: number; lon: number }>;
+  /** Show a button to toggle visibility of known drawing */
+  showKnownDrawingToggle?: boolean;
   /** Callback when layout drawing changes */
   onLayoutChange?: (points: Array<{ lat: number; lon: number }>) => void;
   /** Laps available for "Generate Drawing" */
@@ -48,13 +50,16 @@ interface VisualEditorToolbarProps {
   showDrawTool?: boolean;
   isAdminEditor?: boolean;
   drawPointCount?: number;
+  canToggleKnownDrawing?: boolean;
+  showKnownDrawing?: boolean;
+  onToggleKnownDrawing?: () => void;
   onUndoDraw?: () => void;
   onClearDraw?: () => void;
   laps?: Lap[];
   onGenerateFromLap?: (lapNumber: number) => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, isAdminEditor, drawPointCount = 0, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, isAdminEditor, drawPointCount = 0, canToggleKnownDrawing = false, showKnownDrawing = true, onToggleKnownDrawing, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
   const [showLapPicker, setShowLapPicker] = useState(false);
 
   const handleStartFinish = () => {
@@ -148,6 +153,17 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, i
                 Generate
               </Button>
         )}
+        {canToggleKnownDrawing && (
+          <Button
+            variant={showKnownDrawing ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={onToggleKnownDrawing}
+          >
+            {showKnownDrawing ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            Toggle Known Drawing
+          </Button>
+        )}
         {activeTool === 'draw' && drawPointCount > 0 && (
           <>
             <Button
@@ -210,7 +226,7 @@ export function VisualEditor({
   startFinishA, startFinishB, sector2, sector3,
   onStartFinishChange, onSector2Change, onSector3Change, onDone,
   isNewTrack = false, initialCenter: initialCenterProp = null,
-  showDrawTool = false, isAdminEditor = false, layoutPoints: layoutPointsProp, onLayoutChange,
+  showDrawTool = false, isAdminEditor = false, layoutPoints: layoutPointsProp, showKnownDrawingToggle = false, onLayoutChange,
   laps, samples,
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -224,6 +240,7 @@ export function VisualEditor({
 
   // Drawing state
   const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>(layoutPointsProp ?? []);
+  const [showKnownDrawing, setShowKnownDrawing] = useState(true);
   const drawPolylineRef = useRef<L.Polyline | null>(null);
   const drawClickHandlerRef = useRef<((e: L.LeafletMouseEvent) => void) | null>(null);
 
@@ -231,6 +248,7 @@ export function VisualEditor({
   useEffect(() => {
     const incoming = layoutPointsProp ?? [];
     setDrawPoints(incoming);
+    if (incoming.length > 0) setShowKnownDrawing(true);
     // Also update the polyline immediately if map exists
     if (mapRef.current && drawPolylineRef.current) {
       if (incoming.length > 0) {
@@ -513,11 +531,13 @@ export function VisualEditor({
     if (!map) return;
     if (drawPolylineRef.current) {
       drawPolylineRef.current.setLatLngs(points.map(p => [p.lat, p.lon] as [number, number]));
+      drawPolylineRef.current.bringToFront();
     } else if (points.length > 0) {
       drawPolylineRef.current = L.polyline(
         points.map(p => [p.lat, p.lon] as [number, number]),
         { color: '#ff6600', weight: 7, opacity: 0.9 }
       ).addTo(map);
+      drawPolylineRef.current.bringToFront();
     }
   }, []);
 
@@ -588,14 +608,18 @@ export function VisualEditor({
     toast({ title: 'Drawing generated', description: `Generated from Lap ${lapNumber} (${points.length} points). Click Done to save.` });
   }, [samples, laps, updateDrawPolyline]);
 
+  const handleToggleKnownDrawing = useCallback(() => {
+    setShowKnownDrawing(prev => !prev);
+  }, []);
+
   // Render static layout polyline when not in draw mode
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     // If we're in draw mode, the draw polyline is managed separately
     if (activeTool === 'draw') return;
-    // Show static layout if we have points
-    if (drawPoints.length > 0) {
+    // Show static layout if we have points and it is enabled
+    if (showKnownDrawing && drawPoints.length > 0) {
       if (!drawPolylineRef.current) {
         drawPolylineRef.current = L.polyline(
           drawPoints.map(p => [p.lat, p.lon] as [number, number]),
@@ -605,11 +629,12 @@ export function VisualEditor({
         drawPolylineRef.current.setLatLngs(drawPoints.map(p => [p.lat, p.lon] as [number, number]));
         drawPolylineRef.current.setStyle({ opacity: 0.8, dashArray: '10 6' });
       }
+      drawPolylineRef.current.bringToFront();
     } else if (drawPolylineRef.current) {
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
     }
-  }, [activeTool, drawPoints]);
+  }, [activeTool, drawPoints, showKnownDrawing]);
 
   const handleToolChange = (tool: VisualEditorTool) => {
     const map = mapRef.current;
@@ -831,6 +856,9 @@ export function VisualEditor({
         showDrawTool={showDrawTool}
         isAdminEditor={isAdminEditor}
         drawPointCount={drawPoints.length}
+        canToggleKnownDrawing={showKnownDrawingToggle && drawPoints.length > 1}
+        showKnownDrawing={showKnownDrawing}
+        onToggleKnownDrawing={handleToggleKnownDrawing}
         onUndoDraw={handleUndoDraw}
         onClearDraw={handleClearDraw}
         laps={laps}

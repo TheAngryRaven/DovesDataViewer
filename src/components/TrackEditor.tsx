@@ -113,6 +113,33 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   const selectedTrack = tracks.find(t => t.name === tempTrackName);
   const availableCourses = selectedTrack?.courses ?? [];
 
+  const resolveCourseDrawing = useCallback((track: Track | undefined, courseName?: string) => {
+    if (!track || !courseName) return undefined;
+
+    const shortNameCandidates = [track.shortName, abbreviateTrackName(track.name)]
+      .filter((value): value is string => Boolean(value))
+      .map(value => value.trim());
+
+    for (const shortName of shortNameCandidates) {
+      const exact = courseDrawings[`${shortName}/${courseName}`];
+      if (exact) return exact;
+    }
+
+    const normalizedCourse = courseName.trim().toLowerCase();
+    for (const [key, points] of Object.entries(courseDrawings)) {
+      const slashIndex = key.indexOf('/');
+      if (slashIndex === -1) continue;
+
+      const short = key.slice(0, slashIndex).trim().toLowerCase();
+      const name = key.slice(slashIndex + 1).trim().toLowerCase();
+      if (shortNameCandidates.some(candidate => candidate.toLowerCase() === short) && name === normalizedCourse) {
+        return points;
+      }
+    }
+
+    return undefined;
+  }, [courseDrawings]);
+
   // Generate JSON for the selected track in datalogger format
   const generateTrackJson = useCallback(() => {
     if (!selectedTrack) return '{}';
@@ -353,11 +380,8 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                    showDrawTool={true}
                    laps={laps}
                    samples={samples}
-                   layoutPoints={(() => {
-                     const t = tracks.find(t => t.name === form.editingCourse?.trackName);
-                     const key = t?.shortName ? `${t.shortName}/${form.editingCourse?.courseName}` : null;
-                     return key ? courseDrawings[key] ?? undefined : undefined;
-                   })()}
+                   layoutPoints={resolveCourseDrawing(selectedTrack, form.editingCourse?.courseName)}
+                   showKnownDrawingToggle={true}
                 />
                 <div className="flex gap-2">
                   <Button onClick={handleUpdateCourse} className="flex-1">
@@ -381,8 +405,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             {selectedTrack && (
               <div className="mt-4 space-y-2">
                 {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => {
-                  const drawingKey = selectedTrack.shortName ? `${selectedTrack.shortName}/${course.name}` : null;
-                  const drawing = drawingKey ? courseDrawings[drawingKey] : null;
+                  const drawing = resolveCourseDrawing(selectedTrack, course.name);
                   return (
                   <div key={course.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
                     {drawing && drawing.length >= 2 && (
