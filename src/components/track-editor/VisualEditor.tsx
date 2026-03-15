@@ -531,11 +531,13 @@ export function VisualEditor({
     if (!map) return;
     if (drawPolylineRef.current) {
       drawPolylineRef.current.setLatLngs(points.map(p => [p.lat, p.lon] as [number, number]));
+      drawPolylineRef.current.bringToFront();
     } else if (points.length > 0) {
       drawPolylineRef.current = L.polyline(
         points.map(p => [p.lat, p.lon] as [number, number]),
         { color: '#ff6600', weight: 7, opacity: 0.9 }
       ).addTo(map);
+      drawPolylineRef.current.bringToFront();
     }
   }, []);
 
