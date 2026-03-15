@@ -229,6 +229,7 @@ export function VisualEditor({
 
   // Drawing state
   const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>(layoutPointsProp ?? []);
+  const [showKnownDrawing, setShowKnownDrawing] = useState(true);
   const drawPolylineRef = useRef<L.Polyline | null>(null);
   const drawClickHandlerRef = useRef<((e: L.LeafletMouseEvent) => void) | null>(null);
 
