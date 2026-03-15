@@ -274,6 +274,8 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 
 **Submissions**: The `submissions` table has `has_layout` (bool) and `layout_data` (jsonb) columns to carry drawing data through the submission workflow.
 
+**Public drawings**: Admin exports drawings to `public/drawings.json` (keyed by `shortName/courseName` → `[{lat, lon}, ...]`). Loaded by `trackStorage.ts:loadCourseDrawings()` (cached). Rendered on the race line map as a dashed polyline outline when a course is selected. Helper: `getDrawingForCourse(shortName, courseName)`.
+
 ---
 
 ## BLE Integration (`src/lib/bleDatalogger.ts`)
