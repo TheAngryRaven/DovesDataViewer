@@ -90,6 +90,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
     if (!selectedTrack) return '{}';
 
     const result: Record<string, {
+      lengthFt?: number;
       start_a_lat: number; start_a_lng: number;
       start_b_lat: number; start_b_lng: number;
       sector_2_a_lat?: number; sector_2_a_lng?: number;
