@@ -186,27 +186,6 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, i
             </Button>
           </>
         )}
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={onUndoDraw}
-            >
-              <Undo2 className="w-3.5 h-3.5" />
-              Undo
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
-              onClick={onClearDraw}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear
-            </Button>
-          </>
-        )}
         <div className="flex-1" />
         <Button
           variant="secondary"
