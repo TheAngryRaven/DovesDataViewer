@@ -237,6 +237,7 @@ export function VisualEditor({
   useEffect(() => {
     const incoming = layoutPointsProp ?? [];
     setDrawPoints(incoming);
+    if (incoming.length > 0) setShowKnownDrawing(true);
     // Also update the polyline immediately if map exists
     if (mapRef.current && drawPolylineRef.current) {
       if (incoming.length > 0) {
