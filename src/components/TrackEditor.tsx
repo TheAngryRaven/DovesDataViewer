@@ -11,7 +11,9 @@ import {
   addCourse as addCourseToStorage,
   updateCourse,
   deleteCourse,
-  deleteTrack
+  deleteTrack,
+  loadCourseDrawings,
+  CourseDrawing,
 } from '@/lib/trackStorage';
 import { abbreviateTrackName } from '@/lib/trackUtils';
 import {
@@ -57,14 +59,40 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
   const [tempTrackName, setTempTrackName] = useState<string>('');
   const [tempCourseName, setTempCourseName] = useState<string>('');
   const [isJsonViewOpen, setIsJsonViewOpen] = useState(false);
+  const [courseDrawings, setCourseDrawings] = useState<Record<string, CourseDrawing[]>>({});
 
   const form = useTrackEditorForm();
-  
+/** Mini SVG preview of a course drawing outline */
+function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number; lon: number }>; size?: number }) {
+  if (points.length < 2) return null;
+  const padding = 2;
+  const lats = points.map(p => p.lat);
+  const lons = points.map(p => p.lon);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  const rangeLat = maxLat - minLat || 0.0001;
+  const rangeLon = maxLon - minLon || 0.0001;
+  const scale = (size - padding * 2) / Math.max(rangeLat, rangeLon);
+  const svgPoints = points.map(p => {
+    const x = padding + (p.lon - minLon) * scale;
+    const y = padding + (maxLat - p.lat) * scale; // flip Y
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg width={size} height={size} className="shrink-0 rounded" style={{ background: 'hsl(var(--muted))' }}>
+      <polyline points={svgPoints} fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 
   useEffect(() => {
     let mounted = true;
     loadTracks().then(loadedTracks => {
       if (mounted) { setTracks(loadedTracks); setIsLoading(false); }
+    });
+    loadCourseDrawings().then(drawings => {
+      if (mounted) setCourseDrawings(drawings);
     });
     return () => { mounted = false; };
   }, []);
@@ -90,6 +118,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
     if (!selectedTrack) return '{}';
 
     const result: Record<string, {
+      lengthFt?: number;
       start_a_lat: number; start_a_lng: number;
       start_b_lat: number; start_b_lng: number;
       sector_2_a_lat?: number; sector_2_a_lng?: number;
@@ -105,6 +134,10 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
         start_b_lat: course.startFinishB.lat,
         start_b_lng: course.startFinishB.lon,
       };
+
+      if (course.lengthFt != null) {
+        courseData.lengthFt = course.lengthFt;
+      }
 
       if (course.sector2) {
         courseData.sector_2_a_lat = course.sector2.a.lat;
@@ -342,19 +375,31 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
             </Select>
             {selectedTrack && (
               <div className="mt-4 space-y-2">
-                {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => (
-                  <div key={course.name} className="flex items-center justify-between p-2 border rounded bg-muted/30">
-                    <div>
+                {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => {
+                  const drawingKey = selectedTrack.shortName ? `${selectedTrack.shortName}/${course.name}` : null;
+                  const drawing = drawingKey ? courseDrawings[drawingKey] : null;
+                  return (
+                  <div key={course.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
+                    {drawing && drawing.length >= 2 && (
+                      <CourseDrawingMini points={drawing} />
+                    )}
+                    <div className="flex-1 min-w-0">
                       <span className="font-mono text-sm">{course.name}</span>
                       {!course.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">(default)</span>}
-                      {course.sector2 && course.sector3 && <span className="ml-2 text-xs text-purple-400">(sectors)</span>}
+                      {course.sector2 && course.sector3 && <span className="ml-2 text-xs text-accent-foreground/60">(sectors)</span>}
+                      {course.lengthFt != null && course.lengthFt > 0 && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {course.lengthFt.toLocaleString()} ft
+                        </span>
+                      )}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => form.openEditCourse(selectedTrack.name, course)}><Edit2 className="w-3 h-3" /></Button>
                       {course.isUserDefined && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteCourse(selectedTrack.name, course.name)}><Trash2 className="w-3 h-3" /></Button>}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 <Button variant="outline" size="sm" onClick={openAddCourse} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />Add Course</Button>
               </div>
             )}
