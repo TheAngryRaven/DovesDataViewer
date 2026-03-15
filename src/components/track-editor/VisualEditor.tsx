@@ -241,6 +241,7 @@ export function VisualEditor({
   // Drawing state
   const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>(layoutPointsProp ?? []);
   const [showKnownDrawing, setShowKnownDrawing] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
   const drawPolylineRef = useRef<L.Polyline | null>(null);
   const drawClickHandlerRef = useRef<((e: L.LeafletMouseEvent) => void) | null>(null);
 
@@ -634,7 +635,7 @@ export function VisualEditor({
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
     }
-  }, [activeTool, drawPoints, showKnownDrawing]);
+  }, [activeTool, drawPoints, showKnownDrawing, mapReady]);
 
   const handleToolChange = (tool: VisualEditorTool) => {
     const map = mapRef.current;
@@ -746,6 +747,7 @@ export function VisualEditor({
     }).addTo(map);
 
     mapRef.current = map;
+    setMapReady(true);
 
     // Draw initial static lines
     drawStaticLines(map, null);
