@@ -12,6 +12,7 @@ import { haversineDistance } from '@/lib/parserUtils';
 /** Raw course format used by the datalogger device JSON files */
 export interface DeviceCourseJson {
   name: string;
+  lengthFt?: number;
   start_a_lat: number;
   start_a_lng: number;
   start_b_lat: number;
@@ -114,6 +115,7 @@ export function coursesMatch(appCourse: Course, dc: DeviceCourseJson): boolean {
 export function deviceCourseToAppCourse(dc: DeviceCourseJson): Course {
   const course: Course = {
     name: dc.name,
+    lengthFt: dc.lengthFt,
     startFinishA: { lat: dc.start_a_lat, lon: dc.start_a_lng },
     startFinishB: { lat: dc.start_b_lat, lon: dc.start_b_lng },
     isUserDefined: true,
@@ -138,6 +140,10 @@ export function appCourseToDeviceJson(course: Course): DeviceCourseJson {
     start_b_lat: course.startFinishB.lat,
     start_b_lng: course.startFinishB.lon,
   };
+
+  if (course.lengthFt != null) {
+    dc.lengthFt = course.lengthFt;
+  }
 
   if (course.sector2) {
     dc.sector_2_a_lat = course.sector2.a.lat;

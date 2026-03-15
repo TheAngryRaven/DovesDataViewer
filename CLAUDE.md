@@ -112,7 +112,7 @@ src/
 │   ├── chartUtils.ts          # Canvas chart rendering helpers
 │   ├── chartColors.ts         # Color palette for multi-series charts
 │   ├── trackUtils.ts          # Track geometry utilities (findNearestTrack: 5mi radius)
-│   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json)
+│   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json) + course drawings loader
 │   ├── referenceUtils.ts      # Reference lap comparison utilities
 │   ├── dbUtils.ts             # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), transaction helpers
 │   ├── fileStorage.ts         # IndexedDB: raw file blobs
@@ -274,6 +274,8 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 
 **Submissions**: The `submissions` table has `has_layout` (bool) and `layout_data` (jsonb) columns to carry drawing data through the submission workflow.
 
+**Public drawings**: Admin exports drawings to `public/drawings.json` (keyed by `shortName/courseName` → `[{lat, lon}, ...]`). Loaded by `trackStorage.ts:loadCourseDrawings()` (cached). Rendered on the race line map as a dashed polyline outline when a course is selected. Helper: `getDrawingForCourse(shortName, courseName)`.
+
 ---
 
 ## BLE Integration (`src/lib/bleDatalogger.ts`)
@@ -314,8 +316,9 @@ Settings schema is defined in `src/lib/deviceSettingsSchema.ts` — maps keys to
 Pure comparison/conversion logic for merging app tracks with device track files:
 - `buildMergedTrackList()` — matches tracks by shortName, courses by name, classifies as synced/mismatch/device_only/app_only
 - `coursesMatch()` — coordinate comparison with epsilon (0.0000005°)
-- `buildTrackJsonForUpload()` — serializes app Track to device JSON format (flat course array)
-- `deviceCourseToAppCourse()` / `appCourseToDeviceJson()` — format converters
+- `buildTrackJsonForUpload()` — serializes app Track to device JSON format (flat course array, includes `lengthFt`)
+- `deviceCourseToAppCourse()` / `appCourseToDeviceJson()` — format converters (both include `lengthFt`)
+- `DeviceCourseJson` includes `lengthFt?: number` for hardware course detection by lap distance
 
 ---
 

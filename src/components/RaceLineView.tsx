@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { GpsSample, Course, courseHasSectors } from '@/types/racing';
+import { CourseDrawing } from '@/lib/trackStorage';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { formatLapTime } from '@/lib/lapCalculation';
@@ -56,6 +57,7 @@ interface RaceLineViewProps {
   cachedWeatherStation?: WeatherStation | null;
   onWeatherStationResolved?: (station: WeatherStation) => void;
   isAllLaps?: boolean;
+  courseDrawing?: CourseDrawing[] | null;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -137,7 +139,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, courseDrawing }: RaceLineViewProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
@@ -152,6 +154,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   const sector3Ref = useRef<L.Polyline | null>(null);
   const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const drawingLayerRef = useRef<L.Polyline | null>(null);
   
   const [showSpeedEvents, setShowSpeedEvents] = useState(true);
   const [showBrakingZones, setShowBrakingZones] = useState(true);
@@ -428,6 +431,29 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       ).addTo(map);
     }
   }, [course]);
+
+  // Render course drawing outline
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (drawingLayerRef.current) {
+      map.removeLayer(drawingLayerRef.current);
+      drawingLayerRef.current = null;
+    }
+
+    if (!courseDrawing || courseDrawing.length < 2) return;
+
+    const coords = courseDrawing.map(p => [p.lat, p.lon] as [number, number]);
+    drawingLayerRef.current = L.polyline(coords, {
+      color: 'hsl(200, 60%, 50%)',
+      weight: 2,
+      opacity: 0.5,
+      dashArray: '6, 4',
+    }).addTo(map);
+
+    drawingLayerRef.current.bringToBack();
+  }, [courseDrawing]);
 
   // Update current position marker
   useEffect(() => {

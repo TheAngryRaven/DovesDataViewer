@@ -36,6 +36,15 @@ interface StoredData {
 // Cached default tracks (loaded once)
 let defaultTracksCache: Track[] | null = null;
 
+// Cached course drawings (loaded once)
+export interface CourseDrawing {
+  lat: number;
+  lon: number;
+}
+
+let courseDrawingsCache: Record<string, CourseDrawing[]> | null = null;
+let courseDrawingsLoading: Promise<Record<string, CourseDrawing[]>> | null = null;
+
 // Parse sector line from flat JSON format
 function parseSectorLineFromJson(
   aLat?: number, aLng?: number, bLat?: number, bLng?: number
@@ -387,4 +396,56 @@ export async function getTrack(trackName: string): Promise<Track | undefined> {
 export async function getCourse(trackName: string, courseName: string): Promise<Course | undefined> {
   const track = await getTrack(trackName);
   return track?.courses.find(c => c.name === courseName);
+}
+
+// ─── Course Drawings ──────────────────────────────────────────────────────────
+
+/**
+ * Load course drawings from public/drawings.json.
+ * Returns a map keyed by "shortName/courseName" → array of {lat, lon} points.
+ * Cached after first load. Returns empty object if file doesn't exist.
+ */
+export async function loadCourseDrawings(): Promise<Record<string, CourseDrawing[]>> {
+  if (courseDrawingsCache !== null) return courseDrawingsCache;
+  
+  // Deduplicate concurrent fetches
+  if (courseDrawingsLoading) return courseDrawingsLoading;
+  
+  courseDrawingsLoading = (async () => {
+    try {
+      const response = await fetch('/drawings.json');
+      if (!response.ok) {
+        courseDrawingsCache = {};
+        return courseDrawingsCache;
+      }
+      const json = await response.json();
+      // Expected format: { "SHORTNAME/CourseName": [{lat, lon}, ...], ... }
+      if (typeof json === 'object' && json !== null) {
+        courseDrawingsCache = json as Record<string, CourseDrawing[]>;
+      } else {
+        courseDrawingsCache = {};
+      }
+      return courseDrawingsCache;
+    } catch {
+      courseDrawingsCache = {};
+      return courseDrawingsCache;
+    } finally {
+      courseDrawingsLoading = null;
+    }
+  })();
+  
+  return courseDrawingsLoading;
+}
+
+/**
+ * Get drawing for a specific course by shortName and courseName.
+ * Returns the coordinate array or null if not found.
+ */
+export async function getDrawingForCourse(
+  shortName: string,
+  courseName: string
+): Promise<CourseDrawing[] | null> {
+  const drawings = await loadCourseDrawings();
+  const key = `${shortName}/${courseName}`;
+  return drawings[key] ?? null;
 }
