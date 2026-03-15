@@ -429,28 +429,6 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     }
   }, [course]);
 
-  // Render course drawing outline
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    if (drawingLayerRef.current) {
-      map.removeLayer(drawingLayerRef.current);
-      drawingLayerRef.current = null;
-    }
-
-    if (!courseDrawing || courseDrawing.length < 2) return;
-
-    const coords = courseDrawing.map(p => [p.lat, p.lon] as [number, number]);
-    drawingLayerRef.current = L.polyline(coords, {
-      color: 'hsl(200, 60%, 50%)',
-      weight: 2,
-      opacity: 0.5,
-      dashArray: '6, 4',
-    }).addTo(map);
-
-    drawingLayerRef.current.bringToBack();
-  }, [courseDrawing]);
 
   // Update current position marker
   useEffect(() => {
