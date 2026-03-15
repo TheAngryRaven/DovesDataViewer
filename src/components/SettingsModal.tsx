@@ -388,7 +388,29 @@ export function SettingsModal({
                     title={label}
                   />
                 ))}
-              </div>
+             </div>
+            </div>
+
+            {/* Reset Button */}
+            <div className="pl-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSettingsChange({
+                  brakingEntryThreshold: 25,
+                  brakingExitThreshold: 10,
+                  brakingMinDuration: 120,
+                  brakingSmoothingAlpha: 40,
+                  brakingZoneColor: 'hsl(210, 90%, 55%)',
+                  brakingZoneWidth: 10,
+                  brakingGraphWindow: 25,
+                  brakeMaxG: 150,
+                })}
+                className="gap-2 text-xs"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Reset to Defaults
+              </Button>
             </div>
           </div>
 
