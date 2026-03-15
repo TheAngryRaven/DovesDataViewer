@@ -4,7 +4,6 @@ import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
 import { RangeSlider } from "@/components/RangeSlider";
 import { GpsSample, Course, FieldMapping } from "@/types/racing";
-import { CourseDrawing } from "@/lib/trackStorage";
 
 interface RaceLineTabProps {
   visibleSamples: GpsSample[];
