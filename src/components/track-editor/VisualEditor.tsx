@@ -842,6 +842,9 @@ export function VisualEditor({
         showDrawTool={showDrawTool}
         isAdminEditor={isAdminEditor}
         drawPointCount={drawPoints.length}
+        canToggleKnownDrawing={showKnownDrawingToggle && drawPoints.length > 1}
+        showKnownDrawing={showKnownDrawing}
+        onToggleKnownDrawing={handleToggleKnownDrawing}
         onUndoDraw={handleUndoDraw}
         onClearDraw={handleClearDraw}
         laps={laps}
