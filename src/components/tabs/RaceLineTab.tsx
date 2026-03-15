@@ -4,7 +4,6 @@ import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
 import { RangeSlider } from "@/components/RangeSlider";
 import { GpsSample, Course, FieldMapping } from "@/types/racing";
-import { CourseDrawing } from "@/lib/trackStorage";
 
 interface RaceLineTabProps {
   visibleSamples: GpsSample[];
@@ -28,7 +27,6 @@ interface RaceLineTabProps {
   cachedWeatherStation: import("@/lib/weatherService").WeatherStation | null;
   onWeatherStationResolved: (station: import("@/lib/weatherService").WeatherStation) => void;
   isAllLaps?: boolean;
-  courseDrawing?: import("@/lib/trackStorage").CourseDrawing[] | null;
   // Telemetry chart props
   fieldMappings: FieldMapping[];
   onScrub: (index: number) => void;
@@ -70,7 +68,6 @@ export const RaceLineTab = memo(function RaceLineTab(props: RaceLineTabProps) {
           cachedWeatherStation={props.cachedWeatherStation}
           onWeatherStationResolved={props.onWeatherStationResolved}
           isAllLaps={props.isAllLaps}
-          courseDrawing={props.courseDrawing}
         />
       }
       bottomPanel={
