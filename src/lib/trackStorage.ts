@@ -36,6 +36,15 @@ interface StoredData {
 // Cached default tracks (loaded once)
 let defaultTracksCache: Track[] | null = null;
 
+// Cached course drawings (loaded once)
+export interface CourseDrawing {
+  lat: number;
+  lon: number;
+}
+
+let courseDrawingsCache: Record<string, CourseDrawing[]> | null = null;
+let courseDrawingsLoading: Promise<Record<string, CourseDrawing[]>> | null = null;
+
 // Parse sector line from flat JSON format
 function parseSectorLineFromJson(
   aLat?: number, aLng?: number, bLat?: number, bLng?: number
