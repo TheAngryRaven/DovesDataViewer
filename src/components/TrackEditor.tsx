@@ -62,7 +62,29 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
   const [courseDrawings, setCourseDrawings] = useState<Record<string, CourseDrawing[]>>({});
 
   const form = useTrackEditorForm();
-  
+/** Mini SVG preview of a course drawing outline */
+function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number; lon: number }>; size?: number }) {
+  if (points.length < 2) return null;
+  const padding = 2;
+  const lats = points.map(p => p.lat);
+  const lons = points.map(p => p.lon);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  const rangeLat = maxLat - minLat || 0.0001;
+  const rangeLon = maxLon - minLon || 0.0001;
+  const scale = (size - padding * 2) / Math.max(rangeLat, rangeLon);
+  const svgPoints = points.map(p => {
+    const x = padding + (p.lon - minLon) * scale;
+    const y = padding + (maxLat - p.lat) * scale; // flip Y
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg width={size} height={size} className="shrink-0 rounded" style={{ background: 'hsl(var(--muted))' }}>
+      <polyline points={svgPoints} fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 
   useEffect(() => {
     let mounted = true;
