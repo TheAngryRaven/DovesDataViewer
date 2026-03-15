@@ -747,6 +747,7 @@ export function VisualEditor({
     }).addTo(map);
 
     mapRef.current = map;
+    setMapReady(true);
 
     // Draw initial static lines
     drawStaticLines(map, null);
