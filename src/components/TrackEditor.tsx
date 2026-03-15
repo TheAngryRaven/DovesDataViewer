@@ -353,6 +353,11 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                    showDrawTool={true}
                    laps={laps}
                    samples={samples}
+                   layoutPoints={(() => {
+                     const t = tracks.find(t => t.name === form.editingCourse?.trackName);
+                     const key = t?.shortName ? `${t.shortName}/${form.editingCourse?.courseName}` : null;
+                     return key ? courseDrawings[key] ?? undefined : undefined;
+                   })()}
                 />
                 <div className="flex gap-2">
                   <Button onClick={handleUpdateCourse} className="flex-1">
