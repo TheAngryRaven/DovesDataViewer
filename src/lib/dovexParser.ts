@@ -4,55 +4,82 @@ import { parseDoveFile, isDoveFormat } from './doveParser';
 /**
  * .dovex Parser
  *
- * Extended Dove format with an 8192-byte (8 KB) metadata header:
+ * Extended Dove format with a metadata preamble followed by standard .dove CSV.
+ * Preamble usually includes:
  *   Line 1: session metadata column names (datetime,driver,course,short_name,best_lap_ms,optimal_ms)
  *   Line 2: session metadata values
- *   Line 3: lap data column names (lap_times_ms)
+ *   Line 3: lap data column names (lap_times_ms / laps_ms)
  *   Line 4: lap data values (comma-separated ms values)
- *   Lines 5+: padding to byte 8192
- *   Byte 8192+: standard .dove CSV
+ * Legacy files use fixed 8192-byte preambles; newer files may use variable-length padding.
  *
  * GPS logs should always be valid even if the metadata header is corrupted.
  */
 
-const HEADER_SIZE = 8192;
+const LEGACY_HEADER_SIZE = 8192;
+
+/**
+ * Find where embedded Dove CSV starts inside a .dovex payload.
+ * Supports:
+ * - Legacy fixed 8192-byte header
+ * - New variable-length metadata preamble with padding/newlines
+ */
+function findDoveCsvStart(content: string): number {
+  const lower = content.toLowerCase();
+  let searchFrom = 0;
+
+  // Prefer explicit Dove header discovery (robust to variable preamble size)
+  while (searchFrom < lower.length) {
+    const timestampIdx = lower.indexOf('timestamp', searchFrom);
+    if (timestampIdx === -1) break;
+
+    const lineStart = lower.lastIndexOf('\n', timestampIdx);
+    const candidateStart = lineStart === -1 ? 0 : lineStart + 1;
+    const candidate = content.substring(candidateStart).replace(/^\u0000+/, '');
+
+    if (isDoveFormat(candidate)) {
+      return candidateStart;
+    }
+
+    searchFrom = timestampIdx + 'timestamp'.length;
+  }
+
+  // Backward-compat fallback for original fixed-size preamble
+  if (content.length >= LEGACY_HEADER_SIZE + 50) {
+    const legacyCandidate = content.substring(LEGACY_HEADER_SIZE).replace(/^\u0000+/, '');
+    if (isDoveFormat(legacyCandidate)) {
+      return LEGACY_HEADER_SIZE;
+    }
+  }
+
+  return -1;
+}
 
 /**
  * Check if content is .dovex format.
- * We check for the metadata header pattern in the first 4096 bytes
- * AND that the remainder is valid .dove CSV.
+ * Requires metadata signature on line 1 and a valid embedded Dove CSV payload.
  */
 export function isDovexFormat(content: string): boolean {
-  if (content.length < HEADER_SIZE + 50) return false;
+  if (content.length < 100) return false;
 
-  const headerText = content.substring(0, HEADER_SIZE);
-  const lines = headerText.split(/\r?\n/);
-  if (lines.length < 2) return false;
-
-  // First line should contain the metadata column names
-  const firstLine = lines[0].toLowerCase().trim();
+  const firstLine = (content.match(/^[^\r\n]*/) || [''])[0].toLowerCase().trim();
   if (!firstLine.includes('datetime') || !firstLine.includes('driver') || !firstLine.includes('course')) {
     return false;
   }
 
-  // Check that the content after 4096 bytes looks like .dove CSV
-  const csvContent = content.substring(HEADER_SIZE);
-  return isDoveFormat(csvContent);
+  return findDoveCsvStart(content) !== -1;
 }
 
 /**
  * Check if an ArrayBuffer is .dovex format.
  */
 export function isDovexFormatBuffer(buffer: ArrayBuffer): boolean {
-  if (buffer.byteLength < HEADER_SIZE + 50) return false;
-
   const decoder = new TextDecoder();
   const text = decoder.decode(buffer);
   return isDovexFormat(text);
 }
 
 /**
- * Parse metadata header from the first 4096 bytes.
+ * Parse metadata header from the preamble section before Dove CSV starts.
  */
 function parseMetadataHeader(headerText: string): DovexMetadata {
   const meta: DovexMetadata = {};
@@ -84,7 +111,7 @@ function parseMetadataHeader(headerText: string): DovexMetadata {
   }
 
   // Lines 3-4: lap data (header row + values row)
-  // Line 3 is a header like "lap_times_ms", line 4 is the comma-separated ms values
+  // Line 3 is typically "lap_times_ms" or "laps_ms", line 4 is comma-separated lap times
   if (lines.length >= 4) {
     const lapValues = lines[3].split(',').map(v => parseInt(v.trim(), 10)).filter(v => !isNaN(v) && v > 0);
     if (lapValues.length > 0) {
@@ -105,16 +132,21 @@ function parseMetadataHeader(headerText: string): DovexMetadata {
  * Parse a .dovex file content string.
  */
 export function parseDovexFile(content: string): ParsedData {
-  const headerText = content.substring(0, HEADER_SIZE);
-  const csvContent = content.substring(HEADER_SIZE);
+  const csvStart = findDoveCsvStart(content);
+  if (csvStart === -1) {
+    throw new Error('Invalid .dovex file: embedded Dove CSV not found');
+  }
 
-  // Parse the GPS data using the standard dove parser
+  const headerText = content.substring(0, csvStart);
+  const csvContent = content.substring(csvStart).replace(/^\u0000+/, '');
+
+  // Parse the GPS data using the standard Dove parser
   const parsed = parseDoveFile(csvContent);
 
   // Parse metadata header (best-effort, don't fail if corrupted)
   try {
     const metadata = parseMetadataHeader(headerText);
-    if (metadata.datetime || metadata.driver || metadata.course) {
+    if (Object.keys(metadata).length > 0) {
       parsed.dovexMetadata = metadata;
     }
   } catch (e) {
