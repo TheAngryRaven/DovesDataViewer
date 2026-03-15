@@ -69,6 +69,9 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
     loadTracks().then(loadedTracks => {
       if (mounted) { setTracks(loadedTracks); setIsLoading(false); }
     });
+    loadCourseDrawings().then(drawings => {
+      if (mounted) setCourseDrawings(drawings);
+    });
     return () => { mounted = false; };
   }, []);
 
