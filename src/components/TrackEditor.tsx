@@ -113,6 +113,33 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   const selectedTrack = tracks.find(t => t.name === tempTrackName);
   const availableCourses = selectedTrack?.courses ?? [];
 
+  const resolveCourseDrawing = useCallback((track: Track | undefined, courseName?: string) => {
+    if (!track || !courseName) return undefined;
+
+    const shortNameCandidates = [track.shortName, abbreviateTrackName(track.name)]
+      .filter((value): value is string => Boolean(value))
+      .map(value => value.trim());
+
+    for (const shortName of shortNameCandidates) {
+      const exact = courseDrawings[`${shortName}/${courseName}`];
+      if (exact) return exact;
+    }
+
+    const normalizedCourse = courseName.trim().toLowerCase();
+    for (const [key, points] of Object.entries(courseDrawings)) {
+      const slashIndex = key.indexOf('/');
+      if (slashIndex === -1) continue;
+
+      const short = key.slice(0, slashIndex).trim().toLowerCase();
+      const name = key.slice(slashIndex + 1).trim().toLowerCase();
+      if (shortNameCandidates.some(candidate => candidate.toLowerCase() === short) && name === normalizedCourse) {
+        return points;
+      }
+    }
+
+    return undefined;
+  }, [courseDrawings]);
+
   // Generate JSON for the selected track in datalogger format
   const generateTrackJson = useCallback(() => {
     if (!selectedTrack) return '{}';
