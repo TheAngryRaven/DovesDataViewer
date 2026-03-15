@@ -33,6 +33,8 @@ interface VisualEditorProps {
   isAdminEditor?: boolean;
   /** Existing layout drawing to display as a static polyline */
   layoutPoints?: Array<{ lat: number; lon: number }>;
+  /** Show a button to toggle visibility of known drawing */
+  showKnownDrawingToggle?: boolean;
   /** Callback when layout drawing changes */
   onLayoutChange?: (points: Array<{ lat: number; lon: number }>) => void;
   /** Laps available for "Generate Drawing" */
