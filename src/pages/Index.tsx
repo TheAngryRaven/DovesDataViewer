@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData, Track, TrackCourseSelection, CourseDetectionResult } from "@/types/racing";
 import { getFileMetadata } from "@/lib/fileStorage";
-import { loadTracks, getDrawingForCourse, CourseDrawing } from "@/lib/trackStorage";
+import { loadTracks } from "@/lib/trackStorage";
 import { findNearestTrack } from "@/lib/trackUtils";
 import { autoDetectCourse } from "@/lib/courseDetection";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
