@@ -314,8 +314,9 @@ Settings schema is defined in `src/lib/deviceSettingsSchema.ts` — maps keys to
 Pure comparison/conversion logic for merging app tracks with device track files:
 - `buildMergedTrackList()` — matches tracks by shortName, courses by name, classifies as synced/mismatch/device_only/app_only
 - `coursesMatch()` — coordinate comparison with epsilon (0.0000005°)
-- `buildTrackJsonForUpload()` — serializes app Track to device JSON format (flat course array)
-- `deviceCourseToAppCourse()` / `appCourseToDeviceJson()` — format converters
+- `buildTrackJsonForUpload()` — serializes app Track to device JSON format (flat course array, includes `lengthFt`)
+- `deviceCourseToAppCourse()` / `appCourseToDeviceJson()` — format converters (both include `lengthFt`)
+- `DeviceCourseJson` includes `lengthFt?: number` for hardware course detection by lap distance
 
 ---
 
