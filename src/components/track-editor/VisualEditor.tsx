@@ -50,6 +50,9 @@ interface VisualEditorToolbarProps {
   showDrawTool?: boolean;
   isAdminEditor?: boolean;
   drawPointCount?: number;
+  canToggleKnownDrawing?: boolean;
+  showKnownDrawing?: boolean;
+  onToggleKnownDrawing?: () => void;
   onUndoDraw?: () => void;
   onClearDraw?: () => void;
   laps?: Lap[];
