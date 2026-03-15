@@ -768,6 +768,7 @@ export default function Index() {
               minRange={minRange}
               formatRangeLabel={formatRangeLabel}
               isAllLaps={isAllLaps}
+              courseDrawing={courseDrawing}
             />
           )}
           {topPanelView === "laptable" && (

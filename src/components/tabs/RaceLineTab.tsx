@@ -70,6 +70,7 @@ export const RaceLineTab = memo(function RaceLineTab(props: RaceLineTabProps) {
           cachedWeatherStation={props.cachedWeatherStation}
           onWeatherStationResolved={props.onWeatherStationResolved}
           isAllLaps={props.isAllLaps}
+          courseDrawing={props.courseDrawing}
         />
       }
       bottomPanel={
