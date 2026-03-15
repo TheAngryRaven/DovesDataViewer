@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed, Pencil, Undo2, Trash2, Route } from 'lucide-react';
+import { Flag, Timer, Check, Search, Loader2, FileText, Map, LocateFixed, Pencil, Undo2, Trash2, Route, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
