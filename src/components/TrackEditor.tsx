@@ -59,6 +59,7 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
   const [tempTrackName, setTempTrackName] = useState<string>('');
   const [tempCourseName, setTempCourseName] = useState<string>('');
   const [isJsonViewOpen, setIsJsonViewOpen] = useState(false);
+  const [courseDrawings, setCourseDrawings] = useState<Record<string, CourseDrawing[]>>({});
 
   const form = useTrackEditorForm();
   
