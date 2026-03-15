@@ -353,19 +353,31 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
             </Select>
             {selectedTrack && (
               <div className="mt-4 space-y-2">
-                {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => (
-                  <div key={course.name} className="flex items-center justify-between p-2 border rounded bg-muted/30">
-                    <div>
+                {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => {
+                  const drawingKey = selectedTrack.shortName ? `${selectedTrack.shortName}/${course.name}` : null;
+                  const drawing = drawingKey ? courseDrawings[drawingKey] : null;
+                  return (
+                  <div key={course.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
+                    {drawing && drawing.length >= 2 && (
+                      <CourseDrawingMini points={drawing} />
+                    )}
+                    <div className="flex-1 min-w-0">
                       <span className="font-mono text-sm">{course.name}</span>
                       {!course.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">(default)</span>}
-                      {course.sector2 && course.sector3 && <span className="ml-2 text-xs text-purple-400">(sectors)</span>}
+                      {course.sector2 && course.sector3 && <span className="ml-2 text-xs text-accent-foreground/60">(sectors)</span>}
+                      {course.lengthFt != null && course.lengthFt > 0 && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {course.lengthFt.toLocaleString()} ft
+                        </span>
+                      )}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => form.openEditCourse(selectedTrack.name, course)}><Edit2 className="w-3 h-3" /></Button>
                       {course.isUserDefined && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteCourse(selectedTrack.name, course.name)}><Trash2 className="w-3 h-3" /></Button>}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 <Button variant="outline" size="sm" onClick={openAddCourse} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />Add Course</Button>
               </div>
             )}
