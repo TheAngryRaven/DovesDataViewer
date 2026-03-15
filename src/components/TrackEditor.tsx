@@ -11,7 +11,9 @@ import {
   addCourse as addCourseToStorage,
   updateCourse,
   deleteCourse,
-  deleteTrack
+  deleteTrack,
+  loadCourseDrawings,
+  CourseDrawing,
 } from '@/lib/trackStorage';
 import { abbreviateTrackName } from '@/lib/trackUtils';
 import {
