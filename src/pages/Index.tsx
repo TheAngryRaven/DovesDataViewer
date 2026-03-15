@@ -109,6 +109,25 @@ export default function Index() {
   const [allTracks, setAllTracks] = useState<Track[]>([]);
   const [gpsCenter, setGpsCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [detectionResult, setDetectionResult] = useState<CourseDetectionResult | null>(null);
+  const [courseDrawing, setCourseDrawing] = useState<CourseDrawing[] | null>(null);
+
+  // Load course drawing when selection changes
+  useEffect(() => {
+    if (!selection) {
+      setCourseDrawing(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      // Find track shortName
+      const tracks = await loadTracks();
+      const track = tracks.find(t => t.name === selection.trackName);
+      if (!track?.shortName || cancelled) { setCourseDrawing(null); return; }
+      const drawing = await getDrawingForCourse(track.shortName, selection.courseName);
+      if (!cancelled) setCourseDrawing(drawing);
+    })();
+    return () => { cancelled = true; };
+  }, [selection?.trackName, selection?.courseName]);
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
