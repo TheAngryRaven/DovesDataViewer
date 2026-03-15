@@ -141,6 +141,10 @@ export function appCourseToDeviceJson(course: Course): DeviceCourseJson {
     start_b_lng: course.startFinishB.lon,
   };
 
+  if (course.lengthFt != null) {
+    dc.lengthFt = course.lengthFt;
+  }
+
   if (course.sector2) {
     dc.sector_2_a_lat = course.sector2.a.lat;
     dc.sector_2_a_lng = course.sector2.a.lon;
