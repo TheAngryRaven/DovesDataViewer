@@ -107,6 +107,10 @@ export function TrackEditor({ selection, onSelectionChange, compact = false, lap
         start_b_lng: course.startFinishB.lon,
       };
 
+      if (course.lengthFt != null) {
+        courseData.lengthFt = course.lengthFt;
+      }
+
       if (course.sector2) {
         courseData.sector_2_a_lat = course.sector2.a.lat;
         courseData.sector_2_a_lng = course.sector2.a.lon;
