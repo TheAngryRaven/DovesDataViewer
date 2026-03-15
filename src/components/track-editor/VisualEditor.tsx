@@ -629,6 +629,7 @@ export function VisualEditor({
         drawPolylineRef.current.setLatLngs(drawPoints.map(p => [p.lat, p.lon] as [number, number]));
         drawPolylineRef.current.setStyle({ opacity: 0.8, dashArray: '10 6' });
       }
+      drawPolylineRef.current.bringToFront();
     } else if (drawPolylineRef.current) {
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
