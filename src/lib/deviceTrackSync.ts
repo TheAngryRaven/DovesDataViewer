@@ -12,6 +12,7 @@ import { haversineDistance } from '@/lib/parserUtils';
 /** Raw course format used by the datalogger device JSON files */
 export interface DeviceCourseJson {
   name: string;
+  lengthFt?: number;
   start_a_lat: number;
   start_a_lng: number;
   start_b_lat: number;
