@@ -746,7 +746,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
 
       {/* Dropped packet / rejected row indicator */}
       {(droppedPacketInfo?.droppedCount > 0 || (parserStats && parserStats.acceptedRows < parserStats.totalRows)) && (
-        <div className="absolute bottom-2 left-2 z-[1000] bg-card/80 backdrop-blur-sm border border-border rounded px-2 py-1 text-xs font-mono text-muted-foreground">
+        <div className="absolute bottom-2 left-12 z-[1000] bg-card/80 backdrop-blur-sm border border-border rounded px-2 py-1 text-xs font-mono text-muted-foreground">
           {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
             <div>
               <span className="text-destructive font-semibold">{droppedPacketInfo.droppedCount}</span>
