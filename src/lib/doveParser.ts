@@ -289,6 +289,14 @@ export function parseDoveFile(content: string): ParsedData {
     }
   }
   
+  // Build parser stats
+  const totalRejected = Object.values(rejected).reduce((a, b) => a + b, 0);
+  const parserStats: ParserStats = {
+    totalRows,
+    acceptedRows: samples.length,
+    rejected,
+  };
+
   // Calculate bounds
   const lats = samples.map(s => s.lat);
   const lons = samples.map(s => s.lon);
@@ -303,6 +311,7 @@ export function parseDoveFile(content: string): ParsedData {
       maxLon: Math.max(...lons)
     },
     duration: samples[samples.length - 1].t,
-    startDate
+    startDate,
+    parserStats
   };
 }
