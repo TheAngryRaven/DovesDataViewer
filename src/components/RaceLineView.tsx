@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState, memo } from 'react';
 import L from 'leaflet';
-import { GpsSample, Course, courseHasSectors } from '@/types/racing';
+import { GpsSample, Course, courseHasSectors, ParserStats } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { formatLapTime } from '@/lib/lapCalculation';
