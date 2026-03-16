@@ -113,7 +113,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     }
   };
 
-
+  if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
