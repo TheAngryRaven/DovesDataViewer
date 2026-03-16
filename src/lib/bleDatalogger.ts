@@ -213,6 +213,10 @@ function parseFileList(fileListStr: string): FileInfo[] {
 }
 
 // Download a file from the device
+// Optimized for high-throughput BLE transfers (125+ kBps burst rates).
+// Chunks are buffered into a typed array queue with a running byte counter —
+// no O(n) reduce on every notification. UI updates are throttled to rAF cadence
+// so the notification handler never blocks on DOM work.
 export async function downloadFile(
   connection: BleConnection,
   filename: string,
@@ -224,60 +228,60 @@ export async function downloadFile(
 
   return new Promise(async (resolve, reject) => {
     const receivedData: Uint8Array[] = [];
+    let totalReceived = 0;
     let expectedFileSize = 0;
     let transferStartTime = Date.now();
-    let lastSpeedUpdate = Date.now();
-    const speedSamples: number[] = [];
+    let progressRafId = 0;
+    let progressDirty = false;
+    let resolved = false;
 
+    // Throttled progress updater — runs at most once per animation frame
+    const scheduleProgressUpdate = () => {
+      if (progressDirty || progressRafId) return;
+      progressDirty = true;
+      progressRafId = requestAnimationFrame(() => {
+        progressRafId = 0;
+        progressDirty = false;
+        if (resolved) return;
+
+        const percent = expectedFileSize > 0 ? (totalReceived / expectedFileSize) * 100 : 0;
+        const elapsedSeconds = (Date.now() - transferStartTime) / 1000;
+        const overallSpeed = elapsedSeconds > 0 ? totalReceived / elapsedSeconds : 0;
+        const remainingBytes = expectedFileSize - totalReceived;
+        const etaSeconds = overallSpeed > 0 ? remainingBytes / overallSpeed : 0;
+
+        updateProgress({
+          received: totalReceived,
+          total: expectedFileSize,
+          percent,
+          speed: formatSpeed(overallSpeed),
+          eta: formatTime(etaSeconds),
+        });
+
+        updateStatus(
+          `Receiving: ${formatBytes(totalReceived)} / ${formatBytes(expectedFileSize)} ` +
+            `(${percent.toFixed(1)}%)`
+        );
+      });
+    };
+
+    // Hot path — called for every BLE data notification (up to 10x per loop).
+    // Must be as lean as possible: push chunk, bump counter, schedule deferred UI.
     const handleFileData = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
-      const chunk = new Uint8Array(target.value!.buffer);
+      const dv = target.value!;
+      // Copy the DataView buffer — BLE reuses the underlying ArrayBuffer
+      const chunk = new Uint8Array(dv.buffer.slice(dv.byteOffset, dv.byteOffset + dv.byteLength));
       receivedData.push(chunk);
-
-      const totalReceived = receivedData.reduce((sum, arr) => sum + arr.length, 0);
-      const percent = expectedFileSize > 0 ? (totalReceived / expectedFileSize) * 100 : 0;
-
-      // Calculate speed
-      const now = Date.now();
-      const elapsedSeconds = (now - transferStartTime) / 1000;
-      const timeSinceLastUpdate = (now - lastSpeedUpdate) / 1000;
-      
-      if (timeSinceLastUpdate > 0) {
-        const instantSpeed = chunk.length / timeSinceLastUpdate;
-        speedSamples.push(instantSpeed);
-
-        // Keep last 10 samples for smoothing
-        if (speedSamples.length > 10) {
-          speedSamples.shift();
-        }
-      }
-
-      const overallSpeed = elapsedSeconds > 0 ? totalReceived / elapsedSeconds : 0;
-
-      // Calculate ETA
-      const remainingBytes = expectedFileSize - totalReceived;
-      const etaSeconds = overallSpeed > 0 ? remainingBytes / overallSpeed : 0;
-
-      lastSpeedUpdate = now;
-
-      updateProgress({
-        received: totalReceived,
-        total: expectedFileSize,
-        percent,
-        speed: formatSpeed(overallSpeed),
-        eta: formatTime(etaSeconds),
-      });
-
-      updateStatus(
-        `Receiving: ${formatBytes(totalReceived)} / ${formatBytes(expectedFileSize)} ` +
-          `(${percent.toFixed(1)}%)`
-      );
+      totalReceived += chunk.length;
+      scheduleProgressUpdate();
     };
+
+    const statusDecoder = new TextDecoder();
 
     const handleStatusData = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
-      const decoder = new TextDecoder();
-      const status = decoder.decode(target.value!);
+      const status = statusDecoder.decode(target.value!);
 
       bleLog('Status:', status);
 
@@ -285,17 +289,20 @@ export async function downloadFile(
         expectedFileSize = parseInt(status.substring(5), 10);
         updateStatus(`Receiving ${filename} (${formatBytes(expectedFileSize)})...`);
       } else if (status === 'DONE') {
+        resolved = true;
+        if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
         cleanup();
-        // Combine all chunks into single array
-        const totalSize = receivedData.reduce((sum, arr) => sum + arr.length, 0);
-        const fileData = new Uint8Array(totalSize);
+        // Assemble final file in one pass from buffered chunks
+        const fileData = new Uint8Array(totalReceived);
         let offset = 0;
-        receivedData.forEach((chunk) => {
-          fileData.set(chunk, offset);
-          offset += chunk.length;
-        });
+        for (let i = 0; i < receivedData.length; i++) {
+          fileData.set(receivedData[i], offset);
+          offset += receivedData[i].length;
+        }
         resolve(fileData);
       } else if (status === 'ERROR') {
+        resolved = true;
+        if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
         cleanup();
         reject(new Error('Error opening file on device'));
       }
@@ -328,7 +335,6 @@ export async function downloadFile(
 
       updateStatus(`Requesting ${filename}...`);
       transferStartTime = Date.now();
-      lastSpeedUpdate = Date.now();
 
       // Send GET command
       const encoder = new TextEncoder();
@@ -338,10 +344,16 @@ export async function downloadFile(
 
       // Timeout after 5 minutes for large files
       setTimeout(() => {
-        cleanup();
-        reject(new Error('Download timeout'));
+        if (!resolved) {
+          resolved = true;
+          if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
+          cleanup();
+          reject(new Error('Download timeout'));
+        }
       }, 300000);
     } catch (error) {
+      resolved = true;
+      if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
       cleanup();
       reject(error);
     }
