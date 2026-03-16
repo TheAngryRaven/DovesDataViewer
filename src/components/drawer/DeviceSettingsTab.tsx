@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Save, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { type BleConnection } from "@/lib/bleDatalogger";
-import { requestSettingsList, setDeviceSetting } from "@/lib/bleDatalogger";
+import { requestSettingsList, setDeviceSetting, resetDeviceSettings } from "@/lib/bleDatalogger";
 import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
@@ -13,6 +13,7 @@ import {
 
 interface DeviceSettingsTabProps {
   connection: BleConnection;
+  onResetComplete?: () => void;
 }
 
 interface SettingRow {
@@ -23,10 +24,12 @@ interface SettingRow {
   saving: boolean;
 }
 
-export function DeviceSettingsTab({ connection }: DeviceSettingsTabProps) {
+export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSettingsTabProps) {
   const [rows, setRows] = useState<SettingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -90,6 +93,23 @@ export function DeviceSettingsTab({ connection }: DeviceSettingsTabProps) {
         prev.map((r, i) => (i === index ? { ...r, saving: false } : r))
       );
       toast.error(`Failed to save: ${err?.message ?? "Unknown error"}`);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      return;
+    }
+    setResetting(true);
+    try {
+      await resetDeviceSettings(connection);
+      toast.success("Settings reset to defaults — device is rebooting");
+      onResetComplete?.();
+    } catch (err: any) {
+      toast.error(`Reset failed: ${err?.message ?? "Unknown error"}`);
+      setResetting(false);
+      setConfirmReset(false);
     }
   };
 
@@ -162,6 +182,32 @@ export function DeviceSettingsTab({ connection }: DeviceSettingsTabProps) {
           </div>
         );
       })}
+      {rows.length > 0 && (
+        <div className="pt-4 border-t border-border">
+          <Button
+            variant={confirmReset ? "destructive" : "outline"}
+            size="sm"
+            className="w-full gap-2"
+            disabled={resetting}
+            onClick={handleReset}
+          >
+            {resetting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RotateCcw className="w-4 h-4" />
+            )}
+            {confirmReset ? "Confirm Reset — Device Will Reboot" : "Reset Settings to Default"}
+          </Button>
+          {confirmReset && !resetting && (
+            <button
+              onClick={() => setConfirmReset(false)}
+              className="w-full mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
