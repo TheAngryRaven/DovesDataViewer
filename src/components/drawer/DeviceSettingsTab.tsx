@@ -96,7 +96,24 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     }
   };
 
-  if (loading) {
+  const handleReset = async () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      return;
+    }
+    setResetting(true);
+    try {
+      await resetDeviceSettings(connection);
+      toast.success("Settings reset to defaults — device is rebooting");
+      onResetComplete?.();
+    } catch (err: any) {
+      toast.error(`Reset failed: ${err?.message ?? "Unknown error"}`);
+      setResetting(false);
+      setConfirmReset(false);
+    }
+  };
+
+
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
