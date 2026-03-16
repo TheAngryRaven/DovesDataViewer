@@ -92,6 +92,19 @@ export interface DovexMetadata {
   lapTimesMs?: number[];
 }
 
+export interface ParserStats {
+  totalRows: number;
+  acceptedRows: number;
+  rejected: {
+    nanFields: number;
+    zeroCoords: number;
+    outOfRange: number;
+    speedCap: number;
+    teleportation: number;
+    incompleteRow: number;
+  };
+}
+
 export interface ParsedData {
   samples: GpsSample[];
   fieldMappings: FieldMapping[];
@@ -104,6 +117,7 @@ export interface ParsedData {
   duration: number;
   startDate?: Date;
   dovexMetadata?: DovexMetadata;
+  parserStats?: ParserStats;
 }
 
 // Course detection result types

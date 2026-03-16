@@ -3,7 +3,7 @@ import { ResizableSplit } from "@/components/ResizableSplit";
 import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
 import { RangeSlider } from "@/components/RangeSlider";
-import { GpsSample, Course, FieldMapping } from "@/types/racing";
+import { GpsSample, Course, FieldMapping, ParserStats } from "@/types/racing";
 
 interface RaceLineTabProps {
   visibleSamples: GpsSample[];
@@ -27,6 +27,7 @@ interface RaceLineTabProps {
   cachedWeatherStation: import("@/lib/weatherService").WeatherStation | null;
   onWeatherStationResolved: (station: import("@/lib/weatherService").WeatherStation) => void;
   isAllLaps?: boolean;
+  parserStats?: ParserStats | null;
   // Telemetry chart props
   fieldMappings: FieldMapping[];
   onScrub: (index: number) => void;
@@ -68,6 +69,7 @@ export const RaceLineTab = memo(function RaceLineTab(props: RaceLineTabProps) {
           cachedWeatherStation={props.cachedWeatherStation}
           onWeatherStationResolved={props.onWeatherStationResolved}
           isAllLaps={props.isAllLaps}
+          parserStats={props.parserStats}
         />
       }
       bottomPanel={

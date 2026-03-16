@@ -1,44 +1,27 @@
 
 
-## Add Filtered/Rejected Packet Diagnostics
+# Plan Update: Global Unit Toggle
 
-### Problem
-The Dove parser silently skips "bad" rows via `continue` statements. The user has no way to know how many rows were rejected or why. The existing dropped-packet indicator only shows timing gaps, not parser rejections.
+The approved plan currently has unit switches per-field for measurement fields. The user wants a single global unit toggle button (mm ↔ in) that applies to the entire setup form at once, rather than individual toggles on each row.
 
-### Approach
-1. **Track rejection reasons in the parser** — Add counters for each filter category (NaN, zero-coord, out-of-range, speed-cap, teleportation, short-row). Return these counts alongside `ParsedData`.
+## Change to the Plan
 
-2. **Extend `ParsedData` type** — Add an optional `parserStats` field:
-   ```typescript
-   parserStats?: {
-     totalRows: number;
-     acceptedRows: number;
-     rejected: {
-       nanFields: number;
-       zeroCoords: number;
-       outOfRange: number;
-       speedCap: number;
-       teleportation: number;
-       incompleteRow: number;
-     };
-   }
-   ```
+**Remove**: Per-field `<UnitSwitch>` next to each measurement input.
 
-3. **Update all parsers** — Start with Dove/Dovex (primary concern), add same pattern to other parsers later.
+**Add**: A single toggle button at the top of the setup form (e.g., "mm / in" button) that controls the display unit for ALL measurement fields in that setup simultaneously.
 
-4. **Display in RaceLineView** — Extend the existing dropped-packet overlay to also show rejected packets when `parserStats` is present. Something like:
-   ```
-   12 pkts dropped (2.5% loss @ 25Hz)
-   3 rows rejected (2 teleport, 1 NaN)
-   ```
+### How it works:
+- The setup stores a single `unitSystem: "mm" | "in"` field (replaces the per-field `frontWidthUnit`, `rearWidthUnit`, `rearHeightUnit`, `tireWidthUnit`, `tireDiameterUnit` fields on the current setup)
+- Template fields that have a unit of `"mm"` or `"in"` all follow the global toggle
+- Values are stored as-entered (no conversion) — the unit just labels what the user typed
+- The toggle button sits at the top of the form, styled distinctly (like a segmented control or small outlined button showing the active unit)
 
-### Files to change
-- `src/types/racing.ts` — Add `ParserStats` interface to `ParsedData`
-- `src/lib/doveParser.ts` — Count rejections in `parseDoveFile`, attach to result
-- `src/lib/dovexParser.ts` — Pass through stats from inner Dove parse
-- `src/components/RaceLineView.tsx` — Display rejection stats in the diagnostic overlay
-- `src/pages/Index.tsx` — Thread `parserStats` through to `RaceLineView` (likely already available via `parsedData`)
+### Impact on template creator:
+- When defining a field, the user still types a unit string (e.g., "psi", "teeth", "degrees") — these are just labels
+- The special `"mm"` / `"in"` pair is recognized as switchable and follows the global toggle
+- Other units display as static suffixes
 
-### Scope
-Only Dove/Dovex parsers for now. Other parsers can be extended with the same pattern incrementally.
+This is a minor simplification — fewer controls per row, cleaner form, one source of truth for measurement units.
+
+No other changes to the approved plan.
 

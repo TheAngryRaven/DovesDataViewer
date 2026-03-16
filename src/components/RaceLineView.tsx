@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState, memo } from 'react';
 import L from 'leaflet';
-import { GpsSample, Course, courseHasSectors } from '@/types/racing';
+import { GpsSample, Course, courseHasSectors, ParserStats } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { formatLapTime } from '@/lib/lapCalculation';
@@ -56,6 +56,7 @@ interface RaceLineViewProps {
   cachedWeatherStation?: WeatherStation | null;
   onWeatherStationResolved?: (station: WeatherStation) => void;
   isAllLaps?: boolean;
+  parserStats?: ParserStats | null;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -137,7 +138,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats }: RaceLineViewProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
@@ -743,12 +744,34 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
         </div>
       )}
 
-      {/* Dropped packet indicator */}
-      {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
+      {/* Dropped packet / rejected row indicator */}
+      {(droppedPacketInfo?.droppedCount > 0 || (parserStats && parserStats.acceptedRows < parserStats.totalRows)) && (
         <div className="absolute bottom-2 left-2 z-[1000] bg-card/80 backdrop-blur-sm border border-border rounded px-2 py-1 text-xs font-mono text-muted-foreground">
-          <span className="text-destructive font-semibold">{droppedPacketInfo.droppedCount}</span>
-          {' '}pkt{droppedPacketInfo.droppedCount !== 1 ? 's' : ''} dropped
-          {' '}({droppedPacketInfo.dropRate.toFixed(1)}% loss @ {droppedPacketInfo.hz.toFixed(0)}Hz)
+          {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
+            <div>
+              <span className="text-destructive font-semibold">{droppedPacketInfo.droppedCount}</span>
+              {' '}pkt{droppedPacketInfo.droppedCount !== 1 ? 's' : ''} dropped
+              {' '}({droppedPacketInfo.dropRate.toFixed(1)}% loss @ {droppedPacketInfo.hz.toFixed(0)}Hz)
+            </div>
+          )}
+          {parserStats && parserStats.acceptedRows < parserStats.totalRows && (() => {
+            const r = parserStats.rejected;
+            const totalRejected = parserStats.totalRows - parserStats.acceptedRows;
+            const reasons: string[] = [];
+            if (r.teleportation > 0) reasons.push(`${r.teleportation} teleport`);
+            if (r.nanFields > 0) reasons.push(`${r.nanFields} NaN`);
+            if (r.zeroCoords > 0) reasons.push(`${r.zeroCoords} zero-coord`);
+            if (r.outOfRange > 0) reasons.push(`${r.outOfRange} OOR`);
+            if (r.speedCap > 0) reasons.push(`${r.speedCap} speed-cap`);
+            if (r.incompleteRow > 0) reasons.push(`${r.incompleteRow} short-row`);
+            return (
+              <div>
+                <span className="text-yellow-500 font-semibold">{totalRejected}</span>
+                {' '}row{totalRejected !== 1 ? 's' : ''} rejected
+                {reasons.length > 0 && ` (${reasons.join(', ')})`}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
