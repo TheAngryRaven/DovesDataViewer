@@ -1,4 +1,4 @@
-import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
+import { GpsSample, FieldMapping, ParsedData, ParserStats } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
 import { haversineDistance, calculateBearing, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
 
