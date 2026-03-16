@@ -240,7 +240,7 @@ export function FileManagerDrawer({
                     </button>
                   ))}
                 </div>
-                {deviceTab === "settings" && <DeviceSettingsTab connection={device.connection} />}
+                {deviceTab === "settings" && <DeviceSettingsTab connection={device.connection} onResetComplete={() => { device.disconnectDevice(); onClose(); }} />}
                 {deviceTab === "tracks" && <DeviceTracksTab connection={device.connection!} />}
               </>
             )}
