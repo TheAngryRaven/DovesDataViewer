@@ -182,6 +182,32 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
           </div>
         );
       })}
+      {rows.length > 0 && (
+        <div className="pt-4 border-t border-border">
+          <Button
+            variant={confirmReset ? "destructive" : "outline"}
+            size="sm"
+            className="w-full gap-2"
+            disabled={resetting}
+            onClick={handleReset}
+          >
+            {resetting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RotateCcw className="w-4 h-4" />
+            )}
+            {confirmReset ? "Confirm Reset — Device Will Reboot" : "Reset Settings to Default"}
+          </Button>
+          {confirmReset && !resetting && (
+            <button
+              onClick={() => setConfirmReset(false)}
+              className="w-full mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
