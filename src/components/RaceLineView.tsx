@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState, memo } from 'react';
 import L from 'leaflet';
 import { GpsSample, Course, courseHasSectors } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
@@ -168,6 +168,40 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   }, [isAllLaps]);
   const [showWeather, setShowWeather] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
+
+  // Calculate dropped packets: gaps in sample timestamps larger than expected
+  const droppedPacketInfo = useMemo(() => {
+    if (samples.length < 10) return null;
+    
+    // Calculate time diffs between consecutive samples
+    const timeDiffs: number[] = [];
+    for (let i = 1; i < samples.length; i++) {
+      const diff = samples[i].t - samples[i - 1].t;
+      if (diff > 0 && diff < 1000) timeDiffs.push(diff);
+    }
+    if (timeDiffs.length === 0) return null;
+    
+    // Median interval = expected interval
+    const sorted = [...timeDiffs].sort((a, b) => a - b);
+    const medianInterval = sorted[Math.floor(sorted.length / 2)];
+    const hz = 1000 / medianInterval;
+    
+    // A "drop" is any gap > 1.5x the median interval
+    const dropThreshold = medianInterval * 1.5;
+    let droppedCount = 0;
+    for (let i = 1; i < samples.length; i++) {
+      const diff = samples[i].t - samples[i - 1].t;
+      if (diff > dropThreshold) {
+        // Estimate how many packets were missed in this gap
+        droppedCount += Math.round(diff / medianInterval) - 1;
+      }
+    }
+    
+    const totalExpected = samples.length + droppedCount;
+    const dropRate = totalExpected > 0 ? (droppedCount / totalExpected) * 100 : 0;
+    
+    return { droppedCount, hz, dropRate, totalSamples: samples.length, totalExpected };
+  }, [samples]);
   const [sessionWeatherData, setSessionWeatherData] = useState<WeatherData | null>(null);
   const [sessionMetarOpen, setSessionMetarOpen] = useState(false);
   const isOnline = useOnlineStatus();
@@ -706,6 +740,15 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
               />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Dropped packet indicator */}
+      {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
+        <div className="absolute bottom-2 left-2 z-[1000] bg-card/80 backdrop-blur-sm border border-border rounded px-2 py-1 text-xs font-mono text-muted-foreground">
+          <span className="text-destructive font-semibold">{droppedPacketInfo.droppedCount}</span>
+          {' '}pkt{droppedPacketInfo.droppedCount !== 1 ? 's' : ''} dropped
+          {' '}({droppedPacketInfo.dropRate.toFixed(1)}% loss @ {droppedPacketInfo.hz.toFixed(0)}Hz)
         </div>
       )}
     </div>
