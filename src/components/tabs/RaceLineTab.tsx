@@ -27,6 +27,7 @@ interface RaceLineTabProps {
   cachedWeatherStation: import("@/lib/weatherService").WeatherStation | null;
   onWeatherStationResolved: (station: import("@/lib/weatherService").WeatherStation) => void;
   isAllLaps?: boolean;
+  parserStats?: ParserStats | null;
   // Telemetry chart props
   fieldMappings: FieldMapping[];
   onScrub: (index: number) => void;
