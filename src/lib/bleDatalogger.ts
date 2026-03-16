@@ -693,7 +693,7 @@ export async function requestTrackFileList(
 
 /**
  * Download a track file from device via TGET.
- * Reuses the same SIZE → data chunks → DONE pattern as regular file downloads.
+ * Optimized for high-throughput burst transfers — same pattern as downloadFile.
  */
 export async function downloadTrackFile(
   connection: BleConnection,
@@ -704,33 +704,51 @@ export async function downloadTrackFile(
 
   return new Promise(async (resolve, reject) => {
     const receivedData: Uint8Array[] = [];
+    let totalReceived = 0;
     let expectedFileSize = 0;
     let transferStartTime = Date.now();
+    let progressRafId = 0;
+    let progressDirty = false;
+    let resolved = false;
 
-    const handleFileData = (event: Event) => {
-      const target = event.target as BluetoothRemoteGATTCharacteristic;
-      const chunk = new Uint8Array(target.value!.buffer);
-      receivedData.push(chunk);
+    const scheduleProgressUpdate = () => {
+      if (progressDirty || progressRafId) return;
+      progressDirty = true;
+      progressRafId = requestAnimationFrame(() => {
+        progressRafId = 0;
+        progressDirty = false;
+        if (resolved) return;
 
-      const totalReceived = receivedData.reduce((sum, arr) => sum + arr.length, 0);
-      const percent = expectedFileSize > 0 ? (totalReceived / expectedFileSize) * 100 : 0;
-      const elapsedSeconds = (Date.now() - transferStartTime) / 1000;
-      const overallSpeed = elapsedSeconds > 0 ? totalReceived / elapsedSeconds : 0;
-      const remainingBytes = expectedFileSize - totalReceived;
-      const etaSeconds = overallSpeed > 0 ? remainingBytes / overallSpeed : 0;
+        const percent = expectedFileSize > 0 ? (totalReceived / expectedFileSize) * 100 : 0;
+        const elapsedSeconds = (Date.now() - transferStartTime) / 1000;
+        const overallSpeed = elapsedSeconds > 0 ? totalReceived / elapsedSeconds : 0;
+        const remainingBytes = expectedFileSize - totalReceived;
+        const etaSeconds = overallSpeed > 0 ? remainingBytes / overallSpeed : 0;
 
-      updateProgress({
-        received: totalReceived,
-        total: expectedFileSize,
-        percent,
-        speed: formatSpeed(overallSpeed),
-        eta: formatTime(etaSeconds),
+        updateProgress({
+          received: totalReceived,
+          total: expectedFileSize,
+          percent,
+          speed: formatSpeed(overallSpeed),
+          eta: formatTime(etaSeconds),
+        });
       });
     };
 
+    const handleFileData = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const dv = target.value!;
+      const chunk = new Uint8Array(dv.buffer.slice(dv.byteOffset, dv.byteOffset + dv.byteLength));
+      receivedData.push(chunk);
+      totalReceived += chunk.length;
+      scheduleProgressUpdate();
+    };
+
+    const statusDecoder = new TextDecoder();
+
     const handleStatusData = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
-      const raw = new TextDecoder().decode(target.value!);
+      const raw = statusDecoder.decode(target.value!);
       bleLog('TGET status:', raw);
 
       const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
@@ -739,17 +757,20 @@ export async function downloadTrackFile(
           expectedFileSize = parseInt(line.substring(5), 10);
           transferStartTime = Date.now();
         } else if (line === 'DONE') {
+          resolved = true;
+          if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
           cleanup();
-          const totalSize = receivedData.reduce((sum, arr) => sum + arr.length, 0);
-          const fileData = new Uint8Array(totalSize);
+          const fileData = new Uint8Array(totalReceived);
           let offset = 0;
-          receivedData.forEach((chunk) => {
-            fileData.set(chunk, offset);
-            offset += chunk.length;
-          });
+          for (let i = 0; i < receivedData.length; i++) {
+            fileData.set(receivedData[i], offset);
+            offset += receivedData[i].length;
+          }
           resolve(fileData);
           return;
         } else if (line.startsWith('TERR:') || line === 'ERROR') {
+          resolved = true;
+          if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
           cleanup();
           reject(new Error(line.startsWith('TERR:') ? line.substring(5) : 'Error downloading track file'));
           return;
@@ -773,10 +794,16 @@ export async function downloadTrackFile(
       await connection.characteristics.fileRequest.writeValue(encoder.encode('TGET:' + filename));
 
       setTimeout(() => {
-        cleanup();
-        reject(new Error('Track file download timeout'));
+        if (!resolved) {
+          resolved = true;
+          if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
+          cleanup();
+          reject(new Error('Track file download timeout'));
+        }
       }, 60000);
     } catch (error) {
+      resolved = true;
+      if (progressRafId) { cancelAnimationFrame(progressRafId); progressRafId = 0; }
       cleanup();
       reject(error);
     }
