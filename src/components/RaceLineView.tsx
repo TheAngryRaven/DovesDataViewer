@@ -744,12 +744,34 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
         </div>
       )}
 
-      {/* Dropped packet indicator */}
-      {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
+      {/* Dropped packet / rejected row indicator */}
+      {(droppedPacketInfo?.droppedCount > 0 || (parserStats && parserStats.acceptedRows < parserStats.totalRows)) && (
         <div className="absolute bottom-2 left-2 z-[1000] bg-card/80 backdrop-blur-sm border border-border rounded px-2 py-1 text-xs font-mono text-muted-foreground">
-          <span className="text-destructive font-semibold">{droppedPacketInfo.droppedCount}</span>
-          {' '}pkt{droppedPacketInfo.droppedCount !== 1 ? 's' : ''} dropped
-          {' '}({droppedPacketInfo.dropRate.toFixed(1)}% loss @ {droppedPacketInfo.hz.toFixed(0)}Hz)
+          {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
+            <div>
+              <span className="text-destructive font-semibold">{droppedPacketInfo.droppedCount}</span>
+              {' '}pkt{droppedPacketInfo.droppedCount !== 1 ? 's' : ''} dropped
+              {' '}({droppedPacketInfo.dropRate.toFixed(1)}% loss @ {droppedPacketInfo.hz.toFixed(0)}Hz)
+            </div>
+          )}
+          {parserStats && parserStats.acceptedRows < parserStats.totalRows && (() => {
+            const r = parserStats.rejected;
+            const totalRejected = parserStats.totalRows - parserStats.acceptedRows;
+            const reasons: string[] = [];
+            if (r.teleportation > 0) reasons.push(`${r.teleportation} teleport`);
+            if (r.nanFields > 0) reasons.push(`${r.nanFields} NaN`);
+            if (r.zeroCoords > 0) reasons.push(`${r.zeroCoords} zero-coord`);
+            if (r.outOfRange > 0) reasons.push(`${r.outOfRange} OOR`);
+            if (r.speedCap > 0) reasons.push(`${r.speedCap} speed-cap`);
+            if (r.incompleteRow > 0) reasons.push(`${r.incompleteRow} short-row`);
+            return (
+              <div>
+                <span className="text-yellow-500 font-semibold">{totalRejected}</span>
+                {' '}row{totalRejected !== 1 ? 's' : ''} rejected
+                {reasons.length > 0 && ` (${reasons.join(', ')})`}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
