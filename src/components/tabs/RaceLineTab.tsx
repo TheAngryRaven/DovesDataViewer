@@ -3,7 +3,7 @@ import { ResizableSplit } from "@/components/ResizableSplit";
 import { RaceLineView } from "@/components/RaceLineView";
 import { TelemetryChart } from "@/components/TelemetryChart";
 import { RangeSlider } from "@/components/RangeSlider";
-import { GpsSample, Course, FieldMapping } from "@/types/racing";
+import { GpsSample, Course, FieldMapping, ParserStats } from "@/types/racing";
 
 interface RaceLineTabProps {
   visibleSamples: GpsSample[];
