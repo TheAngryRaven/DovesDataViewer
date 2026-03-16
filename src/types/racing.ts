@@ -117,6 +117,7 @@ export interface ParsedData {
   duration: number;
   startDate?: Date;
   dovexMetadata?: DovexMetadata;
+  parserStats?: ParserStats;
 }
 
 // Course detection result types
