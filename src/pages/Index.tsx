@@ -744,6 +744,7 @@ export default function Index() {
               minRange={minRange}
               formatRangeLabel={formatRangeLabel}
               isAllLaps={isAllLaps}
+              parserStats={data?.parserStats}
             />
           )}
           {topPanelView === "laptable" && (
