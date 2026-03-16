@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Save, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { type BleConnection } from "@/lib/bleDatalogger";
-import { requestSettingsList, setDeviceSetting } from "@/lib/bleDatalogger";
+import { requestSettingsList, setDeviceSetting, resetDeviceSettings } from "@/lib/bleDatalogger";
 import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
@@ -13,6 +13,7 @@ import {
 
 interface DeviceSettingsTabProps {
   connection: BleConnection;
+  onResetComplete?: () => void;
 }
 
 interface SettingRow {
