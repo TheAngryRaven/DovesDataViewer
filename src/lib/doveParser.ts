@@ -90,12 +90,24 @@ export function parseDoveFile(content: string): ParsedData {
   let baseTimestamp: number | null = null;
   let startDate: Date | undefined;
   
+  const rejected = {
+    nanFields: 0,
+    zeroCoords: 0,
+    outOfRange: 0,
+    speedCap: 0,
+    teleportation: 0,
+    incompleteRow: 0,
+  };
+  let totalRows = 0;
+  
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
     
+    totalRows++;
+    
     const fields = line.split(',').map(f => f.trim());
-    if (fields.length < headers.length) continue;
+    if (fields.length < headers.length) { rejected.incompleteRow++; continue; }
     
     // Parse required fields
     const timestamp = parseInt(fields[columnIndex['timestamp']], 10);
@@ -104,9 +116,9 @@ export function parseDoveFile(content: string): ParsedData {
     const speedMph = parseFloat(fields[columnIndex['speed_mph']]);
     
     // Validate required fields
-    if (isNaN(timestamp) || isNaN(lat) || isNaN(lng) || isNaN(speedMph)) continue;
-    if (lat === 0 && lng === 0) continue;
-    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
+    if (isNaN(timestamp) || isNaN(lat) || isNaN(lng) || isNaN(speedMph)) { rejected.nanFields++; continue; }
+    if (lat === 0 && lng === 0) { rejected.zeroCoords++; continue; }
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) { rejected.outOfRange++; continue; }
     
     // Set base timestamp and start date from first valid sample
     if (baseTimestamp === null) {
@@ -120,12 +132,12 @@ export function parseDoveFile(content: string): ParsedData {
     const speedMps = speedMph * 0.44704;
     const speedKph = speedMph * 1.60934;
     
-    if (speedMps > MAX_SPEED_MPS) continue;
+    if (speedMps > MAX_SPEED_MPS) { rejected.speedCap++; continue; }
 
     // Teleportation filter
     if (samples.length > 0) {
       const prev = samples[samples.length - 1];
-      if (isTeleportation(prev.lat, prev.lon, prev.t, lat, lng, t, 'Dove')) continue;
+      if (isTeleportation(prev.lat, prev.lon, prev.t, lat, lng, t, 'Dove')) { rejected.teleportation++; continue; }
     }
     
     // Build extra fields
