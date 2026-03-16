@@ -24,10 +24,12 @@ interface SettingRow {
   saving: boolean;
 }
 
-export function DeviceSettingsTab({ connection }: DeviceSettingsTabProps) {
+export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSettingsTabProps) {
   const [rows, setRows] = useState<SettingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);

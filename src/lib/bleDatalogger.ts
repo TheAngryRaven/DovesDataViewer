@@ -565,6 +565,62 @@ export async function getDeviceSetting(
   });
 }
 
+/** Reset all device settings to factory defaults via SRESET. Resolves on SOK:RESET. */
+export async function resetDeviceSettings(
+  connection: BleConnection
+): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleNotification = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const raw = new TextDecoder().decode(target.value!);
+      bleLog('SRESET raw notification:', JSON.stringify(raw));
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+      for (const line of lines) {
+        if (line === 'SOK:RESET') {
+          cleanup();
+          resolve();
+          return;
+        } else if (line.startsWith('SERR:')) {
+          cleanup();
+          reject(new Error(line.substring(5)));
+          return;
+        }
+      }
+    };
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileStatus.removeEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+    };
+
+    try {
+      await connection.characteristics.fileStatus.startNotifications();
+      connection.characteristics.fileStatus.addEventListener(
+        'characteristicvaluechanged',
+        handleNotification
+      );
+
+      const encoder = new TextEncoder();
+      await connection.characteristics.fileRequest.writeValue(encoder.encode('SRESET'));
+
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout waiting for reset confirmation'));
+      }, 10000);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
 /** Set a device setting via SSET:key=value. Resolves on SOK, rejects on SERR. */
 export async function setDeviceSetting(
   connection: BleConnection,
