@@ -7,6 +7,12 @@
 
 ---
 
+<p align="center">
+  <img src="preview.jpg" />
+</p>
+
+---
+
 ## Philosophy
 
 This project is **100% open source**. The entire codebase—every feature, every parser, every visualization—is freely available for anyone to use, modify, and self-host.
