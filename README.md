@@ -13,6 +13,32 @@
 
 ---
 
+## Features
+
+- Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM, Alfano, Dove, Dovex)
+- Automatic track & course detection within 5 miles
+- Automatic driving direction detection (forward/reverse)
+- Waypoint mode — lap timing anywhere, no track needed
+- Interactive race line map with speed heatmap
+- Braking zone detection & visualization
+- Automatic lap detection via start/finish line
+- 3-sector split timing with optimal lap
+- Pro graph view with multi-series telemetry charts
+- Reference lap overlay & pace delta comparison
+- Video sync with telemetry playback
+- 9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)
+- MP4 video export with overlays & audio (H.264 + AAC)
+- Vehicle profiles & setup sheet management
+- Session notes per file
+- BLE device integration (DovesDataLogger)
+- Device track sync over Bluetooth
+- Custom track & course editor with community submissions
+- Local weather lookup
+- Dark & light mode
+- PWA — installable & fully offline
+
+---
+
 ## Philosophy
 
 This project is **100% open source**. The entire codebase—every feature, every parser, every visualization—is freely available for anyone to use, modify, and self-host.
