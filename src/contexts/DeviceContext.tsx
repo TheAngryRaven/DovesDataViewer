@@ -15,8 +15,8 @@ interface DeviceContextValue {
   isConnecting: boolean;
   /** Whether Web Bluetooth is available in this browser */
   bleSupported: boolean;
-  /** Initiate a connection. Returns true on success. */
-  connect: () => Promise<boolean>;
+  /** Initiate a connection. Returns the connection on success, null on cancel/failure. */
+  connect: (onStatus?: (msg: string) => void) => Promise<BleConnection | null>;
   /** Disconnect the current device */
   disconnectDevice: () => void;
 }
