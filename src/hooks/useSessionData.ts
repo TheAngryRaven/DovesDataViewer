@@ -63,10 +63,10 @@ export function useSessionData(
       const okcTrack = tracks.find((t) => t.name === "Orlando Kart Center");
       const okcCourse = okcTrack?.courses[0] ?? null;
 
-      const response = await fetch("/samples/okc-tillotson-plain.nmea");
-      const text = await response.text();
-      const parsedData = parseDatalog(text);
-      loadParsedData(parsedData, "okc-tillotson-plain.nmea");
+      const response = await fetch("/samples/okc-tillotson-data.dovex");
+      const buffer = await response.arrayBuffer();
+      const parsedData = parseDatalogContent(buffer);
+      loadParsedData(parsedData, "okc-tillotson-data.dovex");
 
       if (okcTrack && okcCourse) {
         onSelectionChange({
