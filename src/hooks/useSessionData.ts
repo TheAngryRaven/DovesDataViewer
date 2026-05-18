@@ -77,8 +77,8 @@ export function useSessionData(
         const computedLaps = calculateLaps(parsedData.samples, okcCourse);
         onLapsCalculated(
           computedLaps,
-          computedLaps.length >= 5 ? 5 : undefined,
-          computedLaps.length >= 8 ? 8 : undefined
+          computedLaps.length >= 8 ? 8 : undefined,
+          computedLaps.length >= 11 ? 11 : undefined
         );
       }
     } catch (e) {
