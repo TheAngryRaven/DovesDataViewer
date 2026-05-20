@@ -1,0 +1,15 @@
+# HackTheTrack
+
+> Free, open-source, offline-first motorsport telemetry viewer. Analyze GPS lap data, sectors, braking zones, and reference laps directly in your browser — no upload required.
+
+HackTheTrack (aka Dove's DataViewer) is a privacy-first Progressive Web App for motorsport drivers, coaches, and karting teams. All telemetry parsing, lap detection, and visualization happen locally in the browser via IndexedDB — no server processes your data. The viewer supports a wide range of formats including NMEA, UBX, VBO (Racelogic), Alfano, AiM MyChron, MoTeC i2, and the native Dove/Dovex formats produced by the companion DovesDataLogger ESP32 hardware. Features include automatic track/course detection, lap timing with sector splits, reference-lap overlays, speed heatmaps on a Leaflet map, braking-zone analysis, G-force visualization, video-with-overlay export via WebCodecs, and Web Bluetooth integration for downloading sessions directly from supported dataloggers.
+
+## Pages
+
+- [Home](/): Main viewer — import telemetry files, view race line maps, charts, lap times, and reference comparisons.
+- [Privacy Policy](/privacy): How the app handles data (everything stays in your browser).
+
+## Optional
+
+- [GitHub — HackTheTrack](https://github.com/TheAngryRaven/dove-datalog-viewer): Source code for the web viewer.
+- [GitHub — DovesDataLogger](https://github.com/TheAngryRaven/DovesDataLogger): Companion ESP32 GPS datalogger firmware.
