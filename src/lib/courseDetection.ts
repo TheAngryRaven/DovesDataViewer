@@ -20,8 +20,8 @@
  * - Divide lap distance by 3 for approximate sectors
  */
 
-import { GpsSample, Track, Course, Lap, CourseDirection, CourseDetectionResult, courseHasSectors } from '@/types/racing';
-import { calculateLaps } from './lapCalculation';
+import { GpsSample, Track, Course, Lap, CourseDirection, CourseDetectionResult } from '@/types/racing';
+import { calculateLaps, detectSectorOrder } from './lapCalculation';
 import { findNearestTrack } from './trackUtils';
 import { haversineDistance } from './parserUtils';
 
@@ -61,32 +61,16 @@ function calculateAverageLapDistanceFt(samples: GpsSample[], laps: Lap[]): numbe
 
 /**
  * Detect direction based on sector crossings.
- * If sector 2 is hit first after S/F → forward.
- * If sector 3 is hit first after S/F → reverse.
+ *
+ * Delegates to detectSectorOrder, which checks the temporal order of the
+ * first S2 vs S3 crossing independently of whether calculateLaps could pair
+ * them as valid sector times. This avoids the "no sectors → reverse" false
+ * positive that the previous implementation produced when a forward-direction
+ * racing line happened not to cross both sector lines.
  */
 function detectDirection(samples: GpsSample[], course: Course, laps: Lap[]): CourseDirection | undefined {
-  if (!courseHasSectors(course) || !course.sector2 || !course.sector3 || laps.length === 0) {
-    return undefined;
-  }
-
-  // Check sector times on the first lap that has them
-  for (const lap of laps) {
-    if (lap.sectors?.s1 !== undefined && lap.sectors?.s2 !== undefined) {
-      // If we got valid S1→S2→S3 in order, that's forward
-      return 'forward';
-    }
-  }
-
-  // If sectors don't compute in the forward direction, try checking if
-  // sector 3 comes before sector 2 — that would indicate reverse.
-  // We can infer this from the lap calculation: if s3 crossing comes before s2,
-  // the standard calculator won't find valid sector times.
-  // So if no lap has valid sector times but we DO have S/F crossings, it's likely reverse.
-  if (laps.length > 0 && laps.every(l => !l.sectors?.s1 || !l.sectors?.s2)) {
-    return 'reverse';
-  }
-
-  return undefined;
+  if (laps.length === 0) return undefined;
+  return detectSectorOrder(samples, course);
 }
 
 /**
@@ -163,7 +147,6 @@ export function autoDetectCourse(
 
   const best = candidates[0];
 
-  // If best match is too far off on length, still use it but note it
   const direction = detectDirection(samples, best.course, best.laps);
 
   return {
@@ -172,6 +155,8 @@ export function autoDetectCourse(
     direction,
     laps: best.laps,
     isWaypointMode: false,
+    // `Infinity` means the course had no `lengthFt` — surface as undefined to consumers.
+    lengthMatchDiff: best.lengthDiff === Infinity ? undefined : best.lengthDiff,
   };
 }
 

@@ -201,26 +201,65 @@ describe("autoDetectCourse - course matching", () => {
     expect(result!.course.name).toBe("Known");
   });
 
-  it("BUG (documented): returns a course even when length match is way outside 25% tolerance", () => {
-    // CLAUDE.md and the source comment say "pick closest match within 25% tolerance"
-    // but the implementation always returns the closest, even if it's 90% off.
-    // This test pins down the current behavior.
+  it("returns a course outside 25% tolerance but flags it via lengthMatchDiff", () => {
+    // Implementation still returns the closest course rather than failing —
+    // intentional UX choice (better to show something than nothing). The
+    // lengthMatchDiff field surfaces the confidence so UI can warn the user.
     const origin = okcOrigin;
     const badMatchTrack: Track = {
       name: "OKC", shortName: "OKC",
       courses: [{
         name: "WayTooLong",
-        lengthFt: 50000, // 100x reality
+        lengthFt: 50000, // ~5x the actual ~8500ft per lap → ~83% off
         startFinishA: { lat: origin.lat + 0.0001, lon: origin.lon },
         startFinishB: { lat: origin.lat - 0.0001, lon: origin.lon },
       }],
     };
     const samples = makeRacePathAtTrack(origin, 3, 10000);
-    const result = autoDetectCourse(samples, [badMatchTrack]);
-    // Currently returns it with no indication the match is poor
-    expect(result!.course.name).toBe("WayTooLong");
-    expect(result!.isWaypointMode).toBe(false);
-    // Real fix: add a `lengthMatchQuality` field or fall back to waypoint mode here.
+    const result = autoDetectCourse(samples, [badMatchTrack])!;
+    expect(result.course.name).toBe("WayTooLong");
+    expect(result.isWaypointMode).toBe(false);
+    expect(result.lengthMatchDiff).toBeDefined();
+    expect(result.lengthMatchDiff!).toBeGreaterThan(0.25); // outside documented tolerance
+  });
+
+  it("populates lengthMatchDiff with the actual fractional difference for good matches", () => {
+    const origin = okcOrigin;
+    const goodMatchTrack: Track = {
+      name: "OKC", shortName: "OKC",
+      courses: [{
+        name: "Good",
+        lengthFt: 9000, // close to actual ~8500ft → ~6% off
+        startFinishA: { lat: origin.lat + 0.0001, lon: origin.lon },
+        startFinishB: { lat: origin.lat - 0.0001, lon: origin.lon },
+      }],
+    };
+    const samples = makeRacePathAtTrack(origin, 3, 10000);
+    const result = autoDetectCourse(samples, [goodMatchTrack])!;
+    expect(result.lengthMatchDiff!).toBeLessThan(0.1);
+  });
+
+  it("leaves lengthMatchDiff undefined when the matched course has no lengthFt", () => {
+    const origin = okcOrigin;
+    const unknownLengthTrack: Track = {
+      name: "OKC", shortName: "OKC",
+      courses: [{
+        name: "Unmeasured",
+        startFinishA: { lat: origin.lat + 0.0001, lon: origin.lon },
+        startFinishB: { lat: origin.lat - 0.0001, lon: origin.lon },
+      }],
+    };
+    const samples = makeRacePathAtTrack(origin, 3, 10000);
+    const result = autoDetectCourse(samples, [unknownLengthTrack])!;
+    expect(result.lengthMatchDiff).toBeUndefined();
+  });
+
+  it("leaves lengthMatchDiff undefined for waypoint mode results", () => {
+    // No track nearby → waypoint fallback
+    const samples = makeWaypointPath({ lat: 40.7, lon: -74.0 }, 3, 60000, 15);
+    const result = autoDetectCourse(samples, [makeTrack()])!;
+    expect(result.isWaypointMode).toBe(true);
+    expect(result.lengthMatchDiff).toBeUndefined();
   });
 
   it("falls back to waypoint mode when no course produces laps", () => {
@@ -275,16 +314,44 @@ describe("autoDetectCourse - direction detection", () => {
     expect(result!.direction).toBe("forward");
   });
 
-  it("BUG (documented): returns 'reverse' when forward-direction GPS misses sector lines", () => {
-    // Path goes east across S/F but loops back NORTH (lat=0.01) without ever
-    // reaching S2 (lon+0.003) or S3 (lon+0.006). This is a clean FORWARD lap
-    // where the racing line just didn't cross the sector geometry.
-    // detectDirection sees no sectors computed → returns 'reverse' (WRONG).
-    const samples = makeRacePathAtTrack(okcOrigin, 3, 10000); // never crosses S2/S3
+  it("returns undefined direction when sectors aren't crossed (no false 'reverse' claim)", () => {
+    // Path crosses S/F east but loops back via lat=0.01 — never reaches S2
+    // (lon+0.003) or S3 (lon+0.006). Forward direction, but the racing line
+    // doesn't intersect the sector lines.
+    // Previous bug: returned 'reverse' (false positive — "no sectors = reverse").
+    // Fix: detectSectorOrder returns undefined when either sector line is
+    // never crossed, so we honestly admit we don't know.
+    const samples = makeRacePathAtTrack(okcOrigin, 3, 10000);
     const result = autoDetectCourse(samples, [makeSectorTrack()]);
-    expect(result!.direction).toBe("reverse"); // current (buggy) behavior
-    // Real fix: compute direction geometrically — compare timestamps of any S2 vs S3
-    // crossing event independently, instead of relying on calculateLaps' sector output.
+    expect(result!.direction).toBeUndefined();
+  });
+
+  it("returns 'reverse' when sectors are crossed in S3-before-S2 order", () => {
+    // Build a westward-traversing path: starts east of all lines, sweeps west
+    // crossing S3 first, then S2, then S/F. Two such sweeps produce 1 lap.
+    const o = okcOrigin;
+    const samples = [
+      // Sweep 1
+      makeSample(0, o.lat, o.lon + 0.01),
+      makeSample(1000, o.lat, o.lon + 0.005),    // cross S3 going west
+      makeSample(2000, o.lat, o.lon + 0.002),    // cross S2 going west
+      makeSample(3000, o.lat, o.lon - 0.001),    // cross S/F going west
+      // Loop back east via high lat (no crossings)
+      makeSample(7000, o.lat + 0.01, o.lon - 0.001),
+      makeSample(8000, o.lat + 0.01, o.lon + 0.01),
+      makeSample(9000, o.lat, o.lon + 0.01),
+      // Sweep 2
+      makeSample(10000, o.lat, o.lon + 0.005),
+      makeSample(11000, o.lat, o.lon + 0.002),
+      makeSample(12000, o.lat, o.lon - 0.001),
+      // Loop back for any remaining state
+      makeSample(16000, o.lat + 0.01, o.lon - 0.001),
+      makeSample(17000, o.lat + 0.01, o.lon + 0.01),
+      makeSample(18000, o.lat, o.lon + 0.01),
+    ];
+    const result = autoDetectCourse(samples, [makeSectorTrack()]);
+    expect(result).not.toBeNull();
+    expect(result!.direction).toBe("reverse");
   });
 });
 

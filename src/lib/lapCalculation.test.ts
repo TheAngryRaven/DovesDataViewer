@@ -176,21 +176,48 @@ describe("calculateLaps - debounce + direction", () => {
     expect(laps).toHaveLength(2);
   });
 
-  it("BUG (documented): if first crossing is wrong-direction, subsequent correct crossings are locked out", () => {
-    // First "crossing" is a west-going glitch; rest are clean east-going
-    // The algorithm locks direction to the glitch's direction, rejecting good crossings.
+  it("recovers from a first-crossing direction glitch when majority crossings agree", () => {
+    // Setup: 1 wrong-direction glitch at t=500, then 3 clean east crossings.
+    // Old behavior: glitch locked direction to west, all 3 east crossings rejected
+    //   → 1 west crossing total → 0 laps detected.
+    // New behavior: majority direction (east) wins, glitch discarded
+    //   → 3 east crossings → 2 laps detected.
     const samples = [
-      makeSample(0, 0, 0.001), // start east
-      makeSample(1000, 0, -0.001), // glitch: west cross @ t=500 (locks direction = west)
-      makeSample(10000, 0, 0.001), // east cross @ t=5500 — would be rejected as opposite direction
-      makeSample(20000, 0, -0.001), // west again — same direction as first, accepted
+      makeSample(0, 0, 0.001),         // east of line
+      makeSample(1000, 0, -0.001),     // GLITCH: west cross @ t=500
+
+      makeSample(11000, 0, 0.001),     // east cross @ t=6000
+      makeSample(12000, 0.01, 0.001),
+      makeSample(13000, 0.01, -0.001),
+      makeSample(14000, 0, -0.001),
+
+      makeSample(20000, 0, 0.001),     // east cross @ t=17000
+      makeSample(21000, 0.01, 0.001),
+      makeSample(22000, 0.01, -0.001),
+      makeSample(23000, 0, -0.001),
+
+      makeSample(30000, 0, 0.001),     // east cross @ t=26500
     ];
     const laps = calculateLaps(samples, sfCourse);
-    // West-going crossings: t=500 (segment[0→1]) and t=15000 (segment[2→3])
-    // → 1 lap of ~14500ms
-    expect(laps).toHaveLength(1);
-    expect(laps[0].lapTimeMs).toBeCloseTo(14500, -1);
-    // Real fix would be to allow direction recovery if subsequent same-direction crossings cluster.
+    expect(laps).toHaveLength(2);
+  });
+
+  it("majority-direction filter still works on reverse-direction sessions", () => {
+    // 3 west-going crossings → 2 reverse laps (no eastern majority to flip)
+    const samples = [
+      makeSample(0, 0, 0.001),
+      makeSample(1000, 0, -0.001),  // west cross @ t=500
+      makeSample(10000, 0.01, -0.001),
+      makeSample(11000, 0.01, 0.001),
+      makeSample(12000, 0, 0.001),
+      makeSample(13000, 0, -0.001), // west cross @ t=12500
+      makeSample(20000, 0.01, -0.001),
+      makeSample(21000, 0.01, 0.001),
+      makeSample(22000, 0, 0.001),
+      makeSample(23000, 0, -0.001), // west cross @ t=22500
+    ];
+    const laps = calculateLaps(samples, sfCourse);
+    expect(laps).toHaveLength(2);
   });
 });
 
