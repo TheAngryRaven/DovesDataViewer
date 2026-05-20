@@ -1,6 +1,12 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
-import { haversineDistance, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
+import {
+  isTeleportation,
+  MAX_SPEED_MPS,
+  speedTriple,
+  calculateBounds,
+  normalizeHeading,
+} from './parserUtils';
 
 // UBX Protocol Constants
 const UBX_SYNC_1 = 0xB5;
@@ -199,11 +205,8 @@ export function parseUbxFile(buffer: ArrayBuffer): ParsedData {
       if (isTeleportation(prev.lat, prev.lon, prev.t, pvt.lat, pvt.lon, t, 'UBX')) continue;
     }
     
-    // Normalize heading to 0-360
-    let heading = pvt.headMot;
-    if (heading < 0) heading += 360;
-    if (heading >= 360) heading -= 360;
-    
+    const heading = normalizeHeading(pvt.headMot);
+
     const extraFields: Record<string, number> = {
       'Satellites': pvt.numSV,
       'HDOP': pvt.pDOP, // pDOP is close enough for display purposes
@@ -212,14 +215,12 @@ export function parseUbxFile(buffer: ArrayBuffer): ParsedData {
       'V Accuracy (m)': pvt.vAcc / 1000,
       'Speed Acc (m/s)': pvt.sAcc / 1000,
     };
-    
+
     samples.push({
       t,
       lat: pvt.lat,
       lon: pvt.lon,
-      speedMps,
-      speedMph: speedMps * 2.23694,
-      speedKph: speedMps * 3.6,
+      ...speedTriple(speedMps),
       heading,
       extraFields
     });
@@ -244,19 +245,10 @@ export function parseUbxFile(buffer: ArrayBuffer): ParsedData {
     { index: -6, name: 'Speed Acc (m/s)', enabled: true },
   ];
   
-  // Calculate bounds
-  const lats = samples.map(s => s.lat);
-  const lons = samples.map(s => s.lon);
-  
   return {
     samples,
     fieldMappings,
-    bounds: {
-      minLat: Math.min(...lats),
-      maxLat: Math.max(...lats),
-      minLon: Math.min(...lons),
-      maxLon: Math.max(...lons)
-    },
+    bounds: calculateBounds(samples),
     duration: samples[samples.length - 1].t,
     startDate
   };

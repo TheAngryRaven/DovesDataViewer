@@ -1,44 +1,21 @@
 import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
-import { clamp, haversineDistance } from './parserUtils';
+import {
+  haversineDistance,
+  parseCsvLine,
+  detectDelimiter,
+  validateGpsCoords,
+  normalizeAccelToG,
+  speedTriple,
+  calculateBounds,
+  KPH_TO_MPS,
+} from './parserUtils';
 
 /**
  * AiM MyChron CSV Parser
  * Parses CSV exports from Race Studio 3 (RS2Analysis Style CSV)
  * Supports MyChron 5, MyChron 6, and other AiM data loggers
  */
-
-// Parse a CSV line handling quoted fields
-function parseCSVLine(line: string, delimiter: string = ','): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === delimiter && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
-// Detect CSV delimiter
-function detectDelimiter(line: string): string {
-  const commaCount = (line.match(/,/g) || []).length;
-  const semicolonCount = (line.match(/;/g) || []).length;
-  const tabCount = (line.match(/\t/g) || []).length;
-  
-  if (tabCount > commaCount && tabCount > semicolonCount) return '\t';
-  if (semicolonCount > commaCount) return ';';
-  return ',';
-}
 
 // AiM-specific channel name patterns
 const AIM_CHANNEL_PATTERNS = [
@@ -143,7 +120,7 @@ export function parseAimFile(content: string): ParsedData {
     throw new Error('Could not find AiM CSV header row');
   }
   
-  const headers = parseCSVLine(lines[headerIndex], delimiter).map(h => h.toLowerCase().trim());
+  const headers = parseCsvLine(lines[headerIndex], delimiter).map(h => h.toLowerCase().trim());
   
   // Map column indices
   const colMap: Record<string, number> = {};
@@ -177,25 +154,21 @@ export function parseAimFile(content: string): ParsedData {
   
   // Parse data rows
   const samples: GpsSample[] = [];
-  let minLat = Infinity, maxLat = -Infinity;
-  let minLon = Infinity, maxLon = -Infinity;
   let baseTime: number | null = null;
   let prevValidSample: GpsSample | null = null;
   
   // Detect time and speed units from first valid data row
   let timeMultiplier = 1000; // default: seconds to ms
-  let speedMultiplier = 1 / 3.6; // default: km/h to m/s
+  let speedMultiplier = KPH_TO_MPS; // default: km/h to m/s
   
   for (let i = headerIndex + 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i], delimiter);
+    const values = parseCsvLine(lines[i], delimiter);
     if (values.length < Math.max(latCol, lonCol) + 1) continue;
     
     const lat = parseFloat(values[latCol]);
     const lon = parseFloat(values[lonCol]);
-    
-    // Skip invalid coordinates
-    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) continue;
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+
+    if (validateGpsCoords(lat, lon) !== null) continue;
     
     // Parse time
     let timeMs = 0;
@@ -222,7 +195,7 @@ export function parseAimFile(content: string): ParsedData {
         // AiM typically exports in km/h, but detect if already m/s
         // Values over 100 are likely km/h, under 50 might be m/s
         if (samples.length === 0 && speedVal > 50) {
-          speedMultiplier = 1 / 3.6; // km/h to m/s
+          speedMultiplier = KPH_TO_MPS; // km/h to m/s
         } else if (samples.length === 0 && speedVal > 0 && speedVal < 30) {
           speedMultiplier = 1; // already m/s
         }
@@ -250,20 +223,13 @@ export function parseAimFile(content: string): ParsedData {
     }
     
     if (latGCol !== -1) {
-      let latG = parseFloat(values[latGCol]);
-      if (!isNaN(latG)) {
-        // If value seems to be in m/s², convert to G
-        if (Math.abs(latG) > 5) latG = latG / 9.81;
-        extraFields['Lat G'] = clamp(latG, -5, 5);
-      }
+      const latG = parseFloat(values[latGCol]);
+      if (!isNaN(latG)) extraFields['Lat G'] = normalizeAccelToG(latG);
     }
-    
+
     if (lonGCol !== -1) {
-      let lonG = parseFloat(values[lonGCol]);
-      if (!isNaN(lonG)) {
-        if (Math.abs(lonG) > 5) lonG = lonG / 9.81;
-        extraFields['Lon G'] = clamp(lonG, -5, 5);
-      }
+      const lonG = parseFloat(values[lonGCol]);
+      if (!isNaN(lonG)) extraFields['Lon G'] = normalizeAccelToG(lonG);
     }
     
     if (rpmCol !== -1) {
@@ -302,20 +268,13 @@ export function parseAimFile(content: string): ParsedData {
       t: timeMs,
       lat,
       lon,
-      speedMps,
-      speedMph: speedMps * 2.23694,
-      speedKph: speedMps * 3.6,
+      ...speedTriple(speedMps),
       heading,
       extraFields,
     };
-    
+
     samples.push(sample);
     prevValidSample = sample;
-    
-    minLat = Math.min(minLat, lat);
-    maxLat = Math.max(maxLat, lat);
-    minLon = Math.min(minLon, lon);
-    maxLon = Math.max(maxLon, lon);
   }
   
   if (samples.length === 0) {
@@ -346,7 +305,7 @@ export function parseAimFile(content: string): ParsedData {
   return {
     samples,
     fieldMappings,
-    bounds: { minLat, maxLat, minLon, maxLon },
+    bounds: calculateBounds(samples),
     duration,
   };
 }

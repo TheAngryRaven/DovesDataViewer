@@ -1,6 +1,17 @@
 import { GpsSample, FieldMapping, ParsedData, ParserStats } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
-import { haversineDistance, calculateBearing, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
+import {
+  calculateBearing,
+  isTeleportation,
+  MAX_SPEED_MPS,
+  MPH_TO_MPS,
+  MPS_TO_KPH,
+  speedTriple,
+  calculateBounds,
+  validateGpsCoords,
+  createRejectedCounter,
+  recordCoordRejection,
+} from './parserUtils';
 
 /**
  * Dove CSV Parser
@@ -89,49 +100,43 @@ export function parseDoveFile(content: string): ParsedData {
   const samples: GpsSample[] = [];
   let baseTimestamp: number | null = null;
   let startDate: Date | undefined;
-  
-  const rejected = {
-    nanFields: 0,
-    zeroCoords: 0,
-    outOfRange: 0,
-    speedCap: 0,
-    teleportation: 0,
-    incompleteRow: 0,
-  };
+
+  const rejected = createRejectedCounter();
   let totalRows = 0;
-  
+
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    
+
     totalRows++;
-    
+
     const fields = line.split(',').map(f => f.trim());
     if (fields.length < headers.length) { rejected.incompleteRow++; continue; }
-    
+
     // Parse required fields
     const timestamp = parseInt(fields[columnIndex['timestamp']], 10);
     const lat = parseFloat(fields[columnIndex['lat']]);
     const lng = parseFloat(fields[columnIndex['lng']]);
     const speedMph = parseFloat(fields[columnIndex['speed_mph']]);
-    
-    // Validate required fields
-    if (isNaN(timestamp) || isNaN(lat) || isNaN(lng) || isNaN(speedMph)) { rejected.nanFields++; continue; }
-    if (lat === 0 && lng === 0) { rejected.zeroCoords++; continue; }
-    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) { rejected.outOfRange++; continue; }
-    
+
+    // Validate required fields. Treat NaN timestamp/speed under the nanFields bucket
+    // alongside the GPS coord NaN check, matching prior behavior.
+    if (isNaN(timestamp) || isNaN(speedMph)) { rejected.nanFields++; continue; }
+    const coordReason = validateGpsCoords(lat, lng);
+    if (recordCoordRejection(rejected, coordReason)) continue;
+
     // Set base timestamp and start date from first valid sample
     if (baseTimestamp === null) {
       baseTimestamp = timestamp;
       startDate = new Date(timestamp);
     }
-    
+
     const t = timestamp - baseTimestamp;
-    
+
     // Convert speed
-    const speedMps = speedMph * 0.44704;
-    const speedKph = speedMph * 1.60934;
-    
+    const speedMps = speedMph * MPH_TO_MPS;
+    const speedKph = speedMps * MPS_TO_KPH;
+
     if (speedMps > MAX_SPEED_MPS) { rejected.speedCap++; continue; }
 
     // Teleportation filter
@@ -214,7 +219,7 @@ export function parseDoveFile(content: string): ParsedData {
       t, lat, lon: lng,
       speedMps, speedMph, speedKph,
       heading,
-      extraFields
+      extraFields,
     });
   }
   
@@ -290,28 +295,18 @@ export function parseDoveFile(content: string): ParsedData {
   }
   
   // Build parser stats
-  const totalRejected = Object.values(rejected).reduce((a, b) => a + b, 0);
   const parserStats: ParserStats = {
     totalRows,
     acceptedRows: samples.length,
     rejected,
   };
 
-  // Calculate bounds
-  const lats = samples.map(s => s.lat);
-  const lons = samples.map(s => s.lon);
-  
   return {
     samples,
     fieldMappings,
-    bounds: {
-      minLat: Math.min(...lats),
-      maxLat: Math.max(...lats),
-      minLon: Math.min(...lons),
-      maxLon: Math.max(...lons)
-    },
+    bounds: calculateBounds(samples),
     duration: samples[samples.length - 1].t,
     startDate,
-    parserStats
+    parserStats,
   };
 }
