@@ -43,7 +43,7 @@ interface VideoPlayerProps {
   selectedLapNumber?: number | null;
   course?: Course | null;
   referenceSamples?: GpsSample[];
-  paceData?: number[];
+  paceData?: (number | null)[];
   sessionFileName?: string | null;
 }
 

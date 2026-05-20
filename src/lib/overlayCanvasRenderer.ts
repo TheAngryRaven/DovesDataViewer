@@ -452,7 +452,7 @@ function drawPace(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: Overl
 
   let maxDelta = 0.5;
   for (const v of ctx.paceData) {
-    if (Math.abs(v) > maxDelta) maxDelta = Math.abs(v);
+    if (v !== null && Math.abs(v) > maxDelta) maxDelta = Math.abs(v);
   }
   maxDelta = Math.min(maxDelta * 1.2, 5);
 

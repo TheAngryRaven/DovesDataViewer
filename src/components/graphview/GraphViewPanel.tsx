@@ -61,7 +61,7 @@ export interface GraphViewPanelProps {
   allSamples?: GpsSample[];
   laps?: Lap[];
   selectedLapNumber?: number | null;
-  paceData?: number[];
+  paceData?: (number | null)[];
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {

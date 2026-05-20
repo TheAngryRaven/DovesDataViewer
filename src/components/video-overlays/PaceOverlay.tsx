@@ -17,7 +17,7 @@ export const PaceOverlay = memo(function PaceOverlay({ instance, ctx, fontSize }
   const maxDelta = useMemo(() => {
     let absMax = 0.5;
     for (const v of ctx.paceData) {
-      if (Math.abs(v) > absMax) absMax = Math.abs(v);
+      if (v !== null && Math.abs(v) > absMax) absMax = Math.abs(v);
     }
     return Math.min(absMax * 1.2, 5);
   }, [ctx.paceData]);

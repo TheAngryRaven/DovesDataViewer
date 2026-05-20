@@ -1,4 +1,4 @@
-import { GpsSample, Course, Lap, LapCrossing, SectorTimes, SectorLine, courseHasSectors } from '@/types/racing';
+import { GpsSample, Course, Lap, LapCrossing, SectorTimes, SectorLine, CourseDirection, courseHasSectors } from '@/types/racing';
 
 interface Point {
   x: number;
@@ -71,7 +71,11 @@ interface LineCrossing {
   direction: number; // 1 or -1
 }
 
-// Detect crossings for a specific line
+// Detect crossings for a specific line.
+//
+// Debouncing is tracked per-direction so that an early opposite-direction
+// crossing (e.g., a GPS glitch on entry) does NOT lock out subsequent correct
+// crossings. After collecting candidates, we keep only the majority direction.
 function detectLineCrossings(
   samples: GpsSample[],
   lineA: Point,
@@ -81,45 +85,47 @@ function detectLineCrossings(
   lineType: 'sf' | 's2' | 's3',
   minInterval: number
 ): LineCrossing[] {
-  const crossings: LineCrossing[] = [];
-  let lastCrossingTime = -minInterval;
-  let lastCrossingDirection = 0;
+  const candidates: LineCrossing[] = [];
+  let lastForwardTime = -minInterval;
+  let lastReverseTime = -minInterval;
 
   for (let i = 0; i < samples.length - 1; i++) {
     const s1 = samples[i];
     const s2 = samples[i + 1];
-    
+
     const p1 = projectToPlane(s1.lat, s1.lon, centerLat, centerLon);
     const p2 = projectToPlane(s2.lat, s2.lon, centerLat, centerLon);
-    
+
     const side1 = sideOfLine(p1, lineA, lineB);
     const side2 = sideOfLine(p2, lineA, lineB);
-    
+
     const fraction = segmentIntersection(p1, p2, lineA, lineB);
-    
+
     if (fraction !== null && fraction >= 0 && fraction <= 1) {
       const crossingTime = s1.t + fraction * (s2.t - s1.t);
-      const crossingDirection = side2 > side1 ? 1 : -1;
-      
-      if (crossingTime - lastCrossingTime >= minInterval) {
-        // For first crossing, accept any direction
-        // For subsequent, require same direction (consistent lap direction)
-        if (crossings.length === 0 || lastCrossingDirection === 0 || crossingDirection === lastCrossingDirection) {
-          crossings.push({
-            lineType,
-            crossingTime,
-            sampleIndex: i,
-            fraction,
-            direction: crossingDirection
-          });
-          lastCrossingTime = crossingTime;
-          lastCrossingDirection = crossingDirection;
-        }
+      const direction = side2 > side1 ? 1 : -1;
+      const lastTime = direction === 1 ? lastForwardTime : lastReverseTime;
+
+      if (crossingTime - lastTime >= minInterval) {
+        candidates.push({ lineType, crossingTime, sampleIndex: i, fraction, direction });
+        if (direction === 1) lastForwardTime = crossingTime;
+        else lastReverseTime = crossingTime;
       }
     }
   }
-  
-  return crossings;
+
+  if (candidates.length === 0) return [];
+
+  // Majority-direction filter: a single wrong-direction glitch is discarded.
+  // Ties resolve to direction=1 (arbitrary but deterministic).
+  let forwardCount = 0;
+  let reverseCount = 0;
+  for (const c of candidates) {
+    if (c.direction === 1) forwardCount++;
+    else reverseCount++;
+  }
+  const winningDirection = forwardCount >= reverseCount ? 1 : -1;
+  return candidates.filter(c => c.direction === winningDirection);
 }
 
 // Project a sector line to planar coordinates
@@ -348,4 +354,57 @@ export function calculateOptimalLap(laps: Lap[]): OptimalLapResult | null {
     bestS3,
     deltaToFastest
   };
+}
+
+/**
+ * Determine the temporal order of S2 vs S3 crossings to infer driving direction.
+ *
+ * Unlike sector times in calculateLaps (which require S2→S3 in order to compute
+ * any sectors at all), this function looks at the FIRST crossing of each sector
+ * line regardless of order, and reports which line was hit first. This works
+ * even when the racing line never produces a valid sector-times triple — e.g.,
+ * when only one of S2/S3 falls on the racing line, or when GPS sample rate is
+ * too low to consistently catch crossings.
+ *
+ * Returns:
+ *   - 'forward' if S2 is crossed before S3
+ *   - 'reverse' if S3 is crossed before S2
+ *   - undefined if either line is never crossed, or the course has no sectors
+ */
+export function detectSectorOrder(samples: GpsSample[], course: Course): CourseDirection | undefined {
+  if (!course.sector2 || !course.sector3 || samples.length < 2) {
+    return undefined;
+  }
+
+  const centerLat = (course.startFinishA.lat + course.startFinishB.lat) / 2;
+  const centerLon = (course.startFinishA.lon + course.startFinishB.lon) / 2;
+
+  const s2Line = projectSectorLine(course.sector2, centerLat, centerLon);
+  const s3Line = projectSectorLine(course.sector3, centerLat, centerLon);
+
+  const firstS2Time = findFirstCrossingTime(samples, s2Line, centerLat, centerLon);
+  const firstS3Time = findFirstCrossingTime(samples, s3Line, centerLat, centerLon);
+
+  if (firstS2Time === null || firstS3Time === null) return undefined;
+  return firstS2Time < firstS3Time ? 'forward' : 'reverse';
+}
+
+/** Find the time of the first crossing of a line by the sample path, regardless of direction. */
+function findFirstCrossingTime(
+  samples: GpsSample[],
+  line: { a: Point; b: Point },
+  centerLat: number,
+  centerLon: number,
+): number | null {
+  for (let i = 0; i < samples.length - 1; i++) {
+    const s1 = samples[i];
+    const s2 = samples[i + 1];
+    const p1 = projectToPlane(s1.lat, s1.lon, centerLat, centerLon);
+    const p2 = projectToPlane(s2.lat, s2.lon, centerLat, centerLon);
+    const fraction = segmentIntersection(p1, p2, line.a, line.b);
+    if (fraction !== null && fraction >= 0 && fraction <= 1) {
+      return s1.t + fraction * (s2.t - s1.t);
+    }
+  }
+  return null;
 }

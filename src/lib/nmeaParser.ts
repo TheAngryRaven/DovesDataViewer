@@ -1,6 +1,14 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
-import { haversineDistance, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
+import {
+  haversineDistance,
+  isTeleportation,
+  MAX_SPEED_MPS,
+  KNOTS_TO_MPS,
+  speedTriple,
+  calculateBounds,
+  normalizeHeading,
+} from './parserUtils';
 
 // Parse NMEA latitude (ddmm.mmmm format)
 function parseNmeaLat(value: string, dir: string): number {
@@ -44,7 +52,7 @@ function parseNmeaDate(value: string): { day: number; month: number; year: numbe
 
 // Convert knots to m/s
 function knotsToMps(knots: number): number {
-  return knots * 0.514444;
+  return knots * KNOTS_TO_MPS;
 }
 
 interface ParsedRmc {
@@ -101,7 +109,12 @@ function parseRmcSentence(sentence: string): ParsedRmc | null {
     lon,
     timeMs,
     speedMps: knotsToMps(speedKnots),
-    heading: heading !== null && !isNaN(heading) ? heading : null,
+    // Reject out-of-range heading values (defensive: corrupted/concatenated
+    // NMEA sentences can put a non-degree value here — e.g., another sentence's
+    // hhmmss.ss time field. COG is always [0, 360]; normalize 360→0.
+    heading: heading !== null && !isNaN(heading) && heading >= 0 && heading <= 360
+      ? normalizeHeading(heading)
+      : null,
     date,
     valid: true
   };
@@ -338,9 +351,7 @@ export function parseDatalog(content: string): ParsedData {
       t,
       lat: parsed.lat,
       lon: parsed.lon,
-      speedMps,
-      speedMph: speedMps * 2.23694,
-      speedKph: speedMps * 3.6,
+      ...speedTriple(speedMps),
       heading: parsed.heading ?? undefined,
       rawNmea: nmeaSentence,
       extraFields
@@ -381,19 +392,10 @@ export function parseDatalog(content: string): ParsedData {
     }
   }
 
-  // Calculate bounds
-  const lats = samples.map(s => s.lat);
-  const lons = samples.map(s => s.lon);
-  
   return {
     samples,
     fieldMappings,
-    bounds: {
-      minLat: Math.min(...lats),
-      maxLat: Math.max(...lats),
-      minLon: Math.min(...lons),
-      maxLon: Math.max(...lons)
-    },
+    bounds: calculateBounds(samples),
     duration: samples[samples.length - 1].t,
     startDate
   };

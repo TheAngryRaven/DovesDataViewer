@@ -99,7 +99,7 @@ export function resolveValue(
   sample: GpsSample,
   currentIndex: number,
   dataSources: DataSourceDef[],
-  paceData: number[],
+  paceData: (number | null)[],
   brakingGData?: number[],
 ): number | null {
   if (sourceId === "__pace__") {
@@ -118,7 +118,7 @@ export function resolveRange(
   sourceId: string,
   samples: GpsSample[],
   dataSources: DataSourceDef[],
-  paceData: number[],
+  paceData: (number | null)[],
   brakingGData?: number[],
 ): { min: number; max: number } {
   if (sourceId === "__braking_g__") {
@@ -127,6 +127,7 @@ export function resolveRange(
   if (sourceId === "__pace__") {
     let min = Infinity, max = -Infinity;
     for (const v of paceData) {
+      if (v === null) continue;
       if (v < min) min = v;
       if (v > max) max = v;
     }

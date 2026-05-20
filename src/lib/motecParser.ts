@@ -1,6 +1,15 @@
 import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
-import { clamp, haversineDistance } from './parserUtils';
+import {
+  haversineDistance,
+  parseCsvLine,
+  validateGpsCoords,
+  normalizeAccelToG,
+  speedTriple,
+  calculateBounds,
+  MPH_TO_MPS,
+  KPH_TO_MPS,
+} from './parserUtils';
 
 /**
  * MoTeC Parser — supports both:
@@ -9,22 +18,6 @@ import { clamp, haversineDistance } from './parserUtils';
  *
  * Based on reverse-engineered format from gotzl/ldparser (GPL-3.0).
  */
-
-// ─── CSV helpers ───────────────────────────────────────────────
-
-function parseQuotedCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { inQuotes = !inQuotes; continue; }
-    if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; continue; }
-    current += ch;
-  }
-  result.push(current.trim());
-  return result;
-}
 
 // ─── MoTeC CSV format detection ────────────────────────────────
 
@@ -59,7 +52,7 @@ export function parseMotecCsvFile(content: string): ParsedData {
   let headerEndIdx = -1;
 
   for (let i = 0; i < Math.min(30, lines.length); i++) {
-    const fields = parseQuotedCsvLine(lines[i]);
+    const fields = parseCsvLine(lines[i]);
     const key = fields[0]?.toLowerCase();
 
     if (key === 'sample rate') {
@@ -77,11 +70,11 @@ export function parseMotecCsvFile(content: string): ParsedData {
     throw new Error('Could not find MoTeC CSV channel header row');
   }
 
-  const channelNames = parseQuotedCsvLine(lines[headerEndIdx]).map(n => n.toLowerCase().trim());
+  const channelNames = parseCsvLine(lines[headerEndIdx]).map(n => n.toLowerCase().trim());
 
   // Next line should be units
   const unitsIdx = headerEndIdx + 1;
-  const units = unitsIdx < lines.length ? parseQuotedCsvLine(lines[unitsIdx]) : [];
+  const units = unitsIdx < lines.length ? parseCsvLine(lines[unitsIdx]) : [];
 
   // Data starts after units row
   const dataStartIdx = unitsIdx + 1;
@@ -113,21 +106,19 @@ export function parseMotecCsvFile(content: string): ParsedData {
 
   // Detect speed unit
   const speedUnit = (units[speedCol] || '').toLowerCase();
-  const speedToMps = speedUnit.includes('mph') ? 0.44704 : (speedUnit.includes('m/s') ? 1 : 1 / 3.6);
+  const speedToMps = speedUnit.includes('mph') ? MPH_TO_MPS : (speedUnit.includes('m/s') ? 1 : KPH_TO_MPS);
 
   const samples: GpsSample[] = [];
-  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
   let prevSample: GpsSample | null = null;
 
   for (let i = dataStartIdx; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const vals = parseQuotedCsvLine(line);
+    const vals = parseCsvLine(line);
 
     const lat = parseFloat(vals[latCol]);
     const lon = parseFloat(vals[lonCol]);
-    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) continue;
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+    if (validateGpsCoords(lat, lon) !== null) continue;
 
     let timeMs = 0;
     if (timeCol >= 0) {
@@ -161,8 +152,8 @@ export function parseMotecCsvFile(content: string): ParsedData {
     tryExtra(throttleCol, 'Throttle');
     tryExtra(waterTempCol, 'Water Temp');
     tryExtra(altCol, 'Altitude');
-    tryExtra(latGCol, 'Lat G', v => clamp(Math.abs(v) > 5 ? v / 9.81 : v, -5, 5));
-    tryExtra(lonGCol, 'Lon G', v => clamp(Math.abs(v) > 5 ? v / 9.81 : v, -5, 5));
+    tryExtra(latGCol, 'Lat G', v => normalizeAccelToG(v));
+    tryExtra(lonGCol, 'Lon G', v => normalizeAccelToG(v));
 
     let heading: number | undefined;
     if (headingCol >= 0) {
@@ -171,16 +162,13 @@ export function parseMotecCsvFile(content: string): ParsedData {
     }
 
     const sample: GpsSample = {
-      t: timeMs, lat, lon, speedMps,
-      speedMph: speedMps * 2.23694,
-      speedKph: speedMps * 3.6,
+      t: timeMs, lat, lon,
+      ...speedTriple(speedMps),
       heading, extraFields,
     };
 
     samples.push(sample);
     prevSample = sample;
-    minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
-    minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
   }
 
   if (samples.length === 0) throw new Error('No valid GPS samples found in MoTeC CSV');
@@ -196,8 +184,8 @@ export function parseMotecCsvFile(content: string): ParsedData {
   return {
     samples,
     fieldMappings: Array.from(fieldNames).map((name, idx) => ({ index: idx, name, enabled: true })),
-    bounds: { minLat, maxLat, minLon, maxLon },
-    duration: samples.length > 0 ? samples[samples.length - 1].t : 0,
+    bounds: calculateBounds(samples),
+    duration: samples[samples.length - 1].t,
   };
 }
 
@@ -394,16 +382,15 @@ export function parseMotecLdFile(buffer: ArrayBuffer): ParsedData {
 
   // Detect speed unit
   const speedUnit = speedCh?.unit?.toLowerCase() || '';
-  const speedToMps = speedUnit.includes('mph') ? 0.44704 : (speedUnit.includes('m/s') ? 1 : 1 / 3.6);
+  const speedToMps = speedUnit.includes('mph') ? MPH_TO_MPS : (speedUnit.includes('m/s') ? 1 : KPH_TO_MPS);
 
   const samples: GpsSample[] = [];
-  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
   let prevSample: GpsSample | null = null;
 
   for (let i = 0; i < nSamples; i++) {
     const lat = latCh.data[i];
     const lon = lonCh.data[i];
-    if (lat === 0 || lon === 0 || lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+    if (validateGpsCoords(lat, lon) !== null) continue;
 
     const timeMs = (i / baseFreq) * 1000;
 
@@ -429,23 +416,20 @@ export function parseMotecLdFile(buffer: ArrayBuffer): ParsedData {
     tryExtra(throttleCh, 'Throttle');
     tryExtra(waterTempCh, 'Water Temp');
     tryExtra(altCh, 'Altitude');
-    tryExtra(latGCh, 'Lat G', v => clamp(Math.abs(v) > 5 ? v / 9.81 : v, -5, 5));
-    tryExtra(lonGCh, 'Lon G', v => clamp(Math.abs(v) > 5 ? v / 9.81 : v, -5, 5));
+    tryExtra(latGCh, 'Lat G', v => normalizeAccelToG(v));
+    tryExtra(lonGCh, 'Lon G', v => normalizeAccelToG(v));
 
     const rawHeading = resample(headingCh, i);
     const heading = rawHeading !== undefined && !isNaN(rawHeading) ? rawHeading : undefined;
 
     const sample: GpsSample = {
-      t: timeMs, lat, lon, speedMps,
-      speedMph: speedMps * 2.23694,
-      speedKph: speedMps * 3.6,
+      t: timeMs, lat, lon,
+      ...speedTriple(speedMps),
       heading, extraFields,
     };
 
     samples.push(sample);
     prevSample = sample;
-    minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
-    minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
   }
 
   if (samples.length === 0) throw new Error('No valid GPS samples found in MoTeC LD file');
@@ -461,7 +445,7 @@ export function parseMotecLdFile(buffer: ArrayBuffer): ParsedData {
   return {
     samples,
     fieldMappings: Array.from(fieldNames).map((name, idx) => ({ index: idx, name, enabled: true })),
-    bounds: { minLat, maxLat, minLon, maxLon },
-    duration: samples.length > 0 ? samples[samples.length - 1].t : 0,
+    bounds: calculateBounds(samples),
+    duration: samples[samples.length - 1].t,
   };
 }

@@ -1,6 +1,16 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
-import { clamp, haversineDistance, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
+import {
+  isTeleportation,
+  MAX_SPEED_MPS,
+  KPH_TO_MPS,
+  parseCsvLine,
+  validateGpsCoords,
+  normalizeAccelToG,
+  normalizeHeading,
+  speedTriple,
+  calculateBounds,
+} from './parserUtils';
 
 /**
  * Alfano CSV Parser
@@ -126,48 +136,32 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   'sats': 'satellites',
 };
 
-// Parse CSV line handling quoted fields
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '\"') {
-      inQuotes = !inQuotes;
-    } else if ((char === ',' || char === ';') && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
-// Detect delimiter (comma or semicolon)
-function detectDelimiter(lines: string[]): string {
+/**
+ * Detect Alfano CSV delimiter (typically comma, sometimes semicolon).
+ * Scans the first 20 lines for whichever delimiter wins by count.
+ */
+function detectAlfanoDelimiter(lines: string[]): string {
   for (const line of lines.slice(0, 20)) {
-    if (line.includes(',')) return ',';
-    if (line.includes(';')) return ';';
+    const commas = (line.match(/,/g) || []).length;
+    const semis = (line.match(/;/g) || []).length;
+    if (commas > 0 || semis > 0) return semis > commas ? ';' : ',';
   }
   return ',';
 }
 
 export function parseAlfanoFile(content: string): ParsedData {
   const lines = content.split(/\r?\n/);
-  
+  const delimiter = detectAlfanoDelimiter(lines);
+
   // Find the header row (first row with recognizable column names)
   let headerIndex = -1;
   let columnMap: Record<string, number> = {};
-  
+
   for (let i = 0; i < Math.min(lines.length, 50); i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    
-    const fields = parseCSVLine(line);
+
+    const fields = parseCsvLine(line, delimiter);
     
     // Check if this looks like a header row
     let matchCount = 0;
@@ -207,16 +201,14 @@ export function parseAlfanoFile(content: string): ParsedData {
     // Skip metadata rows that might appear after header
     if (ALFANO_METADATA_PATTERNS.some(p => p.test(line))) continue;
     
-    const fields = parseCSVLine(line);
+    const fields = parseCsvLine(line, delimiter);
     if (fields.length < 3) continue;
-    
+
     // Parse coordinates
     const lat = columnMap['lat'] !== undefined ? parseFloat(fields[columnMap['lat']]) : NaN;
     const lon = columnMap['lon'] !== undefined ? parseFloat(fields[columnMap['lon']]) : NaN;
-    
-    // Skip rows without valid coordinates
-    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) continue;
-    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+
+    if (validateGpsCoords(lat, lon) !== null) continue;
     
     // Parse time
     let timeMs = 0;
@@ -242,20 +234,16 @@ export function parseAlfanoFile(content: string): ParsedData {
     if (columnMap['speed'] !== undefined) {
       speedKph = parseFloat(fields[columnMap['speed']]) || 0;
     }
-    const speedMps = speedKph / 3.6;
-    
+    const speedMps = speedKph * KPH_TO_MPS;
+
     // Sanity check on speed
     if (speedMps > MAX_SPEED_MPS) continue;
 
     // Parse heading
     let heading: number | undefined;
     if (columnMap['heading'] !== undefined) {
-      heading = parseFloat(fields[columnMap['heading']]);
-      if (isNaN(heading)) heading = undefined;
-      else {
-        while (heading < 0) heading += 360;
-        while (heading >= 360) heading -= 360;
-      }
+      const h = parseFloat(fields[columnMap['heading']]);
+      if (!isNaN(h)) heading = normalizeHeading(h);
     }
     
     // Teleportation filter
@@ -267,22 +255,19 @@ export function parseAlfanoFile(content: string): ParsedData {
     // Build extra fields
     const extraFields: Record<string, number> = {};
     
-    // Native G-forces (may be in m/s² or G)
+    // Native G-forces (may be in m/s² or G — Alfano uses a higher threshold than other formats)
     if (columnMap['latG'] !== undefined) {
-      let latG = parseFloat(fields[columnMap['latG']]);
+      const latG = parseFloat(fields[columnMap['latG']]);
       if (!isNaN(latG)) {
-        // If values are > 10, probably in m/s², convert to G
-        if (Math.abs(latG) > 10) latG = latG / 9.80665;
-        extraFields['Lat G (Native)'] = clamp(latG, -5, 5);
+        extraFields['Lat G (Native)'] = normalizeAccelToG(latG, 10);
         hasNativeG = true;
       }
     }
-    
+
     if (columnMap['lonG'] !== undefined) {
-      let lonG = parseFloat(fields[columnMap['lonG']]);
+      const lonG = parseFloat(fields[columnMap['lonG']]);
       if (!isNaN(lonG)) {
-        if (Math.abs(lonG) > 10) lonG = lonG / 9.80665;
-        extraFields['Lon G (Native)'] = clamp(lonG, -5, 5);
+        extraFields['Lon G (Native)'] = normalizeAccelToG(lonG, 10);
         hasNativeG = true;
       }
     }
@@ -343,9 +328,7 @@ export function parseAlfanoFile(content: string): ParsedData {
       t,
       lat,
       lon,
-      speedMps,
-      speedMph: speedMps * 2.23694,
-      speedKph,
+      ...speedTriple(speedMps),
       heading,
       extraFields
     });
@@ -394,19 +377,10 @@ export function parseAlfanoFile(content: string): ParsedData {
     }
   }
   
-  // Calculate bounds
-  const lats = samples.map(s => s.lat);
-  const lons = samples.map(s => s.lon);
-  
   return {
     samples,
     fieldMappings,
-    bounds: {
-      minLat: Math.min(...lats),
-      maxLat: Math.max(...lats),
-      minLon: Math.min(...lons),
-      maxLon: Math.max(...lons)
-    },
+    bounds: calculateBounds(samples),
     duration: samples[samples.length - 1].t,
     startDate
   };

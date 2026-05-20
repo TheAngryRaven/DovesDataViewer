@@ -1,6 +1,14 @@
 import { GpsSample, FieldMapping, ParsedData } from '@/types/racing';
 import { applyGForceCalculations } from './gforceCalculation';
-import { haversineDistance, isTeleportation, MAX_SPEED_MPS } from './parserUtils';
+import {
+  isTeleportation,
+  MAX_SPEED_MPS,
+  KPH_TO_MPS,
+  speedTriple,
+  calculateBounds,
+  validateGpsCoords,
+  normalizeHeading,
+} from './parserUtils';
 
 /**
  * VBO Parser for Racelogic VBOX data files
@@ -181,11 +189,8 @@ export function parseVboFile(content: string): ParsedData {
     
     const lat = parseVboCoordinate(fields[columnMap['lat']]);
     const lon = parseVboCoordinate(fields[columnMap['lon']]);
-    
-    // Skip invalid coordinates
-    if (lat === 0 || lon === 0 || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
-      continue;
-    }
+
+    if (validateGpsCoords(lat, lon) !== null) continue;
     
     // Parse time
     let timeMs = 0;
@@ -205,21 +210,16 @@ export function parseVboFile(content: string): ParsedData {
     if (columnMap['velocity'] !== undefined && fields[columnMap['velocity']]) {
       speedKph = parseFloat(fields[columnMap['velocity']]) || 0;
     }
-    const speedMps = speedKph / 3.6;
-    
+    const speedMps = speedKph * KPH_TO_MPS;
+
     // Sanity check on speed
     if (speedMps > MAX_SPEED_MPS) continue;
 
     // Parse heading
     let heading: number | undefined;
     if (columnMap['heading'] !== undefined && fields[columnMap['heading']]) {
-      heading = parseFloat(fields[columnMap['heading']]);
-      if (isNaN(heading)) heading = undefined;
-      else {
-        // Normalize to 0-360
-        while (heading < 0) heading += 360;
-        while (heading >= 360) heading -= 360;
-      }
+      const h = parseFloat(fields[columnMap['heading']]);
+      if (!isNaN(h)) heading = normalizeHeading(h);
     }
     
     // Teleportation filter
@@ -270,14 +270,12 @@ export function parseVboFile(content: string): ParsedData {
       t,
       lat,
       lon,
-      speedMps,
-      speedMph: speedMps * 2.23694,
-      speedKph,
+      ...speedTriple(speedMps),
       heading,
       extraFields
     });
   }
-  
+
   if (samples.length === 0) {
     throw new Error('No valid GPS data found in VBO file');
   }
@@ -313,19 +311,10 @@ export function parseVboFile(content: string): ParsedData {
     fieldMappings.push({ index: -15, name: 'Distance', enabled: true });
   }
   
-  // Calculate bounds
-  const lats = samples.map(s => s.lat);
-  const lons = samples.map(s => s.lon);
-  
   return {
     samples,
     fieldMappings,
-    bounds: {
-      minLat: Math.min(...lats),
-      maxLat: Math.max(...lats),
-      minLon: Math.min(...lons),
-      maxLon: Math.max(...lons)
-    },
+    bounds: calculateBounds(samples),
     duration: samples[samples.length - 1].t,
     startDate
   };

@@ -47,7 +47,7 @@ interface InfoBoxProps {
   laps?: Lap[];
   selectedLapNumber?: number | null;
   referenceSamples?: GpsSample[];
-  paceData?: number[];
+  paceData?: (number | null)[];
   sessionFileName?: string | null;
 }
 

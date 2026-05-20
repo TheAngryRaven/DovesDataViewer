@@ -6,8 +6,14 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Gauge, ArrowLeft } from 'lucide-react';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 export default function Register() {
+  useDocumentHead({
+    title: "Register — HackTheTrack",
+    description: "Create a HackTheTrack account to access admin tools for managing tracks, courses and telemetry submissions.",
+    canonical: "https://hackthetrack.net/register",
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

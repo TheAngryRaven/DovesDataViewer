@@ -1,9 +1,16 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { useDocumentHead } from "@/hooks/useDocumentHead";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 
-const Privacy = () => (
+const Privacy = () => {
+  useDocumentHead({
+    title: "Privacy Policy — HackTheTrack",
+    description: "How HackTheTrack handles your data: 100% local-first telemetry storage in your browser, no cookies, no analytics, no tracking.",
+    canonical: "https://hackthetrack.net/privacy",
+  });
+  return (
   <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto">
     <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
       <ArrowLeft className="w-4 h-4" />
@@ -62,6 +69,7 @@ const Privacy = () => (
 
     <p className="mt-10 text-xs text-muted-foreground/60">Last updated: February 2026</p>
   </div>
-);
+  );
+};
 
 export default Privacy;

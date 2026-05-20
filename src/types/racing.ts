@@ -130,6 +130,14 @@ export interface CourseDetectionResult {
   laps: Lap[];
   isWaypointMode: boolean;
   waypointNotice?: string;
+  /**
+   * Relative difference between detected lap distance and the course's known
+   * `lengthFt`, as a non-negative fraction (e.g., 0.05 = 5% off).
+   * Undefined when the matched course has no `lengthFt` or in waypoint mode.
+   * UI can use this to flag low-confidence matches — anything > 0.25 is
+   * outside the course-detection algorithm's documented tolerance.
+   */
+  lengthMatchDiff?: number;
 }
 
 // Selection state for track + course

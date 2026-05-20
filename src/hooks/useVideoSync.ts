@@ -39,11 +39,11 @@ export interface VideoSyncActions {
     updateOverlaySettings: (settings: OverlaySettings) => void;
     deleteStoredVideo: () => Promise<void>;
     refreshStoredMeta: () => Promise<void>;
-    videoRef: React.RefObject<HTMLVideoElement | null>;
+    videoRef: React.RefObject<HTMLVideoElement>;
   }
 
 export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessionFileName }: UseVideoSyncOptions) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastSeekTimeRef = useRef(0);
 

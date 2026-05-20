@@ -7,8 +7,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Gauge, ArrowLeft } from 'lucide-react';
+import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 export default function Login() {
+  useDocumentHead({
+    title: "Admin Login — HackTheTrack",
+    description: "Sign in to the HackTheTrack admin panel to manage tracks, courses, submissions and messages.",
+    canonical: "https://hackthetrack.net/login",
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);

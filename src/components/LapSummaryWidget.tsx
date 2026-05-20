@@ -66,7 +66,7 @@ export function LapSummaryWidget({ laps, course, selectedLap, paceDiff }: LapSum
       )}
 
       {/* Delta to reference - moved to the right */}
-      {paceDiff !== null && (
+      {paceDiff != null && (
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Δ:</span>
           <span 
