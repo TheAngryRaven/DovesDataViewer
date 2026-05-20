@@ -7,6 +7,7 @@ import {
   KNOTS_TO_MPS,
   speedTriple,
   calculateBounds,
+  normalizeHeading,
 } from './parserUtils';
 
 // Parse NMEA latitude (ddmm.mmmm format)
@@ -108,7 +109,12 @@ function parseRmcSentence(sentence: string): ParsedRmc | null {
     lon,
     timeMs,
     speedMps: knotsToMps(speedKnots),
-    heading: heading !== null && !isNaN(heading) ? heading : null,
+    // Reject out-of-range heading values (defensive: corrupted/concatenated
+    // NMEA sentences can put a non-degree value here — e.g., another sentence's
+    // hhmmss.ss time field. COG is always [0, 360]; normalize 360→0.
+    heading: heading !== null && !isNaN(heading) && heading >= 0 && heading <= 360
+      ? normalizeHeading(heading)
+      : null,
     date,
     valid: true
   };
