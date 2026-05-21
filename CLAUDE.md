@@ -370,6 +370,8 @@ Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZo
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 
+`vite.config.ts` defines public backend fallbacks for `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_PROJECT_ID` so production builds still boot if managed env injection is missing; `.env` stays the preferred source when present.
+
 ---
 
 ## Commands
