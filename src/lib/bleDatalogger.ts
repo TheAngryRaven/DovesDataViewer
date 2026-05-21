@@ -121,6 +121,7 @@ export async function requestFileList(
 ): Promise<FileInfo[]> {
   const updateStatus = onStatusChange || (() => {});
 
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     let fileListBuffer = '';
     let fileListTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -226,6 +227,7 @@ export async function downloadFile(
   const updateStatus = onStatusChange || (() => {});
   const updateProgress = onProgress || (() => {});
 
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     const receivedData: Uint8Array[] = [];
     let totalReceived = 0;
@@ -378,6 +380,7 @@ export interface BatteryInfo {
 export async function requestBatteryLevel(
   connection: BleConnection
 ): Promise<BatteryInfo> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -439,6 +442,7 @@ export async function requestBatteryLevel(
 export async function requestSettingsList(
   connection: BleConnection
 ): Promise<Record<string, string>> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     const settings: Record<string, string> = {};
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -509,6 +513,7 @@ export async function getDeviceSetting(
   connection: BleConnection,
   key: string
 ): Promise<string> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -569,6 +574,7 @@ export async function getDeviceSetting(
 export async function resetDeviceSettings(
   connection: BleConnection
 ): Promise<void> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -627,6 +633,7 @@ export async function setDeviceSetting(
   key: string,
   value: string
 ): Promise<void> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -688,6 +695,7 @@ export async function setDeviceSetting(
 export async function requestTrackFileList(
   connection: BleConnection
 ): Promise<string[]> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     const files: string[] = [];
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -758,6 +766,7 @@ export async function downloadTrackFile(
 ): Promise<Uint8Array> {
   const updateProgress = onProgress || (() => {});
 
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     const receivedData: Uint8Array[] = [];
     let totalReceived = 0;
@@ -875,6 +884,7 @@ export async function uploadTrackFile(
   filename: string,
   data: Uint8Array
 ): Promise<void> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     let phase: 'waiting_ready' | 'uploading' | 'waiting_ok' = 'waiting_ready';
@@ -967,6 +977,7 @@ export async function deleteTrackFile(
   connection: BleConnection,
   filename: string
 ): Promise<void> {
+  // eslint-disable-next-line no-async-promise-executor -- intentional: inner try/catch handles rejection; clean refactor blocked on the BLE protocol split (see roadmap)
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
 
