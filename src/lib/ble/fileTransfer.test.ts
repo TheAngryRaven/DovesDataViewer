@@ -67,26 +67,67 @@ describe("requestFileList — LIST protocol", () => {
     ]);
   });
 
-  it("BUG (documented): drops data if END arrives batched in the same notification", async () => {
-    // The current protocol detects END via `chunk.includes("END")`, then parses
-    // the PREVIOUSLY-accumulated `fileListBuffer` — without first appending the
-    // current chunk. If the device ever batches "data|END" into one
-    // notification (it doesn't today; END is its own 3-byte packet), the data
-    // portion of that final chunk is lost.
-    //
-    // Fix would be: always accumulate first, then check for END, and strip
-    // trailing |END from the assembled buffer.
+  it("handles END arriving batched in the same notification as the trailing data", async () => {
+    // Previously this was a "BUG (documented)" test — the chunk-includes-END
+    // check parsed the buffer BEFORE appending the current chunk, so the data
+    // portion of a "data|END" notification was lost. Fix: accumulate first,
+    // then check for END at end-of-buffer.
     const conn = createMockConnection();
     const promise = requestFileList(conn);
     await flushMicrotasks();
 
     conn.characteristics.fileList.simulate("LOG_FIRST.dove:100|");
-    conn.characteristics.fileList.simulate("LOG_LOST.dove:200|END");
+    conn.characteristics.fileList.simulate("LOG_BATCHED.dove:200|END");
 
-    // Current (buggy) behavior: only the first chunk's data is parsed.
-    // LOG_LOST.dove is silently dropped.
     await expect(promise).resolves.toEqual([
       { name: "LOG_FIRST.dove", size: 100 },
+      { name: "LOG_BATCHED.dove", size: 200 },
+    ]);
+  });
+
+  it("handles bare END (no preceding '|') in the same notification as a single entry", async () => {
+    const conn = createMockConnection();
+    const promise = requestFileList(conn);
+    await flushMicrotasks();
+
+    // Whole list + END in a single notification, no trailing pipe
+    conn.characteristics.fileList.simulate("ONLY.dove:42|END");
+
+    await expect(promise).resolves.toEqual([{ name: "ONLY.dove", size: 42 }]);
+  });
+
+  it("handles END with trailing whitespace (e.g., 'END\\n')", async () => {
+    const conn = createMockConnection();
+    const promise = requestFileList(conn);
+    await flushMicrotasks();
+
+    conn.characteristics.fileList.simulate("LOG.dove:50|");
+    conn.characteristics.fileList.simulate("END\r\n");
+
+    await expect(promise).resolves.toEqual([{ name: "LOG.dove", size: 50 }]);
+  });
+
+  it("does NOT false-trigger END detection on filenames starting with 'END'", async () => {
+    // Regression test for the End-anchor regex. A filename like
+    // "ENDURANCE.dove" contains the substring "END" but is not the terminator.
+    // The old `chunk.includes("END")` check would have fired on this; the
+    // anchored regex /\|?END\s*$/ correctly waits for the real END marker.
+    vi.useFakeTimers();
+    const conn = createMockConnection();
+    const promise = requestFileList(conn);
+    await flushMicrotasks();
+
+    // Send a filename that contains END as a substring, but no terminator yet
+    conn.characteristics.fileList.simulate("ENDURANCE.dove:999|");
+    // Confirm the protocol is still listening (didn't false-terminate). If it
+    // had, the buffer would be "" and the file would have been dropped.
+    expect(conn.characteristics.fileList.notificationsStarted).toBe(true);
+
+    // Now finish properly
+    conn.characteristics.fileList.simulate("END");
+
+    await expect(promise).resolves.toEqual([
+      { name: "ENDURANCE.dove", size: 999 },
     ]);
   });
 

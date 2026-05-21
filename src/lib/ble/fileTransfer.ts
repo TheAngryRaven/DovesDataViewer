@@ -31,17 +31,23 @@ export async function requestFileList(
 
       bleLog(`File list chunk (${chunk.length} bytes):`, chunk);
 
-      // Check for END marker
-      if (chunk.trim() === "END" || chunk.includes("END")) {
+      // Always accumulate first. END may arrive batched in the same
+      // notification as the last data segment (e.g., "...|END") — the prior
+      // check-first-then-append order dropped that data.
+      fileListBuffer += chunk;
+
+      // END is sent as its own field in the `|`-separated list. Match `|END`
+      // (or bare `END`) anchored at end-of-buffer, with optional trailing
+      // whitespace. Anchoring at end-of-buffer prevents false matches inside
+      // filenames that happen to start with "END" (e.g. "ENDURANCE.dove").
+      const END_AT_END = /\|?END\s*$/;
+      if (END_AT_END.test(fileListBuffer)) {
         bleLog("END MARKER DETECTED");
-        const cleanBuffer = fileListBuffer.replace("END", "");
+        const cleanBuffer = fileListBuffer.replace(END_AT_END, "");
         cleanup();
         resolve(parseFileList(cleanBuffer));
         return;
       }
-
-      // Accumulate chunk
-      fileListBuffer += chunk;
 
       // Reset timeout - if no data for 2s, assume complete
       // BLE has small MTU (~20 bytes) so large file lists arrive in many chunks
