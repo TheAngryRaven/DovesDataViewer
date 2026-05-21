@@ -10,6 +10,7 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", "dist", ".lovable"],
+    setupFiles: ["./vitest.setup.ts"],
   },
   resolve: {
     alias: {
