@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Loader2, Github, Eye, EyeOff, Heart, FlaskConical, BookOpen, ExternalLink, Shield, Download, Info, FileText } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ContactDialog } from "@/components/ContactDialog";
-import { FileImport } from "@/components/FileImport";
-import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical } from "lucide-react";
+import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { RaceLineTab } from "@/components/tabs/RaceLineTab";
 import { LapTimesTab } from "@/components/tabs/LapTimesTab";
 import { GraphViewTab } from "@/components/tabs/GraphViewTab";
 import { LabsTab } from "@/components/tabs/LabsTab";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { BrowserCompatDialog } from "@/components/BrowserCompatDialog";
 import { SettingsModal } from "@/components/SettingsModal";
 import { FileManagerDrawer } from "@/components/FileManagerDrawer";
 import { Button } from "@/components/ui/button";
@@ -50,7 +45,6 @@ export default function Index() {
   const vehicleManager = useVehicleManager();
   const setupManager = useSetupManager();
   const templateManager = useTemplateManager();
-  const navigate = useNavigate();
   const useKph = settings.useKph;
 
   // Sync dark mode class when settings change (global init is in App.tsx)
@@ -422,326 +416,24 @@ export default function Index() {
   if (!data) {
     return (
       <DeviceProvider>
-      <>
-        <InstallPrompt />
-        <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Gauge className="w-8 h-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
-                <p className="text-sm text-muted-foreground">Experimental Data Viewer</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <FileText className="w-4 h-4" />
-                    <span className="hidden sm:inline">Supported Files</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Supported File Formats</DialogTitle>
-                    <DialogDescription>
-                      All parsing is done locally in your browser — nothing is uploaded.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3 text-sm">
-                    <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
-                      <p className="font-semibold text-foreground">Dove CSV</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Simple CSV with millisecond Unix timestamps, GPS data, RPM, and hardware accelerometer readings. The native format of <a href="https://github.com/TheAngryRaven/DovesDataLogger" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">DovesDataLogger</a>. Extension: <code className="text-primary">.dove</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
-                      <p className="font-semibold text-foreground">Dovex (Extended Dove)</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Extended Dove format with a 4096-byte metadata header containing session info (driver, course, lap times) followed by standard Dove CSV GPS data. Extension: <code className="text-primary">.dovex</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-primary/30 bg-primary/5">
-                      <p className="font-semibold text-foreground">NMEA / CSV (Tab-Delimited)</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code className="text-primary">.nmea</code>, <code className="text-primary">.csv</code>, <code className="text-primary">.txt</code>
-                      </p>
-                    </div>
-
-                    <div className="border-t border-border my-2" />
-
-                    <div className="p-3 rounded-md border border-border bg-muted/30">
-                      <p className="font-semibold text-foreground">u-blox UBX Binary</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Binary NAV-PVT messages from u-blox GPS receivers. Extension: <code className="text-primary">.ubx</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-border bg-muted/30">
-                      <p className="font-semibold text-foreground">Racelogic VBO</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Racelogic VBOX and RaceBox export format. Extension: <code className="text-primary">.vbo</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-border bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground">MoTeC LD Binary</p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-medium">Experimental</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Binary data from MoTeC data loggers and sim racing exports (ACC, iRacing, etc.). Extension: <code className="text-primary">.ld</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-border bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground">MoTeC CSV</p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-medium">Experimental</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        CSV exports from MoTeC i2 Pro analysis software. Extension: <code className="text-primary">.csv</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-border bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground">Alfano CSV</p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-medium">Experimental</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        CSV exports from the Alfano ADA app. Extension: <code className="text-primary">.csv</code>
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-md border border-border bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground">AiM MyChron CSV</p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-medium">Experimental</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        CSV exports from Race Studio 3 (RS2Analysis style) for MyChron 5/6. Extension: <code className="text-primary">.csv</code>
-                      </p>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Info className="w-4 h-4" />
-                    <span className="hidden sm:inline">About</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>About HackTheTrack</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 text-sm text-muted-foreground">
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-1">Works Offline &amp; Can Be Installed</h3>
-                      <p>
-                        HackTheTrack is a fully offline-capable web application. Once loaded, it works without an internet connection — perfect for the track. You can <strong className="text-foreground">install it like a native app</strong> on your phone, tablet, or computer by using the "Install" option in your browser menu (or the prompt that appears at the bottom of the page).
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-1">Your Data Stays on Your Device</h3>
-                      <p>
-                        All data processing happens entirely in your browser. Your log files, session notes, kart setups, and video sync data are saved locally on your device — nothing is uploaded to any server.
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-1">Community Track Database</h3>
-                      <p>
-                        Don't see your track? You can define custom track and course layouts in the editor, then submit them to the site-wide database for everyone to use. Submissions are reviewed before being added.
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-1">Free &amp; Open Source</h3>
-                      <p>
-                        Every feature in HackTheTrack is completely free. The source code is open and available on GitHub. If cloud-saving is added in the future, that may carry a small cost to cover server fees — but all local features will always remain free.
-                      </p>
-                    </div>
-
-                    <div className="border-t border-border pt-4 mt-4">
-                      <h3 className="font-semibold text-foreground mb-2">Features</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                        {[
-                          "Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM, Alfano, Dove, Dovex)",
-                          "Automatic track & course detection within 5 miles",
-                          "Automatic driving direction detection (forward/reverse)",
-                          "Waypoint mode — lap timing anywhere, no track needed",
-                          "Interactive race line map with speed heatmap",
-                          "Braking zone detection & visualization",
-                          "Automatic lap detection via start/finish line",
-                          "3-sector split timing with optimal lap",
-                          "Pro graph view with multi-series telemetry charts",
-                          "Reference lap overlay & pace delta comparison",
-                          "Video sync with telemetry playback",
-                          "9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)",
-                          "MP4 video export with overlays & audio (H.264 + AAC)",
-                          "Vehicle profiles & setup sheet management",
-                          "Session notes per file",
-                          "BLE device integration (DovesDataLogger)",
-                          "Device track sync over Bluetooth",
-                          "Custom track & course editor with community submissions",
-                          "Local weather lookup",
-                          "Dark & light mode",
-                          "PWA — installable & fully offline",
-                        ].map((feat, i) => (
-                          <div key={i} className="flex items-start gap-1.5">
-                            <span className="text-primary mt-0.5">•</span>
-                            <span>{feat}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              <ContactDialog variant="header" />
-
-              <a
-                href="https://github.com/sponsors/TheAngryRaven"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Heart className="w-4 h-4 text-pink-500" />
-                  <span className="hidden sm:inline">Sponsor</span>
-                </Button>
-              </a>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 flex items-center justify-center p-8">
-          <div className="w-full max-w-xl space-y-6">
-            <div className="flex justify-end items-center gap-2">
-              <LocalWeatherDialog />
-            </div>
-
-            <div className="text-center space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                Free Online VBO, MoTeC, AiM & NMEA Telemetry Viewer
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Open any Racelogic VBO, MoTeC i2 (LD/CSV), AiM MyChron, Alfano, u-blox UBX, NMEA or Dove datalog right in your browser. 100% offline — your files never leave your device.
-              </p>
-            </div>
-
-
-            <FileImport
-              onDataLoaded={handleDataLoaded}
-              onOpenFileManager={fileManager.open}
-              autoSave={settings.autoSaveFiles}
-              autoSaveFile={fileManager.saveFile}
-            />
-
-            <div className="text-center text-sm text-muted-foreground space-y-3">
-              <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <h3 className="font-medium text-foreground mb-2">Try it out!</h3>
-                <p className="text-xs mb-3">Load sample data from Orlando Kart Center to see how the viewer works.</p>
-                <Button variant="default" size="sm" onClick={handleLoadSample} disabled={isLoadingSample}>
-                  {isLoadingSample ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Play className="w-4 h-4 mr-2" />
-                  )}
-                  {isLoadingSample ? "Loading..." : "Load Sample Data"}
-                </Button>
-              </div>
-
-            </div>
-
-            <div className="flex justify-center mt-3">
-              <BrowserCompatDialog />
-            </div>
-
-            <div className="flex items-center justify-center gap-8 mt-4">
-              <a href="https://github.com/TheAngryRaven/DovesDataViewer" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-                <Github className="w-5 h-5" /><span className="text-sm">View on GitHub</span>
-              </a>
-              <a href="https://github.com/TheAngryRaven/DovesDataLogger" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-                <Github className="w-5 h-5" /><span className="text-sm">View Datalogger</span>
-              </a>
-              <a href="https://github.com/TheAngryRaven/DovesLapTimer" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-                <Github className="w-5 h-5" /><span className="text-sm">View Timer Library</span>
-              </a>
-            </div>
-
-            <div className="flex items-center justify-center gap-6 mt-3 flex-wrap">
-              <Link to="/privacy" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
-                <Shield className="w-3 h-3" />
-                Privacy Policy
-              </Link>
-              <ContactDialog />
-              <Dialog>
-                <DialogTrigger asChild>
-                  <button className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
-                    <BookOpen className="w-3 h-3" />
-                    Credits
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Credits</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Built on the shoulders of these incredible open-source projects and free services.
-                  </p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      ["React", "https://react.dev"],
-                      ["Vite", "https://vite.dev"],
-                      ["TypeScript", "https://www.typescriptlang.org"],
-                      ["Tailwind CSS", "https://tailwindcss.com"],
-                      ["shadcn/ui", "https://ui.shadcn.com"],
-                      ["Radix UI", "https://www.radix-ui.com"],
-                      ["Leaflet", "https://leafletjs.com"],
-                      ["OpenStreetMap", "https://www.openstreetmap.org"],
-                      ["Lucide Icons", "https://lucide.dev"],
-                      ["TanStack Query", "https://tanstack.com/query"],
-                      ["IEM ASOS (Iowa State)", "https://mesonet.agron.iastate.edu"],
-                      ["NWS API", "https://www.weather.gov/documentation/services-web-api"],
-                      ["Savitzky-Golay (ml.js)", "https://github.com/mljs/savitzky-golay"],
-                      ["Sonner", "https://sonner.emilkowal.dev"],
-                      ["react-resizable-panels", "https://github.com/bvaughn/react-resizable-panels"],
-                      ["MoTeC i2", "https://www.motec.com.au"],
-                    ].map(([name, url]) => (
-                      <a
-                        key={name}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-accent transition-colors text-sm"
-                      >
-                        <span className="font-medium text-foreground">{name}</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      </a>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-              {enableAdmin && (
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                >
-                  <Shield className="w-3 h-3" />
-                  Track Management
-                </button>
-              )}
-            </div>
-          </div>
-        </main>
-      </div>
-      <FileManagerDrawer {...fileManagerProps} />
-      </>
+        <>
+          <InstallPrompt />
+          <LandingPage
+            onDataLoaded={handleDataLoaded}
+            onOpenFileManager={fileManager.open}
+            autoSave={settings.autoSaveFiles}
+            autoSaveFile={fileManager.saveFile}
+            onLoadSample={handleLoadSample}
+            isLoadingSample={isLoadingSample}
+            enableAdmin={enableAdmin}
+          />
+          <FileManagerDrawer {...fileManagerProps} />
+        </>
       </DeviceProvider>
     );
   }
 
+  
   // Data loaded - show main view
     return (
     <DeviceProvider>
