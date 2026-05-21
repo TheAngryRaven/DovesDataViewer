@@ -115,6 +115,8 @@ The app includes an optional admin system for managing a community track databas
 
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
 
+> **Build fallback:** `vite.config.ts` now hardcodes the project's public backend URL, publishable key, and project ID as a fallback for production builds. Local `.env` values still take precedence, but published builds no longer white-screen if managed env injection is temporarily missing.
+
 ### Database Setup
 
 The admin system uses Lovable Cloud (Supabase) for the database. The schema is created automatically via migrations. Tables:
