@@ -24,7 +24,7 @@
 | Layer | Technology |
 |-------|------------|
 | Framework | React 18 + TypeScript |
-| Build | Vite + vite-plugin-pwa |
+| Build | Vite + vite-plugin-pwa (`/service-worker.js` active SW, `/sw.js` cleanup kill-switch) |
 | Styling | Tailwind CSS + shadcn/ui (HSL design tokens in `index.css`) |
 | Mapping | Leaflet (CartoDB + Esri tiles, cached 30 days by SW) |
 | Charts | Custom Canvas 2D (not a library — see `TelemetryChart.tsx`, `SingleSeriesChart.tsx`) |
@@ -369,6 +369,8 @@ Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZo
 | `VITE_ENABLE_REGISTRATION` | Client | `"true"` to enable `/register` route |
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
+
+PWA deployment detail: the active offline-capable worker is emitted as `/service-worker.js` and registered only outside preview/iframe contexts. `public/sw.js` is reserved as a legacy kill-switch worker to evict stale caches from older installs that previously registered `/sw.js`.
 
 `vite.config.ts` defines public backend fallbacks for `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_PROJECT_ID` so production builds still boot if managed env injection is missing; `.env` stays the preferred source when present.
 
