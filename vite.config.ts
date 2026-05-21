@@ -9,6 +9,8 @@ const PUBLIC_BACKEND_FALLBACKS = {
   VITE_SUPABASE_PUBLISHABLE_KEY:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2amxpZW92cHlpZmZicXdodGdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMDQ1MzcsImV4cCI6MjA4NjU4MDUzN30.-LnwDsiT1vmWxfoLiHlK9hHqCzN9ToHeB6qkH5-A2I4",
   VITE_SUPABASE_URL: "https://svjlieovpyiffbqwhtgk.supabase.co",
+  VITE_ENABLE_ADMIN: "true",
+  VITE_ENABLE_REGISTRATION: "true",
 } as const;
 
 // https://vitejs.dev/config/
@@ -29,6 +31,12 @@ export default defineConfig(({ mode }) => {
       ),
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
         env.VITE_SUPABASE_URL || PUBLIC_BACKEND_FALLBACKS.VITE_SUPABASE_URL,
+      ),
+      "import.meta.env.VITE_ENABLE_ADMIN": JSON.stringify(
+        env.VITE_ENABLE_ADMIN || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_ADMIN,
+      ),
+      "import.meta.env.VITE_ENABLE_REGISTRATION": JSON.stringify(
+        env.VITE_ENABLE_REGISTRATION || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_REGISTRATION,
       ),
     },
     plugins: [
