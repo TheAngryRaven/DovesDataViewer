@@ -2,6 +2,8 @@
 
 **Open source motorsport data acquisition and analytics**
 
+[![CI](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/ci.yml/badge.svg)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/ci.yml)
+
 🌐 **Live Demo:** [HackTheTrack.net](https://hackthetrack.net)  
 🔧 **Hardware Project:** [DovesDataLogger on GitHub](https://github.com/TheAngryRaven/DovesDataLogger)
 

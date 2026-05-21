@@ -369,7 +369,12 @@ npm run dev       # Dev server on :8080
 npm run build     # Production build → dist/
 npm run lint      # ESLint
 npm run preview   # Preview production build
+npm test          # Vitest in watch mode
+npm run test:run  # Vitest single pass (CI-style)
 ```
+
+CI (`.github/workflows/ci.yml`) runs typecheck + `test:run` + build on every PR
+and push to `main`. Lint is not yet enforced in CI — see workflow comments.
 
 ---
 
