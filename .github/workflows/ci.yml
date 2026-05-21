@@ -40,5 +40,13 @@ jobs:
       - name: Test
         run: npm run test:run
 
+      # The build needs VITE_* env vars resolved at build time, including the
+      # Supabase URL which the auth context references at app startup. The real
+      # .env isn't checked in (per the .env.example convention); a stub built
+      # from .env.example is enough for the build to succeed — the production
+      # bundle is deployed elsewhere with real values injected.
+      - name: Stub .env for build
+        run: cp .env.example .env
+
       - name: Build
         run: npm run build

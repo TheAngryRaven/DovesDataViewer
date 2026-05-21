@@ -342,9 +342,12 @@ export function calculateOptimalLap(laps: Lap[]): OptimalLapResult | null {
   }
   
   const optimalTimeMs = bestS1 + bestS2 + bestS3;
-  
-  // Find fastest actual lap
-  const fastestLapMs = Math.min(...laps.map(l => l.lapTimeMs));
+
+  // Find fastest actual lap (single-pass to avoid stack overflow on huge inputs)
+  let fastestLapMs = Infinity;
+  for (const l of laps) {
+    if (l.lapTimeMs < fastestLapMs) fastestLapMs = l.lapTimeMs;
+  }
   const deltaToFastest = fastestLapMs - optimalTimeMs;
   
   return {
