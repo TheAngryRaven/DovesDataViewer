@@ -26,6 +26,9 @@ export function useSessionData(
         enabled: !isFieldHiddenByDefault(f.name),
       }))
     );
+    // Intentional: re-run only when visibility settings change, not when
+    // fieldMappings.length changes (new file loads handle their own visibility).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultHiddenFields, isFieldHiddenByDefault]);
 
   const applyFieldMappings = useCallback(

@@ -331,7 +331,7 @@ export default function Index() {
     sessionSetupId,
     onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
   }), [
-    fileManager.isOpen, fileManager.files, fileManager.storageUsed, fileManager.storageQuota,
+    fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
     handleDataLoaded, settings.autoSaveFiles,
     vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,

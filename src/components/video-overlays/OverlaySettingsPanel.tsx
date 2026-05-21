@@ -19,10 +19,10 @@ interface OverlaySettingsPanelProps {
 }
 
 export function OverlaySettingsPanel({ settings, onUpdate, dataSources, hasReference, hasSectors }: OverlaySettingsPanelProps) {
-  const safeSettings: OverlaySettings = {
+  const safeSettings: OverlaySettings = useMemo(() => ({
     overlaysLocked: settings?.overlaysLocked ?? true,
     overlays: settings?.overlays ?? [],
-  };
+  }), [settings?.overlaysLocked, settings?.overlays]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addType, setAddType] = useState<OverlayType | "">("");
 

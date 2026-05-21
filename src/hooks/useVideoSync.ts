@@ -116,6 +116,10 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         await tryLoadStoredVideo(sessionFileName);
       }
     });
+    // `tryLoadStoredVideo` is declared after this effect; including it in deps
+    // would TDZ-throw on render. It's stable (empty-deps useCallback) so the
+    // closure correctly resolves it at effect-run time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionFileName]);
 
   const tryLoadStoredVideo = useCallback(async (fileName: string) => {

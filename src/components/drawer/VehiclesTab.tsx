@@ -31,10 +31,10 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
   const [form, setForm] = useState(emptyForm(defaultTypeId));
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setEditingId(null);
     setForm(emptyForm(defaultTypeId));
-  };
+  }, [defaultTypeId]);
 
   const handleEdit = (vehicle: Vehicle) => {
     setEditingId(vehicle.id);
@@ -56,14 +56,14 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
       await onAdd(form);
     }
     resetForm();
-  }, [editingId, form, onAdd, onUpdate]);
+  }, [editingId, form, onAdd, onUpdate, resetForm]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!confirmDelete) return;
     await onRemove(confirmDelete);
     setConfirmDelete(null);
     if (editingId === confirmDelete) resetForm();
-  }, [confirmDelete, onRemove, editingId]);
+  }, [confirmDelete, onRemove, editingId, resetForm]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
