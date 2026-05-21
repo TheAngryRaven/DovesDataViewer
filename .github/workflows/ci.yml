@@ -1,10 +1,6 @@
 name: CI
 
-# Runs typecheck + tests + build on every PR and every push to main.
-# Lint is intentionally NOT in this workflow yet — the codebase has 100
-# pre-existing lint problems (76 errors, 24 warnings) and adding `npm run
-# lint` here would make CI red from day one. Fix those in a follow-up PR,
-# then add the lint step.
+# Runs lint + typecheck + tests + build on every PR and every push to main.
 
 on:
   push:
@@ -19,7 +15,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, test, build
+    name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,6 +29,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npx tsc --noEmit

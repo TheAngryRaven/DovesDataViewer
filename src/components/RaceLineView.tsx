@@ -232,16 +232,15 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   // Compute braking zones from visible samples
   const brakingZones = useMemo(() => {
     if (samples.length < 10) return [];
-    
-    const config: BrakingZoneConfig = brakingZoneSettings
-      ? {
-          entryThresholdG: -brakingZoneSettings.entryThresholdG,
-          exitThresholdG: -brakingZoneSettings.exitThresholdG,
-          minDurationMs: brakingZoneSettings.minDurationMs,
-          smoothingAlpha: brakingZoneSettings.smoothingAlpha,
-        }
-      : undefined as any;
-    
+    if (!brakingZoneSettings) {
+      return detectBrakingZones(samples); // fall back to DEFAULT_BRAKING_CONFIG
+    }
+    const config: BrakingZoneConfig = {
+      entryThresholdG: -brakingZoneSettings.entryThresholdG,
+      exitThresholdG: -brakingZoneSettings.exitThresholdG,
+      minDurationMs: brakingZoneSettings.minDurationMs,
+      smoothingAlpha: brakingZoneSettings.smoothingAlpha,
+    };
     return detectBrakingZones(samples, config);
   }, [samples, brakingZoneSettings]);
 

@@ -39,7 +39,9 @@ export default defineConfig(({ mode }) => ({
             src: "apple-touch-icon-180x180.png",
             sizes: "180x180",
             type: "image/png",
-            purpose: "apple touch icon" as any,
+            // vite-plugin-pwa's manifest icon `purpose` type doesn't include
+            // "apple touch icon" but iOS supports it; widen to string.
+            purpose: "apple touch icon" as string,
           },
         ],
       },

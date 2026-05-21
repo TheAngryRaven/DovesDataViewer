@@ -179,7 +179,7 @@ async function encodeAudioToMuxer(
       encoder.close();
       resolve(!hadError);
     }).catch(() => {
-      try { encoder.close(); } catch {}
+      try { encoder.close(); } catch { /* encoder already closed during error handling */ }
       resolve(false);
     });
   });
@@ -256,23 +256,22 @@ async function runWebCodecsExport(
     if (isCancelled()) return;
 
     // mp4-muxer setup — include audio track if we have audio
-    const muxerConfig: any = {
+    const muxerConfig = {
       target: new ArrayBufferTarget(),
       video: {
-        codec: "avc",
+        codec: "avc" as const,
         width: targetW,
         height: targetH,
       },
-      fastStart: "in-memory",
+      fastStart: "in-memory" as const,
+      ...(audioBuffer ? {
+        audio: {
+          codec: "aac" as const,
+          numberOfChannels: audioBuffer.numberOfChannels,
+          sampleRate: audioBuffer.sampleRate,
+        },
+      } : {}),
     };
-
-    if (audioBuffer) {
-      muxerConfig.audio = {
-        codec: "aac",
-        numberOfChannels: audioBuffer.numberOfChannels,
-        sampleRate: audioBuffer.sampleRate,
-      };
-    }
 
     const muxer = new Muxer<ArrayBufferTarget>(muxerConfig);
 
@@ -364,7 +363,7 @@ async function runWebCodecsExport(
     if (wasPlaying) video.play();
 
     callbacks.onComplete(blob);
-  } catch (e: any) {
+  } catch (e) {
     callbacks.onError(e.message || "Export failed");
   }
 }
@@ -486,7 +485,7 @@ async function runFallbackExport(
       callbacks.onProgress(Math.min(1, (video.currentTime - startTime) / duration));
       if (!video.ended && !video.paused) {
         if ("requestVideoFrameCallback" in video) {
-          (video as any).requestVideoFrameCallback(drawFrame);
+          video.requestVideoFrameCallback(drawFrame);
         } else {
           requestAnimationFrame(drawFrame);
         }
@@ -494,11 +493,11 @@ async function runFallbackExport(
     };
 
     if ("requestVideoFrameCallback" in video) {
-      (video as any).requestVideoFrameCallback(drawFrame);
+      video.requestVideoFrameCallback(drawFrame);
     } else {
       requestAnimationFrame(drawFrame);
     }
-  } catch (e: any) {
+  } catch (e) {
     callbacks.onError(e.message || "Export failed");
   }
 }

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 
+// eslint-disable-next-line react-refresh/only-export-components -- co-located with the dialog that owns the categories
 export const MESSAGE_CATEGORIES = ["Comment", "Feature Request", "Complaint", "Bug Report"] as const;
 
 export function ContactDialog({ variant = "footer" }: { variant?: "header" | "footer" }) {

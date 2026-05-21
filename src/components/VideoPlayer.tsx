@@ -490,6 +490,10 @@ export const VideoPlayer = memo(function VideoPlayer({
         console.error("Export error:", err);
       },
     });
+    // `actions.videoRef` is a stable RefObject from useVideoSync; depending on
+    // the whole `actions` object would invalidate handleExport on every parent
+    // render, defeating the memoization.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps]);
 
   // Download existing stored video

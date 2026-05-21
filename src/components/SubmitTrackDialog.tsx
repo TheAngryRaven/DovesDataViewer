@@ -67,7 +67,7 @@ export function SubmitTrackDialog({ trigger, prefill }: SubmitTrackDialogProps) 
     
     // Remove previous widget
     if (widgetIdRef.current) {
-      try { win.turnstile.remove(widgetIdRef.current); } catch {}
+      try { win.turnstile.remove(widgetIdRef.current); } catch { /* widget may already be removed */ }
       widgetIdRef.current = null;
     }
 

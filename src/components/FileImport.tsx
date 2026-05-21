@@ -37,7 +37,7 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
         setIsLoading(false);
       }
     },
-    [onDataLoaded],
+    [onDataLoaded, autoSave, autoSaveFile],
   );
 
   const handleFileChange = useCallback(

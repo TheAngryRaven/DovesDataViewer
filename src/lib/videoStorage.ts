@@ -22,11 +22,11 @@ export interface VideoSyncRecord {
 }
 
 /** Migrate old overlay settings format to new */
-function migrateOverlaySettings(raw: any): OverlaySettings {
-  if (!raw) return DEFAULT_OVERLAY_SETTINGS;
+function migrateOverlaySettings(raw: unknown): OverlaySettings {
+  if (!raw || typeof raw !== "object") return DEFAULT_OVERLAY_SETTINGS;
 
   // New format already — has overlays array
-  if (Array.isArray(raw.overlays)) {
+  if (Array.isArray((raw as { overlays?: unknown }).overlays)) {
     return raw as OverlaySettings;
   }
 

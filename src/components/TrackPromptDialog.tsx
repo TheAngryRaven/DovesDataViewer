@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { MapPin, Plus, Check, AlertTriangle, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -45,7 +45,7 @@ export function TrackPromptDialog({
   const form = useTrackEditorForm();
 
   const track = detectedTrack ? tracks.find(t => t.name === detectedTrack.name) ?? detectedTrack : null;
-  const courses = track?.courses ?? [];
+  const courses = useMemo(() => track?.courses ?? [], [track]);
 
   useEffect(() => {
     setTracks(initialTracks);

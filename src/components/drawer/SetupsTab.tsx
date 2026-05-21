@@ -20,7 +20,7 @@ interface SetupsTabProps {
   onUpdate: (setup: VehicleSetup) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
   onGetLatestForVehicle: (vehicleId: string) => Promise<VehicleSetup | null>;
-  onAddVehicleType: (name: string, wheelCount: 2 | 4, includeTires: boolean, sections: TemplateSection[]) => Promise<any>;
+  onAddVehicleType: (name: string, wheelCount: 2 | 4, includeTires: boolean, sections: TemplateSection[]) => Promise<unknown>;
   onRemoveVehicleType: (vehicleTypeId: string, templateId: string) => Promise<void>;
 }
 

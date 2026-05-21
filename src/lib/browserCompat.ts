@@ -4,6 +4,12 @@ export interface CapabilityCheck {
   level: "green" | "yellow" | "red";
 }
 
+// `"X" in Y` is a runtime feature check that TypeScript narrows without
+// needing a cast. Cleaner than `(globalThis as any).X !== undefined`.
+const hasVideoEncoder = "VideoEncoder" in globalThis;
+const hasAudioEncoder = "AudioEncoder" in globalThis;
+const hasBluetooth = "bluetooth" in navigator;
+
 export function detectCapabilities(): CapabilityCheck[] {
   return [
     {
@@ -24,30 +30,18 @@ export function detectCapabilities(): CapabilityCheck[] {
     },
     {
       feature: "Video Export (MP4)",
-      status:
-        typeof (globalThis as any).VideoEncoder !== "undefined"
-          ? "MP4 (H.264)"
-          : "WebM fallback",
-      level:
-        typeof (globalThis as any).VideoEncoder !== "undefined"
-          ? "green"
-          : "yellow",
+      status: hasVideoEncoder ? "MP4 (H.264)" : "WebM fallback",
+      level: hasVideoEncoder ? "green" : "yellow",
     },
     {
       feature: "Audio in Export",
-      status:
-        typeof (globalThis as any).AudioEncoder !== "undefined"
-          ? "Supported"
-          : "Silent exports",
-      level:
-        typeof (globalThis as any).AudioEncoder !== "undefined"
-          ? "green"
-          : "yellow",
+      status: hasAudioEncoder ? "Supported" : "Silent exports",
+      level: hasAudioEncoder ? "green" : "yellow",
     },
     {
       feature: "BLE Datalogger",
-      status: !!(navigator as any).bluetooth ? "Supported" : "Not Available",
-      level: !!(navigator as any).bluetooth ? "green" : "red",
+      status: hasBluetooth ? "Supported" : "Not Available",
+      level: hasBluetooth ? "green" : "red",
     },
     {
       feature: "File Picker",

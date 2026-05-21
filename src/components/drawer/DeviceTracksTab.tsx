@@ -121,8 +121,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       await uploadTrackFile(connection, entry.shortName + ".json", data);
       toast.success(`Sent ${entry.shortName} to device`);
       await syncAll();
-    } catch (err: any) {
-      toast.error(`Send failed: ${err?.message || "Unknown error"}`);
+    } catch (err) {
+      toast.error(`Send failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setUploading(null);
     }
@@ -141,8 +141,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       const tracks = await loadTracks();
       setAppTracks(tracks);
       setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
-    } catch (err: any) {
-      toast.error(`Download failed: ${err?.message || "Unknown error"}`);
+    } catch (err) {
+      toast.error(`Download failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
@@ -154,8 +154,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       toast.success(`Deleted ${entry.shortName} from device`);
       setDeleteConfirm(null);
       await syncAll();
-    } catch (err: any) {
-      toast.error(`Delete failed: ${err?.message || "Unknown error"}`);
+    } catch (err) {
+      toast.error(`Delete failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setUploading(null);
     }
@@ -179,8 +179,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       }
       setDeleteConfirm(null);
       await syncAll();
-    } catch (err: any) {
-      toast.error(`Delete failed: ${err?.message || "Unknown error"}`);
+    } catch (err) {
+      toast.error(`Delete failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setUploading(null);
     }
@@ -216,8 +216,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       toast.success(`Sent course "${courseName}" to device`);
       setDiffCourse(null);
       await syncAll();
-    } catch (err: any) {
-      toast.error(`Send failed: ${err?.message || "Unknown error"}`);
+    } catch (err) {
+      toast.error(`Send failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setUploading(null);
     }
@@ -236,8 +236,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
       const updated = buildMergedTrackList(tracks, deviceFiles).find(t => t.shortName === trackEntry.shortName);
       if (updated) setSelectedTrack(updated);
-    } catch (err: any) {
-      toast.error(`Download failed: ${err?.message || "Unknown error"}`);
+    } catch (err) {
+      toast.error(`Download failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
@@ -266,7 +266,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         const json = buildTrackJsonForUpload(entry.appTrack!);
         const data = new TextEncoder().encode(json);
         await uploadTrackFile(connection, entry.shortName + ".json", data);
-      } catch (err: any) {
+      } catch (err) {
         console.error(`Resync failed for ${entry.shortName}:`, err);
         toast.error(`Failed to sync ${entry.shortName}: ${err?.message || "Unknown"}`);
       }

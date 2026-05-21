@@ -134,6 +134,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
   // Course Layouts — table may not be in auto-generated types yet, use .from() with type assertion
   async getLayout(courseId: string): Promise<DbCourseLayout | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
     const { data, error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
       .select('*')
       .eq('course_id', courseId)
@@ -144,6 +145,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
 
   async getLayoutsForCourses(courseIds: string[]): Promise<DbCourseLayout[]> {
     if (courseIds.length === 0) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
     const { data, error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
       .select('*')
       .in('course_id', courseIds);
@@ -152,6 +154,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
   }
 
   async saveLayout(courseId: string, layoutData: Array<{ lat: number; lon: number }>): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
     const { error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
       .upsert(
         { course_id: courseId, layout_data: layoutData },
@@ -161,6 +164,7 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
   }
 
   async deleteLayout(courseId: string): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
     const { error } = await (supabase as unknown as { from: (t: string) => any }).from('course_layouts')
       .delete()
       .eq('course_id', courseId);
@@ -403,13 +407,16 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
         if (c.lengthFt !== undefined && c.lengthFt !== null) {
           const lengthFt = Number(c.lengthFt);
           if (!isNaN(lengthFt) && lengthFt > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
             (courseData as any).length_ft_override = Math.round(lengthFt);
           }
         }
 
         if (existingCourse) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
           await supabase.from('courses').update(courseData as any).eq('id', existingCourse.id);
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
           await supabase.from('courses').insert({ ...courseData, superseded_by: null } as any);
         }
       }

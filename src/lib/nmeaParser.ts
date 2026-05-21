@@ -218,13 +218,13 @@ export function parseDatalog(content: string): ParsedData {
   let baseTimeMs = 0;
   let lastTimeMs = 0;
   let dayOffset = 0;
-  let ggaDayOffset = 0;
-  let lastGgaTimeMs = 0;
+  const ggaDayOffset = 0;
+  const lastGgaTimeMs = 0;
 
   // Helper to find closest GGA data within tolerance
   const findGgaData = (timeMs: number): ParsedGga | null => {
     // Handle midnight wrap for GGA lookup
-    let lookupTime = timeMs % 86400000; // Time of day
+    const lookupTime = timeMs % 86400000; // Time of day
     
     // Direct match
     if (ggaData.has(lookupTime)) {

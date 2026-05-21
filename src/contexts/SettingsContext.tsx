@@ -27,6 +27,7 @@ export function SettingsProvider({ children, value }: { children: React.ReactNod
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- useSettingsContext hook is conventionally co-located with SettingsProvider
 export function useSettingsContext(): SettingsContextValue {
   const ctx = useContext(SettingsContext);
   if (!ctx) throw new Error('useSettingsContext must be used within SettingsProvider');

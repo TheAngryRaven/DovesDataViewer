@@ -51,7 +51,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
           saving: false,
         }))
       );
-    } catch (err: any) {
+    } catch (err) {
       setFetchError(err?.message ?? "Failed to read settings");
     } finally {
       setLoading(false);
@@ -88,7 +88,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
         )
       );
       toast.success(`Saved ${getSettingDef(row.key)?.label ?? row.key}`);
-    } catch (err: any) {
+    } catch (err) {
       setRows((prev) =>
         prev.map((r, i) => (i === index ? { ...r, saving: false } : r))
       );
@@ -106,7 +106,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
       await resetDeviceSettings(connection);
       toast.success("Settings reset to defaults — device is rebooting");
       onResetComplete?.();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(`Reset failed: ${err?.message ?? "Unknown error"}`);
       setResetting(false);
       setConfirmReset(false);

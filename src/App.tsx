@@ -29,7 +29,7 @@ const App = () => {
         const stored = localStorage.getItem(SETTINGS_KEY);
         const dark = stored ? JSON.parse(stored).darkMode : false;
         document.documentElement.classList.toggle('dark', !!dark);
-      } catch {}
+      } catch { /* malformed settings; fall through to default light mode */ }
     };
     apply();
     window.addEventListener('storage', apply);

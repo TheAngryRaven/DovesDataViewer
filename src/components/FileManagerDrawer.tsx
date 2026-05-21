@@ -68,7 +68,7 @@ interface FileManagerDrawerProps {
   onUpdateSetup: (setup: VehicleSetup) => Promise<void>;
   onRemoveSetup: (id: string) => Promise<void>;
   onGetLatestSetupForVehicle: (vehicleId: string) => Promise<VehicleSetup | null>;
-  onAddVehicleType: (name: string, wheelCount: 2 | 4, includeTires: boolean, sections: TemplateSection[]) => Promise<any>;
+  onAddVehicleType: (name: string, wheelCount: 2 | 4, includeTires: boolean, sections: TemplateSection[]) => Promise<unknown>;
   onRemoveVehicleType: (vehicleTypeId: string, templateId: string) => Promise<void>;
 }
 

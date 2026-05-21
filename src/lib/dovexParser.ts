@@ -34,6 +34,7 @@ function findDoveCsvStart(content: string): number {
 
     const lineStart = lower.lastIndexOf('\n', timestampIdx);
     const candidateStart = lineStart === -1 ? 0 : lineStart + 1;
+    // eslint-disable-next-line no-control-regex -- intentional: strip null-byte padding between metadata header and embedded Dove CSV
     const candidate = content.substring(candidateStart).replace(/^\u0000+/, '');
 
     if (isDoveFormat(candidate)) {
@@ -45,6 +46,7 @@ function findDoveCsvStart(content: string): number {
 
   // Backward-compat fallback for original fixed-size preamble
   if (content.length >= LEGACY_HEADER_SIZE + 50) {
+    // eslint-disable-next-line no-control-regex -- intentional: strip null-byte padding (legacy fixed-header dovex)
     const legacyCandidate = content.substring(LEGACY_HEADER_SIZE).replace(/^\u0000+/, '');
     if (isDoveFormat(legacyCandidate)) {
       return LEGACY_HEADER_SIZE;
@@ -138,6 +140,7 @@ export function parseDovexFile(content: string): ParsedData {
   }
 
   const headerText = content.substring(0, csvStart);
+  // eslint-disable-next-line no-control-regex -- intentional: strip null-byte padding from the embedded Dove CSV start
   const csvContent = content.substring(csvStart).replace(/^\u0000+/, '');
 
   // Parse the GPS data using the standard Dove parser

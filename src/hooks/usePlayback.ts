@@ -67,6 +67,8 @@ export function usePlayback({
   }, []);
 
   // Stop playback when visible range changes
+  const rangeStart = visibleRange[0];
+  const rangeEnd = visibleRange[1];
   useEffect(() => {
     if (isPlaying) {
       setIsPlaying(false);
@@ -75,7 +77,10 @@ export function usePlayback({
         animationRef.current = null;
       }
     }
-  }, [visibleRange[0], visibleRange[1]]);
+    // Intentional: react only to range edits. Including `isPlaying` would
+    // fire the effect when playback starts and immediately stop it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeStart, rangeEnd]);
 
   const animate = useCallback((timestamp: number) => {
     if (!isPlaying) return;

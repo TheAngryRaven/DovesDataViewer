@@ -34,6 +34,7 @@ export function MessagesTab({ onUnreadCount }: { onUnreadCount?: (count: number)
   const fetchMessages = useCallback(async () => {
     setLoading(true);
     // Need to cast since messages table isn't in generated types yet
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
     const { data, error } = await (supabase as any)
       .from("messages")
       .select("*")
@@ -52,6 +53,7 @@ export function MessagesTab({ onUnreadCount }: { onUnreadCount?: (count: number)
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
 
   const markAsRead = async (id: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
     await (supabase as any).from("messages").update({ is_read: true }).eq("id", id);
     setMessages(prev => prev.map(m => m.id === id ? { ...m, is_read: true } : m));
     const newUnread = messages.filter(m => !m.is_read && m.id !== id).length;
@@ -59,6 +61,7 @@ export function MessagesTab({ onUnreadCount }: { onUnreadCount?: (count: number)
   };
 
   const deleteMessage = async (id: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
     const { error } = await (supabase as any).from("messages").delete().eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });

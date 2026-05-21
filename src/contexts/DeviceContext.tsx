@@ -86,6 +86,7 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- useDeviceContext hook is conventionally co-located with DeviceProvider
 export function useDeviceContext(): DeviceContextValue {
   const ctx = useContext(DeviceContext);
   if (!ctx) throw new Error("useDeviceContext must be used within <DeviceProvider>");

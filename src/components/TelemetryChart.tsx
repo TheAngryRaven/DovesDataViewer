@@ -65,7 +65,7 @@ export function TelemetryChart({
   }, [samples, smoothingWindowSize]);
 
   const speedUnit = useKph ? 'KPH' : 'MPH';
-  const getSpeed = (sample: GpsSample) => useKph ? sample.speedKph : sample.speedMph;
+  const getSpeed = useCallback((sample: GpsSample) => useKph ? sample.speedKph : sample.speedMph, [useKph]);
 
   // Handle resize
   useEffect(() => {
@@ -432,7 +432,7 @@ export function TelemetryChart({
       });
     }
 
-  }, [samples, currentIndex, dimensions, enabledFields, useKph, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace, smoothedGForceData, chartColors]);
+  }, [samples, currentIndex, dimensions, enabledFields, useKph, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace, smoothedGForceData, chartColors, fieldMappings, getSpeed]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {

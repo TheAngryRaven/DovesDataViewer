@@ -430,6 +430,7 @@ export function CoursesTab() {
                     <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded" title="No sector lines defined">No Sectors</span>
                   )}
                   {(() => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- length_ft_override column not in generated types; remove on next regen
                     const overrideFt = (course as any).length_ft_override;
                     if (overrideFt != null) {
                       return <span className="text-xs text-yellow-500" title="Manual override">{overrideFt} ft ⚡</span>;
@@ -489,6 +490,7 @@ export function CoursesTab() {
               const calculatedFt = layout && layout.layout_data.length >= 2
                 ? Math.round(calculatePolylineLength(layout.layout_data) * 3.28084)
                 : null;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- length_ft_override column not in generated types; remove on next regen
               const overrideVal = (course as any).length_ft_override as number | null;
               return (
                 <div key={course.id} className="flex items-center gap-3 text-sm">
@@ -507,7 +509,9 @@ export function CoursesTab() {
                         const val = e.target.value.trim();
                         const newOverride = val === '' ? null : parseInt(val, 10);
                         try {
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- length_ft_override column not in generated types; remove on next regen
                           await db.updateCourse(course.id, { length_ft_override: newOverride } as any);
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- length_ft_override column not in generated types; remove on next regen
                           setCourses(prev => prev.map(c => c.id === course.id ? { ...c, length_ft_override: newOverride } as any : c));
                         } catch (err: unknown) {
                           toast({ title: 'Error', description: (err as Error).message, variant: 'destructive' });

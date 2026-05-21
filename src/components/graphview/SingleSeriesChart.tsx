@@ -236,7 +236,7 @@ export function SingleSeriesChart({
       ctx.stroke();
 
       // Current value tooltip
-      let displayVal = values[currentIndex];
+      const displayVal = values[currentIndex];
       if (displayVal !== undefined) {
         const unit = isPace ? 's' : isBrakingG ? 'G' : isSpeed ? (useKph ? ' kph' : ' mph') : '';
         const prefix = (isPace || isBrakingG) && displayVal > 0 ? '+' : '';

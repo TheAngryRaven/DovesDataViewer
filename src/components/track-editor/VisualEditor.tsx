@@ -765,6 +765,10 @@ export function VisualEditor({
         mapRef.current = null;
       }
     };
+    // Mount-only effect — Leaflet setup; helpers used here intentionally not in
+    // deps to avoid map reinit on every helper reference change. Slated for the
+    // Leaflet integration cleanup in the post-Index.tsx roadmap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle resize
@@ -790,6 +794,9 @@ export function VisualEditor({
       clearEditingLayers();
       drawStaticLines(mapRef.current, null);
     }
+    // Helpers omitted intentionally — including them would re-fire the layer
+    // redraw on every parent render. Slated for the Leaflet refactor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTool, pendingStartFinish, pendingSector2, pendingSector3]);
 
   const getHelperText = (): string => {
