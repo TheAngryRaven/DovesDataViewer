@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Live App — HackTheTrack.net
+    url: https://hackthetrack.net
+    about: Try the app directly in your browser.
+  - name: DovesDataLogger (Hardware)
+    url: https://github.com/TheAngryRaven/DovesDataLogger
+    about: Issues with the ESP32 GPS logger hardware belong in its own repo.
+  - name: Security Vulnerability
+    url: https://github.com/TheAngryRaven/DovesDataViewer/security/advisories/new
+    about: Report security issues privately — do not open a public issue.

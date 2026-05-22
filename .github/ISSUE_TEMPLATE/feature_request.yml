@@ -1,0 +1,46 @@
+name: Feature Request
+description: Suggest a new feature, parser, or improvement.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Remember the #1 rule: features should work
+        **offline** wherever possible (weather, map tiles, and admin are the
+        only allowed exceptions).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or pain point, not just the solution.
+      placeholder: I log with device X, and there's no parser for its format...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like to see? Mockups or examples welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - "New file-format parser"
+        - "Visualization / charts"
+        - "Video / overlays"
+        - "BLE / device integration"
+        - "Track / course editor"
+        - "Data management (vehicles, setups, notes)"
+        - "PWA / offline / performance"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

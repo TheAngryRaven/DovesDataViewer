@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report something that isn't working as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! Please fill out the details
+        below so we can reproduce and fix it.
+
+        **Security issue?** Do not file it here — see `SECURITY.md` instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+      placeholder: When I import a .vbo file, the lap times are all zero...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app
+        2. Import file X
+        3. Switch to Pro view
+        4. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: file-format
+    attributes:
+      label: File format involved
+      description: Parsers are format-specific — this helps narrow it down.
+      options:
+        - "Not file-related"
+        - "UBX (.ubx)"
+        - "VBO (.vbo)"
+        - "Dove (.dove)"
+        - "Dovex (.dovex)"
+        - "Alfano (.csv)"
+        - "AiM MyChron (.csv)"
+        - "MoTeC CSV (.csv)"
+        - "MoTeC LD (.ld)"
+        - "NMEA (.nmea/.txt/.csv)"
+        - "Other / unsure"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser & OS
+      placeholder: "Chrome 125 on Windows 11 / Safari 17 on iOS"
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample file or screenshots
+      description: If possible, attach a sample file (or a snippet) and any screenshots. Telemetry stays local, so a sample helps enormously.
+    validations:
+      required: false
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      description: Anything in the browser dev console (F12 → Console)?
+      render: shell
+    validations:
+      required: false

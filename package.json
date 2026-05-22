@@ -1,7 +1,18 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "doves-dataviewer",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Open-source, offline-first motorsport telemetry viewer (Dove's DataViewer / HackTheTrack).",
+  "license": "GPL-3.0-or-later",
+  "author": "TheAngryRaven",
+  "homepage": "https://hackthetrack.net",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheAngryRaven/DovesDataViewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TheAngryRaven/DovesDataViewer/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

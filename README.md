@@ -206,6 +206,9 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Preview production build locally |
 | `npm run lint` | Run ESLint |
+| `npm run typecheck` | Type-check via `tsc -b` (build mode — follows project references) |
+| `npm test` | Run Vitest in watch mode |
+| `npm run test:run` | Run Vitest once (CI-style) |
 
 ---
 
@@ -233,3 +236,42 @@ src/
 ├── pages/           # Route pages
 └── types/           # TypeScript definitions
 ```
+
+---
+
+## Contributing
+
+Contributions are welcome — new parsers, bug fixes, overlays, and reusability
+rewrites especially. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for dev setup,
+coding conventions, how to add a new parser, and the PR checklist.
+
+By participating you agree to abide by our Code of Conduct (`CODE_OF_CONDUCT.md`).
+
+Found a security issue? Please follow the disclosure process in
+**[SECURITY.md](SECURITY.md)** rather than opening a public issue.
+
+Release history is tracked in **[CHANGELOG.md](CHANGELOG.md)**.
+
+---
+
+## Credits
+
+Built on the shoulders of these incredible open-source projects and free services:
+
+- [React](https://react.dev) · [Vite](https://vite.dev) · [TypeScript](https://www.typescriptlang.org)
+- [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
+- [Leaflet](https://leafletjs.com) · [OpenStreetMap](https://www.openstreetmap.org)
+- [TanStack Query](https://tanstack.com/query) · [Sonner](https://sonner.emilkowal.dev) · [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels)
+- [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) · [Savitzky-Golay (ml.js)](https://github.com/mljs/savitzky-golay) · [JSZip](https://stuk.github.io/jszip) · [fix-webm-duration](https://github.com/yusitnikov/fix-webm-duration)
+- [IEM ASOS (Iowa State)](https://mesonet.agron.iastate.edu) · [NWS API](https://www.weather.gov/documentation/services-web-api)
+- [MoTeC i2](https://www.motec.com.au) (file format reference)
+
+Optional admin backend powered by [Supabase](https://supabase.com) via Lovable Cloud.
+
+---
+
+## License
+
+Licensed under the **GNU General Public License v3.0 (or later)** — see
+**[LICENSE](LICENSE)**. You are free to use, modify, and self-host; derivative
+works that you distribute must also be released under the GPL.

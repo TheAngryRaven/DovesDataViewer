@@ -19,6 +19,9 @@ const CREDITS: ReadonlyArray<readonly [name: string, url: string]> = [
   ["Savitzky-Golay (ml.js)", "https://github.com/mljs/savitzky-golay"],
   ["Sonner", "https://sonner.emilkowal.dev"],
   ["react-resizable-panels", "https://github.com/bvaughn/react-resizable-panels"],
+  ["mp4-muxer", "https://github.com/Vanilagy/mp4-muxer"],
+  ["fix-webm-duration", "https://github.com/yusitnikov/fix-webm-duration"],
+  ["JSZip", "https://stuk.github.io/jszip"],
   ["MoTeC i2", "https://www.motec.com.au"],
 ];
 
