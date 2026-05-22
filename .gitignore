@@ -15,6 +15,9 @@ dist-ssr
 # TypeScript incremental build info (created by `tsc -b`)
 *.tsbuildinfo
 
+# Test coverage output (created by `npm run test:coverage`)
+coverage
+
 # Environment — see .env.example for the schema
 .env
 .env.local
