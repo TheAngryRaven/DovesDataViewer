@@ -174,6 +174,11 @@ src/
 │   │   ├── supabaseAdapter.ts # Supabase implementation
 │   │   └── index.ts           # Factory: getDatabase()
 │   └── utils.ts               # Tailwind cn() helper
+├── plugins/                   # ★ Plugin framework (auto-discovered via import.meta.glob)
+│   ├── types.ts               # DataViewerPlugin / PluginContext / PluginRegistry contracts
+│   ├── registry.ts            # Singleton registry + generic extension points
+│   ├── index.ts               # initPlugins() — discovery + setup (called in main.tsx)
+│   └── coaching/              # Gitignored private slot (AI coaching submodule)
 ├── types/
 │   └── racing.ts              # ★ Core types: GpsSample, ParsedData, Lap, Course, Track, etc.
 ├── contexts/
@@ -204,6 +209,31 @@ File Import (drag-drop / BLE download / file manager)
       Simple mode: RaceLineView (Leaflet map) + TelemetryChart (Canvas)
       Pro mode: GraphViewPanel (multi-series Canvas charts) + MiniMap (Leaflet)
 ```
+
+---
+
+## Plugin Framework (`src/plugins/`)
+
+Modular extension system. The open-source app defines the contract; plugins
+(first-party or private) implement `DataViewerPlugin` and are **auto-discovered**
+from `src/plugins/<name>/index.ts` via `import.meta.glob`. A folder absent at
+build time simply never loads — the app builds/runs without it.
+
+| File | Purpose |
+|------|---------|
+| `types.ts` | `DataViewerPlugin`, `PluginContext`, `PluginRegistry` contracts |
+| `registry.ts` | Singleton registry: `register`/`get`/`list` + generic `contribute`/`getContributions` extension points |
+| `index.ts` | `initPlugins()` — glob discovery + runs each plugin's `setup(ctx)`. Called once in `main.tsx` before render |
+| `coaching/` | **Gitignored** private slot. Mounted as a git submodule in private forks (AI coaching). No `.gitmodules` entry in the public repo, so Lovable's plain clone builds with an empty slot |
+
+A plugin default-exports `{ id, name, version?, setup?(ctx) }`. In `setup`, it
+contributes to named extension points (`ctx.registry.contribute(point, value)`);
+consumers read via `getContributions(point)`. New extension points need no
+registry changes. See `src/plugins/README.md` for the submodule workflow.
+
+Offline-first note: plugins are bundled internal code. Only a plugin's runtime
+network calls (e.g. AI model APIs) go online — the accepted compromise. Supabase
+cloud is purely file-sync.
 
 ---
 

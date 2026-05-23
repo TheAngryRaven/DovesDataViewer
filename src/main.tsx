@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { toast } from "@/components/ui/sonner";
 import { registerSW } from "virtual:pwa-register";
+import { initPlugins } from "@/plugins";
 
 /**
  * "Never auto-dismiss" duration for sonner toasts. Sonner doesn't export a
@@ -13,6 +14,8 @@ import { registerSW } from "virtual:pwa-register";
  * long before this expires.
  */
 const PERSISTENT_TOAST_DURATION_MS = 24 * 60 * 60 * 1000;
+
+initPlugins();
 
 createRoot(document.getElementById("root")!).render(<App />);
 

@@ -23,6 +23,11 @@ coverage
 .env.local
 .env.*.local
 
+# Private plugin slot — mounted as a submodule in private forks (e.g. the AI
+# coaching plugin). Absent in the public repo and on Lovable; the plugin loader
+# discovers it only when present. See src/plugins/README.md.
+src/plugins/coaching/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
