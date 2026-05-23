@@ -48,7 +48,7 @@
     "fix-webm-duration": "^1.0.6",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
-    "lucide-react": "^0.462.0",
+    "lucide-react": "^1.16.0",
     "ml-savitzky-golay": "^5.0.0",
     "mp4-muxer": "^5.2.2",
     "react": "^18.3.1",
