@@ -1,20 +1,18 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { CloudUpload, CloudDownload, LogOut, WifiOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { pushAll, pullAll } from "./syncEngine";
 
-type Busy = "push" | "pull" | "login" | null;
+type Busy = "push" | "pull" | "google" | null;
 
 export default function CloudSyncPanel() {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, logout, signInWithGoogle } = useAuth();
   const online = useOnlineStatus();
   const [busy, setBusy] = useState<Busy>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
 
   if (loading) {
     return (
@@ -25,43 +23,34 @@ export default function CloudSyncPanel() {
   }
 
   if (!user) {
-    const onSubmit = async (e: FormEvent) => {
-      e.preventDefault();
-      setBusy("login");
-      const { error } = await login(email, password);
-      setBusy(null);
-      if (error) toast.error(error.message || "Sign-in failed");
+    const handleGoogle = async () => {
+      setBusy("google");
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setBusy(null);
+        toast.error(error.message || "Google sign-in failed");
+      }
     };
     return (
-      <form onSubmit={onSubmit} className="space-y-3 max-w-sm">
+      <div className="space-y-3 max-w-sm">
         <p className="text-xs text-muted-foreground">
-          Sign in to sync your files and garage across devices. More sign-in options coming soon.
+          Sign in to back up and sync your files, garage and notes across devices. Cloud Sync is optional — the app works fully offline without it.
         </p>
-        <Input
-          type="email"
-          autoComplete="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          type="password"
-          autoComplete="current-password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <Button type="submit" disabled={busy === "login" || !online} className="w-full">
-          {busy === "login" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign in"}
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button variant="outline" onClick={handleGoogle} disabled={busy !== null || !online}>
+            {busy === "google" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Continue with Google"}
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button asChild variant="secondary"><Link to="/login?next=/">Sign in</Link></Button>
+            <Button asChild><Link to="/register">Create account</Link></Button>
+          </div>
+        </div>
         {!online && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <WifiOff className="w-3.5 h-3.5" /> You're offline — sign-in needs a connection.
           </p>
         )}
-      </form>
+      </div>
     );
   }
 
@@ -78,9 +67,7 @@ export default function CloudSyncPanel() {
   };
 
   const runPull = async () => {
-    if (!window.confirm("Pull merges your cloud copy into this device, overwriting any local records with the same name. Continue?")) {
-      return;
-    }
+    if (!window.confirm("Pull merges your cloud copy into this device, overwriting any local records with the same name. Continue?")) return;
     setBusy("pull");
     try {
       const r = await pullAll(user.id);
