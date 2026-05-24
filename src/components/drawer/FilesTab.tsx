@@ -169,6 +169,11 @@ export function FilesTab({
 
       {/* File List */}
       <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-1">
+        {/* Plugin-contributed file-manager section (e.g. cloud files), pinned on top. */}
+        <PluginMount
+          slot={MountSlot.FileManagerSection}
+          ctx={{ files, onSaveFile }}
+        />
         {files.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
             <FolderOpen className="w-12 h-12 opacity-30" />
@@ -233,11 +238,6 @@ export function FilesTab({
             </div>
           ))
         )}
-        {/* Plugin-contributed file-manager section (e.g. cloud-only files). */}
-        <PluginMount
-          slot={MountSlot.FileManagerSection}
-          ctx={{ files, onSaveFile }}
-        />
       </div>
 
       {/* Storage Usage */}

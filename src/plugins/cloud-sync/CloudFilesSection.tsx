@@ -59,7 +59,7 @@ export default function CloudFilesSection({ ctx }: { ctx: FileManagerSectionCont
   };
 
   return (
-    <div className="mt-2 pt-2 border-t border-border space-y-1">
+    <div className="mb-2 pb-2 border-b border-border space-y-1">
       <p className="px-1 text-xs text-muted-foreground">Cloud files ({files.length})</p>
       {files.map((c) => {
         const canPull = pullable.has(c.name);
