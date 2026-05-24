@@ -1,51 +1,53 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Gauge, ArrowLeft } from 'lucide-react';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 export default function Register() {
   useDocumentHead({
-    title: "Register — HackTheTrack",
-    description: "Create a HackTheTrack account to access admin tools for managing tracks, courses and telemetry submissions.",
-    canonical: "https://hackthetrack.net/register",
+    title: 'Create account — HackTheTrack',
+    description: 'Create a HackTheTrack account to sync your telemetry, garage and notes across devices.',
+    canonical: 'https://hackthetrack.net/register',
   });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (password !== confirmPassword) {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
     }
-
     if (password.length < 6) {
       toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
       return;
     }
-
     setIsLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin + '/login' },
-    });
+    const { error } = await signUp(email, password);
     setIsLoading(false);
-
     if (error) {
       toast({ title: 'Registration failed', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Account created', description: 'Check your email to confirm your account.' });
       navigate('/login');
+    }
+  };
+
+  const handleGoogle = async () => {
+    setIsLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setIsLoading(false);
+      toast({ title: 'Google sign-in failed', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -58,7 +60,16 @@ export default function Register() {
         </div>
 
         <div className="racing-card p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Register</h2>
+          <h2 className="text-lg font-semibold text-foreground">Create account</h2>
+
+          <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
+            Continue with Google
+          </Button>
+          <div className="relative flex items-center">
+            <div className="flex-grow border-t border-border" />
+            <span className="mx-3 text-xs text-muted-foreground">or</span>
+            <div className="flex-grow border-t border-border" />
+          </div>
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
@@ -80,9 +91,7 @@ export default function Register() {
 
           <p className="text-sm text-muted-foreground text-center">
             Already have an account?{' '}
-            <button type="button" className="text-primary hover:underline" onClick={() => navigate('/login')}>
-              Login
-            </button>
+            <Link to="/login" className="text-primary hover:underline">Sign in</Link>
           </p>
         </div>
 

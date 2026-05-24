@@ -40,7 +40,11 @@ const PUBLIC_BACKEND_FALLBACKS = {
   // cloning the repo without a .env should see the public app, not admin UI
   // pointing at a backend they don't control.
   VITE_ENABLE_ADMIN: "false",
-  VITE_ENABLE_REGISTRATION: "false",
+  // Cloud auth + sync (public user accounts, Google sign-in, Cloud Sync Labs
+  // panel). Default OFF — the repo's offline-first invariant means a fresh
+  // clone with no .env never touches the cloud. Production deploys flip this
+  // to "true" via Lovable Cloud env injection.
+  VITE_ENABLE_CLOUD: "false",
 } as const;
 
 // https://vitejs.dev/config/
@@ -71,8 +75,8 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_ENABLE_ADMIN": JSON.stringify(
         env.VITE_ENABLE_ADMIN || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_ADMIN,
       ),
-      "import.meta.env.VITE_ENABLE_REGISTRATION": JSON.stringify(
-        env.VITE_ENABLE_REGISTRATION || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_REGISTRATION,
+      "import.meta.env.VITE_ENABLE_CLOUD": JSON.stringify(
+        env.VITE_ENABLE_CLOUD || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_CLOUD,
       ),
     },
     plugins: [

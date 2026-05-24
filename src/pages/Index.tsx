@@ -49,6 +49,7 @@ import { SessionProvider, type SessionContextValue } from "@/contexts/SessionCon
 type TopPanelView = "raceline" | "laptable" | "graphview" | "labs";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
+const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
@@ -322,6 +323,7 @@ export default function Index() {
             onLoadSample={handleLoadSample}
             isLoadingSample={isLoadingSample}
             enableAdmin={enableAdmin}
+            enableCloud={enableCloud}
           />
           <Suspense fallback={null}>
             <FileManagerDrawer {...fileManagerProps} />
