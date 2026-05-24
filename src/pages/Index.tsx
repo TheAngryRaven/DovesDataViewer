@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData } from "@/types/racing";
+import { getPanelsForSlot, PanelSlot } from "@/plugins/panels";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
@@ -109,6 +110,10 @@ export default function Index() {
 
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
   const [showOverlays, setShowOverlays] = useState(true);
+  // Plugins are registered at startup, so a labs-slot panel means the Labs tab
+  // has real content — surface it even when the experimental setting is off.
+  const hasLabsPanels = useMemo(() => getPanelsForSlot(PanelSlot.Labs).length > 0, []);
+  const showLabs = settings.enableLabs || hasLabsPanels;
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -379,7 +384,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} enableLabs={settings.enableLabs} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -387,7 +392,7 @@ export default function Index() {
           {topPanelView === "laptable" && <LapTimesTab />}
           <Suspense fallback={null}>
             {topPanelView === "graphview" && <GraphViewTab />}
-            {topPanelView === "labs" && settings.enableLabs && <LabsTab />}
+            {topPanelView === "labs" && showLabs && <LabsTab />}
           </Suspense>
         </div>
       </main>
@@ -412,13 +417,13 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, enableLabs }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
   showOverlays: boolean;
   onToggleOverlays: () => void;
-  enableLabs: boolean;
+  showLabs: boolean;
 }) {
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -441,7 +446,7 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
           <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
         )}
       </button>
-      {enableLabs && (
+      {showLabs && (
         <button onClick={() => setTopPanelView("labs")} className={tabClass("labs")}>
           <FlaskConical className="w-4 h-4" /> <span className="hidden sm:inline">Labs</span>
         </button>

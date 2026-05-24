@@ -32,6 +32,60 @@ const plugin: DataViewerPlugin = {
 export default plugin;
 ```
 
+## Contributing UI panels (`panels.ts`)
+
+The first concrete extension point is the **panel framework**: a plugin
+contributes self-contained React panels to a named *slot* (a host surface), and
+the host mounts them. Today the only slot is the **Labs tab** (`PanelSlot.Labs`);
+new slots are just new strings — no registry or framework changes needed.
+
+A panel is a `PluginPanel` contributed to the `PANELS_POINT` extension point:
+
+```tsx
+import { FlaskConical } from "lucide-react";
+import type { DataViewerPlugin } from "@/plugins/types";
+import { PANELS_POINT, PanelSlot, type PluginPanel, type PluginPanelProps } from "@/plugins/panels";
+
+function CoachPanel({ data, laps, selectedLapNumber, useKph }: PluginPanelProps) {
+  if (!data) return <p className="text-sm text-muted-foreground">Load a session to start coaching.</p>;
+  return <p className="text-sm text-foreground">{laps.length} laps ready to analyze.</p>;
+}
+
+const plugin: DataViewerPlugin = {
+  id: "ai-coaching",
+  name: "AI Coaching",
+  priority: 100,
+  setup(ctx) {
+    const panel: PluginPanel = {
+      id: "ai-coaching",
+      title: "AI Coaching",
+      slot: PanelSlot.Labs,
+      order: 0,
+      icon: FlaskConical,
+      component: CoachPanel,
+    };
+    ctx.registry.contribute(PANELS_POINT, panel);
+  },
+};
+
+export default plugin;
+```
+
+Contract notes:
+
+- **`PluginPanelProps` is the entire surface a panel can rely on** — a curated,
+  read-only snapshot of the active session (`data`, `laps`, `selectedLapNumber`,
+  `course`, `useKph`). Panels never touch the host's internal session context, so
+  the host can refactor internals without breaking plugins.
+- The host (`PluginPanelHost`) renders each panel inside a titled card and wraps
+  it in an **error boundary** — a throwing panel shows a local notice instead of
+  crashing the tab.
+- A labs-slot panel makes the **Labs tab appear automatically**, even when the
+  experimental Labs setting is off (`Index.tsx`).
+- Panels resolve `react` from the host bundle (plugins are compiled as source by
+  the host's Vite), so an external package adds `react` to its `devDependencies`
+  for its own typecheck but does **not** bundle a second copy.
+
 ## The AI coach as a public npm package
 
 The coach lives in its own repo and is published to the **public npm registry**

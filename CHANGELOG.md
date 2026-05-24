@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Plugin UI panel framework: plugins can contribute self-contained panels to a
+  named slot, starting with the Labs tab. The tab now appears automatically when
+  a plugin contributes a panel, and each panel is isolated by an error boundary.
+
 ### Changed
 - The optional AI coach plugin now ships from the public npm registry as
   `@perchwerks/eye-in-the-sky` and loads by default — no build token or `.npmrc`

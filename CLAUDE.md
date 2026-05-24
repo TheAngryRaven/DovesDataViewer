@@ -178,6 +178,8 @@ src/
 │   ├── types.ts               # DataViewerPlugin / PluginContext / PluginRegistry contracts
 │   ├── registry.ts            # Singleton registry + generic extension points
 │   ├── index.ts               # initPlugins() — discovery + setup (called in main.tsx)
+│   ├── panels.ts              # UI panel framework: PluginPanel/Props, PANELS_POINT, PanelSlot, getPanelsForSlot
+│   ├── PluginPanelHost.tsx    # Mounts plugin panels for a slot (error-boundaried, with fallback)
 │   └── coaching/              # Gitignored private slot (AI coaching submodule)
 ├── types/
 │   └── racing.ts              # ★ Core types: GpsSample, ParsedData, Lap, Course, Track, etc.
@@ -227,12 +229,21 @@ A plugin absent at build time simply never loads — the app builds/runs without
 | `registry.ts` | Singleton registry: `register`/`get`/`list` + generic `contribute`/`getContributions`. Same-`id` plugins resolve by highest `priority` |
 | `index.ts` | `initPlugins()` — glob + external discovery, runs each plugin's `setup(ctx)`. Called once in `main.tsx` before render |
 | `external-plugins.d.ts` | Ambient type for the `virtual:external-plugins` module |
+| `panels.ts` | **UI panel framework**: `PluginPanel` / `PluginPanelProps` contract, `PANELS_POINT`, `PanelSlot`, `getPanelsForSlot(slot)`. The curated session snapshot is the entire surface a panel can rely on |
+| `PluginPanelHost.tsx` | Consumer: mounts every panel for a slot in a titled card, each wrapped in a per-panel error boundary; renders a `fallback` when none |
 | `coaching/` | **Gitignored** local-dev slot for the coach plugin (production loads it as an npm package) |
 
 A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 `setup`, it contributes to named extension points
 (`ctx.registry.contribute(point, value)`); consumers read via
 `getContributions(point)`. New extension points need no registry changes.
+
+**UI panels:** the first concrete extension point. A plugin contributes
+`PluginPanel` descriptors to `PANELS_POINT`, targeting a *slot* (host surface).
+The only slot today is `PanelSlot.Labs` — `LabsTab.tsx` renders contributed
+panels via `PluginPanelHost`, and a labs-slot panel makes the Labs tab appear
+automatically even when the experimental `enableLabs` setting is off (`Index.tsx`
+computes `hasLabsPanels`). New slots are just new strings — no framework change.
 
 **AI coach (npm package):** published to the public npm registry as
 `@perchwerks/eye-in-the-sky` and listed in `optionalDependencies`. The loader in
