@@ -14,6 +14,9 @@ const GraphViewTab = lazy(() =>
 const LabsTab = lazy(() =>
   import("@/components/tabs/LabsTab").then((m) => ({ default: m.LabsTab })),
 );
+const CoachTab = lazy(() =>
+  import("@/components/tabs/CoachTab").then((m) => ({ default: m.CoachTab })),
+);
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
 // FileManagerDrawer is a slide-out that only opens on user click. Lazy-loading
@@ -46,7 +49,7 @@ import { DeviceProvider } from "@/contexts/DeviceContext";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
 
 
-type TopPanelView = "raceline" | "laptable" | "graphview" | "labs";
+type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
@@ -116,6 +119,9 @@ export default function Index() {
   // has real content — surface it even when the experimental setting is off.
   const hasLabsPanels = useMemo(() => getPanelsForSlot(PanelSlot.Labs).length > 0, []);
   const showLabs = settings.enableLabs || hasLabsPanels;
+  // The Coach tab is self-gating: it appears only when a plugin contributes a
+  // panel to the Coach slot (i.e. the coach package is installed).
+  const showCoach = useMemo(() => getPanelsForSlot(PanelSlot.Coach).length > 0, []);
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -387,7 +393,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -396,6 +402,7 @@ export default function Index() {
           <Suspense fallback={null}>
             {topPanelView === "graphview" && <GraphViewTab />}
             {topPanelView === "labs" && showLabs && <LabsTab />}
+            {topPanelView === "coach" && showCoach && <CoachTab />}
           </Suspense>
         </div>
       </main>
@@ -420,13 +427,14 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
   showOverlays: boolean;
   onToggleOverlays: () => void;
   showLabs: boolean;
+  showCoach: boolean;
 }) {
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -452,6 +460,11 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
       {showLabs && (
         <button onClick={() => setTopPanelView("labs")} className={tabClass("labs")}>
           <FlaskConical className="w-4 h-4" /> <span className="hidden sm:inline">Labs</span>
+        </button>
+      )}
+      {showCoach && (
+        <button onClick={() => setTopPanelView("coach")} className={tabClass("coach")}>
+          <Gauge className="w-4 h-4" /> <span className="hidden sm:inline">Coach</span>
         </button>
       )}
       {topPanelView === "raceline" && (

@@ -20,6 +20,8 @@ export const PANELS_POINT = "ui:panels";
 export const PanelSlot = {
   /** The Labs tab in the main view. */
   Labs: "labs",
+  /** The dedicated AI Coach tab in the main view. */
+  Coach: "coach",
 } as const;
 export type PanelSlot = (typeof PanelSlot)[keyof typeof PanelSlot];
 
