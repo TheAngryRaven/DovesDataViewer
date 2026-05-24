@@ -9,6 +9,8 @@ const DataloggerDownload = lazy(() =>
   import("@/components/DataloggerDownload").then((m) => ({ default: m.DataloggerDownload })),
 );
 import { listSessionVideos, deleteSessionVideo, StoredVideoMeta } from "@/lib/videoFileStorage";
+import { PluginMount } from "@/plugins/PluginMount";
+import { MountSlot } from "@/plugins/mounts";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -206,6 +208,10 @@ export function FilesTab({
                   )}
                 </div>
               </button>
+              <PluginMount
+                slot={MountSlot.FileRow}
+                ctx={{ file, metadata: fileMetadataMap.get(file.name) }}
+              />
               <Button
                 variant="ghost"
                 size="icon"
@@ -227,6 +233,11 @@ export function FilesTab({
             </div>
           ))
         )}
+        {/* Plugin-contributed file-manager section (e.g. cloud-only files). */}
+        <PluginMount
+          slot={MountSlot.FileManagerSection}
+          ctx={{ files, onSaveFile }}
+        />
       </div>
 
       {/* Storage Usage */}

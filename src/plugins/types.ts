@@ -9,6 +9,21 @@
 export interface PluginContext {
   /** The shared registry. Plugins read/write extension points through this. */
   registry: PluginRegistry;
+  /** Persistent key-value storage private to this plugin (own IndexedDB DB). */
+  storage: PluginStore;
+}
+
+/**
+ * Schema-less key-value storage scoped to one plugin. Backed by the plugin's
+ * own IndexedDB database, so plugins never touch the core schema/version.
+ * Values must be structured-cloneable.
+ */
+export interface PluginStore {
+  get<T>(key: string): Promise<T | undefined>;
+  set<T>(key: string, value: T): Promise<void>;
+  delete(key: string): Promise<void>;
+  getAll<T>(): Promise<T[]>;
+  keys(): Promise<string[]>;
 }
 
 export interface DataViewerPlugin {
