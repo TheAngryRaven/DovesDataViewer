@@ -1,5 +1,5 @@
 import { Component, Suspense, useMemo, type ReactNode } from "react";
-import { getPanelsForSlot, type PluginPanelProps } from "./panels";
+import { getPanelsForSlot, isBareSlot, type PluginPanelProps } from "./panels";
 
 /**
  * Isolates a single plugin panel: a throw in one panel renders a local notice
@@ -41,24 +41,34 @@ export function PluginPanelHost({
 
   if (panels.length === 0) return <>{fallback ?? null}</>;
 
+  // A fully-chromeless slot drops the host's outer padding/spacing so the panel
+  // can fill the tab; a mixed/chromed slot keeps the padded, stacked layout.
+  const bare = isBareSlot(panels);
+
   return (
-    <div className="h-full overflow-auto p-4 space-y-4">
+    <div className={bare ? "h-full overflow-auto" : "h-full overflow-auto p-4 space-y-4"}>
       {panels.map((panel) => {
         const Icon = panel.icon;
         const Body = panel.component;
+
+        const body = (
+          <PanelErrorBoundary title={panel.title}>
+            <Suspense fallback={<p className="text-xs text-muted-foreground">Loading…</p>}>
+              <Body {...props} />
+            </Suspense>
+          </PanelErrorBoundary>
+        );
+
+        // Chromeless: render the body directly, letting the panel own its layout.
+        if (panel.chromeless) return <div key={panel.id} className="h-full">{body}</div>;
+
         return (
           <section key={panel.id} className="rounded-lg border border-border bg-card">
             <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
               {Icon && <Icon className="w-4 h-4 text-primary" />}
               <h3 className="text-sm font-medium text-foreground">{panel.title}</h3>
             </header>
-            <div className="p-4">
-              <PanelErrorBoundary title={panel.title}>
-                <Suspense fallback={<p className="text-xs text-muted-foreground">Loading…</p>}>
-                  <Body {...props} />
-                </Suspense>
-              </PanelErrorBoundary>
-            </div>
+            <div className="p-4">{body}</div>
           </section>
         );
       })}

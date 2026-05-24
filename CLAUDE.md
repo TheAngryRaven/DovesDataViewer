@@ -245,7 +245,7 @@ A plugin absent at build time simply never loads — the app builds/runs without
 | `index.ts` | `initPlugins()` — glob + external discovery, runs each plugin's `setup(ctx)`. Called once in `main.tsx` before render |
 | `external-plugins.d.ts` | Ambient type for the `virtual:external-plugins` module |
 | `panels.ts` | **UI panel framework**: `PluginPanel` / `PluginPanelProps` contract, `PANELS_POINT`, `PanelSlot`, `getPanelsForSlot(slot)`. The curated session snapshot is the entire surface a panel can rely on |
-| `PluginPanelHost.tsx` | Consumer: mounts every panel for a slot in a titled card, each wrapped in a per-panel error boundary; renders a `fallback` when none |
+| `PluginPanelHost.tsx` | Consumer: mounts every panel for a slot in a titled card, each wrapped in a per-panel error boundary; renders a `fallback` when none. A `chromeless` panel skips the card chrome (full-bleed); an all-chromeless slot (`isBareSlot`) drops the host's outer padding so one panel fills the tab |
 | `mounts.ts` | **Inline mount framework**: `PluginMountDef`, `MOUNTS_POINT`, `MountSlot` (`FileRow`, `FileManagerSection`), per-slot context types, `getMounts(slot)`. For injecting raw components into fixed spots in core UI |
 | `PluginMount.tsx` | Consumer: `<PluginMount slot ctx>` renders every mount for a slot (error-boundaried + Suspense), or nothing when none — safe to drop into core UI unconditionally |
 | `storage.ts` | `getPluginStore(id)`: schema-less KV scoped to one plugin, in its own IndexedDB DB (`dove-plugin-<id>`). Decoupled from core `dbUtils`. Also exposed as `ctx.storage` |
@@ -267,7 +267,11 @@ panels via `PluginPanelHost` and are **self-gating**: `Index.tsx` computes
 plugin contributes a panel to it (Labs additionally shows when the experimental
 `enableLabs` setting is on). New slots are just new strings — no framework change.
 `PluginPanelHost` wraps each panel in an error boundary **and** a `Suspense`
-boundary, so panel components can be `React.lazy` (as `cloud-sync` is).
+boundary, so panel components can be `React.lazy` (as `cloud-sync` is). A panel
+may set `chromeless: true` to render its body without the host's card/header/
+padding — for panels that own their full layout (e.g. a full-bleed coach
+dashboard); the error boundary + Suspense still apply, and a slot whose panels
+are all chromeless (`isBareSlot`) also drops the host's outer padding.
 
 **Inline mounts:** where panels are standalone cards, *mounts* inject a raw
 component into a fixed spot in core UI. A plugin contributes a `PluginMountDef`

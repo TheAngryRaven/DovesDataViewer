@@ -53,6 +53,14 @@ export interface PluginPanel {
   icon?: ComponentType<{ className?: string }>;
   /** The panel body. Re-renders with a fresh `PluginPanelProps` snapshot. */
   component: ComponentType<PluginPanelProps>;
+  /**
+   * Render the body without the host's card chrome (no bordered section,
+   * header, or padding) — for panels that own their full layout, e.g. a
+   * full-bleed dashboard. The error boundary and Suspense still apply. When a
+   * slot's panels are all chromeless, the host also drops its outer padding so
+   * the panel can fill the tab.
+   */
+  chromeless?: boolean;
 }
 
 /** All panels contributed to `slot`, sorted by `order` then registration. */
@@ -61,4 +69,13 @@ export function getPanelsForSlot(slot: string): PluginPanel[] {
     .getContributions<PluginPanel>(PANELS_POINT)
     .filter((panel) => panel.slot === slot)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+/**
+ * A slot is "bare" when it has panels and every one is chromeless — the host
+ * then renders without its outer padding/spacing so a single dashboard panel
+ * can fill the tab. A mixed slot keeps the padded, stacked layout.
+ */
+export function isBareSlot(panels: PluginPanel[]): boolean {
+  return panels.length > 0 && panels.every((p) => p.chromeless);
 }
