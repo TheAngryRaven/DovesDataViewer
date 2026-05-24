@@ -60,7 +60,7 @@
         "vitest": "^4.1.6",
       },
       "optionalDependencies": {
-        "@perchwerks/eye-in-the-sky": "^0.0.2",
+        "@perchwerks/eye-in-the-sky": "^0.0.4",
       },
     },
   },
@@ -369,7 +369,7 @@
 
     "@oxc-project/types": ["@oxc-project/types@0.130.0", "", {}, "sha512-ibD2usx9JRu7f5pu2tMKMI4cpA4NgXJQoYRP4pQ7Pxmn1l6k/53qWtQWZayhYy3X4QZkt90Ot+mJEaeXouio6Q=="],
 
-    "@perchwerks/eye-in-the-sky": ["@perchwerks/eye-in-the-sky@0.0.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@perchwerks/eye-in-the-sky/-/eye-in-the-sky-0.0.2.tgz", {}, "sha512-ssi01fB5gRnPFMkt6YqfxeAZ5NH99EEQvbySG7iJltlNeFPToobTpTgob9j2/0IIkqAHz8mW6JHKfzzLGMHRyg=="],
+    "@perchwerks/eye-in-the-sky": ["@perchwerks/eye-in-the-sky@0.0.4", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@perchwerks/eye-in-the-sky/-/eye-in-the-sky-0.0.4.tgz", {}, "sha512-YefiNWXJ/syA1ADI38VUWtFqpGAxBigJMsKT0nuO8NNQN1AbvHZ9Oy9BBorl+4l+QWWO8pCir0OGG2Mi2HMsDA=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
