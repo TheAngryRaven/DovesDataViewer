@@ -60,8 +60,12 @@ export default defineConfig(({ mode }) => {
   // REMINDER: until Lovable injects these automatically, you may need to
   // regenerate `.env` (or re-set the HTT_* build secrets) on each fresh
   // build environment. See `.env.example` for the full list.
+  // NOTE: Vite's loadEnv() only reads .env files — it does NOT include
+  // process.env. Lovable injects build secrets as real env vars, so we must
+  // check process.env explicitly for the HTT_* (and VITE_*) fallbacks to work
+  // when there's no committed .env file.
   const pick = (viteKey: string, httKey: string, fallback: string) =>
-    env[viteKey] || env[httKey] || fallback;
+    env[viteKey] || process.env[viteKey] || env[httKey] || process.env[httKey] || fallback;
 
   const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
   const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)
