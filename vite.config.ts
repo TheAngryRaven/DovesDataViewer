@@ -1,8 +1,34 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+
+// Build-time loader for external plugin npm packages (the AI coach). Candidate
+// package names default to the public coach and can be overridden via the
+// DOVE_PLUGIN_PACKAGES env var (comma-separated). Only packages actually
+// present in node_modules are imported, so a fresh clone that skips optional
+// deps still compiles to an empty plugin list. See src/plugins/.
+function externalPluginsLoader(candidates: string[]): Plugin {
+  const VIRTUAL = "virtual:external-plugins";
+  const RESOLVED = "\0" + VIRTUAL;
+  const isInstalled = (pkg: string) =>
+    fs.existsSync(path.resolve(__dirname, "node_modules", ...pkg.split("/"), "package.json"));
+  return {
+    name: "dove-external-plugins",
+    resolveId(id) {
+      return id === VIRTUAL ? RESOLVED : undefined;
+    },
+    load(id) {
+      if (id !== RESOLVED) return undefined;
+      const present = candidates.filter(isInstalled);
+      const imports = present.map((p, i) => `import p${i} from ${JSON.stringify(p)};`).join("\n");
+      const list = present.map((_, i) => `p${i}`).join(", ");
+      return `${imports}\nexport default [${list}];\n`;
+    },
+  };
+}
 
 const PUBLIC_BACKEND_FALLBACKS = {
   VITE_SUPABASE_PROJECT_ID: "svjlieovpyiffbqwhtgk",
@@ -20,6 +46,12 @@ const PUBLIC_BACKEND_FALLBACKS = {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+
+  const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
+  const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   return {
     server: {
@@ -45,6 +77,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      externalPluginsLoader(pluginPackages),
       mode === "development" && componentTagger(),
       VitePWA({
         filename: "service-worker.js",

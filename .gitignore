@@ -23,6 +23,11 @@ coverage
 .env.local
 .env.*.local
 
+# Local dev slot for the private AI coach plugin. Production loads the coach as
+# an npm package (see src/plugins/README.md); this folder lets you iterate on it
+# locally without publishing. Absent in the public repo and on Lovable.
+src/plugins/coaching/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

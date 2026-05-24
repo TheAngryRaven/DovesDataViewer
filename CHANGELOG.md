@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The optional AI coach plugin now ships from the public npm registry as
+  `@perchwerks/eye-in-the-sky` and loads by default — no build token or `.npmrc`
+  required. (Previously a private GitHub Packages package gated behind
+  `NODE_AUTH_TOKEN`.)
+
 ## [1.5.0] - 2026-05-22
 
 The first changelogged release. Dove's DataViewer is a feature-complete,
