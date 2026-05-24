@@ -75,8 +75,8 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_ENABLE_ADMIN": JSON.stringify(
         env.VITE_ENABLE_ADMIN || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_ADMIN,
       ),
-      "import.meta.env.VITE_ENABLE_REGISTRATION": JSON.stringify(
-        env.VITE_ENABLE_REGISTRATION || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_REGISTRATION,
+      "import.meta.env.VITE_ENABLE_CLOUD": JSON.stringify(
+        env.VITE_ENABLE_CLOUD || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_CLOUD,
       ),
     },
     plugins: [
