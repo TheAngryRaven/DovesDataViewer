@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { pluginRegistry } from "./registry";
-import { PANELS_POINT, getPanelsForSlot, type PluginPanel } from "./panels";
+import { PANELS_POINT, PanelSlot, getPanelsForSlot, type PluginPanel } from "./panels";
 
 const noopComponent: PluginPanel["component"] = () => null;
 
@@ -30,5 +30,13 @@ describe("getPanelsForSlot", () => {
 
   it("returns an empty array for a slot with no contributions", () => {
     expect(getPanelsForSlot("slot-empty")).toEqual([]);
+  });
+
+  it("keeps the Coach and Labs slots separate", () => {
+    pluginRegistry.contribute(PANELS_POINT, panel("coach-panel", PanelSlot.Coach));
+    pluginRegistry.contribute(PANELS_POINT, panel("labs-panel", PanelSlot.Labs));
+
+    expect(getPanelsForSlot(PanelSlot.Coach).map((p) => p.id)).toEqual(["coach-panel"]);
+    expect(getPanelsForSlot(PanelSlot.Labs).map((p) => p.id)).toEqual(["labs-panel"]);
   });
 });

@@ -77,7 +77,7 @@ src/
 ├── components/
 │   ├── ui/                # shadcn/ui primitives (button, dialog, tabs, etc.)
 │   ├── admin/             # Admin tabs: TracksTab, CoursesTab, SubmissionsTab, BannedIpsTab, ToolsTab, MessagesTab
-│   ├── tabs/              # Main view tabs: GraphViewTab, RaceLineTab, LapTimesTab, LabsTab
+│   ├── tabs/              # Main view tabs: GraphViewTab, RaceLineTab, LapTimesTab, LabsTab, CoachTab
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, InfoBox
 │   ├── drawer/            # File manager drawer tabs: FilesTab, KartsTab, NotesTab, SetupsTab, DeviceSettingsTab, DeviceTracksTab
 │   ├── track-editor/      # Track editor sub-components
@@ -257,10 +257,13 @@ A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 
 **UI panels:** the first concrete extension point. A plugin contributes
 `PluginPanel` descriptors to `PANELS_POINT`, targeting a *slot* (host surface).
-The only slot today is `PanelSlot.Labs` — `LabsTab.tsx` renders contributed
-panels via `PluginPanelHost`, and a labs-slot panel makes the Labs tab appear
-automatically even when the experimental `enableLabs` setting is off (`Index.tsx`
-computes `hasLabsPanels`). New slots are just new strings — no framework change.
+Two slots exist today: `PanelSlot.Labs` (rendered by `LabsTab.tsx`) and
+`PanelSlot.Coach` (rendered by `CoachTab.tsx` — the dedicated AI Coach tab, home
+for the `@perchwerks/eye-in-the-sky` coaching plugin). Both render contributed
+panels via `PluginPanelHost` and are **self-gating**: `Index.tsx` computes
+`hasLabsPanels`/`showCoach` from `getPanelsForSlot`, so a tab appears only when a
+plugin contributes a panel to it (Labs additionally shows when the experimental
+`enableLabs` setting is on). New slots are just new strings — no framework change.
 `PluginPanelHost` wraps each panel in an error boundary **and** a `Suspense`
 boundary, so panel components can be `React.lazy` (as `cloud-sync` is).
 
