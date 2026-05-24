@@ -8,6 +8,8 @@ interface AuthContextValue {
   isAdmin: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
