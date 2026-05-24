@@ -253,6 +253,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_records: {
+        Row: {
+          data: Json
+          id: string
+          record_key: string
+          store: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          id?: string
+          record_key: string
+          store: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          record_key?: string
+          store?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tracks: {
         Row: {
           created_at: string | null
