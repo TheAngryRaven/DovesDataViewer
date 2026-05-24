@@ -5,11 +5,11 @@ import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-// Build-time loader for external plugin npm packages (the AI coach). The set of
-// candidate package names comes from the DOVE_PLUGIN_PACKAGES env var
-// (comma-separated). Only packages actually present in node_modules are
-// imported, so the public/Lovable build (no token → optional install skipped)
-// and a fresh clone both compile to an empty plugin list. See src/plugins/.
+// Build-time loader for external plugin npm packages (the AI coach). Candidate
+// package names default to the public coach and can be overridden via the
+// DOVE_PLUGIN_PACKAGES env var (comma-separated). Only packages actually
+// present in node_modules are imported, so a fresh clone that skips optional
+// deps still compiles to an empty plugin list. See src/plugins/.
 function externalPluginsLoader(candidates: string[]): Plugin {
   const VIRTUAL = "virtual:external-plugins";
   const RESOLVED = "\0" + VIRTUAL;
@@ -47,7 +47,8 @@ const PUBLIC_BACKEND_FALLBACKS = {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
-  const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || "")
+  const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
+  const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);

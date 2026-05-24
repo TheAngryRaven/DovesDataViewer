@@ -234,12 +234,12 @@ A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 (`ctx.registry.contribute(point, value)`); consumers read via
 `getContributions(point)`. New extension points need no registry changes.
 
-**Private AI coach (npm package):** published to GitHub Packages under the
-`@theangryraven` scope; installed only when the build holds `NODE_AUTH_TOKEN`
-(read:packages) and lists it in `optionalDependencies`. `DOVE_PLUGIN_PACKAGES`
-(build env var) names which packages to load. The private coach shares the
-public coach's `id` with a higher `priority` to override it. See
-`src/plugins/README.md` for the full publish/wire workflow.
+**AI coach (npm package):** published to the public npm registry as
+`@perchwerks/eye-in-the-sky` and listed in `optionalDependencies`. The loader in
+`vite.config.ts` defaults to that package (no token or `.npmrc` needed);
+`DOVE_PLUGIN_PACKAGES` (build env var) overrides the candidate list when set.
+The coach shares the public stub's `id` with a higher `priority` to override it.
+See `src/plugins/README.md` for the full publish/wire workflow.
 
 Offline-first note: plugins are bundled internal code. Only a plugin's runtime
 network calls (e.g. AI model APIs) go online — the accepted compromise. Supabase
@@ -438,8 +438,7 @@ Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZo
 | `VITE_ENABLE_REGISTRATION` | Client | `"true"` to enable `/register` route |
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
-| `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages to load (e.g. `@theangryraven/dove-coach`). Empty/unset = none |
-| `NODE_AUTH_TOKEN` | Build | GitHub PAT with `read:packages` for installing private plugin packages from GitHub Packages — `???` |
+| `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`) when set |
 
 PWA deployment detail: the active offline-capable worker is emitted as `/service-worker.js` and registered only outside preview/iframe contexts. `public/sw.js` is reserved as a legacy kill-switch worker to evict stale caches from older installs that previously registered `/sw.js`.
 

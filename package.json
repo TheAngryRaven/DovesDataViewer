@@ -82,6 +82,6 @@
     "vitest": "^4.1.6"
   },
   "optionalDependencies": {
-    "@theangryraven/eye-in-the-sky": "^0.0.1"
+    "@perchwerks/eye-in-the-sky": "^0.0.2"
   }
 }

@@ -32,11 +32,12 @@ const plugin: DataViewerPlugin = {
 export default plugin;
 ```
 
-## The AI coach as a private npm package
+## The AI coach as a public npm package
 
-The coach lives in its own repo and is published to **GitHub Packages** (free
-for private packages — no paid npm org). The public app stays fully buildable
-without it; only builds that hold a token install it.
+The coach lives in its own repo and is published to the **public npm registry**
+as [`@perchwerks/eye-in-the-sky`](https://www.npmjs.com/package/@perchwerks/eye-in-the-sky).
+It's an `optionalDependency` of the app, so a clone that skips optional installs
+still builds fine — the loader just compiles to an empty plugin list.
 
 ### One-time: publish the coach package
 
@@ -44,40 +45,35 @@ In the coach repo, set `package.json`:
 
 ```jsonc
 {
-  "name": "@theangryraven/dove-coach",
-  "version": "0.0.1",
+  "name": "@perchwerks/eye-in-the-sky",
+  "version": "0.0.2",
   "main": "index.ts",
-  "publishConfig": { "registry": "https://npm.pkg.github.com" }
+  "publishConfig": { "access": "public" }
 }
 ```
 
-`index.ts` default-exports a `DataViewerPlugin`. The **private** coach uses the
-same `id` as the public one but a higher `priority` so it overrides it. Publish:
-
-```bash
-npm publish   # authenticated to GitHub Packages with a read+write token
-```
+`index.ts` default-exports a `DataViewerPlugin`. The coach uses the same `id` as
+the public stub but a higher `priority` so it overrides it. Publishing is
+automated in the coach repo via a GitHub Actions workflow that runs
+`npm publish --access public` on a pushed `v*` tag, authenticated with an npm
+**Automation** token stored as the `NPM_TOKEN` Actions secret.
 
 ### Wire it into the app
 
-1. `.npmrc` (already committed) points the `@theangryraven` scope at GitHub
-   Packages and reads `NODE_AUTH_TOKEN`.
-2. Add the package to `optionalDependencies` in the app's `package.json` and run
-   `npm install` once **in an environment that has the token** to update the
-   lockfile, then commit both. `optionalDependencies` means a tokenless build
-   (a copier, CI without the secret) skips it gracefully instead of erroring.
-3. Set two build secrets in Lovable:
-   - `NODE_AUTH_TOKEN` — GitHub PAT with `read:packages`.
-   - `DOVE_PLUGIN_PACKAGES` — comma-separated package names to load, e.g.
-     `@theangryraven/dove-coach`.
+1. List the package in `optionalDependencies` in the app's `package.json` and
+   run `npm install` to refresh the lockfile, then commit both. No `.npmrc` or
+   token is needed — it's the default public registry.
+2. The loader in `vite.config.ts` defaults to `@perchwerks/eye-in-the-sky`, so
+   the standard build picks it up with no env configuration. Override the
+   candidate list via the `DOVE_PLUGIN_PACKAGES` env var (comma-separated) if
+   you want to load different/additional packages.
 
 Outcomes:
 
-| Build | Token | Result |
-|-------|-------|--------|
-| Your Lovable deploy | yes | coach installs + loads |
-| A copier / CI without the secret | no | optional install skipped → no coach |
-| Anyone | dep removed | nothing to install → no coach |
+| Build | optional install | Result |
+|-------|------------------|--------|
+| Standard build (Lovable, CI) | yes | coach installs + loads |
+| `npm install --no-optional` / dep removed | no | nothing installed → no coach |
 
 Offline-first note: the plugin is *bundled internal code*. Only its runtime AI
 model calls go online — the accepted compromise. Supabase cloud stays purely
@@ -86,4 +82,4 @@ file-sync.
 ### Local development without publishing
 
 Drop the coach source into `src/plugins/coaching/` (gitignored). The glob loader
-picks it up so you can iterate without publishing to GitHub Packages.
+picks it up so you can iterate without publishing to npm.
