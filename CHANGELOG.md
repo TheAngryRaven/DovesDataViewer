@@ -22,8 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cloud and pull them onto another device. Manual push/pull; data is private
   per account. Requires a backend (Supabase) and a connection — fully optional
   and offline-first otherwise.
+- Public user accounts (gated by `VITE_ENABLE_CLOUD`, default off): email +
+  password sign up / sign in, Google sign-in via Lovable Cloud managed OAuth,
+  forgot-password and reset-password flows. New routes: `/register`,
+  `/forgot-password`, `/reset-password`, `/auth/callback`. A "Sign in" /
+  "Sign out" affordance appears in the landing-page header when the flag is on.
+  Regular accounts have no admin privileges (admin role remains driven by
+  `user_roles`).
 
 ### Changed
+- Build flag rename: `VITE_ENABLE_REGISTRATION` retired. Cloud auth routes
+  (`/register`, `/forgot-password`, `/reset-password`, `/auth/callback`) and the
+  Cloud Sync Labs panel are now all gated by the single `VITE_ENABLE_CLOUD`
+  flag. `VITE_ENABLE_ADMIN` continues to gate `/admin` independently; `/login`
+  mounts when either flag is on. With `VITE_ENABLE_CLOUD` off, no auth pages,
+  Google OAuth SDK, or Cloud Sync panel are included in the bundle.
 - The optional AI coach plugin now ships from the public npm registry as
   `@perchwerks/eye-in-the-sky` and loads by default — no build token or `.npmrc`
   required. (Previously a private GitHub Packages package gated behind
