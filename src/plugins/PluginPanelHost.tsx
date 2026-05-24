@@ -1,4 +1,4 @@
-import { Component, useMemo, type ReactNode } from "react";
+import { Component, Suspense, useMemo, type ReactNode } from "react";
 import { getPanelsForSlot, type PluginPanelProps } from "./panels";
 
 /**
@@ -54,7 +54,9 @@ export function PluginPanelHost({
             </header>
             <div className="p-4">
               <PanelErrorBoundary title={panel.title}>
-                <Body {...props} />
+                <Suspense fallback={<p className="text-xs text-muted-foreground">Loading…</p>}>
+                  <Body {...props} />
+                </Suspense>
               </PanelErrorBoundary>
             </div>
           </section>

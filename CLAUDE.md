@@ -179,7 +179,13 @@ src/
 │   ├── registry.ts            # Singleton registry + generic extension points
 │   ├── index.ts               # initPlugins() — discovery + setup (called in main.tsx)
 │   ├── panels.ts              # UI panel framework: PluginPanel/Props, PANELS_POINT, PanelSlot, getPanelsForSlot
-│   ├── PluginPanelHost.tsx    # Mounts plugin panels for a slot (error-boundaried, with fallback)
+│   ├── PluginPanelHost.tsx    # Mounts plugin panels for a slot (error-boundaried, Suspense-wrapped, with fallback)
+│   ├── cloud-sync/            # ★ First-party plugin: Supabase file + garage sync (Labs panel)
+│   │   ├── index.ts             # Plugin def — contributes a lazy CloudSyncPanel to the Labs slot
+│   │   ├── CloudSyncPanel.tsx    # Sign-in + push/pull UI (lazy-loaded)
+│   │   ├── syncStores.ts         # Pure config: which IDB stores sync + how they're keyed (testable)
+│   │   ├── syncEngine.ts         # pushAll/pullAll: IDB ↔ sync_records (jsonb) + user-files bucket (blobs)
+│   │   └── cloudClient.ts        # Typed access to sync_records + bucket (escape hatch until types regen)
 │   └── coaching/              # Gitignored private slot (AI coaching submodule)
 ├── types/
 │   └── racing.ts              # ★ Core types: GpsSample, ParsedData, Lap, Course, Track, etc.
@@ -244,6 +250,15 @@ The only slot today is `PanelSlot.Labs` — `LabsTab.tsx` renders contributed
 panels via `PluginPanelHost`, and a labs-slot panel makes the Labs tab appear
 automatically even when the experimental `enableLabs` setting is off (`Index.tsx`
 computes `hasLabsPanels`). New slots are just new strings — no framework change.
+`PluginPanelHost` wraps each panel in an error boundary **and** a `Suspense`
+boundary, so panel components can be `React.lazy` (as `cloud-sync` is).
+
+**Cloud Sync (first-party plugin, `src/plugins/cloud-sync/`):** the first
+in-repo plugin built on the panel framework. Contributes a lazy Labs panel that
+signs the user in (`useAuth`) and does manual push/pull of local IndexedDB data
+to Supabase. Structured stores go to the `sync_records` table as jsonb
+documents; raw session blobs go to the private `user-files` Storage bucket. See
+the Cloud Sync section below for the data model.
 
 **AI coach (npm package):** published to the public npm registry as
 `@perchwerks/eye-in-the-sky` and listed in `optionalDependencies`. The loader in
@@ -341,6 +356,33 @@ Single shared database: `"dove-file-manager"`, version 9.
 | `session-videos` | `sessionFileName` | `videoFileStorage.ts` |
 
 To add a new store: increment `DB_VERSION`, add store name to `STORE_NAMES`, add creation logic in `openDB()`, create a corresponding storage module.
+
+---
+
+## Cloud Sync (`src/plugins/cloud-sync/`)
+
+Optional per-user backup/sync of the IndexedDB data above to Supabase. Built as
+a first-party plugin (Labs panel), online-only (accepted offline-first
+exception). **Manual & directional**: "push" mirrors local → cloud, "pull"
+brings cloud → local; on a key collision the chosen direction wins. Sync is
+**additive** — neither side deletes the other's extra records (deletion
+propagation + timestamp merge are deliberate follow-ups).
+
+Backend (migration `..._cloud_sync.sql`):
+
+| Object | Type | Notes |
+|--------|------|-------|
+| `sync_records` | table | One jsonb document per record: `(user_id, store, record_key, data, updated_at)`, unique on `(user_id, store, record_key)`. RLS: `auth.uid() = user_id`. `store`/`record_key` mirror the IndexedDB store name + key path. |
+| `user-files` | Storage bucket | Private. Raw session blobs at `{user_id}/{encodeURIComponent(name)}`. RLS scopes objects to the owner's folder. |
+
+Synced stores (`syncStores.ts` — pure, unit-tested): `metadata`, `karts`,
+`setups`, `notes`, `graph-prefs`, `vehicle-types`, `setup-templates` (jsonb
+docs) + `files` (blobs). Video stores are intentionally excluded (size).
+`vehicle-types`/`setup-templates` ride along because setups are template-driven.
+
+After a migration, Lovable regenerates `integrations/supabase/types.ts`. Until
+then `cloudClient.ts` accesses the new table/bucket through a narrowly-typed
+escape hatch confined to that one module.
 
 ---
 

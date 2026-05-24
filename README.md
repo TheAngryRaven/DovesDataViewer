@@ -41,6 +41,7 @@
 - Device track sync over Bluetooth
 - Custom track & course editor with community submissions
 - Local weather lookup
+- Optional cloud sync of files & garage data across devices (requires backend + sign-in)
 - Dark & light mode
 - PWA — installable & fully offline
 
@@ -133,6 +134,12 @@ The admin system uses Lovable Cloud (Supabase) for the database. The schema is c
 - **banned_ips** — IP addresses blocked from submissions
 - **login_attempts** — Rate limiting for login (5 attempts, 1 hour lockout)
 - **user_roles** — Admin/user role assignments (uses `has_role()` security definer)
+- **sync_records** — Per-user cloud-sync documents (files/garage data), RLS-scoped to the owner
+- **user-files** (Storage bucket) — Private per-user session file blobs for cloud sync
+
+> Cloud sync is independent of the admin system — it only needs a signed-in user
+> account, not the admin role. It's an online-only, opt-in feature; the core app
+> stays fully offline without it.
 
 ### Modular Database Layer
 

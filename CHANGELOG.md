@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin UI panel framework: plugins can contribute self-contained panels to a
   named slot, starting with the Labs tab. The tab now appears automatically when
   a plugin contributes a panel, and each panel is isolated by an error boundary.
+- Cloud Sync (first-party plugin, in the Labs tab): sign in to back up and sync
+  your session files and garage data (vehicles, setups, notes, graph prefs) to
+  the cloud and pull them onto another device. Manual push/pull; data is private
+  per account. Requires a backend (Supabase) and a connection — fully optional
+  and offline-first otherwise.
 
 ### Changed
 - The optional AI coach plugin now ships from the public npm registry as
