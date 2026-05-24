@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cloud and pull them onto another device. Manual push/pull; data is private
   per account. Requires a backend (Supabase) and a connection — fully optional
   and offline-first otherwise.
+- Cloud Sync — per-file selection: each file in the file manager has a sync
+  toggle, so you choose exactly which sessions sync (opt-in, off by default).
+  Pushing now uploads only your selected files (plus garage data). Selecting a
+  file while offline records the intent and uploads once you're back online.
+  Files that live in your cloud but not on this device are listed under the file
+  manager with a one-click pull.
 - Public user accounts (gated by `VITE_ENABLE_CLOUD`, default off): email +
   password sign up / sign in, Google sign-in via Lovable Cloud managed OAuth,
   forgot-password and reset-password flows. New routes: `/register`,

@@ -52,7 +52,14 @@ describe("pluginRegistry", () => {
       received = ctx.registry;
     });
     pluginRegistry.register(p);
-    void pluginRegistry.get("with-setup")?.setup?.({ registry: pluginRegistry });
+    const storage = {
+      get: async () => undefined,
+      set: async () => undefined,
+      delete: async () => undefined,
+      getAll: async () => [],
+      keys: async () => [],
+    };
+    void pluginRegistry.get("with-setup")?.setup?.({ registry: pluginRegistry, storage });
     expect(received).toBe(pluginRegistry);
   });
 });

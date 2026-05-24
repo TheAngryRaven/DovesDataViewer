@@ -181,11 +181,17 @@ src/
 │   ├── index.ts               # initPlugins() — discovery + setup (called in main.tsx)
 │   ├── panels.ts              # UI panel framework: PluginPanel/Props, PANELS_POINT, PanelSlot, getPanelsForSlot
 │   ├── PluginPanelHost.tsx    # Mounts plugin panels for a slot (error-boundaried, Suspense-wrapped, with fallback)
-│   ├── cloud-sync/            # ★ First-party plugin: Supabase file + garage sync (Labs panel)
-│   │   ├── index.ts             # Plugin def — contributes a lazy CloudSyncPanel to the Labs slot
+│   ├── mounts.ts              # Inline mounts: MOUNTS_POINT, MountSlot (FileRow/FileManagerSection), contexts, getMounts
+│   ├── PluginMount.tsx        # Renders inline mounts for a slot (error-boundaried, Suspense; renders null when none)
+│   ├── storage.ts             # getPluginStore(id): per-plugin KV in its own IndexedDB DB (dove-plugin-<id>)
+│   ├── cloud-sync/            # ★ First-party plugin: Supabase file + garage sync (Labs panel + per-file toggle)
+│   │   ├── index.ts             # Plugin def — contributes the Labs panel + a FileRow mount (both lazy, cloud-gated)
 │   │   ├── CloudSyncPanel.tsx    # Sign-in + push/pull UI (lazy-loaded)
+│   │   ├── FileSyncToggle.tsx    # Per-file sync toggle, mounted on each file row (off/pending/synced)
+│   │   ├── CloudFilesSection.tsx # FileManagerSection mount: cloud-only files with per-file pull
+│   │   ├── fileSync.ts           # Per-file selection state in the plugin store + fileSyncStatus/cloudOnlyNames (pure, tested)
 │   │   ├── syncStores.ts         # Pure config: which IDB stores sync + how they're keyed (testable)
-│   │   ├── syncEngine.ts         # pushAll/pullAll: IDB ↔ sync_records (jsonb) + user-files bucket (blobs)
+│   │   ├── syncEngine.ts         # pushAll (garage + selected files) / pushFile / pullAll: IDB ↔ sync_records + bucket
 │   │   └── cloudClient.ts        # Typed access to sync_records + bucket (escape hatch until types regen)
 │   └── coaching/              # Gitignored private slot (AI coaching submodule)
 ├── types/
@@ -238,12 +244,16 @@ A plugin absent at build time simply never loads — the app builds/runs without
 | `external-plugins.d.ts` | Ambient type for the `virtual:external-plugins` module |
 | `panels.ts` | **UI panel framework**: `PluginPanel` / `PluginPanelProps` contract, `PANELS_POINT`, `PanelSlot`, `getPanelsForSlot(slot)`. The curated session snapshot is the entire surface a panel can rely on |
 | `PluginPanelHost.tsx` | Consumer: mounts every panel for a slot in a titled card, each wrapped in a per-panel error boundary; renders a `fallback` when none |
+| `mounts.ts` | **Inline mount framework**: `PluginMountDef`, `MOUNTS_POINT`, `MountSlot` (`FileRow`, `FileManagerSection`), per-slot context types, `getMounts(slot)`. For injecting raw components into fixed spots in core UI |
+| `PluginMount.tsx` | Consumer: `<PluginMount slot ctx>` renders every mount for a slot (error-boundaried + Suspense), or nothing when none — safe to drop into core UI unconditionally |
+| `storage.ts` | `getPluginStore(id)`: schema-less KV scoped to one plugin, in its own IndexedDB DB (`dove-plugin-<id>`). Decoupled from core `dbUtils`. Also exposed as `ctx.storage` |
 | `coaching/` | **Gitignored** local-dev slot for the coach plugin (production loads it as an npm package) |
 
 A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 `setup`, it contributes to named extension points
 (`ctx.registry.contribute(point, value)`); consumers read via
 `getContributions(point)`. New extension points need no registry changes.
+`ctx.storage` is a `PluginStore` (per-plugin KV) for persisting plugin state.
 
 **UI panels:** the first concrete extension point. A plugin contributes
 `PluginPanel` descriptors to `PANELS_POINT`, targeting a *slot* (host surface).
@@ -253,6 +263,14 @@ automatically even when the experimental `enableLabs` setting is off (`Index.tsx
 computes `hasLabsPanels`). New slots are just new strings — no framework change.
 `PluginPanelHost` wraps each panel in an error boundary **and** a `Suspense`
 boundary, so panel components can be `React.lazy` (as `cloud-sync` is).
+
+**Inline mounts:** where panels are standalone cards, *mounts* inject a raw
+component into a fixed spot in core UI. A plugin contributes a `PluginMountDef`
+to `MOUNTS_POINT`, targeting a `MountSlot`; the host renders `<PluginMount slot
+ctx={…}>` at that spot, passing a typed context as a single `ctx` prop.
+`FilesTab` exposes two: `MountSlot.FileRow` (per file row, ctx = that file) and
+`MountSlot.FileManagerSection` (once under the list, ctx = the whole list). New
+mount locations are just new slot strings.
 
 **Cloud Sync (first-party plugin, `src/plugins/cloud-sync/`):** the first
 in-repo plugin built on the panel framework. Contributes a lazy Labs panel that
@@ -380,6 +398,15 @@ Synced stores (`syncStores.ts` — pure, unit-tested): `metadata`, `karts`,
 `setups`, `notes`, `graph-prefs`, `vehicle-types`, `setup-templates` (jsonb
 docs) + `files` (blobs). Video stores are intentionally excluded (size).
 `vehicle-types`/`setup-templates` ride along because setups are template-driven.
+
+Files are **opt-in per file** (`fileSync.ts`): a `FileRow` mount adds a toggle to
+each file-manager row (`off` → `pending` → `synced`), and the selection set lives
+in the plugin's own KV store (`getPluginStore("cloud-sync")`). `pushAll` uploads
+all garage docs but only the *selected* files; `pushFile` handles a single
+toggle. Cloud-only files (in the cloud, not on this device) are listed by a
+`FileManagerSection` mount (`CloudFilesSection`) with a per-file pull; pulling
+persists via `ctx.onSaveFile` (which refreshes the list). `modified` detection +
+a "sync all" affordance remain follow-ups.
 
 After a migration, Lovable regenerates `integrations/supabase/types.ts`. Until
 then `cloudClient.ts` accesses the new table/bucket through a narrowly-typed

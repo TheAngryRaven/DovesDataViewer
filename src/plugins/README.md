@@ -87,6 +87,48 @@ Contract notes:
   the host's Vite), so an external package adds `react` to its `devDependencies`
   for its own typecheck but does **not** bundle a second copy.
 
+## Inline mounts (`mounts.ts`)
+
+Where a panel is a standalone card, a **mount** injects a raw component into a
+fixed spot in core UI. A plugin contributes a `PluginMountDef` to `MOUNTS_POINT`,
+targeting a `MountSlot`; the host renders it via `<PluginMount slot ctx={…}>`,
+passing a typed context as a single `ctx` prop. The component is error-boundaried
+and `Suspense`-wrapped, so it can be `React.lazy`.
+
+```tsx
+import { lazy } from "react";
+import { MOUNTS_POINT, MountSlot, type PluginMountDef, type FileRowContext } from "@/plugins/mounts";
+
+const FileBadge = lazy(() => import("./FileBadge")); // ({ ctx }: { ctx: FileRowContext }) => …
+
+ctx.registry.contribute(MOUNTS_POINT, {
+  id: "my-file-badge",
+  slot: MountSlot.FileRow,            // rendered once per file row
+  component: FileBadge,
+} satisfies PluginMountDef<FileRowContext>);
+```
+
+Today's slots: `MountSlot.FileRow` (ctx = a file + its metadata) and
+`MountSlot.FileManagerSection` (ctx = the whole file list). `cloud-sync`'s
+per-file toggle is a `FileRow` mount. A slot with no contributions renders
+nothing, so hosts add `<PluginMount>` unconditionally. New slots are just new
+strings — no framework change.
+
+## Plugin storage (`storage.ts`)
+
+Each plugin gets a private key-value store in its **own** IndexedDB database
+(`dove-plugin-<id>`) — decoupled from the core schema, so persisting plugin
+state never touches `dbUtils`/`DB_VERSION`. Available as `ctx.storage` in
+`setup`, or `getPluginStore(id)` from anywhere (e.g. a panel/mount component):
+
+```ts
+const store = getPluginStore("my-plugin");
+await store.set("prefs", { theme: "neon" });
+const prefs = await store.get<{ theme: string }>("prefs");
+```
+
+`cloud-sync` uses it to hold the opt-in set of files selected for sync.
+
 ## The AI coach as a public npm package
 
 The coach lives in its own repo and is published to the **public npm registry**
