@@ -48,3 +48,9 @@ export async function listSelectedFiles(): Promise<string[]> {
   const keys = await store.keys();
   return keys.filter((k) => k.startsWith(PREFIX)).map((k) => k.slice(PREFIX.length));
 }
+
+/** Cloud file names that aren't present locally (i.e. pullable). Pure. */
+export function cloudOnlyNames(cloudNames: string[], localNames: Iterable<string>): string[] {
+  const local = new Set(localNames);
+  return cloudNames.filter((n) => !local.has(n));
+}

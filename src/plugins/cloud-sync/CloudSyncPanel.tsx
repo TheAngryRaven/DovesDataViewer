@@ -104,7 +104,7 @@ export default function CloudSyncPanel() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Push uploads this device's files and garage data. Pull brings your cloud copy down. Conflicts resolve in the direction you choose; nothing is deleted.
+        Push uploads your selected files (toggle them in the file manager) and your garage data. Pull brings your cloud copy down. Conflicts resolve in the direction you choose; nothing is deleted.
       </p>
     </div>
   );

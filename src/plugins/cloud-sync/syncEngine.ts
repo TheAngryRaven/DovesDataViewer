@@ -55,6 +55,31 @@ export async function pushFile(userId: string, name: string): Promise<void> {
   await markPushed(name);
 }
 
+export interface CloudFile {
+  name: string;
+  size?: number;
+}
+
+/** List the files this user has in the cloud (the file index rows). */
+export async function listCloudFiles(userId: string): Promise<CloudFile[]> {
+  const { data, error } = await syncRecords()
+    .select("record_key,data")
+    .eq("user_id", userId)
+    .eq("store", FILE_STORE);
+  if (error) throw new Error(`Failed to list cloud files: ${error.message}`);
+  return ((data ?? []) as { record_key: string; data: { size?: number } | null }[]).map((r) => ({
+    name: r.record_key,
+    size: r.data?.size,
+  }));
+}
+
+/** Download a single file blob from the cloud (does not persist it locally). */
+export async function downloadCloudFile(userId: string, name: string): Promise<Blob | null> {
+  const { data, error } = await userFiles().download(blobPath(userId, name));
+  if (error || !data) return null;
+  return data;
+}
+
 /**
  * Mirror local data up to the cloud: all structured (garage) records, plus only
  * the files the user has selected for sync.
