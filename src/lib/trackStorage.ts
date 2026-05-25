@@ -1,7 +1,15 @@
 import { Track, Course, LegacyTrack, SectorLine } from '@/types/racing';
+import { emitGarageChange } from '@/lib/garageEvents';
 
 const STORAGE_KEY = 'racing-datalog-tracks-v2';
 const LEGACY_STORAGE_KEY = 'racing-datalog-tracks';
+
+/**
+ * Sync "store" name for user tracks (cloud-sync documents type). Tracks live in
+ * localStorage, not IndexedDB, so cloud-sync reaches them through a dedicated
+ * store accessor — this constant is the agreed store key on both sides.
+ */
+export const TRACKS_SYNC_STORE = 'tracks';
 
 interface DefaultCourseJson {
   name: string;
@@ -252,6 +260,47 @@ export async function loadTracks(): Promise<Track[]> {
   return merged;
 }
 
+// ── Cloud-sync accessor helpers (user tracks only) ───────────────────────────
+
+/** All user-defined tracks (the syncable overlay; excludes built-in tracks). */
+export function listUserTracks(): Track[] {
+  return loadUserTracks();
+}
+
+/** One user track by name, or undefined. */
+export function getUserTrack(name: string): Track | undefined {
+  return loadUserTracks().find((t) => t.name === name);
+}
+
+/**
+ * Upsert a user track straight into storage — NO timestamp stamp, NO garage
+ * event. This is the cloud-sync *pull* write path (preserving the cloud copy's
+ * updatedAt and avoiding a re-sync echo). User edits go through the CRUD below.
+ */
+export function putUserTrackRaw(track: Track): void {
+  const list = loadUserTracks();
+  const i = list.findIndex((t) => t.name === track.name);
+  if (i >= 0) list[i] = track;
+  else list.push(track);
+  saveUserTracks(list);
+}
+
+/** Stamp a track's edit time so cloud-sync can merge by last-write-wins. */
+function stampTrack(tracks: Track[], name: string): void {
+  const t = tracks.find((x) => x.name === name);
+  if (t) t.updatedAt = Date.now();
+}
+
+/** After a user edit, emit the right garage event so cloud-sync mirrors it. */
+function emitTrackChange(trackName: string): void {
+  const stillUser = loadUserTracks().some((t) => t.name === trackName);
+  emitGarageChange({
+    store: TRACKS_SYNC_STORE,
+    key: trackName,
+    type: stillUser ? "put" : "delete",
+  });
+}
+
 /**
  * Add a new track with an optional initial course.
  */
@@ -276,7 +325,9 @@ export async function addTrack(trackName: string, course?: Course): Promise<Trac
     });
   }
   
+  stampTrack(tracks, trackName);
   saveUserTracks(tracks);
+  emitTrackChange(trackName);
   return tracks;
 }
 
@@ -304,8 +355,10 @@ export async function addCourse(trackName: string, course: Course): Promise<Trac
   } else {
     track.courses.push({ ...course, isUserDefined: true });
   }
-  
+
+  stampTrack(tracks, trackName);
   saveUserTracks(tracks);
+  emitTrackChange(trackName);
   return tracks;
 }
 
@@ -319,9 +372,13 @@ export async function updateTrackName(oldName: string, newName: string): Promise
   if (track) {
     track.name = newName;
     track.isUserDefined = true;
+    track.updatedAt = Date.now();
     saveUserTracks(tracks);
+    // A rename is a delete of the old key + a put of the new one.
+    emitGarageChange({ store: TRACKS_SYNC_STORE, key: oldName, type: "delete" });
+    emitGarageChange({ store: TRACKS_SYNC_STORE, key: newName, type: "put" });
   }
-  
+
   return tracks;
 }
 
@@ -340,10 +397,12 @@ export async function updateCourse(
     const course = track.courses.find(c => c.name === courseName);
     if (course) {
       Object.assign(course, updates, { isUserDefined: true });
+      stampTrack(tracks, trackName);
       saveUserTracks(tracks);
+      emitTrackChange(trackName);
     }
   }
-  
+
   return tracks;
 }
 
@@ -356,9 +415,12 @@ export async function deleteCourse(trackName: string, courseName: string): Promi
   const track = tracks.find(t => t.name === trackName);
   if (track) {
     track.courses = track.courses.filter(c => c.name !== courseName);
+    track.updatedAt = Date.now();
     saveUserTracks(tracks);
+    // The track may now be gone from user storage (no user courses left).
+    emitTrackChange(trackName);
   }
-  
+
   return tracks;
 }
 
@@ -377,8 +439,9 @@ export async function deleteTrack(trackName: string): Promise<Track[]> {
       tracks = tracks.filter(t => t.name !== trackName);
     }
     saveUserTracks(tracks);
+    emitTrackChange(trackName);
   }
-  
+
   return tracks;
 }
 

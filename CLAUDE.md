@@ -142,7 +142,7 @@ src/
 │   ├── chartUtils.ts          # Canvas chart rendering helpers
 │   ├── chartColors.ts         # Color palette for multi-series charts
 │   ├── trackUtils.ts          # Track geometry utilities (findNearestTrack: 5mi radius)
-│   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json) + course drawings loader
+│   ├── trackStorage.ts        # localStorage: tracks + courses (merged with public/tracks.json) + course drawings loader. User tracks emit garageEvents + carry updatedAt → cloud-synced via a store accessor (TRACKS_SYNC_STORE)
 │   ├── referenceUtils.ts      # Reference lap comparison (legacy distance-based pace)
 │   ├── lapDelta.ts            # ★ Position-based lap delta: arc-length resample + segment-projected gap (issue #29 port)
 │   ├── dbUtils.ts             # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), transaction helpers
@@ -192,7 +192,8 @@ src/
 │   │   ├── FileSyncToggle.tsx    # Per-file sync toggle, mounted on each file row (off/pending/synced)
 │   │   ├── CloudFilesSection.tsx # FileManagerSection mount: lists all cloud files (on-device marked, others pullable)
 │   │   ├── fileSync.ts           # Per-file selection state in the plugin store + fileSyncStatus/cloudOnlyNames (pure, tested)
-│   │   ├── syncStores.ts         # Pure config: which IDB stores sync + how they're keyed (testable)
+│   │   ├── syncStores.ts         # Pure config: which stores sync + how they're keyed (testable)
+│   │   ├── storeAccessors.ts     # Per-store read/get/put: default IndexedDB accessor + a localStorage accessor for tracks (the non-IDB seam)
 │   │   ├── merge.ts              # ★ Pure conflict resolution: decideSync (pending-wins + updatedAt LWW), pendingId (tested)
 │   │   ├── pendingSync.ts        # Persistent offline "pending changes" set (plugin KV); flushed priority-1 on reconnect
 │   │   ├── storageTypes.ts      # Pure: storage types (documents 5MB / logs 20MB) + usage math (tested)
@@ -441,9 +442,14 @@ Backend (migrations `..._cloud_sync.sql`, `..._storage_quotas.sql`):
 | `handle_new_user` | trigger | On `auth.users` insert: creates a profile, using the sign-up `display_name` or a generated silly name (`SpeedyRac3r-546`). `unique_display_name()` auto-suffixes a taken name at creation; user edits get an explicit "taken" error instead. |
 
 Synced stores (`syncStores.ts` — pure, unit-tested): `metadata`, `karts`,
-`setups`, `notes`, `graph-prefs`, `vehicle-types`, `setup-templates` (jsonb
-docs) + `files` (blobs). Video stores are intentionally excluded (size).
+`setups`, `notes`, `graph-prefs`, `vehicle-types`, `setup-templates`, `tracks`
+(jsonb docs) + `files` (blobs). Video stores are intentionally excluded (size).
 `vehicle-types`/`setup-templates` ride along because setups are template-driven.
+Most stores are IndexedDB; **`tracks` is localStorage** (only *user* tracks/courses,
+never the built-in public ones), reached through `storeAccessors.ts` — a per-store
+read/get/put seam so the engine isn't hard-wired to IndexedDB. Track edits stamp
+`updatedAt` + emit `garageEvents`, so they ride the same auto-sync + delete
+propagation + pending-wins/LWW merge as setups.
 
 Cloud **log deletion** is managed on the Profile tab (`CloudLogsPanel`):
 `listCloudFiles` (now with `uploadedAt`) lists the user's cloud log files;

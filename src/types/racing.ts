@@ -37,6 +37,7 @@ export interface Track {
   shortName?: string; // max 8 chars, used for zip filenames and compact display
   courses: Course[];
   isUserDefined?: boolean; // true if entire track is user-added
+  updatedAt?: number; // last local edit time (ms) — set on save; used for cloud-sync merge
 }
 
 // Legacy interface for backward compatibility during migration

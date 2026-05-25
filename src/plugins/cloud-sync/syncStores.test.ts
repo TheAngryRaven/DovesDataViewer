@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { STORE_NAMES } from "@/lib/dbUtils";
+import { TRACKS_SYNC_STORE } from "@/lib/trackStorage";
 import { extractKey, DOC_STORES, FILE_STORE } from "./syncStores";
 
 describe("extractKey", () => {
@@ -12,6 +13,10 @@ describe("extractKey", () => {
 
   it("coerces non-string keys to string", () => {
     expect(extractKey(STORE_NAMES.NOTES, { id: 42 })).toBe("42");
+  });
+
+  it("keys user tracks by name", () => {
+    expect(extractKey(TRACKS_SYNC_STORE, { name: "Local Kart Track" })).toBe("Local Kart Track");
   });
 });
 
@@ -35,6 +40,7 @@ describe("synced store coverage", () => {
       STORE_NAMES.VEHICLE_TYPES,
       STORE_NAMES.SETUP_TEMPLATES,
       STORE_NAMES.METADATA,
+      TRACKS_SYNC_STORE,
     ]) {
       expect(DOC_STORES).toContain(store);
     }

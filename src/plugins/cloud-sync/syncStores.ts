@@ -3,8 +3,9 @@
 // stays unit-testable in a node environment.
 
 import { STORE_NAMES } from "@/lib/dbUtils";
+import { TRACKS_SYNC_STORE } from "@/lib/trackStorage";
 
-/** IndexedDB key path for each syncable store. */
+/** Key path for each syncable store (IndexedDB stores + the localStorage tracks). */
 const KEY_FIELD: Record<string, string> = {
   [STORE_NAMES.METADATA]: "fileName",
   [STORE_NAMES.KARTS]: "id",
@@ -15,6 +16,7 @@ const KEY_FIELD: Record<string, string> = {
   // with them or pulled setups can't render.
   [STORE_NAMES.VEHICLE_TYPES]: "id",
   [STORE_NAMES.SETUP_TEMPLATES]: "id",
+  [TRACKS_SYNC_STORE]: "name", // user tracks (localStorage, via a store accessor)
   [STORE_NAMES.FILES]: "name",
 };
 
@@ -27,6 +29,7 @@ export const DOC_STORES = [
   STORE_NAMES.GRAPH_PREFS,
   STORE_NAMES.VEHICLE_TYPES,
   STORE_NAMES.SETUP_TEMPLATES,
+  TRACKS_SYNC_STORE,
 ] as const;
 
 /** Store whose payload is a Blob, synced through the Storage bucket. */
