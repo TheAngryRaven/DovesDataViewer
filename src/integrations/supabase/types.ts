@@ -202,6 +202,21 @@ export type Database = {
         }
         Relationships: []
       }
+      quota_limits: {
+        Row: {
+          max_bytes: number
+          storage_type: string
+        }
+        Insert: {
+          max_bytes: number
+          storage_type: string
+        }
+        Update: {
+          max_bytes?: number
+          storage_type?: string
+        }
+        Relationships: []
+      }
       submissions: {
         Row: {
           course_data: Json
@@ -347,6 +362,19 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      sync_record_size: {
+        Args: { p_data: Json; p_store: string }
+        Returns: number
+      }
+      sync_storage_type: { Args: { p_store: string }; Returns: string }
+      sync_storage_usage: {
+        Args: never
+        Returns: {
+          limit_bytes: number
+          storage_type: string
+          used_bytes: number
+        }[]
       }
     }
     Enums: {
