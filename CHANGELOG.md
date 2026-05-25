@@ -64,6 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Regular accounts have no admin privileges (admin role remains driven by
   `user_roles`).
 
+### Added
+- Your custom **tracks & courses now sync to the cloud** too (documents storage),
+  the same way setups do — auto-sync, delete propagation, and the offline-aware
+  timestamp merge. Only your user-created tracks/courses sync; built-in tracks
+  stay local.
+
 ### Changed
 - Cloud document sync is now **offline-aware and conflict-safe**. Garage records
   (vehicles, setups, templates, notes) carry an edit timestamp, and sync uses

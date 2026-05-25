@@ -11,8 +11,8 @@
 // adding a new syncable store is a single entry in syncStores.ts. File blobs
 // can't live in jsonb, so they round-trip through the Storage bucket instead.
 
-import { withReadTransaction, withWriteTransaction } from "@/lib/dbUtils";
 import { getFile, saveFile } from "@/lib/fileStorage";
+import { getAccessor } from "./storeAccessors";
 import { fetchStorageUsage, syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
 import { DOC_STORES, FILE_STORE, extractKey, type SyncSummary } from "./syncStores";
 import { listSelectedFiles, markPushed } from "./fileSync";
@@ -26,12 +26,14 @@ function blobPath(userId: string, name: string): string {
   return `${userId}/${encodeURIComponent(name)}`;
 }
 
+// Route through the per-store accessor (IndexedDB for most stores, localStorage
+// for tracks) instead of assuming IndexedDB.
 async function readAll(store: string): Promise<Record<string, unknown>[]> {
-  return withReadTransaction<Record<string, unknown>[]>(store, (s) => s.getAll());
+  return getAccessor(store).readAll();
 }
 
 async function writeOne(store: string, record: unknown): Promise<void> {
-  await withWriteTransaction(store, (s) => s.put(record as Record<string, unknown>));
+  await getAccessor(store).putOne(record as Record<string, unknown>);
 }
 
 /** Upload one local file blob + its index row. Returns false if not stored locally. */
@@ -163,10 +165,7 @@ export async function pullAll(userId: string): Promise<SyncSummary> {
  * (including the server quota rejection — see `isQuotaError`).
  */
 export async function pushRecord(userId: string, store: string, key: string): Promise<void> {
-  const record = await withReadTransaction<Record<string, unknown> | undefined>(
-    store,
-    (s) => s.get(key),
-  );
+  const record = await getAccessor(store).getOne(key);
   if (record == null) return;
   const { error } = await syncRecords().upsert(
     [{ user_id: userId, store, record_key: key, data: record }],
