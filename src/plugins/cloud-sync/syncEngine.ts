@@ -17,6 +17,7 @@ import { fetchStorageUsage, syncRecords, userFiles, type SyncRecordRow } from ".
 import { DOC_STORES, FILE_STORE, extractKey, type SyncSummary } from "./syncStores";
 import { listSelectedFiles, markPushed } from "./fileSync";
 import { DEFAULT_LIMITS, type StorageType, type StorageTypeUsage } from "./storageTypes";
+import { decideSync, pendingId, recordUpdatedAt } from "./merge";
 
 export type { SyncSummary };
 
@@ -184,37 +185,94 @@ export async function deleteRecord(userId: string, store: string, key: string): 
   if (error) throw new Error(error.message);
 }
 
-/** Mirror only the structured (free documents storage type) stores up — no file blobs. */
-export async function pushDocs(userId: string): Promise<number> {
-  const rows: SyncRecordRow[] = [];
-  for (const store of DOC_STORES) {
-    for (const record of await readAll(store)) {
-      rows.push({ user_id: userId, store, record_key: extractKey(store, record), data: record });
-    }
-  }
-  if (rows.length) {
-    const { error } = await syncRecords().upsert(rows, { onConflict: "user_id,store,record_key" });
-    if (error) throw new Error(`Failed to push documents: ${error.message}`);
-  }
-  return rows.length;
+export interface DocReconcileResult {
+  pulled: number;
+  pushed: number;
 }
 
-/** Bring only the documents-type records down into local IndexedDB (no files). */
-export async function pullDocs(userId: string): Promise<number> {
+/**
+ * Timestamp-aware two-way merge of the document stores (no file blobs):
+ *  - newer side wins by the record's own `updatedAt` (last-write-wins);
+ *  - local-only records push up (anon→account migration);
+ *  - cloud-only records pull down;
+ *  - anything in `pendingKeys` is treated as priority-1 local and pushed,
+ *    overriding the timestamp comparison.
+ * Local writes go through `writeOne` (no garage event), so a pull doesn't echo
+ * back as a change. Run this AFTER flushing pending deletes.
+ */
+export async function reconcileDocs(
+  userId: string,
+  pendingKeys: Set<string>,
+): Promise<DocReconcileResult> {
   const { data, error } = await syncRecords()
     .select("store,record_key,data")
     .eq("user_id", userId);
   if (error) throw new Error(`Failed to read cloud documents: ${error.message}`);
 
-  const rows = (data ?? []) as Pick<SyncRecordRow, "store" | "record_key" | "data">[];
-  let records = 0;
-  for (const row of rows) {
+  const cloud = new Map<string, { store: string; key: string; data: unknown; t: number }>();
+  for (const row of (data ?? []) as Pick<SyncRecordRow, "store" | "record_key" | "data">[]) {
     if ((DOC_STORES as readonly string[]).includes(row.store)) {
-      await writeOne(row.store, row.data);
-      records++;
+      cloud.set(pendingId(row.store, row.record_key), {
+        store: row.store,
+        key: row.record_key,
+        data: row.data,
+        t: recordUpdatedAt(row.data),
+      });
     }
   }
-  return records;
+
+  let pulled = 0;
+  let pushed = 0;
+  const toPush: SyncRecordRow[] = [];
+  const seen = new Set<string>();
+
+  for (const store of DOC_STORES) {
+    for (const record of await readAll(store)) {
+      const key = extractKey(store, record);
+      const id = pendingId(store, key);
+      seen.add(id);
+      const c = cloud.get(id);
+      const action = decideSync({
+        hasLocal: true,
+        hasCloud: !!c,
+        localT: recordUpdatedAt(record),
+        cloudT: c?.t ?? 0,
+        pending: pendingKeys.has(id),
+      });
+      if (action === "push") {
+        toPush.push({ user_id: userId, store, record_key: key, data: record });
+        pushed++;
+      } else if (action === "pull" && c) {
+        await writeOne(store, c.data);
+        pulled++;
+      }
+    }
+  }
+
+  // Cloud-only records (not present locally) → pull down.
+  for (const [id, c] of cloud) {
+    if (seen.has(id)) continue;
+    const action = decideSync({
+      hasLocal: false,
+      hasCloud: true,
+      localT: 0,
+      cloudT: c.t,
+      pending: pendingKeys.has(id),
+    });
+    if (action === "pull") {
+      await writeOne(c.store, c.data);
+      pulled++;
+    }
+  }
+
+  if (toPush.length) {
+    const { error: upErr } = await syncRecords().upsert(toPush, {
+      onConflict: "user_id,store,record_key",
+    });
+    if (upErr) throw new Error(`Failed to push documents: ${upErr.message}`);
+  }
+
+  return { pulled, pushed };
 }
 
 /** Per-type storage usage from the server, with the advisory limits as fallback. */

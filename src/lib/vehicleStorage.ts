@@ -14,14 +14,17 @@ export interface Vehicle {
   number: number;
   weight: number;
   weightUnit: "lb" | "kg";
+  /** Last local edit time (ms) — set by saveVehicle; used for sync merge. */
+  updatedAt?: number;
 }
 
 const VEHICLES_STORE = STORE_NAMES.KARTS; // store name unchanged in IDB
 
 export async function saveVehicle(vehicle: Vehicle): Promise<void> {
+  const stamped: Vehicle = { ...vehicle, updatedAt: Date.now() };
   const db = await openDB();
   const tx = db.transaction(VEHICLES_STORE, "readwrite");
-  tx.objectStore(VEHICLES_STORE).put(vehicle);
+  tx.objectStore(VEHICLES_STORE).put(stamped);
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
