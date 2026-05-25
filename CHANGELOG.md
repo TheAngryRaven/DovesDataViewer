@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from **every device and the cloud**, with a clear warning before you confirm.
 - New **Profile** tab (far right) showing your cloud storage usage against the
   document and log limits.
+- **Cloud log management** (Profile tab): see the session log files stored in your
+  cloud — with upload date and size — and delete them. Deleting removes the
+  **cloud copy only** (other devices keep what they've already downloaded), with
+  an optional toggle to **also delete the local copy from this device**. Clear
+  "this can't be undone" warning.
 - **User display names**: choose a unique display name when you register, or get a
   fun auto-generated one (e.g. `SpeedyRac3r-546`) if you leave it blank — editable
   any time from the Profile tab, with a clear "that name's taken" message. Existing

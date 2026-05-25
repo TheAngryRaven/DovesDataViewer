@@ -16,8 +16,9 @@ const CloudSyncPanel = lazy(() => import("./CloudSyncPanel"));
 // drawer doesn't pull the sync engine onto its chunk until they render.
 const FileSyncToggle = lazy(() => import("./FileSyncToggle"));
 const CloudFilesSection = lazy(() => import("./CloudFilesSection"));
-// Profile tab panel: storage usage meters + account scratch pad.
+// Profile tab panels: storage usage meters + account, and cloud-log management.
 const StoragePanel = lazy(() => import("./StoragePanel"));
+const CloudLogsPanel = lazy(() => import("./CloudLogsPanel"));
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
@@ -65,6 +66,16 @@ const plugin: DataViewerPlugin = {
       order: 0,
       icon: User,
       component: StoragePanel,
+    } satisfies PluginPanel);
+
+    // Profile tab: manage (delete) the log files stored in the cloud.
+    ctx.registry.contribute(PANELS_POINT, {
+      id: "cloud-sync-logs",
+      title: "Cloud logs",
+      slot: PanelSlot.Profile,
+      order: 10,
+      icon: Cloud,
+      component: CloudLogsPanel,
     } satisfies PluginPanel);
 
     // Background document auto-sync. Dynamically imported so the sync engine

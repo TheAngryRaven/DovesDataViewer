@@ -197,6 +197,7 @@ src/
 │   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord/pushDocs/pullDocs + getStorageUsage
 │   │   ├── autoSync.ts           # Background doc auto-sync: subscribes to garageEvents, debounced upsert/delete + reconcile on sign-in
 │   │   ├── StoragePanel.tsx      # Profile-tab panel: display-name editor + storage usage meters (lazy)
+│   │   ├── CloudLogsPanel.tsx    # Profile-tab panel: list + delete cloud log files (cloud-only; opt-in local delete) (lazy)
 │   │   ├── profile.ts            # getMyProfile / updateDisplayName (unique display names; taken-name handling)
 │   │   └── cloudClient.ts        # Typed access to sync_records + bucket + sync_storage_usage RPC (escape hatch until types regen)
 │   └── coaching/              # Gitignored private slot (AI coaching submodule)
@@ -431,6 +432,13 @@ Synced stores (`syncStores.ts` — pure, unit-tested): `metadata`, `karts`,
 `setups`, `notes`, `graph-prefs`, `vehicle-types`, `setup-templates` (jsonb
 docs) + `files` (blobs). Video stores are intentionally excluded (size).
 `vehicle-types`/`setup-templates` ride along because setups are template-driven.
+
+Cloud **log deletion** is managed on the Profile tab (`CloudLogsPanel`):
+`listCloudFiles` (now with `uploadedAt`) lists the user's cloud log files;
+`deleteCloudFile(userId, name)` removes the blob + its `sync_records` index row
+(cloud-only — other devices keep their downloaded copy), clears the per-file
+selection, and optionally deletes the local copy on this device. (Auto-propagation
+of log deletes on local delete is still a separate follow-up.)
 
 Files are **opt-in per file** (`fileSync.ts`): a `FileRow` mount adds a toggle to
 each file-manager row (`off` → `pending` → `synced`), and the selection set lives

@@ -59,19 +59,40 @@ export async function pushFile(userId: string, name: string): Promise<void> {
 export interface CloudFile {
   name: string;
   size?: number;
+  /** When the file was last uploaded (ISO string from the index row). */
+  uploadedAt?: string;
 }
 
 /** List the files this user has in the cloud (the file index rows). */
 export async function listCloudFiles(userId: string): Promise<CloudFile[]> {
   const { data, error } = await syncRecords()
-    .select("record_key,data")
+    .select("record_key,data,updated_at")
     .eq("user_id", userId)
     .eq("store", FILE_STORE);
   if (error) throw new Error(`Failed to list cloud files: ${error.message}`);
-  return ((data ?? []) as { record_key: string; data: { size?: number } | null }[]).map((r) => ({
+  return (
+    (data ?? []) as { record_key: string; data: { size?: number } | null; updated_at?: string }[]
+  ).map((r) => ({
     name: r.record_key,
     size: r.data?.size,
+    uploadedAt: r.updated_at,
   }));
+}
+
+/**
+ * Delete one log file from the cloud: the blob in the bucket + its index row.
+ * Does NOT touch any device's local copy — callers handle local deletion
+ * separately (and only for the current device).
+ */
+export async function deleteCloudFile(userId: string, name: string): Promise<void> {
+  const { error: rmErr } = await userFiles().remove([blobPath(userId, name)]);
+  if (rmErr) throw new Error(`Failed to delete cloud file: ${rmErr.message}`);
+  const { error } = await syncRecords()
+    .delete()
+    .eq("user_id", userId)
+    .eq("store", FILE_STORE)
+    .eq("record_key", name);
+  if (error) throw new Error(`Failed to remove cloud file index: ${error.message}`);
 }
 
 /** Download a single file blob from the cloud (does not persist it locally). */
