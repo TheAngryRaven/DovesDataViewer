@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical, User } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { RaceLineTab } from "@/components/tabs/RaceLineTab";
@@ -16,6 +16,9 @@ const LabsTab = lazy(() =>
 );
 const CoachTab = lazy(() =>
   import("@/components/tabs/CoachTab").then((m) => ({ default: m.CoachTab })),
+);
+const ProfileTab = lazy(() =>
+  import("@/components/tabs/ProfileTab").then((m) => ({ default: m.ProfileTab })),
 );
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -49,7 +52,7 @@ import { DeviceProvider } from "@/contexts/DeviceContext";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
 
 
-type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach";
+type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach" | "profile";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
@@ -122,6 +125,9 @@ export default function Index() {
   // The Coach tab is self-gating: it appears only when a plugin contributes a
   // panel to the Coach slot (i.e. the coach package is installed).
   const showCoach = useMemo(() => getPanelsForSlot(PanelSlot.Coach).length > 0, []);
+  // Profile tab is self-gating too: appears only when a plugin (cloud-sync)
+  // contributes a Profile panel (i.e. the cloud build flag is on).
+  const showProfile = useMemo(() => getPanelsForSlot(PanelSlot.Profile).length > 0, []);
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -393,7 +399,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} showProfile={showProfile} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -403,6 +409,7 @@ export default function Index() {
             {topPanelView === "graphview" && <GraphViewTab />}
             {topPanelView === "labs" && showLabs && <LabsTab />}
             {topPanelView === "coach" && showCoach && <CoachTab />}
+            {topPanelView === "profile" && showProfile && <ProfileTab />}
           </Suspense>
         </div>
       </main>
@@ -427,7 +434,7 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach, showProfile }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
@@ -435,6 +442,7 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   onToggleOverlays: () => void;
   showLabs: boolean;
   showCoach: boolean;
+  showProfile: boolean;
 }) {
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -474,6 +482,11 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
             <span className="text-xs">Overlay</span>
           </Button>
         </div>
+      )}
+      {showProfile && (
+        <button onClick={() => setTopPanelView("profile")} className={`${tabClass("profile")} ${topPanelView === "raceline" ? "" : "ml-auto"}`}>
+          <User className="w-4 h-4" /> <span className="hidden sm:inline">Profile</span>
+        </button>
       )}
     </div>
   );

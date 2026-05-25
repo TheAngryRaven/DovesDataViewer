@@ -3,6 +3,7 @@
  */
 
 import { openDB, STORE_NAMES } from './dbUtils';
+import { emitGarageChange } from './garageEvents';
 
 export interface Note {
   id: string;
@@ -36,6 +37,7 @@ export async function saveNote(note: Note): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: NOTES_STORE, key: note.id, type: "put" });
 }
 
 export async function deleteNote(id: string): Promise<void> {
@@ -47,4 +49,5 @@ export async function deleteNote(id: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: NOTES_STORE, key: id, type: "delete" });
 }

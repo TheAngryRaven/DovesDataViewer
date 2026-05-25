@@ -4,6 +4,7 @@
  */
 
 import { openDB, STORE_NAMES } from './dbUtils';
+import { emitGarageChange } from './garageEvents';
 
 export interface VehicleSetup {
   id: string;
@@ -63,6 +64,7 @@ export async function saveSetup(setup: VehicleSetup): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: SETUPS_STORE, key: setup.id, type: "put" });
 }
 
 export async function deleteSetup(id: string): Promise<void> {
@@ -74,6 +76,7 @@ export async function deleteSetup(id: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: SETUPS_STORE, key: id, type: "delete" });
 }
 
 export async function getLatestSetupForVehicle(vehicleId: string): Promise<VehicleSetup | null> {

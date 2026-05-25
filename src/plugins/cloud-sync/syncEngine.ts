@@ -13,9 +13,10 @@
 
 import { withReadTransaction, withWriteTransaction } from "@/lib/dbUtils";
 import { getFile, saveFile } from "@/lib/fileStorage";
-import { syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
+import { fetchStorageUsage, syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
 import { DOC_STORES, FILE_STORE, extractKey, type SyncSummary } from "./syncStores";
 import { listSelectedFiles, markPushed } from "./fileSync";
+import { DEFAULT_LIMITS, type Tier, type TierUsage } from "./tiers";
 
 export type { SyncSummary };
 
@@ -130,4 +131,82 @@ export async function pullAll(userId: string): Promise<SyncSummary> {
     }
   }
   return { records, files };
+}
+
+// ── Incremental (auto) sync ──────────────────────────────────────────────────
+
+/**
+ * Upsert one document record to the cloud by reading it from its local store.
+ * No-op if the record is already gone locally. Throws on a backend error
+ * (including the server quota rejection — see `isQuotaError`).
+ */
+export async function pushRecord(userId: string, store: string, key: string): Promise<void> {
+  const record = await withReadTransaction<Record<string, unknown> | undefined>(
+    store,
+    (s) => s.get(key),
+  );
+  if (record == null) return;
+  const { error } = await syncRecords().upsert(
+    [{ user_id: userId, store, record_key: key, data: record }],
+    { onConflict: "user_id,store,record_key" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+/** Delete one document record from the cloud (deletion propagation). */
+export async function deleteRecord(userId: string, store: string, key: string): Promise<void> {
+  const { error } = await syncRecords()
+    .delete()
+    .eq("user_id", userId)
+    .eq("store", store)
+    .eq("record_key", key);
+  if (error) throw new Error(error.message);
+}
+
+/** Mirror only the structured (free document-tier) stores up — no file blobs. */
+export async function pushDocs(userId: string): Promise<number> {
+  const rows: SyncRecordRow[] = [];
+  for (const store of DOC_STORES) {
+    for (const record of await readAll(store)) {
+      rows.push({ user_id: userId, store, record_key: extractKey(store, record), data: record });
+    }
+  }
+  if (rows.length) {
+    const { error } = await syncRecords().upsert(rows, { onConflict: "user_id,store,record_key" });
+    if (error) throw new Error(`Failed to push documents: ${error.message}`);
+  }
+  return rows.length;
+}
+
+/** Bring only the document-tier records down into local IndexedDB (no files). */
+export async function pullDocs(userId: string): Promise<number> {
+  const { data, error } = await syncRecords()
+    .select("store,record_key,data")
+    .eq("user_id", userId);
+  if (error) throw new Error(`Failed to read cloud documents: ${error.message}`);
+
+  const rows = (data ?? []) as Pick<SyncRecordRow, "store" | "record_key" | "data">[];
+  let records = 0;
+  for (const row of rows) {
+    if ((DOC_STORES as readonly string[]).includes(row.store)) {
+      await writeOne(row.store, row.data);
+      records++;
+    }
+  }
+  return records;
+}
+
+/** Per-tier storage usage from the server, with the advisory limits as fallback. */
+export async function getStorageUsage(): Promise<TierUsage[]> {
+  const rows = await fetchStorageUsage();
+  const byTier = new Map(rows.map((r) => [r.tier, r]));
+  const tiers: Tier[] = ["documents", "logs"];
+  return tiers.map((tier) => {
+    const row = byTier.get(tier);
+    return {
+      tier,
+      usedBytes: row?.used_bytes ?? 0,
+      limitBytes: row?.limit_bytes ?? DEFAULT_LIMITS[tier],
+    };
+  });
 }

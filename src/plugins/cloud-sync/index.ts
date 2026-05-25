@@ -1,5 +1,6 @@
 import { lazy } from "react";
-import { Cloud } from "lucide-react";
+import { Cloud, User } from "lucide-react";
+import { toast } from "sonner";
 import type { DataViewerPlugin } from "@/plugins/types";
 import { PANELS_POINT, PanelSlot, type PluginPanel } from "@/plugins/panels";
 import {
@@ -15,6 +16,8 @@ const CloudSyncPanel = lazy(() => import("./CloudSyncPanel"));
 // drawer doesn't pull the sync engine onto its chunk until they render.
 const FileSyncToggle = lazy(() => import("./FileSyncToggle"));
 const CloudFilesSection = lazy(() => import("./CloudFilesSection"));
+// Profile tab panel: storage usage meters + account scratch pad.
+const StoragePanel = lazy(() => import("./StoragePanel"));
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
@@ -53,6 +56,24 @@ const plugin: DataViewerPlugin = {
       order: 0,
       component: CloudFilesSection,
     } satisfies PluginMountDef<FileManagerSectionContext>);
+
+    // Profile tab: storage usage meters (document + log tiers) + account.
+    ctx.registry.contribute(PANELS_POINT, {
+      id: "cloud-sync-storage",
+      title: "Profile",
+      slot: PanelSlot.Profile,
+      order: 0,
+      icon: User,
+      component: StoragePanel,
+    } satisfies PluginPanel);
+
+    // Background document auto-sync. Dynamically imported so the sync engine
+    // stays off the initial bundle; the notifier routes quota warnings to a
+    // toast (keeping autoSync itself free of any UI dependency).
+    void import("./autoSync").then((m) => {
+      m.setAutoSyncNotifier((msg, kind) => (kind === "error" ? toast.error(msg) : toast(msg)));
+      m.startAutoSync();
+    });
   },
 };
 

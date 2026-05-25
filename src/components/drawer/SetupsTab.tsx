@@ -10,6 +10,7 @@ import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
 import { VehicleType, SetupTemplate, TemplateSection, TemplateFieldDef } from "@/lib/templateStorage";
 import { TemplateCreator } from "@/components/drawer/TemplateCreator";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SetupsTabProps {
   vehicles: Vehicle[];
@@ -62,6 +63,7 @@ export function SetupsTab({
   const [preloaded, setPreloaded] = useState(false);
   const preloadSnapshot = useRef<Record<string, unknown> | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const { user } = useAuth();
 
   // PSI display helpers
   const [psiSingle, setPsiSingle] = useState<number | null>(null);
@@ -293,7 +295,9 @@ export function SetupsTab({
                     </div>
                     {isDeleting && (
                       <div className="mx-3 mb-1 p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
-                        <span className="text-xs text-destructive flex-1">Delete this setup?</span>
+                        <span className="text-xs text-destructive flex-1">
+                          {user ? "Delete everywhere — removes this setup from every device and the cloud." : "Delete this setup?"}
+                        </span>
                         <Button size="sm" variant="destructive" className="h-6 text-xs px-2" onClick={async () => { await onRemove(setup.id); setDeleteConfirmId(null); }}>Confirm</Button>
                         <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
                       </div>

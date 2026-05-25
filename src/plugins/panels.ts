@@ -22,6 +22,8 @@ export const PanelSlot = {
   Labs: "labs",
   /** The dedicated AI Coach tab in the main view. */
   Coach: "coach",
+  /** The user profile tab (storage usage, account) in the main view. */
+  Profile: "profile",
 } as const;
 export type PanelSlot = (typeof PanelSlot)[keyof typeof PanelSlot];
 

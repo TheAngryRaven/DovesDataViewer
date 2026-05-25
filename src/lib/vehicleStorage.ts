@@ -4,6 +4,7 @@
  */
 
 import { openDB, STORE_NAMES } from './dbUtils';
+import { emitGarageChange } from './garageEvents';
 
 export interface Vehicle {
   id: string;
@@ -26,6 +27,7 @@ export async function saveVehicle(vehicle: Vehicle): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: VEHICLES_STORE, key: vehicle.id, type: "put" });
 }
 
 export async function listVehicles(): Promise<Vehicle[]> {
@@ -61,4 +63,5 @@ export async function deleteVehicle(id: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: VEHICLES_STORE, key: id, type: "delete" });
 }

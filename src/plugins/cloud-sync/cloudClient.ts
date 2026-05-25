@@ -34,3 +34,22 @@ export function syncRecords() {
 export function userFiles() {
   return untyped.storage.from(SYNC_BUCKET);
 }
+
+/** One tier's usage as returned by the server's sync_storage_usage() RPC. */
+export interface StorageUsageRow {
+  tier: string;
+  used_bytes: number;
+  limit_bytes: number;
+}
+
+/** Per-tier storage usage for the current user (authoritative, server-computed). */
+export async function fetchStorageUsage(): Promise<StorageUsageRow[]> {
+  const { data, error } = await untyped.rpc("sync_storage_usage");
+  if (error) throw new Error(`Failed to read storage usage: ${error.message}`);
+  return (data ?? []) as StorageUsageRow[];
+}
+
+/** True when an error from a sync_records write is the server quota rejection. */
+export function isQuotaError(err: unknown): boolean {
+  return err instanceof Error && /quota_exceeded/i.test(err.message);
+}
