@@ -18,8 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   named slot, starting with the Labs tab. The tab now appears automatically when
   a plugin contributes a panel, and each panel is isolated by an error boundary.
 - Dedicated AI Coach tab: a new top-level view (`PanelSlot.Coach`) that hosts the
-  coaching plugin's session-debrief panels. Like Labs, it is self-gating — the
-  tab only appears when the coach plugin is installed and contributes a panel.
+  coaching plugin's session-debrief dashboard. Like Labs, it is self-gating — the
+  tab only appears when the coach plugin is installed and contributes a panel. The
+  bundled coach (`@perchwerks/eye-in-the-sky` 0.2.0) ships a full-bleed analysis
+  dashboard (uPlot telemetry charts, corner/sector breakdowns) that loads lazily,
+  off the initial bundle.
+- Plugin panels can now be **chromeless** — a panel may render full-bleed without
+  the host's card/header/padding (used by the coach dashboard), while keeping its
+  error boundary and Suspense.
 - Cloud Sync (first-party plugin, in the Labs tab): sign in to back up and sync
   your session files and garage data (vehicles, setups, notes, graph prefs) to
   the cloud and pull them onto another device. Manual push/pull; data is private
