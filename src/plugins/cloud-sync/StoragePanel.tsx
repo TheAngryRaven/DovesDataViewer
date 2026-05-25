@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Pencil, User as UserIcon, X } from "lucide-react";
+import { Check, CloudOff, Pencil, User as UserIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { getStorageUsage } from "./syncEngine";
 import { getMyProfile, updateDisplayName } from "./profile";
+import { pendingCount } from "./pendingSync";
 import { formatBytes, usageFraction, type StorageTypeUsage } from "./storageTypes";
 
 const TYPE_LABEL: Record<string, string> = { documents: "Documents", logs: "Logs" };
@@ -19,11 +21,14 @@ const TYPE_HINT: Record<string, string> = {
 // usage against the document/log storage limits.
 export default function StoragePanel(_props: PluginPanelProps) {
   const { user, loading } = useAuth();
+  const online = useOnlineStatus();
   const [usage, setUsage] = useState<StorageTypeUsage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!user) return;
+    setPending(await pendingCount());
     try {
       setUsage(await getStorageUsage());
       setError(null);
@@ -32,9 +37,11 @@ export default function StoragePanel(_props: PluginPanelProps) {
     }
   }, [user]);
 
+  // Re-read on mount and whenever connectivity flips (pending changes flush on
+  // reconnect, so the count + usage should refresh then).
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+  }, [refresh, online]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
@@ -52,6 +59,23 @@ export default function StoragePanel(_props: PluginPanelProps) {
   return (
     <div className="space-y-5">
       <DisplayName userId={user.id} email={user.email ?? ""} />
+
+      {!online && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+          <CloudOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            You're offline.{" "}
+            {pending > 0
+              ? `${pending} change${pending === 1 ? "" : "s"} saved locally — they'll sync when you reconnect.`
+              : "Changes are saved locally and will sync when you reconnect."}
+          </span>
+        </div>
+      )}
+      {online && pending > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Syncing {pending} pending change{pending === 1 ? "" : "s"}…
+        </p>
+      )}
 
       <div className="space-y-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Storage</p>

@@ -29,9 +29,10 @@ export async function listNotes(fileName: string): Promise<Note[]> {
 }
 
 export async function saveNote(note: Note): Promise<void> {
+  const stamped: Note = { ...note, updatedAt: Date.now() };
   const db = await openDB();
   const tx = db.transaction(NOTES_STORE, "readwrite");
-  tx.objectStore(NOTES_STORE).put(note);
+  tx.objectStore(NOTES_STORE).put(stamped);
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);

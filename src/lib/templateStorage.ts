@@ -43,6 +43,8 @@ export interface VehicleType {
   wheelCount: 2 | 4;
   isDefault: boolean;
   createdAt: number;
+  /** Last local edit time (ms) — set by saveVehicleType; used for sync merge. */
+  updatedAt?: number;
 }
 
 // ── Default Kart Template ──
@@ -162,9 +164,10 @@ export async function getVehicleType(id: string): Promise<VehicleType | null> {
 }
 
 export async function saveVehicleType(vt: VehicleType): Promise<void> {
+  const stamped: VehicleType = { ...vt, updatedAt: Date.now() };
   const db = await openDB();
   const tx = db.transaction(STORE_NAMES.VEHICLE_TYPES, "readwrite");
-  tx.objectStore(STORE_NAMES.VEHICLE_TYPES).put(vt);
+  tx.objectStore(STORE_NAMES.VEHICLE_TYPES).put(stamped);
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -212,9 +215,10 @@ export async function getTemplate(id: string): Promise<SetupTemplate | null> {
 }
 
 export async function saveTemplate(template: SetupTemplate): Promise<void> {
+  const stamped: SetupTemplate = { ...template, updatedAt: Date.now() };
   const db = await openDB();
   const tx = db.transaction(STORE_NAMES.SETUP_TEMPLATES, "readwrite");
-  tx.objectStore(STORE_NAMES.SETUP_TEMPLATES).put(template);
+  tx.objectStore(STORE_NAMES.SETUP_TEMPLATES).put(stamped);
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
@@ -256,6 +260,7 @@ export async function createVehicleTypeWithTemplate(
     wheelCount,
     isDefault: false,
     createdAt: now,
+    updatedAt: now,
   };
 
   const template: SetupTemplate = {

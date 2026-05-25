@@ -193,6 +193,8 @@ src/
 │   │   ├── CloudFilesSection.tsx # FileManagerSection mount: lists all cloud files (on-device marked, others pullable)
 │   │   ├── fileSync.ts           # Per-file selection state in the plugin store + fileSyncStatus/cloudOnlyNames (pure, tested)
 │   │   ├── syncStores.ts         # Pure config: which IDB stores sync + how they're keyed (testable)
+│   │   ├── merge.ts              # ★ Pure conflict resolution: decideSync (pending-wins + updatedAt LWW), pendingId (tested)
+│   │   ├── pendingSync.ts        # Persistent offline "pending changes" set (plugin KV); flushed priority-1 on reconnect
 │   │   ├── storageTypes.ts      # Pure: storage types (documents 5MB / logs 20MB) + usage math (tested)
 │   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord/pushDocs/pullDocs + getStorageUsage
 │   │   ├── autoSync.ts           # Background doc auto-sync: subscribes to garageEvents, debounced upsert/delete + reconcile on sign-in
@@ -400,14 +402,24 @@ To add a new store: increment `DB_VERSION`, add store name to `STORE_NAMES`, add
 Optional per-user backup/sync of the IndexedDB data above to Supabase. Built as
 a first-party plugin (Labs + Profile panels), online-only (accepted offline-first
 exception). Manual push/pull remains (`CloudSyncPanel`), but the **document tier
-now auto-syncs**: storage modules emit `garageEvents` on write/delete, and
-`autoSync.ts` (started in `setup`, dynamically imported to stay off the initial
-bundle) debounces and incrementally **upserts (put) / deletes (delete)** the one
-changed record while signed in, and **reconciles** (pull docs → push docs) on
-sign-in. So edits back up automatically and **deletes propagate everywhere** —
-the Karts/Setups delete UI shows a loud "deletes from every device + the cloud"
-warning when signed in. (Log-blob deletion propagation + timestamp merge are
-still follow-ups.)
+now auto-syncs**, and is **offline-aware + conflict-safe**: storage modules emit
+`garageEvents` on write/delete, and `autoSync.ts` (started in `setup`, dynamically
+imported to stay off the initial bundle) debounces and incrementally **upserts /
+deletes** the one changed record while signed in. So edits back up automatically
+and **deletes propagate everywhere** — the Karts/Setups delete UI shows a loud
+"deletes from every device + the cloud" warning when signed in.
+
+**Conflict resolution** (`merge.ts`, pure + tested): every garage record carries an
+`updatedAt` (stamped in each storage `save*`; the sync write path `writeOne` keeps
+the cloud value). `decideSync` is **pending-wins + last-write-wins**: a change made
+offline or whose push failed is recorded in a persistent **pending set**
+(`pendingSync.ts`, in the plugin KV) and, on reconnect/sign-in, flushed first as
+**priority-1** (replacing the cloud copy); everything else merges by newest
+`updatedAt` (the record's logical edit time — never the server row time).
+`reconcileDocs` does the two-way merge (pull cloud-newer, push local-newer/-only),
+skipping pending keys. `autoSync` tracks `navigator.onLine` + window online/offline
+events; the Profile-tab `StoragePanel` flags offline state + the pending count.
+(Log-blob deletion propagation remains a follow-up.)
 
 **Storage types** (`storageTypes.ts`, enforced server-side) — distinct from
 future *subscription tiers*: **documents** = all structured stores (5 MB, free,

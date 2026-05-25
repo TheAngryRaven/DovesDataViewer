@@ -65,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `user_roles`).
 
 ### Changed
+- Cloud document sync is now **offline-aware and conflict-safe**. Garage records
+  (vehicles, setups, templates, notes) carry an edit timestamp, and sync uses
+  last-write-wins, so a newer change is never overwritten by an older copy.
+  Changes made **offline** are saved as pending and, on reconnect, take
+  **priority** — replacing the cloud copy. The Profile tab flags when you're
+  offline and how many changes are waiting to sync.
 - Telemetry channels are now normalized to a canonical identity at import time,
   so the Settings "default fields" show/hide and your saved graph and video-
   overlay selections apply **consistently across every logger format** (e.g.
