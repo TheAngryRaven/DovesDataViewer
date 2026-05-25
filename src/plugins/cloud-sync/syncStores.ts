@@ -38,6 +38,8 @@ export const FILE_STORE = STORE_NAMES.FILES;
 export interface SyncSummary {
   records: number;
   files: number;
+  /** Document records that didn't fit under the quota (partial push). 0 on pull. */
+  skipped: number;
 }
 
 /** Extract the cloud record_key for a store's record using its IndexedDB key path. */

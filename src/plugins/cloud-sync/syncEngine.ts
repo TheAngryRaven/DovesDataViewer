@@ -13,7 +13,7 @@
 
 import { getFile, saveFile } from "@/lib/fileStorage";
 import { getAccessor } from "./storeAccessors";
-import { fetchStorageUsage, syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
+import { fetchStorageUsage, isQuotaError, syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
 import { DOC_STORES, FILE_STORE, extractKey, type SyncSummary } from "./syncStores";
 import { listSelectedFiles, markPushed, orphanedObjectNames } from "./fileSync";
 import { DEFAULT_LIMITS, type StorageType, type StorageTypeUsage } from "./storageTypes";
@@ -131,6 +131,32 @@ export async function downloadCloudFile(userId: string, name: string): Promise<B
 }
 
 /**
+ * Push document rows in one batch (the common, under-limit case). If the server
+ * quota trigger rejects the batch, the whole statement rolls back — so fall back
+ * to per-record upserts, saving everything that still fits and reporting the rest
+ * as `skipped`, instead of failing the entire sync. Non-quota errors still throw.
+ */
+async function pushDocRows(rows: SyncRecordRow[]): Promise<{ pushed: number; skipped: number }> {
+  if (!rows.length) return { pushed: 0, skipped: 0 };
+  const { error } = await syncRecords().upsert(rows, { onConflict: "user_id,store,record_key" });
+  if (!error) return { pushed: rows.length, skipped: 0 };
+  if (!isQuotaError(new Error(error.message))) {
+    throw new Error(`Failed to push documents: ${error.message}`);
+  }
+  let pushed = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    const { error: rowErr } = await syncRecords().upsert([row], {
+      onConflict: "user_id,store,record_key",
+    });
+    if (!rowErr) pushed++;
+    else if (isQuotaError(new Error(rowErr.message))) skipped++;
+    else throw new Error(`Failed to push documents: ${rowErr.message}`);
+  }
+  return { pushed, skipped };
+}
+
+/**
  * Mirror local data up to the cloud: all structured (garage) records, plus only
  * the files the user has selected for sync.
  */
@@ -141,10 +167,7 @@ export async function pushAll(userId: string): Promise<SyncSummary> {
       rows.push({ user_id: userId, store, record_key: extractKey(store, record), data: record });
     }
   }
-  if (rows.length) {
-    const { error } = await syncRecords().upsert(rows, { onConflict: "user_id,store,record_key" });
-    if (error) throw new Error(`Failed to push records: ${error.message}`);
-  }
+  const { pushed, skipped } = await pushDocRows(rows);
 
   let files = 0;
   for (const name of await listSelectedFiles()) {
@@ -154,7 +177,7 @@ export async function pushAll(userId: string): Promise<SyncSummary> {
     }
   }
 
-  return { records: rows.length, files };
+  return { records: pushed, files, skipped };
 }
 
 /** Bring the cloud copy down into local IndexedDB. */
@@ -179,7 +202,7 @@ export async function pullAll(userId: string): Promise<SyncSummary> {
       records++;
     }
   }
-  return { records, files };
+  return { records, files, skipped: 0 };
 }
 
 // ── Incremental (auto) sync ──────────────────────────────────────────────────
@@ -212,6 +235,8 @@ export async function deleteRecord(userId: string, store: string, key: string): 
 export interface DocReconcileResult {
   pulled: number;
   pushed: number;
+  /** Records that didn't fit under the documents quota (partial push). */
+  skipped: number;
 }
 
 /**
@@ -246,7 +271,6 @@ export async function reconcileDocs(
   }
 
   let pulled = 0;
-  let pushed = 0;
   const toPush: SyncRecordRow[] = [];
   const seen = new Set<string>();
 
@@ -265,7 +289,6 @@ export async function reconcileDocs(
       });
       if (action === "push") {
         toPush.push({ user_id: userId, store, record_key: key, data: record });
-        pushed++;
       } else if (action === "pull" && c) {
         await writeOne(store, c.data);
         pulled++;
@@ -289,14 +312,8 @@ export async function reconcileDocs(
     }
   }
 
-  if (toPush.length) {
-    const { error: upErr } = await syncRecords().upsert(toPush, {
-      onConflict: "user_id,store,record_key",
-    });
-    if (upErr) throw new Error(`Failed to push documents: ${upErr.message}`);
-  }
-
-  return { pulled, pushed };
+  const { pushed, skipped } = await pushDocRows(toPush);
+  return { pulled, pushed, skipped };
 }
 
 /** Per-type storage usage from the server, with the advisory limits as fallback. */

@@ -75,6 +75,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Cloud document sync is now **offline-aware and conflict-safe**.
+- When local garage data exceeds the cloud **documents** limit, sync now does a
+  **partial push** — it saves everything that fits and tells you how many items
+  didn't — instead of rejecting the whole batch and syncing nothing.
 
 ### Fixed
 - Cloud log uploads no longer **orphan a blob** when the server quota rejects the

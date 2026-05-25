@@ -112,7 +112,13 @@ async function flushPending(userId: string): Promise<void> {
 async function runReconcile(userId: string): Promise<void> {
   try {
     await flushPending(userId);
-    await reconcileDocs(userId, await pendingKeySet());
+    const { skipped } = await reconcileDocs(userId, await pendingKeySet());
+    if (skipped > 0) {
+      notify(
+        `Cloud document storage is full — ${skipped} item${skipped === 1 ? "" : "s"} didn't sync.`,
+        "error",
+      );
+    }
   } catch (err) {
     if (isQuotaError(err)) {
       notify("Cloud document storage is full — some items didn't sync.", "error");

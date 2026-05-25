@@ -198,7 +198,7 @@ src/
 │   │   ├── merge.ts              # ★ Pure conflict resolution: decideSync (pending-wins + updatedAt LWW), pendingId (tested)
 │   │   ├── pendingSync.ts        # Persistent offline "pending changes" set (plugin KV); flushed priority-1 on reconnect
 │   │   ├── storageTypes.ts      # Pure: storage types (documents 5MB / logs 20MB) + usage math (tested)
-│   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord + getStorageUsage + deleteCloudFile (rolls back orphan blob on index failure) + cleanupOrphanBlobs
+│   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord + getStorageUsage + deleteCloudFile (rolls back orphan blob on index failure) + cleanupOrphanBlobs. Doc pushes chunk to a per-record fallback on quota (partial push + skipped count)
 │   │   ├── autoSync.ts           # Background doc auto-sync: subscribes to garageEvents, debounced upsert/delete + reconcile on sign-in
 │   │   ├── StoragePanel.tsx      # Profile-tab panel: display-name editor + storage usage meters (lazy)
 │   │   ├── CloudLogsPanel.tsx    # Profile-tab panel: list + delete cloud log files (cloud-only; opt-in local delete) (lazy)
@@ -422,9 +422,12 @@ offline or whose push failed is recorded in a persistent **pending set**
 **priority-1** (replacing the cloud copy); everything else merges by newest
 `updatedAt` (the record's logical edit time — never the server row time).
 `reconcileDocs` does the two-way merge (pull cloud-newer, push local-newer/-only),
-skipping pending keys. `autoSync` tracks `navigator.onLine` + window online/offline
-events; the Profile-tab `StoragePanel` flags offline state + the pending count.
-(Log-blob deletion propagation remains a follow-up.)
+skipping pending keys. Its push (and `pushAll`'s) goes through `pushDocRows`: one
+optimistic batch, falling back to per-record upserts if the server quota trigger
+rejects the batch — so an over-limit local set still **partial-syncs** everything
+that fits and reports a `skipped` count (surfaced as a toast) rather than failing
+wholesale. `autoSync` tracks `navigator.onLine` + window online/offline events;
+the Profile-tab `StoragePanel` flags offline state + the pending count.
 
 **Storage types** (`storageTypes.ts`, enforced server-side) — distinct from
 future *subscription tiers*: **documents** = all structured stores (5 MB, free,
