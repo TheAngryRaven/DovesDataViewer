@@ -14,11 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Document storage tier + **auto-sync**: when you're signed in, your garage
+- Document storage + **auto-sync**: when you're signed in, your garage
   (vehicles, setups, setup templates, notes) now backs up to the cloud
-  automatically as you change it — no manual push. This "documents" tier is free
-  with a **5 MB** limit; raw session **logs** are a separate **20 MB** tier.
-  Limits are enforced server-side.
+  automatically as you change it — no manual push. The "documents" storage type
+  is free with a **5 MB** limit; raw session **logs** are a separate **20 MB**
+  storage type. Limits are enforced server-side.
 - **Propagation deletes**: deleting a vehicle or setup while signed in removes it
   from **every device and the cloud**, with a clear warning before you confirm.
 - New **Profile** tab (far right) showing your cloud storage usage against the

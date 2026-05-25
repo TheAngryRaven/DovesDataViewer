@@ -5,13 +5,13 @@
 // notes). On a change it debounces, then upserts (put) or deletes (delete) the
 // single cloud record — so edits propagate up and deletes propagate everywhere.
 // On sign-in it reconciles (pull cloud docs down, push local docs up). Only the
-// free "documents" tier auto-syncs here; log blobs stay manual/opt-in.
+// free "documents" storage type auto-syncs here; log blobs stay manual/opt-in.
 
 import { supabase } from "@/integrations/supabase/client";
 import { onGarageChange, type GarageChange } from "@/lib/garageEvents";
 import { isQuotaError } from "./cloudClient";
 import { deleteRecord, pullDocs, pushDocs, pushRecord } from "./syncEngine";
-import { tierForStore } from "./tiers";
+import { storageTypeForStore } from "./storageTypes";
 
 const DEBOUNCE_MS = 800;
 
@@ -42,7 +42,7 @@ async function flush(change: GarageChange): Promise<void> {
   } catch (err) {
     if (isQuotaError(err)) {
       notify(
-        `Cloud ${tierForStore(change.store)} storage is full — saved locally, not synced.`,
+        `Cloud ${storageTypeForStore(change.store)} storage is full — saved locally, not synced.`,
         "error",
       );
     } else {

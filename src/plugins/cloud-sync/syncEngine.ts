@@ -16,7 +16,7 @@ import { getFile, saveFile } from "@/lib/fileStorage";
 import { fetchStorageUsage, syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
 import { DOC_STORES, FILE_STORE, extractKey, type SyncSummary } from "./syncStores";
 import { listSelectedFiles, markPushed } from "./fileSync";
-import { DEFAULT_LIMITS, type Tier, type TierUsage } from "./tiers";
+import { DEFAULT_LIMITS, type StorageType, type StorageTypeUsage } from "./storageTypes";
 
 export type { SyncSummary };
 
@@ -163,7 +163,7 @@ export async function deleteRecord(userId: string, store: string, key: string): 
   if (error) throw new Error(error.message);
 }
 
-/** Mirror only the structured (free document-tier) stores up — no file blobs. */
+/** Mirror only the structured (free documents storage type) stores up — no file blobs. */
 export async function pushDocs(userId: string): Promise<number> {
   const rows: SyncRecordRow[] = [];
   for (const store of DOC_STORES) {
@@ -178,7 +178,7 @@ export async function pushDocs(userId: string): Promise<number> {
   return rows.length;
 }
 
-/** Bring only the document-tier records down into local IndexedDB (no files). */
+/** Bring only the documents-type records down into local IndexedDB (no files). */
 export async function pullDocs(userId: string): Promise<number> {
   const { data, error } = await syncRecords()
     .select("store,record_key,data")
@@ -196,17 +196,17 @@ export async function pullDocs(userId: string): Promise<number> {
   return records;
 }
 
-/** Per-tier storage usage from the server, with the advisory limits as fallback. */
-export async function getStorageUsage(): Promise<TierUsage[]> {
+/** Per-type storage usage from the server, with the advisory limits as fallback. */
+export async function getStorageUsage(): Promise<StorageTypeUsage[]> {
   const rows = await fetchStorageUsage();
-  const byTier = new Map(rows.map((r) => [r.tier, r]));
-  const tiers: Tier[] = ["documents", "logs"];
-  return tiers.map((tier) => {
-    const row = byTier.get(tier);
+  const byType = new Map(rows.map((r) => [r.storage_type, r]));
+  const types: StorageType[] = ["documents", "logs"];
+  return types.map((storageType) => {
+    const row = byType.get(storageType);
     return {
-      tier,
+      storageType,
       usedBytes: row?.used_bytes ?? 0,
-      limitBytes: row?.limit_bytes ?? DEFAULT_LIMITS[tier],
+      limitBytes: row?.limit_bytes ?? DEFAULT_LIMITS[storageType],
     };
   });
 }

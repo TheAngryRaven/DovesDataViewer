@@ -1,24 +1,25 @@
-// Storage tiers + limits for cloud sync.
+// Storage types + limits for cloud sync.
 //
-// Two tiers: "documents" (garage data — vehicles, setups, templates, types,
-// notes, metadata, graph prefs) and "logs" (raw session file blobs). The real
-// limits + enforcement live server-side (the quota_limits table + trigger in
-// the storage-quotas migration); these client values are the offline/advisory
-// fallback for the meter and the pre-push check. sync_storage_usage() on the
-// server is the source of truth the UI reads when online.
+// Two storage *types* (not to be confused with subscription tiers, which will
+// scale these limits later): "documents" (garage data — vehicles, setups,
+// templates, types, notes, metadata, graph prefs) and "logs" (raw session file
+// blobs). The real limits + enforcement live server-side (the quota_limits
+// table + trigger in the storage-quotas migration); these client values are the
+// offline/advisory fallback for the meter and the pre-push check.
+// sync_storage_usage() on the server is the source of truth the UI reads online.
 
 import { FILE_STORE } from "./syncStores";
 
-export type Tier = "documents" | "logs";
+export type StorageType = "documents" | "logs";
 
 /** Advisory fallback limits (bytes). Mirror of the server `quota_limits` seed. */
-export const DEFAULT_LIMITS: Record<Tier, number> = {
+export const DEFAULT_LIMITS: Record<StorageType, number> = {
   documents: 5 * 1024 * 1024, // 5 MB
   logs: 20 * 1024 * 1024, // 20 MB
 };
 
-/** Which tier a sync store belongs to. */
-export function tierForStore(store: string): Tier {
+/** Which storage type a sync store belongs to. */
+export function storageTypeForStore(store: string): StorageType {
   return store === FILE_STORE ? "logs" : "documents";
 }
 
@@ -27,14 +28,14 @@ export function docByteSize(record: unknown): number {
   return new TextEncoder().encode(JSON.stringify(record ?? null)).length;
 }
 
-export interface TierUsage {
-  tier: Tier;
+export interface StorageTypeUsage {
+  storageType: StorageType;
   usedBytes: number;
   limitBytes: number;
 }
 
 /** Fraction of the limit used, clamped to [0, 1]. */
-export function usageFraction(u: Pick<TierUsage, "usedBytes" | "limitBytes">): number {
+export function usageFraction(u: Pick<StorageTypeUsage, "usedBytes" | "limitBytes">): number {
   if (u.limitBytes <= 0) return 0;
   return Math.min(1, u.usedBytes / u.limitBytes);
 }

@@ -3,20 +3,20 @@ import { User as UserIcon } from "lucide-react";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { useAuth } from "@/contexts/AuthContext";
 import { getStorageUsage } from "./syncEngine";
-import { formatBytes, usageFraction, type TierUsage } from "./tiers";
+import { formatBytes, usageFraction, type StorageTypeUsage } from "./storageTypes";
 
-const TIER_LABEL: Record<string, string> = { documents: "Documents", logs: "Logs" };
-const TIER_HINT: Record<string, string> = {
+const TYPE_LABEL: Record<string, string> = { documents: "Documents", logs: "Logs" };
+const TYPE_HINT: Record<string, string> = {
   documents: "Vehicles, setups, templates & notes — free, auto-synced.",
   logs: "Session log files you've chosen to sync.",
 };
 
 // Scratch-pad profile panel: who you're signed in as + your cloud storage usage
-// against the document/log tier limits. (Display name / avatar are placeholders
+// against the document/log storage limits. (Display name / avatar are placeholders
 // until profiles land.)
 export default function StoragePanel(_props: PluginPanelProps) {
   const { user, loading } = useAuth();
-  const [usage, setUsage] = useState<TierUsage[] | null>(null);
+  const [usage, setUsage] = useState<StorageTypeUsage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -66,20 +66,20 @@ export default function StoragePanel(_props: PluginPanelProps) {
         {error && <p className="text-xs text-destructive">{error}</p>}
         {!usage && !error && <p className="text-xs text-muted-foreground">Loading usage…</p>}
         {usage?.map((u) => (
-          <Meter key={u.tier} usage={u} />
+          <Meter key={u.storageType} usage={u} />
         ))}
       </div>
     </div>
   );
 }
 
-function Meter({ usage }: { usage: TierUsage }) {
+function Meter({ usage }: { usage: StorageTypeUsage }) {
   const pct = Math.round(usageFraction(usage) * 100);
   const over = usage.usedBytes > usage.limitBytes;
   return (
     <div className="space-y-1">
       <div className="flex items-baseline justify-between text-sm">
-        <span className="text-foreground">{TIER_LABEL[usage.tier] ?? usage.tier}</span>
+        <span className="text-foreground">{TYPE_LABEL[usage.storageType] ?? usage.storageType}</span>
         <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>
           {formatBytes(usage.usedBytes)} / {formatBytes(usage.limitBytes)}
         </span>
@@ -90,7 +90,7 @@ function Meter({ usage }: { usage: TierUsage }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[11px] text-muted-foreground">{TIER_HINT[usage.tier]}</p>
+      <p className="text-[11px] text-muted-foreground">{TYPE_HINT[usage.storageType]}</p>
     </div>
   );
 }

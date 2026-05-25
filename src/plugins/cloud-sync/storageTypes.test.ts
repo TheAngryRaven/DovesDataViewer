@@ -4,17 +4,17 @@ import {
   docByteSize,
   formatBytes,
   isOverLimit,
-  tierForStore,
+  storageTypeForStore,
   usageFraction,
   wouldExceed,
-} from "./tiers";
+} from "./storageTypes";
 
-describe("storage tiers", () => {
+describe("storage types", () => {
   it("classifies the files store as logs, everything else as documents", () => {
-    expect(tierForStore("files")).toBe("logs");
-    expect(tierForStore("setups")).toBe("documents");
-    expect(tierForStore("karts")).toBe("documents");
-    expect(tierForStore("graph-prefs")).toBe("documents");
+    expect(storageTypeForStore("files")).toBe("logs");
+    expect(storageTypeForStore("setups")).toBe("documents");
+    expect(storageTypeForStore("karts")).toBe("documents");
+    expect(storageTypeForStore("graph-prefs")).toBe("documents");
   });
 
   it("has the agreed default limits (5 MB docs / 20 MB logs)", () => {

@@ -1,25 +1,26 @@
 -- Storage quotas for cloud sync.
 --
--- Two tiers, enforced server-side (client caps are advisory only):
+-- Two storage *types*, enforced server-side (client caps are advisory only):
 --   • documents — all structured sync_records except file blobs (vehicles,
 --     setups, templates, vehicle types, notes, metadata, graph prefs)
 --   • logs      — raw session file blobs, tracked by their index row's size
 --
+-- ("type", not "tier" — subscription tiers will scale these limits later.)
 -- Limits live in a single table (quota_limits) read by both the enforcing
 -- trigger and the client meter, so there's one source of truth. A BEFORE
--- INSERT/UPDATE trigger on sync_records rejects writes that would push a tier
--- over its limit; sync_storage_usage() returns per-tier usage for the UI.
+-- INSERT/UPDATE trigger on sync_records rejects writes that would push a type
+-- over its limit; sync_storage_usage() returns per-type usage for the UI.
 
 -- ── Limits (single source of truth) ─────────────────────────────────────────
 create table if not exists public.quota_limits (
-  tier text primary key,
+  storage_type text primary key,
   max_bytes bigint not null
 );
 
-insert into public.quota_limits (tier, max_bytes) values
+insert into public.quota_limits (storage_type, max_bytes) values
   ('documents', 5242880),    -- 5 MB
   ('logs',     20971520)     -- 20 MB
-on conflict (tier) do update set max_bytes = excluded.max_bytes;
+on conflict (storage_type) do update set max_bytes = excluded.max_bytes;
 
 alter table public.quota_limits enable row level security;
 
@@ -39,33 +40,38 @@ returns bigint language sql immutable as $$
   end;
 $$;
 
+-- Which storage type a sync store belongs to.
+create or replace function public.sync_storage_type(p_store text)
+returns text language sql immutable as $$
+  select case when p_store = 'files' then 'logs' else 'documents' end;
+$$;
+
 -- ── Quota enforcement trigger ───────────────────────────────────────────────
 create or replace function public.enforce_sync_quota()
 returns trigger language plpgsql as $$
 declare
-  v_is_log boolean := (NEW.store = 'files');
-  v_tier   text    := case when v_is_log then 'logs' else 'documents' end;
-  v_limit  bigint;
-  v_used   bigint;
-  v_new    bigint := public.sync_record_size(NEW.store, NEW.data);
+  v_type  text   := public.sync_storage_type(NEW.store);
+  v_limit bigint;
+  v_used  bigint;
+  v_new   bigint := public.sync_record_size(NEW.store, NEW.data);
 begin
-  select max_bytes into v_limit from public.quota_limits where tier = v_tier;
+  select max_bytes into v_limit from public.quota_limits where storage_type = v_type;
   if v_limit is null then
-    return NEW; -- no limit configured for this tier
+    return NEW; -- no limit configured for this type
   end if;
 
-  -- Current usage for this tier, excluding the row being upserted.
+  -- Current usage for this type, excluding the row being upserted.
   select coalesce(sum(public.sync_record_size(store, data)), 0)
     into v_used
     from public.sync_records
    where user_id = NEW.user_id
-     and (store = 'files') = v_is_log
+     and public.sync_storage_type(store) = v_type
      and not (store = NEW.store and record_key = NEW.record_key);
 
   if v_used + v_new > v_limit then
     raise exception
-      'quota_exceeded: % tier over limit (% bytes used + % new > % limit)',
-      v_tier, v_used, v_new, v_limit
+      'quota_exceeded: % storage over limit (% bytes used + % new > % limit)',
+      v_type, v_used, v_new, v_limit
       using errcode = 'check_violation';
   end if;
 
@@ -79,18 +85,18 @@ create trigger sync_records_quota
   for each row execute function public.enforce_sync_quota();
 
 -- ── Usage readout for the client meter ──────────────────────────────────────
--- Returns one row per tier with used + limit bytes, scoped to the caller.
+-- Returns one row per storage type with used + limit bytes, scoped to the caller.
 create or replace function public.sync_storage_usage()
-returns table(tier text, used_bytes bigint, limit_bytes bigint)
+returns table(storage_type text, used_bytes bigint, limit_bytes bigint)
 language sql stable as $$
-  select q.tier,
+  select q.storage_type,
          coalesce(sum(public.sync_record_size(r.store, r.data)), 0)::bigint,
          q.max_bytes
     from public.quota_limits q
     left join public.sync_records r
       on r.user_id = auth.uid()
-     and (case when r.store = 'files' then 'logs' else 'documents' end) = q.tier
-   group by q.tier, q.max_bytes;
+     and public.sync_storage_type(r.store) = q.storage_type
+   group by q.storage_type, q.max_bytes;
 $$;
 
 grant execute on function public.sync_storage_usage() to authenticated;

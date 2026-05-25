@@ -193,7 +193,7 @@ src/
 │   │   ├── CloudFilesSection.tsx # FileManagerSection mount: lists all cloud files (on-device marked, others pullable)
 │   │   ├── fileSync.ts           # Per-file selection state in the plugin store + fileSyncStatus/cloudOnlyNames (pure, tested)
 │   │   ├── syncStores.ts         # Pure config: which IDB stores sync + how they're keyed (testable)
-│   │   ├── tiers.ts              # Pure: storage tiers (documents 5MB / logs 20MB) + usage math (tested)
+│   │   ├── storageTypes.ts      # Pure: storage types (documents 5MB / logs 20MB) + usage math (tested)
 │   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord/pushDocs/pullDocs + getStorageUsage
 │   │   ├── autoSync.ts           # Background doc auto-sync: subscribes to garageEvents, debounced upsert/delete + reconcile on sign-in
 │   │   ├── StoragePanel.tsx      # Profile-tab panel: storage usage meters + account scratch pad (lazy)
@@ -407,12 +407,12 @@ the Karts/Setups delete UI shows a loud "deletes from every device + the cloud"
 warning when signed in. (Log-blob deletion propagation + timestamp merge are
 still follow-ups.)
 
-**Storage tiers** (`tiers.ts`, enforced server-side): **documents** = all
-structured stores (5 MB, free, auto-synced) and **logs** = file blobs (20 MB,
-opt-in). Limits live in the `quota_limits` table (one source of truth for the
-enforcing trigger + the client meter); `sync_storage_usage()` returns per-tier
-usage for the Profile-tab meters. Client checks are advisory — the DB trigger is
-the real gate.
+**Storage types** (`storageTypes.ts`, enforced server-side) — distinct from
+future *subscription tiers*: **documents** = all structured stores (5 MB, free,
+auto-synced) and **logs** = file blobs (20 MB, opt-in). Limits live in the
+`quota_limits` table (one source of truth for the enforcing trigger + the client
+meter); `sync_storage_usage()` returns per-type usage for the Profile-tab meters.
+Client checks are advisory — the DB trigger is the real gate.
 
 Backend (migrations `..._cloud_sync.sql`, `..._storage_quotas.sql`):
 
@@ -420,9 +420,9 @@ Backend (migrations `..._cloud_sync.sql`, `..._storage_quotas.sql`):
 |--------|------|-------|
 | `sync_records` | table | One jsonb document per record: `(user_id, store, record_key, data, updated_at)`, unique on `(user_id, store, record_key)`. RLS: `auth.uid() = user_id`. `store`/`record_key` mirror the IndexedDB store name + key path. |
 | `user-files` | Storage bucket | Private. Raw session blobs at `{user_id}/{encodeURIComponent(name)}`. RLS scopes objects to the owner's folder. |
-| `quota_limits` | table | `(tier, max_bytes)` seeded `documents`=5 MB, `logs`=20 MB. Read by client + trigger. |
-| `enforce_sync_quota` | trigger | BEFORE INSERT/UPDATE on `sync_records`: rejects writes that push a tier over its limit (`quota_exceeded`). |
-| `sync_storage_usage()` | RPC | Per-tier `(used_bytes, limit_bytes)` for the caller. |
+| `quota_limits` | table | `(storage_type, max_bytes)` seeded `documents`=5 MB, `logs`=20 MB. Read by client + trigger. |
+| `enforce_sync_quota` | trigger | BEFORE INSERT/UPDATE on `sync_records`: rejects writes that push a storage type over its limit (`quota_exceeded`). |
+| `sync_storage_usage()` | RPC | Per-type `(used_bytes, limit_bytes)` for the caller. |
 
 Synced stores (`syncStores.ts` — pure, unit-tested): `metadata`, `karts`,
 `setups`, `notes`, `graph-prefs`, `vehicle-types`, `setup-templates` (jsonb

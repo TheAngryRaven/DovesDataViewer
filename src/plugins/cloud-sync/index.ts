@@ -57,7 +57,7 @@ const plugin: DataViewerPlugin = {
       component: CloudFilesSection,
     } satisfies PluginMountDef<FileManagerSectionContext>);
 
-    // Profile tab: storage usage meters (document + log tiers) + account.
+    // Profile tab: storage usage meters (document + log storage types) + account.
     ctx.registry.contribute(PANELS_POINT, {
       id: "cloud-sync-storage",
       title: "Profile",
