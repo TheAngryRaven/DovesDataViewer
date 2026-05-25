@@ -202,6 +202,27 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quota_limits: {
         Row: {
           max_bytes: number
@@ -363,6 +384,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      random_display_name: { Args: never; Returns: string }
       sync_record_size: {
         Args: { p_data: Json; p_store: string }
         Returns: number
@@ -376,6 +398,7 @@ export type Database = {
           used_bytes: number
         }[]
       }
+      unique_display_name: { Args: { desired: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
