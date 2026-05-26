@@ -451,9 +451,9 @@ Backend (migrations `..._cloud_sync.sql`, `..._storage_quotas.sql`):
 |--------|------|-------|
 | `sync_records` | table | One jsonb document per record: `(user_id, store, record_key, data, updated_at)`, unique on `(user_id, store, record_key)`. RLS: `auth.uid() = user_id`. `store`/`record_key` mirror the IndexedDB store name + key path. |
 | `user-files` | Storage bucket | Private. Raw session blobs at `{user_id}/{encodeURIComponent(name)}`. RLS scopes objects to the owner's folder. |
-| `quota_limits` | table | `(storage_type, max_bytes)` seeded `documents`=5 MB, `logs`=20 MB. Read by client + trigger. |
-| `enforce_sync_quota` | trigger | BEFORE INSERT/UPDATE on `sync_records`: rejects writes that push a storage type over its limit (`quota_exceeded`). |
-| `sync_storage_usage()` | RPC | Per-type `(used_bytes, limit_bytes)` for the caller. |
+| `quota_limits` | table | `(storage_type, max_bytes)` seeded `documents`=5 MB, `logs`=20 MB. Legacy baseline/fallback once tiers exist (see below). |
+| `enforce_sync_quota` | trigger | BEFORE INSERT/UPDATE on `sync_records`: rejects writes that push a storage type over the **caller's tier** limit (`tier_limit()`), falling back to `quota_limits` (`quota_exceeded`). |
+| `sync_storage_usage()` | RPC | Per-type `(used_bytes, limit_bytes)` for the caller — `limit_bytes` reflects the caller's tier. |
 | `profiles` | table | `(user_id PK→auth.users, display_name unique, …)`. RLS: authenticated read-all, update/insert own. Display name is unique but **not** a key — user-editable. |
 | `handle_new_user` | trigger | On `auth.users` insert: creates a profile, using the sign-up `display_name` or a generated silly name (`SpeedyRac3r-546`). `unique_display_name()` auto-suffixes a taken name at creation; user edits get an explicit "taken" error instead. |
 
@@ -497,6 +497,34 @@ dedicated Cloud *tab* (a new garage-tab mount slot), `modified` detection, and a
 After a migration, Lovable regenerates `integrations/supabase/types.ts`. Until
 then `cloudClient.ts` accesses the new table/bucket through a narrowly-typed
 escape hatch confined to that one module.
+
+### Subscriptions / Stripe (`..._stripe_subscriptions.sql` + 3 edge functions)
+
+Paid tiers scale the cloud-sync **logs** quota (`free` 20 MB → `plus` $1 500 MB
+→ `pro` $10 1 GB; docs stay 5 MB). Tiers are **data**, not code:
+
+| Object | Type | Notes |
+|--------|------|-------|
+| `subscription_tiers` | table | One row per plan: `(tier PK, label, price_cents, logs_bytes, doc_bytes, ai_credits, stripe_price_id, sort_order)`. Authenticated read-all. Change a limit/price = UPDATE here. `stripe_price_id` is set after creating the Stripe Price. |
+| `user_subscriptions` | table | `(user_id PK→auth.users, tier→subscription_tiers, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at)`. RLS: owner **read-only** — only the service role (webhook) writes, so no one can self-grant a tier. |
+| `user_tier(uuid)` | fn (SECURITY DEFINER) | Effective tier: the subscription tier when `status in (active, trialing, past_due)`, else `free`. |
+| `tier_limit(uuid, type)` | fn (SECURITY DEFINER) | Byte limit for a user + storage type from their tier; falls back to `free`, then `quota_limits`. Used by the quota trigger + usage RPC. |
+
+Edge functions (all `verify_jwt = false`; checkout/portal verify the JWT
+manually like the rest of the repo, the webhook verifies the Stripe signature):
+
+- `create-checkout-session` — auth user → ensure Stripe customer (persisted on
+  `user_subscriptions`) → Checkout Session (subscription mode) for the tier's
+  `stripe_price_id` → returns the hosted URL.
+- `stripe-webhook` — **the only writer of entitlements**. Verifies the signature
+  (`STRIPE_WEBHOOK_SECRET`), then on `checkout.session.completed` /
+  `customer.subscription.created|updated|deleted` upserts `user_subscriptions`
+  (tier resolved from the Price id; `deleted` → `free`) via the service role.
+- `create-portal-session` — returns a Stripe Billing Portal URL for
+  manage/cancel (no in-app billing UI).
+
+Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. **Client upgrade/manage
+buttons (PricingCards + Profile StoragePanel) are a follow-up.**
 
 ---
 
