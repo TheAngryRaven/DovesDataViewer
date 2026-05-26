@@ -7,6 +7,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Gauge, ArrowLeft } from 'lucide-react';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
+import { Turnstile, turnstileEnabled } from '@/components/Turnstile';
+import { PricingCards } from '@/components/PricingCards';
+import { isDisposableEmail, looksLikeEmail } from '@/lib/emailValidation';
 
 export default function Register() {
   useDocumentHead({
@@ -19,11 +22,20 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!looksLikeEmail(email)) {
+      toast({ title: 'Enter a valid email address', variant: 'destructive' });
+      return;
+    }
+    if (isDisposableEmail(email)) {
+      toast({ title: 'Please use a permanent email address', description: 'Disposable / temporary mailboxes are not allowed.', variant: 'destructive' });
+      return;
+    }
     if (password !== confirmPassword) {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
@@ -32,8 +44,12 @@ export default function Register() {
       toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
       return;
     }
+    if (turnstileEnabled && !captchaToken) {
+      toast({ title: 'Please complete the captcha', variant: 'destructive' });
+      return;
+    }
     setIsLoading(true);
-    const { error } = await signUp(email, password, displayName);
+    const { error } = await signUp(email, password, displayName, captchaToken ?? undefined);
     setIsLoading(false);
     if (error) {
       toast({ title: 'Registration failed', description: error.message, variant: 'destructive' });
@@ -53,8 +69,8 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="min-h-screen bg-background flex flex-col items-center p-8 gap-12">
+      <div className="w-full max-w-sm space-y-6 mt-4">
         <div className="flex items-center gap-3 justify-center">
           <Gauge className="w-8 h-8 text-primary" />
           <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
@@ -89,6 +105,7 @@ export default function Register() {
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
             </div>
+            <Turnstile onToken={setCaptchaToken} className="flex justify-center" />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Please wait...' : 'Create Account'}
             </Button>
@@ -104,6 +121,8 @@ export default function Register() {
           <ArrowLeft className="w-4 h-4" /> Back to Home
         </Button>
       </div>
+
+      <PricingCards className="w-full max-w-5xl" />
     </div>
   );
 }

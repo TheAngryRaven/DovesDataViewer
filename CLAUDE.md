@@ -268,9 +268,11 @@ A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 
 **UI panels:** the first concrete extension point. A plugin contributes
 `PluginPanel` descriptors to `PANELS_POINT`, targeting a *slot* (host surface).
-Three slots exist today: `PanelSlot.Labs` (rendered by `LabsTab.tsx`),
-`PanelSlot.Coach` (rendered by `CoachTab.tsx` — the dedicated AI Coach tab, home
-for the `@perchwerks/eye-in-the-sky` coaching plugin), and `PanelSlot.Profile`
+Three slots exist today: `PanelSlot.Labs` (rendered by `LabsTab.tsx`; no
+first-party panel targets it now — it shows only when the experimental
+`enableLabs` setting is on or another plugin contributes), `PanelSlot.Coach`
+(rendered by `CoachTab.tsx` — the dedicated AI Coach tab, home for the
+`@perchwerks/eye-in-the-sky` coaching plugin), and `PanelSlot.Profile`
 (rendered by `ProfileTab.tsx`, far-right — cloud-sync contributes the storage
 meters). All render contributed panels via `PluginPanelHost` and are
 **self-gating**: `Index.tsx` computes `hasLabsPanels`/`showCoach`/`showProfile`
@@ -288,15 +290,19 @@ are all chromeless (`isBareSlot`) also drops the host's outer padding.
 component into a fixed spot in core UI. A plugin contributes a `PluginMountDef`
 to `MOUNTS_POINT`, targeting a `MountSlot`; the host renders `<PluginMount slot
 ctx={…}>` at that spot, passing a typed context as a single `ctx` prop.
-`FilesTab` exposes two: `MountSlot.FileRow` (per file row, ctx = that file) and
-`MountSlot.FileManagerSection` (once under the list, ctx = the whole list). New
-mount locations are just new slot strings.
+`FilesTab` exposes three: `MountSlot.FileRow` (per file row, ctx = that file),
+`MountSlot.FileManagerSection` (once under the list, ctx = the whole list), and
+`MountSlot.FileManagerFooter` (near the bottom, above storage usage, ctx = the
+whole list — home for the Cloud Sync panel). New mount locations are just new
+slot strings.
 
 **Cloud Sync (first-party plugin, `src/plugins/cloud-sync/`):** the first
-in-repo plugin built on the panel framework. Contributes a lazy Labs panel that
-signs the user in (`useAuth`) and does manual push/pull of local IndexedDB data
-to Supabase. Structured stores go to the `sync_records` table as jsonb
-documents; raw session blobs go to the private `user-files` Storage bucket. See
+in-repo plugin built on the panel framework. Contributes `CloudSyncPanel` (lazy)
+as a `MountSlot.FileManagerFooter` mount — sign-in (`useAuth`) + manual push/pull
+of local IndexedDB data to Supabase, sitting at the bottom of the file manager
+(it used to be a Labs panel; no first-party panel targets Labs now). Structured
+stores go to the `sync_records` table as jsonb documents; raw session blobs go to
+the private `user-files` Storage bucket. See
 the Cloud Sync section below for the data model.
 
 **AI coach (npm package):** published to the public npm registry as

@@ -28,18 +28,19 @@ const plugin: DataViewerPlugin = {
   version: "0.1.0",
   setup(ctx) {
     // Offline-first guard: when the cloud flag is off, contribute nothing.
-    // The Labs panel never registers, the panel chunk never loads, and the
-    // Labs tab stays hidden unless another plugin contributes there.
+    // No panels/mounts register, their chunks never load, and the Labs tab
+    // stays hidden unless another plugin contributes there.
     if (!enableCloud) return;
-    const panel: PluginPanel = {
-      id: "cloud-sync",
-      title: "Cloud Sync",
-      slot: PanelSlot.Labs,
-      order: 10,
-      icon: Cloud,
+
+    // Sign-in + manual push/pull, mounted at the bottom of the file manager
+    // (it used to live in the Labs tab — moved here so cloud sign-in/sync sits
+    // next to the files it backs up, and Labs stays empty unless a plugin uses it).
+    ctx.registry.contribute(MOUNTS_POINT, {
+      id: "cloud-sync-footer",
+      slot: MountSlot.FileManagerFooter,
+      order: 0,
       component: CloudSyncPanel,
-    };
-    ctx.registry.contribute(PANELS_POINT, panel);
+    } satisfies PluginMountDef<FileManagerSectionContext>);
 
     // Per-file sync toggle injected into each file-manager row.
     ctx.registry.contribute(MOUNTS_POINT, {

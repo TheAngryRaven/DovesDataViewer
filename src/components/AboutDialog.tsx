@@ -15,7 +15,7 @@ const SECTIONS: Array<{ heading: string; body: React.ReactNode }> = [
   },
   {
     heading: "Your Data Stays on Your Device",
-    body: <>All data processing happens entirely in your browser. Your log files, session notes, kart setups, and video sync data are saved locally on your device — nothing is uploaded to any server.</>,
+    body: <>All data processing happens entirely in your browser, and everything is saved locally on your device by default. Cloud storage is entirely optional — nothing leaves your device unless you create an account and turn on sync.</>,
   },
   {
     heading: "Community Track Database",
@@ -23,7 +23,7 @@ const SECTIONS: Array<{ heading: string; body: React.ReactNode }> = [
   },
   {
     heading: "Free & Open Source",
-    body: <>Every feature in HackTheTrack is completely free. The source code is open and available on GitHub. If cloud-saving is added in the future, that may carry a small cost to cover server fees — but all local features will always remain free.</>,
+    body: <>Every local feature in HackTheTrack is completely free, and the source code is open and available on GitHub. Optional cloud storage has a free tier; larger storage and AI coaching are paid add-ons that cover server and model costs — but all local features will always remain free.</>,
   },
 ];
 

@@ -10,7 +10,7 @@ const DataloggerDownload = lazy(() =>
 );
 import { listSessionVideos, deleteSessionVideo, StoredVideoMeta } from "@/lib/videoFileStorage";
 import { PluginMount } from "@/plugins/PluginMount";
-import { MountSlot } from "@/plugins/mounts";
+import { MountSlot, getMounts } from "@/plugins/mounts";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -239,6 +239,13 @@ export function FilesTab({
           ))
         )}
       </div>
+
+      {/* Plugin-contributed footer (e.g. Cloud Sync sign-in / push-pull). */}
+      {getMounts(MountSlot.FileManagerFooter).length > 0 && (
+        <div className="px-4 py-3 border-t border-border shrink-0">
+          <PluginMount slot={MountSlot.FileManagerFooter} ctx={{ files, onSaveFile }} />
+        </div>
+      )}
 
       {/* Storage Usage */}
       <div className="px-4 py-2 border-t border-border shrink-0">

@@ -69,8 +69,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same way setups do — auto-sync, delete propagation, and the offline-aware
   timestamp merge. Only your user-created tracks/courses sync; built-in tracks
   stay local.
+- **Plans & pricing** cards on the landing page (below the sample) and on the
+  registration page — Free offline, Free online, and paid tiers (marked
+  "Coming soon" until billing is wired up).
+- Registration now supports a **Cloudflare Turnstile captcha** when
+  `VITE_TURNSTILE_SITE_KEY` is set (gracefully skipped when it isn't), and
+  rejects **disposable / temporary email** addresses.
 
 ### Changed
+- **Cloud Sync moved out of the Labs tab**: sign-in and manual push/pull now live
+  at the bottom of the file manager's **Files** tab, next to the files they back
+  up. The Labs tab no longer appears unless the experimental setting is on or a
+  plugin contributes to it.
+- Landing-page and About copy now reflect **optional cloud storage** (instead of
+  "files never leave your device"), since cloud sync is available when signed in.
 - Cloud document sync is now **offline-aware and conflict-safe**. Garage records
   (vehicles, setups, templates, notes) carry an edit timestamp, and sync uses
   last-write-wins, so a newer change is never overwritten by an older copy.

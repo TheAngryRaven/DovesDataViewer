@@ -8,7 +8,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, displayName?: string, captchaToken?: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
+  const signUp = useCallback(async (email: string, password: string, displayName?: string, captchaToken?: string) => {
     const trimmed = displayName?.trim();
     const { error } = await supabase.auth.signUp({
       email,
@@ -111,6 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Picked up by the handle_new_user trigger; blank → a random name is
         // generated server-side. A taken name is auto-suffixed there too.
         data: trimmed ? { display_name: trimmed } : {},
+        // Verified server-side when Turnstile is enabled in the Supabase Auth
+        // settings; ignored otherwise (graceful fallback when no key is set).
+        ...(captchaToken ? { captchaToken } : {}),
       },
     });
     return { error };

@@ -8,6 +8,7 @@ import { ContactDialog } from "@/components/ContactDialog";
 import { SupportedFilesDialog } from "@/components/SupportedFilesDialog";
 import { AboutDialog } from "@/components/AboutDialog";
 import { CreditsDialog } from "@/components/CreditsDialog";
+import { PricingCards } from "@/components/PricingCards";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ParsedData } from "@/types/racing";
 
@@ -92,8 +93,8 @@ export function LandingPage({
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-xl space-y-6">
+      <main className="flex-1 p-8 space-y-12">
+        <div className="mx-auto w-full max-w-xl space-y-6">
           <div className="flex justify-end items-center gap-2">
             <LocalWeatherDialog />
           </div>
@@ -103,7 +104,7 @@ export function LandingPage({
               Free Online VBO, MoTeC, AiM &amp; NMEA Telemetry Viewer
             </h1>
             <p className="text-sm text-muted-foreground">
-              Open any Racelogic VBO, MoTeC i2 (LD/CSV), AiM MyChron, Alfano, u-blox UBX, NMEA or Dove datalog right in your browser. 100% offline — your files never leave your device.
+              Open any Racelogic VBO, MoTeC i2 (LD/CSV), AiM MyChron, Alfano, u-blox UBX, NMEA or Dove datalog right in your browser. Offline-first — with optional cloud storage to sync across your devices.
             </p>
           </div>
 
@@ -128,12 +129,16 @@ export function LandingPage({
               </Button>
             </div>
           </div>
+        </div>
 
-          <div className="flex justify-center mt-3">
+        <PricingCards className="mx-auto w-full max-w-5xl" />
+
+        <div className="mx-auto w-full max-w-xl space-y-4">
+          <div className="flex justify-center">
             <BrowserCompatDialog />
           </div>
 
-          <div className="flex items-center justify-center gap-8 mt-4">
+          <div className="flex items-center justify-center gap-8">
             {GITHUB_LINKS.map((link) => (
               <a
                 key={link.href}
@@ -148,7 +153,7 @@ export function LandingPage({
             ))}
           </div>
 
-          <div className="flex items-center justify-center gap-6 mt-3 flex-wrap">
+          <div className="flex items-center justify-center gap-6 flex-wrap">
             <Link to="/privacy" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               <Shield className="w-3 h-3" />
               Privacy Policy
