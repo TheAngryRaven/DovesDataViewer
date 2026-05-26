@@ -83,6 +83,6 @@
     "vitest": "^4.1.6"
   },
   "optionalDependencies": {
-    "@perchwerks/eye-in-the-sky": "0.2.4"
+    "@perchwerks/eye-in-the-sky": "0.2.5"
   }
 }

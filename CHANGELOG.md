@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dedicated AI Coach tab: a new top-level view (`PanelSlot.Coach`) that hosts the
   coaching plugin's session-debrief dashboard. Like Labs, it is self-gating — the
   tab only appears when the coach plugin is installed and contributes a panel. The
-  bundled coach (`@perchwerks/eye-in-the-sky` 0.2.0) ships a full-bleed analysis
+  bundled coach (`@perchwerks/eye-in-the-sky` 0.2.5) ships a full-bleed analysis
   dashboard (uPlot telemetry charts, corner/sector breakdowns) that loads lazily,
   off the initial bundle.
 - Plugin panels can now be **chromeless** — a panel may render full-bleed without
