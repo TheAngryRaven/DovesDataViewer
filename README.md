@@ -114,9 +114,19 @@ The app includes an optional admin system for managing a community track databas
 | `VITE_ENABLE_CLOUD` | No | Set to `true` to enable public user accounts: Cloud Sync Labs panel, Google sign-in, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`. Default `false` — flag-off builds ship zero cloud auth code (offline-first invariant). |
 | `VITE_TURNSTILE_SITE_KEY` | No | Cloudflare Turnstile site key for track submission CAPTCHA |
 | `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (edge function secret — `???`) |
+| `STRIPE_SECRET_KEY` | No (required for paid tiers) | Stripe secret key used by the `create-checkout-session`, `stripe-webhook`, and `create-portal-session` edge functions (edge function secret — `???`) |
+| `STRIPE_WEBHOOK_SECRET` | No (required for paid tiers) | Signing secret for the `stripe-webhook` endpoint, from the Stripe dashboard webhook config (edge function secret — `???`) |
 | `DOVE_PLUGIN_PACKAGES` | No | Build-time: comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`, the public AI coach) when set |
 
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
+
+> **Stripe / paid tiers:** `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are
+> edge-function secrets (not `VITE_` client vars). After creating the Plus/Pro
+> Products + recurring Prices in Stripe, store each Price id in the matching
+> `subscription_tiers.stripe_price_id` row, and point a Stripe webhook (events:
+> `checkout.session.completed`, `customer.subscription.created/updated/deleted`)
+> at the `stripe-webhook` function URL. Use Stripe **test mode** first. Tier
+> entitlements are granted only by the webhook, never the client.
 
 > **Note:** `DOVE_PLUGIN_PACKAGES` is build-time only (read by `vite.config.ts`), not a client `VITE_` variable. It overrides which external plugin packages the build loads; by default the build pulls in the public AI coach (`@perchwerks/eye-in-the-sky`) from npm as an optional dependency — see `src/plugins/README.md`.
 
