@@ -37,10 +37,10 @@ export default defineConfig({
       // below current actuals so routine churn doesn't redden CI; ratchet up as
       // coverage grows.
       thresholds: {
-        lines: 20,
-        functions: 18,
-        branches: 18,
-        statements: 20,
+        lines: 33,
+        functions: 26,
+        branches: 33,
+        statements: 32,
       },
     },
   },
