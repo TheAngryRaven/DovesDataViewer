@@ -190,14 +190,15 @@ src/
 │   │   ├── index.ts             # Plugin def — contributes the Labs panel + a FileRow mount (both lazy, cloud-gated)
 │   │   ├── CloudSyncPanel.tsx    # Sign-in + push/pull UI (lazy-loaded)
 │   │   ├── FileSyncToggle.tsx    # Per-file sync toggle, mounted on each file row (off/pending/synced)
+│   │   ├── FileDeleteToggle.tsx  # FileDeleteConfirm mount: opt-in "also delete the cloud copy" on local log delete (offline → pending)
 │   │   ├── CloudFilesSection.tsx # FileManagerSection mount: lists all cloud files (on-device marked, others pullable)
-│   │   ├── fileSync.ts           # Per-file selection state in the plugin store + fileSyncStatus/cloudOnlyNames (pure, tested)
+│   │   ├── fileSync.ts           # Per-file selection state in the plugin store + fileSyncStatus/cloudOnlyNames/orphanedObjectNames (pure, tested)
 │   │   ├── syncStores.ts         # Pure config: which stores sync + how they're keyed (testable)
 │   │   ├── storeAccessors.ts     # Per-store read/get/put: default IndexedDB accessor + a localStorage accessor for tracks (the non-IDB seam)
 │   │   ├── merge.ts              # ★ Pure conflict resolution: decideSync (pending-wins + updatedAt LWW), pendingId (tested)
 │   │   ├── pendingSync.ts        # Persistent offline "pending changes" set (plugin KV); flushed priority-1 on reconnect
 │   │   ├── storageTypes.ts      # Pure: storage types (documents 5MB / logs 20MB) + usage math (tested)
-│   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord/pushDocs/pullDocs + getStorageUsage
+│   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord + getStorageUsage + deleteCloudFile (rolls back orphan blob on index failure) + cleanupOrphanBlobs. Doc pushes chunk to a per-record fallback on quota (partial push + skipped count)
 │   │   ├── autoSync.ts           # Background doc auto-sync: subscribes to garageEvents, debounced upsert/delete + reconcile on sign-in
 │   │   ├── StoragePanel.tsx      # Profile-tab panel: display-name editor + storage usage meters (lazy)
 │   │   ├── CloudLogsPanel.tsx    # Profile-tab panel: list + delete cloud log files (cloud-only; opt-in local delete) (lazy)
@@ -291,11 +292,14 @@ are all chromeless (`isBareSlot`) also drops the host's outer padding.
 component into a fixed spot in core UI. A plugin contributes a `PluginMountDef`
 to `MOUNTS_POINT`, targeting a `MountSlot`; the host renders `<PluginMount slot
 ctx={…}>` at that spot, passing a typed context as a single `ctx` prop.
-`FilesTab` exposes three: `MountSlot.FileRow` (per file row, ctx = that file),
-`MountSlot.FileManagerSection` (once under the list, ctx = the whole list), and
+`FilesTab` exposes four: `MountSlot.FileRow` (per file row, ctx = that file),
+`MountSlot.FileManagerSection` (once under the list, ctx = the whole list),
 `MountSlot.FileManagerFooter` (near the bottom, above storage usage, ctx = the
-whole list — home for the "Download all cloud logs" bulk action). New mount
-locations are just new slot strings.
+whole list — home for the "Download all cloud logs" bulk action), and
+`MountSlot.FileDeleteConfirm` (inside the delete-confirm banner, ctx = the target
+file + a `registerOnConfirm` hook so a plugin can run an extra action — e.g.
+cloud-sync's "also delete the cloud copy" — without the host knowing about
+cloud). New mount locations are just new slot strings.
 
 **Cloud Sync (first-party plugin, `src/plugins/cloud-sync/`):** the first
 in-repo plugin built on the panel framework. Sign-in + manual push/pull live in
@@ -427,9 +431,12 @@ offline or whose push failed is recorded in a persistent **pending set**
 **priority-1** (replacing the cloud copy); everything else merges by newest
 `updatedAt` (the record's logical edit time — never the server row time).
 `reconcileDocs` does the two-way merge (pull cloud-newer, push local-newer/-only),
-skipping pending keys. `autoSync` tracks `navigator.onLine` + window online/offline
-events; the Profile-tab `StoragePanel` flags offline state + the pending count.
-(Log-blob deletion propagation remains a follow-up.)
+skipping pending keys. Its push (and `pushAll`'s) goes through `pushDocRows`: one
+optimistic batch, falling back to per-record upserts if the server quota trigger
+rejects the batch — so an over-limit local set still **partial-syncs** everything
+that fits and reports a `skipped` count (surfaced as a toast) rather than failing
+wholesale. `autoSync` tracks `navigator.onLine` + window online/offline events;
+the Profile-tab `StoragePanel` flags offline state + the pending count.
 
 **Storage types** (`storageTypes.ts`, enforced server-side) — distinct from
 future *subscription tiers*: **documents** = all structured stores (5 MB, free,
@@ -460,12 +467,22 @@ read/get/put seam so the engine isn't hard-wired to IndexedDB. Track edits stamp
 `updatedAt` + emit `garageEvents`, so they ride the same auto-sync + delete
 propagation + pending-wins/LWW merge as setups.
 
-Cloud **log deletion** is managed on the Profile tab (`CloudLogsPanel`):
-`listCloudFiles` (now with `uploadedAt`) lists the user's cloud log files;
+Cloud **log deletion** happens two ways. (1) On the Profile tab (`CloudLogsPanel`):
+`listCloudFiles` (with `uploadedAt`) lists the user's cloud log files;
 `deleteCloudFile(userId, name)` removes the blob + its `sync_records` index row
-(cloud-only — other devices keep their downloaded copy), clears the per-file
-selection, and optionally deletes the local copy on this device. (Auto-propagation
-of log deletes on local delete is still a separate follow-up.)
+(cloud-only — other devices keep their downloaded copy), and the panel clears the
+per-file selection + optionally deletes the local copy on this device. (2) On
+**local delete** of a synced log: the `FileDeleteConfirm` mount (`FileDeleteToggle`)
+adds an opt-in *"also delete the cloud copy"* switch (off by default — the cloud
+copy is a backup). When ticked it calls `deleteCloudFile` (online) or queues a
+`{store:"files", type:"delete"}` **pending change** (offline / on failure) that
+`autoSync.pushOne` flushes via `deleteCloudFile` on reconnect.
+
+**Orphan-safety:** `uploadBlob` writes the blob then the index row; if the index
+write is rejected (e.g. the server quota trigger), it **rolls the blob back** so
+it can't orphan in the bucket. `cleanupOrphanBlobs(userId)` (run once per user when
+`CloudLogsPanel` opens) reclaims any pre-existing orphans — bucket objects whose
+decoded name has no index row (`orphanedObjectNames`, pure + tested).
 
 Files are **opt-in per file** (`fileSync.ts`): a `FileRow` mount adds a toggle to
 each file-manager row (`off` → `pending` → `synced`), and the selection set lives

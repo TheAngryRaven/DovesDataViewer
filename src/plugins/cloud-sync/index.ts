@@ -6,6 +6,7 @@ import { PANELS_POINT, PanelSlot, type PluginPanel } from "@/plugins/panels";
 import {
   MOUNTS_POINT, MountSlot,
   type PluginMountDef, type FileRowContext, type FileManagerSectionContext,
+  type FileDeleteConfirmContext,
 } from "@/plugins/mounts";
 
 // The panel pulls in the Supabase sync engine + storage modules, so it's lazy:
@@ -16,6 +17,7 @@ const CloudSyncPanel = lazy(() => import("./CloudSyncPanel"));
 // so the file-manager drawer doesn't pull the sync engine onto its chunk until
 // they render.
 const FileSyncToggle = lazy(() => import("./FileSyncToggle"));
+const FileDeleteToggle = lazy(() => import("./FileDeleteToggle"));
 const CloudFilesSection = lazy(() => import("./CloudFilesSection"));
 const DownloadAllCloudLogs = lazy(() => import("./DownloadAllCloudLogs"));
 // Profile tab panels: storage usage meters + account, and cloud-log management.
@@ -50,6 +52,15 @@ const plugin: DataViewerPlugin = {
       order: 0,
       component: FileSyncToggle,
     } satisfies PluginMountDef<FileRowContext>);
+
+    // "Also delete from the cloud" opt-in, shown in the file delete-confirm
+    // banner when the file is synced.
+    ctx.registry.contribute(MOUNTS_POINT, {
+      id: "cloud-sync-file-delete",
+      slot: MountSlot.FileDeleteConfirm,
+      order: 0,
+      component: FileDeleteToggle,
+    } satisfies PluginMountDef<FileDeleteConfirmContext>);
 
     // Cloud-only files (in the cloud, not on this device) listed under the file
     // list, each with a per-file pull.

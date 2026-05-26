@@ -54,3 +54,24 @@ export function cloudOnlyNames(cloudNames: string[], localNames: Iterable<string
   const local = new Set(localNames);
   return cloudNames.filter((n) => !local.has(n));
 }
+
+/**
+ * Bucket object names with no matching index row — orphans to clean up. Pure.
+ * Object names are URL-encoded file names (the bucket path segment), while index
+ * keys are the raw file names, so each object name is decoded before comparing.
+ */
+export function orphanedObjectNames(
+  objectNames: string[],
+  indexedKeys: Iterable<string>,
+): string[] {
+  const indexed = new Set(indexedKeys);
+  return objectNames.filter((n) => {
+    let decoded = n;
+    try {
+      decoded = decodeURIComponent(n);
+    } catch {
+      // Malformed encoding — compare raw.
+    }
+    return !indexed.has(decoded);
+  });
+}

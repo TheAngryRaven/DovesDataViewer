@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { deleteFile, listFiles } from "@/lib/fileStorage";
-import { deleteCloudFile, listCloudFiles, type CloudFile } from "./syncEngine";
+import { cleanupOrphanBlobs, deleteCloudFile, listCloudFiles, type CloudFile } from "./syncEngine";
 import { unselectFile } from "./fileSync";
 import { formatBytes } from "./storageTypes";
 
@@ -47,6 +47,17 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Reclaim any orphaned blobs (no index row) once per signed-in user. Orphans
+  // don't appear in the index-based list, so this just frees their storage.
+  const cleanedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user || cleanedFor.current === user.id) return;
+    cleanedFor.current = user.id;
+    void cleanupOrphanBlobs(user.id).then((n) => {
+      if (n > 0) void refresh();
+    });
+  }, [user, refresh]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (!user) {

@@ -58,7 +58,13 @@ export default function CloudSyncPanel() {
     setBusy("push");
     try {
       const r = await pushAll(user.id);
-      toast.success(`Pushed ${r.records} records and ${r.files} files to the cloud.`);
+      if (r.skipped > 0) {
+        toast.error(
+          `Pushed ${r.records} records and ${r.files} files, but ${r.skipped} didn't fit — cloud document storage is full.`,
+        );
+      } else {
+        toast.success(`Pushed ${r.records} records and ${r.files} files to the cloud.`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Push failed");
     } finally {

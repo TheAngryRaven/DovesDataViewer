@@ -65,6 +65,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `user_roles`).
 
 ### Added
+- Deleting a **synced log locally** now offers an opt-in *"also delete the cloud
+  copy"* toggle in the delete confirm (off by default — the cloud copy is a
+  backup). When offline, the cloud delete queues and propagates on reconnect.
 - Your custom **tracks & courses now sync to the cloud** too (documents storage),
   the same way setups do — auto-sync, delete propagation, and the offline-aware
   timestamp merge. Only your user-created tracks/courses sync; built-in tracks
@@ -84,6 +87,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unless the experimental setting is on or a plugin contributes to it.
 - Landing-page and About copy now reflect **optional cloud storage** (instead of
   "files never leave your device"), since cloud sync is available when signed in.
+- When local garage data exceeds the cloud **documents** limit, sync now does a
+  **partial push** — it saves everything that fits and tells you how many items
+  didn't — instead of rejecting the whole batch and syncing nothing.
 - Cloud document sync is now **offline-aware and conflict-safe**. Garage records
   (vehicles, setups, templates, notes) carry an edit timestamp, and sync uses
   last-write-wins, so a newer change is never overwritten by an older copy.
@@ -119,6 +125,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `@perchwerks/eye-in-the-sky` and loads by default — no build token or `.npmrc`
   required. (Previously a private GitHub Packages package gated behind
   `NODE_AUTH_TOKEN`.)
+
+### Fixed
+- Cloud log uploads no longer **orphan a blob** when the server quota rejects the
+  index write — the just-uploaded blob is rolled back. Any pre-existing orphans
+  are reclaimed when the Cloud logs panel is opened.
 
 ## [1.5.0] - 2026-05-22
 

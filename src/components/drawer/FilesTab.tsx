@@ -96,10 +96,22 @@ export function FilesTab({
     }
   }, [confirmLoad, onLoadFile, onDataLoaded, onClose]);
 
+  // A plugin (cloud-sync) can register an extra action to run on confirm — e.g.
+  // also removing the synced copy from the cloud. The host stays cloud-agnostic.
+  const deleteConfirmAction = useRef<(() => Promise<void>) | null>(null);
+  const registerDeleteConfirm = useCallback((fn: (() => Promise<void>) | null) => {
+    deleteConfirmAction.current = fn;
+  }, []);
+
   const handleDeleteConfirm = useCallback(async () => {
     if (!confirmDelete) return;
     await onDeleteFile(confirmDelete);
-    setConfirmDelete(null);
+    try {
+      await deleteConfirmAction.current?.();
+    } finally {
+      deleteConfirmAction.current = null;
+      setConfirmDelete(null);
+    }
   }, [confirmDelete, onDeleteFile]);
 
   const handleUpload = useCallback(
@@ -158,6 +170,11 @@ export function FilesTab({
               <p className="text-sm text-foreground">
                 Delete <span className="font-mono font-medium">{confirmDelete}</span>? This cannot be undone.
               </p>
+              <PluginMount
+                key={confirmDelete}
+                slot={MountSlot.FileDeleteConfirm}
+                ctx={{ fileName: confirmDelete, registerOnConfirm: registerDeleteConfirm }}
+              />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancel</Button>
                 <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>Delete</Button>

@@ -12,10 +12,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { onGarageChange, type GarageChange } from "@/lib/garageEvents";
 import { isQuotaError } from "./cloudClient";
-import { deleteRecord, pushRecord, reconcileDocs } from "./syncEngine";
+import { deleteCloudFile, deleteRecord, pushRecord, reconcileDocs } from "./syncEngine";
 import { clearPending, listPending, markPending, pendingKeySet } from "./pendingSync";
+import { unselectFile } from "./fileSync";
 import { pendingId } from "./merge";
 import { storageTypeForStore } from "./storageTypes";
+import { FILE_STORE } from "./syncStores";
 
 const DEBOUNCE_MS = 800;
 
@@ -35,6 +37,15 @@ function isOnline(): boolean {
 }
 
 async function pushOne(userId: string, change: GarageChange): Promise<void> {
+  if (change.store === FILE_STORE) {
+    // Files only ever queue here as a deferred *delete* (a log removed while
+    // offline). Remove the blob + its index, and drop the stale selection.
+    if (change.type === "delete") {
+      await deleteCloudFile(userId, change.key);
+      await unselectFile(change.key);
+    }
+    return;
+  }
   if (change.type === "delete") await deleteRecord(userId, change.store, change.key);
   else await pushRecord(userId, change.store, change.key);
 }
@@ -101,7 +112,13 @@ async function flushPending(userId: string): Promise<void> {
 async function runReconcile(userId: string): Promise<void> {
   try {
     await flushPending(userId);
-    await reconcileDocs(userId, await pendingKeySet());
+    const { skipped } = await reconcileDocs(userId, await pendingKeySet());
+    if (skipped > 0) {
+      notify(
+        `Cloud document storage is full — ${skipped} item${skipped === 1 ? "" : "s"} didn't sync.`,
+        "error",
+      );
+    }
   } catch (err) {
     if (isQuotaError(err)) {
       notify("Cloud document storage is full — some items didn't sync.", "error");
