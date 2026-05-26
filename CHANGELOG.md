@@ -14,13 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Paid subscription tiers (backend)**: Stripe-backed `Plus` ($1/mo, 500 MB
-  logs) and `Pro` ($10/mo, 1 GB logs) plans on top of the free 20 MB tier. Plan
-  limits are data-driven (`subscription_tiers` table) and the cloud-sync storage
-  quota is now enforced per the user's tier. New `create-checkout-session`,
+- **Paid subscription tiers**: Stripe-backed `Plus` ($1/mo, 500 MB logs) and
+  `Pro` ($10/mo, 1 GB logs) plans on top of the free 20 MB tier. Plan limits are
+  data-driven (`subscription_tiers` table) and the cloud-sync storage quota is
+  enforced per the user's tier. Backed by `create-checkout-session`,
   `stripe-webhook`, and `create-portal-session` edge functions; entitlements are
-  granted solely by the verified Stripe webhook. (Upgrade buttons in the UI land
-  in a follow-up.)
+  granted solely by the verified Stripe webhook. The **Plans & pricing** cards
+  now show live **Upgrade** / **Current plan** actions for signed-in users (a
+  paid tier stays "Coming soon" until its Stripe Price is configured), and the
+  **Profile** tab shows your plan with a **Manage subscription** link to the
+  Stripe billing portal.
 - Document storage + **auto-sync**: when you're signed in, your garage
   (vehicles, setups, setup templates, notes) now backs up to the cloud
   automatically as you change it — no manual push. The "documents" storage type

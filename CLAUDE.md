@@ -119,6 +119,7 @@ src/
 │   ├── useSetupManager.ts     # Generic setup sheets CRUD (template-driven)
 │   ├── useSettings.ts         # User preferences (units, smoothing, dark mode, etc.)
 │   ├── useSessionMetadata.ts  # Per-file metadata (selected track/course)
+│   ├── useSubscription.ts     # Reads subscription tier catalogue + the user's plan (online, account-gated)
 │   └── useOnlineStatus.ts     # Navigator.onLine wrapper
 ├── lib/
 │   ├── datalogParser.ts       # ★ Format auto-detection router (entry point for all parsing)
@@ -176,6 +177,8 @@ src/
 │   │   ├── types.ts           # ITrackDatabase interface
 │   │   ├── supabaseAdapter.ts # Supabase implementation
 │   │   └── index.ts           # Factory: getDatabase()
+│   ├── billing.ts             # ★ Pure subscription logic + row shapes (effectiveTier, pricingCta) — unit-tested, no Supabase import
+│   ├── billingClient.ts       # Supabase I/O for tiers/subscriptions + Stripe checkout/portal (functions.invoke)
 │   └── utils.ts               # Tailwind cn() helper
 ├── plugins/                   # ★ Plugin framework (auto-discovered via import.meta.glob)
 │   ├── types.ts               # DataViewerPlugin / PluginContext / PluginRegistry contracts
@@ -200,7 +203,7 @@ src/
 │   │   ├── storageTypes.ts      # Pure: storage types (documents 5MB / logs 20MB) + usage math (tested)
 │   │   ├── syncEngine.ts         # pushAll/pushFile/pullAll + incremental pushRecord/deleteRecord + getStorageUsage + deleteCloudFile (rolls back orphan blob on index failure) + cleanupOrphanBlobs. Doc pushes chunk to a per-record fallback on quota (partial push + skipped count)
 │   │   ├── autoSync.ts           # Background doc auto-sync: subscribes to garageEvents, debounced upsert/delete + reconcile on sign-in
-│   │   ├── StoragePanel.tsx      # Profile-tab panel: display-name editor + storage usage meters (lazy)
+│   │   ├── StoragePanel.tsx      # Profile-tab panel: display-name editor + plan/Manage-subscription + storage usage meters (lazy)
 │   │   ├── CloudLogsPanel.tsx    # Profile-tab panel: list + delete cloud log files (cloud-only; opt-in local delete) (lazy)
 │   │   ├── profile.ts            # getMyProfile / updateDisplayName (unique display names; taken-name handling)
 │   │   └── cloudClient.ts        # Typed access to sync_records + bucket + sync_storage_usage RPC (escape hatch until types regen)
@@ -523,8 +526,21 @@ manually like the rest of the repo, the webhook verifies the Stripe signature):
 - `create-portal-session` — returns a Stripe Billing Portal URL for
   manage/cancel (no in-app billing UI).
 
-Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. **Client upgrade/manage
-buttons (PricingCards + Profile StoragePanel) are a follow-up.**
+Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+
+**Client wiring** (core, not the cloud-sync plugin — billing is account-level and
+PricingCards renders even with cloud disabled): `lib/billing.ts` is the pure,
+unit-tested layer (`isActiveStatus`/`effectiveTier`/`isPaidTier`/`pricingCta` +
+row shapes); `lib/billingClient.ts` is the Supabase I/O (`fetchTiers`,
+`fetchMySubscription`, `createCheckout`, `createPortal` via `functions.invoke`),
+through the same untyped escape hatch as `cloudClient.ts`. `hooks/useSubscription.ts`
+reads the tier catalogue + the user's subscription (online + account-gated,
+returns the free baseline otherwise). `PricingCards` shows live **Upgrade** /
+**Current plan** actions for signed-in users (a paid tier with no `stripe_price_id`
+stays "Coming soon" — graceful pre-config state); cloud-sync's Profile-tab
+`StoragePanel` shows the current plan + a **Manage subscription** portal link when
+subscribed. **Stripe setup (create Products/Prices, set `stripe_price_id`, secrets,
+webhook) is still operator config — see README.**
 
 ---
 

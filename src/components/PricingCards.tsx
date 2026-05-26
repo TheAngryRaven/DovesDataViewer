@@ -1,4 +1,13 @@
-import { Check } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
+import { pricingCta } from "@/lib/billing";
+import { createCheckout } from "@/lib/billingClient";
+
+const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 
 interface Tier {
   name: string;
@@ -9,6 +18,8 @@ interface Tier {
   features: string[];
   highlight?: boolean;
   comingSoon?: boolean;
+  /** Maps the card to a subscription tier slug (the offline card has none). */
+  slug?: "free" | "plus" | "pro";
 }
 
 const TIERS: Tier[] = [
@@ -29,6 +40,7 @@ const TIERS: Tier[] = [
     blurb: "Online account",
     price: "$0",
     highlight: true,
+    slug: "free",
     inherits: "Everything in Free, plus",
     features: [
       "Setup info synced across all your devices",
@@ -42,6 +54,7 @@ const TIERS: Tier[] = [
     price: "$1",
     cadence: "/mo",
     comingSoon: true,
+    slug: "plus",
     inherits: "Everything in Free online, plus",
     features: ["500 MB cloud log storage"],
   },
@@ -51,12 +64,21 @@ const TIERS: Tier[] = [
     price: "$10",
     cadence: "/mo",
     comingSoon: true,
+    slug: "pro",
     inherits: "Everything in Plus, plus",
     features: ["1 GB cloud log storage", "AI coaching (coming soon)"],
   },
 ];
 
-function TierCard({ tier }: { tier: Tier }) {
+function TierCard({
+  tier,
+  cta,
+  showComingSoon,
+}: {
+  tier: Tier;
+  cta?: ReactNode;
+  showComingSoon: boolean;
+}) {
   return (
     <div
       className={`relative flex flex-col rounded-xl border bg-card p-5 text-left ${
@@ -68,7 +90,7 @@ function TierCard({ tier }: { tier: Tier }) {
           Recommended
         </span>
       )}
-      {tier.comingSoon && (
+      {showComingSoon && (
         <span className="absolute -top-2.5 right-4 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           Coming soon
         </span>
@@ -92,16 +114,36 @@ function TierCard({ tier }: { tier: Tier }) {
           </li>
         ))}
       </ul>
+      {cta && <div className="mt-auto pt-4">{cta}</div>}
     </div>
   );
 }
 
 /**
- * Plans / pricing grid. Shown on the landing page (below the sample box) and on
- * the registration page. Informational only — paid tiers are marked "Coming
- * soon" until billing is wired up.
+ * Plans / pricing grid. Shown on the landing page (the empty-state of the main
+ * app) and on the registration page. Informational for signed-out visitors;
+ * signed-in users get live "Upgrade" / "Current plan" actions on the paid tiers
+ * (a paid tier whose Stripe Price isn't configured yet stays "Coming soon").
  */
 export function PricingCards({ className }: { className?: string }) {
+  const { user } = useAuth();
+  const { tiers, currentTier } = useSubscription();
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const signedIn = !!user;
+  const purchasable = new Set(tiers.filter((t) => t.stripe_price_id).map((t) => t.tier));
+
+  const onUpgrade = async (slug: string) => {
+    setBusy(slug);
+    try {
+      const url = await createCheckout(slug, window.location.href);
+      window.location.href = url;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't start checkout.");
+      setBusy(null);
+    }
+  };
+
   return (
     <section className={className}>
       <div className="text-center space-y-1">
@@ -111,9 +153,42 @@ export function PricingCards({ className }: { className?: string }) {
         </p>
       </div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {TIERS.map((tier) => (
-          <TierCard key={`${tier.name}-${tier.blurb}`} tier={tier} />
-        ))}
+        {TIERS.map((tier) => {
+          const kind = pricingCta({
+            slug: tier.slug,
+            signedIn,
+            cloudEnabled: enableCloud,
+            currentTier,
+            purchasable: !!tier.slug && purchasable.has(tier.slug),
+          });
+
+          let cta: ReactNode = null;
+          if (kind === "current") {
+            cta = (
+              <Button variant="outline" className="w-full" disabled>
+                <Check className="h-4 w-4" /> Current plan
+              </Button>
+            );
+          } else if (kind === "upgrade" && tier.slug) {
+            const slug = tier.slug;
+            const isBusy = busy === slug;
+            cta = (
+              <Button className="w-full" disabled={isBusy} onClick={() => void onUpgrade(slug)}>
+                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {isBusy ? "Redirecting…" : "Upgrade"}
+              </Button>
+            );
+          }
+
+          return (
+            <TierCard
+              key={`${tier.name}-${tier.blurb}`}
+              tier={tier}
+              cta={cta}
+              showComingSoon={!!tier.comingSoon && kind === "none"}
+            />
+          );
+        })}
       </div>
     </section>
   );

@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, CloudOff, Pencil, User as UserIcon, X } from "lucide-react";
+import { Check, CloudOff, CreditCard, Loader2, Pencil, User as UserIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useSubscription } from "@/hooks/useSubscription";
+import { isPaidTier } from "@/lib/billing";
+import { createPortal } from "@/lib/billingClient";
 import { getStorageUsage } from "./syncEngine";
 import { getMyProfile, updateDisplayName } from "./profile";
 import { pendingCount } from "./pendingSync";
@@ -59,6 +62,8 @@ export default function StoragePanel(_props: PluginPanelProps) {
   return (
     <div className="space-y-5">
       <DisplayName userId={user.id} email={user.email ?? ""} />
+
+      <PlanSection />
 
       {!online && (
         <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
@@ -167,6 +172,52 @@ function DisplayName({ userId, email }: { userId: string; email: string }) {
           </div>
         )}
         <p className="truncate text-xs text-muted-foreground">{email}</p>
+      </div>
+    </div>
+  );
+}
+
+function PlanSection() {
+  const { tiers, currentTier, subscription, loading } = useSubscription();
+  const [busy, setBusy] = useState(false);
+
+  const label = tiers.find((t) => t.tier === currentTier)?.label
+    ?? currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
+  const subscribed = isPaidTier(currentTier);
+  const renews = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString()
+    : null;
+
+  const manage = async () => {
+    setBusy(true);
+    try {
+      const url = await createPortal(window.location.href);
+      window.location.href = url;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't open the billing portal.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Plan</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">{loading ? "…" : label}</p>
+          {subscribed && renews && (
+            <p className="text-[11px] text-muted-foreground">Renews {renews}</p>
+          )}
+          {!subscribed && (
+            <p className="text-[11px] text-muted-foreground">Upgrade from the Plans &amp; pricing cards.</p>
+          )}
+        </div>
+        {subscribed && (
+          <Button size="sm" variant="outline" className="shrink-0" disabled={busy} onClick={() => void manage()}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+            Manage subscription
+          </Button>
+        )}
       </div>
     </div>
   );
