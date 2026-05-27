@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Cloud, ShieldCheck, User } from "lucide-react";
+import { Camera, Cloud, ShieldCheck, User } from "lucide-react";
 import { toast } from "sonner";
 import type { DataViewerPlugin } from "@/plugins/types";
 import { PANELS_POINT, PanelSlot, type PluginPanel } from "@/plugins/panels";
@@ -23,6 +23,7 @@ const DownloadAllCloudLogs = lazy(() => import("./DownloadAllCloudLogs"));
 // Profile tab panels: storage usage meters + account, and cloud-log management.
 const StoragePanel = lazy(() => import("./StoragePanel"));
 const CloudLogsPanel = lazy(() => import("./CloudLogsPanel"));
+const LapSnapshotsPanel = lazy(() => import("./LapSnapshotsPanel"));
 // Profile tab: GDPR self-service — export everything + scheduled account deletion.
 const DataPrivacyPanel = lazy(() => import("./DataPrivacyPanel"));
 
@@ -92,6 +93,17 @@ const plugin: DataViewerPlugin = {
       order: 0,
       icon: User,
       component: StoragePanel,
+    } satisfies PluginPanel);
+
+    // Profile tab: view/delete lap snapshots (cloud when signed in, local when
+    // signed out — the one snapshot feature available before sign-in).
+    ctx.registry.contribute(PANELS_POINT, {
+      id: "cloud-sync-snapshots",
+      title: "Lap snapshots",
+      slot: PanelSlot.Profile,
+      order: 5,
+      icon: Camera,
+      component: LapSnapshotsPanel,
     } satisfies PluginPanel);
 
     // Profile tab: manage (delete) the log files stored in the cloud.

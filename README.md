@@ -32,6 +32,7 @@
 - 3-sector split timing with optimal lap
 - Pro graph view with multi-series telemetry charts
 - Reference lap overlay & pace delta comparison
+- Lap snapshots — save a "course fastest lap" per engine, frozen for cross-session comparison (local-first, optionally cloud-synced)
 - Video sync with telemetry playback
 - 9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)
 - MP4 video export with overlays & audio (H.264 + AAC)
@@ -170,7 +171,8 @@ The admin system uses Lovable Cloud (Supabase) for the database. The schema is c
 - **sync_records** — Per-user cloud-sync documents (files/garage data), RLS-scoped to the owner
 - **user-files** (Storage bucket) — Private per-user session file blobs for cloud sync
 - **quota_limits** — Baseline per-storage-type byte limits (documents/logs)
-- **subscription_tiers** — Data-driven plan catalogue (free/plus/premium/pro): label, price, per-type byte limits
+- **lap_snapshots** — Per-user frozen "course fastest lap" captures (one per course+engine), RLS-scoped; a dedicated, count-quota'd data type (not byte storage)
+- **subscription_tiers** — Data-driven plan catalogue (free/plus/premium/pro): label, price, per-type byte limits, and lap-snapshot count limit (`snapshot_count`: 5/10/20/50)
 - **user_subscriptions** — Per-user tier + Stripe customer/subscription state, status, renewal date, cancellation grace (service-role-written only)
 - **profiles** — Per-user unique, editable display name
 - **account_deletions** — Pending self-service account-deletion requests (7-day, reversible grace window)

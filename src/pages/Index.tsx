@@ -44,6 +44,9 @@ import { useTemplateManager } from "@/hooks/useTemplateManager";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
+import { useLapSnapshots } from "@/hooks/useLapSnapshots";
+import { LapSnapshotControls } from "@/components/LapSnapshotControls";
+import { LapSnapshotPromptDialog } from "@/components/LapSnapshotPromptDialog";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
 import { useDataLoader } from "@/hooks/useDataLoader";
@@ -148,17 +151,55 @@ export default function Index() {
     allTracks, gpsCenter,
   } = dataLoader;
 
+  // Lap snapshots: frozen "course fastest lap" captures, loaded as a comparison
+  // overlay through the same external-reference slot (so they never auto-play or
+  // appear in the video player).
+  const loadSnapshotOverlay = useCallback((samples: typeof filteredSamples, label: string) => {
+    externalRef.setExternalRefSamples(samples);
+    externalRef.setExternalRefLabel(label);
+    setReferenceLapNumber(null);
+  }, [externalRef, setReferenceLapNumber]);
+
+  const snapshots = useLapSnapshots({
+    data,
+    laps,
+    selection,
+    selectedLapNumber,
+    currentFileName,
+    vehicles: vehicleManager.vehicles,
+    setups: setupManager.setups,
+    sessionKartId,
+    sessionSetupId,
+    onLoadOverlay: loadSnapshotOverlay,
+    onClearOverlay: handleClearExternalRef,
+  });
+
   // Reference-lap handlers: clear the other side when one is set.
   const handleSetReferenceWithClear = useCallback((lapNumber: number) => {
     handleSetReference(lapNumber);
     externalRef.setExternalRefSamples(null);
     externalRef.setExternalRefLabel(null);
-  }, [handleSetReference, externalRef]);
+    snapshots.setActiveSnapshotId(null);
+  }, [handleSetReference, externalRef, snapshots]);
 
   const handleSelectExternalLapWithClear = useCallback((fileName: string, lapNumber: number) => {
     handleSelectExternalLap(fileName, lapNumber);
     setReferenceLapNumber(null);
-  }, [handleSelectExternalLap, setReferenceLapNumber]);
+    snapshots.setActiveSnapshotId(null);
+  }, [handleSelectExternalLap, setReferenceLapNumber, snapshots]);
+
+  // Assigning an engine/setup may set a new course fastest lap → prompt to save.
+  const handleSaveSessionSetupWithSnapshot = useCallback(async (kartId: string | null, setupId: string | null) => {
+    await sessionMeta.handleSaveSessionSetup(kartId, setupId);
+    snapshots.maybePromptOnAssignment(kartId, setupId);
+  }, [sessionMeta, snapshots]);
+
+  // Clearing the shared reference slot (e.g. the ExternalRefBar X) must also drop
+  // the active snapshot, since a loaded snapshot rides that same slot.
+  const handleClearExternalRefWithSnapshot = useCallback(() => {
+    handleClearExternalRef();
+    snapshots.setActiveSnapshotId(null);
+  }, [handleClearExternalRef, snapshots]);
 
   const hasReference = referenceLapNumber !== null || externalRefSamples !== null;
 
@@ -249,13 +290,13 @@ export default function Index() {
     onLapSelect: handleLapSelect,
     onSetReference: handleSetReferenceWithClear,
     onSelectExternalLap: handleSelectExternalLapWithClear,
-    onClearExternalRef: handleClearExternalRef,
+    onClearExternalRef: handleClearExternalRefWithSnapshot,
     onLoadFileForRef: handleLoadFileForRef,
     onRefreshSavedFiles: refreshSavedFiles,
     onRangeChange: handleRangeChange,
     onFieldToggle: sessionData.handleFieldToggle,
     onWeatherStationResolved: sessionMeta.handleWeatherStationResolved,
-    onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
+    onSaveSessionSetup: handleSaveSessionSetupWithSnapshot,
     formatRangeLabel,
   }), [
     data, visibleSamples, filteredSamples, referenceSamples, currentSample, fieldMappings,
@@ -269,10 +310,10 @@ export default function Index() {
     vehicleManager.vehicles, setupManager.setups, templateManager.templates,
     videoSync.state, videoSync.actions, videoSync.handleLoadedMetadata,
     handleScrub, handleLapSelect, handleSetReferenceWithClear,
-    handleSelectExternalLapWithClear, handleClearExternalRef, handleLoadFileForRef,
+    handleSelectExternalLapWithClear, handleClearExternalRefWithSnapshot, handleLoadFileForRef,
     refreshSavedFiles, handleRangeChange,
     sessionData.handleFieldToggle, sessionMeta.handleWeatherStationResolved,
-    sessionMeta.handleSaveSessionSetup, formatRangeLabel,
+    handleSaveSessionSetupWithSnapshot, formatRangeLabel,
   ]);
 
   // Shared FileManagerDrawer props
@@ -309,7 +350,7 @@ export default function Index() {
     onRemoveVehicleType: templateManager.removeVehicleType,
     sessionKartId,
     sessionSetupId,
-    onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
+    onSaveSessionSetup: handleSaveSessionSetupWithSnapshot,
   }), [
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
@@ -319,7 +360,7 @@ export default function Index() {
     currentFileName,
     noteManager.notes, noteManager.addNote, noteManager.updateNote, noteManager.removeNote,
     setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
-    sessionKartId, sessionSetupId, sessionMeta.handleSaveSessionSetup,
+    sessionKartId, sessionSetupId, handleSaveSessionSetupWithSnapshot,
   ]);
 
   // No data loaded - show import UI
@@ -391,6 +432,16 @@ export default function Index() {
             </Select>
           )}
 
+          <LapSnapshotControls
+            snapshotsForCourse={snapshots.snapshotsForCourse}
+            activeSnapshotId={snapshots.activeSnapshotId}
+            canSnapshot={snapshots.canSnapshot}
+            hasCourse={!!selectedCourse}
+            onLoad={snapshots.loadSnapshot}
+            onClear={snapshots.clearActive}
+            onSave={snapshots.saveSelectedLap}
+          />
+
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={fileManager.open}>
             <FolderOpen className="w-4 h-4" />
@@ -425,6 +476,11 @@ export default function Index() {
         onSelect={handleTrackPromptSelect}
         initialCenter={gpsCenter}
         detectionResult={detectionResult}
+      />
+      <LapSnapshotPromptDialog
+        prompt={snapshots.prompt}
+        onConfirm={snapshots.confirmPrompt}
+        onDismiss={snapshots.dismissPrompt}
       />
     </div>
     </SessionProvider>

@@ -10,9 +10,11 @@
 // here; log blobs stay manual/opt-in.
 
 import { supabase } from "@/integrations/supabase/client";
+import { STORE_NAMES } from "@/lib/dbUtils";
 import { onGarageChange, type GarageChange } from "@/lib/garageEvents";
-import { isQuotaError } from "./cloudClient";
+import { isQuotaError, isSnapshotQuotaError } from "./cloudClient";
 import { deleteCloudFile, deleteRecord, pushRecord, reconcileDocs } from "./syncEngine";
+import { clearSnapshotTombstone, pushSnapshot, reconcileSnapshots } from "./snapshotSync";
 import { clearPending, listPending, markPending, pendingKeySet } from "./pendingSync";
 import { unselectFile } from "./fileSync";
 import { pendingId } from "./merge";
@@ -37,6 +39,14 @@ function isOnline(): boolean {
 }
 
 async function pushOne(userId: string, change: GarageChange): Promise<void> {
+  if (change.store === STORE_NAMES.LAP_SNAPSHOTS) {
+    // Snapshots always push on save; a local delete never propagates to the
+    // cloud (the cloud copy is removed only explicitly, from the profile page).
+    if (change.type === "delete") return;
+    await clearSnapshotTombstone(change.key); // a fresh save re-enables cloud sync
+    await pushSnapshot(userId, change.key);
+    return;
+  }
   if (change.store === FILE_STORE) {
     // Files only ever queue here as a deferred *delete* (a log removed while
     // offline). Remove the blob + its index, and drop the stale selection.
@@ -61,7 +71,9 @@ async function flush(change: GarageChange): Promise<void> {
     await pushOne(userId, change);
     await clearPending(change.store, change.key);
   } catch (err) {
-    if (isQuotaError(err)) {
+    if (isSnapshotQuotaError(err)) {
+      notify("Cloud snapshot limit reached — saved locally. Delete one in Profile to sync.", "error");
+    } else if (isQuotaError(err)) {
       notify(
         `Cloud ${storageTypeForStore(change.store)} storage is full — saved locally, not synced.`,
         "error",
@@ -98,7 +110,9 @@ async function flushPending(userId: string): Promise<void> {
       await pushOne(userId, change);
       await clearPending(change.store, change.key);
     } catch (err) {
-      if (isQuotaError(err)) {
+      if (isSnapshotQuotaError(err)) {
+        notify("Cloud snapshot limit reached — delete one in Profile to sync.", "error");
+      } else if (isQuotaError(err)) {
         notify(
           `Cloud ${storageTypeForStore(change.store)} storage is full — some changes didn't sync.`,
           "error",
@@ -116,6 +130,13 @@ async function runReconcile(userId: string): Promise<void> {
     if (skipped > 0) {
       notify(
         `Cloud document storage is full — ${skipped} item${skipped === 1 ? "" : "s"} didn't sync.`,
+        "error",
+      );
+    }
+    const snap = await reconcileSnapshots(userId);
+    if (snap.skipped > 0) {
+      notify(
+        `Cloud snapshot limit reached — ${snap.skipped} snapshot${snap.skipped === 1 ? "" : "s"} didn't sync. Delete one in Profile.`,
         "error",
       );
     }

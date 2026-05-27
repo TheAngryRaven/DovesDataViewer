@@ -30,6 +30,34 @@ export function syncRecords() {
   return untyped.from("sync_records");
 }
 
+/** A row in public.lap_snapshots — one frozen lap capture, one per engine+course. */
+export interface LapSnapshotRow {
+  id?: string;
+  user_id: string;
+  course_key: string;
+  engine_key: string;
+  data: unknown;
+  updated_at?: string;
+}
+
+/** Query builder for the lap_snapshots table (a dedicated, count-quota'd type). */
+export function lapSnapshotsTable() {
+  return untyped.from("lap_snapshots");
+}
+
+/** Current user's snapshot usage: how many of the tier's count limit are used. */
+export async function fetchSnapshotUsage(): Promise<{ usedCount: number; limitCount: number }> {
+  const { data, error } = await untyped.rpc("snapshot_usage");
+  if (error) throw new Error(`Failed to read snapshot usage: ${error.message}`);
+  const row = ((data ?? []) as { used_count?: number; limit_count?: number }[])[0];
+  return { usedCount: row?.used_count ?? 0, limitCount: row?.limit_count ?? 0 };
+}
+
+/** True when an error is the server's snapshot count-quota rejection. */
+export function isSnapshotQuotaError(err: unknown): boolean {
+  return err instanceof Error && /snapshot_quota_exceeded/i.test(err.message);
+}
+
 /** Storage API for the private per-user file bucket. */
 export function userFiles() {
   return untyped.storage.from(SYNC_BUCKET);

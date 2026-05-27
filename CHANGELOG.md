@@ -14,6 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Lap snapshots — frozen "course fastest lap" per engine.** Capture a single
+  lap (its GPS samples plus a 5-second buffer on each side, the course geometry,
+  the engine, and a copy of the vehicle/setup) as an immutable baseline you can
+  load and compare against any later session on that course — regardless of the
+  engine you're running now (the loaded snapshot shows its engine, so 2-stroke
+  vs 4-stroke reads clearly).
+  - **One per (course, engine).** Assigning an engine + setup to a log prompts to
+    save/update the course fastest lap when its best lap beats (or has no) stored
+    snapshot; a manual **Save as snapshot** action lives in the lap-list
+    **Snapshots** picker too. A faster lap replaces the snapshot in place.
+  - **Loaded as a comparison overlay only** — never auto-plays, and is excluded
+    from playback and the video player (it rides the reference-overlay slot, not
+    the lap selection). Available next to the lap dropdown in both simple and
+    pro mode.
+  - **Local-first & unlimited on-device; cloud-synced with per-tier COUNT limits**
+    (free 5 / plus 10 / premium 20 / pro 50) via a dedicated `lap_snapshots`
+    table — not byte document storage. Snapshots always push on save, but a local
+    delete never removes the cloud copy (like the log menu); the cloud copy is
+    removed only explicitly from **Profile → Lap snapshots**, which also lists
+    on-device snapshots when signed out.
 - **GDPR self-service data tools** (Profile → **Data & privacy**, cloud builds):
   - **Download my data** — exports everything we hold about you as a single ZIP:
     your account data (profile, subscription, roles, synced garage records,

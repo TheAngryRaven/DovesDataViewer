@@ -104,12 +104,15 @@ src/
 │   ├── FileImport.tsx     # Drag-and-drop file import
 │   ├── DataloggerDownload.tsx  # BLE device download UI
 │   ├── ContactDialog.tsx  # Public contact form dialog (categories shared const)
+│   ├── LapSnapshotControls.tsx   # ★ Lap-list snapshot picker: save + load-as-overlay
+│   ├── LapSnapshotPromptDialog.tsx # ★ "New course fastest lap" save prompt
 │   └── ...
 ├── hooks/
 │   ├── useSessionData.ts      # Parses imported file → ParsedData
 │   ├── useLapManagement.ts    # Lap calculation, selection, visible range
 │   ├── usePlayback.ts         # Playback cursor (shared across chart + map)
 │   ├── useReferenceLap.ts     # Reference lap overlay logic
+│   ├── useLapSnapshots.ts     # ★ Lap snapshot orchestration (capture/prompt/overlay)
 │   ├── useVideoSync.ts        # Video ↔ telemetry synchronization
 │   ├── useFileManager.ts      # IndexedDB file CRUD
 │   ├── useKartManager.ts      # Backward compat re-export → useVehicleManager
@@ -138,6 +141,8 @@ src/
 │   ├── fieldResolver.ts       # Settings-facing adapter over channels.ts (canonical id resolution + field categories)
 │   ├── courseDetection.ts     # ★ Auto course detection, direction detection, waypoint mode
 │   ├── lapCalculation.ts      # Start/finish line crossing detection → Lap[]
+│   ├── lapSnapshot.ts         # ★ Pure snapshot types/keying/buffer (course+engine identity)
+│   ├── lapSnapshotStorage.ts  # ★ IndexedDB CRUD for lap snapshots (emits garageEvents)
 │   ├── brakingZones.ts        # Braking zone detection from G-force data
 │   ├── speedEvents.ts         # Min/max speed event detection
 │   ├── speedBounds.ts         # Speed range utilities
@@ -400,7 +405,7 @@ GPS data is always parseable even if metadata is corrupted. Metadata is attached
 
 ## IndexedDB Storage (`src/lib/dbUtils.ts`)
 
-Single shared database: `"dove-file-manager"`, version 10.
+Single shared database: `"dove-file-manager"`, version 11.
 
 | Store | Key | Module |
 |-------|-----|--------|
@@ -415,8 +420,44 @@ Single shared database: `"dove-file-manager"`, version 10.
 | `setup-templates` | `id` | `templateStorage.ts` |
 | `session-videos` | `sessionFileName` | `videoFileStorage.ts` |
 | `engines` | `id` | `engineStorage.ts` |
+| `lap-snapshots` | `id` (indexed by `courseKey`, `engineKey`) | `lapSnapshotStorage.ts` |
 
 To add a new store: increment `DB_VERSION`, add store name to `STORE_NAMES`, add creation logic in `openDB()`, create a corresponding storage module.
+
+---
+
+## Lap Snapshots (`src/lib/lapSnapshot.ts` + `lapSnapshotStorage.ts`)
+
+Frozen "course fastest lap" captures — an immutable single-lap baseline for
+cross-session comparison (and future AI coaching).
+
+- **Identity = (course + engine).** Engine is the layman's "primary key"; the
+  chassis travels inside the frozen `setup`. Exactly one snapshot per pair — a
+  faster lap upserts in place (same deterministic `id`), so the count never
+  inflates. `engine` is the free-text `Vehicle.engine` string, matched via
+  `engineKey` (trimmed + lowercased).
+- **What's frozen:** the lap's GPS samples **± a 5s buffer** on each side (so a
+  later start/finish nudge still fits), `lapStartMs`/`lapEndMs` markers, the
+  `Course` geometry, lap time, source file/lap, and a copy of the vehicle/setup.
+  `snapshotLapSamples()` trims the buffer back to the clean lap for overlay.
+- **Capture triggers:** assigning an engine + setup to a log prompts
+  (`LapSnapshotPromptDialog`) when its best lap beats (or has no) stored
+  snapshot; a manual "Save as snapshot" lives in `LapSnapshotControls` (the
+  lap-list **Snapshots** picker, in the header so it serves simple + pro mode).
+  Orchestrated by `useLapSnapshots`.
+- **Loaded as a comparison overlay only.** Selecting a snapshot feeds its clean
+  samples into the **external-reference slot** (`externalRefSamples`), so it
+  renders like a reference lap and is **excluded from playback + the video
+  player** — it is never an appended lap. Engine is shown in the overlay label.
+- **Sync (cloud-sync plugin):** a **dedicated `lap_snapshots` table** with a
+  per-tier **COUNT** quota (free 5 / plus 10 / premium 20 / pro 50 via
+  `subscription_tiers.snapshot_count`), enforced by a trigger — NOT byte document
+  storage. Always pushes on save; a local delete **never** propagates to the
+  cloud (the cloud copy is removed only explicitly from **Profile → Lap
+  snapshots**, like the log menu). Cloud deletes are tombstoned
+  (`snapshotTombstones.ts`) so reconcile won't resurrect a surviving local copy.
+  `reconcileSnapshots()` pulls cloud→local additively and pushes local-only up.
+  Local storage is always unlimited.
 
 ---
 
