@@ -504,7 +504,9 @@ escape hatch confined to that one module.
 ### Subscriptions / Stripe (`..._stripe_subscriptions.sql` + 3 edge functions)
 
 Paid tiers scale the cloud-sync **logs** quota (`free` 20 MB → `plus` $1 500 MB
-→ `pro` $10 1 GB; docs stay 5 MB). Tiers are **data**, not code:
+→ `premium` $3 1 GB → `pro` $10 1 GB; docs stay 5 MB). `premium` matches `pro`'s
+storage but carries no AI credits. Tiers are **data**, not code (numbers are
+provisional):
 
 | Object | Type | Notes |
 |--------|------|-------|

@@ -50,8 +50,10 @@ describe("pricingCta", () => {
     expect(pricingCta({ ...base, slug: "pro", currentTier: "pro" })).toBe("current");
   });
 
-  it("offers an upgrade for a purchasable paid tier above the current one", () => {
+  it("offers an upgrade for any purchasable paid tier (slug-agnostic)", () => {
     expect(pricingCta({ ...base, slug: "plus", currentTier: "free", purchasable: true })).toBe("upgrade");
+    expect(pricingCta({ ...base, slug: "premium", currentTier: "free", purchasable: true })).toBe("upgrade");
+    expect(pricingCta({ ...base, slug: "premium", currentTier: "premium", purchasable: true })).toBe("current");
   });
 
   it("keeps a paid tier non-actionable (Coming soon) when no Stripe Price is set", () => {

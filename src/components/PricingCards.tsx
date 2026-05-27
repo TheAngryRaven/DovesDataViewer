@@ -19,7 +19,7 @@ interface Tier {
   highlight?: boolean;
   comingSoon?: boolean;
   /** Maps the card to a subscription tier slug (the offline card has none). */
-  slug?: "free" | "plus" | "pro";
+  slug?: "free" | "plus" | "premium" | "pro";
 }
 
 const TIERS: Tier[] = [
@@ -59,14 +59,24 @@ const TIERS: Tier[] = [
     features: ["500 MB cloud log storage"],
   },
   {
+    name: "Premium",
+    blurb: "Max storage",
+    price: "$3",
+    cadence: "/mo",
+    comingSoon: true,
+    slug: "premium",
+    inherits: "Everything in Plus, plus",
+    features: ["1 GB cloud log storage"],
+  },
+  {
     name: "Pro",
     blurb: "With AI coaching",
     price: "$10",
     cadence: "/mo",
     comingSoon: true,
     slug: "pro",
-    inherits: "Everything in Plus, plus",
-    features: ["1 GB cloud log storage", "AI coaching (coming soon)"],
+    inherits: "Everything in Premium, plus",
+    features: ["AI coaching (coming soon)"],
   },
 ];
 
@@ -152,7 +162,7 @@ export function PricingCards({ className }: { className?: string }) {
           Start free and fully offline. Add an account for cross-device sync — upgrade only if you need more.
         </p>
       </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {TIERS.map((tier) => {
           const kind = pricingCta({
             slug: tier.slug,

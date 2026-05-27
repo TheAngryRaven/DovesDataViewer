@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Paid subscription tiers**: Stripe-backed `Plus` ($1/mo, 500 MB logs) and
-  `Pro` ($10/mo, 1 GB logs) plans on top of the free 20 MB tier. Plan limits are
+- **Paid subscription tiers**: Stripe-backed `Plus` ($1/mo, 500 MB logs),
+  `Premium` ($3/mo, 1 GB logs), and `Pro` ($10/mo, 1 GB logs + AI coaching)
+  plans on top of the free 20 MB tier. Plan limits are
   data-driven (`subscription_tiers` table) and the cloud-sync storage quota is
   enforced per the user's tier. Backed by `create-checkout-session`,
   `stripe-webhook`, and `create-portal-session` edge functions; entitlements are
