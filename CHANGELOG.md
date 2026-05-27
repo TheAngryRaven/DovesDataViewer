@@ -44,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **No-Stripe failback**: when no Stripe secret key is configured, the pricing
   UI shows only the two free cards (Guest + Free) and hides the paid tiers
   entirely instead of showing them as "Coming soon".
+- **AI (Pro) tier is "coming soon"**: the AI-coaching plan is shown as a teaser
+  but isn't self-service purchasable — it's not selectable at sign-up, has no
+  Upgrade button, and `create-checkout-session` rejects it. It can still be
+  comped to a tester by creating the subscription directly in Stripe (the
+  webhook grants whatever tier the price maps to). Gated by a single
+  `COMING_SOON_TIERS` set in `lib/billing.ts`.
 - **Cancellation grace + log trimming**: cancelling ends service at the period
   boundary and drops you to the free tier's limits, but your cloud logs are kept
   for a **60-day grace window** to re-subscribe or download. After it expires, a

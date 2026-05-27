@@ -524,6 +524,14 @@ Stripe Price tagged with a lookup_key `${tier}_${interval}` (`plus_monthly`,
 `plus_annual`, `premium_monthly`, …). Checkout and the catalogue resolve prices
 live by lookup_key, so the Stripe dashboard is the single source of truth.
 
+**Coming-soon tiers:** `COMING_SOON_TIERS` in `lib/billing.ts` (currently `pro`,
+the AI plan) lists tiers that exist but aren't self-service purchasable yet —
+shown as "Coming soon", excluded from `PlanChooser`, no Upgrade button, and
+rejected by `create-checkout-session` (mirror the set there). They can still be
+**comped** by creating the subscription directly in Stripe (set the
+subscription's `metadata.user_id`, or change an existing customer's price); the
+webhook grants whatever tier the price's lookup_key maps to.
+
 **Cancellation grace:** a cancelled sub ends at the period boundary (Stripe
 `customer.subscription.deleted`), dropping to free limits immediately (via
 `user_tier`), but `grace_until = period_end + 60 days` keeps the user's logs so

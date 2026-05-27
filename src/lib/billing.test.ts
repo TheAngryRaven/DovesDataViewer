@@ -9,6 +9,7 @@ import {
   paidTiersVisible,
   priceFor,
   formatPrice,
+  isComingSoon,
   type StripePrice,
 } from "./billing";
 
@@ -121,6 +122,17 @@ describe("priceFor", () => {
   });
   it("returns undefined when the interval isn't priced", () => {
     expect(priceFor(prices, "pro", "monthly")).toBeUndefined();
+  });
+});
+
+describe("isComingSoon", () => {
+  it("flags the AI (pro) tier as not-yet-purchasable", () => {
+    expect(isComingSoon("pro")).toBe(true);
+  });
+  it("treats the other tiers as available", () => {
+    expect(isComingSoon("free")).toBe(false);
+    expect(isComingSoon("plus")).toBe(false);
+    expect(isComingSoon("premium")).toBe(false);
   });
 });
 

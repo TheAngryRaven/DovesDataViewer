@@ -133,6 +133,14 @@ The app includes an optional admin system for managing a community track databas
 > Stripe **test mode** first. Tier entitlements are granted only by the webhook,
 > never the client.
 >
+> **Coming-soon / comped tiers:** the AI (Pro) tier is listed in
+> `COMING_SOON_TIERS` (`src/lib/billing.ts`, mirrored in `create-checkout-session`)
+> so it shows as "Coming soon" and can't be bought via the app. To give it to a
+> tester/friend, create the subscription directly in Stripe on the `pro_*` price
+> and set the subscription's `metadata.user_id` to their account id (or change an
+> existing customer's price) — the webhook grants it. Remove the tier from both
+> `COMING_SOON_TIERS` sets to open self-service purchase.
+>
 > **Cancellation grace + log trimming:** a cancelled subscription ends at the
 > period boundary and drops to the free tier's limits immediately, but the
 > user's cloud logs are kept for a 60-day grace window (`grace_until`). After it

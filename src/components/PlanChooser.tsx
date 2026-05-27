@@ -9,6 +9,7 @@ import { useStripePrices } from "@/hooks/useStripePrices";
 import {
   type BillingInterval,
   formatPrice,
+  isComingSoon,
   paidTiersVisible,
   priceFor,
   tiersWithPrices,
@@ -43,7 +44,10 @@ export function PlanChooser({
   if (!paidTiersVisible(config)) return null;
 
   const available = tiersWithPrices(config.prices);
-  const paidTiers = PAID_ORDER.filter((t) => available.has(t));
+  // Coming-soon tiers (e.g. the AI plan) aren't self-service purchasable at
+  // sign-up — they're comped manually via Stripe, not chosen here.
+  const paidTiers = PAID_ORDER.filter((t) => available.has(t) && !isComingSoon(t));
+  if (paidTiers.length === 0) return null;
   const isPaid = value.tier !== "free";
 
   const setInterval = (interval: BillingInterval) => {

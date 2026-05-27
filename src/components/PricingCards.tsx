@@ -8,6 +8,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import {
   type BillingInterval,
   formatPrice,
+  isComingSoon,
   paidTiersVisible,
   priceFor,
   pricingCta,
@@ -101,6 +102,7 @@ function TierCard({
   inherits,
   features,
   highlight,
+  comingSoon,
   cta,
 }: {
   name: string;
@@ -110,6 +112,7 @@ function TierCard({
   inherits?: string;
   features: string[];
   highlight?: boolean;
+  comingSoon?: boolean;
   cta?: ReactNode;
 }) {
   return (
@@ -123,14 +126,21 @@ function TierCard({
           Recommended
         </span>
       )}
+      {comingSoon && (
+        <span className="absolute -top-2.5 right-4 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Coming soon
+        </span>
+      )}
       <div className="space-y-0.5">
         <h3 className="text-base font-semibold text-foreground">{name}</h3>
         <p className="text-xs text-muted-foreground">{blurb}</p>
       </div>
-      <div className="mt-3 flex items-baseline gap-1">
-        <span className="text-2xl font-bold text-foreground">{price}</span>
-        {cadence && <span className="text-sm text-muted-foreground">{cadence}</span>}
-      </div>
+      {price && (
+        <div className="mt-3 flex items-baseline gap-1">
+          <span className="text-2xl font-bold text-foreground">{price}</span>
+          {cadence && <span className="text-sm text-muted-foreground">{cadence}</span>}
+        </div>
+      )}
       {inherits && <p className="mt-3 text-xs font-medium text-muted-foreground">{inherits}</p>}
       <ul className="mt-2 space-y-2">
         {features.map((f) => (
@@ -258,18 +268,22 @@ export function PricingCards({ className }: { className?: string }) {
         ))}
         {showPaid &&
           PAID_TIERS.map((tier) => {
+            const soon = isComingSoon(tier.slug);
             const price = priceFor(config.prices, tier.slug, interval);
-            if (!price) return null; // this interval isn't priced for this tier
+            // Purchasable tiers without a price for this interval are hidden;
+            // coming-soon tiers always show (as a teaser) but can't be bought.
+            if (!soon && !price) return null;
             return (
               <TierCard
                 key={tier.slug}
                 name={tier.name}
                 blurb={tier.blurb}
-                price={formatPrice(price.unitAmount, price.currency)}
-                cadence={cadence}
+                price={price ? formatPrice(price.unitAmount, price.currency) : ""}
+                cadence={price ? cadence : undefined}
                 inherits={tier.inherits}
                 features={tier.features}
-                cta={ctaFor(tier.slug, true)}
+                comingSoon={soon}
+                cta={soon ? null : ctaFor(tier.slug, true)}
               />
             );
           })}

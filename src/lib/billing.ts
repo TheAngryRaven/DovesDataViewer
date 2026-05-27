@@ -107,6 +107,17 @@ export function isPaidTier(tier: string): boolean {
   return tier !== "free";
 }
 
+// Tiers that exist but aren't yet self-service purchasable — shown as
+// "Coming soon" and never selectable for checkout (the create-checkout-session
+// edge function rejects them too). They can still be granted manually (e.g.
+// comping a tester) by creating the subscription in Stripe, which the webhook
+// honours. Keep this in sync with create-checkout-session's COMING_SOON set.
+export const COMING_SOON_TIERS = new Set<string>(["pro"]);
+
+export function isComingSoon(tier: string): boolean {
+  return COMING_SOON_TIERS.has(tier);
+}
+
 export type PricingCtaKind = "none" | "current" | "upgrade";
 
 export interface PricingCtaInput {
