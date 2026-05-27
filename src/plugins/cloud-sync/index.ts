@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Cloud, User } from "lucide-react";
+import { Cloud, ShieldCheck, User } from "lucide-react";
 import { toast } from "sonner";
 import type { DataViewerPlugin } from "@/plugins/types";
 import { PANELS_POINT, PanelSlot, type PluginPanel } from "@/plugins/panels";
@@ -23,6 +23,8 @@ const DownloadAllCloudLogs = lazy(() => import("./DownloadAllCloudLogs"));
 // Profile tab panels: storage usage meters + account, and cloud-log management.
 const StoragePanel = lazy(() => import("./StoragePanel"));
 const CloudLogsPanel = lazy(() => import("./CloudLogsPanel"));
+// Profile tab: GDPR self-service — export everything + scheduled account deletion.
+const DataPrivacyPanel = lazy(() => import("./DataPrivacyPanel"));
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
@@ -100,6 +102,17 @@ const plugin: DataViewerPlugin = {
       order: 10,
       icon: Cloud,
       component: CloudLogsPanel,
+    } satisfies PluginPanel);
+
+    // Profile tab: data export + account deletion (GDPR self-service). Last so
+    // the destructive controls sit at the bottom of the tab.
+    ctx.registry.contribute(PANELS_POINT, {
+      id: "cloud-sync-data-privacy",
+      title: "Data & privacy",
+      slot: PanelSlot.Profile,
+      order: 20,
+      icon: ShieldCheck,
+      component: DataPrivacyPanel,
     } satisfies PluginPanel);
 
     // Background document auto-sync. Dynamically imported so the sync engine

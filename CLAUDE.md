@@ -544,6 +544,45 @@ stays "Coming soon" — graceful pre-config state); cloud-sync's Profile-tab
 subscribed. **Stripe setup (create Products/Prices, set `stripe_price_id`, secrets,
 webhook) is still operator config — see README.**
 
+### Data Rights & Retention / GDPR (`..._gdpr_compliance.sql` + 3 edge functions)
+
+Self-service data access, portability and erasure, plus automatic IP
+minimisation. All account-gated (cloud-only) except the IP purge, which is
+backend cron.
+
+| Object | Type | Notes |
+|--------|------|-------|
+| `account_deletions` | table | `(user_id PK→auth.users, requested_at, scheduled_for)`. RLS: owner can **select** + **delete** (cancel); **no insert policy** — only the service role schedules, so the 7-day window can't be shortened client-side. |
+| `purge_expired_personal_data()` | fn (SECURITY DEFINER) | Nulls `submitted_by_ip` on `submissions`/`messages` older than **90 days**; deletes expired `banned_ips` + stale `login_attempts`. Run daily by `pg_cron`. |
+| `due_account_deletions()` | fn (SECURITY DEFINER) | User ids whose `scheduled_for <= now()`. Read by the deletion worker. |
+
+Edge functions (all `verify_jwt = false`; the two user-facing ones verify the
+JWT manually):
+
+- `export-account-data` — auth user → service-role gather of everything we hold
+  (profile, subscription, roles, `sync_records`, contact `messages` by email,
+  pending deletion). Returns JSON; the client adds cloud-file blobs + all local
+  browser data and zips it.
+- `request-account-deletion` — auth user → inserts an `account_deletions` row
+  `scheduled_for = now()+7d` (idempotent; never shortens an in-flight request).
+- `process-account-deletions` — **cron-only** (`x-cron-secret` must equal
+  `DELETION_CRON_SECRET`). For each due user: removes their `user-files` Storage
+  objects, then `auth.admin.deleteUser` (cascades profiles/sync_records/
+  subscription/roles/account_deletions via FKs).
+
+Scheduling: the migration always schedules the IP purge (pure SQL). The deletion
+worker is auto-wired via `pg_cron` + `pg_net` **only if** a Vault secret
+`deletion_cron_secret` exists (matching `DELETION_CRON_SECRET` on the function);
+otherwise the migration raises a NOTICE and it's a documented operator step.
+
+**Client** (cloud-sync plugin): `exportManifest.ts` (pure, unit-tested — assembles
+the zip's text entries), `accountExport.ts` (I/O orchestrator: edge fn + local
+stores + blob download → JSZip), `accountDeletion.ts` (email-OTP gate via
+`signInWithOtp`/`verifyOtp` + schedule/cancel), and `DataPrivacyPanel.tsx` (the
+Profile-tab "Data & privacy" panel). Admin `BannedIpsTab` exposes a ban TTL
+(defaults to 90 days). Privacy policy "Your Rights" / "Data Retention" describe
+all of the above.
+
 ---
 
 ## Course Layouts (Drawing Feature)

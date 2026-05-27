@@ -14,6 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GDPR self-service data tools** (Profile → **Data & privacy**, cloud builds):
+  - **Download my data** — exports everything we hold about you as a single ZIP:
+    your account data (profile, subscription, roles, synced garage records,
+    contact messages, synced log files) plus the data stored locally in your
+    browser (settings, garage stores, local session files). Backed by the new
+    `export-account-data` edge function.
+  - **Delete my account** — full self-service erasure. Confirmed by an emailed
+    one-time code (guards against a hijacked session), then **scheduled 7 days
+    out** and cancellable during that window, after which the account, its
+    Storage files and all associated rows are permanently erased. Backed by the
+    `request-account-deletion` and (cron-driven) `process-account-deletions`
+    edge functions.
+- **Automatic IP-address retention (TTL):** a daily job nulls the submitter IP on
+  contact messages and community submissions **90 days** after they're received,
+  and clears expired IP bans and stale sign-in rate-limit records — so
+  abuse-prevention data is minimised even without traffic to trigger the existing
+  reactive cleanup.
+- **Banned-IP expiry in the admin panel:** banning an IP now takes a selectable
+  duration (1 / 7 / 30 / 90 / 365 days or permanent), defaulting to **90 days**;
+  expired bans are purged automatically.
 - **Terms of Service page** (`/terms`) and a rewritten **Privacy Policy** that
   now accurately reflect the optional online features — accounts, cloud sync,
   Stripe-billed plans, and AI coaching — instead of the old "nothing ever leaves

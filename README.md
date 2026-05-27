@@ -116,6 +116,7 @@ The app includes an optional admin system for managing a community track databas
 | `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (edge function secret — `???`) |
 | `STRIPE_SECRET_KEY` | No (required for paid tiers) | Stripe secret key used by the `create-checkout-session`, `stripe-webhook`, and `create-portal-session` edge functions (edge function secret — `???`) |
 | `STRIPE_WEBHOOK_SECRET` | No (required for paid tiers) | Signing secret for the `stripe-webhook` endpoint, from the Stripe dashboard webhook config (edge function secret — `???`) |
+| `DELETION_CRON_SECRET` | No (required for scheduled account deletion) | Shared secret the `process-account-deletions` edge function requires in the `x-cron-secret` header. Must match the Vault secret `deletion_cron_secret` that the daily pg_cron job sends (edge function secret — `???`) |
 | `DOVE_PLUGIN_PACKAGES` | No | Build-time: comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`, the public AI coach) when set |
 
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
@@ -146,6 +147,17 @@ The admin system uses Lovable Cloud (Supabase) for the database. The schema is c
 - **user_roles** — Admin/user role assignments (uses `has_role()` security definer)
 - **sync_records** — Per-user cloud-sync documents (files/garage data), RLS-scoped to the owner
 - **user-files** (Storage bucket) — Private per-user session file blobs for cloud sync
+- **account_deletions** — Pending self-service account-deletion requests (7-day, reversible grace window)
+
+> **Data retention (GDPR):** a daily `pg_cron` job runs
+> `purge_expired_personal_data()`, which nulls the submitter IP on `submissions`
+> and `messages` 90 days after they were received and deletes expired
+> `banned_ips` / stale `login_attempts`. Account deletion is scheduled 7 days out
+> (cancellable); the `process-account-deletions` worker then removes the user's
+> Storage objects and auth row. To auto-schedule that worker, add a Supabase
+> **Vault** secret named `deletion_cron_secret` and set the matching
+> `DELETION_CRON_SECRET` env on the function, then re-run the GDPR migration —
+> it wires the daily `pg_cron` + `pg_net` job for you.
 
 > Cloud sync is independent of the admin system — it only needs a signed-in user
 > account, not the admin role. It's an online-only, opt-in feature; the core app
@@ -168,7 +180,7 @@ src/lib/db/
 - **Tracks CRUD** — Add, edit, enable/disable, delete tracks (with short names)
 - **Courses CRUD** — Manage courses per track with coordinate editing
 - **Tools** — Build `tracks.json` from DB, download tracks ZIP, import JSON to rebuild DB, export/import course drawings
-- **Banned IPs** — View and manage banned IP addresses
+- **Banned IPs** — View and manage banned IP addresses, with a selectable expiry (TTL; defaults to 90 days, expired bans auto-purged)
 
 ### Edge Functions
 
@@ -177,6 +189,9 @@ src/lib/db/
 | `submit-track` | Public endpoint for track submissions (with IP ban check) |
 | `admin-build-zip` | Admin-only: generates per-track JSON files |
 | `check-login-rate` | Rate limiting for login attempts |
+| `export-account-data` | Authenticated: returns all server-side data for the caller (GDPR access/portability) |
+| `request-account-deletion` | Authenticated: schedules the caller's account for deletion 7 days out |
+| `process-account-deletions` | Cron-only (`x-cron-secret`): erases Storage objects + auth rows for accounts past their grace window |
 
 ### Track Short Names
 

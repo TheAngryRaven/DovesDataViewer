@@ -20,3 +20,12 @@ verify_jwt = false
 
 [functions.create-portal-session]
 verify_jwt = false
+
+[functions.export-account-data]
+verify_jwt = false
+
+[functions.request-account-deletion]
+verify_jwt = false
+
+[functions.process-account-deletions]
+verify_jwt = false
