@@ -92,6 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rejects **disposable / temporary email** addresses.
 
 ### Changed
+- **Registration page** now shows the **Plans & pricing** cards above the
+  sign-up form instead of below it.
 - **Cloud Sync moved out of the Labs tab**: sign-in and manual push/pull now live
   on the **Profile** tab as an "Account" panel. The Labs tab no longer appears
   unless the experimental setting is on or a plugin contributes to it.

@@ -70,12 +70,14 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-8 gap-12">
-      <div className="w-full max-w-sm space-y-6 mt-4">
-        <div className="flex items-center gap-3 justify-center">
-          <Gauge className="w-8 h-8 text-primary" />
-          <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
-        </div>
+      <div className="flex items-center gap-3 justify-center mt-4">
+        <Gauge className="w-8 h-8 text-primary" />
+        <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
+      </div>
 
+      <PricingCards className="w-full max-w-5xl" />
+
+      <div className="w-full max-w-sm space-y-6">
         <div className="racing-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Create account</h2>
 
@@ -121,8 +123,6 @@ export default function Register() {
           <ArrowLeft className="w-4 h-4" /> Back to Home
         </Button>
       </div>
-
-      <PricingCards className="w-full max-w-5xl" />
     </div>
   );
 }
