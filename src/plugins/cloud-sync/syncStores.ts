@@ -16,6 +16,7 @@ const KEY_FIELD: Record<string, string> = {
   // with them or pulled setups can't render.
   [STORE_NAMES.VEHICLE_TYPES]: "id",
   [STORE_NAMES.SETUP_TEMPLATES]: "id",
+  [STORE_NAMES.ENGINES]: "id",
   [TRACKS_SYNC_STORE]: "name", // user tracks (localStorage, via a store accessor)
   [STORE_NAMES.FILES]: "name",
 };
@@ -29,6 +30,7 @@ export const DOC_STORES = [
   STORE_NAMES.GRAPH_PREFS,
   STORE_NAMES.VEHICLE_TYPES,
   STORE_NAMES.SETUP_TEMPLATES,
+  STORE_NAMES.ENGINES,
   TRACKS_SYNC_STORE,
 ] as const;
 

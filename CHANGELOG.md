@@ -14,6 +14,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GDPR self-service data tools** (Profile → **Data & privacy**, cloud builds):
+  - **Download my data** — exports everything we hold about you as a single ZIP:
+    your account data (profile, subscription, roles, synced garage records,
+    contact messages, synced log files) plus the data stored locally in your
+    browser (settings, garage stores, local session files). Backed by the new
+    `export-account-data` edge function.
+  - **Delete my account** — full self-service erasure. Confirmed by an emailed
+    one-time code (guards against a hijacked session), then **scheduled 7 days
+    out** and cancellable during that window, after which the account, its
+    Storage files and all associated rows are permanently erased. Backed by the
+    `request-account-deletion` and (cron-driven) `process-account-deletions`
+    edge functions.
+- **Automatic data-retention (TTL):** a daily job nulls the submitter IP on
+  contact messages and community submissions **90 days** after they're received,
+  then deletes the rows in full after **1 year** (contact messages entirely;
+  community submissions once they've been reviewed — pending ones are kept for
+  moderation), and clears expired IP bans and stale sign-in rate-limit records —
+  so abuse-prevention and contact data are minimised even without traffic to
+  trigger the existing reactive cleanup.
+- **Age confirmation at sign-up:** account creation (email and Google) now
+  requires ticking a checkbox confirming you are **16 or older**, alongside the
+  existing Terms/Privacy agreement.
+- **Banned-IP expiry in the admin panel:** banning an IP now takes a selectable
+  duration (1 / 7 / 30 / 90 / 365 days or permanent), defaulting to **90 days**;
+  expired bans are purged automatically.
+- **Customizable engine types for vehicles**: the vehicle form's *Engine* field
+  is now a searchable combobox backed by a reusable, per-user engine list. Type
+  to filter previously used engines; if the name isn't found, create it inline.
+  Existing vehicles' engine names are auto-imported into the list, and a *manage*
+  link beside the field opens a small menu for deleting saved engines (engines
+  currently in use by a vehicle are protected from deletion). The engine list is
+  stored locally (IndexedDB) and travels with the rest of your garage data over
+  cloud sync.
 - **Terms of Service page** (`/terms`) and a rewritten **Privacy Policy** that
   now accurately reflect the optional online features — accounts, cloud sync,
   Stripe-billed plans, and AI coaching — instead of the old "nothing ever leaves

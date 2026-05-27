@@ -261,8 +261,10 @@ const Privacy = () => {
             <ul className="list-disc pl-5 space-y-1">
               <li>
                 <strong className="text-foreground">Access &amp; portability:</strong>{" "}
-                your synced data is your own telemetry — you can pull and download
-                it from within the app at any time.
+                download a complete copy of everything we hold — your account data
+                plus the data stored in this browser — as a ZIP from{" "}
+                <strong className="text-foreground">Profile → Data &amp; privacy</strong>
+                . Synced files can also be pulled back to any device at any time.
               </li>
               <li>
                 <strong className="text-foreground">Rectification:</strong> edit
@@ -270,9 +272,15 @@ const Privacy = () => {
               </li>
               <li>
                 <strong className="text-foreground">Erasure:</strong> delete cloud
-                copies of your files and garage data from within the app, or
-                request full deletion of your account and all associated data via
-                the contact form.
+                copies of individual files and garage data from within the app, or
+                delete your <strong className="text-foreground">entire account</strong>{" "}
+                and all associated data yourself from{" "}
+                <strong className="text-foreground">Profile → Data &amp; privacy</strong>
+                . For your protection (e.g. against a hijacked session), account
+                deletion is confirmed by an emailed code and then scheduled{" "}
+                <strong className="text-foreground">7 days</strong> out — you can
+                cancel any time before then, after which all your data is
+                permanently erased.
               </li>
               <li>
                 <strong className="text-foreground">Objection / restriction:</strong>{" "}
@@ -297,9 +305,16 @@ const Privacy = () => {
               <p>
                 We keep your account and synced data for as long as your account
                 exists. When you delete data or your account, we remove it from
-                active storage. Abuse-prevention records (such as IP-based
-                rate-limit data) are kept only as long as needed for that purpose
-                and then cleared.
+                active storage; a deleted account and all its data are permanently
+                erased 7 days after you request deletion (the cancellable grace
+                window described under “Your Rights”). We also minimise
+                abuse-prevention and contact data automatically: the IP attached
+                to a contact-form message or community submission is erased{" "}
+                <strong className="text-foreground">90 days</strong> after it was
+                received; contact-form messages and reviewed community submissions
+                are then deleted in full after{" "}
+                <strong className="text-foreground">1 year</strong>; and expired
+                IP bans and sign-in rate-limit records are cleared daily.
               </p>
             </section>
 
@@ -353,7 +368,7 @@ const Privacy = () => {
             → Site data) or by deleting the IndexedDB database and localStorage
             entries via your browser’s developer tools.
             {enableCloud
-              ? " Cloud data is removed separately using the in-app delete controls or by requesting account deletion."
+              ? " Cloud data is removed separately using the in-app delete controls, or all at once by deleting your account from Profile → Data & privacy."
               : ""}
           </p>
         </section>

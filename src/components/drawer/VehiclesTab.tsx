@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Pencil, Trash2, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleType } from "@/lib/templateStorage";
+import { useEngineManager } from "@/hooks/useEngineManager";
+import { EngineCombobox } from "./EngineCombobox";
 
 interface VehiclesTabProps {
   vehicles: Vehicle[];
@@ -30,6 +32,24 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm(defaultTypeId));
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const { engines, addEngine, importEngines, removeEngine } = useEngineManager();
+
+  // Seed the reusable engine list from engines already saved on vehicles.
+  const vehicleEngineKey = useMemo(
+    () => vehicles.map(v => v.engine).filter(Boolean).join("|"),
+    [vehicles],
+  );
+  useEffect(() => {
+    const names = vehicles.map(v => v.engine).filter(Boolean);
+    if (names.length) importEngines(names);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleEngineKey, importEngines]);
+
+  const usedEngineNames = useMemo(
+    () => vehicles.map(v => v.engine).filter(Boolean),
+    [vehicles],
+  );
 
   const resetForm = useCallback(() => {
     setEditingId(null);
@@ -129,10 +149,14 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
             <Label className="text-xs">Name</Label>
             <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Vehicle name" className="h-8 text-sm" />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Engine</Label>
-            <Input value={form.engine} onChange={e => setForm(f => ({ ...f, engine: e.target.value }))} placeholder="Engine type" className="h-8 text-sm" />
-          </div>
+          <EngineCombobox
+            value={form.engine}
+            onChange={engine => setForm(f => ({ ...f, engine }))}
+            engines={engines}
+            onCreate={addEngine}
+            onDelete={removeEngine}
+            usedNames={usedEngineNames}
+          />
           <div className="space-y-1">
             <Label className="text-xs">Number</Label>
             <Input type="number" value={form.number || ""} onChange={e => setForm(f => ({ ...f, number: parseInt(e.target.value) || 0 }))} placeholder="0" className="h-8 text-sm" />

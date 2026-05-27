@@ -27,6 +27,7 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanSelection>({ tier: 'free', interval: 'monthly' });
+  const [confirmAge, setConfirmAge] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
@@ -52,6 +53,10 @@ export default function Register() {
       toast({ title: 'Please complete the captcha', variant: 'destructive' });
       return;
     }
+    if (!confirmAge) {
+      toast({ title: 'Please confirm you are 16 or older', variant: 'destructive' });
+      return;
+    }
     setIsLoading(true);
     const { error } = await signUp(email, password, displayName, captchaToken ?? undefined);
     setIsLoading(false);
@@ -74,6 +79,10 @@ export default function Register() {
   };
 
   const handleGoogle = async () => {
+    if (!confirmAge) {
+      toast({ title: 'Please confirm you are 16 or older', variant: 'destructive' });
+      return;
+    }
     setIsLoading(true);
     const { error } = await signInWithGoogle();
     if (error) {
@@ -123,16 +132,24 @@ export default function Register() {
               <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
             </div>
             <Turnstile onToken={setCaptchaToken} className="flex justify-center" />
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <label htmlFor="confirmAge" className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                id="confirmAge"
+                type="checkbox"
+                checked={confirmAge}
+                onChange={e => setConfirmAge(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-primary"
+              />
+              <span>
+                I confirm I am 16 or older, and I agree to the{' '}
+                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>{' '}
+                and{' '}
+                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+              </span>
+            </label>
+            <Button type="submit" className="w-full" disabled={isLoading || !confirmAge}>
               {isLoading ? 'Please wait...' : 'Create Account'}
             </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              You must be 16 or older to create an account. By continuing you
-              agree to our{' '}
-              <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>{' '}
-              and{' '}
-              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
-            </p>
           </form>
 
           <p className="text-sm text-muted-foreground text-center">
