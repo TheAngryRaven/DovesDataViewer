@@ -94,6 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Registration page** now shows the **Plans & pricing** cards above the
   sign-up form instead of below it.
+- **Privacy Policy** updated to name the operating entity (**PerchWerks LLC**,
+  Windermere, Florida), reconcile the local-first claims with optional accounts /
+  cloud sync / Stripe billing, add a generic AI-processing clause, and add a
+  governing-law section (Florida, USA).
 - **Cloud Sync moved out of the Labs tab**: sign-in and manual push/pull now live
   on the **Profile** tab as an "Account" panel. The Labs tab no longer appears
   unless the experimental setting is on or a plugin contributes to it.
