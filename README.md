@@ -121,8 +121,8 @@ The app includes an optional admin system for managing a community track databas
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
 
 > **Stripe / paid tiers:** `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are
-> edge-function secrets (not `VITE_` client vars). After creating the Plus/Pro
-> Products + recurring Prices in Stripe, store each Price id in the matching
+> edge-function secrets (not `VITE_` client vars). After creating the
+> Plus/Premium/Pro Products + recurring Prices in Stripe, store each Price id in the matching
 > `subscription_tiers.stripe_price_id` row, and point a Stripe webhook (events:
 > `checkout.session.completed`, `customer.subscription.created/updated/deleted`)
 > at the `stripe-webhook` function URL. Use Stripe **test mode** first. Tier
