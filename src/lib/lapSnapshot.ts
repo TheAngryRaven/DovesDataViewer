@@ -12,7 +12,7 @@
 // it can never inflate the stored count. This module is pure (no IndexedDB / no
 // React) so the keying + buffer logic stays unit-testable.
 
-import type { Course, GpsSample, Lap } from "@/types/racing";
+import type { Course, CourseDirection, GpsSample, Lap } from "@/types/racing";
 import type { VehicleSetup } from "./setupStorage";
 
 /** Samples kept on each side of the lap, so a later start/finish nudge still fits. */
@@ -73,9 +73,20 @@ export function normalizeEngine(engine: string): string {
   return engine.trim().toLowerCase();
 }
 
-/** Composite course identity (track + course); only ever compared for equality. */
-export function makeCourseKey(trackName: string, courseName: string): string {
-  return `${trackName.trim()}${SEP}${courseName.trim()}`;
+/**
+ * Composite course identity (track + course + direction); only ever compared for
+ * equality. A course driven in reverse is a different baseline — a reverse lap
+ * must not overwrite the forward snapshot (and vice versa). 'forward'/undefined
+ * keep the bare key so existing (pre-direction) snapshots stay addressable; only
+ * 'reverse' adds a suffix.
+ */
+export function makeCourseKey(
+  trackName: string,
+  courseName: string,
+  direction?: CourseDirection,
+): string {
+  const base = `${trackName.trim()}${SEP}${courseName.trim()}`;
+  return direction === "reverse" ? `${base}${SEP}reverse` : base;
 }
 
 /** Stable snapshot id for a (course, engine) pair — same pair ⇒ same id ⇒ replace. */
@@ -90,6 +101,8 @@ export interface BuildSnapshotInput {
   course: Course;
   trackName: string;
   courseName: string;
+  /** Direction the course was driven — part of the snapshot identity. */
+  direction?: CourseDirection;
   engine: string;
   sourceFileName: string;
   recordedAt?: number;
@@ -103,7 +116,7 @@ export interface BuildSnapshotInput {
 /** Slice the lap from session samples with a ±5s buffer, returning a frozen snapshot. */
 export function buildSnapshot(input: BuildSnapshotInput): LapSnapshot {
   const {
-    lap, samples, course, trackName, courseName, engine,
+    lap, samples, course, trackName, courseName, direction, engine,
     sourceFileName, recordedAt, vehicle, setup,
   } = input;
   const now = input.now ?? Date.now();
@@ -119,7 +132,7 @@ export function buildSnapshot(input: BuildSnapshotInput): LapSnapshot {
 
   const buffered = samples.slice(startIdx, endIdx + 1).map((s) => ({ ...s }));
 
-  const courseKey = makeCourseKey(trackName, courseName);
+  const courseKey = makeCourseKey(trackName, courseName, direction);
   const engineKey = normalizeEngine(engine);
 
   return {

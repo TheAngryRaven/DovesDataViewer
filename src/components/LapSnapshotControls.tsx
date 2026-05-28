@@ -16,7 +16,7 @@ interface LapSnapshotControlsProps {
   hasCourse: boolean;
   onLoad: (snap: LapSnapshot) => void;
   onClear: () => void;
-  onSave: () => Promise<SaveSnapshotResult>;
+  onSave: (force?: boolean) => Promise<SaveSnapshotResult>;
   /** Trigger button text (default "Snapshots"). */
   triggerLabel?: string;
   /** Show the "save current lap" action (default true). Off for a load-only entry. */
@@ -38,11 +38,17 @@ export function LapSnapshotControls({
 
   const count = snapshotsForCourse.length;
 
-  const handleSave = async () => {
-    const result = await onSave();
+  const handleSave = async (force = false) => {
+    const result = await onSave(force);
     if (result.saved) {
       toast.success(result.replaced ? "Course fastest lap updated." : "Lap snapshot saved.");
       setOpen(false);
+    } else if (result.reason === "slower") {
+      // Don't silently destroy a faster personal-best baseline — confirm first.
+      const ok = window.confirm(
+        `Your saved snapshot (${formatLapTime(result.existingLapMs ?? 0)}) is faster than this lap. Overwrite it anyway?`,
+      );
+      if (ok) await handleSave(true);
     } else if (result.reason === "no-engine") {
       toast.error("Assign an engine (vehicle) to this session first.");
     } else if (result.reason === "no-lap") {

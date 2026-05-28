@@ -1,5 +1,5 @@
-import { Component, Suspense, useMemo, type ReactNode } from "react";
-import { getPanelsForSlot, isBareSlot, type PluginPanelProps } from "./panels";
+import { Component, Suspense, type ReactNode } from "react";
+import { isBareSlot, usePanelsForSlot, type PluginPanelProps } from "./panels";
 
 /**
  * Isolates a single plugin panel: a throw in one panel renders a local notice
@@ -37,7 +37,7 @@ export function PluginPanelHost({
   fallback,
   ...props
 }: { slot: string; fallback?: ReactNode } & PluginPanelProps) {
-  const panels = useMemo(() => getPanelsForSlot(slot), [slot]);
+  const panels = usePanelsForSlot(slot);
 
   if (panels.length === 0) return <>{fallback ?? null}</>;
 

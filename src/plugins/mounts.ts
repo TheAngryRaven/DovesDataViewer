@@ -8,9 +8,9 @@
 // All mounts share one registry point (`MOUNTS_POINT`), discriminated by `slot`,
 // so adding a new mount location is just a new string — no registry change.
 
-import type { ComponentType } from "react";
+import { useSyncExternalStore, type ComponentType } from "react";
 import type { FileEntry, FileMetadata } from "@/lib/fileStorage";
-import { pluginRegistry } from "./registry";
+import { getContributionsVersion, pluginRegistry, subscribeContributions } from "./registry";
 
 export const MOUNTS_POINT = "ui:mounts";
 
@@ -71,4 +71,14 @@ export function getMounts<C = unknown>(slot: string): PluginMountDef<C>[] {
     .getContributions<PluginMountDef<C>>(MOUNTS_POINT)
     .filter((m) => m.slot === slot)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+/**
+ * React hook form of `getMounts` that re-reads when plugins contribute (async
+ * plugin `setup` can register mounts after the first render — see
+ * `usePanelsForSlot`).
+ */
+export function useMounts<C = unknown>(slot: string): PluginMountDef<C>[] {
+  useSyncExternalStore(subscribeContributions, getContributionsVersion, getContributionsVersion);
+  return getMounts<C>(slot);
 }

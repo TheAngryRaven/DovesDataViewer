@@ -73,7 +73,7 @@ export interface SessionContextValue {
   canSnapshot: boolean;
   onLoadSnapshot: (snap: LapSnapshot) => void;
   onClearSnapshot: () => void;
-  onSaveSnapshot: () => Promise<SaveSnapshotResult>;
+  onSaveSnapshot: (force?: boolean) => Promise<SaveSnapshotResult>;
 
   // ── Session metadata ──────────────────────────────────────────────────────
   sessionGpsPoint?: { lat: number; lon: number };

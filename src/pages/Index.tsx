@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData } from "@/types/racing";
-import { getPanelsForSlot, PanelSlot } from "@/plugins/panels";
+import { usePanelsForSlot, PanelSlot } from "@/plugins/panels";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
@@ -123,16 +123,18 @@ export default function Index() {
 
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
   const [showOverlays, setShowOverlays] = useState(true);
-  // Plugins are registered at startup, so a labs-slot panel means the Labs tab
-  // has real content — surface it even when the experimental setting is off.
-  const hasLabsPanels = useMemo(() => getPanelsForSlot(PanelSlot.Labs).length > 0, []);
+  // Plugin panels drive these tabs. A plugin's `setup` may register panels
+  // asynchronously (after this first render), so we read them through the
+  // reactive hook — a plain useMemo([]) would freeze the snapshot and the tabs
+  // would never appear that session.
+  const hasLabsPanels = usePanelsForSlot(PanelSlot.Labs).length > 0;
   const showLabs = settings.enableLabs || hasLabsPanels;
   // The Coach tab is self-gating: it appears only when a plugin contributes a
   // panel to the Coach slot (i.e. the coach package is installed).
-  const showCoach = useMemo(() => getPanelsForSlot(PanelSlot.Coach).length > 0, []);
+  const showCoach = usePanelsForSlot(PanelSlot.Coach).length > 0;
   // Profile tab is self-gating too: appears only when a plugin (cloud-sync)
   // contributes a Profile panel (i.e. the cloud build flag is on).
-  const showProfile = useMemo(() => getPanelsForSlot(PanelSlot.Profile).length > 0, []);
+  const showProfile = usePanelsForSlot(PanelSlot.Profile).length > 0;
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({

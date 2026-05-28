@@ -1,5 +1,5 @@
-import { Component, Suspense, useMemo, type ReactNode } from "react";
-import { getMounts } from "./mounts";
+import { Component, Suspense, type ReactNode } from "react";
+import { useMounts } from "./mounts";
 
 /** Isolates a single mounted component so a plugin throw can't break core UI. */
 class MountErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -19,7 +19,7 @@ class MountErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
  * Suspense-wrapped, so mounts may be `React.lazy`.
  */
 export function PluginMount<C>({ slot, ctx }: { slot: string; ctx: C }) {
-  const mounts = useMemo(() => getMounts<C>(slot), [slot]);
+  const mounts = useMounts<C>(slot);
   if (mounts.length === 0) return null;
   return (
     <>

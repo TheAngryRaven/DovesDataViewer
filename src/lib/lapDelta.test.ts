@@ -110,6 +110,21 @@ describe("computePositionDelta", () => {
     expect(rawDelta.some((d) => d === null)).toBe(true);
     expect(rawDelta.some((d) => d !== null)).toBe(true);
   });
+
+  it("does not flag a same-direction reference as reversed", () => {
+    const ref = resampleByDistance(lineLap(101, 1, 10), 2);
+    expect(computePositionDelta(lineLap(101, 1, 10), ref).reversed).toBe(false);
+  });
+
+  it("flags a reverse-direction reference and nulls the deltas instead of emitting garbage", () => {
+    // Reference runs south→north; the current lap runs north→south on the same
+    // line — the same course driven the other way.
+    const ref = resampleByDistance(lineLap(101, 1, 10), 2);
+    const reverse = Array.from({ length: 101 }, (_, i) => makeSample(100 - i, i * 10));
+    const res = computePositionDelta(reverse, ref);
+    expect(res.reversed).toBe(true);
+    expect(res.delta.every((d) => d === null)).toBe(true);
+  });
 });
 
 describe("computeLapPace", () => {

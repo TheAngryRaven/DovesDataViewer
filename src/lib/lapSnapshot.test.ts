@@ -54,6 +54,20 @@ describe("key helpers", () => {
     const c = makeSnapshotId(makeCourseKey("OKC", "Full CW"), "tm");
     expect(new Set([a, b, c]).size).toBe(3);
   });
+
+  it("distinguishes a course driven forward vs reverse", () => {
+    // A reverse lap must not collide with the forward snapshot.
+    const fwd = makeCourseKey("OKC", "Full CW", "forward");
+    const rev = makeCourseKey("OKC", "Full CW", "reverse");
+    expect(rev).not.toBe(fwd);
+    expect(makeSnapshotId(rev, "rotax")).not.toBe(makeSnapshotId(fwd, "rotax"));
+  });
+
+  it("keeps forward/undefined backward-compatible with the pre-direction key", () => {
+    const bare = makeCourseKey("OKC", "Full CW");
+    expect(makeCourseKey("OKC", "Full CW", "forward")).toBe(bare);
+    expect(makeCourseKey("OKC", "Full CW", undefined)).toBe(bare);
+  });
 });
 
 describe("buildSnapshot", () => {

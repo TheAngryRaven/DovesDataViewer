@@ -32,7 +32,7 @@ interface LapTableProps {
   canSnapshot?: boolean;
   onLoadSnapshot?: (snap: LapSnapshot) => void;
   onClearSnapshot?: () => void;
-  onSaveSnapshot?: () => Promise<SaveSnapshotResult>;
+  onSaveSnapshot?: (force?: boolean) => Promise<SaveSnapshotResult>;
 }
 
 export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot }: LapTableProps) {

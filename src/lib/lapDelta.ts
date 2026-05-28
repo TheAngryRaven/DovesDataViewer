@@ -71,6 +71,13 @@ export interface DeltaResult {
   matchIndex: number[];
   /** Fraction 0..1 along the matched segment. */
   matchFrac: number[];
+  /**
+   * True when the reference lap appears to have been recorded in the OPPOSITE
+   * direction of travel. The monotonic search can't rewind through the
+   * reference's arc, so such a reference would yield meaningless deltas — we
+   * null them out and flag it instead of reporting silent garbage.
+   */
+  reversed: boolean;
 }
 
 const DEFAULTS: Required<Omit<DeltaOptions, "maxMatchMeters">> & { maxMatchMeters: number | null } = {
@@ -173,6 +180,48 @@ export function smoothDelta(raw: (number | null)[], alpha = DEFAULTS.alpha, zero
 }
 
 /**
+ * Detect a reference recorded in the opposite direction of travel. Probe the
+ * current lap at coarse intervals, find each probe's GLOBAL nearest reference
+ * grid index, and check whether those indices trend up (same direction) or down
+ * (reversed) as the current lap progresses. Steps are unwrapped around the loop
+ * so the start/finish wrap doesn't masquerade as a reversal.
+ */
+function referenceIsReversed(current: GpsSample[], ref: ResampledLap): boolean {
+  const R = ref.xy.length;
+  if (R < 4 || current.length < 4) return false;
+  const probes = Math.min(16, current.length);
+  const idxs: number[] = [];
+  for (let s = 0; s < probes; s++) {
+    const ci = Math.floor((s / (probes - 1)) * (current.length - 1));
+    const p = projectToPlane(current[ci].lat, current[ci].lon, ref.centerLat, ref.centerLon);
+    let best = 0;
+    let bestD = Infinity;
+    for (let k = 0; k < R; k++) {
+      const dx = p.x - ref.xy[k].x;
+      const dy = p.y - ref.xy[k].y;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = k;
+      }
+    }
+    idxs.push(best);
+  }
+  let up = 0;
+  let down = 0;
+  for (let i = 1; i < idxs.length; i++) {
+    let d = idxs[i] - idxs[i - 1];
+    if (d > R / 2) d -= R; // unwrap forward across the loop seam
+    else if (d < -R / 2) d += R; // unwrap backward across the loop seam
+    if (d > 0) up++;
+    else if (d < 0) down++;
+  }
+  // Reversed only when downward steps clearly dominate, so a noisy/partial lap
+  // doesn't trip the guard.
+  return down > up * 2;
+}
+
+/**
  * Compute the position-based gap of `current` versus a resampled reference lap.
  * Returns one delta per native current sample (drop-in for `paceData`).
  */
@@ -189,7 +238,13 @@ export function computePositionDelta(
 
   const R = ref.xy.length;
   if (m === 0 || R < 2) {
-    return { delta: rawDelta.slice(), rawDelta, matchIndex, matchFrac };
+    return { delta: rawDelta.slice(), rawDelta, matchIndex, matchFrac, reversed: false };
+  }
+
+  // A reverse-direction reference can't be aligned by the forward monotonic
+  // search — bail with null deltas rather than emitting misleading pace numbers.
+  if (referenceIsReversed(current, ref)) {
+    return { delta: rawDelta.slice(), rawDelta, matchIndex, matchFrac, reversed: true };
   }
 
   const lookBackPts = Math.max(1, Math.ceil(o.lookBackMeters / ref.sampleMeters));
@@ -234,7 +289,7 @@ export function computePositionDelta(
     rawDelta[i] = Math.abs(d) > o.sanitySeconds ? null : d;
   }
 
-  return { delta: smoothDelta(rawDelta, o.alpha, o.zeroLag), rawDelta, matchIndex, matchFrac };
+  return { delta: smoothDelta(rawDelta, o.alpha, o.zeroLag), rawDelta, matchIndex, matchFrac, reversed: false };
 }
 
 export type DeltaMethod = "position" | "distance";

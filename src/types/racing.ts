@@ -149,4 +149,10 @@ export interface TrackCourseSelection {
   trackName: string;
   courseName: string;
   course: Course;
+  /**
+   * Direction the course is being driven, when known (from auto-detection).
+   * Part of a lap snapshot's identity so a reverse-direction lap doesn't
+   * overwrite the forward snapshot. Undefined is treated as 'forward'.
+   */
+  direction?: CourseDirection;
 }

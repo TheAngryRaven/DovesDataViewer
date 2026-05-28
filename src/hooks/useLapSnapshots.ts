@@ -43,7 +43,9 @@ export function snapshotLabel(snap: LapSnapshot): string {
 export interface SaveSnapshotResult {
   saved: boolean;
   replaced: boolean;
-  reason?: "no-engine" | "no-course" | "no-lap";
+  reason?: "no-engine" | "no-course" | "no-lap" | "slower";
+  /** When reason === "slower": the faster existing snapshot's lap time (ms). */
+  existingLapMs?: number;
 }
 
 /**
@@ -74,7 +76,7 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
   }, [refresh]);
 
   const courseKey = useMemo(
-    () => (selection ? makeCourseKey(selection.trackName, selection.courseName) : null),
+    () => (selection ? makeCourseKey(selection.trackName, selection.courseName, selection.direction) : null),
     [selection],
   );
 
@@ -102,7 +104,7 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
       if (!engine) return null;
 
       const id = makeSnapshotId(
-        makeCourseKey(selection.trackName, selection.courseName),
+        makeCourseKey(selection.trackName, selection.courseName, selection.direction),
         normalizeEngine(engine),
       );
       const existing = snapshots.find((s) => s.id === id) ?? null;
@@ -113,6 +115,7 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
         course: selection.course,
         trackName: selection.trackName,
         courseName: selection.courseName,
+        direction: selection.direction,
         engine,
         sourceFileName: currentFileName ?? "session",
         recordedAt: data.startDate?.getTime(),
@@ -145,7 +148,10 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
   }, [onClearOverlay]);
 
   // ── Save (manual) ────────────────────────────────────────────────────────
-  const saveSelectedLap = useCallback(async (): Promise<SaveSnapshotResult> => {
+  // `force` overrides the "don't clobber a faster snapshot" guard. The auto-
+  // prompt path already gates on snapshotPromptKind; manual save must not blow
+  // away a faster personal-best baseline without an explicit confirm.
+  const saveSelectedLap = useCallback(async (force = false): Promise<SaveSnapshotResult> => {
     if (!selection?.course) return { saved: false, replaced: false, reason: "no-course" };
     const lap =
       (selectedLapNumber !== null ? laps.find((l) => l.lapNumber === selectedLapNumber) : null) ??
@@ -153,9 +159,13 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
     if (!lap) return { saved: false, replaced: false, reason: "no-lap" };
     const candidate = buildCandidate(lap, sessionKartId, sessionSetupId);
     if (!candidate) return { saved: false, replaced: false, reason: "no-engine" };
-    const replaced = snapshots.some((s) => s.id === candidate.id);
+    const existing = snapshots.find((s) => s.id === candidate.id) ?? null;
+    if (!force && existing && candidate.lapTimeMs > existing.lapTimeMs) {
+      // Saving this would replace a FASTER stored snapshot — ask first.
+      return { saved: false, replaced: true, reason: "slower", existingLapMs: existing.lapTimeMs };
+    }
     await saveSnapshot(candidate);
-    return { saved: true, replaced };
+    return { saved: true, replaced: !!existing };
   }, [selection, selectedLapNumber, laps, buildCandidate, sessionKartId, sessionSetupId, snapshots]);
 
   const removeSnapshot = useCallback(

@@ -230,7 +230,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   required. (Previously a private GitHub Packages package gated behind
   `NODE_AUTH_TOKEN`.)
 
+### Security
+- **Password reset is now gated on a real recovery session.** `/reset-password`
+  only lets you set a new password when the page was opened from the emailed
+  recovery link (a `PASSWORD_RECOVERY` token) — so a merely signed-in session (a
+  shared/unattended tab, a stolen token) can no longer change the account
+  password without proving control of the email.
+- **Account deletion now verifies the emailed code server-side.** The
+  `request-account-deletion` function verifies the one-time code itself before
+  scheduling, so a stolen JWT alone can't schedule deletion via a direct call —
+  the caller must also possess the code we emailed.
+- **No more cross-account data bleed in cloud sync.** Pending offline changes,
+  cloud-deletion tombstones, and per-file sync selections are now partitioned per
+  user, so signing out of one account and into another on the same browser can
+  never flush the first account's queued state into the second's cloud.
+- **Duplicate paid subscriptions are blocked.** Checkout refuses to start a
+  second subscription when one is already active (plan changes route through the
+  billing portal instead), preventing a double-billed account from a mis-click.
+- **Stripe webhook is now replay- and ordering-safe.** Events are de-duplicated
+  by id, and a `subscription.deleted` for a superseded subscription is ignored,
+  so a retried or out-of-order delivery can't demote an active entitlement.
+- **Account-deletion worker deletes the auth user before wiping files**, so a
+  transient failure can no longer leave a half-deleted account whose files are
+  already gone but whose rows and cancellation window remain.
+- **GDPR retention restored to the documented window.** A later migration had
+  quietly loosened `purge_expired_personal_data` (keeping rejected-but-unreviewed
+  submissions and lock rows past their intended TTL); the documented predicates
+  are reasserted.
+- Fresh clones default to the **offline-first public app** again:
+  `VITE_ENABLE_ADMIN` and `VITE_ENABLE_CLOUD` now default to `false` in the
+  build fallbacks, so a build without injected env doesn't ship admin/cloud UI
+  pointed at an upstream backend. Production enables them explicitly.
+
 ### Fixed
+- **Lap snapshots are now direction-aware.** A course driven in reverse keeps a
+  separate "fastest lap" snapshot from the forward direction instead of
+  overwriting it (and the position-based pace overlay refuses to compare against
+  a reference recorded in the opposite direction, rather than showing nonsense
+  gains).
+- **Saving a snapshot manually won't silently destroy a faster one.** "Save
+  current lap as snapshot" now asks before replacing a stored snapshot that's
+  faster than the lap you're saving.
+- **Plugin tabs (Coach, Profile, Labs) appear even when a plugin registers its
+  panels asynchronously** — the tab list now reacts to plugin contributions
+  instead of freezing the snapshot at first render, so the AI coach tab no longer
+  goes missing until a full page reload.
+- **Pull no longer downgrades a newer local record** or silently opts files into
+  ongoing sync — a manual Pull keeps a local edit that's newer than the cloud
+  copy and just downloads files without flipping their sync state.
+- **Cloud orphan-blob cleanup no longer races a concurrent upload**: only objects
+  older than a grace window are reclaimed, so a file uploaded at the same moment
+  the Profile tab opens can't be deleted before its index row commits.
 - **Lap-snapshot insert failed with `null value in column "id" of relation
   "lap_snapshots" violates not-null constraint`** — same root pattern as the
   missing unique constraint: when the `lap_snapshots` table pre-existed the

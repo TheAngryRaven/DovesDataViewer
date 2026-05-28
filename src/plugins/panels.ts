@@ -9,10 +9,10 @@
 // New slots need no changes here: a host surface picks a slot string, plugins
 // target it, and `getPanelsForSlot` wires them together.
 
-import type { ComponentType } from "react";
+import { useSyncExternalStore, type ComponentType } from "react";
 import type { ParsedData, Lap, Course, GpsSample } from "@/types/racing";
 import type { VehicleSetup } from "@/lib/setupStorage";
-import { pluginRegistry } from "./registry";
+import { getContributionsVersion, pluginRegistry, subscribeContributions } from "./registry";
 
 /** Registry extension point that all UI panels are contributed to. */
 export const PANELS_POINT = "ui:panels";
@@ -111,6 +111,19 @@ export function getPanelsForSlot(slot: string): PluginPanel[] {
     .getContributions<PluginPanel>(PANELS_POINT)
     .filter((panel) => panel.slot === slot)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+/**
+ * React hook form of `getPanelsForSlot` that re-reads when plugins contribute.
+ * A plugin's `setup` may be async (e.g. the external coach awaits before
+ * registering its panels), so panels can appear AFTER the first render — this
+ * subscribes to the registry so the host re-renders and the tab shows up. The
+ * snapshot is the contribution version (stable across renders), so the result
+ * only recomputes when `slot` changes or something is actually contributed.
+ */
+export function usePanelsForSlot(slot: string): PluginPanel[] {
+  useSyncExternalStore(subscribeContributions, getContributionsVersion, getContributionsVersion);
+  return getPanelsForSlot(slot);
 }
 
 /**

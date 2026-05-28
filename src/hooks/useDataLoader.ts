@@ -130,6 +130,7 @@ export function useDataLoader({
           trackName: detection.track.name,
           courseName: detection.course.name,
           course: detection.course,
+          direction: detection.direction,
         });
         lapMgmt.setLaps(detection.laps);
         lapMgmt.setSelectedLapNumber(pickFastestLapNumber(detection.laps));
