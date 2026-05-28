@@ -229,6 +229,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NODE_AUTH_TOKEN`.)
 
 ### Fixed
+- **Lap-snapshot upsert failed with "no unique or exclusion constraint matching
+  the ON CONFLICT specification"** when the `lap_snapshots` table pre-existed
+  the snapshots migration — the inline `unique (user_id, course_key, engine_key)`
+  in `CREATE TABLE IF NOT EXISTS` was skipped along with the table, so reconcile
+  and the manual "Sync local snapshots" button both errored. A follow-up
+  migration adds the constraint as an idempotent unique index so existing
+  deployments self-repair on apply.
 - **PostgREST schema cache reload** after the subscriptions/snapshots migration
   batch. Newly-created tables and functions (`subscription_tiers`,
   `user_subscriptions`, `lap_snapshots`, `snapshot_usage()`, …) existed in the
