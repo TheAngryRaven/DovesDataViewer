@@ -10,6 +10,7 @@ import type { VehicleSetup } from '@/lib/setupStorage';
 import type { SetupTemplate } from '@/lib/templateStorage';
 import type { LapSnapshot } from '@/lib/lapSnapshot';
 import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
+import type { PluginSnapshot } from '@/plugins/panels';
 
 /**
  * Session-scoped state and handlers shared by the three main view tabs
@@ -65,6 +66,8 @@ export interface SessionContextValue {
   // ── Lap snapshots (loaded as the reference overlay) ───────────────────────
   snapshotsForCourse: LapSnapshot[];
   activeSnapshotId: string | null;
+  /** The loaded reference snapshot as a curated, clean-lap view for plugin panels. */
+  activeSnapshot: PluginSnapshot | null;
   canSnapshot: boolean;
   onLoadSnapshot: (snap: LapSnapshot) => void;
   onClearSnapshot: () => void;

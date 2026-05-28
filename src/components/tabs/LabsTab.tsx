@@ -6,7 +6,7 @@ import { PluginPanelHost } from "@/plugins/PluginPanelHost";
 import { PanelSlot } from "@/plugins/panels";
 
 export const LabsTab = memo(function LabsTab() {
-  const { data, laps, selectedLapNumber, course } = useSessionContext();
+  const { data, laps, selectedLapNumber, course, activeSnapshot } = useSessionContext();
   const { useKph } = useSettingsContext();
 
   return (
@@ -17,6 +17,7 @@ export const LabsTab = memo(function LabsTab() {
       selectedLapNumber={selectedLapNumber}
       course={course}
       useKph={useKph}
+      activeSnapshot={activeSnapshot}
       fallback={<LabsEmpty />}
     />
   );

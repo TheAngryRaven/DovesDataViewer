@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     slot, not the lap selection). Pick one from the **Snapshots** menu next to the
     lap dropdown (simple + pro), or from a **"Load snapshot as reference"** button
     next to the external-reference loader on the lap times page.
+  - **Exposed to plugin panels** via `PluginPanelProps.activeSnapshot` (a
+    `PluginSnapshot` with clean-lap samples + frozen engine/course/vehicle/setup),
+    so the AI coach can compare a session against a frozen course-fastest-lap
+    baseline.
   - **Local-first & unlimited on-device; cloud-synced with per-tier COUNT limits**
     (free 5 / plus 10 / premium 20 / pro 50) via a dedicated `lap_snapshots`
     table — not byte document storage. Snapshots always push on save, but a local

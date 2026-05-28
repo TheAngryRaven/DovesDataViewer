@@ -10,7 +10,8 @@
 // target it, and `getPanelsForSlot` wires them together.
 
 import type { ComponentType } from "react";
-import type { ParsedData, Lap, Course } from "@/types/racing";
+import type { ParsedData, Lap, Course, GpsSample } from "@/types/racing";
+import type { VehicleSetup } from "@/lib/setupStorage";
 import { pluginRegistry } from "./registry";
 
 /** Registry extension point that all UI panels are contributed to. */
@@ -27,6 +28,32 @@ export const PanelSlot = {
 } as const;
 export type PanelSlot = (typeof PanelSlot)[keyof typeof PanelSlot];
 
+/**
+ * A lap snapshot as handed to plugin panels — a curated, serializable view of a
+ * frozen "course fastest lap" with its samples **already trimmed to the clean
+ * lap** (no ±5s capture buffer), so a panel can render/compare it directly.
+ */
+export interface PluginSnapshot {
+  id: string;
+  /** Free-text engine the snapshot was captured under (the comparison key). */
+  engine: string;
+  trackName: string;
+  courseName: string;
+  lapTimeMs: number;
+  sourceFileName: string;
+  sourceLapNumber: number;
+  /** Session start (epoch ms) when known. */
+  recordedAt?: number;
+  /** Clean lap GPS samples, capture buffer already trimmed. */
+  samples: GpsSample[];
+  /** Course geometry frozen at capture time. */
+  course: Course;
+  /** Frozen vehicle context (chassis); engine is the match key. */
+  vehicle?: { id?: string; name?: string; number?: number };
+  /** Frozen setup sheet at capture time. */
+  setup?: VehicleSetup;
+}
+
 /** Live, read-only session snapshot handed to every panel on each render. */
 export interface PluginPanelProps {
   /** Parsed telemetry for the active session, or null when none is loaded. */
@@ -39,6 +66,12 @@ export interface PluginPanelProps {
   course: Course | null;
   /** Unit preference: true = km/h, false = mph. */
   useKph: boolean;
+  /**
+   * The lap snapshot the user has loaded as the reference lap, or null. Samples
+   * are the clean lap (capture buffer trimmed). Lets a panel (e.g. the coach)
+   * compare the active session against a frozen course-fastest-lap baseline.
+   */
+  activeSnapshot: PluginSnapshot | null;
 }
 
 /** Descriptor a plugin contributes to `PANELS_POINT` to render a panel. */
