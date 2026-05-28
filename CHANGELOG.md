@@ -182,6 +182,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rejects **disposable / temporary email** addresses.
 
 ### Changed
+- Bumped the optional AI coach plugin (`@perchwerks/eye-in-the-sky`) from
+  `0.2.5` to `0.3.0`.
 - **Registration page** now shows the **Plans & pricing** cards above the
   sign-up form instead of below it.
 - **Cloud Sync moved out of the Labs tab**: sign-in and manual push/pull now live
