@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import { STORE_NAMES } from "@/lib/dbUtils";
 import { onGarageChange } from "@/lib/garageEvents";
 import { formatLapTime } from "@/lib/lapCalculation";
 import type { LapSnapshot } from "@/lib/lapSnapshot";
 import { deleteSnapshot, listSnapshots } from "@/lib/lapSnapshotStorage";
-import { fetchSnapshotUsage } from "./cloudClient";
 import { deleteCloudSnapshot, listCloudSnapshots, reconcileSnapshots } from "./snapshotSync";
 
 function formatDate(ms?: number): string {
@@ -28,9 +28,9 @@ function formatDate(ms?: number): string {
 // do with them until you sign in to sync.
 export default function LapSnapshotsPanel(_props: PluginPanelProps) {
   const { user, loading } = useAuth();
+  const { tiers, currentTier } = useSubscription();
   const [items, setItems] = useState<LapSnapshot[] | null>(null);
   const [localIds, setLocalIds] = useState<Set<string>>(new Set());
-  const [usage, setUsage] = useState<{ usedCount: number; limitCount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [alsoLocal, setAlsoLocal] = useState(false);
@@ -44,21 +44,18 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
       if (user) {
         const cloud = await listCloudSnapshots(user.id);
         setItems(cloud.map((c) => c.data));
-        // The usage meter is best-effort: if it can't load, still show the list.
-        try {
-          setUsage(await fetchSnapshotUsage());
-        } catch {
-          setUsage(null);
-        }
       } else {
         setItems(local);
-        setUsage(null);
       }
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load snapshots");
     }
   }, [user]);
+
+  // Used + limit derived client-side from the cloud list + tier catalogue (the
+  // snapshot_usage RPC has been flaky in production schema caches).
+  const snapshotLimit = tiers.find((t) => t.tier === currentTier)?.snapshot_count ?? null;
 
   // Auto-detect local-only snapshots and upload them when signed in (the same
   // reconcile autoSync runs on sign-in, re-triggered here so opening the panel
@@ -142,7 +139,9 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
       {user ? (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            {usage ? `${usage.usedCount} of ${usage.limitCount} synced` : "Synced snapshots"}
+            {snapshotLimit !== null
+              ? `${items.length} of ${snapshotLimit} synced`
+              : "Synced snapshots"}
           </p>
           {unsyncedLocal && (
             <Button size="sm" variant="outline" className="h-7 text-xs" disabled={syncing} onClick={() => void handleSyncLocal()}>

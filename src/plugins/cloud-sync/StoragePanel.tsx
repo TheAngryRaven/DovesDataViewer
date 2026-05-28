@@ -10,7 +10,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { isPaidTier } from "@/lib/billing";
 import { createPortal } from "@/lib/billingClient";
 import { getStorageUsage } from "./syncEngine";
-import { fetchSnapshotUsage } from "./cloudClient";
+import { listCloudSnapshots } from "./snapshotSync";
 import { getMyProfile, updateDisplayName } from "./profile";
 import { pendingCount } from "./pendingSync";
 import { formatBytes, usageFraction, type StorageTypeUsage } from "./storageTypes";
@@ -26,8 +26,9 @@ const TYPE_HINT: Record<string, string> = {
 export default function StoragePanel(_props: PluginPanelProps) {
   const { user, loading } = useAuth();
   const online = useOnlineStatus();
+  const { tiers, currentTier } = useSubscription();
   const [usage, setUsage] = useState<StorageTypeUsage[] | null>(null);
-  const [snapshotUsage, setSnapshotUsage] = useState<{ usedCount: number; limitCount: number } | null>(null);
+  const [snapshotCount, setSnapshotCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(0);
 
@@ -40,14 +41,18 @@ export default function StoragePanel(_props: PluginPanelProps) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load storage usage");
     }
-    // Snapshot usage is best-effort — its own RPC, so a failure here must not
-    // hide the documents/logs meters above.
+    // Snapshot count: derive client-side from the cloud list (the RPC has been
+    // flaky in production schema caches). The limit comes from the tier
+    // catalogue (snapshot_count). Best-effort — a failure must not hide the
+    // documents/logs meters above.
     try {
-      setSnapshotUsage(await fetchSnapshotUsage());
+      setSnapshotCount((await listCloudSnapshots(user.id)).length);
     } catch {
-      setSnapshotUsage(null);
+      setSnapshotCount(null);
     }
   }, [user]);
+
+  const snapshotLimit = tiers.find((t) => t.tier === currentTier)?.snapshot_count ?? null;
 
   // Re-read on mount and whenever connectivity flips (pending changes flush on
   // reconnect, so the count + usage should refresh then).
@@ -101,12 +106,12 @@ export default function StoragePanel(_props: PluginPanelProps) {
         {usage?.map((u) => (
           <Meter key={u.storageType} usage={u} />
         ))}
-        {snapshotUsage && (
+        {snapshotCount !== null && snapshotLimit !== null && (
           <CountMeter
             label="Lap snapshots"
             hint="Frozen course-fastest-lap captures."
-            used={snapshotUsage.usedCount}
-            limit={snapshotUsage.limitCount}
+            used={snapshotCount}
+            limit={snapshotLimit}
           />
         )}
       </div>
