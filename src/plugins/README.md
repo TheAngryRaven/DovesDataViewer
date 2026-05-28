@@ -76,8 +76,17 @@ Contract notes:
 
 - **`PluginPanelProps` is the entire surface a panel can rely on** — a curated,
   read-only snapshot of the active session (`data`, `laps`, `selectedLapNumber`,
-  `course`, `useKph`). Panels never touch the host's internal session context, so
-  the host can refactor internals without breaking plugins.
+  `course`, `useKph`, `sessionSetup`, and `activeSnapshot`). Panels never touch
+  the host's internal session context, so the host can refactor internals without
+  breaking plugins.
+- **`sessionSetup`** is the setup sheet assigned to the active session log (via
+  the file manager), or `null` — what the driver is currently running.
+- **`activeSnapshot`** is the lap snapshot the user has loaded as the reference
+  lap (a `PluginSnapshot`), or `null`. Its `samples` are the **clean lap** (the
+  ±5s capture buffer is already trimmed), and it carries the frozen `engine`,
+  `course`, `vehicle`, and `setup` — so a coach panel can compare the current
+  session (`sessionSetup`) against a frozen course-fastest-lap baseline
+  (`activeSnapshot.setup`).
 - The host (`PluginPanelHost`) renders each panel inside a titled card and wraps
   it in an **error boundary** — a throwing panel shows a local notice instead of
   crashing the tab.

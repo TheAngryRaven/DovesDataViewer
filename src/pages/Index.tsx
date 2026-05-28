@@ -53,6 +53,8 @@ import { useDataLoader } from "@/hooks/useDataLoader";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
+import { snapshotLapSamples } from "@/lib/lapSnapshot";
+import type { PluginSnapshot } from "@/plugins/panels";
 
 
 type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach" | "profile";
@@ -241,6 +243,34 @@ export default function Index() {
     [referenceSpeedData, visibleRange]
   );
 
+  // The setup the driver is currently running, resolved for plugin panels.
+  const sessionSetup = useMemo(
+    () => (sessionSetupId ? setupManager.setups.find((s) => s.id === sessionSetupId) ?? null : null),
+    [sessionSetupId, setupManager.setups],
+  );
+
+  // The loaded reference snapshot as a clean-lap view for plugin panels (coach).
+  const activeSnapshot = useMemo<PluginSnapshot | null>(() => {
+    const id = snapshots.activeSnapshotId;
+    if (!id) return null;
+    const snap = snapshots.snapshots.find((s) => s.id === id);
+    if (!snap) return null;
+    return {
+      id: snap.id,
+      engine: snap.engine,
+      trackName: snap.trackName,
+      courseName: snap.courseName,
+      lapTimeMs: snap.lapTimeMs,
+      sourceFileName: snap.sourceFileName,
+      sourceLapNumber: snap.sourceLapNumber,
+      recordedAt: snap.recordedAt,
+      samples: snapshotLapSamples(snap),
+      course: snap.course,
+      vehicle: snap.vehicle,
+      setup: snap.setup,
+    };
+  }, [snapshots.activeSnapshotId, snapshots.snapshots]);
+
   // ── SessionContext: everything the three main view tabs need ────────────
   // Tabs read this via `useSessionContext()` instead of receiving 25+ props.
   const sessionContextValue = useMemo<SessionContextValue>(() => ({
@@ -275,6 +305,8 @@ export default function Index() {
     savedFiles,
     snapshotsForCourse: snapshots.snapshotsForCourse,
     activeSnapshotId: snapshots.activeSnapshotId,
+    activeSnapshot,
+    sessionSetup,
     canSnapshot: snapshots.canSnapshot,
     onLoadSnapshot: snapshots.loadSnapshot,
     onClearSnapshot: snapshots.clearActive,
@@ -314,6 +346,7 @@ export default function Index() {
     externalRefLabel, savedFiles,
     snapshots.snapshotsForCourse, snapshots.activeSnapshotId, snapshots.canSnapshot,
     snapshots.loadSnapshot, snapshots.clearActive, snapshots.saveSelectedLap,
+    activeSnapshot, sessionSetup,
     sessionGpsPoint, currentFileName, sessionKartId, sessionSetupId, cachedWeatherStation,
     vehicleManager.vehicles, setupManager.setups, templateManager.templates,
     videoSync.state, videoSync.actions, videoSync.handleLoadedMetadata,
