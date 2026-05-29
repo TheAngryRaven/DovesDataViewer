@@ -216,6 +216,56 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 ---
 
+## Deployment
+
+The app is a **static single-page app** — `npm run build` emits a self-contained
+`dist/` folder (HTML + hashed JS/CSS + assets) with no server runtime to host.
+It runs on any static host. The optional admin backend (Supabase) is independent
+and unaffected by where the frontend is served — the browser just calls it over
+HTTPS.
+
+### Cloudflare Pages
+
+The repo ships ready for Cloudflare Pages via the GitHub integration:
+
+1. In the Cloudflare dashboard, create a **Pages** project and connect this repo.
+2. Build settings:
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+   - **Node version:** pinned to `20` via `.nvmrc` (matches CI).
+3. Two config files in `public/` are copied to the deploy root and read by
+   Cloudflare automatically:
+   - **`_redirects`** — SPA fallback (`/* /index.html 200`) so client-side routes
+     like `/privacy` and `/admin` resolve instead of 404ing.
+   - **`_headers`** — forces `no-cache` on the service workers + `index.html`
+     (so new deploys take over instead of clients running a stale shell) and
+     long-lived `immutable` caching on hashed `/assets/*`.
+
+#### Environment variables (Pages → Settings → Variables)
+
+The public viewer needs **none** — `vite.config.ts` hardcodes public backend
+fallbacks, so a zero-config build serves the full offline app with admin off.
+
+To run the admin/track-submission features on the Cloudflare deploy, set these
+build-time variables (they're baked in at build, so a redeploy is required after
+changing them):
+
+| Variable | Value |
+|----------|-------|
+| `VITE_ENABLE_ADMIN` | `true` |
+| `VITE_ENABLE_REGISTRATION` | `true` (only if you want the `/register` route) |
+| `VITE_SUPABASE_URL` | your Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | your Supabase anon key |
+| `VITE_SUPABASE_PROJECT_ID` | your Supabase project ID |
+| `VITE_TURNSTILE_SITE_KEY` | optional — Turnstile site key for the contact/submission CAPTCHA |
+
+`TURNSTILE_SECRET_KEY` stays a **Supabase edge-function secret** — it is never a
+client variable and does not belong in Cloudflare. The Supabase edge functions
+(`supabase/functions/`) continue to run on Supabase; Cloudflare only serves the
+static frontend.
+
+---
+
 ## Project Structure
 
 ```

@@ -442,6 +442,8 @@ Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZo
 
 PWA deployment detail: the active offline-capable worker is emitted as `/service-worker.js` and registered only outside preview/iframe contexts. `public/sw.js` is reserved as a legacy kill-switch worker to evict stale caches from older installs that previously registered `/sw.js`.
 
+Static hosting (Cloudflare Pages): the build is a pure static SPA (no server runtime). `public/_redirects` provides the SPA fallback (`/* /index.html 200`) so client-side routes resolve; `public/_headers` sets `no-cache` on the service workers + `index.html` and immutable long-cache on `/assets/*`. `.nvmrc` pins Node 20. Both `public/*` files are copied to the deploy root by Vite and read by Cloudflare automatically. Supabase edge functions stay on Supabase — Cloudflare only serves the frontend. See the README "Deployment" section.
+
 `vite.config.ts` defines public backend fallbacks for `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_PROJECT_ID` so production builds still boot if managed env injection is missing; `.env` stays the preferred source when present.
 
 ---

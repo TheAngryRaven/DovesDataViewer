@@ -1,0 +1,6 @@
+# Cloudflare Pages SPA fallback.
+# React Router runs client-side (BrowserRouter), so deep links like /privacy,
+# /admin, /login must serve the app shell instead of 404ing. Real static files
+# in dist/ are matched first and served directly; this rule only fires when no
+# asset matches. 200 = rewrite (URL stays put), not a redirect.
+/*    /index.html    200
