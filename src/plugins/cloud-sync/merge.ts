@@ -1,6 +1,6 @@
 // Pure conflict-resolution decision for the document auto-sync reconcile.
 //
-// Rules (see the cloud-sync section in CLAUDE.md):
+// Rules (see the Cloud Sync section in docs/backend.md):
 //   1. A *pending* local change (edited offline or whose push failed) is
 //      priority-1: a pending put pushes up (replacing the cloud copy); a pending
 //      delete is skipped here (the delete is flushed separately, so we must not
