@@ -268,21 +268,6 @@ export type Database = {
         }
         Relationships: []
       }
-      quota_limits: {
-        Row: {
-          max_bytes: number
-          storage_type: string
-        }
-        Insert: {
-          max_bytes: number
-          storage_type: string
-        }
-        Update: {
-          max_bytes?: number
-          storage_type?: string
-        }
-        Relationships: []
-      }
       stripe_events: {
         Row: {
           id: string
@@ -355,36 +340,30 @@ export type Database = {
       subscription_tiers: {
         Row: {
           ai_credits: number
-          doc_bytes: number
           label: string
-          logs_bytes: number
           price_cents: number
-          snapshot_count: number
           sort_order: number
           stripe_price_id: string | null
           tier: string
+          total_bytes: number
         }
         Insert: {
           ai_credits?: number
-          doc_bytes: number
           label: string
-          logs_bytes: number
           price_cents?: number
-          snapshot_count?: number
           sort_order?: number
           stripe_price_id?: string | null
           tier: string
+          total_bytes: number
         }
         Update: {
           ai_credits?: number
-          doc_bytes?: number
           label?: string
-          logs_bytes?: number
           price_cents?: number
-          snapshot_count?: number
           sort_order?: number
           stripe_price_id?: string | null
           tier?: string
+          total_bytes?: number
         }
         Relationships: []
       }
@@ -550,17 +529,15 @@ export type Database = {
       sync_storage_usage: {
         Args: never
         Returns: {
-          limit_bytes: number
-          storage_type: string
-          used_bytes: number
+          documents_bytes: number
+          logs_bytes: number
+          snapshots_bytes: number
+          total_limit_bytes: number
         }[]
       }
-      tier_limit: {
-        Args: { p_type: string; p_user_id: string }
-        Returns: number
-      }
-      tier_snapshot_count: { Args: { p_user_id: string }; Returns: number }
-      trim_expired_logs: { Args: never; Returns: undefined }
+      tier_total_limit: { Args: { p_user: string }; Returns: number }
+      total_storage_used: { Args: { p_user: string }; Returns: number }
+      trim_expired_logs: { Args: never; Returns: number }
       unique_display_name: { Args: { desired: string }; Returns: string }
       user_tier: { Args: { p_user_id: string }; Returns: string }
     }
