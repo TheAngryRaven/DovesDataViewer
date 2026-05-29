@@ -16,7 +16,7 @@ import { getAccessor } from "./storeAccessors";
 import { fetchStorageUsage, isQuotaError, syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
 import { DOC_STORES, FILE_STORE, extractKey, type SyncSummary } from "./syncStores";
 import { listSelectedFiles, markPushed, orphanedObjectNames } from "./fileSync";
-import { DEFAULT_LIMITS, type StorageType, type StorageTypeUsage } from "./storageTypes";
+import { DEFAULT_TOTAL_LIMIT, type StorageUsage } from "./storageTypes";
 import { decideSync, pendingId, recordUpdatedAt } from "./merge";
 
 export type { SyncSummary };
@@ -338,17 +338,13 @@ export async function reconcileDocs(
   return { pulled, pushed, skipped };
 }
 
-/** Per-type storage usage from the server, with the advisory limits as fallback. */
-export async function getStorageUsage(): Promise<StorageTypeUsage[]> {
-  const rows = await fetchStorageUsage();
-  const byType = new Map(rows.map((r) => [r.storage_type, r]));
-  const types: StorageType[] = ["documents", "logs"];
-  return types.map((storageType) => {
-    const row = byType.get(storageType);
-    return {
-      storageType,
-      usedBytes: row?.used_bytes ?? 0,
-      limitBytes: row?.limit_bytes ?? DEFAULT_LIMITS[storageType],
-    };
-  });
+/** Pooled storage usage from the server, with the advisory free limit as fallback. */
+export async function getStorageUsage(): Promise<StorageUsage> {
+  const row = await fetchStorageUsage();
+  return {
+    documents: row?.documents_bytes ?? 0,
+    logs: row?.logs_bytes ?? 0,
+    snapshots: row?.snapshots_bytes ?? 0,
+    totalLimit: row?.total_limit_bytes || DEFAULT_TOTAL_LIMIT,
+  };
 }

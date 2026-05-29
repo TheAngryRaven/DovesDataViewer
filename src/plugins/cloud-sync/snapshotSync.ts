@@ -1,5 +1,5 @@
-// Cloud sync for lap snapshots — a dedicated data type (NOT byte document
-// storage), enforced by a per-tier COUNT quota server-side.
+// Cloud sync for lap snapshots — their own table, but their serialized size counts
+// toward the same pooled per-tier byte budget as documents + logs (server-enforced).
 //
 // Sync model (deliberately a hybrid of garage docs and log files):
 //   • Always push on local save (like garage docs) — snapshots are valuable.
@@ -11,7 +11,7 @@
 
 import type { LapSnapshot } from "@/lib/lapSnapshot";
 import { getSnapshot, listSnapshots, putSnapshotRaw } from "@/lib/lapSnapshotStorage";
-import { isSnapshotQuotaError, lapSnapshotsTable } from "./cloudClient";
+import { isQuotaError, lapSnapshotsTable } from "./cloudClient";
 import {
   addSnapshotTombstone, clearSnapshotTombstone, snapshotTombstoneSet,
 } from "./snapshotTombstones";
@@ -68,7 +68,7 @@ export async function deleteCloudSnapshot(userId: string, snap: LapSnapshot): Pr
 export interface SnapshotReconcileResult {
   pulled: number;
   pushed: number;
-  /** Local snapshots that didn't fit under the tier's count limit. */
+  /** Local snapshots that didn't fit under the tier's storage limit. */
   skipped: number;
 }
 
@@ -107,7 +107,7 @@ export async function reconcileSnapshots(userId: string): Promise<SnapshotReconc
       await pushSnapshot(userId, s.id);
       pushed++;
     } catch (err) {
-      if (isSnapshotQuotaError(err)) skipped++;
+      if (isQuotaError(err)) skipped++;
       else throw err;
     }
   }

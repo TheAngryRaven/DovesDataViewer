@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Unified cloud storage — one budget, one bar.** Documents, synced logs, and
+  lap snapshots now share a **single per-tier cloud-storage allowance** instead of
+  three separate quotas: **Free 50 MB · Plus 10 GB · Premium 100 GB · Pro 500 GB**.
+  The Profile tab shows it as **one stacked, phone-style progress bar** — logs,
+  snapshots, and garage data as coloured segments filling the same limit — with a
+  per-segment breakdown. Snapshots are now measured by size (not a fixed count),
+  and `subscription_tiers.total_bytes` is the single source of truth the
+  server-side quota triggers and the meter both read.
 - **Lap snapshots — frozen "course fastest lap" per engine.** Capture a single
   lap (its GPS samples plus a 5-second buffer on each side, the course geometry,
   the engine, and a copy of the vehicle/setup) as an immutable baseline you can
@@ -34,12 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     and `PluginPanelProps.sessionSetup` (the setup the driver is currently
     running), so the AI coach can compare the current session and setup against a
     frozen course-fastest-lap baseline.
-  - **Local-first & unlimited on-device; cloud-synced with per-tier COUNT limits**
-    (free 5 / plus 10 / premium 20 / pro 50) via a dedicated `lap_snapshots`
-    table — not byte document storage. Snapshots always push on save, but a local
-    delete never removes the cloud copy (like the log menu); the cloud copy is
-    removed only explicitly from **Profile → Lap snapshots**, which also lists
-    on-device snapshots when signed out.
+  - **Local-first & unlimited on-device; cloud-synced** via a dedicated
+    `lap_snapshots` table whose size counts toward the same pooled per-tier cloud
+    storage budget as documents + logs (see *Unified cloud storage* below).
+    Snapshots always push on save, but a local delete never removes the cloud copy
+    (like the log menu); the cloud copy is removed only explicitly from
+    **Profile → Lap snapshots**, which also lists on-device snapshots when signed
+    out.
 - **GDPR self-service data tools** (Profile → **Data & privacy**, cloud builds):
   - **Download my data** — exports everything we hold about you as a single ZIP:
     your account data (profile, subscription, roles, synced garage records,
@@ -81,11 +90,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sign-up now states the **16+ age requirement** and links both documents
   (under-16 users use the app offline only). AI coaching is documented as
   informational only — not safety or professional advice.
-- **Paid subscription tiers**: Stripe-backed `Plus` ($1/mo, 500 MB logs),
-  `Premium` ($3/mo, 1 GB logs), and `Pro` ($10/mo, 1 GB logs + AI coaching)
-  plans on top of the free 20 MB tier. Plan limits are
-  data-driven (`subscription_tiers` table) and the cloud-sync storage quota is
-  enforced per the user's tier. Backed by `create-checkout-session`,
+- **Paid subscription tiers**: Stripe-backed `Plus` ($1/mo), `Premium` ($3/mo),
+  and `Pro` ($10/mo + AI coaching) plans that scale your pooled cloud-storage
+  budget (10 GB / 100 GB / 500 GB) on top of the free 50 MB tier — see *Unified
+  cloud storage* above. Plan limits are data-driven (`subscription_tiers` table)
+  and the cloud-sync storage quota is enforced per the user's tier. Backed by
+  `create-checkout-session`,
   `stripe-webhook`, and `create-portal-session` edge functions; entitlements are
   granted solely by the verified Stripe webhook. The **Plans & pricing** cards
   now show live **Upgrade** / **Current plan** actions for signed-in users (a
@@ -110,19 +120,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   webhook grants whatever tier the price maps to). Gated by a single
   `COMING_SOON_TIERS` set in `lib/billing.ts`.
 - **Cancellation grace + log trimming**: cancelling ends service at the period
-  boundary and drops you to the free tier's limits, but your cloud logs are kept
+  boundary and drops you to the free tier's limit, but your cloud logs are kept
   for a **60-day grace window** to re-subscribe or download. After it expires, a
   daily `pg_cron` job (`trim_expired_logs()`) trims synced logs **newest-first**
-  to the free allowance. The Profile tab surfaces the cancellation/grace date.
-- Document storage + **auto-sync**: when you're signed in, your garage
-  (vehicles, setups, setup templates, notes) now backs up to the cloud
-  automatically as you change it — no manual push. The "documents" storage type
-  is free with a **5 MB** limit; raw session **logs** are a separate **20 MB**
-  storage type. Limits are enforced server-side.
+  until your pooled total fits the free budget (snapshots + garage docs are never
+  auto-deleted). The Profile tab surfaces the cancellation/grace date.
+- Garage **auto-sync**: when you're signed in, your garage (vehicles, setups,
+  setup templates, notes) now backs up to the cloud automatically as you change
+  it — no manual push. Garage documents, synced logs, and snapshots all count
+  against one pooled per-tier storage budget (free 50 MB), enforced server-side.
 - **Propagation deletes**: deleting a vehicle or setup while signed in removes it
   from **every device and the cloud**, with a clear warning before you confirm.
-- New **Profile** tab (far right) showing your cloud storage usage against the
-  document and log limits.
+- New **Profile** tab (far right) showing your cloud storage usage as a single
+  segmented bar against your pooled tier budget.
 - **Cloud log management** (Profile tab): see the session log files stored in your
   cloud — with upload date and size — and delete them. Deleting removes the
   **cloud copy only** (other devices keep what they've already downloaded), with
@@ -173,8 +183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   timestamp merge. Only your user-created tracks/courses sync; built-in tracks
   stay local.
 - **Plans & pricing** cards on the landing page (below the sample) and on the
-  registration page — Free offline, Free online (20 MB cloud logs), and paid
-  tiers (marked "Coming soon" until billing is wired up).
+  registration page — Free offline, Free online (50 MB pooled cloud storage), and
+  paid tiers (marked "Coming soon" until billing is wired up).
 - **"Download all cloud logs"** button at the bottom of the file manager:
   one-click bulk pull of every cloud log not already on this device.
 - Registration now supports a **Cloudflare Turnstile captcha** when

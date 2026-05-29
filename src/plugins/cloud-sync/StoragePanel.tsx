@@ -10,25 +10,27 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { isPaidTier } from "@/lib/billing";
 import { createPortal } from "@/lib/billingClient";
 import { getStorageUsage } from "./syncEngine";
-import { listCloudSnapshots } from "./snapshotSync";
 import { getMyProfile, updateDisplayName } from "./profile";
 import { pendingCount } from "./pendingSync";
-import { formatBytes, usageFraction, type StorageTypeUsage } from "./storageTypes";
+import {
+  formatBytes, segmentFractions, totalUsed, usageFraction,
+  type StorageType, type StorageUsage,
+} from "./storageTypes";
 
-const TYPE_LABEL: Record<string, string> = { documents: "Documents", logs: "Logs" };
-const TYPE_HINT: Record<string, string> = {
-  documents: "Vehicles, setups, templates & notes — free, auto-synced.",
-  logs: "Session log files you've chosen to sync.",
-};
+// The three segments of the one storage bar, in stacked order (logs first). Each
+// draws from the same pooled per-tier limit; the dot + bar share a colour.
+const SEGMENTS: { key: StorageType; label: string; color: string }[] = [
+  { key: "logs", label: "Logs", color: "bg-primary" },
+  { key: "snapshots", label: "Snapshots", color: "bg-amber-500" },
+  { key: "documents", label: "Garage", color: "bg-emerald-500" },
+];
 
 // Scratch-pad profile panel: your (editable, unique) display name + cloud storage
-// usage against the document/log storage limits.
+// usage against the single pooled per-tier budget (documents + logs + snapshots).
 export default function StoragePanel(_props: PluginPanelProps) {
   const { user, loading } = useAuth();
   const online = useOnlineStatus();
-  const { tiers, currentTier } = useSubscription();
-  const [usage, setUsage] = useState<StorageTypeUsage[] | null>(null);
-  const [snapshotCount, setSnapshotCount] = useState<number | null>(null);
+  const [usage, setUsage] = useState<StorageUsage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(0);
 
@@ -41,18 +43,7 @@ export default function StoragePanel(_props: PluginPanelProps) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load storage usage");
     }
-    // Snapshot count: derive client-side from the cloud list (the RPC has been
-    // flaky in production schema caches). The limit comes from the tier
-    // catalogue (snapshot_count). Best-effort — a failure must not hide the
-    // documents/logs meters above.
-    try {
-      setSnapshotCount((await listCloudSnapshots(user.id)).length);
-    } catch {
-      setSnapshotCount(null);
-    }
   }, [user]);
-
-  const snapshotLimit = tiers.find((t) => t.tier === currentTier)?.snapshot_count ?? null;
 
   // Re-read on mount and whenever connectivity flips (pending changes flush on
   // reconnect, so the count + usage should refresh then).
@@ -103,17 +94,7 @@ export default function StoragePanel(_props: PluginPanelProps) {
         </div>
         {error && <p className="text-xs text-destructive">{error}</p>}
         {!usage && !error && <p className="text-xs text-muted-foreground">Loading usage…</p>}
-        {usage?.map((u) => (
-          <Meter key={u.storageType} usage={u} />
-        ))}
-        {snapshotCount !== null && snapshotLimit !== null && (
-          <CountMeter
-            label="Lap snapshots"
-            hint="Frozen course-fastest-lap captures."
-            used={snapshotCount}
-            limit={snapshotLimit}
-          />
-        )}
+        {usage && <StorageBar usage={usage} />}
       </div>
     </div>
   );
@@ -263,48 +244,48 @@ function PlanSection() {
   );
 }
 
-function Meter({ usage }: { usage: StorageTypeUsage }) {
-  const pct = Math.round(usageFraction(usage) * 100);
-  const over = usage.usedBytes > usage.limitBytes;
-  return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between text-sm">
-        <span className="text-foreground">{TYPE_LABEL[usage.storageType] ?? usage.storageType}</span>
-        <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>
-          {formatBytes(usage.usedBytes)} / {formatBytes(usage.limitBytes)}
-        </span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full ${over ? "bg-destructive" : "bg-primary"}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className="text-[11px] text-muted-foreground">{TYPE_HINT[usage.storageType]}</p>
-    </div>
-  );
-}
+// One pooled byte budget, drawn as a single stacked bar: logs + snapshots + garage
+// data share the tier limit (like a phone's storage screen). Segments are coloured;
+// the empty remainder is muted. Over the limit, segments fill the whole bar and the
+// readout turns destructive.
+function StorageBar({ usage }: { usage: StorageUsage }) {
+  const used = totalUsed(usage);
+  const over = used > usage.totalLimit;
+  const fractions = segmentFractions(usage);
+  const pct = Math.round(usageFraction(used, usage.totalLimit) * 100);
 
-// Snapshots are a count-based quota (not bytes), so they need their own meter
-// rather than the byte-aware one above.
-function CountMeter({ label, hint, used, limit }: { label: string; hint: string; used: number; limit: number }) {
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const over = used > limit;
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <div className="flex items-baseline justify-between text-sm">
-        <span className="text-foreground">{label}</span>
+        <span className="text-foreground">{pct}% used</span>
         <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>
-          {used} / {limit}
+          {formatBytes(used)} / {formatBytes(usage.totalLimit)}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full ${over ? "bg-destructive" : "bg-primary"}`}
-          style={{ width: `${pct}%` }}
-        />
+
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted" role="presentation">
+        {SEGMENTS.map((seg) => {
+          const width = fractions[seg.key] * 100;
+          if (width <= 0) return null;
+          return <div key={seg.key} className={`h-full ${seg.color}`} style={{ width: `${width}%` }} />;
+        })}
       </div>
-      <p className="text-[11px] text-muted-foreground">{hint}</p>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {SEGMENTS.map((seg) => (
+          <div key={seg.key} className="flex items-center gap-1.5 text-[11px]">
+            <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${seg.color}`} />
+            <span className="text-foreground">{seg.label}</span>
+            <span className="tabular-nums text-muted-foreground">{formatBytes(usage[seg.key])}</span>
+          </div>
+        ))}
+      </div>
+
+      {over && (
+        <p className="text-[11px] text-destructive">
+          You're over your plan's storage. New cloud syncs are saved locally until you free up space or upgrade.
+        </p>
+      )}
     </div>
   );
 }

@@ -38,22 +38,27 @@ that fits and reports a `skipped` count (surfaced as a toast) rather than failin
 wholesale. `autoSync` tracks `navigator.onLine` + window online/offline events;
 the Profile-tab `StoragePanel` flags offline state + the pending count.
 
-**Storage types** (`storageTypes.ts`, enforced server-side) — distinct from
-future *subscription tiers*: **documents** = all structured stores (5 MB, free,
-auto-synced) and **logs** = file blobs (20 MB, opt-in). Limits live in the
-`quota_limits` table (one source of truth for the enforcing trigger + the client
-meter); `sync_storage_usage()` returns per-type usage for the Profile-tab meters.
-Client checks are advisory — the DB trigger is the real gate.
+**Unified storage pool** (`storageTypes.ts`, enforced server-side) — there is
+**one per-tier byte budget** that three data kinds share: **documents** (all
+structured stores — auto-synced), **logs** (file blobs — opt-in), and
+**snapshots** (`lap_snapshots` rows, by serialized size). The limit is
+`subscription_tiers.total_bytes` (the single source of truth for the enforcing
+triggers + the client meter); `sync_storage_usage()` returns the per-segment
+breakdown + the one pooled limit for the Profile-tab segmented bar. Client checks
+are advisory — the DB triggers are the real gate.
 
-Backend (migrations `..._cloud_sync.sql`, `..._storage_quotas.sql`):
+Backend (migrations `..._cloud_sync.sql`, `..._storage_quotas.sql`,
+`..._unified_storage_quota.sql`):
 
 | Object | Type | Notes |
 |--------|------|-------|
 | `sync_records` | table | One jsonb document per record: `(user_id, store, record_key, data, updated_at)`, unique on `(user_id, store, record_key)`. RLS: `auth.uid() = user_id`. `store`/`record_key` mirror the IndexedDB store name + key path. |
 | `user-files` | Storage bucket | Private. Raw session blobs at `{user_id}/{encodeURIComponent(name)}`. RLS scopes objects to the owner's folder. |
-| `quota_limits` | table | `(storage_type, max_bytes)` seeded `documents`=5 MB, `logs`=20 MB. Legacy baseline/fallback once tiers exist (see below). |
-| `enforce_sync_quota` | trigger | BEFORE INSERT/UPDATE on `sync_records`: rejects writes that push a storage type over the **caller's tier** limit (`tier_limit()`), falling back to `quota_limits` (`quota_exceeded`). |
-| `sync_storage_usage()` | RPC | Per-type `(used_bytes, limit_bytes)` for the caller — `limit_bytes` reflects the caller's tier. |
+| `total_storage_used(uuid)` | fn (SECURITY DEFINER) | Bytes a user occupies across `sync_records` + `lap_snapshots`. Used by the quota triggers + the trim job. |
+| `tier_total_limit(uuid)` | fn (SECURITY DEFINER) | The user's single pooled byte budget from their tier `total_bytes`, falling back to free, then a hard 50 MB. |
+| `enforce_sync_quota` | trigger | BEFORE INSERT/UPDATE on `sync_records`: rejects a write that pushes the caller's **pooled total** (this table + all `lap_snapshots`, minus the upserted row) over `tier_total_limit()` (`quota_exceeded`). |
+| `enforce_snapshot_quota` | trigger | BEFORE INSERT/UPDATE on `lap_snapshots`: same pooled check keyed off the snapshot's serialized size (`quota_exceeded`). |
+| `sync_storage_usage()` | RPC | Single row `(documents_bytes, logs_bytes, snapshots_bytes, total_limit_bytes)` for the caller — the limit reflects the caller's tier. |
 | `profiles` | table | `(user_id PK→auth.users, display_name unique, …)`. RLS: authenticated read-all, update/insert own. Display name is unique but **not** a key — user-editable. |
 | `handle_new_user` | trigger | On `auth.users` insert: creates a profile, using the sign-up `display_name` or a generated silly name (`SpeedyRac3r-546`). `unique_display_name()` auto-suffixes a taken name at creation; user edits get an explicit "taken" error instead. |
 
@@ -98,27 +103,28 @@ After a migration, Lovable regenerates `integrations/supabase/types.ts`. Until
 then `cloudClient.ts` accesses the new table/bucket through a narrowly-typed
 escape hatch confined to that one module.
 
-> **Lap-snapshot sync** uses its own dedicated `lap_snapshots` table with a
-> per-tier COUNT quota (not byte document storage) — see CLAUDE.md → Lap
-> Snapshots for the client model and the snapshot-specific sync rules.
+> **Lap-snapshot sync** uses its own dedicated `lap_snapshots` table, but its
+> serialized size counts toward the **same pooled per-tier byte budget** as
+> documents + logs — see CLAUDE.md → Lap Snapshots for the client model and the
+> snapshot-specific sync rules.
 
 ---
 
 ## Subscriptions / Stripe (`..._stripe_subscriptions.sql`, `..._subscription_grace_trim.sql` + 4 edge functions)
 
-Paid tiers scale the cloud-sync **logs** quota (`free` 20 MB → `plus` $1 500 MB
-→ `premium` $3 1 GB → `pro` $10 1 GB; docs stay 5 MB). `premium` matches `pro`'s
-storage but carries no AI credits. Each paid tier bills **monthly or annual**.
-Tiers are **data**, not code (numbers are provisional):
+Paid tiers scale **one pooled cloud-storage budget** that documents + logs +
+snapshots all share (`free` 50 MB → `plus` $1 10 GB → `premium` $3 100 GB →
+`pro` $10 500 GB). `premium` carries no AI credits. Each paid tier bills
+**monthly or annual**. Tiers are **data**, not code (numbers are provisional):
 
 | Object | Type | Notes |
 |--------|------|-------|
-| `subscription_tiers` | table | One row per plan: `(tier PK, label, price_cents, logs_bytes, doc_bytes, ai_credits, stripe_price_id, sort_order)`. Authenticated read-all. Change a limit = UPDATE here. (`stripe_price_id` is a legacy fallback only — prices now resolve by lookup_key, see below.) |
+| `subscription_tiers` | table | One row per plan: `(tier PK, label, price_cents, total_bytes, ai_credits, stripe_price_id, sort_order)`. `total_bytes` is the single pooled storage budget. Authenticated read-all. Change a limit = UPDATE here. (`stripe_price_id` is a legacy fallback only — prices now resolve by lookup_key, see below.) |
 | `user_subscriptions` | table | `(user_id PK→auth.users, tier→subscription_tiers, status, stripe_customer_id, stripe_subscription_id, current_period_end, cancel_at_period_end, billing_interval, grace_until, logs_trimmed_at, updated_at)`. RLS: owner **read-only** — only the service role (webhook) writes, so no one can self-grant a tier. |
 | `user_tier(uuid)` | fn (SECURITY DEFINER) | Effective tier: the subscription tier when `status in (active, trialing, past_due)`, else `free`. |
-| `tier_limit(uuid, type)` | fn (SECURITY DEFINER) | Byte limit for a user + storage type from their tier; falls back to `free`, then `quota_limits`. Used by the quota trigger + usage RPC. |
+| `tier_total_limit(uuid)` | fn (SECURITY DEFINER) | The user's single pooled byte budget from their tier `total_bytes`; falls back to `free`, then a hard 50 MB. Used by both quota triggers + the usage RPC. |
 | `encode_uri_component(text)` | fn | SQL parity with JS `encodeURIComponent`, so the trim job can address the right `user-files` bucket object (`{user_id}/{encoded name}`). |
-| `trim_expired_logs()` | fn (SECURITY DEFINER) | For users past their `grace_until`, deletes synced **log** files newest-first (index row + bucket object) down to the free `logs_bytes`. Scheduled daily via `pg_cron` (guarded; enable the extension or run externally). Not granted to `authenticated`. |
+| `trim_expired_logs()` | fn (SECURITY DEFINER) | For users past their `grace_until`, deletes synced **log** files newest-first (index row + bucket object) until their **pooled total** (docs + remaining logs + snapshots) fits the free `total_bytes`; snapshots + docs are never auto-deleted. Scheduled daily via `pg_cron` (guarded; enable the extension or run externally). Not granted to `authenticated`. |
 
 **Prices via lookup_key (no Price ids in code):** each (tier × interval) has a
 Stripe Price tagged with a lookup_key `${tier}_${interval}` (`plus_monthly`,

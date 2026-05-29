@@ -63,7 +63,7 @@ const FREE_TIERS: FreeTier[] = [
     features: [
       "Setup info synced across all your devices",
       "Sync your personal tracks",
-      "20 MB cloud log storage",
+      "50 MB cloud storage",
     ],
   },
 ];
@@ -76,21 +76,21 @@ const PAID_TIERS: PaidTier[] = [
     blurb: "For bigger garages",
     slug: "plus",
     inherits: "Everything in Free online, plus",
-    features: ["500 MB cloud log storage"],
+    features: ["10 GB cloud storage"],
   },
   {
     name: "Premium",
     blurb: "Max storage",
     slug: "premium",
     inherits: "Everything in Plus, plus",
-    features: ["1 GB cloud log storage"],
+    features: ["100 GB cloud storage"],
   },
   {
     name: "Pro",
     blurb: "With AI coaching",
     slug: "pro",
     inherits: "Everything in Premium, plus",
-    features: ["AI coaching (coming soon)"],
+    features: ["500 GB cloud storage", "AI coaching (coming soon)"],
   },
 ];
 

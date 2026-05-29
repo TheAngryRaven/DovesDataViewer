@@ -144,12 +144,13 @@ The app includes an optional admin system for managing a community track databas
 > `COMING_SOON_TIERS` sets to open self-service purchase.
 >
 > **Cancellation grace + log trimming:** a cancelled subscription ends at the
-> period boundary and drops to the free tier's limits immediately, but the
+> period boundary and drops to the free tier's limit immediately, but the
 > user's cloud logs are kept for a 60-day grace window (`grace_until`). After it
-> expires, the `trim_expired_logs()` function (scheduled daily via `pg_cron` in
-> the `subscription_grace_trim` migration) deletes their synced log files
-> newest-first down to the free `logs_bytes` allowance. If `pg_cron` isn't
-> enabled on the project, enable it (Dashboard → Database → Extensions) or invoke
+> expires, the `trim_expired_logs()` function (scheduled daily via `pg_cron`)
+> deletes their synced log files newest-first until their pooled total (docs +
+> remaining logs + snapshots) fits the free `total_bytes` allowance; snapshots
+> and garage docs are never auto-deleted. If `pg_cron` isn't enabled on the
+> project, enable it (Dashboard → Database → Extensions) or invoke
 > `select public.trim_expired_logs();` from an external scheduler.
 
 > **Note:** `DOVE_PLUGIN_PACKAGES` is build-time only (read by `vite.config.ts`), not a client `VITE_` variable. It overrides which external plugin packages the build loads; by default the build pulls in the public AI coach (`@perchwerks/eye-in-the-sky`) from npm as an optional dependency — see `src/plugins/README.md`.
@@ -170,9 +171,8 @@ The admin system uses Lovable Cloud (Supabase) for the database. The schema is c
 - **user_roles** — Admin/user role assignments (uses `has_role()` security definer)
 - **sync_records** — Per-user cloud-sync documents (files/garage data), RLS-scoped to the owner
 - **user-files** (Storage bucket) — Private per-user session file blobs for cloud sync
-- **quota_limits** — Baseline per-storage-type byte limits (documents/logs)
-- **lap_snapshots** — Per-user frozen "course fastest lap" captures (one per course+engine), RLS-scoped; a dedicated, count-quota'd data type (not byte storage)
-- **subscription_tiers** — Data-driven plan catalogue (free/plus/premium/pro): label, price, per-type byte limits, and lap-snapshot count limit (`snapshot_count`: 5/10/20/50)
+- **lap_snapshots** — Per-user frozen "course fastest lap" captures (one per course+engine), RLS-scoped; its own table, but its size counts toward the unified storage pool (below)
+- **subscription_tiers** — Data-driven plan catalogue (free/plus/premium/pro): label, price, and a single pooled cloud-storage budget (`total_bytes`: 50 MB / 10 GB / 100 GB / 500 GB) shared by documents + logs + snapshots
 - **user_subscriptions** — Per-user tier + Stripe customer/subscription state, status, renewal date, cancellation grace (service-role-written only)
 - **profiles** — Per-user unique, editable display name
 - **account_deletions** — Pending self-service account-deletion requests (7-day, reversible grace window)

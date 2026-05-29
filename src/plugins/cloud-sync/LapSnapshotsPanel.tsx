@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/hooks/useSubscription";
 import { STORE_NAMES } from "@/lib/dbUtils";
 import { onGarageChange } from "@/lib/garageEvents";
 import { formatLapTime } from "@/lib/lapCalculation";
@@ -28,7 +27,6 @@ function formatDate(ms?: number): string {
 // do with them until you sign in to sync.
 export default function LapSnapshotsPanel(_props: PluginPanelProps) {
   const { user, loading } = useAuth();
-  const { tiers, currentTier } = useSubscription();
   const [items, setItems] = useState<LapSnapshot[] | null>(null);
   const [localIds, setLocalIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -52,10 +50,6 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
       setError(e instanceof Error ? e.message : "Failed to load snapshots");
     }
   }, [user]);
-
-  // Used + limit derived client-side from the cloud list + tier catalogue (the
-  // snapshot_usage RPC has been flaky in production schema caches).
-  const snapshotLimit = tiers.find((t) => t.tier === currentTier)?.snapshot_count ?? null;
 
   // Auto-detect local-only snapshots and upload them when signed in (the same
   // reconcile autoSync runs on sign-in, re-triggered here so opening the panel
@@ -118,7 +112,7 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
     setSyncing(true);
     try {
       const { pushed, skipped } = await reconcileSnapshots(user.id);
-      if (skipped > 0) toast.error(`${skipped} snapshot${skipped === 1 ? "" : "s"} didn't fit your plan's limit.`);
+      if (skipped > 0) toast.error(`${skipped} snapshot${skipped === 1 ? "" : "s"} didn't fit your cloud storage.`);
       else if (pushed > 0) toast.success(`Synced ${pushed} snapshot${pushed === 1 ? "" : "s"}.`);
       else toast("Everything is already synced.");
       await refresh();
@@ -139,9 +133,7 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
       {user ? (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            {snapshotLimit !== null
-              ? `${items.length} of ${snapshotLimit} synced`
-              : "Synced snapshots"}
+            {items.length} synced
           </p>
           {unsyncedLocal && (
             <Button size="sm" variant="outline" className="h-7 text-xs" disabled={syncing} onClick={() => void handleSyncLocal()}>

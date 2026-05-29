@@ -6,20 +6,19 @@
 //   • Offline (or a failed push): the change is recorded as *pending* so it isn't
 //     lost; on reconnect the pending set flushes first as priority-1 (replacing
 //     the cloud state), then a timestamp-aware reconcile merges the rest.
-// On sign-in it reconciles too. Only the free "documents" storage type syncs
-// here; log blobs stay manual/opt-in.
+// On sign-in it reconciles too. Garage documents + lap snapshots auto-sync here;
+// log blobs stay manual/opt-in. All three share one pooled per-tier byte budget.
 
 import { supabase } from "@/integrations/supabase/client";
 import { STORE_NAMES } from "@/lib/dbUtils";
 import { onGarageChange, type GarageChange } from "@/lib/garageEvents";
-import { isQuotaError, isSnapshotQuotaError } from "./cloudClient";
+import { isQuotaError } from "./cloudClient";
 import { deleteCloudFile, deleteRecord, pushRecord, reconcileDocs } from "./syncEngine";
 import { clearSnapshotTombstone, pushSnapshot, reconcileSnapshots } from "./snapshotSync";
 import { clearPending, listPending, markPending, pendingKeySet } from "./pendingSync";
 import { unselectFile } from "./fileSync";
 import { setActiveUserId } from "./activeUser";
 import { pendingId } from "./merge";
-import { storageTypeForStore } from "./storageTypes";
 import { FILE_STORE } from "./syncStores";
 
 const DEBOUNCE_MS = 800;
@@ -72,13 +71,8 @@ async function flush(change: GarageChange): Promise<void> {
     await pushOne(userId, change);
     await clearPending(change.store, change.key);
   } catch (err) {
-    if (isSnapshotQuotaError(err)) {
-      notify("Cloud snapshot limit reached — saved locally. Delete one in Profile to sync.", "error");
-    } else if (isQuotaError(err)) {
-      notify(
-        `Cloud ${storageTypeForStore(change.store)} storage is full — saved locally, not synced.`,
-        "error",
-      );
+    if (isQuotaError(err)) {
+      notify("Cloud storage is full — saved locally, not synced. Free up space or upgrade in Profile.", "error");
     } else {
       // Network/other failure → keep it as a pending change to retry on reconnect.
       await markPending(change);
@@ -111,13 +105,8 @@ async function flushPending(userId: string): Promise<void> {
       await pushOne(userId, change);
       await clearPending(change.store, change.key);
     } catch (err) {
-      if (isSnapshotQuotaError(err)) {
-        notify("Cloud snapshot limit reached — delete one in Profile to sync.", "error");
-      } else if (isQuotaError(err)) {
-        notify(
-          `Cloud ${storageTypeForStore(change.store)} storage is full — some changes didn't sync.`,
-          "error",
-        );
+      if (isQuotaError(err)) {
+        notify("Cloud storage is full — some changes didn't sync. Free up space or upgrade in Profile.", "error");
       }
       // otherwise leave it pending for the next reconnect
     }
@@ -132,13 +121,13 @@ async function runReconcile(userId: string): Promise<void> {
     const { skipped } = await reconcileDocs(userId, await pendingKeySet());
     if (skipped > 0) {
       notify(
-        `Cloud document storage is full — ${skipped} item${skipped === 1 ? "" : "s"} didn't sync.`,
+        `Cloud storage is full — ${skipped} item${skipped === 1 ? "" : "s"} didn't sync.`,
         "error",
       );
     }
   } catch (err) {
     if (isQuotaError(err)) {
-      notify("Cloud document storage is full — some items didn't sync.", "error");
+      notify("Cloud storage is full — some items didn't sync.", "error");
     } else {
       console.error("auto-sync document reconcile failed", err);
     }
@@ -148,7 +137,7 @@ async function runReconcile(userId: string): Promise<void> {
     const snap = await reconcileSnapshots(userId);
     if (snap.skipped > 0) {
       notify(
-        `Cloud snapshot limit reached — ${snap.skipped} snapshot${snap.skipped === 1 ? "" : "s"} didn't sync. Delete one in Profile.`,
+        `Cloud storage is full — ${snap.skipped} snapshot${snap.skipped === 1 ? "" : "s"} didn't sync. Free up space or upgrade in Profile.`,
         "error",
       );
     }

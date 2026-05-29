@@ -330,9 +330,8 @@ cross-session comparison (and future AI coaching).
 
 - **Identity = (course + engine).** Engine is the layman's "primary key"; the
   chassis travels inside the frozen `setup`. Exactly one snapshot per pair — a
-  faster lap upserts in place (same deterministic `id`), so the count never
-  inflates. `engine` is the free-text `Vehicle.engine` string, matched via
-  `engineKey` (trimmed + lowercased).
+  faster lap upserts in place (same deterministic `id`). `engine` is the free-text
+  `Vehicle.engine` string, matched via `engineKey` (trimmed + lowercased).
 - **What's frozen:** the lap's GPS samples **± a 5s buffer** on each side (so a
   later start/finish nudge still fits), `lapStartMs`/`lapEndMs` markers, the
   `Course` geometry, lap time, source file/lap, and a copy of the vehicle/setup.
@@ -346,12 +345,12 @@ cross-session comparison (and future AI coaching).
   samples into the **external-reference slot** (`externalRefSamples`), so it
   renders like a reference lap and is **excluded from playback + the video
   player** — it is never an appended lap. Engine is shown in the overlay label.
-- **Sync (cloud-sync plugin):** a **dedicated `lap_snapshots` table** with a
-  per-tier **COUNT** quota (free 5 / plus 10 / premium 20 / pro 50 via
-  `subscription_tiers.snapshot_count`), enforced by a trigger — NOT byte document
-  storage. Always pushes on save; a local delete **never** propagates to the
-  cloud (the cloud copy is removed only explicitly from **Profile → Lap
-  snapshots**, like the log menu). Cloud deletes are tombstoned
+- **Sync (cloud-sync plugin):** a **dedicated `lap_snapshots` table**, but its
+  serialized payload size counts toward the **same unified per-tier byte budget**
+  as documents + logs (`subscription_tiers.total_bytes`), enforced by a trigger —
+  no separate count quota. Always pushes on save; a local delete **never**
+  propagates to the cloud (the cloud copy is removed only explicitly from
+  **Profile → Lap snapshots**, like the log menu). Cloud deletes are tombstoned
   (`snapshotTombstones.ts`) so reconcile won't resurrect a surviving local copy.
   `reconcileSnapshots()` pulls cloud→local additively and pushes local-only up.
   Local storage is always unlimited.
@@ -368,17 +367,19 @@ before working on:
 
 - **Cloud Sync** (`src/plugins/cloud-sync/`) — per-user backup/sync of the
   IndexedDB garage + log blobs: auto-sync off `garageEvents`, conflict resolution
-  (pending-wins + last-write-wins), storage-type quotas, orphan-safety, and
-  opt-in per-file logs.
-- **Subscriptions / Stripe** — paid tiers that scale the logs quota; tiers are
-  data (`subscription_tiers`), prices resolve by Stripe lookup_key, and
-  entitlements are written only by the webhook. Operator setup (Products/Prices,
-  secrets, `pg_cron`) is in the README.
+  (pending-wins + last-write-wins), the unified pooled byte quota, orphan-safety,
+  and opt-in per-file logs.
+- **Subscriptions / Stripe** — paid tiers that scale one pooled storage budget;
+  tiers are data (`subscription_tiers.total_bytes`), prices resolve by Stripe
+  lookup_key, and entitlements are written only by the webhook. Operator setup
+  (Products/Prices, secrets, `pg_cron`) is in the README.
 - **Data Rights & Retention / GDPR** — self-service export/erasure, the 7-day
   deletion window, and automatic IP minimisation.
 
-Lap-snapshot sync is separate — its own `lap_snapshots` table with a COUNT quota
-(see the Lap Snapshots section above and `docs/backend.md`).
+Documents, logs, and lap snapshots all draw from **one pooled per-tier byte
+budget** (`subscription_tiers.total_bytes`: free 50 MB / plus 10 GB / premium
+100 GB / pro 500 GB), shown as a single segmented bar on the Profile tab — see
+`docs/backend.md`.
 
 ---
 

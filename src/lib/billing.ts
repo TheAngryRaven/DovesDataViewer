@@ -6,11 +6,9 @@ export interface SubscriptionTierRow {
   tier: string;
   label: string;
   price_cents: number;
-  logs_bytes: number;
-  doc_bytes: number;
+  /** The tier's single pooled cloud-storage budget in bytes (docs + logs + snapshots). */
+  total_bytes: number;
   ai_credits: number;
-  /** Max cloud lap snapshots for the tier (count, not bytes). */
-  snapshot_count: number;
   stripe_price_id: string | null;
   sort_order: number;
 }
