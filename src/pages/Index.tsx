@@ -194,9 +194,12 @@ export default function Index() {
 
   // Assigning an engine/setup may set a new course fastest lap → prompt to save.
   const handleSaveSessionSetupWithSnapshot = useCallback(async (kartId: string | null, setupId: string | null) => {
-    await sessionMeta.handleSaveSessionSetup(kartId, setupId);
+    // Snapshot the engine string for the file browser's engine grouping, so it
+    // survives later edits/deletes of the vehicle.
+    const engine = kartId ? vehicleManager.vehicles.find((v) => v.id === kartId)?.engine ?? null : null;
+    await sessionMeta.handleSaveSessionSetup(kartId, setupId, engine);
     snapshots.maybePromptOnAssignment(kartId, setupId);
-  }, [sessionMeta, snapshots]);
+  }, [sessionMeta, snapshots, vehicleManager.vehicles]);
 
   // Clearing the shared reference slot (e.g. the ExternalRefBar X) must also drop
   // the active snapshot, since a loaded snapshot rides that same slot.
@@ -391,6 +394,8 @@ export default function Index() {
     onGetLatestSetupForVehicle: setupManager.getLatestForVehicle,
     onAddVehicleType: templateManager.addVehicleType,
     onRemoveVehicleType: templateManager.removeVehicleType,
+    currentTrackName: lapMgmt.selection?.trackName ?? null,
+    currentCourseName: lapMgmt.selection?.courseName ?? null,
     sessionKartId,
     sessionSetupId,
     sessionSetupRev,
@@ -404,7 +409,7 @@ export default function Index() {
     currentFileName,
     noteManager.notes, noteManager.addNote, noteManager.updateNote, noteManager.removeNote,
     setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
-    sessionKartId, sessionSetupId, sessionSetupRev, handleSaveSessionSetupWithSnapshot,
+    lapMgmt.selection, sessionKartId, sessionSetupId, sessionSetupRev, handleSaveSessionSetupWithSnapshot,
   ]);
 
   // No data loaded - show import UI

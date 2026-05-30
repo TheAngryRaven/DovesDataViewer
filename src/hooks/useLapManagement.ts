@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { ParsedData, Lap, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
 import { calculateLaps } from "@/lib/lapCalculation";
-import { saveFileMetadata, getFileMetadata } from "@/lib/fileStorage";
+import { updateFileMetadata } from "@/lib/fileStorage";
 
 /**
  * Manages track/course selection, lap calculation, lap/reference selection,
@@ -70,22 +70,12 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
         );
         setSelectedLapNumber(fastest.lapNumber);
 
-        // Persist fastest lap into metadata
+        // Persist fastest lap into metadata (preserving all other tags).
         const targetFileName = fileNameOverride ?? currentFileName;
         if (targetFileName) {
-          getFileMetadata(targetFileName).then((existing) => {
-            saveFileMetadata({
-              fileName: targetFileName,
-              trackName: existing?.trackName ?? "",
-              courseName: existing?.courseName ?? "",
-              weatherStationId: existing?.weatherStationId,
-              weatherStationName: existing?.weatherStationName,
-              weatherStationDistanceKm: existing?.weatherStationDistanceKm,
-              sessionKartId: existing?.sessionKartId,
-              sessionSetupId: existing?.sessionSetupId,
-              fastestLapMs: fastest.lapTimeMs,
-              fastestLapNumber: fastest.lapNumber,
-            });
+          updateFileMetadata(targetFileName, {
+            fastestLapMs: fastest.lapTimeMs,
+            fastestLapNumber: fastest.lapNumber,
           });
         }
       }
@@ -98,17 +88,14 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
     (newSelection: TrackCourseSelection | null) => {
       setSelection(newSelection);
 
-      // Persist track/course association for current file
+      // Persist track/course association for current file (preserving all other
+      // tags), and stamp the session's true start time from the first sample so
+      // the browser can show a date/time display name.
       if (currentFileName && newSelection) {
-        getFileMetadata(currentFileName).then((existing) => {
-          saveFileMetadata({
-            fileName: currentFileName,
-            trackName: newSelection.trackName,
-            courseName: newSelection.courseName,
-            weatherStationId: existing?.weatherStationId,
-            weatherStationName: existing?.weatherStationName,
-            weatherStationDistanceKm: existing?.weatherStationDistanceKm,
-          });
+        updateFileMetadata(currentFileName, {
+          trackName: newSelection.trackName,
+          courseName: newSelection.courseName,
+          ...(data?.startDate ? { sessionStartTime: data.startDate.getTime() } : {}),
         });
       }
 

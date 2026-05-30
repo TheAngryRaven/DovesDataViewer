@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Organized file browser — Track → Course → logs, with filters.** The Files tab
+  is now a folder hierarchy instead of a flat list. Sessions are filed under their
+  **track**, then **course**; the final list can be grouped by **Engine** or
+  **Kart** (logs with neither shown below the groups). Each log is now labelled by
+  its **session date/time** — the time of its first GPS fix, e.g. "2/12/2026
+  11:15 AM" — instead of the raw filename, so logs read clearly. To keep clicking
+  to a minimum, folder levels only appear when there's an actual choice: a single
+  track or course is skipped automatically, with a **breadcrumb** always showing
+  where you are. Untagged logs get their own "Untagged" bucket. Opening the file
+  manager **jumps straight to the current session's track/course**.
 - **Setup revisions — frozen setup history per session.** Assigning a setup to a
   session now freezes an **immutable, content-addressed copy** of that setup, so
   the session keeps the exact setup it ran even if you edit the live setup later.
@@ -210,6 +220,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rejects **disposable / temporary email** addresses.
 
 ### Changed
+- File metadata writes now go through a single read-merge helper, fixing cases
+  where tagging a track or saving a setup could drop other saved details (kart,
+  setup, fastest lap, weather).
 - Bumped the optional AI coach plugin (`@perchwerks/eye-in-the-sky`) from
   `0.2.5` to `0.3.0`.
 - **Registration page** now shows the **Plans & pricing** cards above the

@@ -5,7 +5,7 @@ import {
   TrackCourseSelection,
   CourseDetectionResult,
 } from "@/types/racing";
-import { getFileMetadata } from "@/lib/fileStorage";
+import { getFileMetadata, updateFileMetadata } from "@/lib/fileStorage";
 import { loadTracks } from "@/lib/trackStorage";
 import { findNearestTrack } from "@/lib/trackUtils";
 import { autoDetectCourse } from "@/lib/courseDetection";
@@ -80,6 +80,11 @@ export function useDataLoader({
       if (fileName) {
         const meta = await getFileMetadata(fileName);
         if (meta) {
+          // Backfill the session start time for files saved before this existed,
+          // so the browser's date/time display name works on older logs too.
+          if (meta.sessionStartTime == null && parsedData.startDate) {
+            updateFileMetadata(fileName, { sessionStartTime: parsedData.startDate.getTime() });
+          }
           const tracks = await loadTracks();
           const track = tracks.find((t) => t.name === meta.trackName);
           const course = track?.courses.find((c) => c.name === meta.courseName);
