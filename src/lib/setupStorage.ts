@@ -80,6 +80,18 @@ export async function deleteSetup(id: string): Promise<void> {
   emitGarageChange({ store: SETUPS_STORE, key: id, type: "delete" });
 }
 
+export async function getSetup(id: string): Promise<VehicleSetup | null> {
+  const db = await openDB();
+  const tx = db.transaction(SETUPS_STORE, "readonly");
+  const request = tx.objectStore(SETUPS_STORE).get(id);
+  const result = await new Promise<VehicleSetup | undefined>((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  return result ?? null;
+}
+
 export async function getLatestSetupForVehicle(vehicleId: string): Promise<VehicleSetup | null> {
   const db = await openDB();
   const tx = db.transaction(SETUPS_STORE, "readonly");

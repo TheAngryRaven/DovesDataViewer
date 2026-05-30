@@ -17,6 +17,9 @@ const KEY_FIELD: Record<string, string> = {
   [STORE_NAMES.VEHICLE_TYPES]: "id",
   [STORE_NAMES.SETUP_TEMPLATES]: "id",
   [STORE_NAMES.ENGINES]: "id",
+  // Immutable, content-addressed setup history (id = content hash). Travels with
+  // the setups so a session's frozen setup is available on every device.
+  [STORE_NAMES.SETUP_REVISIONS]: "id",
   [TRACKS_SYNC_STORE]: "name", // user tracks (localStorage, via a store accessor)
   [STORE_NAMES.FILES]: "name",
 };
@@ -31,6 +34,7 @@ export const DOC_STORES = [
   STORE_NAMES.VEHICLE_TYPES,
   STORE_NAMES.SETUP_TEMPLATES,
   STORE_NAMES.ENGINES,
+  STORE_NAMES.SETUP_REVISIONS,
   TRACKS_SYNC_STORE,
 ] as const;
 

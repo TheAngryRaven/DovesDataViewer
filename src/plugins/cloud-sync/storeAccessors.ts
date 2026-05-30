@@ -6,7 +6,7 @@
 // same engine — `reconcileDocs` / `pushRecord` / `writeOne` go through here
 // instead of assuming IndexedDB.
 
-import { withReadTransaction, withWriteTransaction } from "@/lib/dbUtils";
+import { withReadTransaction, withWriteTransaction, STORE_NAMES } from "@/lib/dbUtils";
 import type { Track } from "@/types/racing";
 import {
   TRACKS_SYNC_STORE,
@@ -14,6 +14,7 @@ import {
   listUserTracks,
   putUserTrackRaw,
 } from "@/lib/trackStorage";
+import { isSetupRevisionTombstoned } from "./setupRevisionTombstones";
 
 type Record_ = Record<string, unknown>;
 
@@ -38,8 +39,21 @@ const tracksAccessor: StoreAccessor = {
   putOne: async (record) => putUserTrackRaw(record as unknown as Track),
 };
 
+// Setup revisions are content-addressed and immutable, but they can be pruned
+// locally as orphans (and tombstoned). Skip re-pulling a tombstoned id so the
+// orphan sweep isn't undone by the next reconcile; reads pass straight through.
+const setupRevisionsAccessor: StoreAccessor = {
+  ...idbAccessor(STORE_NAMES.SETUP_REVISIONS),
+  putOne: async (record) => {
+    const id = String(record?.id ?? "");
+    if (id && (await isSetupRevisionTombstoned(id))) return;
+    await withWriteTransaction(STORE_NAMES.SETUP_REVISIONS, (s) => s.put(record));
+  },
+};
+
 const overrides: Record<string, StoreAccessor> = {
   [TRACKS_SYNC_STORE]: tracksAccessor,
+  [STORE_NAMES.SETUP_REVISIONS]: setupRevisionsAccessor,
 };
 
 const idbCache = new Map<string, StoreAccessor>();

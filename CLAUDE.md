@@ -108,6 +108,8 @@ src/
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── lapSnapshot.ts     # ★ Pure snapshot types/keying/buffer (course+engine identity)
 │   ├── lapSnapshotStorage.ts # ★ IndexedDB CRUD for lap snapshots (emits garageEvents)
+│   ├── setupRevision.ts  # ★ Pure content-addressed setup history: hash + freeze (immutable revisions)
+│   ├── setupRevisionStorage.ts # ★ IndexedDB CRUD for setup revisions (freezeSetupRevision; emits garageEvents)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
 │   ├── garageEvents.ts    # ★ Host pub/sub: storage emits {store,key,put|delete}; cloud-sync syncs off it
 │   ├── *Storage.ts        # IDB stores: file, kart(compat), vehicle, engine, template, note, setup,
@@ -265,7 +267,7 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `CourseDirection` | `'forward' \| 'reverse'` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug — the extraFields key), `label?` (display), `unit?`, `enabled` |
-| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `fastestLapMs?`, `fastestLapNumber?` |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?` (live setup), `sessionSetupRev?` (frozen setup-revision content hash), `fastestLapMs?`, `fastestLapNumber?` |
 
 ---
 
@@ -302,7 +304,7 @@ GPS data is always parseable even if metadata is corrupted. Metadata is attached
 
 ## IndexedDB Storage (`src/lib/dbUtils.ts`)
 
-Single shared database: `"dove-file-manager"`, version 11.
+Single shared database: `"dove-file-manager"`, version 12.
 
 | Store | Key | Module |
 |-------|-----|--------|
@@ -318,6 +320,7 @@ Single shared database: `"dove-file-manager"`, version 11.
 | `session-videos` | `sessionFileName` | `videoFileStorage.ts` |
 | `engines` | `id` | `engineStorage.ts` |
 | `lap-snapshots` | `id` (indexed by `courseKey`, `engineKey`) | `lapSnapshotStorage.ts` |
+| `setup-revisions` | `id` = content hash (indexed by `setupId`) | `setupRevisionStorage.ts` |
 
 To add a new store: increment `DB_VERSION`, add store name to `STORE_NAMES`, add creation logic in `openDB()`, create a corresponding storage module.
 
@@ -354,6 +357,50 @@ cross-session comparison (and future AI coaching).
   (`snapshotTombstones.ts`) so reconcile won't resurrect a surviving local copy.
   `reconcileSnapshots()` pulls cloud→local additively and pushes local-only up.
   Local storage is always unlimited.
+
+---
+
+## Setup Revisions (`src/lib/setupRevision.ts` + `setupRevisionStorage.ts`)
+
+Immutable, **content-addressed** history of vehicle setups — git's blob model
+without the diff chains. A `VehicleSetup` (`setups` store) is the *live, editable*
+working copy; a `SetupRevision` (`setup-revisions` store) is a write-once frozen
+copy whose **`id` is a SHA-256 of its content**. This keeps a session's setup
+exactly as it was the day it ran, even after the live setup is later edited.
+
+- **Freeze on assignment.** `handleSaveSessionSetup` (`useSessionMetadata`) calls
+  `freezeSetupRevision(setupId)`, which reads the live setup + its template, builds
+  the revision (`buildSetupRevision`), and stores its hash on
+  `FileMetadata.sessionSetupRev`. `sessionSetupId` (live pointer) is kept alongside
+  for lineage / the future "edit the setup later" flow.
+- **The hash is the identity.** `computeSetupHash(setup, template)` hashes a
+  canonical (sorted-key) projection of the setup's values **+ the template
+  structure**, excluding volatile bookkeeping (`id`/`createdAt`/`updatedAt`). So
+  two sessions on the genuinely-identical setup dedup to the **same hash**, and any
+  value change — *or* a template change (a renamed/added field) — yields a new
+  hash, i.e. a new revision, with no child-type machinery. `freezeSetupRevision`
+  is idempotent: an existing-hash revision is reused (original `createdAt` kept).
+- **Self-contained.** A revision embeds a frozen copy of the `setup` **and** the
+  template structure (`FrozenTemplate`: section + field names/units), so old
+  history always renders with the labels it had that day.
+- **Display.** `shortRevHash()` surfaces the leading 6 hex chars (git-style). The
+  **SetupsTab** list shows each setup's current would-be hash; **NotesTab** shows
+  the frozen `#hash` of the session's setup revision.
+- **Orphan prune (GC).** A revision is an orphan once no `FileMetadata.sessionSetupRev`
+  points at it. `pruneSetupRevisions()` deletes orphans (pure split:
+  `findOrphanRevisionIds`); `maybePruneSetupRevisions()` throttles it to ~once every
+  `PRUNE_INTERVAL_MS` (3 days) via a localStorage timestamp and is fired
+  best-effort from `useSetupManager` on mount. Works fully offline.
+- **Sync (cloud-sync plugin):** revisions ride the **generic garage-doc engine** —
+  registered in `syncStores.ts` (`DOC_STORES` + `KEY_FIELD`, keyed by `id`), so
+  they push/pull as ordinary `sync_records` rows counting toward the pooled
+  documents budget. No dedicated table. Being immutable + content-addressed, the
+  last-write-wins merge is a no-op on collision. **Prune is local-only:** a deleted
+  orphan is **tombstoned** (`setupRevisionTombstones.ts`, per-user) rather than
+  removed from the cloud — `autoSync` skips the cloud delete and the
+  `setup-revisions` store accessor skips re-pulling a tombstoned id, so the sweep
+  isn't undone by reconcile. A fresh freeze of the same content clears the
+  tombstone. **Cloud-side GC and later-editing are deliberate follow-ups.**
 
 ---
 

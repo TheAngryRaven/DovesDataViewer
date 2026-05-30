@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Setup revisions — frozen setup history per session.** Assigning a setup to a
+  session now freezes an **immutable, content-addressed copy** of that setup, so
+  the session keeps the exact setup it ran even if you edit the live setup later.
+  Each revision carries a short **git-style `#hash`** (6 chars) derived from its
+  content: two sessions on the same setup read the **same** hash, and any change —
+  a value, or the template (a renamed/added field) — reads a **different** one.
+  The setup list shows each setup's current hash; the session's Notes panel shows
+  the frozen `#hash` it ran. Revisions sync to the cloud as ordinary garage
+  documents (counting toward the same pooled storage budget) and stay unlimited
+  on-device. Sets up future session tagging in the file browser. Revisions that
+  no session references are swept automatically (a throttled ~3-day background
+  prune); the local sweep never deletes the cloud copy another device may need.
 - Cloudflare Workers deployment support: `wrangler.jsonc` (static-assets-only
   Worker serving `./dist` with single-page-application not-found handling),
   `public/_headers` (no-cache for the service workers + `index.html`, immutable

@@ -61,6 +61,7 @@ interface FileManagerDrawerProps {
   // Session setup link
   sessionKartId: string | null;
   sessionSetupId: string | null;
+  sessionSetupRev: string | null;
   onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
   // Setup props
   setups: VehicleSetup[];
@@ -78,7 +79,7 @@ export function FileManagerDrawer({
   vehicles, vehicleTypes, templates,
   onAddVehicle, onUpdateVehicle, onRemoveVehicle,
   currentFileName, notes, onAddNote, onUpdateNote, onRemoveNote,
-  sessionKartId, sessionSetupId, onSaveSessionSetup,
+  sessionKartId, sessionSetupId, sessionSetupRev, onSaveSessionSetup,
   setups, onAddSetup, onUpdateSetup, onRemoveSetup, onGetLatestSetupForVehicle,
   onAddVehicleType, onRemoveVehicleType,
 }: FileManagerDrawerProps) {
@@ -207,6 +208,7 @@ export function FileManagerDrawer({
                 setups={setups}
                 sessionKartId={sessionKartId}
                 sessionSetupId={sessionSetupId}
+                sessionSetupRev={sessionSetupRev}
                 onSaveSessionSetup={onSaveSessionSetup}
               />
             )}

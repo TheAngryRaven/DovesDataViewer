@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
 import { VehicleType, SetupTemplate, TemplateSection, TemplateFieldDef } from "@/lib/templateStorage";
 import { TemplateCreator } from "@/components/drawer/TemplateCreator";
+import { computeSetupHash, shortRevHash } from "@/lib/setupRevision";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SetupsTabProps {
@@ -64,6 +65,23 @@ export function SetupsTab({
   const preloadSnapshot = useRef<Record<string, unknown> | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // The content hash each setup would freeze to right now (git-style short id).
+  // Shown so two sessions on the same setup read the same #hash, and an edited
+  // setup reads a different one. Recomputed when setups or templates change.
+  const [setupHashes, setSetupHashes] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const s of setups) {
+        const tpl = templates.find(t => t.id === s.templateId) ?? null;
+        next[s.id] = shortRevHash(await computeSetupHash(s, tpl));
+      }
+      if (!cancelled) setSetupHashes(next);
+    })();
+    return () => { cancelled = true; };
+  }, [setups, templates]);
 
   // PSI display helpers
   const [psiSingle, setPsiSingle] = useState<number | null>(null);
@@ -281,7 +299,17 @@ export function SetupsTab({
                   <div key={setup.id}>
                     <div className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/50">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{setup.name}</p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{setup.name}</p>
+                          {setupHashes[setup.id] && (
+                            <span
+                              className="shrink-0 font-mono text-[10px] text-muted-foreground"
+                              title={`Setup revision #${setupHashes[setup.id]} — changes when any field changes`}
+                            >
+                              #{setupHashes[setup.id]}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">
                           {vehicle?.name ?? "Unknown vehicle"}{vt ? ` (${vt.name})` : ""} · {new Date(setup.updatedAt).toLocaleDateString()}
                         </p>

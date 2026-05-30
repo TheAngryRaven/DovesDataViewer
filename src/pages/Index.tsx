@@ -111,7 +111,7 @@ export default function Index() {
 
   // Session metadata
   const sessionMeta = useSessionMetadata(currentFileName);
-  const { cachedWeatherStation, sessionKartId, sessionSetupId } = sessionMeta;
+  const { cachedWeatherStation, sessionKartId, sessionSetupId, sessionSetupRev } = sessionMeta;
 
   // Playback
   const { isPlaying, toggle: togglePlayback, averageFrameRate } = usePlayback({
@@ -393,6 +393,7 @@ export default function Index() {
     onRemoveVehicleType: templateManager.removeVehicleType,
     sessionKartId,
     sessionSetupId,
+    sessionSetupRev,
     onSaveSessionSetup: handleSaveSessionSetupWithSnapshot,
   }), [
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
@@ -403,7 +404,7 @@ export default function Index() {
     currentFileName,
     noteManager.notes, noteManager.addNote, noteManager.updateNote, noteManager.removeNote,
     setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
-    sessionKartId, sessionSetupId, handleSaveSessionSetupWithSnapshot,
+    sessionKartId, sessionSetupId, sessionSetupRev, handleSaveSessionSetupWithSnapshot,
   ]);
 
   // No data loaded - show import UI

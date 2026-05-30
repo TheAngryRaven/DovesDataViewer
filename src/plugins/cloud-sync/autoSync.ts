@@ -15,6 +15,7 @@ import { onGarageChange, type GarageChange } from "@/lib/garageEvents";
 import { isQuotaError } from "./cloudClient";
 import { deleteCloudFile, deleteRecord, pushRecord, reconcileDocs } from "./syncEngine";
 import { clearSnapshotTombstone, pushSnapshot, reconcileSnapshots } from "./snapshotSync";
+import { addSetupRevisionTombstone, clearSetupRevisionTombstone } from "./setupRevisionTombstones";
 import { clearPending, listPending, markPending, pendingKeySet } from "./pendingSync";
 import { unselectFile } from "./fileSync";
 import { setActiveUserId } from "./activeUser";
@@ -45,6 +46,18 @@ async function pushOne(userId: string, change: GarageChange): Promise<void> {
     if (change.type === "delete") return;
     await clearSnapshotTombstone(change.key); // a fresh save re-enables cloud sync
     await pushSnapshot(userId, change.key);
+    return;
+  }
+  if (change.store === STORE_NAMES.SETUP_REVISIONS) {
+    // A delete here is the orphan prune. Don't remove the cloud copy (another
+    // device may still reference it) — tombstone the id so reconcile won't
+    // re-pull it locally. A fresh freeze (put) clears the tombstone + pushes.
+    if (change.type === "delete") {
+      await addSetupRevisionTombstone(change.key);
+      return;
+    }
+    await clearSetupRevisionTombstone(change.key);
+    await pushRecord(userId, change.store, change.key);
     return;
   }
   if (change.store === FILE_STORE) {

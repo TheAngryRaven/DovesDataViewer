@@ -5,7 +5,7 @@
  */
 
 export const DB_NAME = "dove-file-manager";
-export const DB_VERSION = 11;
+export const DB_VERSION = 12;
 
 export const STORE_NAMES = {
   FILES: "files",
@@ -20,6 +20,7 @@ export const STORE_NAMES = {
   SESSION_VIDEOS: "session-videos",
   ENGINES: "engines",       // reusable engine-type list for vehicle profiles
   LAP_SNAPSHOTS: "lap-snapshots", // frozen "course fastest lap" captures per engine
+  SETUP_REVISIONS: "setup-revisions", // immutable, content-addressed frozen setups (session history)
 } as const;
 
 /**
@@ -81,6 +82,14 @@ export function openDB(): Promise<IDBDatabase> {
         const snapStore = db.createObjectStore(STORE_NAMES.LAP_SNAPSHOTS, { keyPath: "id" });
         snapStore.createIndex("courseKey", "courseKey", { unique: false });
         snapStore.createIndex("engineKey", "engineKey", { unique: false });
+      }
+
+      // v12: Immutable setup revisions — content-addressed (id = SHA-256 of the
+      // setup content) frozen copies, so a session keeps the exact setup it ran
+      // even after the live setup is edited. Indexed by the originating setup.
+      if (!db.objectStoreNames.contains(STORE_NAMES.SETUP_REVISIONS)) {
+        const revStore = db.createObjectStore(STORE_NAMES.SETUP_REVISIONS, { keyPath: "id" });
+        revStore.createIndex("setupId", "setupId", { unique: false });
       }
 
       // v8 migration: add vehicleId index to setups if upgrading from v7
