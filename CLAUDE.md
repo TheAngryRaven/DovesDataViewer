@@ -106,6 +106,7 @@ src/
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode
 │   ├── lapCalculation.ts  # Start/finish crossing detection → Lap[]
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
+│   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy: Track→Course→logs, engine/kart filter, breadcrumbs, smart collapse
 │   ├── lapSnapshot.ts     # ★ Pure snapshot types/keying/buffer (course+engine identity)
 │   ├── lapSnapshotStorage.ts # ★ IndexedDB CRUD for lap snapshots (emits garageEvents)
 │   ├── setupRevision.ts  # ★ Pure content-addressed setup history: hash + freeze (immutable revisions)
@@ -267,7 +268,7 @@ Detection order matters: binary formats first (MoTeC LD → UBX), then text form
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `CourseDirection` | `'forward' \| 'reverse'` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug — the extraFields key), `label?` (display), `unit?`, `enabled` |
-| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?` (live setup), `sessionSetupRev?` (frozen setup-revision content hash), `fastestLapMs?`, `fastestLapNumber?` |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?` (live setup), `sessionSetupRev?` (frozen setup-revision content hash), `sessionEngine?` (engine snapshot for browser grouping), `sessionStartTime?` (first-sample epoch ms → browser display name), `fastestLapMs?`, `fastestLapNumber?`. Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
 
 ---
 
@@ -497,6 +498,33 @@ Pure comparison/conversion logic for merging app tracks with device track files:
 - `buildTrackJsonForUpload()` — serializes app Track to device JSON format (flat course array, includes `lengthFt`)
 - `deviceCourseToAppCourse()` / `appCourseToDeviceJson()` — format converters (both include `lengthFt`)
 - `DeviceCourseJson` includes `lengthFt?: number` for hardware course detection by lap distance
+
+---
+
+## File Browser (`FilesTab.tsx` + `lib/fileBrowserTree.ts`)
+
+The Garage → **Files** tab is a folder hierarchy, not a flat list: **Track → Course
+→ logs**, with an optional **Engine/Kart** grouping on the final list. All the tree
++ navigation math is pure in `fileBrowserTree.ts` (unit-tested); `FilesTab` just
+renders the computed `BrowserView` (breadcrumb + folders + log rows).
+
+- **Display name = the session's date/time**, derived from `sessionStartTime` (the
+  first valid sample), e.g. "2/12/2026 11:15 AM" — *not* the upload time or raw
+  filename (filename is the row's `title`/tooltip + the stable IndexedDB key).
+- **Smart collapse:** a folder level is only rendered when there's more than one
+  entry — a single track and/or single course auto-descends straight to the logs
+  (the breadcrumb still records the collapsed segments so date names read in
+  context). The explicit Engine/Kart filter, by contrast, **always** shows its
+  folder(s); logs with no engine/kart sit loose **below** the filter folders.
+- **Untagged bucket:** logs missing a track/course land in an "Untagged" folder
+  after the real tracks (collapsing to a flat list when it's the only group).
+- **Opens at the current session.** `Index.tsx` passes the loaded session's
+  `currentTrackName`/`currentCourseName`; `FilesTab` re-homes there (`defaultNav`)
+  on every drawer open and whenever a different session loads.
+- **Grouping data** rides `FileMetadata`: `sessionEngine` (snapshotted from the
+  kart at assign time, so grouping survives vehicle edits), `sessionKartId`
+  (→ vehicle name), and `sessionStartTime`. Engine resolves to the snapshot first,
+  then the live `Vehicle.engine`.
 
 ---
 

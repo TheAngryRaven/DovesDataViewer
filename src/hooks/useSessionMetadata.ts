@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { WeatherStation } from "@/lib/weatherService";
-import { saveFileMetadata, getFileMetadata, FileMetadata } from "@/lib/fileStorage";
+import { updateFileMetadata, FileMetadata } from "@/lib/fileStorage";
 import { freezeSetupRevision } from "@/lib/setupRevisionStorage";
 
 /**
@@ -39,15 +39,10 @@ export function useSessionMetadata(currentFileName: string | null) {
     (station: WeatherStation) => {
       setCachedWeatherStation(station);
       if (currentFileName) {
-        getFileMetadata(currentFileName).then((existing) => {
-          saveFileMetadata({
-            fileName: currentFileName,
-            trackName: existing?.trackName || "",
-            courseName: existing?.courseName || "",
-            weatherStationId: station.stationId,
-            weatherStationName: station.name,
-            weatherStationDistanceKm: station.distanceKm,
-          });
+        updateFileMetadata(currentFileName, {
+          weatherStationId: station.stationId,
+          weatherStationName: station.name,
+          weatherStationDistanceKm: station.distanceKm,
         });
       }
     },
@@ -55,23 +50,19 @@ export function useSessionMetadata(currentFileName: string | null) {
   );
 
   const handleSaveSessionSetup = useCallback(
-    async (kartId: string | null, setupId: string | null) => {
+    async (kartId: string | null, setupId: string | null, engine?: string | null) => {
       if (!currentFileName) return;
-      const existing = await getFileMetadata(currentFileName);
       // Freeze the assigned setup into an immutable, content-addressed revision
       // so this session keeps the exact setup it ran even if the live setup is
       // edited later. Idempotent: an unchanged setup re-uses its existing hash.
       const rev = setupId ? await freezeSetupRevision(setupId) : null;
-      // Spread existing first so unrelated cached fields (track/course, weather,
-      // fastest-lap) survive a setup change.
-      await saveFileMetadata({
-        ...(existing ?? {}),
-        fileName: currentFileName,
-        trackName: existing?.trackName || "",
-        courseName: existing?.courseName || "",
+      // updateFileMetadata preserves every other tag (track/course, weather,
+      // fastest-lap, start time). Engine is snapshotted for browser grouping.
+      await updateFileMetadata(currentFileName, {
         sessionKartId: kartId ?? undefined,
         sessionSetupId: setupId ?? undefined,
         sessionSetupRev: rev ?? undefined,
+        sessionEngine: engine?.trim() || undefined,
       });
       setSessionKartId(kartId);
       setSessionSetupId(setupId);

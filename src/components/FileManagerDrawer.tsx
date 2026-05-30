@@ -52,6 +52,9 @@ interface FileManagerDrawerProps {
   onAddVehicle: (vehicle: Omit<Vehicle, "id">) => Promise<void>;
   onUpdateVehicle: (vehicle: Vehicle) => Promise<void>;
   onRemoveVehicle: (id: string) => Promise<void>;
+  // Current session context (the browser opens at this track/course)
+  currentTrackName: string | null;
+  currentCourseName: string | null;
   // Note props
   currentFileName: string | null;
   notes: Note[];
@@ -78,6 +81,7 @@ export function FileManagerDrawer({
   onClose, onLoadFile, onDeleteFile, onExportFile, onSaveFile, onDataLoaded, autoSave,
   vehicles, vehicleTypes, templates,
   onAddVehicle, onUpdateVehicle, onRemoveVehicle,
+  currentTrackName, currentCourseName,
   currentFileName, notes, onAddNote, onUpdateNote, onRemoveNote,
   sessionKartId, sessionSetupId, sessionSetupRev, onSaveSessionSetup,
   setups, onAddSetup, onUpdateSetup, onRemoveSetup, onGetLatestSetupForVehicle,
@@ -178,7 +182,7 @@ export function FileManagerDrawer({
             </div>
 
             {garageTab === "files" && (
-              <FilesTab files={files} fileMetadataMap={fileMetadataMap} storageUsed={storageUsed} storageQuota={storageQuota} onLoadFile={onLoadFile} onDeleteFile={onDeleteFile} onExportFile={onExportFile} onSaveFile={onSaveFile} onDataLoaded={onDataLoaded} onClose={onClose} autoSave={autoSave} />
+              <FilesTab files={files} fileMetadataMap={fileMetadataMap} vehicles={vehicles} currentTrackName={currentTrackName} currentCourseName={currentCourseName} isOpen={isOpen} storageUsed={storageUsed} storageQuota={storageQuota} onLoadFile={onLoadFile} onDeleteFile={onDeleteFile} onExportFile={onExportFile} onSaveFile={onSaveFile} onDataLoaded={onDataLoaded} onClose={onClose} autoSave={autoSave} />
             )}
             {garageTab === "vehicles" && (
               <VehiclesTab vehicles={vehicles} vehicleTypes={vehicleTypes} onAdd={onAddVehicle} onUpdate={onUpdateVehicle} onRemove={onRemoveVehicle} />

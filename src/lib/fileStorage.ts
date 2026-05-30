@@ -24,6 +24,12 @@ export interface FileMetadata {
   // Immutable revision (content hash) of the setup as it was when assigned, so
   // this session keeps the exact setup it ran even if the live one is edited.
   sessionSetupRev?: string;
+  // Engine string snapshot (resolved from the kart at assign time), so the file
+  // browser can group by engine even if the vehicle is later edited or deleted.
+  sessionEngine?: string;
+  // Epoch ms of the first valid GPS sample (the session's true start), used for
+  // the browser's date/time display name — independent of when it was uploaded.
+  sessionStartTime?: number;
   // Fastest lap cache
   fastestLapMs?: number;
   fastestLapNumber?: number;
@@ -125,6 +131,28 @@ export async function saveFileMetadata(meta: FileMetadata): Promise<void> {
   } catch (e) {
     console.warn("Failed to save file metadata:", e);
   }
+}
+
+/**
+ * Read-merge-write one file's metadata: applies `patch` over the existing record
+ * (or a fresh one), preserving every untouched field. Use this for all partial
+ * updates so a write that only cares about, say, the fastest lap can't clobber
+ * the track/course/kart/setup tags. Returns the merged record.
+ */
+export async function updateFileMetadata(
+  fileName: string,
+  patch: Partial<Omit<FileMetadata, "fileName">>,
+): Promise<FileMetadata> {
+  const existing = await getFileMetadata(fileName);
+  const merged: FileMetadata = {
+    ...(existing ?? {}),
+    ...patch,
+    fileName,
+    trackName: patch.trackName ?? existing?.trackName ?? "",
+    courseName: patch.courseName ?? existing?.courseName ?? "",
+  };
+  await saveFileMetadata(merged);
+  return merged;
 }
 
 export async function getFileMetadata(fileName: string): Promise<FileMetadata | null> {

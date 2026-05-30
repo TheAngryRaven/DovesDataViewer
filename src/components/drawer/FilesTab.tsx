@@ -1,14 +1,19 @@
-import { useCallback, useRef, useState, useEffect, lazy, Suspense } from "react";
-import { Trash2, Download, Upload, FolderOpen, Loader2, Video, X } from "lucide-react";
+import { useCallback, useRef, useState, useEffect, useMemo, lazy, Suspense, Fragment } from "react";
+import { Trash2, Download, Upload, FolderOpen, Folder, Loader2, Video, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
+import { Vehicle } from "@/lib/vehicleStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
+import {
+  buildBrowserSessions, computeBrowserView, defaultNav,
+  type FilterMode, type NavState,
+} from "@/lib/fileBrowserTree";
 // Lazy — keeps the BLE module in its own chunk, loaded only on device use.
 const DataloggerDownload = lazy(() =>
   import("@/components/DataloggerDownload").then((m) => ({ default: m.DataloggerDownload })),
 );
-import { listSessionVideos, deleteSessionVideo, StoredVideoMeta } from "@/lib/videoFileStorage";
+import { listSessionVideos, StoredVideoMeta } from "@/lib/videoFileStorage";
 import { PluginMount } from "@/plugins/PluginMount";
 import { MountSlot } from "@/plugins/mounts";
 
@@ -28,9 +33,17 @@ function formatLapTime(ms: number): string {
     : secs.toFixed(3);
 }
 
+const FILTER_LABELS: Record<FilterMode, string> = { none: "None", engine: "Engine", kart: "Kart" };
+
 interface FilesTabProps {
   files: FileEntry[];
   fileMetadataMap: Map<string, FileMetadata>;
+  vehicles: Vehicle[];
+  /** Track/course of the currently-loaded session — the browser opens here. */
+  currentTrackName: string | null;
+  currentCourseName: string | null;
+  /** Drawer open flag — re-homes the browser to the current session on each open. */
+  isOpen: boolean;
   storageUsed: number;
   storageQuota: number;
   onLoadFile: (name: string) => Promise<Blob | null>;
@@ -45,6 +58,10 @@ interface FilesTabProps {
 export function FilesTab({
   files,
   fileMetadataMap,
+  vehicles,
+  currentTrackName,
+  currentCourseName,
+  isOpen,
   storageUsed,
   storageQuota,
   onLoadFile,
@@ -61,21 +78,26 @@ export function FilesTab({
   const [loading, setLoading] = useState(false);
   const [videoFiles, setVideoFiles] = useState<Map<string, StoredVideoMeta>>(new Map());
 
+  // Folder navigation. Opens at the current session's track/course, and re-homes
+  // there whenever the drawer is (re)opened or a different session is loaded.
+  const [nav, setNav] = useState<NavState>(() => defaultNav(currentTrackName, currentCourseName));
+  useEffect(() => {
+    if (isOpen) setNav(defaultNav(currentTrackName, currentCourseName));
+  }, [isOpen, currentTrackName, currentCourseName]);
+
+  const sessions = useMemo(
+    () => buildBrowserSessions(files, fileMetadataMap, vehicles),
+    [files, fileMetadataMap, vehicles],
+  );
+  const view = useMemo(() => computeBrowserView(sessions, nav), [sessions, nav]);
+  const filesByName = useMemo(() => new Map(files.map((f) => [f.name, f])), [files]);
+
   // Load stored video metadata to show video icons
   useEffect(() => {
     listSessionVideos().then(videos => {
       setVideoFiles(new Map(videos.map(v => [v.sessionFileName, v])));
     }).catch(() => {});
   }, [files]);
-
-  const handleDeleteVideo = useCallback(async (sessionFileName: string) => {
-    await deleteSessionVideo(sessionFileName);
-    setVideoFiles(prev => {
-      const next = new Map(prev);
-      next.delete(sessionFileName);
-      return next;
-    });
-  }, []);
 
   const handleLoadConfirm = useCallback(async () => {
     if (!confirmLoad) return;
@@ -144,7 +166,74 @@ export function FilesTab({
     [onDataLoaded, onClose],
   );
 
+  const setFilter = useCallback((filter: FilterMode) => {
+    // Keep the resolved track/course; clear any drilled-in folder.
+    setNav((prev) => ({ track: prev.track, course: prev.course, filter }));
+  }, []);
+
   const storagePercent = storageQuota > 0 ? Math.min((storageUsed / storageQuota) * 100, 100) : 0;
+
+  const renderLog = (fileName: string, displayName: string, fastestLapMs?: number) => {
+    const file = filesByName.get(fileName);
+    if (!file) return null;
+    const metadata = fileMetadataMap.get(fileName);
+    return (
+      <div
+        key={fileName}
+        className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group"
+      >
+        <button
+          className="flex-1 text-left min-w-0 cursor-pointer"
+          onClick={() => setConfirmLoad(fileName)}
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-medium truncate text-foreground" title={fileName}>{displayName}</span>
+            {videoFiles.has(fileName) && (
+              <span title={(() => {
+                const m = videoFiles.get(fileName)!;
+                const parts = [m.exportType === "lap" && m.lapNumber != null ? `Lap ${m.lapNumber}` : m.exportType === "session" ? "Session" : "Source"];
+                if (m.hasOverlays) parts.push("w/ overlays");
+                parts.push(`(${formatSize(m.size)})`);
+                return parts.join(" ");
+              })()}>
+                <Video className="w-3.5 h-3.5 text-primary shrink-0" />
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {formatSize(file.size)} · {new Date(file.savedAt).toLocaleDateString()}
+            {fastestLapMs != null && (
+              <span className="ml-1.5 text-primary font-medium">
+                ⚡ {formatLapTime(fastestLapMs)}
+              </span>
+            )}
+          </div>
+        </button>
+        <PluginMount
+          slot={MountSlot.FileRow}
+          ctx={{ file, metadata }}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
+          onClick={() => onExportFile(fileName)}
+          title="Export / Download"
+        >
+          <Download className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive"
+          onClick={() => setConfirmDelete(fileName)}
+          title="Delete"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -198,62 +287,74 @@ export function FilesTab({
             <p className="text-xs">Upload or import files to get started</p>
           </div>
         ) : (
-          files.map((file) => (
-            <div
-              key={file.name}
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group"
-            >
-              <button
-                className="flex-1 text-left min-w-0 cursor-pointer"
-                onClick={() => setConfirmLoad(file.name)}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-mono truncate text-foreground">{file.name}</span>
-                  {videoFiles.has(file.name) && (
-                    <span title={(() => {
-                      const m = videoFiles.get(file.name)!;
-                      const parts = [m.exportType === "lap" && m.lapNumber != null ? `Lap ${m.lapNumber}` : m.exportType === "session" ? "Session" : "Source"];
-                      if (m.hasOverlays) parts.push("w/ overlays");
-                      parts.push(`(${formatSize(m.size)})`);
-                      return parts.join(" ");
-                    })()}>
-                      <Video className="w-3.5 h-3.5 text-primary shrink-0" />
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatSize(file.size)} · {new Date(file.savedAt).toLocaleDateString()}
-                  {fileMetadataMap.get(file.name)?.fastestLapMs != null && (
-                    <span className="ml-1.5 text-primary font-medium">
-                      ⚡ {formatLapTime(fileMetadataMap.get(file.name)!.fastestLapMs!)}
-                    </span>
-                  )}
-                </div>
-              </button>
-              <PluginMount
-                slot={MountSlot.FileRow}
-                ctx={{ file, metadata: fileMetadataMap.get(file.name) }}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
-                onClick={() => onExportFile(file.name)}
-                title="Export / Download"
-              >
-                <Download className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive"
-                onClick={() => setConfirmDelete(file.name)}
-                title="Delete"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
+          <div className="space-y-1">
+            {/* Breadcrumb — always shown so date-named logs read in context. */}
+            <div className="flex items-center flex-wrap gap-0.5 px-1 pb-1 text-sm">
+              {view.breadcrumb.map((seg, i) => {
+                const isLast = i === view.breadcrumb.length - 1;
+                return (
+                  <Fragment key={`${seg.label}-${i}`}>
+                    {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                    <button
+                      type="button"
+                      disabled={isLast}
+                      onClick={() => setNav(seg.nav)}
+                      className={isLast
+                        ? "font-semibold text-foreground truncate"
+                        : "text-muted-foreground hover:text-foreground truncate"}
+                    >
+                      {seg.label}
+                    </button>
+                  </Fragment>
+                );
+              })}
             </div>
-          ))
+
+            {/* Engine/Kart filter — only on the final log level. */}
+            {view.showFilter && (
+              <div className="flex items-center gap-2 px-1 pb-1">
+                <span className="text-xs text-muted-foreground">Group by</span>
+                <div className="flex gap-0.5 bg-muted/50 rounded-md p-0.5">
+                  {(["none", "engine", "kart"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setFilter(mode)}
+                      className={`px-2.5 py-0.5 text-xs font-medium rounded transition-colors ${
+                        view.filterMode === mode
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {FILTER_LABELS[mode]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Folders */}
+            {view.folders.map((folder) => (
+              <button
+                key={`${folder.kind}-${folder.key}`}
+                type="button"
+                onClick={() => setNav(folder.nav)}
+                className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors text-left"
+              >
+                <Folder className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="flex-1 text-sm font-medium text-foreground truncate">{folder.label}</span>
+                <span className="text-xs text-muted-foreground shrink-0">{folder.count}</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              </button>
+            ))}
+
+            {/* Logs (final list, or unconfigured logs below filter folders) */}
+            {view.sessions.map((s) => renderLog(s.fileName, s.displayName, s.fastestLapMs))}
+
+            {view.folders.length === 0 && view.sessions.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-6">No sessions here</p>
+            )}
+          </div>
         )}
       </div>
 
