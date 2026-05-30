@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Active subscription no longer reads as "Free".** The Stripe webhook could
+  resolve an entitling subscription (active/trialing/past_due) down to the free
+  tier when the price in a webhook payload arrived without its `lookup_key` —
+  notably after **un-cancelling** a subscription. The webhook now re-fetches the
+  full price when needed and, as a safety net, never demotes an entitling
+  subscription to free (it keeps the existing paid tier instead).
+
 ### Added
 - **Change your plan from your profile.** Subscribers now get a **Change plan**
   button alongside **Manage subscription** in **Profile → Plan**. It deep-links

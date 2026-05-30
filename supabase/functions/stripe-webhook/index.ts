@@ -27,15 +27,26 @@ async function tierForPrice(
   price: Stripe.Price | undefined,
 ): Promise<{ tier: string; interval: string | null }> {
   if (!price) return { tier: 'free', interval: null };
-  if (price.lookup_key) {
-    const [tier, interval] = price.lookup_key.split('_');
+  // The price nested in a webhook payload can arrive without lookup_key (a thin
+  // object). Re-fetch the full price before falling back, so we never misresolve
+  // an active paid subscription down to free just because the field was missing.
+  let resolved = price;
+  if (!resolved.lookup_key && resolved.id) {
+    try {
+      resolved = await stripe.prices.retrieve(resolved.id);
+    } catch (e) {
+      console.error('stripe-webhook: failed to retrieve price', resolved.id, e);
+    }
+  }
+  if (resolved.lookup_key) {
+    const [tier, interval] = resolved.lookup_key.split('_');
     if (tier) return { tier, interval: interval ?? null };
   }
-  const intervalFromRecurring = price.recurring?.interval === 'year' ? 'annual' : 'monthly';
+  const intervalFromRecurring = resolved.recurring?.interval === 'year' ? 'annual' : 'monthly';
   const { data } = await db
     .from('subscription_tiers')
     .select('tier')
-    .eq('stripe_price_id', price.id)
+    .eq('stripe_price_id', resolved.id)
     .maybeSingle();
   return { tier: data?.tier ?? 'free', interval: data ? intervalFromRecurring : null };
 }
@@ -87,7 +98,7 @@ async function applySubscription(
 
   const { data: existing } = await db
     .from('user_subscriptions')
-    .select('grace_until, stripe_subscription_id')
+    .select('tier, grace_until, stripe_subscription_id')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -109,7 +120,18 @@ async function applySubscription(
   }
 
   const resolved = await tierForPrice(db, price);
-  const tier = entitled ? resolved.tier : 'free';
+  let tier = entitled ? resolved.tier : 'free';
+  // Safety net: an entitling Stripe status (active/trialing/past_due) must never
+  // land on the free tier — that silently strips a paying customer's plan (e.g.
+  // the symptom seen when un-cancelling: Stripe says subscribed, app says free).
+  // If price resolution still came back empty, keep the paid tier we already had.
+  if (entitled && tier === 'free' && existing?.tier && existing.tier !== 'free') {
+    console.warn(
+      'stripe-webhook: entitling subscription resolved to free; keeping existing tier',
+      existing.tier, sub.id,
+    );
+    tier = existing.tier;
+  }
   const endsAt = periodEnd(sub);
 
   // Cancellation grace: once the subscription stops entitling access, keep the
