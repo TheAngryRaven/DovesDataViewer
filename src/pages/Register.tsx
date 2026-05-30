@@ -9,7 +9,8 @@ import { Gauge, ArrowLeft } from 'lucide-react';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 import { Turnstile, turnstileEnabled } from '@/components/Turnstile';
 import { PricingCards } from '@/components/PricingCards';
-import { PlanChooser, type PlanSelection } from '@/components/PlanChooser';
+import { PlanCheckout, PlanCheckoutSummary, type PlanSelection } from '@/components/PlanCheckout';
+import { useStripePrices } from '@/hooks/useStripePrices';
 import { isDisposableEmail, looksLikeEmail } from '@/lib/emailValidation';
 import { isPaidTier } from '@/lib/billing';
 import { setPendingCheckout } from '@/lib/pendingCheckout';
@@ -21,7 +22,6 @@ export default function Register() {
     canonical: 'https://hackthetrack.net/register',
   });
   const [email, setEmail] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +29,7 @@ export default function Register() {
   const [plan, setPlan] = useState<PlanSelection>({ tier: 'free', interval: 'monthly' });
   const [confirmAge, setConfirmAge] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
+  const { config } = useStripePrices();
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -58,7 +59,9 @@ export default function Register() {
       return;
     }
     setIsLoading(true);
-    const { error } = await signUp(email, password, displayName, captchaToken ?? undefined);
+    // No display name at sign-up — the server auto-assigns a free random name the
+    // user can change (and reserve) later from their profile.
+    const { error } = await signUp(email, password, undefined, captchaToken ?? undefined);
     setIsLoading(false);
     if (error) {
       toast({ title: 'Registration failed', description: error.message, variant: 'destructive' });
@@ -98,31 +101,17 @@ export default function Register() {
         <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
       </div>
 
-      <PricingCards className="w-full max-w-5xl" />
+      <PricingCards className="w-full max-w-3xl" variant="register" />
 
       <div className="w-full max-w-sm space-y-6">
         <div className="racing-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Create account</h2>
-
-          <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
-            Continue with Google
-          </Button>
-          <div className="relative flex items-center">
-            <div className="flex-grow border-t border-border" />
-            <span className="mx-3 text-xs text-muted-foreground">or</span>
-            <div className="flex-grow border-t border-border" />
-          </div>
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="displayName">Display name <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <Input id="displayName" type="text" maxLength={40} placeholder="Leave blank for a random name" value={displayName} onChange={e => setDisplayName(e.target.value)} />
-            </div>
-            <PlanChooser value={plan} onChange={setPlan} />
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
@@ -131,6 +120,7 @@ export default function Register() {
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
             </div>
+            <PlanCheckout value={plan} onChange={setPlan} config={config} />
             <Turnstile onToken={setCaptchaToken} className="flex justify-center" />
             <label htmlFor="confirmAge" className="flex items-start gap-2 text-xs text-muted-foreground">
               <input
@@ -147,10 +137,22 @@ export default function Register() {
                 <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
               </span>
             </label>
-            <Button type="submit" className="w-full" disabled={isLoading || !confirmAge}>
-              {isLoading ? 'Please wait...' : 'Create Account'}
-            </Button>
+            <div className="flex items-center gap-3">
+              <PlanCheckoutSummary value={plan} config={config} />
+              <Button type="submit" className="flex-1" disabled={isLoading || !confirmAge}>
+                {isLoading ? 'Please wait...' : 'Create Account'}
+              </Button>
+            </div>
           </form>
+
+          <div className="relative flex items-center">
+            <div className="flex-grow border-t border-border" />
+            <span className="mx-3 text-xs text-muted-foreground">or</span>
+            <div className="flex-grow border-t border-border" />
+          </div>
+          <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
+            Continue with Google
+          </Button>
 
           <p className="text-sm text-muted-foreground text-center">
             Already have an account?{' '}

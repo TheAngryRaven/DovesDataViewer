@@ -48,10 +48,11 @@ Deno.serve(async (req) => {
     if (!tier || typeof tier !== 'string' || tier === 'free') {
       return json({ error: 'Invalid tier' }, 400);
     }
-    // Tiers that exist but aren't self-service purchasable yet (e.g. the AI
-    // plan). They can still be comped by creating the subscription directly in
-    // Stripe — the webhook honours it. Keep in sync with billing.ts COMING_SOON_TIERS.
-    const COMING_SOON = new Set(['pro']);
+    // Tiers that exist but aren't self-service purchasable yet (Premium + the AI
+    // Pro plan). They can still be comped by creating the subscription directly
+    // in Stripe — the webhook honours it. Keep in sync with billing.ts
+    // COMING_SOON_TIERS.
+    const COMING_SOON = new Set(['premium', 'pro']);
     if (COMING_SOON.has(tier)) {
       return json({ error: 'Tier is coming soon and not yet available to purchase' }, 400);
     }

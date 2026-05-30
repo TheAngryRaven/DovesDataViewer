@@ -135,11 +135,12 @@ The app includes an optional admin system for managing a community track databas
 > Stripe **test mode** first. Tier entitlements are granted only by the webhook,
 > never the client.
 >
-> **Coming-soon / comped tiers:** the AI (Pro) tier is listed in
+> **On-hold / comped tiers:** the **Premium** and **Pro** (AI) tiers are listed in
 > `COMING_SOON_TIERS` (`src/lib/billing.ts`, mirrored in `create-checkout-session`)
-> so it shows as "Coming soon" and can't be bought via the app. To give it to a
-> tester/friend, create the subscription directly in Stripe on the `pro_*` price
-> and set the subscription's `metadata.user_id` to their account id (or change an
+> so they're hidden from the pricing UI entirely and can't be bought via the app
+> (only **Free** + **Plus** are shown at launch). To give one to a tester/friend,
+> create the subscription directly in Stripe on the `premium_*` / `pro_*` price and
+> set the subscription's `metadata.user_id` to their account id (or change an
 > existing customer's price) — the webhook grants it. Remove the tier from both
 > `COMING_SOON_TIERS` sets to open self-service purchase.
 >

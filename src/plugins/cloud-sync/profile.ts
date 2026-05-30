@@ -2,6 +2,7 @@
 // and is user-editable: account creation auto-resolves a free name server-side,
 // while an explicit edit surfaces a "taken" result so the user can pick another.
 
+import { containsProfanity } from "@/lib/profanity";
 import { isUniqueViolation, profiles, type ProfileRow } from "./cloudClient";
 
 /** The signed-in user's profile, or null if it doesn't exist yet. */
@@ -16,12 +17,13 @@ export async function getMyProfile(userId: string): Promise<ProfileRow | null> {
 
 export type UpdateNameResult =
   | { ok: true }
-  | { ok: false; reason: "taken" | "empty" | "error"; message?: string };
+  | { ok: false; reason: "taken" | "empty" | "profanity" | "error"; message?: string };
 
-/** Change the display name, reporting a taken name distinctly so the UI can prompt. */
+/** Change the display name, reporting a taken/profane name distinctly so the UI can prompt. */
 export async function updateDisplayName(userId: string, name: string): Promise<UpdateNameResult> {
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, reason: "empty" };
+  if (containsProfanity(trimmed)) return { ok: false, reason: "profanity" };
 
   const { error } = await profiles()
     .update({ display_name: trimmed, updated_at: new Date().toISOString() })

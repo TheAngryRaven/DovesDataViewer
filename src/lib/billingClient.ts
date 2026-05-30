@@ -66,10 +66,18 @@ export async function createCheckout(
   return url;
 }
 
-/** Open the Stripe Billing Portal; resolves to the hosted URL to redirect to. */
-export async function createPortal(returnUrl: string): Promise<string> {
+/**
+ * Open the Stripe Billing Portal; resolves to the hosted URL to redirect to.
+ * `flow: "update"` deep-links straight into the change-plan screen (for the
+ * "Change plan" button); the default generic portal handles cancel / payment
+ * methods / invoices.
+ */
+export async function createPortal(
+  returnUrl: string,
+  flow?: "update",
+): Promise<string> {
   const { data, error } = await supabase.functions.invoke("create-portal-session", {
-    body: { returnUrl },
+    body: { returnUrl, ...(flow ? { flow } : {}) },
   });
   if (error) throw new Error(error.message);
   const url = (data as { url?: string } | null)?.url;

@@ -1,5 +1,6 @@
-// Returns a Stripe Billing Portal URL so the user can manage / cancel their
-// subscription on Stripe-hosted pages (no billing UI to build or maintain).
+// Returns a Stripe Billing Portal URL so the user can manage / cancel / change
+// their subscription on Stripe-hosted pages (no billing UI to build or maintain).
+// An optional `flow: "update"` deep-links into the change-plan screen.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
 
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
       return json({ error: 'Unauthorized' }, 401);
     }
 
-    const { returnUrl } = await req.json().catch(() => ({}));
+    const { returnUrl, flow } = await req.json().catch(() => ({}));
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
     );
     const { data: sub } = await admin
       .from('user_subscriptions')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, stripe_subscription_id, status')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -56,9 +57,25 @@ Deno.serve(async (req) => {
     }
 
     const base = (typeof returnUrl === 'string' && returnUrl) || req.headers.get('origin') || undefined;
+
+    // "Change plan" deep-links straight into the subscription-update flow instead
+    // of the generic portal home. Only valid with an active subscription to
+    // update; otherwise we fall back to the generic portal.
+    const ENTITLING = ['active', 'trialing', 'past_due'];
+    const wantUpdate =
+      flow === 'update' && sub.stripe_subscription_id && ENTITLING.includes(sub.status ?? '');
+
     const session = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
       return_url: base,
+      ...(wantUpdate
+        ? {
+            flow_data: {
+              type: 'subscription_update',
+              subscription_update: { subscription: sub.stripe_subscription_id as string },
+            },
+          }
+        : {}),
     });
 
     return json({ url: session.url });

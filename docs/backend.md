@@ -4,7 +4,7 @@
 > **Per Golden Rule #1, the core app needs none of this** — these subsystems are
 > the accepted online exceptions (cloud sync, billing, account data rights).
 > Read this before working on the `src/plugins/cloud-sync/` plugin, billing
-> (`lib/billing*.ts`, `PricingCards`, `PlanChooser`), GDPR/account flows, or
+> (`lib/billing*.ts`, `PricingCards`, `PlanCheckout`), GDPR/account flows, or
 > anything under `supabase/` (migrations + edge functions). Operator setup
 > (Stripe Products/Prices, secrets, `pg_cron`) lives in `README.md`.
 
@@ -138,10 +138,11 @@ Stripe Price tagged with a lookup_key `${tier}_${interval}` (`plus_monthly`,
 `plus_annual`, `premium_monthly`, …). Checkout and the catalogue resolve prices
 live by lookup_key, so the Stripe dashboard is the single source of truth.
 
-**Coming-soon tiers:** `COMING_SOON_TIERS` in `lib/billing.ts` (currently `pro`,
-the AI plan) lists tiers that exist but aren't self-service purchasable yet —
-shown as "Coming soon", excluded from `PlanChooser`, no Upgrade button, and
-rejected by `create-checkout-session` (mirror the set there). They can still be
+**On-hold tiers:** `COMING_SOON_TIERS` in `lib/billing.ts` (currently `premium`
+and `pro`, the AI plan) lists tiers that exist but aren't self-service
+purchasable yet — **hidden from the pricing UI entirely** (no teaser card),
+excluded from `PlanCheckout`, and rejected by `create-checkout-session` (mirror
+the set there). Only **Free** + **Plus** are shown at launch. They can still be
 **comped** by creating the subscription directly in Stripe (set the
 subscription's `metadata.user_id`, or change an existing customer's price); the
 webhook grants whatever tier the price's lookup_key maps to.
@@ -167,29 +168,42 @@ manually like the rest of the repo, the webhook verifies the Stripe signature):
   `cancel_at_period_end`; on cancellation sets `grace_until`; `deleted` → `free`)
   via the service role.
 - `create-portal-session` — returns a Stripe Billing Portal URL for
-  manage/upgrade/downgrade/cancel (no in-app billing UI).
+  manage/upgrade/downgrade/cancel (no in-app billing UI). An optional
+  `flow: "update"` deep-links into the change-plan screen (used by the profile's
+  **Change plan** button); it falls back to the generic portal without an active
+  subscription to update.
 
 Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
 
 **Client wiring** (core, not the cloud-sync plugin — billing is account-level and
 PricingCards renders even with cloud disabled): `lib/billing.ts` is the pure,
 unit-tested layer (`isActiveStatus`/`effectiveTier`/`isPaidTier`/`pricingCta`,
-plus `lookupKey`/`tiersWithPrices`/`paidTiersVisible`/`priceFor`/`formatPrice` +
-row/price shapes); `lib/billingClient.ts` is the Supabase I/O (`fetchTiers`,
-`fetchMySubscription`, `fetchStripeConfig`, `createCheckout(tier, interval)`,
-`createPortal`), through the same untyped escape hatch as `cloudClient.ts`.
+plus `lookupKey`/`tiersWithPrices`/`paidTiersVisible`/`priceFor`/`formatPrice`,
+`annualMonthlyEquivalent`/`annualDiscountPercent` for the checkout summary, the
+`TIER_STORAGE_LABEL`/`TIER_DISPLAY_LABEL` maps + row/price shapes);
+`lib/billingClient.ts` is the Supabase I/O (`fetchTiers`, `fetchMySubscription`,
+`fetchStripeConfig`, `createCheckout(tier, interval)`, `createPortal(returnUrl,
+flow?)`), through the same untyped escape hatch as `cloudClient.ts`.
 `hooks/useSubscription.ts` reads the tier catalogue + the user's subscription;
 `hooks/useStripePrices.ts` reads the live price catalogue (online, never throws).
-`PricingCards` has a **monthly/annual toggle**, shows live **Upgrade** /
-**Current plan** actions, and — the **failback** — hides the paid tiers entirely
-when `paidTiersVisible(config)` is false (only Guest + Free cards). `PlanChooser`
-(sign-up) picks tier + interval; a paid choice stashes a `lib/pendingCheckout.ts`
-intent that `components/PendingCheckoutRedirect.tsx` (mounted in `App.tsx` for
-cloud builds) redeems → Checkout on first sign-in after email confirmation.
-cloud-sync's Profile-tab `StoragePanel` shows the plan + renewal/cancellation/
-grace date + a **Manage subscription** portal link. **Stripe setup (create
-Products/Prices with the lookup_keys, secrets, webhook, enable pg_cron) is
-operator config — see README.**
+`PricingCards` takes a `variant`: **home** (landing page — three cards: Free
+offline, Free online, Plus, with a monthly/annual toggle) or **register**
+(sign-up — two cards: Free online, which folds in the offline summary, + Plus, no
+toggle). It shows live **Upgrade** / **Current plan** actions and — the
+**failback** — hides the paid tiers entirely when `paidTiersVisible(config)` is
+false. `PlanCheckout` (sign-up) is a checkout-style picker — a **storage-tier
+dropdown** + **monthly/annual switch** — and `PlanCheckoutSummary` renders the
+live **cost-per-month** (annual shows the monthly-equivalent + `annualDiscountPercent`
+saving) next to the Create Account button. A paid choice stashes a
+`lib/pendingCheckout.ts` intent that `components/PendingCheckoutRedirect.tsx`
+(mounted in `App.tsx` for cloud builds) redeems → Checkout on first sign-in after
+email confirmation. Sign-up takes **no display name** (the server auto-assigns a
+random one, changeable later); display-name edits run through a basic
+`lib/profanity.ts` filter. cloud-sync's Profile-tab `StoragePanel` shows the plan
++ renewal/cancellation/grace date + a **Manage subscription** portal link and,
+for active subscribers, a **Change plan** button (portal `flow: "update"`).
+**Stripe setup (create Products/Prices with the lookup_keys, secrets, webhook,
+enable pg_cron) is operator config — see README.**
 
 ---
 

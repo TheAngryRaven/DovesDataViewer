@@ -10,6 +10,8 @@ import {
   priceFor,
   formatPrice,
   isComingSoon,
+  annualMonthlyEquivalent,
+  annualDiscountPercent,
   type StripePrice,
 } from "./billing";
 
@@ -137,13 +139,39 @@ describe("priceFor", () => {
 });
 
 describe("isComingSoon", () => {
-  it("flags the AI (pro) tier as not-yet-purchasable", () => {
+  it("flags the on-hold tiers (premium + the AI pro tier) as not-yet-purchasable", () => {
     expect(isComingSoon("pro")).toBe(true);
+    expect(isComingSoon("premium")).toBe(true);
   });
-  it("treats the other tiers as available", () => {
+  it("treats the launch tiers as available", () => {
     expect(isComingSoon("free")).toBe(false);
     expect(isComingSoon("plus")).toBe(false);
-    expect(isComingSoon("premium")).toBe(false);
+  });
+});
+
+describe("annualMonthlyEquivalent", () => {
+  it("spreads an annual price across 12 months", () => {
+    expect(annualMonthlyEquivalent(12000)).toBe(1000);
+  });
+  it("is null for a missing amount", () => {
+    expect(annualMonthlyEquivalent(null)).toBeNull();
+    expect(annualMonthlyEquivalent(undefined)).toBeNull();
+  });
+});
+
+describe("annualDiscountPercent", () => {
+  it("reports the saving versus 12× the monthly price", () => {
+    // $10/mo = $120/yr; an $99/yr annual plan saves ~17.5% → rounds to 18.
+    expect(annualDiscountPercent(1000, 9900)).toBe(18);
+    // Exactly two months free → ~16.67% → 17.
+    expect(annualDiscountPercent(1000, 10000)).toBe(17);
+  });
+  it("is null when there's no saving or an amount is missing", () => {
+    expect(annualDiscountPercent(1000, 12000)).toBeNull(); // same as monthly
+    expect(annualDiscountPercent(1000, 13000)).toBeNull(); // more expensive
+    expect(annualDiscountPercent(null, 9900)).toBeNull();
+    expect(annualDiscountPercent(1000, null)).toBeNull();
+    expect(annualDiscountPercent(0, 9900)).toBeNull();
   });
 });
 

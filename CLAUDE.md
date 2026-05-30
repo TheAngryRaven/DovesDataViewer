@@ -120,8 +120,9 @@ src/
 │   ├── ble/               # Web Bluetooth DovesLapTimer protocol, split per-concern (see BLE Integration);
 │   │                      #   + bleDatalogger.ts (legacy barrel), deviceTrackSync.ts, deviceSettingsSchema.ts
 │   ├── db/                # Admin DB layer: ITrackDatabase + supabaseAdapter + getDatabase() factory
-│   ├── billing.ts         # ★ Pure subscription logic, no Supabase import — see docs/backend.md
+│   ├── billing.ts         # ★ Pure subscription logic (tiers, coming-soon, annual-discount math), no Supabase import — see docs/backend.md
 │   ├── billingClient.ts / pendingCheckout.ts   # Supabase billing I/O + sign-up checkout stash
+│   ├── profanity.ts       # Basic client-side profanity filter for display names
 │   ├── weatherService.ts  # OpenWeatherMap (online-only)
 │   └── utils.ts           # Tailwind cn() helper
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section

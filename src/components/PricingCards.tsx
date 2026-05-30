@@ -20,12 +20,15 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 
 type PaidSlug = "plus" | "premium" | "pro";
 
+// A feature line is either a plain string or a heading with indented sub-bullets.
+type Feature = string | { label: string; sub: string[] };
+
 interface FreeTier {
   name: string;
   blurb: string;
   price: string;
   inherits?: string;
-  features: string[];
+  features: Feature[];
   highlight?: boolean;
   /** Maps the card to a subscription tier slug (the offline card has none). */
   slug?: "free";
@@ -35,48 +38,68 @@ interface PaidTier {
   name: string;
   blurb: string;
   inherits: string;
-  features: string[];
+  features: Feature[];
   slug: PaidSlug;
+  highlight?: boolean;
 }
 
-// The two always-on free cards. Prices are fixed ($0) — no Stripe needed.
-const FREE_TIERS: FreeTier[] = [
-  {
-    name: "Free",
-    blurb: "Offline",
-    price: "$0",
-    features: [
-      "Full data viewer",
-      "Bluetooth (BLE) device connectivity",
-      "Save logs to your device",
-      "Add overlays & export videos",
-      "Offline mathematical session debrief",
-    ],
-  },
-  {
+// Everything the always-free, fully-offline app does — no account needed. Shown
+// as its own card on the landing page and folded into the online card on sign-up.
+const OFFLINE_FEATURES: string[] = [
+  "Full data viewer",
+  "Bluetooth (BLE) device connectivity",
+  "Reference-lap overlay & comparison",
+  "Braking zones & G-force analysis",
+  "Add overlays & export videos",
+  "Offline mathematical session debrief",
+];
+
+// What syncing to the cloud (the free online account) actually buys you.
+const CLOUD_SYNC_FEATURE: Feature = {
+  label: "Sync data with the cloud",
+  sub: [
+    "Unique setup for each session",
+    "Fastest laptimes per engine",
+    "Personal tracks and session notes",
+  ],
+};
+
+const OFFLINE_CARD: FreeTier = {
+  name: "Free",
+  blurb: "Offline",
+  price: "$0",
+  features: OFFLINE_FEATURES,
+};
+
+// The online free card. On sign-up it leads with the offline summary (there's no
+// separate offline card there); on the landing page offline is its own card, so
+// it just inherits from it.
+function onlineCard(variant: Variant): FreeTier {
+  return {
     name: "Free",
     blurb: "Online account",
     price: "$0",
-    highlight: true,
     slug: "free",
-    inherits: "Everything in Free, plus",
-    features: [
-      "Setup info synced across all your devices",
-      "Sync your personal tracks",
-      "50 MB cloud storage",
-    ],
-  },
-];
+    inherits: variant === "register" ? "Everything included with offline mode" : "Everything in Free, plus",
+    features: [CLOUD_SYNC_FEATURE, "Fastest laps & synced setups — always free", "50 MB cloud storage"],
+  };
+}
 
 // Paid tiers — feature copy is static; the price is resolved live from Stripe
-// (by lookup_key) and these cards are hidden entirely when Stripe isn't wired up.
+// (by lookup_key) and these cards are hidden when Stripe isn't wired up. Premium
+// + Pro are coming-soon (see billing.ts COMING_SOON_TIERS) and hidden entirely.
 const PAID_TIERS: PaidTier[] = [
   {
     name: "Plus",
     blurb: "For bigger garages",
     slug: "plus",
+    highlight: true,
     inherits: "Everything in Free online, plus",
-    features: ["10 GB cloud storage"],
+    features: [
+      "10 GB cloud storage",
+      "Video uploads & sharing (coming soon)",
+      "You're helping support the project ❤️",
+    ],
   },
   {
     name: "Premium",
@@ -94,6 +117,35 @@ const PAID_TIERS: PaidTier[] = [
   },
 ];
 
+function FeatureList({ features }: { features: Feature[] }) {
+  return (
+    <ul className="mt-2 space-y-2">
+      {features.map((f) => {
+        const label = typeof f === "string" ? f : f.label;
+        const sub = typeof f === "string" ? undefined : f.sub;
+        return (
+          <li key={label} className="text-sm text-foreground">
+            <div className="flex items-start gap-2">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span>{label}</span>
+            </div>
+            {sub && (
+              <ul className="mt-1 space-y-1 pl-6">
+                {sub.map((s) => (
+                  <li key={s} className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function TierCard({
   name,
   blurb,
@@ -102,7 +154,6 @@ function TierCard({
   inherits,
   features,
   highlight,
-  comingSoon,
   cta,
 }: {
   name: string;
@@ -110,9 +161,8 @@ function TierCard({
   price: string;
   cadence?: string;
   inherits?: string;
-  features: string[];
+  features: Feature[];
   highlight?: boolean;
-  comingSoon?: boolean;
   cta?: ReactNode;
 }) {
   return (
@@ -126,11 +176,6 @@ function TierCard({
           Recommended
         </span>
       )}
-      {comingSoon && (
-        <span className="absolute -top-2.5 right-4 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Coming soon
-        </span>
-      )}
       <div className="space-y-0.5">
         <h3 className="text-base font-semibold text-foreground">{name}</h3>
         <p className="text-xs text-muted-foreground">{blurb}</p>
@@ -142,14 +187,7 @@ function TierCard({
         </div>
       )}
       {inherits && <p className="mt-3 text-xs font-medium text-muted-foreground">{inherits}</p>}
-      <ul className="mt-2 space-y-2">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-sm text-foreground">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
+      <FeatureList features={features} />
       {cta && <div className="mt-auto pt-4">{cta}</div>}
     </div>
   );
@@ -183,14 +221,20 @@ function IntervalToggle({
   );
 }
 
+type Variant = "home" | "register";
+
 /**
- * Plans / pricing grid. Shown on the landing page (the empty-state of the main
- * app) and on the registration page. The two free cards always render;
- * signed-in users get live "Upgrade" / "Current plan" actions on the paid tiers.
- * When Stripe isn't configured the paid tiers are hidden entirely (free-only
- * failback), and a monthly/annual toggle appears only when paid plans are shown.
+ * Plans / pricing grid.
+ * - `home` (landing page): three cards — Free offline, Free online, Plus — with a
+ *   monthly/annual toggle; signed-in users get live "Upgrade" / "Current plan"
+ *   actions on Plus.
+ * - `register` (sign-up): two cards — Free online (which folds in the offline
+ *   summary) and Plus — and no interval toggle (the billing interval is chosen in
+ *   the checkout below the cards).
+ * Premium + Pro are coming-soon and hidden entirely. When Stripe isn't configured
+ * the paid cards drop out (free-only failback).
  */
-export function PricingCards({ className }: { className?: string }) {
+export function PricingCards({ className, variant = "home" }: { className?: string; variant?: Variant }) {
   const { user } = useAuth();
   const { currentTier } = useSubscription();
   const { config } = useStripePrices();
@@ -200,12 +244,19 @@ export function PricingCards({ className }: { className?: string }) {
   const signedIn = !!user;
   const showPaid = paidTiersVisible(config);
   const purchasable = tiersWithPrices(config.prices);
-  const cadence = interval === "annual" ? "/yr" : "/mo";
+  // The cards' interval: the toggle on home, fixed monthly on sign-up.
+  const cardInterval: BillingInterval = variant === "register" ? "monthly" : interval;
+  const cadence = cardInterval === "annual" ? "/yr" : "/mo";
+  const showToggle = variant === "home" && showPaid;
+
+  const freeCards: FreeTier[] = variant === "register" ? [onlineCard(variant)] : [OFFLINE_CARD, onlineCard(variant)];
+  // Only self-service-purchasable paid tiers (Premium/Pro are hidden at launch).
+  const paidTiers = PAID_TIERS.filter((t) => !isComingSoon(t.slug));
 
   const onUpgrade = async (slug: PaidSlug) => {
     setBusy(slug);
     try {
-      const url = await createCheckout(slug, interval, window.location.href);
+      const url = await createCheckout(slug, cardInterval, window.location.href);
       window.location.href = url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't start checkout.");
@@ -263,6 +314,10 @@ export function PricingCards({ className }: { className?: string }) {
     return null;
   };
 
+  // Two cards on sign-up centre nicely at two columns; the landing page goes
+  // three across from the tablet breakpoint up (single column on phones).
+  const gridCols = variant === "register" ? "sm:grid-cols-2" : "sm:grid-cols-3";
+
   return (
     <section className={className}>
       <div className="text-center space-y-1">
@@ -270,14 +325,14 @@ export function PricingCards({ className }: { className?: string }) {
         <p className="text-sm text-muted-foreground">
           Start free and fully offline. Add an account for cross-device sync — upgrade only if you need more.
         </p>
-        {showPaid && (
+        {showToggle && (
           <div className="flex justify-center">
             <IntervalToggle value={interval} onChange={setInterval} />
           </div>
         )}
       </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {FREE_TIERS.map((tier) => (
+      <div className={`mt-6 grid gap-4 ${gridCols}`}>
+        {freeCards.map((tier) => (
           <TierCard
             key={`${tier.name}-${tier.blurb}`}
             name={tier.name}
@@ -290,23 +345,21 @@ export function PricingCards({ className }: { className?: string }) {
           />
         ))}
         {showPaid &&
-          PAID_TIERS.map((tier) => {
-            const soon = isComingSoon(tier.slug);
-            const price = priceFor(config.prices, tier.slug, interval);
-            // Purchasable tiers without a price for this interval are hidden;
-            // coming-soon tiers always show (as a teaser) but can't be bought.
-            if (!soon && !price) return null;
+          paidTiers.map((tier) => {
+            const price = priceFor(config.prices, tier.slug, cardInterval);
+            // Hidden when this interval isn't priced in Stripe.
+            if (!price) return null;
             return (
               <TierCard
                 key={tier.slug}
                 name={tier.name}
                 blurb={tier.blurb}
-                price={price ? formatPrice(price.unitAmount, price.currency) : ""}
-                cadence={price ? cadence : undefined}
+                price={formatPrice(price.unitAmount, price.currency)}
+                cadence={cadence}
                 inherits={tier.inherits}
                 features={tier.features}
-                comingSoon={soon}
-                cta={soon ? null : ctaFor(tier.slug, true)}
+                highlight={tier.highlight}
+                cta={ctaFor(tier.slug, true)}
               />
             );
           })}

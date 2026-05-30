@@ -109,13 +109,55 @@ export function isPaidTier(tier: string): boolean {
 
 // Tiers that exist but aren't yet self-service purchasable — shown as
 // "Coming soon" and never selectable for checkout (the create-checkout-session
-// edge function rejects them too). They can still be granted manually (e.g.
-// comping a tester) by creating the subscription in Stripe, which the webhook
-// honours. Keep this in sync with create-checkout-session's COMING_SOON set.
-export const COMING_SOON_TIERS = new Set<string>(["pro"]);
+// edge function rejects them too). They're hidden from the pricing UI entirely
+// (not shown as teasers — keeps the choice count low at launch). They can still
+// be granted manually (e.g. comping a tester) by creating the subscription in
+// Stripe, which the webhook honours. Keep this in sync with
+// create-checkout-session's COMING_SOON set.
+export const COMING_SOON_TIERS = new Set<string>(["premium", "pro"]);
 
 export function isComingSoon(tier: string): boolean {
   return COMING_SOON_TIERS.has(tier);
+}
+
+// Human-readable storage budget per tier, for the sign-up UI where the live
+// subscription_tiers catalogue isn't readable yet (the user is signed out). Must
+// stay in sync with subscription_tiers.total_bytes in the DB.
+export const TIER_STORAGE_LABEL: Record<string, string> = {
+  free: "50 MB",
+  plus: "10 GB",
+  premium: "100 GB",
+  pro: "500 GB",
+};
+
+// Display name per tier slug, for dropdowns / summaries.
+export const TIER_DISPLAY_LABEL: Record<string, string> = {
+  free: "Free",
+  plus: "Plus",
+  premium: "Premium",
+  pro: "Pro",
+};
+
+/** The monthly-equivalent cost (minor units) of an annual price — annual / 12. */
+export function annualMonthlyEquivalent(annualUnitAmount: number | null | undefined): number | null {
+  if (annualUnitAmount == null) return null;
+  return annualUnitAmount / 12;
+}
+
+/**
+ * The discount (whole %) an annual plan gives versus paying monthly for a year,
+ * i.e. how much cheaper 1× annual is than 12× monthly. Returns null when either
+ * amount is missing or the annual price isn't actually cheaper.
+ */
+export function annualDiscountPercent(
+  monthlyUnitAmount: number | null | undefined,
+  annualUnitAmount: number | null | undefined,
+): number | null {
+  if (monthlyUnitAmount == null || annualUnitAmount == null || monthlyUnitAmount <= 0) return null;
+  const yearlyAtMonthly = monthlyUnitAmount * 12;
+  const saved = yearlyAtMonthly - annualUnitAmount;
+  if (saved <= 0) return null;
+  return Math.round((saved / yearlyAtMonthly) * 100);
 }
 
 export type PricingCtaKind = "none" | "current" | "manage" | "upgrade";

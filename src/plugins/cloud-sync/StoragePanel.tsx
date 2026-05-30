@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  Check, CloudOff, CreditCard, Loader2, LogOut, Pencil,
+  Check, CloudOff, CreditCard, Loader2, LogOut, Pencil, RefreshCw,
   User as UserIcon, WifiOff, X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -191,6 +191,8 @@ function DisplayName({ userId, email, action }: { userId: string; email: string;
       toast.error("That name's taken — try another.");
     } else if (result.reason === "empty") {
       toast.error("Display name can't be empty.");
+    } else if (result.reason === "profanity") {
+      toast.error("Please choose a cleaner display name.");
     } else {
       toast.error(result.message ?? "Couldn't update display name.");
     }
@@ -240,7 +242,7 @@ function DisplayName({ userId, email, action }: { userId: string; email: string;
 
 function PlanSection() {
   const { tiers, currentTier, subscription, loading } = useSubscription();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"manage" | "change" | null>(null);
 
   const label = tiers.find((t) => t.tier === currentTier)?.label
     ?? currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
@@ -257,14 +259,16 @@ function PlanSection() {
   const inGrace = !subscribed && !!graceUntil;
   const canManage = !!subscription?.current_period_end || subscribed || inGrace;
 
-  const manage = async () => {
-    setBusy(true);
+  // Open the Stripe portal — generic (cancel / payment methods) or, with
+  // flow "update", deep-linked into the change-plan screen.
+  const openPortal = async (which: "manage" | "change") => {
+    setBusy(which);
     try {
-      const url = await createPortal(window.location.href);
+      const url = await createPortal(window.location.href, which === "change" ? "update" : undefined);
       window.location.href = url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't open the billing portal.");
-      setBusy(false);
+      setBusy(null);
     }
   };
 
@@ -289,10 +293,33 @@ function PlanSection() {
           )}
         </div>
         {canManage && (
-          <Button size="sm" variant="outline" className="shrink-0" disabled={busy} onClick={() => void manage()}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-            Manage subscription
-          </Button>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            {/* Switching plans (storage tier / interval) is a separate, dedicated
+                action from cancelling — both run through the Stripe portal, which
+                swaps the plan on the existing subscription with proration. */}
+            {subscribed && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full"
+                disabled={!!busy}
+                onClick={() => void openPortal("change")}
+              >
+                {busy === "change" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Change plan
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              disabled={!!busy}
+              onClick={() => void openPortal("manage")}
+            >
+              {busy === "manage" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+              Manage subscription
+            </Button>
+          </div>
         )}
       </div>
     </div>

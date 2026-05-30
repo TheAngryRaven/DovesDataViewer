@@ -13,7 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Active subscription no longer reads as "Free".** The Stripe webhook could
+  resolve an entitling subscription (active/trialing/past_due) down to the free
+  tier when the price in a webhook payload arrived without its `lookup_key` —
+  notably after **un-cancelling** a subscription. The webhook now re-fetches the
+  full price when needed and, as a safety net, never demotes an entitling
+  subscription to free (it keeps the existing paid tier instead).
+
 ### Added
+- **Change your plan from your profile.** Subscribers now get a **Change plan**
+  button alongside **Manage subscription** in **Profile → Plan**. It deep-links
+  straight into Stripe's change-plan screen (swapping your storage tier / billing
+  interval on the existing subscription with proration) — cancellation and payment
+  methods stay under Manage subscription.
+- **Checkout-style sign-up.** Registration now has a **storage-tier dropdown**, a
+  **monthly/annual switch**, and a **live cost-per-month** readout next to the
+  Create Account button — annual shows the monthly-equivalent price and the **%
+  you save** versus paying monthly (prices fetched live from Stripe).
+
+### Changed
+- **Simpler sign-up.** The display-name field is gone — accounts get a random name
+  you can change (and reserve) later from your profile. Display names now pass a
+  **basic profanity filter**.
+- **Fewer plans, by storage.** With tiers now differing only by storage, the
+  **Premium** and **Pro** tiers are on hold at launch (like the AI tier) and hidden
+  from the pricing UI. Sign-up shows two cards (**Free online** + **Plus**); the
+  landing page keeps three (**Free offline**, **Free online**, **Plus**), and the
+  offline card lists more of what works without an account.
+
 - **Cloud logs now live in the file browser.** Logs stored in your cloud but not
   yet on this device show **inline in the Track → Course folders** alongside local
   logs (deduped — no more separate "Cloud files" list with doubles), marked with a
