@@ -1,0 +1,18 @@
+# Cloudflare Pages response headers.
+#
+# Service workers must always be revalidated so a new deploy can take over
+# instead of clients running a stale shell. The active offline worker is
+# /service-worker.js; /sw.js is the legacy cleanup/kill-switch worker.
+/service-worker.js
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+
+# Never let the browser pin an old HTML shell — it references hashed asset
+# filenames, so a stale index.html points at assets that may no longer exist.
+/index.html
+  Cache-Control: no-cache
+
+# Hashed build assets are content-addressed and safe to cache forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

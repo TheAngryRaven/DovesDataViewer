@@ -283,6 +283,61 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 
 ---
 
+## Deployment
+
+The app is a **static single-page app** — `npm run build` emits a self-contained
+`dist/` folder (HTML + hashed JS/CSS + assets) with no server runtime to host.
+It runs on any static host. The optional admin backend (Supabase) is independent
+and unaffected by where the frontend is served — the browser just calls it over
+HTTPS.
+
+### Cloudflare Workers
+
+The repo ships ready for Cloudflare Workers (static assets) via the GitHub
+integration / Workers Builds:
+
+1. In the Cloudflare dashboard, create a **Worker** and connect this repo
+   (Workers Builds).
+2. Build settings:
+   - **Build command:** `npm run build`
+   - **Deploy command:** `npx wrangler deploy` (Workers Builds default).
+   - **Node version:** pinned to `20` via `.nvmrc` (matches CI).
+3. **`wrangler.jsonc`** (repo root) configures the deploy — there's no Worker
+   script, just a static-assets binding:
+   - `assets.directory: "./dist"` — uploads the Vite build output.
+   - `not_found_handling: "single-page-application"` — returns the app shell
+     (`index.html`) for unmatched client-side routes like `/privacy` and
+     `/admin` instead of 404ing.
+4. **`public/_headers`** is copied into `./dist` and honored by Workers static
+   assets: it forces `no-cache` on the service workers + `index.html` (so new
+   deploys take over instead of clients running a stale shell) and long-lived
+   `immutable` caching on hashed `/assets/*`.
+
+#### Environment variables (Worker → Settings → Variables)
+
+The public viewer needs **none** — `vite.config.ts` hardcodes public backend
+fallbacks, so a zero-config build serves the full offline app with admin off.
+
+To run the admin/track-submission features on the Cloudflare deploy, set these
+build-time variables (they're baked in at build, so a redeploy is required after
+changing them):
+
+| Variable | Value |
+|----------|-------|
+| `VITE_ENABLE_ADMIN` | `true` |
+| `VITE_ENABLE_REGISTRATION` | `true` (only if you want the `/register` route) |
+| `VITE_SUPABASE_URL` | your Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | your Supabase anon key |
+| `VITE_SUPABASE_PROJECT_ID` | your Supabase project ID |
+| `VITE_TURNSTILE_SITE_KEY` | optional — Turnstile site key for the contact/submission CAPTCHA |
+
+`TURNSTILE_SECRET_KEY` stays a **Supabase edge-function secret** — it is never a
+client variable and does not belong in Cloudflare. The Supabase edge functions
+(`supabase/functions/`) continue to run on Supabase; the Worker only serves the
+static frontend.
+
+---
+
 ## Project Structure
 
 ```

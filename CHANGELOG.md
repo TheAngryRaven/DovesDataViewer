@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the frozen `#hash` it ran. Revisions sync to the cloud as ordinary garage
   documents (counting toward the same pooled storage budget) and stay unlimited
   on-device. Sets up future session tagging in the file browser.
+- Cloudflare Workers deployment support: `wrangler.jsonc` (static-assets-only
+  Worker serving `./dist` with single-page-application not-found handling),
+  `public/_headers` (no-cache for the service workers + `index.html`, immutable
+  long-cache for hashed assets), an `.nvmrc` pinning Node 20, and a Deployment
+  section in the README documenting the build settings and how to flip on admin
+  via env vars.
 - **Unified cloud storage — one budget, one bar.** Documents, synced logs, and
   lap snapshots now share a **single per-tier cloud-storage allowance** instead of
   three separate quotas: **Free 50 MB · Plus 10 GB · Premium 100 GB · Pro 500 GB**.

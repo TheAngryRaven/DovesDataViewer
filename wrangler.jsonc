@@ -1,0 +1,16 @@
+{
+  // Cloudflare Workers static-assets deploy for the built SPA.
+  // The app is a pure static site — no Worker script (`main`) is needed; the
+  // assets binding serves ./dist directly. Workers Builds runs the build
+  // command (npm run build) and then `wrangler deploy`, which uploads ./dist.
+  "name": "dovesdataviewer",
+  "compatibility_date": "2026-05-30",
+  "assets": {
+    "directory": "./dist",
+    // React Router runs client-side, so unmatched paths must return the app
+    // shell (index.html) instead of 404ing. This is the Workers-native SPA
+    // fallback; the public/_headers file (copied into ./dist) still applies
+    // cache-control rules on top of this.
+    "not_found_handling": "single-page-application"
+  }
+}
