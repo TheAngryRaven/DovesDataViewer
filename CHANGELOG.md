@@ -14,11 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Cloudflare Pages deployment support: `public/_redirects` (SPA fallback so
-  client-side routes resolve), `public/_headers` (no-cache for the service
-  workers + `index.html`, immutable long-cache for hashed assets), an `.nvmrc`
-  pinning Node 20, and a Deployment section in the README documenting the build
-  settings and how to flip on admin via env vars.
+- Cloudflare Workers deployment support: `wrangler.jsonc` (static-assets-only
+  Worker serving `./dist` with single-page-application not-found handling),
+  `public/_headers` (no-cache for the service workers + `index.html`, immutable
+  long-cache for hashed assets), an `.nvmrc` pinning Node 20, and a Deployment
+  section in the README documenting the build settings and how to flip on admin
+  via env vars.
 
 ### Changed
 - The optional AI coach plugin now ships from the public npm registry as
