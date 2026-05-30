@@ -14,19 +14,23 @@ create index if not exists sync_records_user_store_idx
 
 alter table public.sync_records enable row level security;
 
+drop policy if exists "Users read own sync records" on public.sync_records;
 create policy "Users read own sync records"
   on public.sync_records for select to authenticated
   using (auth.uid() = user_id);
 
+drop policy if exists "Users insert own sync records" on public.sync_records;
 create policy "Users insert own sync records"
   on public.sync_records for insert to authenticated
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users update own sync records" on public.sync_records;
 create policy "Users update own sync records"
   on public.sync_records for update to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users delete own sync records" on public.sync_records;
 create policy "Users delete own sync records"
   on public.sync_records for delete to authenticated
   using (auth.uid() = user_id);
@@ -36,6 +40,7 @@ insert into storage.buckets (id, name, public)
 values ('user-files', 'user-files', false)
 on conflict (id) do nothing;
 
+drop policy if exists "Users read own files" on storage.objects;
 create policy "Users read own files"
   on storage.objects for select to authenticated
   using (
@@ -43,6 +48,7 @@ create policy "Users read own files"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "Users upload own files" on storage.objects;
 create policy "Users upload own files"
   on storage.objects for insert to authenticated
   with check (
@@ -50,6 +56,7 @@ create policy "Users upload own files"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "Users update own files" on storage.objects;
 create policy "Users update own files"
   on storage.objects for update to authenticated
   using (
@@ -57,6 +64,7 @@ create policy "Users update own files"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "Users delete own files" on storage.objects;
 create policy "Users delete own files"
   on storage.objects for delete to authenticated
   using (
