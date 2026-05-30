@@ -281,6 +281,11 @@ function StorageBar({ usage }: { usage: StorageUsage }) {
         ))}
       </div>
 
+      <p className="text-[11px] text-muted-foreground">
+        Garage data and snapshots always sync, even when you're full — they still
+        count toward your storage, but only logs stop syncing when the cap is reached.
+      </p>
+
       {over && (
         <p className="text-[11px] text-destructive">
           You're over your plan's storage. New cloud syncs are saved locally until you free up space or upgrade.

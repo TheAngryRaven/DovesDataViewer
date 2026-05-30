@@ -201,9 +201,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unless the experimental setting is on or a plugin contributes to it.
 - Landing-page and About copy now reflect **optional cloud storage** (instead of
   "files never leave your device"), since cloud sync is available when signed in.
-- When local garage data exceeds the cloud **documents** limit, sync now does a
-  **partial push** — it saves everything that fits and tells you how many items
-  didn't — instead of rejecting the whole batch and syncing nothing.
+- **Garage data and lap snapshots now always sync, even when you're over your
+  storage cap.** They still count toward your pooled storage (shrinking the room
+  left for logs), but they're never blocked — only logs (and, later, videos) stop
+  syncing once the cap is reached. Garage and snapshot data is small and valuable,
+  so it shouldn't get locked out by a pool full of logs. The Profile storage panel
+  notes this beneath the usage bar.
+- Session notes are now capped at **128 KB each** to keep them from being used as
+  bulk document storage (they count toward your cloud document storage).
 - Cloud document sync is now **offline-aware and conflict-safe**. Garage records
   (vehicles, setups, templates, notes) carry an edit timestamp, and sync uses
   last-write-wins, so a newer change is never overwritten by an older copy.

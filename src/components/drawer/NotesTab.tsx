@@ -3,7 +3,7 @@ import { Pencil, Trash2, NotebookPen, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Note } from "@/lib/noteStorage";
+import { Note, MAX_NOTE_BYTES } from "@/lib/noteStorage";
 import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
 
@@ -155,7 +155,7 @@ export function NotesTab({
 
       {/* Add/Edit Form */}
       <div className="border-t border-border p-4 space-y-3 shrink-0">
-        <Textarea value={text} onChange={e => setText(e.target.value)} placeholder="Write a note…" className="min-h-[60px] text-sm resize-none" rows={3} />
+        <Textarea value={text} onChange={e => setText(e.target.value)} placeholder="Write a note…" className="min-h-[60px] text-sm resize-none" rows={3} maxLength={MAX_NOTE_BYTES} />
         <div className="flex items-center gap-2">
           <Button className="flex-1" size="sm" onClick={handleSubmit} disabled={!text.trim()}>
             {editingId ? "Update Note" : "Add Note"}
