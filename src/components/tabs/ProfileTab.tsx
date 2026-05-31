@@ -1,24 +1,27 @@
 import { memo } from "react";
 import { User } from "lucide-react";
-import { useSessionContext } from "@/contexts/SessionContext";
-import { useSettingsContext } from "@/contexts/SettingsContext";
+import { useOptionalSessionContext } from "@/contexts/SessionContext";
+import { useOptionalSettingsContext } from "@/contexts/SettingsContext";
 import { PluginPanelHost } from "@/plugins/PluginPanelHost";
 import { PanelSlot } from "@/plugins/panels";
 
 export const ProfileTab = memo(function ProfileTab() {
-  const { data, laps, selectedLapNumber, course, activeSnapshot, sessionSetup } = useSessionContext();
-  const { useKph } = useSettingsContext();
+  // Profile lives in the file-manager drawer, which also opens from the landing
+  // page before any session exists — read both contexts optionally and fall
+  // back to empty/default values so the account & storage panels still render.
+  const session = useOptionalSessionContext();
+  const settings = useOptionalSettingsContext();
 
   return (
     <PluginPanelHost
       slot={PanelSlot.Profile}
-      data={data}
-      laps={laps}
-      selectedLapNumber={selectedLapNumber}
-      course={course}
-      useKph={useKph}
-      sessionSetup={sessionSetup}
-      activeSnapshot={activeSnapshot}
+      data={session?.data ?? null}
+      laps={session?.laps ?? []}
+      selectedLapNumber={session?.selectedLapNumber ?? null}
+      course={session?.course ?? null}
+      useKph={settings?.useKph ?? false}
+      sessionSetup={session?.sessionSetup ?? null}
+      activeSnapshot={session?.activeSnapshot ?? null}
       fallback={<ProfileEmpty />}
     />
   );

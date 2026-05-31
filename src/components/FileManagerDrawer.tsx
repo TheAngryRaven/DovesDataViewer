@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { X, Gauge, Cpu, Bluetooth, BluetoothOff, Loader2, Settings, MapPin, Battery, BatteryLow, BatteryMedium, BatteryFull, BatteryWarning } from "lucide-react";
+import { X, Gauge, Cpu, User, Bluetooth, BluetoothOff, Loader2, Settings, MapPin, Battery, BatteryLow, BatteryMedium, BatteryFull, BatteryWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { Vehicle } from "@/lib/vehicleStorage";
@@ -13,10 +13,11 @@ import { SetupsTab } from "./drawer/SetupsTab";
 import { NotesTab } from "./drawer/NotesTab";
 import { DeviceSettingsTab } from "./drawer/DeviceSettingsTab";
 import { DeviceTracksTab } from "./drawer/DeviceTracksTab";
+import { ProfileTab } from "./tabs/ProfileTab";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { isBleSupported, requestBatteryLevel, type BatteryInfo } from "@/lib/bleDatalogger";
 
-type TopTab = "garage" | "device";
+type TopTab = "garage" | "profile" | "device";
 type GarageTab = "files" | "vehicles" | "setups" | "notes";
 type DeviceTab = "settings" | "tracks";
 
@@ -45,6 +46,8 @@ interface FileManagerDrawerProps {
   onSaveFile: (name: string, blob: Blob) => Promise<void>;
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
   autoSave: boolean;
+  // Profile tab is gated on a plugin (cloud-sync) contributing a Profile panel.
+  showProfile: boolean;
   // Vehicle props
   vehicles: Vehicle[];
   vehicleTypes: VehicleType[];
@@ -79,6 +82,7 @@ interface FileManagerDrawerProps {
 export function FileManagerDrawer({
   isOpen, files, fileMetadataMap, storageUsed, storageQuota,
   onClose, onLoadFile, onDeleteFile, onExportFile, onSaveFile, onDataLoaded, autoSave,
+  showProfile,
   vehicles, vehicleTypes, templates,
   onAddVehicle, onUpdateVehicle, onRemoveVehicle,
   currentTrackName, currentCourseName,
@@ -127,12 +131,12 @@ export function FileManagerDrawer({
   return (
     <>
       <div className="fixed inset-0 z-[10000] bg-black/40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-[10001] w-full md:w-[28vw] md:min-w-[320px] bg-background border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+      <div className="fixed inset-y-0 right-0 z-[10001] w-1/2 min-w-[320px] bg-background border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {topTab === "garage" ? <Gauge className="w-5 h-5 text-primary" /> : <Cpu className="w-5 h-5 text-primary" />}
-            <h2 className="font-semibold text-foreground">{topTab === "garage" ? "Garage" : "Device"}</h2>
+            {topTab === "garage" ? <Gauge className="w-5 h-5 text-primary" /> : topTab === "profile" ? <User className="w-5 h-5 text-primary" /> : <Cpu className="w-5 h-5 text-primary" />}
+            <h2 className="font-semibold text-foreground">{topTab === "garage" ? "Garage" : topTab === "profile" ? "Profile" : "Device"}</h2>
             {topTab === "device" && device.deviceName && (
               <span className="text-xs text-muted-foreground truncate max-w-[120px]">— {device.deviceName}</span>
             )}
@@ -165,6 +169,11 @@ export function FileManagerDrawer({
           <button onClick={() => setTopTab("garage")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${topTab === "garage" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}>
             <Gauge className="w-4 h-4" /> Garage
           </button>
+          {showProfile && (
+            <button onClick={() => setTopTab("profile")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${topTab === "profile" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}>
+              <User className="w-4 h-4" /> Profile
+            </button>
+          )}
           <button onClick={() => setTopTab("device")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${topTab === "device" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}>
             <Cpu className="w-4 h-4" /> Device
           </button>
@@ -217,6 +226,13 @@ export function FileManagerDrawer({
               />
             )}
           </>
+        )}
+
+        {/* Profile Panel — relocated from the main view's tab bar. */}
+        {topTab === "profile" && showProfile && (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ProfileTab />
+          </div>
         )}
 
         {/* Device Panel */}
