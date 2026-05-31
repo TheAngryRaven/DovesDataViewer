@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Settings menu is now a two-column layout with collapsible sections.** The
+  compact toggle settings (units, theme, G-force, lap delta, etc.) lay out in a
+  responsive 2-column grid from the tablet breakpoint up (single column on
+  mobile), and the modal widens to fit. The lengthy **Braking Zone Detection**
+  and **Default Field Visibility** sections are now collapsible — their titles
+  toggle the body and both are collapsed by default — to cut the length of the
+  menu.
+
 ### Security
 - **Explicit deny-all RLS policy on `stripe_events`.** The Stripe webhook
   idempotency ledger had row-level security enabled but no policy. Direct client
