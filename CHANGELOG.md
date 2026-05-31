@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Bumped the optional AI coach plugin (`@perchwerks/eye-in-the-sky`) from
-  `0.3.0` to `0.4.0`.**
+  `0.3.0` to `0.4.1`.**
 - **Profile moved into the file-manager drawer.** The Profile panel (account,
   storage, lap snapshots, data export) is no longer a tab in the main data view.
   It now lives as a third top-level tab in the slide-out drawer, sitting between

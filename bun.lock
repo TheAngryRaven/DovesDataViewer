@@ -60,7 +60,7 @@
         "vitest": "^4.1.6",
       },
       "optionalDependencies": {
-        "@perchwerks/eye-in-the-sky": "0.4.0",
+        "@perchwerks/eye-in-the-sky": "0.4.1",
       },
     },
   },
@@ -369,7 +369,7 @@
 
     "@oxc-project/types": ["@oxc-project/types@0.132.0", "", {}, "sha512-FESMOxil5Se014ui/Eq8fT5uHJo6nIRwH0PfJrZJXs6Gek3ZVFOrpUv3YIZT20m+extU98Hg1Ym72U58rlsxUQ=="],
 
-    "@perchwerks/eye-in-the-sky": ["@perchwerks/eye-in-the-sky@0.4.0", "", { "dependencies": { "uplot": "^1.6.32" }, "peerDependencies": { "leaflet": "^1.9.4", "react": "^18.3 || ^19.0.0", "react-dom": "^18.3 || ^19.0.0" } }, "sha512-OlW/CyTKkd7HM1+meweDV1uDEg4v4VmWKvW1RO/2xpJdiilvlOyLvzjWLjga+3N9HAvddk9mmoFGBC9+/H+bWQ=="],
+    "@perchwerks/eye-in-the-sky": ["@perchwerks/eye-in-the-sky@0.4.1", "", { "dependencies": { "uplot": "^1.6.32" }, "peerDependencies": { "leaflet": "^1.9.4", "react": "^18.3 || ^19.0.0", "react-dom": "^18.3 || ^19.0.0" } }, "sha512-SKjiObU+r+fKe28+B0oUEGmASpIG6ZDKRTERRqjFJ1LWmXNs7A2J1BtQE3cx2SI4wURI+H0ie0KeXUXfAYS8yg=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
