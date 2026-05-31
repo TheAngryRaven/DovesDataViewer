@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Bumped the optional AI coach plugin (`@perchwerks/eye-in-the-sky`) from
+  `0.3.0` to `0.4.0`.**
 - **"Submit to DB" track button now stands out.** In the track manager, the
   button for contributing a user-created track/course to the shared database is
   now a primary-styled call-to-action with a subtle pulsing glow, and sits next
