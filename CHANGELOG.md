@@ -33,9 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subscription to free (it keeps the existing paid tier instead).
 
 ### Added
-- **Homepage "Build your own datalogger" call-to-action.** A new banner under the
-  pricing cards links to the open-source [DovesDataLogger](https://github.com/TheAngryRaven/DovesDataLogger)
-  hardware/firmware repo.
+- **Homepage "Build your own datalogger" call-to-action.** A banner below the
+  page heading links to the open-source [DovesDataLogger](https://github.com/TheAngryRaven/DovesDataLogger)
+  hardware/firmware repo (replacing the old supported-formats subtext).
 - **"Coach Plugin" GitHub link** added to the landing page's GitHub link row,
   pointing at the [DataViewer_coach](https://github.com/TheAngryRaven/DataViewer_coach) repo.
 - **"Operated by PerchWerks LLC" footer** at the bottom of the landing page,
