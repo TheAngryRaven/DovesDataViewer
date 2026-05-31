@@ -112,7 +112,8 @@ The app includes an optional admin system for managing a community track databas
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes (if using Cloud) | Backend public/anon key (auto-set by Lovable Cloud) |
 | `VITE_SUPABASE_PROJECT_ID` | Yes (if using Cloud) | Backend project ID (auto-set by Lovable Cloud) |
 | `VITE_ENABLE_ADMIN` | No | Set to `true` to enable admin UI and `/admin` route. `/login` mounts when admin OR cloud is enabled. Default `false` — a fresh clone ships the public, offline-first app, not admin UI pointed at an upstream backend. |
-| `VITE_ENABLE_CLOUD` | No | Set to `true` to enable public user accounts: Cloud Sync Labs panel, Google sign-in, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`. Default `false` — flag-off builds ship zero cloud auth code (offline-first invariant). |
+| `VITE_ENABLE_CLOUD` | No | Set to `true` to enable public user accounts: Cloud Sync Labs panel, email sign-in/registration, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`. Default `false` — flag-off builds ship zero cloud auth code (offline-first invariant). |
+| `VITE_ENABLE_GOOGLE_AUTH` | No | Set to `true` to show the "Continue with Google" buttons (login, register, Profile). Requires `VITE_ENABLE_CLOUD`. Default `false`: Google sign-in currently routes through Lovable's hosted OAuth broker, so it stays hidden until native Supabase Google OAuth is configured (Google Cloud OAuth client + Supabase provider). |
 | `VITE_TURNSTILE_SITE_KEY` | No | Cloudflare Turnstile site key for track submission CAPTCHA |
 | `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (edge function secret — `???`) |
 | `STRIPE_SECRET_KEY` | No (required for paid tiers) | Stripe secret key used by the `create-checkout-session`, `stripe-webhook`, and `create-portal-session` edge functions (edge function secret — `???`) |

@@ -600,7 +600,8 @@ existing user data keeps resolving without a destructive migration.
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Client | Backend anon key (auto-set) |
 | `VITE_SUPABASE_PROJECT_ID` | Client | Backend project ID (auto-set) |
 | `VITE_ENABLE_ADMIN` | Client | `"true"` to enable admin UI + `/admin` route. `/login` is also mounted when this OR `VITE_ENABLE_CLOUD` is on. |
-| `VITE_ENABLE_CLOUD` | Client | `"true"` to enable public user accounts (Cloud Sync + Google sign-in + `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`). Default `"false"` — preserves offline-first invariant. |
+| `VITE_ENABLE_CLOUD` | Client | `"true"` to enable public user accounts (Cloud Sync + email sign-in + `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`). Default `"false"` — preserves offline-first invariant. |
+| `VITE_ENABLE_GOOGLE_AUTH` | Client | `"true"` to show the "Continue with Google" buttons (Login/Register/Profile). Requires `VITE_ENABLE_CLOUD`. Default `"false"`: Google sign-in still routes through Lovable's OAuth broker (`src/integrations/lovable/`), so it's gated off until native Supabase Google OAuth is wired up. |
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`) when set |

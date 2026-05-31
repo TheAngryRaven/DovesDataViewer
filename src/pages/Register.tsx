@@ -15,6 +15,10 @@ import { isDisposableEmail, looksLikeEmail } from '@/lib/emailValidation';
 import { isPaidTier } from '@/lib/billing';
 import { setPendingCheckout } from '@/lib/pendingCheckout';
 
+// Google sign-in is gated separately: it currently routes through Lovable's OAuth
+// broker, so it stays off until native Supabase Google OAuth is configured.
+const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
+
 export default function Register() {
   useDocumentHead({
     title: 'Create account — HackTheTrack',
@@ -145,14 +149,18 @@ export default function Register() {
             </div>
           </form>
 
-          <div className="relative flex items-center">
-            <div className="flex-grow border-t border-border" />
-            <span className="mx-3 text-xs text-muted-foreground">or</span>
-            <div className="flex-grow border-t border-border" />
-          </div>
-          <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
-            Continue with Google
-          </Button>
+          {enableGoogleAuth && (
+            <>
+              <div className="relative flex items-center">
+                <div className="flex-grow border-t border-border" />
+                <span className="mx-3 text-xs text-muted-foreground">or</span>
+                <div className="flex-grow border-t border-border" />
+              </div>
+              <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
+                Continue with Google
+              </Button>
+            </>
+          )}
 
           <p className="text-sm text-muted-foreground text-center">
             Already have an account?{' '}

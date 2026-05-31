@@ -10,6 +10,9 @@ import { Gauge, ArrowLeft } from 'lucide-react';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
+// Google sign-in is gated separately: it currently routes through Lovable's OAuth
+// broker, so it stays off until native Supabase Google OAuth is configured.
+const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
 
 export default function Login() {
   useDocumentHead({
@@ -69,7 +72,7 @@ export default function Login() {
         <div className="racing-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Sign in</h2>
 
-          {enableCloud && (
+          {enableCloud && enableGoogleAuth && (
             <>
               <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
                 Continue with Google

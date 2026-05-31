@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   you save** versus paying monthly (prices fetched live from Stripe).
 
 ### Changed
+- **Google sign-in temporarily hidden.** The "Continue with Google" buttons (login,
+  register, Profile) are now gated behind a new `VITE_ENABLE_GOOGLE_AUTH` flag,
+  off by default. Google sign-in still routes through Lovable's hosted OAuth broker,
+  so it stays hidden until native Supabase Google OAuth is configured. Email
+  sign-in/registration is unaffected. Flip the flag back on once the Supabase Google
+  provider + Google Cloud OAuth client are set up.
 - **Simpler sign-up.** The display-name field is gone — accounts get a random name
   you can change (and reserve) later from your profile. Display names now pass a
   **basic profanity filter**.

@@ -31,6 +31,10 @@ const SEGMENTS: { key: StorageType; label: string; color: string }[] = [
   { key: "documents", label: "Garage", color: "bg-emerald-500" },
 ];
 
+// Google sign-in is gated separately: it currently routes through Lovable's OAuth
+// broker, so it stays off until native Supabase Google OAuth is configured.
+const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
+
 // Merged account + profile panel: your display name + (when signed in) sign-out,
 // plan, and cloud storage usage; signed out it offers sign-in and still shows the
 // storage bar measured against this device's local storage. Everything here works
@@ -137,9 +141,11 @@ function SignInPrompt() {
         Everything here still works offline against this device — Cloud Sync is optional.
       </p>
       <div className="flex flex-col gap-2">
-        <Button variant="outline" onClick={handleGoogle} disabled={busy || !online}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue with Google"}
-        </Button>
+        {enableGoogleAuth && (
+          <Button variant="outline" onClick={handleGoogle} disabled={busy || !online}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue with Google"}
+          </Button>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <Button asChild variant="secondary"><Link to="/login?next=/">Sign in</Link></Button>
           <Button asChild><Link to="/register">Create account</Link></Button>
