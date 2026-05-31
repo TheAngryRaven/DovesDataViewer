@@ -79,7 +79,7 @@ src/
 ├── components/
 │   ├── ui/                # shadcn/ui primitives
 │   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, BannedIps, Tools, Messages)
-│   ├── tabs/              # Main view tabs (GraphView, RaceLine, LapTimes, Labs, Coach, Profile)
+│   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Labs, Coach; Profile is mounted in the drawer)
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, InfoBox
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Notes, Setups, Device*)
 │   ├── track-editor/      # Track editor sub-components (VisualEditor is lazy — see Bundle Splitting)
@@ -192,9 +192,11 @@ first-party panel targets it now — it shows only when the experimental
 `enableLabs` setting is on or another plugin contributes), `PanelSlot.Coach`
 (rendered by `CoachTab.tsx` — the dedicated AI Coach tab, home for the
 `@perchwerks/eye-in-the-sky` coaching plugin), and `PanelSlot.Profile`
-(rendered by `ProfileTab.tsx`, far-right — cloud-sync contributes the merged
-Account panel (sign-in/out + display name + plan + storage, working signed out
-against local storage), lap-snapshot management, and cloud-log management). All render contributed
+(rendered by `ProfileTab.tsx` — mounted as a tab **inside the file-manager
+drawer**, between Garage and Device, not in the main view tab bar; cloud-sync
+contributes the merged Account panel (sign-in/out + display name + plan +
+storage, working signed out against local storage), lap-snapshot management, and
+cloud-log management). All render contributed
 panels via `PluginPanelHost` and are
 **self-gating**: `Index.tsx` computes `hasLabsPanels`/`showCoach`/`showProfile`
 from `getPanelsForSlot`, so a tab appears only when a
@@ -557,8 +559,16 @@ Profile **Cloud logs** panel reuses `SessionBrowser` with its own rows.
 
 ## Device Manager
 
-The slide-out drawer (`FileManagerDrawer.tsx`) has two top-level tabs:
+The slide-out drawer (`FileManagerDrawer.tsx`) opens at half the viewport width
+(`w-1/2`, both mobile and desktop) and has three top-level tabs:
 - **Garage** — Files, Karts, Setups, Notes (original functionality)
+- **Profile** — User account, storage, lap snapshots, data export. Renders the
+  `PanelSlot.Profile` plugin panels via `ProfileTab`; only shown when a plugin
+  (cloud-sync) contributes Profile panels (`showProfile` prop, computed in
+  `Index.tsx`). Sits between Garage and Device. `ProfileTab` reads session +
+  settings via the *optional* context hooks (`useOptionalSessionContext` /
+  `useOptionalSettingsContext`) so it also renders from the landing-page drawer
+  before any session is loaded.
 - **Device** — BLE device management, gated behind a "Connect to Logger" prompt
 
 Device sub-tabs:

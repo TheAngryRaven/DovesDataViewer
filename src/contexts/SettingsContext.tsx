@@ -33,3 +33,10 @@ export function useSettingsContext(): SettingsContextValue {
   if (!ctx) throw new Error('useSettingsContext must be used within SettingsProvider');
   return ctx;
 }
+
+// Non-throwing variant for surfaces that may render outside the provider (e.g.
+// the Profile drawer tab on the landing page). Returns null when unmounted.
+// eslint-disable-next-line react-refresh/only-export-components -- co-located with SettingsProvider
+export function useOptionalSettingsContext(): SettingsContextValue | null {
+  return useContext(SettingsContext);
+}

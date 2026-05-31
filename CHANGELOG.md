@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Profile moved into the file-manager drawer.** The Profile panel (account,
+  storage, lap snapshots, data export) is no longer a tab in the main data view.
+  It now lives as a third top-level tab in the slide-out drawer, sitting between
+  **Garage** and **Device**, so the main view tab bar stays focused on
+  visualizing the session. The drawer also opens at half the screen width (on
+  both mobile and desktop) for a bit more breathing room.
 - **Settings menu is now a two-column layout with collapsible sections.** The
   compact toggle settings (units, theme, G-force, lap delta, etc.) lay out in a
   responsive 2-column grid from the tablet breakpoint up (single column on

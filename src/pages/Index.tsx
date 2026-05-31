@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical, User } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { RaceLineTab } from "@/components/tabs/RaceLineTab";
@@ -16,9 +16,6 @@ const LabsTab = lazy(() =>
 );
 const CoachTab = lazy(() =>
   import("@/components/tabs/CoachTab").then((m) => ({ default: m.CoachTab })),
-);
-const ProfileTab = lazy(() =>
-  import("@/components/tabs/ProfileTab").then((m) => ({ default: m.ProfileTab })),
 );
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -57,7 +54,7 @@ import { snapshotLapSamples } from "@/lib/lapSnapshot";
 import type { PluginSnapshot } from "@/plugins/panels";
 
 
-type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach" | "profile";
+type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
@@ -376,6 +373,7 @@ export default function Index() {
     onSaveFile: fileManager.saveFile,
     onDataLoaded: handleDataLoaded,
     autoSave: settings.autoSaveFiles,
+    showProfile,
     vehicles: vehicleManager.vehicles,
     vehicleTypes: templateManager.vehicleTypes,
     templates: templateManager.templates,
@@ -403,7 +401,7 @@ export default function Index() {
   }), [
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
-    handleDataLoaded, settings.autoSaveFiles,
+    handleDataLoaded, settings.autoSaveFiles, showProfile,
     vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,
     templateManager.vehicleTypes, templateManager.templates, templateManager.addVehicleType, templateManager.removeVehicleType,
     currentFileName,
@@ -499,7 +497,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} showProfile={showProfile} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -509,7 +507,6 @@ export default function Index() {
             {topPanelView === "graphview" && <GraphViewTab />}
             {topPanelView === "labs" && showLabs && <LabsTab />}
             {topPanelView === "coach" && showCoach && <CoachTab />}
-            {topPanelView === "profile" && showProfile && <ProfileTab />}
           </Suspense>
         </div>
       </main>
@@ -539,7 +536,7 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach, showProfile }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
@@ -547,7 +544,6 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   onToggleOverlays: () => void;
   showLabs: boolean;
   showCoach: boolean;
-  showProfile: boolean;
 }) {
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -587,11 +583,6 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
             <span className="text-xs">Overlay</span>
           </Button>
         </div>
-      )}
-      {showProfile && (
-        <button onClick={() => setTopPanelView("profile")} className={`${tabClass("profile")} ${topPanelView === "raceline" ? "" : "ml-auto"}`}>
-          <User className="w-4 h-4" /> <span className="hidden sm:inline">Profile</span>
-        </button>
       )}
     </div>
   );

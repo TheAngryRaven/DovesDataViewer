@@ -123,3 +123,11 @@ export function useSessionContext(): SessionContextValue {
   if (!ctx) throw new Error('useSessionContext must be used within SessionProvider');
   return ctx;
 }
+
+// Non-throwing variant for surfaces that may render outside a session (e.g. the
+// Profile drawer tab, which is also reachable from the landing page before any
+// file is loaded). Returns null when no SessionProvider is mounted.
+// eslint-disable-next-line react-refresh/only-export-components -- co-located with SessionProvider
+export function useOptionalSessionContext(): SessionContextValue | null {
+  return useContext(SessionContext);
+}
