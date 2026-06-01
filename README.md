@@ -12,6 +12,7 @@
 🌐 **Live Demo:** [HackTheTrack.net](https://hackthetrack.net)  
 🔧 **Hardware Project:** [DovesDataLogger on GitHub](https://github.com/TheAngryRaven/DovesDataLogger)
 
+**Now officially in BETA status**
 ---
 
 <p align="center">
