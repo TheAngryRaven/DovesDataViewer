@@ -20,6 +20,12 @@ export const LapTimesTab = memo(function LapTimesTab() {
         onSelectExternalLap={s.onSelectExternalLap}
         onClearExternalRef={s.onClearExternalRef}
         onRefreshSavedFiles={s.onRefreshSavedFiles}
+        snapshotsForCourse={s.snapshotsForCourse}
+        activeSnapshotId={s.activeSnapshotId}
+        canSnapshot={s.canSnapshot}
+        onLoadSnapshot={s.onLoadSnapshot}
+        onClearSnapshot={s.onClearSnapshot}
+        onSaveSnapshot={s.onSaveSnapshot}
       />
     </div>
   );

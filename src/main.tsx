@@ -27,17 +27,26 @@ const isInIframe = (() => {
   }
 })();
 
+const hostname = window.location.hostname.toLowerCase();
 const isPreviewHost =
-  window.location.hostname.includes("id-preview--") ||
-  window.location.hostname.includes("lovableproject.com") ||
-  window.location.hostname.includes("lovable.app");
+  hostname.includes("id-preview--") ||
+  hostname.includes("lovableproject.com") ||
+  window.location.search.includes("nosw=1");
+
+const cleanupPreviewServiceWorkers = async () => {
+  const registrations = await navigator.serviceWorker?.getRegistrations();
+  await Promise.all(
+    (registrations ?? []).map((registration) => registration.unregister()),
+  );
+
+  if (typeof caches === "undefined") return;
+
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+};
 
 if (isInIframe || isPreviewHost) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((registration) => {
-      void registration.unregister();
-    });
-  });
+  void cleanupPreviewServiceWorkers();
 } else {
   const updateSW = registerSW({
     immediate: true,

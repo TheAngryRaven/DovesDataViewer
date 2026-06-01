@@ -1,4 +1,18 @@
 import type { GpsSample, FieldMapping } from "@/types/racing";
+import { toChannelKey } from "@/lib/channels";
+
+/**
+ * Find a data source by id, falling back to the canonical key for legacy
+ * sourceIds saved before channel normalization (e.g. a stored "Lat G" now lives
+ * under "lat_g"). Special ids ("speed", "__pace__"…) match exactly on the first
+ * lookup.
+ */
+function findSource(dataSources: DataSourceDef[], sourceId: string): DataSourceDef | undefined {
+  return (
+    dataSources.find((d) => d.id === sourceId) ??
+    dataSources.find((d) => d.id === toChannelKey(sourceId))
+  );
+}
 import type { DataSourceDef } from "./types";
 
 /**
@@ -65,7 +79,7 @@ export function buildDataSources(
   for (const f of fieldMappings) {
     sources.push({
       id: f.name,
-      label: f.name + (f.unit ? ` (${f.unit})` : ""),
+      label: (f.label ?? f.name) + (f.unit ? ` (${f.unit})` : ""),
       unit: f.unit ?? "",
       getValue: (s) => s.extraFields[f.name] ?? null,
       getMin: (samples) => {
@@ -108,7 +122,7 @@ export function resolveValue(
   if (sourceId === "__braking_g__") {
     return brakingGData?.[currentIndex] ?? null;
   }
-  const src = dataSources.find((d) => d.id === sourceId);
+  const src = findSource(dataSources, sourceId);
   if (!src) return null;
   return src.getValue(sample);
 }
@@ -135,19 +149,19 @@ export function resolveRange(
     const absMax = Math.max(Math.abs(min), Math.abs(max), 0.5);
     return { min: -absMax, max: absMax };
   }
-  const src = dataSources.find((d) => d.id === sourceId);
+  const src = findSource(dataSources, sourceId);
   if (!src) return { min: 0, max: 100 };
   return { min: src.getMin(samples), max: src.getMax(samples) };
 }
 
 /** Get the unit string for a source */
 export function resolveUnit(sourceId: string, dataSources: DataSourceDef[]): string {
-  const src = dataSources.find((d) => d.id === sourceId);
+  const src = findSource(dataSources, sourceId);
   return src?.unit ?? "";
 }
 
 /** Get the label for a source */
 export function resolveLabel(sourceId: string, dataSources: DataSourceDef[]): string {
-  const src = dataSources.find((d) => d.id === sourceId);
+  const src = findSource(dataSources, sourceId);
   return src?.label ?? sourceId;
 }

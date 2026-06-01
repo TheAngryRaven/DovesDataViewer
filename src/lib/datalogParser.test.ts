@@ -108,10 +108,12 @@ describe("regression: okc-tillotson-data.dovex", () => {
     expect(parsed.dovexMetadata!.bestLapMs).toBe(minLap);
   });
 
-  it("fieldMappings includes the GPS-derived G-forces", () => {
+  it("fieldMappings includes the GPS-derived G-forces (canonical ids + labels)", () => {
     const names = parsed.fieldMappings.map((m) => m.name);
-    expect(names).toContain("Lat G");
-    expect(names).toContain("Lon G");
+    expect(names).toContain("lat_g");
+    expect(names).toContain("lon_g");
+    const latG = parsed.fieldMappings.find((m) => m.name === "lat_g");
+    expect(latG!.label).toBe("Lat G");
   });
 
   it("parserStats reports the row breakdown", () => {
@@ -195,18 +197,19 @@ describe("regression: okc-tillotson-plain.nmea", () => {
 
   it("fieldMappings includes GPS-derived G-forces (added by parser)", () => {
     const names = parsed.fieldMappings.map((m) => m.name);
-    expect(names).toContain("Lat G");
-    expect(names).toContain("Lon G");
+    expect(names).toContain("lat_g");
+    expect(names).toContain("lon_g");
   });
 
   it("populates Satellites/HDOP/Altitude from GGA sentences in extraFields", () => {
-    // The NMEA fixture has interleaved $GPGGA sentences which provide these
-    const anyWithSats = parsed.samples.find((s) => s.extraFields["Satellites"] !== undefined);
+    // The NMEA fixture has interleaved $GPGGA sentences which provide these;
+    // extraFields are keyed by canonical channel id after normalization.
+    const anyWithSats = parsed.samples.find((s) => s.extraFields["satellites"] !== undefined);
     expect(anyWithSats).toBeDefined();
-    expect(anyWithSats!.extraFields["Satellites"]).toBeGreaterThan(0);
-    expect(anyWithSats!.extraFields["Satellites"]).toBeLessThan(50);
+    expect(anyWithSats!.extraFields["satellites"]).toBeGreaterThan(0);
+    expect(anyWithSats!.extraFields["satellites"]).toBeLessThan(50);
 
-    const anyWithAlt = parsed.samples.find((s) => s.extraFields["Altitude (m)"] !== undefined);
+    const anyWithAlt = parsed.samples.find((s) => s.extraFields["altitude"] !== undefined);
     expect(anyWithAlt).toBeDefined();
   });
 

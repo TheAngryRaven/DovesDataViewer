@@ -1,0 +1,19 @@
+-- Force PostgREST to reload its schema cache.
+--
+-- The 20260526+ batch (subscription_tiers, user_subscriptions, lap_snapshots,
+-- account_deletions and their RPCs) was applied to the database, but PostgREST
+-- kept serving a stale schema cache. Because the REST API backs BOTH the client
+-- (.rpc()/.from()) AND the edge functions' service-role .from() calls, every
+-- object in that batch was invisible over REST while existing in Postgres —
+-- surfacing as:
+--   • "Could not find the function public.snapshot_usage ... in the schema cache"
+--   • lap snapshots failing to sync (from('lap_snapshots') cache-miss)
+--   • create-checkout-session returning a non-2xx (from('subscription_tiers')
+--     cache-miss → null row → "Unknown tier")
+-- while stripe-prices kept working (it never touches PostgREST).
+--
+-- This NOTIFY tells PostgREST to reload. It runs last in the migration sequence,
+-- so on a fresh database it reloads after the whole batch is created, and on an
+-- already-migrated database deploying it reloads the existing-but-uncached
+-- objects. Harmless to re-run.
+notify pgrst, 'reload schema';

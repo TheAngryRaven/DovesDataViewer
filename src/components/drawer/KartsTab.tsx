@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Kart } from "@/lib/kartStorage";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface KartsTabProps {
   karts: Kart[];
@@ -16,6 +17,7 @@ interface KartsTabProps {
 const emptyForm: Omit<Kart, "id"> = { name: "", engine: "", number: 0, weight: 0, weightUnit: "lb" };
 
 export function KartsTab({ karts, onAdd, onUpdate, onRemove }: KartsTabProps) {
+  const { user } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -57,10 +59,16 @@ export function KartsTab({ karts, onAdd, onUpdate, onRemove }: KartsTabProps) {
     <div className="flex flex-col flex-1 min-h-0">
       {/* Delete Confirmation */}
       {confirmDelete && (
-        <div className="mx-3 mt-3 mb-1 p-3 rounded-md border border-border bg-muted/60 space-y-2 shrink-0">
-          <p className="text-sm text-foreground">
-            Delete this kart? This cannot be undone.
-          </p>
+        <div className={`mx-3 mt-3 mb-1 p-3 rounded-md border space-y-2 shrink-0 ${user ? "border-destructive/50 bg-destructive/10" : "border-border bg-muted/60"}`}>
+          {user ? (
+            <p className="text-sm font-medium text-destructive">
+              Delete this kart everywhere? This removes it from <strong>every device and the cloud</strong> — it can't be undone.
+            </p>
+          ) : (
+            <p className="text-sm text-foreground">
+              Delete this kart? This cannot be undone.
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancel</Button>
             <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>Delete</Button>

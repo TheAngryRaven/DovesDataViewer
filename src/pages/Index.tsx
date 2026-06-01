@@ -14,6 +14,9 @@ const GraphViewTab = lazy(() =>
 const LabsTab = lazy(() =>
   import("@/components/tabs/LabsTab").then((m) => ({ default: m.LabsTab })),
 );
+const CoachTab = lazy(() =>
+  import("@/components/tabs/CoachTab").then((m) => ({ default: m.CoachTab })),
+);
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SettingsModal } from "@/components/SettingsModal";
 // FileManagerDrawer is a slide-out that only opens on user click. Lazy-loading
@@ -26,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData } from "@/types/racing";
+import { usePanelsForSlot, PanelSlot } from "@/plugins/panels";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
@@ -37,17 +41,23 @@ import { useTemplateManager } from "@/hooks/useTemplateManager";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
+import { useLapSnapshots } from "@/hooks/useLapSnapshots";
+import { LapSnapshotControls } from "@/components/LapSnapshotControls";
+import { LapSnapshotPromptDialog } from "@/components/LapSnapshotPromptDialog";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
 import { useDataLoader } from "@/hooks/useDataLoader";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
+import { snapshotLapSamples } from "@/lib/lapSnapshot";
+import type { PluginSnapshot } from "@/plugins/panels";
 
 
-type TopPanelView = "raceline" | "laptable" | "graphview" | "labs";
+type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
+const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
 export default function Index() {
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
@@ -88,7 +98,8 @@ export default function Index() {
   // Reference lap comparison
   const refLap = useReferenceLap(
     data, laps, selectedCourse, filteredSamples, selectedLapNumber,
-    referenceLapNumber, externalRefSamples, useKph
+    referenceLapNumber, externalRefSamples, useKph,
+    settings.deltaMethod, settings.deltaSampleMeters
   );
   const {
     referenceSamples, paceData, referenceSpeedData, lapToFastestDelta,
@@ -97,7 +108,7 @@ export default function Index() {
 
   // Session metadata
   const sessionMeta = useSessionMetadata(currentFileName);
-  const { cachedWeatherStation, sessionKartId, sessionSetupId } = sessionMeta;
+  const { cachedWeatherStation, sessionKartId, sessionSetupId, sessionSetupRev } = sessionMeta;
 
   // Playback
   const { isPlaying, toggle: togglePlayback, averageFrameRate } = usePlayback({
@@ -109,6 +120,18 @@ export default function Index() {
 
   const [topPanelView, setTopPanelView] = useState<TopPanelView>("raceline");
   const [showOverlays, setShowOverlays] = useState(true);
+  // Plugin panels drive these tabs. A plugin's `setup` may register panels
+  // asynchronously (after this first render), so we read them through the
+  // reactive hook — a plain useMemo([]) would freeze the snapshot and the tabs
+  // would never appear that session.
+  const hasLabsPanels = usePanelsForSlot(PanelSlot.Labs).length > 0;
+  const showLabs = settings.enableLabs || hasLabsPanels;
+  // The Coach tab is self-gating: it appears only when a plugin contributes a
+  // panel to the Coach slot (i.e. the coach package is installed).
+  const showCoach = usePanelsForSlot(PanelSlot.Coach).length > 0;
+  // Profile tab is self-gating too: appears only when a plugin (cloud-sync)
+  // contributes a Profile panel (i.e. the cloud build flag is on).
+  const showProfile = usePanelsForSlot(PanelSlot.Profile).length > 0;
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -129,17 +152,58 @@ export default function Index() {
     allTracks, gpsCenter,
   } = dataLoader;
 
+  // Lap snapshots: frozen "course fastest lap" captures, loaded as a comparison
+  // overlay through the same external-reference slot (so they never auto-play or
+  // appear in the video player).
+  const loadSnapshotOverlay = useCallback((samples: typeof filteredSamples, label: string) => {
+    externalRef.setExternalRefSamples(samples);
+    externalRef.setExternalRefLabel(label);
+    setReferenceLapNumber(null);
+  }, [externalRef, setReferenceLapNumber]);
+
+  const snapshots = useLapSnapshots({
+    data,
+    laps,
+    selection,
+    selectedLapNumber,
+    currentFileName,
+    vehicles: vehicleManager.vehicles,
+    setups: setupManager.setups,
+    sessionKartId,
+    sessionSetupId,
+    onLoadOverlay: loadSnapshotOverlay,
+    onClearOverlay: handleClearExternalRef,
+  });
+
   // Reference-lap handlers: clear the other side when one is set.
   const handleSetReferenceWithClear = useCallback((lapNumber: number) => {
     handleSetReference(lapNumber);
     externalRef.setExternalRefSamples(null);
     externalRef.setExternalRefLabel(null);
-  }, [handleSetReference, externalRef]);
+    snapshots.setActiveSnapshotId(null);
+  }, [handleSetReference, externalRef, snapshots]);
 
   const handleSelectExternalLapWithClear = useCallback((fileName: string, lapNumber: number) => {
     handleSelectExternalLap(fileName, lapNumber);
     setReferenceLapNumber(null);
-  }, [handleSelectExternalLap, setReferenceLapNumber]);
+    snapshots.setActiveSnapshotId(null);
+  }, [handleSelectExternalLap, setReferenceLapNumber, snapshots]);
+
+  // Assigning an engine/setup may set a new course fastest lap → prompt to save.
+  const handleSaveSessionSetupWithSnapshot = useCallback(async (kartId: string | null, setupId: string | null) => {
+    // Snapshot the engine string for the file browser's engine grouping, so it
+    // survives later edits/deletes of the vehicle.
+    const engine = kartId ? vehicleManager.vehicles.find((v) => v.id === kartId)?.engine ?? null : null;
+    await sessionMeta.handleSaveSessionSetup(kartId, setupId, engine);
+    snapshots.maybePromptOnAssignment(kartId, setupId);
+  }, [sessionMeta, snapshots, vehicleManager.vehicles]);
+
+  // Clearing the shared reference slot (e.g. the ExternalRefBar X) must also drop
+  // the active snapshot, since a loaded snapshot rides that same slot.
+  const handleClearExternalRefWithSnapshot = useCallback(() => {
+    handleClearExternalRef();
+    snapshots.setActiveSnapshotId(null);
+  }, [handleClearExternalRef, snapshots]);
 
   const hasReference = referenceLapNumber !== null || externalRefSamples !== null;
 
@@ -181,6 +245,34 @@ export default function Index() {
     [referenceSpeedData, visibleRange]
   );
 
+  // The setup the driver is currently running, resolved for plugin panels.
+  const sessionSetup = useMemo(
+    () => (sessionSetupId ? setupManager.setups.find((s) => s.id === sessionSetupId) ?? null : null),
+    [sessionSetupId, setupManager.setups],
+  );
+
+  // The loaded reference snapshot as a clean-lap view for plugin panels (coach).
+  const activeSnapshot = useMemo<PluginSnapshot | null>(() => {
+    const id = snapshots.activeSnapshotId;
+    if (!id) return null;
+    const snap = snapshots.snapshots.find((s) => s.id === id);
+    if (!snap) return null;
+    return {
+      id: snap.id,
+      engine: snap.engine,
+      trackName: snap.trackName,
+      courseName: snap.courseName,
+      lapTimeMs: snap.lapTimeMs,
+      sourceFileName: snap.sourceFileName,
+      sourceLapNumber: snap.sourceLapNumber,
+      recordedAt: snap.recordedAt,
+      samples: snapshotLapSamples(snap),
+      course: snap.course,
+      vehicle: snap.vehicle,
+      setup: snap.setup,
+    };
+  }, [snapshots.activeSnapshotId, snapshots.snapshots]);
+
   // ── SessionContext: everything the three main view tabs need ────────────
   // Tabs read this via `useSessionContext()` instead of receiving 25+ props.
   const sessionContextValue = useMemo<SessionContextValue>(() => ({
@@ -213,6 +305,14 @@ export default function Index() {
     refAvgMinSpeed,
     externalRefLabel,
     savedFiles,
+    snapshotsForCourse: snapshots.snapshotsForCourse,
+    activeSnapshotId: snapshots.activeSnapshotId,
+    activeSnapshot,
+    sessionSetup,
+    canSnapshot: snapshots.canSnapshot,
+    onLoadSnapshot: snapshots.loadSnapshot,
+    onClearSnapshot: snapshots.clearActive,
+    onSaveSnapshot: snapshots.saveSelectedLap,
     sessionGpsPoint,
     sessionStartDate: data?.startDate,
     sessionFileName: currentFileName,
@@ -230,13 +330,13 @@ export default function Index() {
     onLapSelect: handleLapSelect,
     onSetReference: handleSetReferenceWithClear,
     onSelectExternalLap: handleSelectExternalLapWithClear,
-    onClearExternalRef: handleClearExternalRef,
+    onClearExternalRef: handleClearExternalRefWithSnapshot,
     onLoadFileForRef: handleLoadFileForRef,
     onRefreshSavedFiles: refreshSavedFiles,
     onRangeChange: handleRangeChange,
     onFieldToggle: sessionData.handleFieldToggle,
     onWeatherStationResolved: sessionMeta.handleWeatherStationResolved,
-    onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
+    onSaveSessionSetup: handleSaveSessionSetupWithSnapshot,
     formatRangeLabel,
   }), [
     data, visibleSamples, filteredSamples, referenceSamples, currentSample, fieldMappings,
@@ -246,14 +346,17 @@ export default function Index() {
     hasReference, paceDiff, paceDiffLabel, slicedPaceData, slicedReferenceSpeedData,
     deltaTopSpeed, deltaMinSpeed, lapToFastestDelta, refAvgTopSpeed, refAvgMinSpeed,
     externalRefLabel, savedFiles,
+    snapshots.snapshotsForCourse, snapshots.activeSnapshotId, snapshots.canSnapshot,
+    snapshots.loadSnapshot, snapshots.clearActive, snapshots.saveSelectedLap,
+    activeSnapshot, sessionSetup,
     sessionGpsPoint, currentFileName, sessionKartId, sessionSetupId, cachedWeatherStation,
     vehicleManager.vehicles, setupManager.setups, templateManager.templates,
     videoSync.state, videoSync.actions, videoSync.handleLoadedMetadata,
     handleScrub, handleLapSelect, handleSetReferenceWithClear,
-    handleSelectExternalLapWithClear, handleClearExternalRef, handleLoadFileForRef,
+    handleSelectExternalLapWithClear, handleClearExternalRefWithSnapshot, handleLoadFileForRef,
     refreshSavedFiles, handleRangeChange,
     sessionData.handleFieldToggle, sessionMeta.handleWeatherStationResolved,
-    sessionMeta.handleSaveSessionSetup, formatRangeLabel,
+    handleSaveSessionSetupWithSnapshot, formatRangeLabel,
   ]);
 
   // Shared FileManagerDrawer props
@@ -270,6 +373,7 @@ export default function Index() {
     onSaveFile: fileManager.saveFile,
     onDataLoaded: handleDataLoaded,
     autoSave: settings.autoSaveFiles,
+    showProfile,
     vehicles: vehicleManager.vehicles,
     vehicleTypes: templateManager.vehicleTypes,
     templates: templateManager.templates,
@@ -288,19 +392,22 @@ export default function Index() {
     onGetLatestSetupForVehicle: setupManager.getLatestForVehicle,
     onAddVehicleType: templateManager.addVehicleType,
     onRemoveVehicleType: templateManager.removeVehicleType,
+    currentTrackName: lapMgmt.selection?.trackName ?? null,
+    currentCourseName: lapMgmt.selection?.courseName ?? null,
     sessionKartId,
     sessionSetupId,
-    onSaveSessionSetup: sessionMeta.handleSaveSessionSetup,
+    sessionSetupRev,
+    onSaveSessionSetup: handleSaveSessionSetupWithSnapshot,
   }), [
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
-    handleDataLoaded, settings.autoSaveFiles,
+    handleDataLoaded, settings.autoSaveFiles, showProfile,
     vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,
     templateManager.vehicleTypes, templateManager.templates, templateManager.addVehicleType, templateManager.removeVehicleType,
     currentFileName,
     noteManager.notes, noteManager.addNote, noteManager.updateNote, noteManager.removeNote,
     setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
-    sessionKartId, sessionSetupId, sessionMeta.handleSaveSessionSetup,
+    lapMgmt.selection, sessionKartId, sessionSetupId, sessionSetupRev, handleSaveSessionSetupWithSnapshot,
   ]);
 
   // No data loaded - show import UI
@@ -317,6 +424,7 @@ export default function Index() {
             onLoadSample={handleLoadSample}
             isLoadingSample={isLoadingSample}
             enableAdmin={enableAdmin}
+            enableCloud={enableCloud}
           />
           <Suspense fallback={null}>
             <FileManagerDrawer {...fileManagerProps} />
@@ -371,6 +479,16 @@ export default function Index() {
             </Select>
           )}
 
+          <LapSnapshotControls
+            snapshotsForCourse={snapshots.snapshotsForCourse}
+            activeSnapshotId={snapshots.activeSnapshotId}
+            canSnapshot={snapshots.canSnapshot}
+            hasCourse={!!selectedCourse}
+            onLoad={snapshots.loadSnapshot}
+            onClear={snapshots.clearActive}
+            onSave={snapshots.saveSelectedLap}
+          />
+
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={fileManager.open}>
             <FolderOpen className="w-4 h-4" />
@@ -379,7 +497,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} enableLabs={settings.enableLabs} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -387,7 +505,8 @@ export default function Index() {
           {topPanelView === "laptable" && <LapTimesTab />}
           <Suspense fallback={null}>
             {topPanelView === "graphview" && <GraphViewTab />}
-            {topPanelView === "labs" && settings.enableLabs && <LabsTab />}
+            {topPanelView === "labs" && showLabs && <LabsTab />}
+            {topPanelView === "coach" && showCoach && <CoachTab />}
           </Suspense>
         </div>
       </main>
@@ -404,6 +523,11 @@ export default function Index() {
         initialCenter={gpsCenter}
         detectionResult={detectionResult}
       />
+      <LapSnapshotPromptDialog
+        prompt={snapshots.prompt}
+        onConfirm={snapshots.confirmPrompt}
+        onDismiss={snapshots.dismissPrompt}
+      />
     </div>
     </SessionProvider>
     </SettingsProvider>
@@ -412,13 +536,14 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, enableLabs }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
   showOverlays: boolean;
   onToggleOverlays: () => void;
-  enableLabs: boolean;
+  showLabs: boolean;
+  showCoach: boolean;
 }) {
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -441,9 +566,14 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
           <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
         )}
       </button>
-      {enableLabs && (
+      {showLabs && (
         <button onClick={() => setTopPanelView("labs")} className={tabClass("labs")}>
           <FlaskConical className="w-4 h-4" /> <span className="hidden sm:inline">Labs</span>
+        </button>
+      )}
+      {showCoach && (
+        <button onClick={() => setTopPanelView("coach")} className={tabClass("coach")}>
+          <Gauge className="w-4 h-4" /> <span className="hidden sm:inline">Coach</span>
         </button>
       )}
       {topPanelView === "raceline" && (

@@ -4,6 +4,9 @@ import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapC
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalRefBar } from '@/components/ExternalRefBar';
+import { LapSnapshotControls } from '@/components/LapSnapshotControls';
+import type { LapSnapshot } from '@/lib/lapSnapshot';
+import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
 import { FileEntry } from '@/lib/fileStorage';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { haversineDistance, METERS_TO_FEET } from '@/lib/parserUtils';
@@ -23,9 +26,16 @@ interface LapTableProps {
   onSelectExternalLap?: (fileName: string, lapNumber: number) => void;
   onClearExternalRef?: () => void;
   onRefreshSavedFiles?: () => void;
+  // Lap snapshots (loaded as the reference overlay)
+  snapshotsForCourse?: LapSnapshot[];
+  activeSnapshotId?: string | null;
+  canSnapshot?: boolean;
+  onLoadSnapshot?: (snap: LapSnapshot) => void;
+  onClearSnapshot?: () => void;
+  onSaveSnapshot?: (force?: boolean) => Promise<SaveSnapshotResult>;
 }
 
-export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles }: LapTableProps) {
+export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot }: LapTableProps) {
   const { useKph } = useSettingsContext();
 
   const showSectors = courseHasSectors(course);
@@ -116,6 +126,7 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
   const getMinSpeed = (lap: Lap) => useKph ? lap.minSpeedKph : lap.minSpeedMph;
 
   const hasExternalRefProps = savedFiles && onLoadFileForRef && onSelectExternalLap && onClearExternalRef;
+  const hasSnapshotProps = onLoadSnapshot && onClearSnapshot && onSaveSnapshot;
 
   return (
     <div className="h-full overflow-auto scrollbar-thin">
@@ -127,6 +138,19 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
           onSelectExternalLap={onSelectExternalLap}
           onClearExternalRef={onClearExternalRef}
           onOpen={onRefreshSavedFiles}
+          trailing={hasSnapshotProps ? (
+            <LapSnapshotControls
+              snapshotsForCourse={snapshotsForCourse ?? []}
+              activeSnapshotId={activeSnapshotId ?? null}
+              canSnapshot={!!canSnapshot}
+              hasCourse={!!course}
+              onLoad={onLoadSnapshot}
+              onClear={onClearSnapshot}
+              onSave={onSaveSnapshot}
+              triggerLabel="Load snapshot as reference"
+              showSave={false}
+            />
+          ) : undefined}
         />
       )}
       <table className="w-full">

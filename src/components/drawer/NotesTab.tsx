@@ -3,9 +3,10 @@ import { Pencil, Trash2, NotebookPen, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Note } from "@/lib/noteStorage";
+import { Note, MAX_NOTE_BYTES } from "@/lib/noteStorage";
 import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
+import { shortRevHash } from "@/lib/setupRevision";
 
 interface NotesTabProps {
   fileName: string | null;
@@ -17,12 +18,14 @@ interface NotesTabProps {
   setups: VehicleSetup[];
   sessionKartId: string | null;
   sessionSetupId: string | null;
+  /** Content hash of the frozen setup revision this session ran (immutable id). */
+  sessionSetupRev: string | null;
   onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
 }
 
 export function NotesTab({
   fileName, notes, onAdd, onUpdate, onRemove,
-  vehicles, setups, sessionKartId, sessionSetupId, onSaveSessionSetup,
+  vehicles, setups, sessionKartId, sessionSetupId, sessionSetupRev, onSaveSessionSetup,
 }: NotesTabProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -118,6 +121,15 @@ export function NotesTab({
         <Button className="w-full" size="sm" onClick={handleSaveSetup} disabled={!canSave}>
           {sessionKartId ? "Update Selection" : "Save Selection"}
         </Button>
+        {isSaved && sessionSetupRev && (
+          <p className="text-xs text-muted-foreground">
+            Setup revision{" "}
+            <span className="font-mono text-foreground" title={sessionSetupRev}>
+              #{shortRevHash(sessionSetupRev)}
+            </span>{" "}
+            — frozen, so later edits won't change this session.
+          </p>
+        )}
       </div>
 
       {/* Delete Confirmation */}
@@ -155,7 +167,7 @@ export function NotesTab({
 
       {/* Add/Edit Form */}
       <div className="border-t border-border p-4 space-y-3 shrink-0">
-        <Textarea value={text} onChange={e => setText(e.target.value)} placeholder="Write a note…" className="min-h-[60px] text-sm resize-none" rows={3} />
+        <Textarea value={text} onChange={e => setText(e.target.value)} placeholder="Write a note…" className="min-h-[60px] text-sm resize-none" rows={3} maxLength={MAX_NOTE_BYTES} />
         <div className="flex items-center gap-2">
           <Button className="flex-1" size="sm" onClick={handleSubmit} disabled={!text.trim()}>
             {editingId ? "Update Note" : "Add Note"}

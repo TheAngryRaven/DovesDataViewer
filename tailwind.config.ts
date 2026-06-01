@@ -89,12 +89,19 @@ export default {
           from: { transform: "translateY(-10px)", opacity: "0" },
           to: { transform: "translateY(0)", opacity: "1" },
         },
+        // Subtle expanding ring used to draw attention to a call-to-action
+        // (e.g. the "Submit to DB" button) without being distracting.
+        "attention-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--primary) / 0.45)" },
+          "70%": { boxShadow: "0 0 0 7px hsl(var(--primary) / 0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "slide-in": "slide-in 0.3s ease-out",
+        "attention-glow": "attention-glow 2.4s ease-in-out infinite",
       },
     },
   },

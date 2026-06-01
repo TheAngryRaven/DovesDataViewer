@@ -1,7 +1,30 @@
 import { memo } from "react";
 import { FlaskConical } from "lucide-react";
+import { useSessionContext } from "@/contexts/SessionContext";
+import { useSettingsContext } from "@/contexts/SettingsContext";
+import { PluginPanelHost } from "@/plugins/PluginPanelHost";
+import { PanelSlot } from "@/plugins/panels";
 
 export const LabsTab = memo(function LabsTab() {
+  const { data, laps, selectedLapNumber, course, activeSnapshot, sessionSetup } = useSessionContext();
+  const { useKph } = useSettingsContext();
+
+  return (
+    <PluginPanelHost
+      slot={PanelSlot.Labs}
+      data={data}
+      laps={laps}
+      selectedLapNumber={selectedLapNumber}
+      course={course}
+      useKph={useKph}
+      sessionSetup={sessionSetup}
+      activeSnapshot={activeSnapshot}
+      fallback={<LabsEmpty />}
+    />
+  );
+});
+
+function LabsEmpty() {
   return (
     <div className="h-full flex items-center justify-center">
       <div className="max-w-sm space-y-5 text-center px-4">
@@ -13,4 +36,4 @@ export const LabsTab = memo(function LabsTab() {
       </div>
     </div>
   );
-});
+}

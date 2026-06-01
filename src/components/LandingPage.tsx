@@ -1,4 +1,4 @@
-import { Gauge, Github, Heart, Shield, BookOpen, Play, Loader2 } from "lucide-react";
+import { Gauge, Github, Heart, Shield, BookOpen, Play, Loader2, LogIn, LogOut, FileText, Cpu } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileImport } from "@/components/FileImport";
@@ -8,6 +8,8 @@ import { ContactDialog } from "@/components/ContactDialog";
 import { SupportedFilesDialog } from "@/components/SupportedFilesDialog";
 import { AboutDialog } from "@/components/AboutDialog";
 import { CreditsDialog } from "@/components/CreditsDialog";
+import { PricingCards } from "@/components/PricingCards";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ParsedData } from "@/types/racing";
 
 interface LandingPageProps {
@@ -18,12 +20,14 @@ interface LandingPageProps {
   onLoadSample: () => void;
   isLoadingSample: boolean;
   enableAdmin: boolean;
+  enableCloud: boolean;
 }
 
 const GITHUB_LINKS: Array<{ href: string; label: string }> = [
   { href: "https://github.com/TheAngryRaven/DovesDataViewer", label: "View on GitHub" },
   { href: "https://github.com/TheAngryRaven/DovesDataLogger", label: "View Datalogger" },
   { href: "https://github.com/TheAngryRaven/DovesLapTimer", label: "View Timer Library" },
+  { href: "https://github.com/TheAngryRaven/DataViewer_coach", label: "Coach Plugin" },
 ];
 
 /**
@@ -43,8 +47,10 @@ export function LandingPage({
   onLoadSample,
   isLoadingSample,
   enableAdmin,
+  enableCloud,
 }: LandingPageProps) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -61,6 +67,19 @@ export function LandingPage({
             <SupportedFilesDialog />
             <AboutDialog />
             <ContactDialog variant="header" />
+            {enableCloud && (
+              user ? (
+                <Button variant="ghost" size="sm" className="gap-2" onClick={logout} title={user.email ?? undefined}>
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/login')}>
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign in</span>
+                </Button>
+              )
+            )}
             <a
               href="https://github.com/sponsors/TheAngryRaven"
               target="_blank"
@@ -75,20 +94,36 @@ export function LandingPage({
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-xl space-y-6">
+      <main className="flex-1 p-8 space-y-12">
+        <div className="mx-auto w-full max-w-xl space-y-6">
           <div className="flex justify-end items-center gap-2">
             <LocalWeatherDialog />
           </div>
 
-          <div className="text-center space-y-2">
+          <div className="text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               Free Online VBO, MoTeC, AiM &amp; NMEA Telemetry Viewer
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Open any Racelogic VBO, MoTeC i2 (LD/CSV), AiM MyChron, Alfano, u-blox UBX, NMEA or Dove datalog right in your browser. 100% offline — your files never leave your device.
-            </p>
           </div>
+
+          <a
+            href="https://github.com/TheAngryRaven/DovesDataLogger"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-6 py-6 text-center transition-colors hover:border-primary hover:bg-primary/10 sm:flex-row sm:text-left"
+          >
+            <Cpu className="h-8 w-8 shrink-0 text-primary" />
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-foreground">Build your own datalogger</h3>
+              <p className="text-sm text-muted-foreground">
+                The DovesDataLogger is fully open source — grab the hardware design and firmware to build your own GPS telemetry logger.
+              </p>
+            </div>
+            <Button variant="default" size="sm" className="mt-2 shrink-0 gap-2 sm:ml-auto sm:mt-0">
+              <Github className="h-4 w-4" />
+              Get Started
+            </Button>
+          </a>
 
           <FileImport
             onDataLoaded={onDataLoaded}
@@ -111,12 +146,16 @@ export function LandingPage({
               </Button>
             </div>
           </div>
+        </div>
 
-          <div className="flex justify-center mt-3">
+        <PricingCards className="mx-auto w-full max-w-5xl" />
+
+        <div className="mx-auto w-full max-w-xl space-y-4">
+          <div className="flex justify-center">
             <BrowserCompatDialog />
           </div>
 
-          <div className="flex items-center justify-center gap-8 mt-4">
+          <div className="flex items-center justify-center gap-8">
             {GITHUB_LINKS.map((link) => (
               <a
                 key={link.href}
@@ -131,10 +170,14 @@ export function LandingPage({
             ))}
           </div>
 
-          <div className="flex items-center justify-center gap-6 mt-3 flex-wrap">
+          <div className="flex items-center justify-center gap-6 flex-wrap">
             <Link to="/privacy" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               <Shield className="w-3 h-3" />
               Privacy Policy
+            </Link>
+            <Link to="/terms" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+              <FileText className="w-3 h-3" />
+              Terms of Service
             </Link>
             <ContactDialog />
             <CreditsDialog />
@@ -150,6 +193,20 @@ export function LandingPage({
           </div>
         </div>
       </main>
+
+      <footer className="border-t border-border px-6 py-4">
+        <p className="text-center text-xs text-muted-foreground">
+          Operated by{" "}
+          <a
+            href="https://PerchWerks.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            PerchWerks LLC
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

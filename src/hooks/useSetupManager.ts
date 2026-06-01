@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { VehicleSetup, listSetups, saveSetup, deleteSetup, getLatestSetupForVehicle } from "@/lib/setupStorage";
+import { maybePruneSetupRevisions } from "@/lib/setupRevisionStorage";
 
 export function useSetupManager() {
   const [setups, setSetups] = useState<VehicleSetup[]>([]);
@@ -11,6 +12,9 @@ export function useSetupManager() {
 
   useEffect(() => {
     refresh();
+    // Throttled (~3-day) sweep of setup revisions no session references. Fire-
+    // and-forget — never blocks the garage UI, no-ops until the interval elapses.
+    void maybePruneSetupRevisions();
   }, [refresh]);
 
   const addSetup = useCallback(async (setup: Omit<VehicleSetup, "id" | "createdAt" | "updatedAt">) => {

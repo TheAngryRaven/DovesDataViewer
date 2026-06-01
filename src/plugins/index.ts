@@ -1,5 +1,6 @@
 import externalPlugins from "virtual:external-plugins";
 import { pluginRegistry } from "./registry";
+import { getPluginStore } from "./storage";
 import type { DataViewerPlugin } from "./types";
 
 let initialized = false;
@@ -29,7 +30,7 @@ export function initPlugins(): void {
   }
 
   for (const plugin of pluginRegistry.list()) {
-    void plugin.setup?.({ registry: pluginRegistry });
+    void plugin.setup?.({ registry: pluginRegistry, storage: getPluginStore(plugin.id) });
   }
 
   if (import.meta.env.DEV) {

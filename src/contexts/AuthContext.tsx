@@ -8,6 +8,8 @@ interface AuthContextValue {
   isAdmin: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, displayName?: string, captchaToken?: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
@@ -94,13 +96,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/login',
+      redirectTo: window.location.origin + '/reset-password',
     });
     return { error };
   }, []);
 
+  const signUp = useCallback(async (email: string, password: string, displayName?: string, captchaToken?: string) => {
+    const trimmed = displayName?.trim();
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin + '/auth/callback',
+        // Picked up by the handle_new_user trigger; blank → a random name is
+        // generated server-side. A taken name is auto-suffixed there too.
+        data: trimmed ? { display_name: trimmed } : {},
+        // Verified server-side when Turnstile is enabled in the Supabase Auth
+        // settings; ignored otherwise (graceful fallback when no key is set).
+        ...(captchaToken ? { captchaToken } : {}),
+      },
+    });
+    return { error };
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    try {
+      // Lazy import keeps the Lovable auth SDK out of the main chunk; this
+      // module is only imported in cloud-flagged builds, but the dynamic
+      // import doubles as belt-and-suspenders.
+      const { lovable } = await import('@/integrations/lovable/index');
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin + '/auth/callback',
+      });
+      if (result.error) return { error: result.error as Error };
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof Error ? e : new Error(String(e)) };
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, login, logout, resetPassword }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, loading, login, signUp, signInWithGoogle, logout, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

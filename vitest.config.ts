@@ -15,20 +15,32 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text-summary", "json-summary", "lcov"],
       include: ["src/**/*.{ts,tsx}"],
+      // Coverage is scoped to *logic* worth unit-testing (parsers, utilities,
+      // protocol code, hooks, plugins). The React view layer is deliberately
+      // out of scope — presentational components, route/page shells, and
+      // context providers are validated by integration/visual testing, not
+      // Vitest line coverage. We exclude view code, NOT untested logic: hooks
+      // and lib/ stay in the report so the number is an honest signal.
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
+        "src/components/**/*.tsx", // presentational React components (keeps video-overlays/*.ts logic in scope)
+        "src/pages/**", // route/page shells — view layer
+        "src/contexts/**", // provider wiring — view layer
+        "src/App.tsx", // app shell / routing
         "src/components/ui/**", // vendored shadcn/ui primitives
         "src/integrations/supabase/**", // auto-generated — DO NOT EDIT
         "src/**/*.d.ts",
         "src/main.tsx",
         "src/vite-env.d.ts",
       ],
-      // Gate intentionally low so it can be ratcheted up later as coverage grows.
+      // Floors guard against regressions in the logic we test. Set a few points
+      // below current actuals so routine churn doesn't redden CI; ratchet up as
+      // coverage grows.
       thresholds: {
-        lines: 1,
-        functions: 1,
-        branches: 1,
-        statements: 1,
+        lines: 33,
+        functions: 26,
+        branches: 33,
+        statements: 32,
       },
     },
   },

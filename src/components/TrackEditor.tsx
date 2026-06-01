@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useContext, lazy, Suspense } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Settings, Code, Copy } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Settings, Code, Copy, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -42,6 +42,7 @@ import { CourseForm } from '@/components/track-editor/CourseForm';
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { SubmitTrackDialog } from '@/components/SubmitTrackDialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Send } from 'lucide-react';
 
 import type { Lap, GpsSample } from '@/types/racing';
@@ -460,9 +461,10 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             <Code className="w-4 h-4 mr-2" />View JSON
           </Button>
           {selectedTrack && (selectedTrack.isUserDefined || selectedTrack.courses.some(c => c.isUserDefined)) && (
+            <div className="flex items-center gap-1">
             <SubmitTrackDialog
               trigger={
-                <Button variant="outline">
+                <Button className="animate-attention-glow">
                   <Send className="w-4 h-4 mr-2" />Submit to DB
                 </Button>
               }
@@ -479,6 +481,23 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                 };
               })()}
             />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Why submit to the database?"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Sharing your track configurations to the database helps the
+                project grow — your tracks become available to everyone, so the
+                community spends less time mapping and more time driving.</p>
+              </TooltipContent>
+            </Tooltip>
+            </div>
           )}
         </div>
         <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>

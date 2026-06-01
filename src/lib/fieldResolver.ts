@@ -1,52 +1,32 @@
-// Canonical field name resolver for consistent settings across different parsers
+// Canonical field name resolver for consistent settings across different parsers.
+//
+// Channel identity now lives in the single registry (`channels.ts`); this module
+// is the settings-facing adapter over it (canonical-id resolution + the
+// settings-UI field categories). Kept as a separate module so existing imports
+// (`getCanonicalFieldId`, `isFieldHiddenByCanonical`, `FIELD_CATEGORIES`) stay
+// stable.
 
-export type CanonicalFieldId = 
-  | 'altitude'
-  | 'satellites'
-  | 'hdop'
-  | 'lat_g'
-  | 'lon_g'
-  | 'rpm'
-  | 'water_temp'
-  | 'egt'
-  | 'throttle'
-  | 'brake';
+import { type ChannelId, getChannelDef, isKnownChannel, resolveChannelId } from "./channels";
 
-// Maps all possible field name variations to their canonical ID
-const FIELD_ALIASES: Record<CanonicalFieldId, string[]> = {
-  altitude: ['Altitude (m)', 'Altitude', 'Alt'],
-  satellites: ['Satellites', 'Sats', 'NumSats'],
-  hdop: ['HDOP', 'Hdop'],
-  lat_g: ['Lat G', 'Lat G (Native)', 'Lateral G', 'LatG'],
-  lon_g: ['Lon G', 'Lon G (Native)', 'Longitudinal G', 'LonG'],
-  rpm: ['RPM', 'Rpm'],
-  water_temp: ['Water Temp', 'Water Temperature', 'Coolant Temp'],
-  egt: ['EGT', 'Exhaust Temp'],
-  throttle: ['Throttle', 'TPS', 'Throttle Position'],
-  brake: ['Brake', 'Brake Pressure'],
-};
-
-// Reverse lookup: field name -> canonical ID
-const nameToCanonical: Map<string, CanonicalFieldId> = new Map();
-for (const [canonical, aliases] of Object.entries(FIELD_ALIASES)) {
-  for (const alias of aliases) {
-    nameToCanonical.set(alias.toLowerCase(), canonical as CanonicalFieldId);
-  }
-}
+/** A canonical field id is a registry channel id. */
+export type CanonicalFieldId = ChannelId;
 
 /**
- * Get the canonical field ID for a given field name.
- * Returns undefined if the field doesn't have a canonical mapping.
+ * Get the canonical field ID for a given field name (canonical label or any
+ * known alias). Returns undefined if the field has no canonical mapping.
  */
 export function getCanonicalFieldId(fieldName: string): CanonicalFieldId | undefined {
-  return nameToCanonical.get(fieldName.toLowerCase());
+  // Accept an already-canonical id (post-normalization field name) or a raw
+  // display name / alias (legacy callers, settings UI).
+  if (isKnownChannel(fieldName)) return fieldName;
+  return resolveChannelId(fieldName);
 }
 
 /**
  * Check if a field name is hidden based on the canonical hidden list.
  */
 export function isFieldHiddenByCanonical(
-  fieldName: string, 
+  fieldName: string,
   hiddenCanonicalIds: string[]
 ): boolean {
   const canonicalId = getCanonicalFieldId(fieldName);
@@ -55,10 +35,11 @@ export function isFieldHiddenByCanonical(
 }
 
 /**
- * Get all aliases for a canonical field ID
+ * Get all aliases for a canonical field ID (its label plus registered aliases).
  */
 export function getFieldAliases(canonicalId: CanonicalFieldId): string[] {
-  return FIELD_ALIASES[canonicalId] || [];
+  const def = getChannelDef(canonicalId);
+  return def ? [def.label, ...def.aliases] : [];
 }
 
 // Field configuration for the settings UI
@@ -82,6 +63,7 @@ export const FIELD_CATEGORIES: FieldCategory[] = [
       { canonicalId: 'altitude', label: "Altitude", description: "GPS altitude in meters" },
       { canonicalId: 'satellites', label: "Satellites", description: "Number of GPS satellites" },
       { canonicalId: 'hdop', label: "HDOP", description: "Horizontal dilution of precision" },
+      { canonicalId: 'h_acc', label: "H Accuracy", description: "Estimated horizontal position accuracy (m)" },
     ],
   },
   {
@@ -90,6 +72,15 @@ export const FIELD_CATEGORIES: FieldCategory[] = [
     fields: [
       { canonicalId: 'lat_g', label: "Lateral G", description: "Lateral acceleration (computed)" },
       { canonicalId: 'lon_g', label: "Longitudinal G", description: "Longitudinal acceleration (computed)" },
+    ],
+  },
+  {
+    category: "Motion (IMU)",
+    description: "Raw accelerometer data from the device's IMU",
+    fields: [
+      { canonicalId: 'accel_x', label: "Accel X", description: "Raw IMU acceleration, X axis" },
+      { canonicalId: 'accel_y', label: "Accel Y", description: "Raw IMU acceleration, Y axis" },
+      { canonicalId: 'accel_z', label: "Accel Z", description: "Raw IMU acceleration, Z axis" },
     ],
   },
   {

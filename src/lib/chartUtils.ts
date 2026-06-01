@@ -2,11 +2,11 @@
  * Shared chart utilities used by TelemetryChart and SingleSeriesChart.
  */
 
-/** Field names that should have optional smoothing applied in charts (GPS-derived). */
-export const G_FORCE_FIELDS_GPS = ['Lat G', 'Lon G'];
+/** Canonical channel ids for GPS-derived G-force (optional smoothing applied). */
+export const G_FORCE_FIELDS_GPS = ['lat_g', 'lon_g'];
 
-/** Field names for hardware accelerometer G-force fields. */
-export const G_FORCE_FIELDS_HW = ['Accel X', 'Accel Y'];
+/** Canonical channel ids for hardware accelerometer G-force fields. */
+export const G_FORCE_FIELDS_HW = ['accel_x', 'accel_y'];
 
 /** All G-force field names (for smoothing detection). */
 export const G_FORCE_FIELDS = [...G_FORCE_FIELDS_GPS, ...G_FORCE_FIELDS_HW];

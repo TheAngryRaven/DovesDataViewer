@@ -3,7 +3,8 @@ import { ParsedData, Lap, GpsSample, Course } from "@/types/racing";
 import { FileEntry, listFiles, getFile } from "@/lib/fileStorage";
 import { parseDatalogContent } from "@/lib/datalogParser";
 import { calculateLaps, formatLapTime } from "@/lib/lapCalculation";
-import { calculatePace, calculateReferenceSpeed } from "@/lib/referenceUtils";
+import { calculateReferenceSpeed } from "@/lib/referenceUtils";
+import { computeLapPace, type DeltaMethod } from "@/lib/lapDelta";
 import { findSpeedEvents } from "@/lib/speedEvents";
 
 /**
@@ -18,7 +19,9 @@ export function useReferenceLap(
   selectedLapNumber: number | null,
   referenceLapNumber: number | null,
   externalRefSamples: GpsSample[] | null,
-  useKph: boolean
+  useKph: boolean,
+  deltaMethod: DeltaMethod = "position",
+  deltaSampleMeters = 2
 ) {
   // Get reference lap samples (external takes priority)
   const referenceSamples = useMemo((): GpsSample[] => {
@@ -45,10 +48,10 @@ export function useReferenceLap(
       return { paceData: [] as (number | null)[], referenceSpeedData: [] as (number | null)[] };
     }
     return {
-      paceData: calculatePace(filteredSamples, referenceSamples),
+      paceData: computeLapPace(filteredSamples, referenceSamples, { method: deltaMethod, sampleMeters: deltaSampleMeters }),
       referenceSpeedData: calculateReferenceSpeed(filteredSamples, referenceSamples, useKph),
     };
-  }, [filteredSamples, referenceSamples, useKph]);
+  }, [filteredSamples, referenceSamples, useKph, deltaMethod, deltaSampleMeters]);
 
   // Calculate lap to fastest delta (direct lap time difference)
   const lapToFastestDelta = useMemo((): number | null => {
@@ -123,7 +126,7 @@ export function useReferenceLap(
 
     // Otherwise, compare to fastest lap
     if (fastestLapSamples.length > 0) {
-      const bestPaceData = calculatePace(filteredSamples, fastestLapSamples);
+      const bestPaceData = computeLapPace(filteredSamples, fastestLapSamples, { method: deltaMethod, sampleMeters: deltaSampleMeters });
       const lastPace = bestPaceData.filter((p) => p !== null).pop() ?? null;
       const { deltaTop, deltaMin, refTop, refMin } = calculateDeltas(fastestLapSamples);
       return {
@@ -137,7 +140,7 @@ export function useReferenceLap(
     }
 
     return defaultResult;
-  }, [filteredSamples, referenceSamples, fastestLapSamples, paceData, selectedLapNumber]);
+  }, [filteredSamples, referenceSamples, fastestLapSamples, paceData, selectedLapNumber, deltaMethod, deltaSampleMeters]);
 
   return {
     referenceSamples,

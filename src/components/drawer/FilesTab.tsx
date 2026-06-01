@@ -1,14 +1,24 @@
-import { useCallback, useRef, useState, useEffect, lazy, Suspense } from "react";
-import { Trash2, Download, Upload, FolderOpen, Loader2, Video, X } from "lucide-react";
+import { useCallback, useRef, useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { toast } from "sonner";
+import { Trash2, Download, Upload, FolderOpen, Loader2, Video, Cloud, CloudDownload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileEntry, FileMetadata } from "@/lib/fileStorage";
+import { FileEntry, FileMetadata, getFileMetadata } from "@/lib/fileStorage";
+import { Vehicle } from "@/lib/vehicleStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
+import {
+  buildBrowserSessions, computeBrowserView, defaultNav,
+  type BrowserSession, type NavState,
+} from "@/lib/fileBrowserTree";
+import { SessionBrowser } from "@/components/SessionBrowser";
+import { useFileSources, type FileSource, type RemoteFile } from "@/plugins/fileSources";
 // Lazy — keeps the BLE module in its own chunk, loaded only on device use.
 const DataloggerDownload = lazy(() =>
   import("@/components/DataloggerDownload").then((m) => ({ default: m.DataloggerDownload })),
 );
-import { listSessionVideos, deleteSessionVideo, StoredVideoMeta } from "@/lib/videoFileStorage";
+import { listSessionVideos, StoredVideoMeta } from "@/lib/videoFileStorage";
+import { PluginMount } from "@/plugins/PluginMount";
+import { MountSlot } from "@/plugins/mounts";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -29,6 +39,12 @@ function formatLapTime(ms: number): string {
 interface FilesTabProps {
   files: FileEntry[];
   fileMetadataMap: Map<string, FileMetadata>;
+  vehicles: Vehicle[];
+  /** Track/course of the currently-loaded session — the browser opens here. */
+  currentTrackName: string | null;
+  currentCourseName: string | null;
+  /** Drawer open flag — re-homes the browser to the current session on each open. */
+  isOpen: boolean;
   storageUsed: number;
   storageQuota: number;
   onLoadFile: (name: string) => Promise<Blob | null>;
@@ -43,6 +59,10 @@ interface FilesTabProps {
 export function FilesTab({
   files,
   fileMetadataMap,
+  vehicles,
+  currentTrackName,
+  currentCourseName,
+  isOpen,
   storageUsed,
   storageQuota,
   onLoadFile,
@@ -57,7 +77,75 @@ export function FilesTab({
   const [confirmLoad, setConfirmLoad] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cloudBusy, setCloudBusy] = useState<string | null>(null);
   const [videoFiles, setVideoFiles] = useState<Map<string, StoredVideoMeta>>(new Map());
+
+  // Remote (cloud) files contributed by plugins (cloud-sync). Merged into the
+  // same tree as "cloud" rows; the host never imports any cloud code.
+  const sources = useFileSources();
+  const sourcesRef = useRef(sources);
+  sourcesRef.current = sources;
+  // Stable key (getContributions hands back a fresh [] each call, so we can't
+  // depend on the array identity without looping the effect).
+  const sourceKey = sources.map((s) => s.id).join("|");
+  const [remoteFiles, setRemoteFiles] = useState<RemoteFile[]>([]);
+  const [remoteMeta, setRemoteMeta] = useState<Map<string, FileMetadata>>(new Map());
+  const remoteSourceByName = useRef<Map<string, FileSource>>(new Map());
+
+  // Folder navigation. Opens at the current session's track/course, and re-homes
+  // there whenever the drawer is (re)opened or a different session is loaded.
+  const [nav, setNav] = useState<NavState>(() => defaultNav(currentTrackName, currentCourseName));
+  useEffect(() => {
+    if (isOpen) setNav(defaultNav(currentTrackName, currentCourseName));
+  }, [isOpen, currentTrackName, currentCourseName]);
+
+  // Pull the list of cloud files (+ their synced metadata) when the drawer opens
+  // or the local set changes (e.g. after a download promotes a cloud file local).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const localNames = new Set(files.map((f) => f.name));
+      const byName = new Map<string, FileSource>();
+      const all: RemoteFile[] = [];
+      for (const src of sourcesRef.current) {
+        let list: RemoteFile[] = [];
+        try { list = await src.listFiles(); } catch { list = []; }
+        for (const rf of list) {
+          if (!byName.has(rf.name)) { byName.set(rf.name, src); all.push(rf); }
+        }
+      }
+      if (cancelled) return;
+      remoteSourceByName.current = byName;
+      setRemoteFiles(all);
+      // Metadata for cloud-only files syncs down separately — load any the local
+      // map doesn't already have so they can be grouped by track/course.
+      const cloudOnly = all.filter((rf) => !localNames.has(rf.name) && !fileMetadataMap.has(rf.name));
+      const entries = await Promise.all(
+        cloudOnly.map(async (rf) => {
+          const m = await getFileMetadata(rf.name);
+          return m ? ([rf.name, m] as const) : null;
+        }),
+      );
+      if (cancelled) return;
+      const rm = new Map<string, FileMetadata>();
+      for (const e of entries) if (e) rm.set(e[0], e[1]);
+      setRemoteMeta(rm);
+    })();
+    return () => { cancelled = true; };
+  }, [sourceKey, files, fileMetadataMap, isOpen]);
+
+  const mergedMeta = useMemo(() => {
+    const m = new Map(fileMetadataMap);
+    for (const [k, v] of remoteMeta) if (!m.has(k)) m.set(k, v);
+    return m;
+  }, [fileMetadataMap, remoteMeta]);
+
+  const sessions = useMemo(
+    () => buildBrowserSessions(files, mergedMeta, vehicles, remoteFiles),
+    [files, mergedMeta, vehicles, remoteFiles],
+  );
+  const view = useMemo(() => computeBrowserView(sessions, nav), [sessions, nav]);
+  const filesByName = useMemo(() => new Map(files.map((f) => [f.name, f])), [files]);
 
   // Load stored video metadata to show video icons
   useEffect(() => {
@@ -65,15 +153,6 @@ export function FilesTab({
       setVideoFiles(new Map(videos.map(v => [v.sessionFileName, v])));
     }).catch(() => {});
   }, [files]);
-
-  const handleDeleteVideo = useCallback(async (sessionFileName: string) => {
-    await deleteSessionVideo(sessionFileName);
-    setVideoFiles(prev => {
-      const next = new Map(prev);
-      next.delete(sessionFileName);
-      return next;
-    });
-  }, []);
 
   const handleLoadConfirm = useCallback(async () => {
     if (!confirmLoad) return;
@@ -94,10 +173,41 @@ export function FilesTab({
     }
   }, [confirmLoad, onLoadFile, onDataLoaded, onClose]);
 
+  // Cloud-only row tapped: pull the blob, persist it locally, then open it.
+  const handleOpenCloud = useCallback(async (name: string) => {
+    const src = remoteSourceByName.current.get(name);
+    if (!src || cloudBusy) return;
+    setCloudBusy(name);
+    try {
+      const blob = await src.download(name);
+      if (!blob) throw new Error("Download returned no data");
+      await onSaveFile(name, blob);
+      const data = await parseDatalogFile(new File([blob], name));
+      onDataLoaded(data, name);
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to download cloud log");
+    } finally {
+      setCloudBusy(null);
+    }
+  }, [cloudBusy, onSaveFile, onDataLoaded, onClose]);
+
+  // A plugin (cloud-sync) can register an extra action to run on confirm — e.g.
+  // also removing the synced copy from the cloud. The host stays cloud-agnostic.
+  const deleteConfirmAction = useRef<(() => Promise<void>) | null>(null);
+  const registerDeleteConfirm = useCallback((fn: (() => Promise<void>) | null) => {
+    deleteConfirmAction.current = fn;
+  }, []);
+
   const handleDeleteConfirm = useCallback(async () => {
     if (!confirmDelete) return;
     await onDeleteFile(confirmDelete);
-    setConfirmDelete(null);
+    try {
+      await deleteConfirmAction.current?.();
+    } finally {
+      deleteConfirmAction.current = null;
+      setConfirmDelete(null);
+    }
   }, [confirmDelete, onDeleteFile]);
 
   const handleUpload = useCallback(
@@ -132,6 +242,91 @@ export function FilesTab({
 
   const storagePercent = storageQuota > 0 ? Math.min((storageUsed / storageQuota) * 100, 100) : 0;
 
+  const renderRow = useCallback((s: BrowserSession) => {
+    // Cloud-only row: one tap downloads + opens it.
+    if (s.location === "cloud") {
+      const busy = cloudBusy === s.fileName;
+      // Greyed out (not on this device until downloaded).
+      return (
+        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group opacity-60">
+          <button
+            className="flex-1 text-left min-w-0 cursor-pointer disabled:opacity-60"
+            disabled={busy}
+            onClick={() => handleOpenCloud(s.fileName)}
+            title={`${s.fileName} — in the cloud, tap to download`}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium truncate text-muted-foreground">{s.displayName}</span>
+              {busy
+                ? <Loader2 className="w-3.5 h-3.5 text-primary shrink-0 animate-spin" />
+                : <Cloud className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {s.size != null ? `${formatSize(s.size)} · ` : ""}In the cloud
+              {s.fastestLapMs != null && (
+                <span className="ml-1.5 text-primary font-medium">⚡ {formatLapTime(s.fastestLapMs)}</span>
+              )}
+            </div>
+          </button>
+          <CloudDownload className="w-4 h-4 shrink-0 text-muted-foreground" />
+        </div>
+      );
+    }
+
+    // Local row: tap to load; export + delete; plugin per-row control (sync toggle).
+    const file = filesByName.get(s.fileName);
+    if (!file) return null;
+    const metadata = mergedMeta.get(s.fileName);
+    return (
+      <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+        <button
+          className="flex-1 text-left min-w-0 cursor-pointer"
+          onClick={() => setConfirmLoad(s.fileName)}
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-medium truncate text-foreground" title={s.fileName}>{s.displayName}</span>
+            {videoFiles.has(s.fileName) && (
+              <span title={(() => {
+                const m = videoFiles.get(s.fileName)!;
+                const parts = [m.exportType === "lap" && m.lapNumber != null ? `Lap ${m.lapNumber}` : m.exportType === "session" ? "Session" : "Source"];
+                if (m.hasOverlays) parts.push("w/ overlays");
+                parts.push(`(${formatSize(m.size)})`);
+                return parts.join(" ");
+              })()}>
+                <Video className="w-3.5 h-3.5 text-primary shrink-0" />
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {formatSize(file.size)} · {new Date(file.savedAt).toLocaleDateString()}
+            {s.fastestLapMs != null && (
+              <span className="ml-1.5 text-primary font-medium">⚡ {formatLapTime(s.fastestLapMs)}</span>
+            )}
+          </div>
+        </button>
+        <PluginMount slot={MountSlot.FileRow} ctx={{ file, metadata }} />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
+          onClick={() => onExportFile(s.fileName)}
+          title="Export / Download"
+        >
+          <Download className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive"
+          onClick={() => setConfirmDelete(s.fileName)}
+          title="Delete"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    );
+  }, [cloudBusy, handleOpenCloud, filesByName, mergedMeta, videoFiles, onExportFile]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Inline Confirmation Banner */}
@@ -156,6 +351,11 @@ export function FilesTab({
               <p className="text-sm text-foreground">
                 Delete <span className="font-mono font-medium">{confirmDelete}</span>? This cannot be undone.
               </p>
+              <PluginMount
+                key={confirmDelete}
+                slot={MountSlot.FileDeleteConfirm}
+                ctx={{ fileName: confirmDelete, registerOnConfirm: registerDeleteConfirm }}
+              />
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancel</Button>
                 <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>Delete</Button>
@@ -167,65 +367,14 @@ export function FilesTab({
 
       {/* File List */}
       <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-1">
-        {files.length === 0 ? (
+        {files.length === 0 && remoteFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
             <FolderOpen className="w-12 h-12 opacity-30" />
             <p className="text-sm">No stored files</p>
             <p className="text-xs">Upload or import files to get started</p>
           </div>
         ) : (
-          files.map((file) => (
-            <div
-              key={file.name}
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group"
-            >
-              <button
-                className="flex-1 text-left min-w-0 cursor-pointer"
-                onClick={() => setConfirmLoad(file.name)}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-mono truncate text-foreground">{file.name}</span>
-                  {videoFiles.has(file.name) && (
-                    <span title={(() => {
-                      const m = videoFiles.get(file.name)!;
-                      const parts = [m.exportType === "lap" && m.lapNumber != null ? `Lap ${m.lapNumber}` : m.exportType === "session" ? "Session" : "Source"];
-                      if (m.hasOverlays) parts.push("w/ overlays");
-                      parts.push(`(${formatSize(m.size)})`);
-                      return parts.join(" ");
-                    })()}>
-                      <Video className="w-3.5 h-3.5 text-primary shrink-0" />
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {formatSize(file.size)} · {new Date(file.savedAt).toLocaleDateString()}
-                  {fileMetadataMap.get(file.name)?.fastestLapMs != null && (
-                    <span className="ml-1.5 text-primary font-medium">
-                      ⚡ {formatLapTime(fileMetadataMap.get(file.name)!.fastestLapMs!)}
-                    </span>
-                  )}
-                </div>
-              </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
-                onClick={() => onExportFile(file.name)}
-                title="Export / Download"
-              >
-                <Download className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive"
-                onClick={() => setConfirmDelete(file.name)}
-                title="Delete"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ))
+          <SessionBrowser view={view} onNavigate={setNav} renderRow={renderRow} />
         )}
       </div>
 

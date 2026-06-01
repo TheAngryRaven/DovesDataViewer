@@ -13,6 +13,8 @@ export function BannedIpsTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [newIp, setNewIp] = useState('');
   const [newReason, setNewReason] = useState('');
+  // Default to a 90-day TTL (data minimisation) rather than a permanent ban.
+  const [newDurationDays, setNewDurationDays] = useState('90');
 
   const db = getDatabase();
 
@@ -31,8 +33,12 @@ export function BannedIpsTab() {
   const handleBan = async () => {
     if (!newIp.trim()) return;
     try {
-      await db.banIp(newIp.trim(), newReason.trim() || undefined);
-      setNewIp(''); setNewReason(''); setShowAdd(false);
+      const days = Number(newDurationDays);
+      const expiresAt = days > 0
+        ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+        : undefined;
+      await db.banIp(newIp.trim(), newReason.trim() || undefined, expiresAt);
+      setNewIp(''); setNewReason(''); setNewDurationDays('90'); setShowAdd(false);
       toast({ title: 'IP banned' });
       load();
     } catch (e: unknown) {
@@ -66,6 +72,21 @@ export function BannedIpsTab() {
           <div>
             <Label>Reason (optional)</Label>
             <Input value={newReason} onChange={e => setNewReason(e.target.value)} placeholder="Spam submissions" />
+          </div>
+          <div>
+            <Label>Expires after</Label>
+            <select
+              value={newDurationDays}
+              onChange={e => setNewDurationDays(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="1">1 day</option>
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90">90 days</option>
+              <option value="365">1 year</option>
+              <option value="0">Permanent</option>
+            </select>
           </div>
           <Button size="sm" onClick={handleBan}>Ban</Button>
         </div>

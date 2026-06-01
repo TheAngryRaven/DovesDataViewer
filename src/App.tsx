@@ -11,16 +11,22 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
-const enableRegistration = import.meta.env.VITE_ENABLE_REGISTRATION === 'true';
+const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
-// Lazy-load secondary routes — these are not on the main entry path. Each
-// becomes its own chunk that downloads only when the user navigates there.
-// Privacy is rarely visited; Login/Admin/Register only appear when admin is
-// enabled (and even then, only the route the user clicks loads).
+// Lazy-load secondary routes. Auth pages (Login/Register/Forgot/Reset/Callback)
+// only mount when their gating flag is on, so a flag-off build never ships
+// their chunks — preserving the offline-first invariant.
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Register = lazy(() => import("./pages/Register"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const PendingCheckoutRedirect = lazy(() =>
+  import("./components/PendingCheckoutRedirect").then((m) => ({ default: m.PendingCheckoutRedirect })),
+);
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
 
@@ -47,12 +53,17 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Suspense fallback={null}>
+            {enableCloud && <PendingCheckoutRedirect />}
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/privacy" element={<Privacy />} />
-              {enableAdmin && <Route path="/login" element={<Login />} />}
+              <Route path="/terms" element={<Terms />} />
+              {(enableAdmin || enableCloud) && <Route path="/login" element={<Login />} />}
               {enableAdmin && <Route path="/admin" element={<Admin />} />}
-              {enableRegistration && <Route path="/register" element={<Register />} />}
+              {enableCloud && <Route path="/register" element={<Register />} />}
+              {enableCloud && <Route path="/forgot-password" element={<ForgotPassword />} />}
+              {enableCloud && <Route path="/reset-password" element={<ResetPassword />} />}
+              {enableCloud && <Route path="/auth/callback" element={<AuthCallback />} />}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -1,0 +1,1 @@
+create unique index if not exists lap_snapshots_user_course_engine_uidx on public.lap_snapshots (user_id, course_key, engine_key); notify pgrst, 'reload schema';

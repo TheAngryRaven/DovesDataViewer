@@ -12,6 +12,8 @@ interface ExternalRefBarProps {
   onSelectExternalLap: (fileName: string, lapNumber: number) => void;
   onClearExternalRef: () => void;
   onOpen?: () => void;
+  /** Extra action rendered next to "Choose Log" (e.g. load a snapshot as reference). */
+  trailing?: React.ReactNode;
 }
 
 export function ExternalRefBar({
@@ -21,6 +23,7 @@ export function ExternalRefBar({
   onSelectExternalLap,
   onClearExternalRef,
   onOpen,
+  trailing,
 }: ExternalRefBarProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [stage, setStage] = useState<'files' | 'laps'>('files');
@@ -73,6 +76,7 @@ export function ExternalRefBar({
           <FileSearch className="w-3.5 h-3.5" />
           Choose Log
         </Button>
+        {trailing}
         <span className="text-muted-foreground truncate">
           {externalRefLabel ?? 'No session loaded'}
         </span>

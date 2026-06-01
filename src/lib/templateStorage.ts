@@ -4,6 +4,7 @@
  */
 
 import { openDB, STORE_NAMES } from './dbUtils';
+import { emitGarageChange } from './garageEvents';
 
 // ── Types ──
 
@@ -42,6 +43,8 @@ export interface VehicleType {
   wheelCount: 2 | 4;
   isDefault: boolean;
   createdAt: number;
+  /** Last local edit time (ms) — set by saveVehicleType; used for sync merge. */
+  updatedAt?: number;
 }
 
 // ── Default Kart Template ──
@@ -161,14 +164,16 @@ export async function getVehicleType(id: string): Promise<VehicleType | null> {
 }
 
 export async function saveVehicleType(vt: VehicleType): Promise<void> {
+  const stamped: VehicleType = { ...vt, updatedAt: Date.now() };
   const db = await openDB();
   const tx = db.transaction(STORE_NAMES.VEHICLE_TYPES, "readwrite");
-  tx.objectStore(STORE_NAMES.VEHICLE_TYPES).put(vt);
+  tx.objectStore(STORE_NAMES.VEHICLE_TYPES).put(stamped);
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: STORE_NAMES.VEHICLE_TYPES, key: vt.id, type: "put" });
 }
 
 export async function deleteVehicleType(id: string): Promise<void> {
@@ -180,6 +185,7 @@ export async function deleteVehicleType(id: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: STORE_NAMES.VEHICLE_TYPES, key: id, type: "delete" });
 }
 
 // ── Setup Template CRUD ──
@@ -209,14 +215,16 @@ export async function getTemplate(id: string): Promise<SetupTemplate | null> {
 }
 
 export async function saveTemplate(template: SetupTemplate): Promise<void> {
+  const stamped: SetupTemplate = { ...template, updatedAt: Date.now() };
   const db = await openDB();
   const tx = db.transaction(STORE_NAMES.SETUP_TEMPLATES, "readwrite");
-  tx.objectStore(STORE_NAMES.SETUP_TEMPLATES).put(template);
+  tx.objectStore(STORE_NAMES.SETUP_TEMPLATES).put(stamped);
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: STORE_NAMES.SETUP_TEMPLATES, key: template.id, type: "put" });
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
@@ -228,6 +236,7 @@ export async function deleteTemplate(id: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: STORE_NAMES.SETUP_TEMPLATES, key: id, type: "delete" });
 }
 
 /**
@@ -251,6 +260,7 @@ export async function createVehicleTypeWithTemplate(
     wheelCount,
     isDefault: false,
     createdAt: now,
+    updatedAt: now,
   };
 
   const template: SetupTemplate = {
@@ -274,6 +284,8 @@ export async function createVehicleTypeWithTemplate(
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: STORE_NAMES.VEHICLE_TYPES, key: vehicleType.id, type: "put" });
+  emitGarageChange({ store: STORE_NAMES.SETUP_TEMPLATES, key: template.id, type: "put" });
 
   return { vehicleType, template };
 }
@@ -291,4 +303,6 @@ export async function deleteVehicleTypeWithTemplate(vehicleTypeId: string, templ
     tx.onerror = () => reject(tx.error);
   });
   db.close();
+  emitGarageChange({ store: STORE_NAMES.VEHICLE_TYPES, key: vehicleTypeId, type: "delete" });
+  emitGarageChange({ store: STORE_NAMES.SETUP_TEMPLATES, key: templateId, type: "delete" });
 }

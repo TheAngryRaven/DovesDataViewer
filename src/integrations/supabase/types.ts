@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletions: {
+        Row: {
+          requested_at: string
+          scheduled_for: string
+          user_id: string
+        }
+        Insert: {
+          requested_at?: string
+          scheduled_for: string
+          user_id: string
+        }
+        Update: {
+          requested_at?: string
+          scheduled_for?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       banned_ips: {
         Row: {
           banned_at: string | null
@@ -154,6 +172,33 @@ export type Database = {
           },
         ]
       }
+      lap_snapshots: {
+        Row: {
+          course_key: string
+          data: Json
+          engine_key: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_key: string
+          data: Json
+          engine_key: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_key?: string
+          data?: Json
+          engine_key?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           attempts: number | null
@@ -199,6 +244,45 @@ export type Database = {
           is_read?: boolean
           message?: string
           submitted_by_ip?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          received_at?: string
+          type?: string
         }
         Relationships: []
       }
@@ -250,6 +334,63 @@ export type Database = {
           track_name?: string
           track_short_name?: string | null
           type?: string
+        }
+        Relationships: []
+      }
+      subscription_tiers: {
+        Row: {
+          ai_credits: number
+          label: string
+          price_cents: number
+          sort_order: number
+          stripe_price_id: string | null
+          tier: string
+          total_bytes: number
+        }
+        Insert: {
+          ai_credits?: number
+          label: string
+          price_cents?: number
+          sort_order?: number
+          stripe_price_id?: string | null
+          tier: string
+          total_bytes: number
+        }
+        Update: {
+          ai_credits?: number
+          label?: string
+          price_cents?: number
+          sort_order?: number
+          stripe_price_id?: string | null
+          tier?: string
+          total_bytes?: number
+        }
+        Relationships: []
+      }
+      sync_records: {
+        Row: {
+          data: Json
+          id: string
+          record_key: string
+          store: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          id?: string
+          record_key: string
+          store: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          record_key?: string
+          store?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -309,11 +450,68 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          billing_interval: string | null
+          cancel_at_period_end: boolean
+          current_period_end: string | null
+          grace_until: string | null
+          logs_trimmed_at: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_interval?: string | null
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          grace_until?: string | null
+          logs_trimmed_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_interval?: string | null
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          grace_until?: string | null
+          logs_trimmed_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
+            referencedColumns: ["tier"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      due_account_deletions: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
+      encode_uri_component: { Args: { p: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -321,6 +519,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_expired_personal_data: { Args: never; Returns: undefined }
+      random_display_name: { Args: never; Returns: string }
+      sync_record_size: {
+        Args: { p_data: Json; p_store: string }
+        Returns: number
+      }
+      sync_storage_type: { Args: { p_store: string }; Returns: string }
+      sync_storage_usage: {
+        Args: never
+        Returns: {
+          documents_bytes: number
+          logs_bytes: number
+          snapshots_bytes: number
+          total_limit_bytes: number
+        }[]
+      }
+      tier_total_limit: { Args: { p_user: string }; Returns: number }
+      total_storage_used: { Args: { p_user: string }; Returns: number }
+      trim_expired_logs: { Args: never; Returns: number }
+      unique_display_name: { Args: { desired: string }; Returns: string }
+      user_tier: { Args: { p_user_id: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"

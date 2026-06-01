@@ -5,7 +5,7 @@ import {
   TrackCourseSelection,
   CourseDetectionResult,
 } from "@/types/racing";
-import { getFileMetadata } from "@/lib/fileStorage";
+import { getFileMetadata, updateFileMetadata, type FileMetadata } from "@/lib/fileStorage";
 import { loadTracks } from "@/lib/trackStorage";
 import { findNearestTrack } from "@/lib/trackUtils";
 import { autoDetectCourse } from "@/lib/courseDetection";
@@ -41,13 +41,40 @@ export interface UseDataLoaderReturn {
 const DEFAULT_SAMPLE_FILE_NAME = "okc-tillotson-data.dovex";
 
 /** Pick the lap with the lowest lapTimeMs (linear, no Math.min spread). */
-function pickFastestLapNumber(laps: { lapNumber: number; lapTimeMs: number }[]): number | null {
+function pickFastestLap<T extends { lapTimeMs: number }>(laps: T[]): T | null {
   if (laps.length === 0) return null;
   let fastest = laps[0];
   for (let i = 1; i < laps.length; i++) {
     if (laps[i].lapTimeMs < fastest.lapTimeMs) fastest = laps[i];
   }
-  return fastest.lapNumber;
+  return fastest;
+}
+
+/** Pick the lap number with the lowest lapTimeMs. */
+function pickFastestLapNumber(laps: { lapNumber: number; lapTimeMs: number }[]): number | null {
+  return pickFastestLap(laps)?.lapNumber ?? null;
+}
+
+/**
+ * The metadata patch to persist when auto-detection resolves a real course, so a
+ * freshly-loaded session is filed under its track/course in the browser without
+ * any manual save — including the session start time (display name) and fastest
+ * lap (the browser badge). Pure so the tag-on-detect behaviour stays testable.
+ */
+export function detectionMetadataPatch(
+  trackName: string,
+  courseName: string,
+  laps: { lapNumber: number; lapTimeMs: number }[],
+  startDate?: Date,
+): Partial<Omit<FileMetadata, "fileName">> {
+  const patch: Partial<Omit<FileMetadata, "fileName">> = { trackName, courseName };
+  if (startDate) patch.sessionStartTime = startDate.getTime();
+  const fastest = pickFastestLap(laps);
+  if (fastest) {
+    patch.fastestLapMs = fastest.lapTimeMs;
+    patch.fastestLapNumber = fastest.lapNumber;
+  }
+  return patch;
 }
 
 /**
@@ -80,6 +107,11 @@ export function useDataLoader({
       if (fileName) {
         const meta = await getFileMetadata(fileName);
         if (meta) {
+          // Backfill the session start time for files saved before this existed,
+          // so the browser's date/time display name works on older logs too.
+          if (meta.sessionStartTime == null && parsedData.startDate) {
+            updateFileMetadata(fileName, { sessionStartTime: parsedData.startDate.getTime() });
+          }
           const tracks = await loadTracks();
           const track = tracks.find((t) => t.name === meta.trackName);
           const course = track?.courses.find((c) => c.name === meta.courseName);
@@ -130,9 +162,25 @@ export function useDataLoader({
           trackName: detection.track.name,
           courseName: detection.course.name,
           course: detection.course,
+          direction: detection.direction,
         });
         lapMgmt.setLaps(detection.laps);
         lapMgmt.setSelectedLapNumber(pickFastestLapNumber(detection.laps));
+        // setSelection is the raw setter and does NOT persist — so write the
+        // detected tag straight to metadata here, otherwise a confidently
+        // auto-detected session would stay "Untagged" until some later manual
+        // selection happened to save it.
+        if (fileName) {
+          updateFileMetadata(
+            fileName,
+            detectionMetadataPatch(
+              detection.track.name,
+              detection.course.name,
+              detection.laps,
+              parsedData.startDate,
+            ),
+          );
+        }
         return;
       }
 

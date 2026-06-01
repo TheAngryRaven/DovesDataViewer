@@ -37,6 +37,7 @@ export interface Track {
   shortName?: string; // max 8 chars, used for zip filenames and compact display
   courses: Course[];
   isUserDefined?: boolean; // true if entire track is user-added
+  updatedAt?: number; // last local edit time (ms) — set on save; used for cloud-sync merge
 }
 
 // Legacy interface for backward compatibility during migration
@@ -77,7 +78,10 @@ export interface Lap {
 
 export interface FieldMapping {
   index: number;
+  /** Stable channel identity (canonical ChannelId or a `custom:` slug). */
   name: string;
+  /** Human-readable display name; falls back to `name` when absent. */
+  label?: string;
   unit?: string;
   enabled: boolean;
 }
@@ -145,4 +149,10 @@ export interface TrackCourseSelection {
   trackName: string;
   courseName: string;
   course: Course;
+  /**
+   * Direction the course is being driven, when known (from auto-detection).
+   * Part of a lap snapshot's identity so a reverse-direction lap doesn't
+   * overwrite the forward snapshot. Undefined is treated as 'forward'.
+   */
+  direction?: CourseDirection;
 }

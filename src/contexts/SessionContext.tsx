@@ -8,6 +8,9 @@ import type { VideoSyncState, VideoSyncActions } from '@/hooks/useVideoSync';
 import type { Vehicle } from '@/lib/vehicleStorage';
 import type { VehicleSetup } from '@/lib/setupStorage';
 import type { SetupTemplate } from '@/lib/templateStorage';
+import type { LapSnapshot } from '@/lib/lapSnapshot';
+import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
+import type { PluginSnapshot } from '@/plugins/panels';
 
 /**
  * Session-scoped state and handlers shared by the three main view tabs
@@ -60,6 +63,18 @@ export interface SessionContextValue {
   externalRefLabel: string | null;
   savedFiles: FileEntry[];
 
+  // ── Lap snapshots (loaded as the reference overlay) ───────────────────────
+  snapshotsForCourse: LapSnapshot[];
+  activeSnapshotId: string | null;
+  /** The loaded reference snapshot as a curated, clean-lap view for plugin panels. */
+  activeSnapshot: PluginSnapshot | null;
+  /** The setup currently assigned to the session log, resolved for plugin panels. */
+  sessionSetup: VehicleSetup | null;
+  canSnapshot: boolean;
+  onLoadSnapshot: (snap: LapSnapshot) => void;
+  onClearSnapshot: () => void;
+  onSaveSnapshot: (force?: boolean) => Promise<SaveSnapshotResult>;
+
   // ── Session metadata ──────────────────────────────────────────────────────
   sessionGpsPoint?: { lat: number; lon: number };
   sessionStartDate?: Date;
@@ -107,4 +122,12 @@ export function useSessionContext(): SessionContextValue {
   const ctx = useContext(SessionContext);
   if (!ctx) throw new Error('useSessionContext must be used within SessionProvider');
   return ctx;
+}
+
+// Non-throwing variant for surfaces that may render outside a session (e.g. the
+// Profile drawer tab, which is also reachable from the landing page before any
+// file is loaded). Returns null when no SessionProvider is mounted.
+// eslint-disable-next-line react-refresh/only-export-components -- co-located with SessionProvider
+export function useOptionalSessionContext(): SessionContextValue | null {
+  return useContext(SessionContext);
 }

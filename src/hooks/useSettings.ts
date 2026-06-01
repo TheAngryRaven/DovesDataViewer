@@ -19,6 +19,8 @@ export interface AppSettings {
   enableLabs: boolean;              // Enable experimental Labs tab (default: false)
   darkMode: boolean;                // Dark mode enabled (default: true)
   gForceSource: 'gps' | 'hw';      // Which G-force source to show in simple mode (default: 'hw')
+  deltaMethod: 'position' | 'distance'; // Lap delta algorithm (default: 'position')
+  deltaSampleMeters: number;        // Arc-length resample spacing for position delta (default: 2)
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -41,6 +43,8 @@ const defaultSettings: AppSettings = {
   enableLabs: false,
   darkMode: false,
   gForceSource: 'hw',
+  deltaMethod: 'position',
+  deltaSampleMeters: 2,
 };
 
 export function useSettings() {

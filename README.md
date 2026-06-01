@@ -32,6 +32,7 @@
 - 3-sector split timing with optimal lap
 - Pro graph view with multi-series telemetry charts
 - Reference lap overlay & pace delta comparison
+- Lap snapshots — save a "course fastest lap" per engine, frozen for cross-session comparison (local-first, optionally cloud-synced)
 - Video sync with telemetry playback
 - 9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)
 - MP4 video export with overlays & audio (H.264 + AAC)
@@ -41,6 +42,7 @@
 - Device track sync over Bluetooth
 - Custom track & course editor with community submissions
 - Local weather lookup
+- Optional cloud sync of files & garage data across devices (requires backend + sign-in)
 - Dark & light mode
 - PWA — installable & fully offline
 
@@ -109,13 +111,49 @@ The app includes an optional admin system for managing a community track databas
 | `VITE_SUPABASE_URL` | Yes (if using Cloud) | Backend URL (auto-set by Lovable Cloud) |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes (if using Cloud) | Backend public/anon key (auto-set by Lovable Cloud) |
 | `VITE_SUPABASE_PROJECT_ID` | Yes (if using Cloud) | Backend project ID (auto-set by Lovable Cloud) |
-| `VITE_ENABLE_ADMIN` | No | Set to `true` to enable admin UI and `/login` route |
-| `VITE_ENABLE_REGISTRATION` | No | Set to `true` to enable the `/register` route |
+| `VITE_ENABLE_ADMIN` | No | Set to `true` to enable admin UI and `/admin` route. `/login` mounts when admin OR cloud is enabled. Default `false` — a fresh clone ships the public, offline-first app, not admin UI pointed at an upstream backend. |
+| `VITE_ENABLE_CLOUD` | No | Set to `true` to enable public user accounts: Cloud Sync Labs panel, email sign-in/registration, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`. Default `false` — flag-off builds ship zero cloud auth code (offline-first invariant). |
+| `VITE_ENABLE_GOOGLE_AUTH` | No | Set to `true` to show the "Continue with Google" buttons (login, register, Profile). Requires `VITE_ENABLE_CLOUD`. Default `false`: Google sign-in currently routes through Lovable's hosted OAuth broker, so it stays hidden until native Supabase Google OAuth is configured (Google Cloud OAuth client + Supabase provider). |
 | `VITE_TURNSTILE_SITE_KEY` | No | Cloudflare Turnstile site key for track submission CAPTCHA |
 | `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (edge function secret — `???`) |
+| `STRIPE_SECRET_KEY` | No (required for paid tiers) | Stripe secret key used by the `create-checkout-session`, `stripe-webhook`, and `create-portal-session` edge functions (edge function secret — `???`) |
+| `STRIPE_WEBHOOK_SECRET` | No (required for paid tiers) | Signing secret for the `stripe-webhook` endpoint, from the Stripe dashboard webhook config (edge function secret — `???`) |
+| `DELETION_CRON_SECRET` | No (required for scheduled account deletion) | Shared secret the `process-account-deletions` edge function requires in the `x-cron-secret` header. Must match the Vault secret `deletion_cron_secret` that the daily pg_cron job sends (edge function secret — `???`) |
 | `DOVE_PLUGIN_PACKAGES` | No | Build-time: comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`, the public AI coach) when set |
 
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
+
+> **Stripe / paid tiers:** `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are
+> edge-function secrets (not `VITE_` client vars). Prices are resolved live by
+> **lookup_key** — there are no Price ids in code or env. Create the
+> Plus/Premium/Pro Products in Stripe with one recurring Price per billing
+> interval, each tagged with the matching lookup_key:
+> `plus_monthly`, `plus_annual`, `premium_monthly`, `premium_annual`,
+> `pro_monthly`, `pro_annual`. Then point a Stripe webhook (events:
+> `checkout.session.completed`, `customer.subscription.created/updated/deleted`)
+> at the `stripe-webhook` function URL. When `STRIPE_SECRET_KEY` is absent the
+> pricing UI falls back to showing only the two free cards (Guest + Free). Use
+> Stripe **test mode** first. Tier entitlements are granted only by the webhook,
+> never the client.
+>
+> **On-hold / comped tiers:** the **Premium** and **Pro** (AI) tiers are listed in
+> `COMING_SOON_TIERS` (`src/lib/billing.ts`, mirrored in `create-checkout-session`)
+> so they're hidden from the pricing UI entirely and can't be bought via the app
+> (only **Free** + **Plus** are shown at launch). To give one to a tester/friend,
+> create the subscription directly in Stripe on the `premium_*` / `pro_*` price and
+> set the subscription's `metadata.user_id` to their account id (or change an
+> existing customer's price) — the webhook grants it. Remove the tier from both
+> `COMING_SOON_TIERS` sets to open self-service purchase.
+>
+> **Cancellation grace + log trimming:** a cancelled subscription ends at the
+> period boundary and drops to the free tier's limit immediately, but the
+> user's cloud logs are kept for a 60-day grace window (`grace_until`). After it
+> expires, the `trim_expired_logs()` function (scheduled daily via `pg_cron`)
+> deletes their synced log files newest-first until their pooled total (docs +
+> remaining logs + snapshots) fits the free `total_bytes` allowance; snapshots
+> and garage docs are never auto-deleted. If `pg_cron` isn't enabled on the
+> project, enable it (Dashboard → Database → Extensions) or invoke
+> `select public.trim_expired_logs();` from an external scheduler.
 
 > **Note:** `DOVE_PLUGIN_PACKAGES` is build-time only (read by `vite.config.ts`), not a client `VITE_` variable. It overrides which external plugin packages the build loads; by default the build pulls in the public AI coach (`@perchwerks/eye-in-the-sky`) from npm as an optional dependency — see `src/plugins/README.md`.
 
@@ -133,6 +171,29 @@ The admin system uses Lovable Cloud (Supabase) for the database. The schema is c
 - **banned_ips** — IP addresses blocked from submissions
 - **login_attempts** — Rate limiting for login (5 attempts, 1 hour lockout)
 - **user_roles** — Admin/user role assignments (uses `has_role()` security definer)
+- **sync_records** — Per-user cloud-sync documents (files/garage data), RLS-scoped to the owner
+- **user-files** (Storage bucket) — Private per-user session file blobs for cloud sync
+- **lap_snapshots** — Per-user frozen "course fastest lap" captures (one per course+engine), RLS-scoped; its own table, but its size counts toward the unified storage pool (below)
+- **subscription_tiers** — Data-driven plan catalogue (free/plus/premium/pro): label, price, and a single pooled cloud-storage budget (`total_bytes`: 50 MB / 10 GB / 100 GB / 500 GB) shared by documents + logs + snapshots
+- **user_subscriptions** — Per-user tier + Stripe customer/subscription state, status, renewal date, cancellation grace (service-role-written only)
+- **profiles** — Per-user unique, editable display name
+- **account_deletions** — Pending self-service account-deletion requests (7-day, reversible grace window)
+
+> **Data retention (GDPR):** a daily `pg_cron` job runs
+> `purge_expired_personal_data()`, which nulls the submitter IP on `submissions`
+> and `messages` 90 days after they were received, deletes the rows entirely
+> after 1 year (all `messages`; `submissions` only once reviewed — pending ones
+> are kept for moderation), and deletes expired `banned_ips` / stale
+> `login_attempts`. Account deletion is scheduled 7 days out
+> (cancellable); the `process-account-deletions` worker then removes the user's
+> Storage objects and auth row. To auto-schedule that worker, add a Supabase
+> **Vault** secret named `deletion_cron_secret` and set the matching
+> `DELETION_CRON_SECRET` env on the function, then re-run the GDPR migration —
+> it wires the daily `pg_cron` + `pg_net` job for you.
+
+> Cloud sync is independent of the admin system — it only needs a signed-in user
+> account, not the admin role. It's an online-only, opt-in feature; the core app
+> stays fully offline without it.
 
 ### Modular Database Layer
 
@@ -151,7 +212,7 @@ src/lib/db/
 - **Tracks CRUD** — Add, edit, enable/disable, delete tracks (with short names)
 - **Courses CRUD** — Manage courses per track with coordinate editing
 - **Tools** — Build `tracks.json` from DB, download tracks ZIP, import JSON to rebuild DB, export/import course drawings
-- **Banned IPs** — View and manage banned IP addresses
+- **Banned IPs** — View and manage banned IP addresses, with a selectable expiry (TTL; defaults to 90 days, expired bans auto-purged)
 
 ### Edge Functions
 
@@ -160,6 +221,14 @@ src/lib/db/
 | `submit-track` | Public endpoint for track submissions (with IP ban check) |
 | `admin-build-zip` | Admin-only: generates per-track JSON files |
 | `check-login-rate` | Rate limiting for login attempts |
+| `submit-message` | Public contact-form endpoint (with IP ban + rate limit) |
+| `stripe-prices` | Public: reports whether Stripe is configured + live monthly/annual prices (resolved by lookup_key) for the pricing UI |
+| `create-checkout-session` | Auth: starts Stripe Checkout for a tier + interval |
+| `create-portal-session` | Auth: opens the Stripe Billing Portal (manage/cancel/renewal) |
+| `stripe-webhook` | Stripe-signed: the only writer of subscription tier/status + grace window |
+| `export-account-data` | Authenticated: returns all server-side data for the caller (GDPR access/portability) |
+| `request-account-deletion` | Authenticated: schedules the caller's account for deletion 7 days out |
+| `process-account-deletions` | Cron-only (`x-cron-secret`): erases Storage objects + auth rows for accounts past their grace window |
 
 ### Track Short Names
 

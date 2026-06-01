@@ -35,17 +35,39 @@ const PUBLIC_BACKEND_FALLBACKS = {
   VITE_SUPABASE_PUBLISHABLE_KEY:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2amxpZW92cHlpZmZicXdodGdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMDQ1MzcsImV4cCI6MjA4NjU4MDUzN30.-LnwDsiT1vmWxfoLiHlK9hHqCzN9ToHeB6qkH5-A2I4",
   VITE_SUPABASE_URL: "https://svjlieovpyiffbqwhtgk.supabase.co",
-  // Admin + registration default OFF in fallbacks. The production deploy
-  // enables them via Lovable Cloud env injection ("true"). A new contributor
-  // cloning the repo without a .env should see the public app, not admin UI
-  // pointing at a backend they don't control.
+  // Admin + cloud default OFF in fallbacks. The production deploy enables them
+  // via Lovable Cloud env injection ("true") / committed `.env` / HTT_* build
+  // secrets. A new contributor cloning the repo without a .env must see the
+  // public, offline-first app — NOT the admin UI or live cloud-sync pointing at
+  // a backend they don't control. Anyone who hosts that build would otherwise
+  // expose admin surfaces and account features for an upstream backend.
   VITE_ENABLE_ADMIN: "false",
-  VITE_ENABLE_REGISTRATION: "false",
+  // Cloud auth + sync (public user accounts, Google sign-in, Cloud Sync Labs
+  // panel). Defaulted OFF for the same reason — a fresh build is offline-only
+  // until the operator explicitly opts in via VITE_*/HTT_* env. The production
+  // deploy sets this to "true".
+  VITE_ENABLE_CLOUD: "false",
 } as const;
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+
+  // Lovable's secret store rejects the `VITE_` prefix (those are public,
+  // build-time values by Vite convention). To let contributors stash the
+  // backend wiring in Lovable workspace build secrets *without* committing a
+  // `.env`, we also accept a parallel `HTT_` prefix and copy it into the
+  // VITE_* names at build time. Precedence: VITE_* > HTT_* > public fallback.
+  //
+  // REMINDER: until Lovable injects these automatically, you may need to
+  // regenerate `.env` (or re-set the HTT_* build secrets) on each fresh
+  // build environment. See `.env.example` for the full list.
+  // NOTE: Vite's loadEnv() only reads .env files — it does NOT include
+  // process.env. Lovable injects build secrets as real env vars, so we must
+  // check process.env explicitly for the HTT_* (and VITE_*) fallbacks to work
+  // when there's no committed .env file.
+  const pick = (viteKey: string, httKey: string, fallback: string) =>
+    env[viteKey] || process.env[viteKey] || env[httKey] || process.env[httKey] || fallback;
 
   const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
   const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)
@@ -60,19 +82,19 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(
-        env.VITE_SUPABASE_PROJECT_ID || PUBLIC_BACKEND_FALLBACKS.VITE_SUPABASE_PROJECT_ID,
+        pick("VITE_SUPABASE_PROJECT_ID", "HTT_SUPABASE_PROJECT_ID", PUBLIC_BACKEND_FALLBACKS.VITE_SUPABASE_PROJECT_ID),
       ),
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-        env.VITE_SUPABASE_PUBLISHABLE_KEY || PUBLIC_BACKEND_FALLBACKS.VITE_SUPABASE_PUBLISHABLE_KEY,
+        pick("VITE_SUPABASE_PUBLISHABLE_KEY", "HTT_SUPABASE_PUBLISHABLE_KEY", PUBLIC_BACKEND_FALLBACKS.VITE_SUPABASE_PUBLISHABLE_KEY),
       ),
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
-        env.VITE_SUPABASE_URL || PUBLIC_BACKEND_FALLBACKS.VITE_SUPABASE_URL,
+        pick("VITE_SUPABASE_URL", "HTT_SUPABASE_URL", PUBLIC_BACKEND_FALLBACKS.VITE_SUPABASE_URL),
       ),
       "import.meta.env.VITE_ENABLE_ADMIN": JSON.stringify(
-        env.VITE_ENABLE_ADMIN || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_ADMIN,
+        pick("VITE_ENABLE_ADMIN", "HTT_ENABLE_ADMIN", PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_ADMIN),
       ),
-      "import.meta.env.VITE_ENABLE_REGISTRATION": JSON.stringify(
-        env.VITE_ENABLE_REGISTRATION || PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_REGISTRATION,
+      "import.meta.env.VITE_ENABLE_CLOUD": JSON.stringify(
+        pick("VITE_ENABLE_CLOUD", "HTT_ENABLE_CLOUD", PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_CLOUD),
       ),
     },
     plugins: [

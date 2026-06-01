@@ -1,4 +1,5 @@
 import { ParsedData } from '@/types/racing';
+import { normalizeChannels } from './channels';
 import { parseDatalog } from './nmeaParser';
 import { parseUbxFile, isUbxFormat } from './ubxParser';
 import { parseVboFile, isVboFormat } from './vboParser';
@@ -22,6 +23,17 @@ import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile 
  * - NMEA text format (CSV with NMEA sentences, .nmea files)
  */
 export async function parseDatalogFile(file: File): Promise<ParsedData> {
+  return normalizeChannels(await routeDatalogFile(file));
+}
+
+/**
+ * Parse from raw content (for when you already have the data loaded).
+ */
+export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
+  return normalizeChannels(routeDatalogContent(content));
+}
+
+async function routeDatalogFile(file: File): Promise<ParsedData> {
   const buffer = await file.arrayBuffer();
   
   // Check MoTeC LD binary format first (different magic bytes from UBX)
@@ -71,10 +83,7 @@ export async function parseDatalogFile(file: File): Promise<ParsedData> {
   return parseDatalog(text);
 }
 
-/**
- * Parse from raw content (for when you already have the data loaded)
- */
-export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
+function routeDatalogContent(content: string | ArrayBuffer): ParsedData {
   if (content instanceof ArrayBuffer) {
     if (isMotecLdFormat(content)) {
       return parseMotecLdFile(content);

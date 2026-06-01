@@ -426,7 +426,7 @@ export function TelemetryChart({
           const mappingIndex = fieldMappings.findIndex(f => f.name === field.name);
           const colorIndex = ((mappingIndex === -1 ? 0 : mappingIndex) + 1) % COLORS.length;
           ctx.fillStyle = COLORS[colorIndex];
-          ctx.fillText(`${field.name}: ${val.toFixed(1)}`, boxX + 8, boxY + 14 + fieldOffset * 16);
+          ctx.fillText(`${field.label ?? field.name}: ${val.toFixed(1)}`, boxX + 8, boxY + 14 + fieldOffset * 16);
           fieldOffset++;
         }
       });
@@ -521,7 +521,7 @@ export function TelemetryChart({
               className="w-3 h-3 rounded-full" 
               style={{ backgroundColor: COLORS[(idx + 1) % COLORS.length] }} 
             />
-            <span className="text-xs font-mono">{field.name}</span>
+            <span className="text-xs font-mono">{field.label ?? field.name}</span>
           </button>
         ))}
       </div>
