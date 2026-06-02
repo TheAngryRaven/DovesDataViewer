@@ -10,10 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# contents: write       -> publish the badge JSON to the `badges` branch (main only)
 # pull-requests: write  -> post/update the per-PR coverage summary comment
+# The live % badge is pushed to a GitHub Gist (see the gist step below) with a
+# dedicated GIST_TOKEN secret, so this workflow no longer needs `contents: write`
+# and no longer publishes a `badges` branch (which Cloudflare kept trying to deploy).
 permissions:
-  contents: write
   pull-requests: write
 
 jobs:
@@ -68,22 +69,23 @@ jobs:
               core.warning(`Could not post coverage comment: ${e.message}`);
             }
 
-      # ---- Live % badge: publish shields.io endpoint JSON to `badges` branch ----
-      - name: Generate badge JSON
+      # ---- Live % badge: push shields.io endpoint fields to a GitHub Gist ----
+      # No Git branch is created, so Cloudflare Workers Builds has nothing extra
+      # to deploy. coverage-badge.mjs computes the message + color and hands them
+      # over as step outputs. Requires repo secret GIST_TOKEN (PAT with `gist`
+      # scope) and repo variable COVERAGE_GIST_ID (see README → Coverage badge).
+      - name: Generate badge fields
+        id: badge
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: npm run coverage:badge
 
-      - name: Stage badge for publish
+      - name: Push badge to coverage gist
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: |
-          mkdir -p badge-publish
-          cp coverage/coverage-badge.json badge-publish/
-
-      - name: Publish badge to the `badges` branch
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: Schneegans/dynamic-badges-action@v1.7.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: badges
-          publish_dir: ./badge-publish
-          force_orphan: true
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          filename: coverage-badge.json
+          label: coverage
+          message: ${{ steps.badge.outputs.message }}
+          color: ${{ steps.badge.outputs.color }}

@@ -7,7 +7,7 @@
 [![Typecheck](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/typecheck.yml/badge.svg)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/typecheck.yml)
 [![Test](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/test.yml/badge.svg)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/test.yml)
 [![Build](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/build.yml/badge.svg)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/build.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/TheAngryRaven/DovesDataViewer/badges/coverage-badge.json)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/coverage.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/TheAngryRaven/9c0c31f9c333c565804b26643a2e3aec/raw/coverage-badge.json)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/coverage.yml)
 
 🌐 **Live Demo:** [HackTheTrack.net](https://hackthetrack.net)  
 🔧 **Hardware Project:** [DovesDataLogger on GitHub](https://github.com/TheAngryRaven/DovesDataLogger)
@@ -283,6 +283,24 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 | `npm run typecheck` | Type-check via `tsc -b` (build mode — follows project references) |
 | `npm test` | Run Vitest in watch mode |
 | `npm run test:run` | Run Vitest once (CI-style) |
+
+### Coverage badge
+
+The live coverage badge is a [shields.io endpoint](https://shields.io/badges/endpoint-badge)
+backed by a **GitHub Gist** (not a Git branch — that kept Cloudflare Workers
+Builds trying to deploy a badge-only branch). The `coverage.yml` workflow runs
+`npm run coverage:badge` (which computes the `%` + color from the Vitest summary)
+and pushes those fields to the gist on every push to `main`. To wire it up on a
+fork:
+
+1. Create a **public** gist with a single file named `coverage-badge.json`
+   (any placeholder contents) and copy its ID from the URL
+   (`gist.github.com/<user>/<THIS_IS_THE_ID>`).
+2. Create a fine-grained/classic **PAT with the `gist` scope** and add it as the
+   repo secret **`GIST_TOKEN`** (Settings → Secrets and variables → Actions).
+3. Add the gist ID as the repo **variable `COVERAGE_GIST_ID`** (same page → Variables).
+4. Replace `COVERAGE_GIST_ID` in the Coverage badge URL at the top of this README
+   with your gist ID.
 
 ---
 

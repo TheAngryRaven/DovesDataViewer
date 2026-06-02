@@ -1,7 +1,10 @@
 // Reads the Vitest json-summary and emits a shields.io endpoint badge JSON.
-// No third-party service involved — the JSON is published to the `badges`
-// branch by the Coverage workflow and rendered by img.shields.io/endpoint.
-import { readFileSync, writeFileSync } from "node:fs";
+// The Coverage workflow pushes this badge's fields to a GitHub Gist (rendered
+// by img.shields.io/endpoint), so it never touches a Git branch — keeping
+// Cloudflare Workers Builds from trying to deploy a badge-only branch.
+// This script stays the single source of truth for the color thresholds: it
+// also exports `message`/`color` as GitHub Actions step outputs when run in CI.
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
 const summary = JSON.parse(
   readFileSync("coverage/coverage-summary.json", "utf8"),
@@ -26,3 +29,11 @@ const badge = {
 
 writeFileSync("coverage/coverage-badge.json", JSON.stringify(badge) + "\n");
 console.log("coverage badge:", JSON.stringify(badge));
+
+// Hand the rendered fields to the Coverage workflow's gist-update step.
+if (process.env.GITHUB_OUTPUT) {
+  appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `message=${badge.message}\ncolor=${badge.color}\n`,
+  );
+}

@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contended Web Lock survives reloads.)
 
 ### Changed
+- **Coverage badge now publishes to a GitHub Gist instead of a `badges` branch.**
+  The orphan `badges` branch caused Cloudflare Workers Builds to repeatedly try
+  (and fail) to deploy a branch with no app in it. The `coverage.yml` workflow
+  now pushes the badge `%`/color to a gist via `Schneegans/dynamic-badges-action`
+  (repo secret `GIST_TOKEN` + variable `COVERAGE_GIST_ID`), drops its
+  `contents: write` permission, and no longer creates a Git branch. See the
+  README "Coverage badge" section for setup.
 - **Bumped the optional AI coach plugin (`@perchwerks/eye-in-the-sky`) from
   `0.3.0` to `0.4.1`, and pinned it to a tilde patch range (`~0.4.1`)** so coach
   `0.4.x` patch releases are picked up automatically on the next install, while a

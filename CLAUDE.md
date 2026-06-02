@@ -659,7 +659,10 @@ CI is split into five parallel workflows under `.github/workflows/`
 (`lint.yml`, `typecheck.yml`, `test.yml`, `build.yml`, `coverage.yml`). Each
 runs on every PR and push to `main` and shows up as its own status check +
 README badge. `coverage.yml` also enforces the thresholds in `vitest.config.ts`,
-posts a per-PR summary comment, and publishes the % badge JSON.
+posts a per-PR summary comment, and pushes the % badge fields to a **GitHub Gist**
+(repo secret `GIST_TOKEN` + repo variable `COVERAGE_GIST_ID`) — not a Git branch,
+so Cloudflare Workers Builds has no badge-only branch to try to deploy. See the
+README "Coverage badge" section for the gist wiring.
 
 ---
 
