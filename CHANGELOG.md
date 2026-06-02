@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Spurious sign-out on page refresh (and the paid plan card vanishing with
+  it).** The auth bootstrap awaited a Supabase RPC (`has_role`) *inside* the
+  `onAuthStateChange` callback. supabase-js holds the GoTrue cross-tab Web Lock
+  for the duration of that callback, so the awaited call deadlocked token
+  refresh on reload — signing the user out and, downstream, collapsing the
+  subscription to the free tier (hiding the paid plan card). The admin-role
+  lookup is now deferred out of the callback; session/user state is set
+  synchronously. (Symptom only cleared on a full browser restart, since the
+  contended Web Lock survives reloads.)
+
 ### Changed
 - **Bumped the optional AI coach plugin (`@perchwerks/eye-in-the-sky`) from
   `0.3.0` to `0.4.1`, and pinned it to a tilde patch range (`~0.4.1`)** so coach

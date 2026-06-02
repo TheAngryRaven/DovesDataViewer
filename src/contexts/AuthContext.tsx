@@ -26,27 +26,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     let initialResolved = false;
 
-    const updateAuth = async (s: Session | null) => {
-      if (cancelled) return;
+    // Resolve the admin role. MUST run outside the onAuthStateChange callback:
+    // supabase-js holds the GoTrue Web Lock (navigator.locks) for the duration
+    // of that callback, and any awaited Supabase call inside it needs the same
+    // lock — which deadlocks token refresh and spuriously signs the user out on
+    // reload. So updateAuth sets session/user synchronously and defers this.
+    const resolveRole = async (s: Session | null) => {
+      if (!s?.user) {
+        if (!cancelled) setIsAdmin(false);
+        return;
+      }
       try {
-        setSession(s);
-        setUser(s?.user ?? null);
-        if (s?.user) {
-          const { data } = await supabase.rpc('has_role', {
-            _user_id: s.user.id,
-            _role: 'admin',
-          });
-          if (!cancelled) setIsAdmin(!!data);
-        } else {
-          setIsAdmin(false);
-        }
+        const { data } = await supabase.rpc('has_role', {
+          _user_id: s.user.id,
+          _role: 'admin',
+        });
+        if (!cancelled) setIsAdmin(!!data);
       } catch {
         if (!cancelled) setIsAdmin(false);
       }
-      if (!cancelled) {
-        initialResolved = true;
-        setLoading(false);
-      }
+    };
+
+    const updateAuth = (s: Session | null) => {
+      if (cancelled) return;
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (!s?.user) setIsAdmin(false);
+      initialResolved = true;
+      setLoading(false);
+      // Deferred so we never await a Supabase call while the auth lock is held.
+      setTimeout(() => { void resolveRole(s); }, 0);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
