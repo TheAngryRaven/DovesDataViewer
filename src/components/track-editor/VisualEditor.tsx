@@ -841,7 +841,7 @@ export function VisualEditor({
       />
       {showDrawTool && (
         <p className="text-xs text-muted-foreground">
-          Drawing an outline helps on-device course detection. Click to place points.
+          Drawing an outline helps on-device course detection.
         </p>
       )}
       <div
