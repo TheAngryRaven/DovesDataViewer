@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   analysis works. A new **Chart Scale** toggle in Settings switches between
   Distance and Time; **Distance is the default**. Distance tick labels follow
   the speed unit (MPH → ft/mi, KPH → m/km).
+  - The X-axis is **anchored at the start-finish line**: tick labels read in
+    *absolute* distance/time from the lap start (e.g. 450 m → 780 m), not from
+    the cropped window — `0` is always the start line. Cropping with the range
+    handles still zooms the graph; the handles themselves are now labelled in
+    the same distance/time scale.
 
 ## [2.0.0] - 2026-06-03
 

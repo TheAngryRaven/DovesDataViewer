@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ParsedData } from "@/types/racing";
+import { calculateDistanceArray } from "@/lib/referenceUtils";
+import { formatAxisDistance } from "@/lib/chartAxis";
 import { usePanelsForSlot, PanelSlot } from "@/plugins/panels";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
@@ -85,7 +87,7 @@ export default function Index() {
     filteredSamples, visibleSamples, visibleRange, currentIndex, filteredBounds,
     setSelectedLapNumber, setReferenceLapNumber, setCurrentIndex,
     handleSelectionChange, handleLapSelect, handleLapDropdownChange,
-    handleSetReference, handleScrub, handleRangeChange, formatRangeLabel,
+    handleSetReference, handleScrub, handleRangeChange, formatRangeLabel: formatRangeLabelTime,
   } = lapMgmt;
 
   // External reference
@@ -224,6 +226,23 @@ export default function Index() {
 
   const isAllLaps = selectedLapNumber === null;
   const minRange = Math.min(10, Math.floor(filteredSamples.length / 10));
+
+  // Crop-handle labels follow the chart X-axis scale: cumulative distance from
+  // the lap start (start-finish line) in distance mode, elapsed time otherwise.
+  const filteredDistances = useMemo(
+    () => (settings.chartXAxis === 'distance' ? calculateDistanceArray(filteredSamples) : null),
+    [settings.chartXAxis, filteredSamples],
+  );
+  const formatRangeLabel = useCallback(
+    (idx: number) => {
+      if (filteredDistances) {
+        const d = filteredDistances[idx];
+        return d === undefined ? "" : formatAxisDistance(d, useKph);
+      }
+      return formatRangeLabelTime(idx);
+    },
+    [filteredDistances, useKph, formatRangeLabelTime],
+  );
 
   const settingsContextValue = useMemo(() => ({
     useKph,

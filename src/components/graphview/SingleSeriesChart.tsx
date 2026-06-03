@@ -16,16 +16,24 @@ interface SingleSeriesChartProps {
   onDelete: () => void;
   referenceValues?: (number | null)[] | null;
   brakingGValues?: number[];
+  /** Full lap samples + the visible window's start index, for absolute
+   *  (start-finish-anchored) X-axis labels while the window stays zoomed. */
+  allSamples?: GpsSample[];
+  rangeStart?: number;
 }
 
 export function SingleSeriesChart({
   samples, seriesKey, currentIndex, onScrub,
   color, label, onDelete,
   referenceValues = null, brakingGValues,
+  allSamples, rangeStart,
 }: SingleSeriesChartProps) {
   const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, chartXAxis } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
-  const axis = useMemo(() => buildChartAxis(samples, chartXAxis, { useKph }), [samples, chartXAxis, useKph]);
+  const axis = useMemo(
+    () => buildChartAxis(samples, chartXAxis, { useKph, fullSamples: allSamples, rangeStart }),
+    [samples, chartXAxis, useKph, allSamples, rangeStart],
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });

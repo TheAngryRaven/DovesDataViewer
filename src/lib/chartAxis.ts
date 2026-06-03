@@ -110,32 +110,52 @@ function nearestIndex(positions: number[], frac: number): number {
 /**
  * Build the axis helper for a sample set. `useKph` only affects distance-mode
  * tick labels (the unit family); positions are unit-agnostic fractions.
+ *
+ * Pass `fullSamples` + `rangeStart` to label **absolutely** from the full
+ * series' origin (the lap start / start-finish line): the drawn fractions still
+ * span [0..1] across `samples` so a cropped window fills the chart (zoom
+ * preserved), but tick labels read in absolute distance/time (e.g. 450 m →
+ * 780 m) instead of resetting to 0. Omit them to label window-relative.
  */
 export function buildChartAxis(
   samples: GpsSample[],
   mode: ChartXAxisMode,
-  opts: { useKph: boolean },
+  opts: { useKph: boolean; fullSamples?: GpsSample[]; rangeStart?: number },
 ): ChartAxis {
   const positions = computeAxisPositions(samples, mode);
   const n = samples.length;
 
-  let total = 0;
+  // Axis quantity spanned by the visible window (seconds or meters).
+  let extent = 0;
   if (mode === 'distance') {
     const dist = calculateDistanceArray(samples);
-    total = dist.length > 0 ? dist[dist.length - 1] : 0;
+    extent = dist.length > 0 ? dist[dist.length - 1] : 0;
   } else if (n > 1) {
-    total = (samples[n - 1].t - samples[0].t) / 1000; // seconds
+    extent = (samples[n - 1].t - samples[0].t) / 1000;
+  }
+
+  // Absolute offset of the window start from the full-series origin.
+  let offset = 0;
+  const { fullSamples, rangeStart } = opts;
+  const rs = rangeStart ?? 0;
+  if (fullSamples && rs > 0 && rs < fullSamples.length) {
+    if (mode === 'distance') {
+      const lead = calculateDistanceArray(fullSamples.slice(0, rs + 1));
+      offset = lead.length > 0 ? lead[lead.length - 1] : 0;
+    } else {
+      offset = (fullSamples[rs].t - fullSamples[0].t) / 1000;
+    }
   }
 
   return {
     mode,
     positions,
-    total,
+    total: extent,
     fracAt: (i: number) => positions[i] ?? 0,
     indexAt: (frac: number) => nearestIndex(positions, frac),
     label: (frac: number) =>
       mode === 'distance'
-        ? formatAxisDistance(total * frac, opts.useKph)
-        : formatAxisTime(total * frac),
+        ? formatAxisDistance(offset + extent * frac, opts.useKph)
+        : formatAxisTime(offset + extent * frac),
   };
 }

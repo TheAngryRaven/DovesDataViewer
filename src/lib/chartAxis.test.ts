@@ -110,6 +110,37 @@ describe("buildChartAxis.label", () => {
   });
 });
 
+describe("buildChartAxis absolute labels (fullSamples + rangeStart)", () => {
+  // Full lap: 11 points, 10 m apart (0..100 m), 1 s apart (0..10 s).
+  const fullLap = Array.from({ length: 11 }, (_, i) => makeSample(i * 10, i * 1000));
+
+  it("labels a cropped window in absolute distance from the lap start", () => {
+    const window = fullLap.slice(3, 7); // 30 m .. 60 m
+    const axis = buildChartAxis(window, "distance", { useKph: true, fullSamples: fullLap, rangeStart: 3 });
+    // Window still fills the canvas (data fractions span 0..1)...
+    expect(axis.fracAt(0)).toBe(0);
+    expect(axis.fracAt(3)).toBeCloseTo(1, 6);
+    // ...but tick labels are anchored at the start-finish line.
+    expect(axis.label(0)).toBe("30 m");
+    expect(axis.label(1)).toBe("60 m");
+    expect(axis.label(0.5)).toBe("45 m");
+  });
+
+  it("labels a cropped window in absolute time from the lap start", () => {
+    const window = fullLap.slice(4, 9); // 4 s .. 8 s
+    const axis = buildChartAxis(window, "time", { useKph: false, fullSamples: fullLap, rangeStart: 4 });
+    expect(axis.label(0)).toBe("0:04");
+    expect(axis.label(1)).toBe("0:08");
+  });
+
+  it("anchors at 0 when the window starts at the lap origin", () => {
+    const window = fullLap.slice(0, 5); // 0 m .. 40 m
+    const axis = buildChartAxis(window, "distance", { useKph: true, fullSamples: fullLap, rangeStart: 0 });
+    expect(axis.label(0)).toBe("0 m");
+    expect(axis.label(1)).toBe("40 m");
+  });
+});
+
 describe("format helpers", () => {
   it("formats time as m:ss", () => {
     expect(formatAxisTime(0)).toBe("0:00");

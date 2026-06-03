@@ -14,6 +14,10 @@ interface TelemetryChartProps {
   paceData?: (number | null)[];
   referenceSpeedData?: (number | null)[];
   hasReference?: boolean;
+  /** Full lap samples + the visible window's start index, for absolute
+   *  (start-finish-anchored) X-axis labels while the window stays zoomed. */
+  allSamples?: GpsSample[];
+  rangeStart?: number;
 }
 
 const COLORS = [
@@ -39,10 +43,15 @@ export function TelemetryChart({
   paceData = [],
   referenceSpeedData = [],
   hasReference = false,
+  allSamples,
+  rangeStart,
 }: TelemetryChartProps) {
   const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, gForceSource, chartXAxis } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
-  const axis = useMemo(() => buildChartAxis(samples, chartXAxis, { useKph }), [samples, chartXAxis, useKph]);
+  const axis = useMemo(
+    () => buildChartAxis(samples, chartXAxis, { useKph, fullSamples: allSamples, rangeStart }),
+    [samples, chartXAxis, useKph, allSamples, rangeStart],
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });

@@ -598,6 +598,14 @@ MPH→ft/mi, KPH→m/km), and an `indexAt` inverse for scrubbing. Distance is th
 default so laps line up by track position; the reference/pace overlays already
 align by distance, so they sit correctly on either axis.
 
+The axis is **anchored at the start-finish line**: the charts draw the cropped
+visible window stretched to fill the canvas (zoom preserved), but pass the full
+lap (`allSamples`) + the window's `rangeStart` so `buildChartAxis` labels ticks
+in *absolute* distance/time from the lap origin (`0` = start-finish) rather than
+window-relative. The range-slider crop handles (`formatRangeLabel`, built in
+`Index.tsx`) follow the same scale — cumulative distance from the lap start in
+distance mode, elapsed time otherwise.
+
 Channels are normalized to canonical ids at parse time (`channels.ts` →
 `normalizeChannels()`), so `extraFields` keys and `FieldMapping.name` are uniform
 across formats (e.g. every parser's lateral-g lands on `lat_g`, with display
