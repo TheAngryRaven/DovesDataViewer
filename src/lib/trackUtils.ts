@@ -51,6 +51,23 @@ export function getTrackDisplayName(track: { name: string; shortName?: string })
   return track.shortName || abbreviateTrackName(track.name);
 }
 
+/** Max length for a track short name (matches the `short_name VARCHAR(8)` column). */
+export const MAX_SHORT_NAME_LENGTH = 8;
+
+/**
+ * Derive a valid short name from a long track name: builds on
+ * `abbreviateTrackName`, then strips to alphanumerics and caps at
+ * `MAX_SHORT_NAME_LENGTH`. Used to auto-fill the short-name field during track
+ * creation and as a fallback when submitting a track that never got one.
+ * Returns '' only when the name has no alphanumeric content.
+ */
+export function deriveShortName(name: string): string {
+  const abbr = abbreviateTrackName(name).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  if (abbr) return abbr.slice(0, MAX_SHORT_NAME_LENGTH);
+  const raw = name.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  return raw.slice(0, MAX_SHORT_NAME_LENGTH);
+}
+
 
 /**
  * Find the nearest track to a GPS point. Returns the track if within threshold (default 2km).

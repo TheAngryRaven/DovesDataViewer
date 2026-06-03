@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Course, SectorLine } from '@/types/racing';
-import { parseSectorLine } from '@/lib/trackUtils';
+import { parseSectorLine, deriveShortName, MAX_SHORT_NAME_LENGTH } from '@/lib/trackUtils';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 
 export type SectorFormState = { aLat: string; aLon: string; bLat: string; bLon: string };
@@ -14,7 +14,9 @@ export interface CourseFormProps {
   lonB: string;
   sector2: SectorFormState;
   sector3: SectorFormState;
+  trackShortName: string;
   onTrackNameChange: (value: string) => void;
+  onTrackShortNameChange: (value: string) => void;
   onCourseNameChange: (value: string) => void;
   onLatAChange: (value: string) => void;
   onLonAChange: (value: string) => void;
@@ -30,6 +32,10 @@ export interface CourseFormProps {
 
 export function useTrackEditorForm() {
   const [formTrackName, setFormTrackName] = useState('');
+  const [formTrackShortName, setFormTrackShortName] = useState('');
+  // Once the user edits the short name themselves, stop auto-deriving it from
+  // the long name so we don't clobber their choice.
+  const [shortNameTouched, setShortNameTouched] = useState(false);
   const [formCourseName, setFormCourseName] = useState('');
   const [formLatA, setFormLatA] = useState('');
   const [formLonA, setFormLonA] = useState('');
@@ -41,10 +47,25 @@ export function useTrackEditorForm() {
   const [editorMode, setEditorMode] = useState<'manual' | 'visual'>('visual');
 
   const resetForm = useCallback(() => {
-    setFormTrackName(''); setFormCourseName('');
+    setFormTrackName(''); setFormTrackShortName(''); setShortNameTouched(false);
+    setFormCourseName('');
     setFormLatA(''); setFormLonA(''); setFormLatB(''); setFormLonB('');
     setFormSector2({ aLat: '', aLon: '', bLat: '', bLon: '' });
     setFormSector3({ aLat: '', aLon: '', bLat: '', bLon: '' });
+  }, []);
+
+  // Editing the long name auto-fills the short name (until the user overrides it).
+  const handleTrackNameChange = useCallback((value: string) => {
+    setFormTrackName(value);
+    setShortNameTouched((touched) => {
+      if (!touched) setFormTrackShortName(deriveShortName(value));
+      return touched;
+    });
+  }, []);
+
+  const handleTrackShortNameChange = useCallback((value: string) => {
+    setShortNameTouched(true);
+    setFormTrackShortName(value.slice(0, MAX_SHORT_NAME_LENGTH));
   }, []);
 
   const buildCourse = useCallback((): Course | null => {
@@ -122,10 +143,11 @@ export function useTrackEditorForm() {
   const visualEditorSector3 = parseSectorLine(formSector3);
 
   const courseFormProps = {
-    trackName: formTrackName, courseName: formCourseName,
+    trackName: formTrackName, trackShortName: formTrackShortName, courseName: formCourseName,
     latA: formLatA, lonA: formLonA, latB: formLatB, lonB: formLonB,
     sector2: formSector2, sector3: formSector3,
-    onTrackNameChange: setFormTrackName, onCourseNameChange: setFormCourseName,
+    onTrackNameChange: handleTrackNameChange, onTrackShortNameChange: handleTrackShortNameChange,
+    onCourseNameChange: setFormCourseName,
     onLatAChange: setFormLatA, onLonAChange: setFormLonA,
     onLatBChange: setFormLatB, onLonBChange: setFormLonB,
     onSector2Change: handleSector2Change, onSector3Change: handleSector3Change,
@@ -133,6 +155,7 @@ export function useTrackEditorForm() {
 
   return {
     formTrackName, setFormTrackName,
+    formTrackShortName,
     formCourseName, setFormCourseName,
     formLatA, formLonA, formLatB, formLonB,
     formSector2, formSector3,

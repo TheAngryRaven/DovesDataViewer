@@ -302,11 +302,11 @@ function emitTrackChange(trackName: string): void {
 }
 
 /**
- * Add a new track with an optional initial course.
+ * Add a new track with an optional initial course and short name.
  */
-export async function addTrack(trackName: string, course?: Course): Promise<Track[]> {
+export async function addTrack(trackName: string, course?: Course, shortName?: string): Promise<Track[]> {
   const tracks = await loadTracks();
-  
+
   const existing = tracks.find(t => t.name === trackName);
   if (existing) {
     // Track exists, add course if provided
@@ -316,10 +316,15 @@ export async function addTrack(trackName: string, course?: Course): Promise<Trac
         existing.courses.push({ ...course, isUserDefined: true });
       }
     }
+    // Backfill a short name if the track never had one
+    if (shortName && !existing.shortName) {
+      existing.shortName = shortName;
+    }
   } else {
     // Create new track
     tracks.push({
       name: trackName,
+      shortName,
       courses: course ? [{ ...course, isUserDefined: true }] : [],
       isUserDefined: true,
     });

@@ -194,7 +194,7 @@ function VisualEditorToolbar({ activeTool, onToolChange, onDone, showDrawTool, i
           onClick={handleDone}
         >
           <Check className="w-3.5 h-3.5" />
-          Done
+          {activeTool === 'draw' ? 'Done' : 'Close'}
         </Button>
       </div>
       {showLapPicker && laps && laps.length > 0 && (
@@ -501,12 +501,18 @@ export function VisualEditor({
         const newA = isPointA ? newPoint : otherPoint;
         const newB = isPointA ? otherPoint : newPoint;
 
+        // Save immediately on release — no separate "Done" step needed. The
+        // pending state keeps the active markers consistent; the parent
+        // callback commits the line straight into the form.
         if (tool === 'startFinish') {
           setPendingStartFinish({ a: newA, b: newB });
+          onStartFinishChange?.(newA, newB);
         } else if (tool === 'sector2') {
           setPendingSector2({ a: newA, b: newB });
+          onSector2Change?.({ a: newA, b: newB });
         } else if (tool === 'sector3') {
           setPendingSector3({ a: newA, b: newB });
+          onSector3Change?.({ a: newA, b: newB });
         }
       });
 
@@ -811,7 +817,7 @@ export function VisualEditor({
       return `No ${activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3'} line defined`;
     }
     const toolName = activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3';
-    return `Drag the markers to adjust the ${toolName} line`;
+    return `Drag the markers to adjust the ${toolName} line — changes save automatically when you release`;
   };
 
   return (

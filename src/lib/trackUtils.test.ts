@@ -3,6 +3,7 @@ import {
   DEFAULT_TRACK_SEARCH_RADIUS_M,
   parseSectorLine,
   abbreviateTrackName,
+  deriveShortName,
   getTrackDisplayName,
   findNearestTrack,
   calculatePolylineLength,
@@ -85,6 +86,28 @@ describe("abbreviateTrackName", () => {
 
   it("trims surrounding whitespace before abbreviating", () => {
     expect(abbreviateTrackName("  Sebring  ")).toBe("SEBR");
+  });
+});
+
+// ─── deriveShortName ───────────────────────────────────────────────────────────
+
+describe("deriveShortName", () => {
+  it("reuses the abbreviation for typical names", () => {
+    expect(deriveShortName("Orlando Kart Center")).toBe("OKC");
+    expect(deriveShortName("Bushnell")).toBe("BUSH");
+  });
+
+  it("caps the result at 8 characters", () => {
+    // 10 single-letter words → 10-letter abbreviation, capped to 8
+    expect(deriveShortName("a b c d e f g h i j")).toBe("ABCDEFGH");
+  });
+
+  it("strips punctuation from the abbreviation", () => {
+    expect(deriveShortName("St. Pete Karting")).toBe("SPK");
+  });
+
+  it("returns empty string when there is no alphanumeric content", () => {
+    expect(deriveShortName("!!! ---")).toBe("");
   });
 });
 

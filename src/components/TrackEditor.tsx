@@ -244,7 +244,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   const handleAddTrack = async () => {
     const course = form.buildCourse();
     if (!course || !form.formTrackName.trim()) return;
-    await addTrackToStorage(form.formTrackName.trim(), course);
+    await addTrackToStorage(form.formTrackName.trim(), course, form.formTrackShortName.trim() || undefined);
     await refreshTracks();
     setTempTrackName(form.formTrackName.trim());
     setTempCourseName(course.name);
@@ -460,7 +460,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
           <Button variant="outline" onClick={() => setIsJsonViewOpen(true)} disabled={!selectedTrack}>
             <Code className="w-4 h-4 mr-2" />View JSON
           </Button>
-          {selectedTrack && (selectedTrack.isUserDefined || selectedTrack.courses.some(c => c.isUserDefined)) && (
+          {tracks.some(t => t.isUserDefined || t.courses.some(c => c.isUserDefined)) && (
             <div className="flex items-center gap-1">
             <SubmitTrackDialog
               trigger={
@@ -468,18 +468,6 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                   <Send className="w-4 h-4 mr-2" />Submit to DB
                 </Button>
               }
-              prefill={(() => {
-                const userCourse = selectedTrack.courses.find(c => c.isUserDefined && c.name === tempCourseName)
-                  || selectedTrack.courses.find(c => c.isUserDefined);
-                if (!userCourse) return undefined;
-                return {
-                  type: selectedTrack.isUserDefined ? 'new_track' as const : 'new_course' as const,
-                  trackName: selectedTrack.name,
-                  trackShortName: selectedTrack.shortName,
-                  courseName: userCourse.name,
-                  course: userCourse,
-                };
-              })()}
             />
             <Tooltip>
               <TooltipTrigger asChild>

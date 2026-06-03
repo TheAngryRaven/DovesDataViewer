@@ -13,6 +13,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **"Submit to DB" is now a one-tap bulk contribution instead of a coordinate
+  form.** The old flow made you hand-fill latitudes/longitudes for one course at
+  a time. Now the app diffs everything you've created locally against the
+  community track list and shows a review screen of exactly what will be sent —
+  each track flagged **New** or **Edited**, each course flagged **New track**,
+  **New course**, or **Modified** — and sends the whole thing as a single upload.
+  Courses identical to the built-in ones are skipped automatically, and the app
+  remembers what you've already submitted so unchanged courses aren't re-sent
+  (editing a course later re-flags it). Adding a course to a built-in track shows
+  that track as **Edited** (it adds the course; it never overwrites the track).
+- **Track creation now captures a short name, auto-filled from the long name.**
+  The "Add Track" form has a **Short Name** field (max 8 chars) that fills in
+  live as you type the track name (e.g. "Orlando Kart Center" → "OKC") until you
+  edit it yourself. Tracks created before this — or otherwise missing a short
+  name — get one auto-derived at submit time, so contributing them is never
+  blocked.
+- **Bulk submissions are grouped for admin review.** The `submit-track` edge
+  function now accepts many courses in one request and tags them with a shared
+  `batch_id`; the admin Submissions tab groups a user's upload together with
+  **Approve all / Deny all** for the batch. Each course is still its own row, so
+  the existing per-submission review/approve flow is unchanged. (Legacy
+  single-course submissions still work.)
+
+- **Track editor sector lines now save the moment you release a drag marker.**
+  In the visual editor, adjusting the Start/Finish, Sector 2, or Sector 3 line no
+  longer requires a separate "Done" click to commit — each line is written to the
+  form as soon as you let go of a marker. The footer button is relabeled "Close"
+  for line tools (it just dismisses the editor; your edits are already saved) and
+  stays "Done" for the layout Draw tool, which still finalizes the drawing on
+  click. Removes a confusing extra step where dragging a line and switching tools
+  silently discarded the change.
 ### Added
 - **Distance vs. time chart scale.** The analysis charts (simple-mode telemetry
   chart and pro-mode graphs) can now plot against **track distance** instead of

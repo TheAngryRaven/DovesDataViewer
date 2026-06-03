@@ -55,7 +55,7 @@ export function AddTrackDialog({
         </DialogHeader>
         <EditorModeToggle mode={editorMode} onModeChange={onEditorModeChange} />
         {editorMode === 'manual' ? (
-          <CourseForm {...courseFormProps} onSubmit={onSubmit} onCancel={onCancel} submitLabel="Create Track" />
+          <CourseForm {...courseFormProps} onSubmit={onSubmit} onCancel={onCancel} submitLabel="Create Track" showShortName />
         ) : (
           <div className="space-y-4">
             {/* Track/Course inputs above the map for better UX */}
@@ -63,6 +63,11 @@ export function AddTrackDialog({
               <div>
                 <Label htmlFor="newTrackName">Track Name</Label>
                 <Input id="newTrackName" value={courseFormProps.trackName} onChange={(e) => courseFormProps.onTrackNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" />
+              </div>
+              <div>
+                <Label htmlFor="newTrackShortName">Short Name (max 8 chars)</Label>
+                <Input id="newTrackShortName" value={courseFormProps.trackShortName} onChange={(e) => courseFormProps.onTrackShortNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., OKC" maxLength={8} className="font-mono" />
+                <p className="text-xs text-muted-foreground mt-1">Auto-filled from the track name — edit it if you'd like.</p>
               </div>
               <div>
                 <Label htmlFor="newCourseName">Course Name</Label>
