@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stays "Done" for the layout Draw tool, which still finalizes the drawing on
   click. Removes a confusing extra step where dragging a line and switching tools
   silently discarded the change.
+## [2.0.0] - 2026-06-03
 
 ### Fixed
 - **Spurious sign-out on page refresh (and the paid plan card vanishing with
@@ -35,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contended Web Lock survives reloads.)
 
 ### Changed
+- **Pricing cards now clarify that paid plans only cover cloud backups.** Every
+  storage line on the plan cards (home + sign-up) carries an asterisk to a new
+  footnote spelling out that storage on your own device is always unlimited and
+  free — paid tiers only back your datalogs up to the cloud (and help support
+  development). Removes the common confusion that you have to pay to keep using
+  the app or to store logs locally.
 - **Coverage badge now publishes to a GitHub Gist instead of a `badges` branch.**
   The orphan `badges` branch caused Cloudflare Workers Builds to repeatedly try
   (and fail) to deploy a branch with no app in it. The `coverage.yml` workflow
@@ -559,5 +566,6 @@ open-source project scaffolding and a bundle-size pass.
   admin, pro view, file-manager drawer, BLE download, and the Leaflet editor off
   the first-load path.
 
-[Unreleased]: https://github.com/TheAngryRaven/DovesDataViewer/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/TheAngryRaven/DovesDataViewer/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/TheAngryRaven/DovesDataViewer/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/TheAngryRaven/DovesDataViewer/compare/V1.0.0...v1.5.0
