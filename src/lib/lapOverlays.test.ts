@@ -3,6 +3,7 @@ import {
   overlayId,
   overlayColor,
   OVERLAY_COLORS,
+  externalOverlayId,
   resolveOverlayLines,
   unionBounds,
 } from "./lapOverlays";
@@ -96,6 +97,22 @@ describe("resolveOverlayLines", () => {
   it("preserves selection order", () => {
     const lines = resolveOverlayLines(["lap:2", "lap:1"], { laps, sessionSamples, snapshots: [] });
     expect(lines.map((l) => l.id)).toEqual(["lap:2", "lap:1"]);
+  });
+
+  it("resolves an external-file id from the external cache", () => {
+    const id = externalOverlayId("session-b.dovex", 4);
+    const ext = {
+      [id]: { samples: [sample(5, 5), sample(6, 6)], label: "session-b · L4 · 1:02.3" },
+    };
+    const lines = resolveOverlayLines([id], { laps, sessionSamples, snapshots: [], externalOverlays: ext });
+    expect(lines).toHaveLength(1);
+    expect(lines[0].label).toBe("session-b · L4 · 1:02.3");
+    expect(lines[0].samples).toHaveLength(2);
+  });
+
+  it("skips an external id with no cached samples", () => {
+    const id = externalOverlayId("missing.dovex", 1);
+    expect(resolveOverlayLines([id], { laps, sessionSamples, snapshots: [], externalOverlays: {} })).toEqual([]);
   });
 
   it("skips degenerate single-point lines and malformed ids", () => {

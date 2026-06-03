@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Overlay laps from other sessions/loggers, with drift alignment.** The
+  multi-lap overlay can now pull laps from **other saved files** — tap **Overlay
+  file** (next to Snapshots), pick a log, and toggle its laps onto the maps +
+  graphs alongside your current session. Because logs from different days/devices
+  carry a GPS offset, an **Align lines** toggle on the map legend rigidly
+  registers cross-session overlays (snapshots + external-file laps) onto your
+  current lap so the racing lines actually sit on top of each other — same-session
+  laps are left untouched (they already share a receiver). Alignment is map-only;
+  the graphs compare by distance and were already drift-immune. This closes the
+  "align data from different loggers" gap. See `docs/plans/multi-lap-overlay.md`.
 - **Build version + commit stamp in the home-page footer.** The landing page now
   shows the running app version and the short git commit hash (e.g.
   `v2.0.0 · 837b514`), baked in at build time. The hash links to that commit on

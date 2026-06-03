@@ -76,10 +76,17 @@ export interface SessionContextValue {
   onClearSnapshot: () => void;
   onSaveSnapshot: (force?: boolean) => Promise<SaveSnapshotResult>;
 
-  // ── Map overlays (extra racing lines, pro-mode map) ───────────────────────
+  // ── Multi-lap overlays (extra racing lines on the maps + graphs) ──────────
   overlaySelections: string[];
   overlayLines: OverlayLine[];
   onToggleOverlay: (id: string) => void;
+  /** Drift-align cross-session overlays onto the current lap (map only). */
+  alignOverlays: boolean;
+  onToggleAlignOverlays: () => void;
+  /** Load another saved file's laps for the overlay picker. */
+  onLoadOverlayFile: (fileName: string) => Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null>;
+  /** Add a lap from a loaded external file as an overlay. */
+  onAddExternalOverlay: (fileName: string, lapNumber: number) => void;
 
   // ── Session metadata ──────────────────────────────────────────────────────
   sessionGpsPoint?: { lat: number; lon: number };

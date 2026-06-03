@@ -66,19 +66,24 @@ Pulled forward from the original phase-2 list mid-phase-1:
   per-series), distance-aligned via `alignByDistance`, with per-lap cursor-tooltip
   values. Current lap always on top.
 
-## Phase 2 (remaining) — alignment + external sources
+## Phase 2 (done) — alignment + external sources
 
-These two are one feature in practice (external laps are what introduce real drift),
+These two were one feature in practice (external laps are what introduce real drift),
 and together they close the "align data from different loggers" half of the critique.
 
-- **External / cross-logger file overlays**: add laps from *other saved files* as
-  overlay sources (a new `OverlaySource`/id kind, e.g. `file:<name>:<lap>`), resolved
-  by loading + parsing like the external-reference flow already does.
-- **Spatial drift-correction**: optional "align lines" toggle that rigidly registers
-  each overlay onto the primary lap (translation, optionally Kabsch rotation) using
-  the existing `resampleByDistance` + `projectToPlane` correspondences in
-  `lapDelta.ts`. Cancels GPS offset between sessions/loggers while preserving the
-  real racing-line shape. Same-session laps need none (shared receiver).
+- ✅ **External / cross-logger file overlays**: laps from *other saved files* are an
+  overlay source — id kind `file:<lap>\x1f<name>`, loaded/parsed on demand and cached
+  in `useLapOverlays`, picked via `OverlayFilePicker`.
+- ✅ **Spatial drift-correction**: an **Align lines** toggle (map legend, default on)
+  rigidly registers cross-session overlays (`snap:`/`file:`) onto the current lap via
+  `lib/lapAlignment.ts` (2D closed-form Kabsch: rotation + translation, with a
+  rotation guard). Map-only — charts compare by distance and are transform-invariant.
+  Same-session `lap:` overlays are never transformed (shared receiver).
+
+## Possible future polish (not planned)
+- Surface the align toggle / external picker in the post-UI-rework layout.
+- Per-overlay clouds on the G-G diagram.
+- Let the synthetic pace / brake-% pro charts overlay too.
 
 ---
 

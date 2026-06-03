@@ -108,7 +108,8 @@ src/
 │   ├── lapCalculation.ts  # Start/finish crossing detection → Lap[]
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy: Track→Course→logs, engine/kart filter, breadcrumbs, smart collapse
-│   ├── lapOverlays.ts     # ★ Pure multi-lap map-overlay logic: id format, palette, resolve selections → OverlayLine[], unionBounds
+│   ├── lapOverlays.ts     # ★ Pure multi-lap overlay logic: id format (lap/snap/file), palette, resolve selections → OverlayLine[], unionBounds
+│   ├── lapAlignment.ts    # ★ Pure rigid registration (2D Kabsch) to drift-align cross-session overlays onto the current lap (map-only)
 │   ├── lapSnapshot.ts     # ★ Pure snapshot types/keying/buffer (course+engine identity)
 │   ├── lapSnapshotStorage.ts # ★ IndexedDB CRUD for lap snapshots (emits garageEvents)
 │   ├── setupRevision.ts  # ★ Pure content-addressed setup history: hash + freeze (immutable revisions)
@@ -662,12 +663,20 @@ The **multi-lap overlay** draws extra laps/snapshots across **all four data
 views at once**: racing lines on both maps (`RaceLineView` + `MiniMap`) and
 distance-aligned traces on both chart types (`TelemetryChart` speed +
 `SingleSeriesChart` per-series), with per-lap values in the cursor tooltip.
-Selection is per-lap (`LapTable` "Map" column) + per-snapshot
-(`LapSnapshotControls`), held by `useLapOverlays` as stable ids (`lap:<n>` /
-`snap:<id>`) and resolved by the pure, unit-tested `lib/lapOverlays.ts`
-(`resolveOverlayLines` → `OverlayLine[]` with palette colors; `unionBounds` to
-fit map overlays that run outside the active lap). `SessionContext` carries
-`overlayLines` + `onToggleOverlay`. **The current lap always renders on top** —
+Selection: per-lap (`LapTable` "Map" column), per-snapshot
+(`LapSnapshotControls`), and laps from **other saved files** via
+`OverlayFilePicker` (load+parse on demand, cached in `useLapOverlays`). Held as
+stable ids (`lap:<n>` / `snap:<id>` / `file:<lap>\x1f<name>`) and resolved by the
+pure, unit-tested `lib/lapOverlays.ts` (`resolveOverlayLines` → `OverlayLine[]`
+with palette colors, external samples from a cache; `unionBounds` to fit map
+overlays that run outside the active lap). `SessionContext` carries
+`overlayLines` + `onToggleOverlay` + the external-file loader/adder + the align
+toggle. **Cross-session overlays (`snap:`/`file:`) can be drift-aligned** onto the
+current lap via `lib/lapAlignment.ts` (2D Kabsch rigid registration, map-only —
+charts compare by distance and are transform-invariant); same-session `lap:`
+overlays are never transformed. The **Align lines** toggle lives on the map
+legend (`useLapOverlays.alignOverlays`, default on). **The current lap always
+renders on top** —
 maps put overlays in a layer beneath the current heatmap; charts draw overlay
 traces before the current line. Chart overlays distance-align each lap onto the
 current lap via `alignByDistance` (`referenceUtils.ts`), over the full lap then

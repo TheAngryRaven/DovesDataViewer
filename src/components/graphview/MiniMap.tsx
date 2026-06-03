@@ -7,7 +7,7 @@ import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { unionBounds, type OverlayLine } from '@/lib/lapOverlays';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSettingsContext } from '@/contexts/SettingsContext';
-import { Moon, Satellite, Square, WifiOff, Zap, Octagon, Map as MapIcon, X } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff, Zap, Octagon, Map as MapIcon, X, Crosshair } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 type MapStyle = 'dark' | 'satellite' | 'none';
@@ -54,9 +54,12 @@ interface MiniMapProps {
   overlayLines?: OverlayLine[];
   /** Remove an overlay by id (legend ✕). */
   onRemoveOverlay?: (id: string) => void;
+  /** Whether cross-session overlays are drift-aligned onto the current lap. */
+  alignOverlays?: boolean;
+  onToggleAlignOverlays?: () => void;
 }
 
-export function MiniMap({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, isAllLaps, overlayLines = [], onRemoveOverlay }: MiniMapProps) {
+export function MiniMap({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, isAllLaps, overlayLines = [], onRemoveOverlay, alignOverlays, onToggleAlignOverlays }: MiniMapProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -250,6 +253,16 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], currentInd
       {/* Overlay legend - lower right */}
       {overlayLines.length > 0 && (
         <div className="absolute bottom-2 right-2 z-[1000] max-w-[55%] max-h-[40%] overflow-y-auto rounded bg-card/90 backdrop-blur-sm border border-border p-1.5 space-y-1 scrollbar-thin">
+          {onToggleAlignOverlays && overlayLines.some(l => !l.id.startsWith('lap:')) && (
+            <button
+              onClick={onToggleAlignOverlays}
+              className={`flex w-full items-center gap-1.5 text-[11px] font-mono ${alignOverlays ? 'text-primary' : 'text-muted-foreground'}`}
+              title="Drift-align cross-session overlays onto the current lap"
+            >
+              <Crosshair className="w-3 h-3 shrink-0" />
+              <span>Align lines: {alignOverlays ? 'on' : 'off'}</span>
+            </button>
+          )}
           {overlayLines.map(line => (
             <div key={line.id} className="flex items-center gap-1.5 text-[11px] font-mono">
               <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: line.color }} />

@@ -46,6 +46,7 @@ import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
 import { useLapSnapshots } from "@/hooks/useLapSnapshots";
 import { useLapOverlays } from "@/hooks/useLapOverlays";
 import { LapSnapshotControls } from "@/components/LapSnapshotControls";
+import { OverlayFilePicker } from "@/components/OverlayFilePicker";
 import { LapSnapshotPromptDialog } from "@/components/LapSnapshotPromptDialog";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
@@ -178,12 +179,18 @@ export default function Index() {
     onClearOverlay: handleClearExternalRef,
   });
 
-  // Multi-lap racing-line overlay (pro-mode map): which laps/snapshots to draw.
-  const { overlaySelections, overlayLines, toggleOverlay } = useLapOverlays(
+  // Multi-lap overlay (maps + graphs): which laps/snapshots/external-file laps
+  // to draw, plus cross-session drift alignment.
+  const {
+    overlaySelections, overlayLines, toggleOverlay,
+    alignOverlays, toggleAlignOverlays, loadOverlayFile, addExternalOverlay,
+  } = useLapOverlays({
     data,
     laps,
-    snapshots.snapshotsForCourse,
-  );
+    snapshotsForCourse: snapshots.snapshotsForCourse,
+    selectedCourse,
+    currentLapSamples: filteredSamples,
+  });
 
   // Reference-lap handlers: clear the other side when one is set.
   const handleSetReferenceWithClear = useCallback((lapNumber: number) => {
@@ -344,6 +351,10 @@ export default function Index() {
     overlaySelections,
     overlayLines,
     onToggleOverlay: toggleOverlay,
+    alignOverlays,
+    onToggleAlignOverlays: toggleAlignOverlays,
+    onLoadOverlayFile: loadOverlayFile,
+    onAddExternalOverlay: addExternalOverlay,
     sessionGpsPoint,
     sessionStartDate: data?.startDate,
     sessionFileName: currentFileName,
@@ -380,6 +391,7 @@ export default function Index() {
     snapshots.snapshotsForCourse, snapshots.activeSnapshotId, snapshots.canSnapshot,
     snapshots.loadSnapshot, snapshots.clearActive, snapshots.saveSelectedLap,
     overlaySelections, overlayLines, toggleOverlay,
+    alignOverlays, toggleAlignOverlays, loadOverlayFile, addExternalOverlay,
     activeSnapshot, sessionSetup,
     sessionGpsPoint, currentFileName, sessionKartId, sessionSetupId, cachedWeatherStation,
     vehicleManager.vehicles, setupManager.setups, templateManager.templates,
@@ -521,6 +533,16 @@ export default function Index() {
             onSave={snapshots.saveSelectedLap}
             overlayLines={overlayLines}
             onToggleOverlay={toggleOverlay}
+          />
+
+          <OverlayFilePicker
+            hasCourse={!!selectedCourse}
+            savedFiles={savedFiles}
+            overlayLines={overlayLines}
+            onLoadOverlayFile={loadOverlayFile}
+            onAddExternalOverlay={addExternalOverlay}
+            onToggleOverlay={toggleOverlay}
+            onOpen={refreshSavedFiles}
           />
 
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />

@@ -4,12 +4,14 @@
  *
  * Sources are referenced by a stable string id so selection state is trivially
  * serializable and order-stable:
- *   - `lap:<n>`   — lap number `n` in the current session
- *   - `snap:<id>` — a saved lap snapshot by its snapshot id
+ *   - `lap:<n>`                  — lap number `n` in the current session
+ *   - `snap:<id>`                — a saved lap snapshot by its snapshot id
+ *   - `file:<lap>\x1f<fileName>` — a lap from another saved file (loaded async;
+ *                                  its samples come from the external cache)
  *
- * Phase 1 draws raw absolute GPS (same-session laps share a receiver and need no
- * correction). Cross-session drift alignment is a deliberate phase-2 follow-up —
- * see docs/plans/multi-lap-overlay.md.
+ * Same-session `lap:` overlays draw at raw absolute GPS (shared receiver, no
+ * relative drift). Cross-session `snap:`/`file:` overlays can be drift-aligned
+ * onto the current lap by the caller — see lib/lapAlignment.ts.
  */
 
 import type { GpsSample, Lap } from '@/types/racing';
@@ -58,6 +60,20 @@ export function overlayId(kind: 'lap' | 'snap', key: string | number): string {
   return `${kind}:${key}`;
 }
 
+// ASCII unit separator — never appears in a file name or lap number.
+const FILE_ID_SEP = '\x1f';
+
+/** Stable overlay id for a lap from another saved file. */
+export function externalOverlayId(fileName: string, lapNumber: number): string {
+  return `file:${lapNumber}${FILE_ID_SEP}${fileName}`;
+}
+
+/** A loaded external lap's drawable payload, keyed by its `externalOverlayId`. */
+export interface ExternalOverlay {
+  samples: GpsSample[];
+  label: string;
+}
+
 /**
  * Resolve selected overlay ids into drawable lines, in selection order. Ids that
  * can't be resolved (a lap no longer present, a snapshot for another course) are
@@ -66,9 +82,14 @@ export function overlayId(kind: 'lap' | 'snap', key: string | number): string {
  */
 export function resolveOverlayLines(
   selections: string[],
-  opts: { laps: Lap[]; sessionSamples: GpsSample[]; snapshots: LapSnapshot[] },
+  opts: {
+    laps: Lap[];
+    sessionSamples: GpsSample[];
+    snapshots: LapSnapshot[];
+    externalOverlays?: Record<string, ExternalOverlay>;
+  },
 ): OverlayLine[] {
-  const { laps, sessionSamples, snapshots } = opts;
+  const { laps, sessionSamples, snapshots, externalOverlays } = opts;
   const lines: OverlayLine[] = [];
 
   for (const id of selections) {
@@ -96,6 +117,10 @@ export function resolveOverlayLines(
         color: overlayColor(lines.length),
         samples,
       });
+    } else if (kind === 'file') {
+      const ext = externalOverlays?.[id];
+      if (!ext || ext.samples.length < 2) continue;
+      lines.push({ id, label: ext.label, color: overlayColor(lines.length), samples: ext.samples });
     }
   }
 

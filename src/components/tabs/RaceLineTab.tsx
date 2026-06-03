@@ -40,6 +40,8 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
           parserStats={s.parserStats}
           overlayLines={s.overlayLines}
           onRemoveOverlay={s.onToggleOverlay}
+          alignOverlays={s.alignOverlays}
+          onToggleAlignOverlays={s.onToggleAlignOverlays}
         />
       }
       bottomPanel={
