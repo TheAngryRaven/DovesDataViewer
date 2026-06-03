@@ -42,6 +42,8 @@ export interface DbSubmission {
   course_data: Record<string, unknown>;
   status: 'pending' | 'approved' | 'denied';
   submitted_by_ip: string | null;
+  /** Ties courses uploaded together in one bulk submit. NULL for legacy rows. */
+  batch_id: string | null;
   created_at: string;
   reviewed_at: string | null;
   reviewed_by: string | null;

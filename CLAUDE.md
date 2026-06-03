@@ -111,6 +111,8 @@ src/
 │   ├── lapSnapshotStorage.ts # ★ IndexedDB CRUD for lap snapshots (emits garageEvents)
 │   ├── setupRevision.ts  # ★ Pure content-addressed setup history: hash + freeze (immutable revisions)
 │   ├── setupRevisionStorage.ts # ★ IndexedDB CRUD for setup revisions (freezeSetupRevision; emits garageEvents)
+│   ├── trackSubmission.ts # ★ Pure community-DB upload plan: diff local tracks vs built-ins → new/edited, geometry hash + dedupe
+│   ├── submittedTracksStorage.ts # localStorage record of already-submitted course hashes (dedupe)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
 │   ├── garageEvents.ts    # ★ Host pub/sub: storage emits {store,key,put|delete}; cloud-sync syncs off it
 │   ├── *Storage.ts        # IDB stores: file, kart(compat), vehicle, engine, template, note, setup,
@@ -474,6 +476,34 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 **Submissions**: The `submissions` table has `has_layout` (bool) and `layout_data` (jsonb) columns to carry drawing data through the submission workflow.
 
 **Public drawings**: Admin exports drawings to `public/drawings.json` (keyed by `shortName/courseName` → `[{lat, lon}, ...]`). Loaded by `trackStorage.ts:loadCourseDrawings()` (cached). Rendered on the race line map as a dashed polyline outline when a course is selected. Helper: `getDrawingForCourse(shortName, courseName)`.
+
+---
+
+## Community Track Submission (`SubmitTrackDialog` + `lib/trackSubmission.ts`)
+
+The "Submit to DB" flow (track editor) is a **bulk, form-free contribution**:
+`buildSubmissionPlan(merged, defaults, submitted)` (pure, unit-tested) diffs the
+user's local tracks against the built-in list (`loadDefaultTracks()`) and
+classifies each user course as **new_track** (wholly new track —
+`Track.isUserDefined`), **new_course** (a course added to a built-in track), or
+**course_modification** (an edited built-in course). A user "edit" that is
+byte-identical to the built-in course is skipped. The track-level rollup reads
+**New** vs **Edited** (adding a course never overwrites the track). A geometry
+**content hash** (`courseContentHash`, rounded to ~1cm) drives both the
+identical-skip and dedupe: `submittedTracksStorage.ts` (localStorage key
+`racing-datalog-submitted-v1`) remembers each submitted course's hash, so
+unchanged courses aren't re-sent and a later edit re-flags the course.
+
+The review dialog sends all selected courses in **one** `submit-track` call
+(`{ submissions: [...], turnstile_token }`); the edge function validates each,
+caps batch size, rate-limits by rows/hour/IP, and inserts one `submissions` row
+per course sharing a generated **`batch_id`** (migration
+`20260603120000_submissions_batch_id.sql`). The admin **Submissions** tab groups
+a batch together with **Approve all / Deny all**; each row is still reviewed/
+approved individually (approval is still manual — it flips status; the admin then
+builds/imports `tracks.json` as before). The single-submission body shape stays
+supported for back-compat. `DbSubmission.batch_id` carries the group id client-
+side (the generated Supabase types are untouched — `getSubmissions` casts).
 
 ---
 
