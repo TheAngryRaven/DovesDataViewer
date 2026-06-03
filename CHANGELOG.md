@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-03
+
 ### Fixed
 - **Spurious sign-out on page refresh (and the paid plan card vanishing with
   it).** The auth bootstrap awaited a Supabase RPC (`has_role`) *inside* the
@@ -549,5 +551,6 @@ open-source project scaffolding and a bundle-size pass.
   admin, pro view, file-manager drawer, BLE download, and the Leaflet editor off
   the first-load path.
 
-[Unreleased]: https://github.com/TheAngryRaven/DovesDataViewer/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/TheAngryRaven/DovesDataViewer/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/TheAngryRaven/DovesDataViewer/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/TheAngryRaven/DovesDataViewer/compare/V1.0.0...v1.5.0
