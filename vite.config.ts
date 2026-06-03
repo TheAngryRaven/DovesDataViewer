@@ -2,8 +2,38 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
+import { execSync } from "child_process";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+
+// Build-time version metadata for the footer "what changed" stamp. The app
+// version comes from package.json; the commit hash + build date are baked in at
+// build so a deployed bundle can show exactly which revision is live. The CI
+// commit-SHA env vars are preferred (Cloudflare Workers Builds / Pages, generic
+// CI) so the hash is correct even on a shallow checkout; we fall back to a local
+// `git` call for dev, and to "unknown" when neither is available.
+function readAppVersion(): string {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "package.json"), "utf8"));
+    return typeof pkg.version === "string" ? pkg.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function gitShortHash(): string {
+  const fromEnv =
+    process.env.WORKERS_CI_COMMIT_SHA ||
+    process.env.CF_PAGES_COMMIT_SHA ||
+    process.env.GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA;
+  if (fromEnv) return fromEnv.slice(0, 7);
+  try {
+    return execSync("git rev-parse --short=7 HEAD", { cwd: __dirname }).toString().trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 // Build-time loader for external plugin npm packages (the AI coach). Candidate
 // package names default to the public coach and can be overridden via the
@@ -90,6 +120,10 @@ export default defineConfig(({ mode }) => {
     return env[viteKey] || process.env[viteKey] || env[httKey] || process.env[httKey] || fallback;
   };
 
+  const appVersion = readAppVersion();
+  const gitHash = gitShortHash();
+  const buildDate = new Date().toISOString();
+
   const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
   const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)
     .split(",")
@@ -117,6 +151,9 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_ENABLE_CLOUD": JSON.stringify(
         pick("VITE_ENABLE_CLOUD", "HTT_ENABLE_CLOUD", PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_CLOUD),
       ),
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
+      "import.meta.env.VITE_GIT_HASH": JSON.stringify(gitHash),
+      "import.meta.env.VITE_BUILD_DATE": JSON.stringify(buildDate),
     },
     plugins: [
       react(),

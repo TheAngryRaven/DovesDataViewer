@@ -10,6 +10,7 @@ import { AboutDialog } from "@/components/AboutDialog";
 import { CreditsDialog } from "@/components/CreditsDialog";
 import { PricingCards } from "@/components/PricingCards";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildInfo, formatBuildLabel, commitUrl } from "@/lib/buildInfo";
 import type { ParsedData } from "@/types/racing";
 
 interface LandingPageProps {
@@ -205,6 +206,23 @@ export function LandingPage({
           >
             PerchWerks LLC
           </a>
+        </p>
+        <p
+          className="mt-1 text-center text-[11px] text-muted-foreground/60"
+          title={buildInfo.buildDate ? `Built ${new Date(buildInfo.buildDate).toLocaleString()}` : undefined}
+        >
+          {commitUrl() ? (
+            <a
+              href={commitUrl()!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-4 transition-colors hover:text-muted-foreground hover:underline"
+            >
+              {formatBuildLabel()}
+            </a>
+          ) : (
+            formatBuildLabel()
+          )}
         </p>
       </footer>
     </div>
