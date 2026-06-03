@@ -66,6 +66,8 @@ export interface GraphViewPanelProps {
   // Multi-lap overlay (extra racing lines drawn on the MiniMap)
   overlayLines?: OverlayLine[];
   onRemoveOverlay?: (id: string) => void;
+  alignOverlays?: boolean;
+  onToggleAlignOverlays?: () => void;
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
@@ -152,6 +154,8 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 isAllLaps={props.isAllLaps}
                 overlayLines={props.overlayLines}
                 onRemoveOverlay={props.onRemoveOverlay}
+                alignOverlays={props.alignOverlays}
+                onToggleAlignOverlays={props.onToggleAlignOverlays}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

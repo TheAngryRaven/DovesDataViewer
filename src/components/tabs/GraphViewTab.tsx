@@ -47,6 +47,8 @@ export const GraphViewTab = memo(function GraphViewTab() {
       paceData={s.paceData}
       overlayLines={s.overlayLines}
       onRemoveOverlay={s.onToggleOverlay}
+      alignOverlays={s.alignOverlays}
+      onToggleAlignOverlays={s.onToggleAlignOverlays}
     />
   );
 });
