@@ -50,11 +50,17 @@ export interface SubmissionCourse {
   type: SubmissionType;
   change: CourseChange;
   courseData: CourseSubmissionData;
-  /** Geometry hash — identity for dedupe against already-submitted content. */
+  /**
+   * Drawn track outline (polyline), when the user has one. Sent to the edge fn
+   * as `layout_data` (separate from `course_data`); also folded into the content
+   * hash so adding/changing a drawing re-flags an otherwise-unchanged course.
+   */
+  layout?: Array<{ lat: number; lon: number }>;
+  /** Geometry + drawing hash — identity for dedupe against already-submitted content. */
   contentHash: string;
   /** Stable key (track + course) used by the already-submitted store. */
   key: string;
-  /** True when this exact geometry was already submitted (unchanged since). */
+  /** True when this exact content was already submitted (unchanged since). */
   alreadySubmitted: boolean;
 }
 
@@ -127,9 +133,16 @@ function fnv1a(str: string): string {
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 
+/** Canonical (rounded) string for a drawn outline, or '' when there is none. */
+function layoutHashInput(layout?: Array<{ lat: number; lon: number }>): string {
+  if (!layout || layout.length < 2) return '';
+  return layout.map((p) => `${r(p.lat)} ${r(p.lon)}`).join(';');
+}
+
 /**
- * Deterministic hash of a course's geometry (rounded). Name is intentionally
- * excluded — identity is carried by the key; the hash detects geometry edits.
+ * Deterministic hash of a course's geometry + drawn outline (rounded). Name is
+ * intentionally excluded — identity is carried by the key; the hash detects
+ * geometry *or* drawing edits so a freshly-drawn outline re-flags the course.
  */
 export function courseContentHash(course: Course): string {
   const d = courseToSubmissionData(course);
@@ -138,6 +151,7 @@ export function courseContentHash(course: Course): string {
     d.sector_2_a_lat, d.sector_2_a_lng, d.sector_2_b_lat, d.sector_2_b_lng,
     d.sector_3_a_lat, d.sector_3_a_lng, d.sector_3_b_lat, d.sector_3_b_lng,
   ].map((n) => (n === undefined ? '' : String(r(n))));
+  parts.push(layoutHashInput(course.layout));
   return fnv1a(parts.join(','));
 }
 
@@ -214,6 +228,7 @@ export function buildSubmissionPlan(
         type,
         change,
         courseData: courseToSubmissionData(course),
+        layout: course.layout && course.layout.length >= 2 ? course.layout : undefined,
         contentHash: hash,
         key,
         alreadySubmitted,

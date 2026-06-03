@@ -63,6 +63,18 @@ describe('courseContentHash', () => {
   it('changes when sectors are added', () => {
     expect(courseContentHash(course('A', sectors))).not.toBe(courseContentHash(course('A')));
   });
+
+  it('changes when a drawing is added or edited', () => {
+    const drawn = course('A', { layout: [{ lat: 28.41, lon: -81.38 }, { lat: 28.42, lon: -81.39 }] });
+    expect(courseContentHash(drawn)).not.toBe(courseContentHash(course('A')));
+    const moved = course('A', { layout: [{ lat: 28.41, lon: -81.38 }, { lat: 28.425, lon: -81.39 }] });
+    expect(courseContentHash(moved)).not.toBe(courseContentHash(drawn));
+  });
+
+  it('ignores a degenerate one-point drawing', () => {
+    const onePoint = course('A', { layout: [{ lat: 28.41, lon: -81.38 }] });
+    expect(courseContentHash(onePoint)).toBe(courseContentHash(course('A')));
+  });
 });
 
 describe('buildSubmissionPlan', () => {
@@ -154,6 +166,37 @@ describe('buildSubmissionPlan', () => {
     const plan = buildSubmissionPlan(merged, builtin);
     expect(plan.groups).toHaveLength(0);
     expect(plan.pendingCount).toBe(0);
+  });
+
+  it('re-flags a geometry-identical built-in course once the user adds a drawing, and carries the layout', () => {
+    const layout = [{ lat: 28.41, lon: -81.38 }, { lat: 28.42, lon: -81.39 }, { lat: 28.43, lon: -81.40 }];
+    const merged: Track[] = [
+      {
+        ...builtin[0],
+        // same geometry as the built-in, but now with a drawn outline
+        courses: [{ ...course('Normal'), isUserDefined: true, layout }],
+      },
+    ];
+    const plan = buildSubmissionPlan(merged, builtin);
+    expect(plan.groups).toHaveLength(1);
+    const sub = plan.groups[0].courses[0];
+    expect(sub.type).toBe('course_modification');
+    expect(sub.layout).toEqual(layout);
+    expect(plan.pendingCount).toBe(1);
+  });
+
+  it('does not attach a degenerate one-point layout to a submission', () => {
+    const merged: Track[] = [
+      ...builtin,
+      {
+        name: 'My Backyard',
+        shortName: 'YARD',
+        isUserDefined: true,
+        courses: [{ ...course('Loop'), isUserDefined: true, layout: [{ lat: 28.41, lon: -81.38 }] }],
+      },
+    ];
+    const plan = buildSubmissionPlan(merged, builtin);
+    expect(plan.groups.find((g) => g.trackName === 'My Backyard')!.courses[0].layout).toBeUndefined();
   });
 
   it('never includes untouched built-in courses', () => {

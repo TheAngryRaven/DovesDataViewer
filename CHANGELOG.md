@@ -22,8 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a datalog *is* loaded the editor still offers **Generate from lap** to build the
   outline from your GPS trace. Drawings you make are saved with the course and
   travel with it (cloud sync + community submissions).
+- **Track drawings are now part of a community submission.** When you submit a
+  track/course that has a drawn (or generated) outline, the outline rides along
+  with it — flagged with a **+ drawing** badge in the review screen. Adding or
+  changing a drawing re-flags an otherwise-unchanged course so it can be
+  contributed. In the admin **Submissions** tab, a submitted drawing shows a
+  thumbnail preview and an **Apply to course layout** button that saves it onto
+  the matching DB course (so it flows into the exported drawings).
 
 ### Changed
+- **"Submit to DB" is always visible now, greyed out when there's nothing to
+  send.** Previously the button only appeared once you had local tracks. It now
+  shows whenever the track manager is open and uses the upload-diffing logic to
+  enable itself only when you actually have new/changed courses (or drawings) to
+  contribute, with the pending count in the label.
 - **"Submit to DB" is now a one-tap bulk contribution instead of a coordinate
   form.** The old flow made you hand-fill latitudes/longitudes for one course at
   a time. Now the app diffs everything you've created locally against the

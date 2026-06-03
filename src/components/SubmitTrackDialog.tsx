@@ -140,6 +140,7 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
         track_short_name: c.type === 'new_track' ? c.trackShortName : undefined,
         course_name: c.courseName,
         course_data: c.courseData,
+        layout_data: c.layout,
       }));
 
       const { data, error } = await supabase.functions.invoke('submit-track', {
@@ -245,6 +246,11 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
                                 <span className={`text-xs px-1.5 py-0.5 rounded ${CHANGE_STYLE[course.change]}`}>
                                   {CHANGE_LABEL[course.change]}
                                 </span>
+                                {course.layout && course.layout.length >= 2 && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                                    + drawing
+                                  </span>
+                                )}
                                 {course.alreadySubmitted && (
                                   <span className="text-xs text-muted-foreground">already submitted</span>
                                 )}

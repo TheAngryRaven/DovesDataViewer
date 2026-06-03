@@ -5,7 +5,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
 import type { DbSubmission } from '@/lib/db/types';
-import { Check, X, Layers } from 'lucide-react';
+import { Check, X, Layers, Route } from 'lucide-react';
+
+/** Mini SVG preview of a submitted track outline. */
+function DrawingPreview({ points, size = 64 }: { points: Array<{ lat: number; lon: number }>; size?: number }) {
+  if (points.length < 2) return null;
+  const padding = 3;
+  const lats = points.map(p => p.lat);
+  const lons = points.map(p => p.lon);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  const rangeLat = maxLat - minLat || 0.0001;
+  const rangeLon = maxLon - minLon || 0.0001;
+  const scale = (size - padding * 2) / Math.max(rangeLat, rangeLon);
+  const svgPoints = points.map(p => {
+    const x = padding + (p.lon - minLon) * scale;
+    const y = padding + (maxLat - p.lat) * scale; // flip Y
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg width={size} height={size} className="shrink-0 rounded border border-border" style={{ background: 'hsl(var(--muted))' }}>
+      <polyline points={svgPoints} fill="none" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 /** A batch of submissions uploaded together, or a single legacy submission. */
 interface SubmissionGroup {
@@ -77,8 +100,35 @@ export function SubmissionsTab() {
     }
   };
 
+  // Save a submitted drawing onto the matching DB course's layout, so the
+  // existing drawings.json export (Tools tab) picks it up. The course must
+  // already exist in the DB (matched by track short-name/name + course name).
+  const handleApplyDrawing = async (sub: DbSubmission) => {
+    const layout = sub.layout_data;
+    if (!Array.isArray(layout) || layout.length < 2) return;
+    try {
+      const [tracks, courses] = await Promise.all([db.getTracks(), db.getAllCourses()]);
+      const track = tracks.find(t =>
+        (sub.track_short_name && t.short_name === sub.track_short_name) || t.name === sub.track_name);
+      const course = track && courses.find(c => c.track_id === track.id && c.name === sub.course_name);
+      if (!course) {
+        toast({
+          title: 'No matching course',
+          description: 'Create the course in the DB first, then apply its drawing.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      await db.saveLayout(course.id, layout);
+      toast({ title: 'Drawing applied', description: `${sub.track_name} → ${sub.course_name}` });
+    } catch (e: unknown) {
+      toast({ title: 'Error applying drawing', description: (e as Error).message, variant: 'destructive' });
+    }
+  };
+
   const renderCard = (sub: DbSubmission) => {
-    const hasLayout = (sub as unknown as { has_layout?: boolean }).has_layout;
+    const layout = Array.isArray(sub.layout_data) ? sub.layout_data : null;
+    const hasLayout = sub.has_layout || (layout?.length ?? 0) > 0;
     return (
       <div key={sub.id} className="racing-card p-4 space-y-2">
         <div className="flex items-center justify-between">
@@ -99,6 +149,17 @@ export function SubmissionsTab() {
         <pre className="text-xs font-mono bg-muted p-2 rounded overflow-x-auto max-h-32">
           {JSON.stringify(sub.course_data, null, 2)}
         </pre>
+        {layout && layout.length >= 2 && (
+          <div className="flex items-center gap-3">
+            <DrawingPreview points={layout} />
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">{layout.length} point outline submitted</p>
+              <Button size="sm" variant="outline" onClick={() => handleApplyDrawing(sub)} className="gap-1">
+                <Route className="w-3 h-3" /> Apply to course layout
+              </Button>
+            </div>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           IP: {sub.submitted_by_ip || 'unknown'} • {new Date(sub.created_at).toLocaleString()}
         </p>

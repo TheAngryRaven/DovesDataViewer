@@ -42,6 +42,10 @@ export interface DbSubmission {
   course_data: Record<string, unknown>;
   status: 'pending' | 'approved' | 'denied';
   submitted_by_ip: string | null;
+  /** True when the submitter included a drawn track outline. */
+  has_layout?: boolean;
+  /** The drawn outline polyline, when `has_layout`. */
+  layout_data?: Array<{ lat: number; lon: number }> | null;
   /** Ties courses uploaded together in one bulk submit. NULL for legacy rows. */
   batch_id: string | null;
   created_at: string;

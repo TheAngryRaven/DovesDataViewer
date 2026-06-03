@@ -9,6 +9,8 @@ const corsHeaders = {
 // flood the queue. Also cap how many rows one IP can add per rolling hour.
 const MAX_BATCH = 200;
 const MAX_ROWS_PER_HOUR = 300;
+// A drawn outline is a polyline; cap it so one row can't carry an unbounded blob.
+const MAX_LAYOUT_POINTS = 5000;
 
 interface SubmissionInput {
   type?: string;
@@ -66,6 +68,20 @@ function validateSubmission(s: SubmissionInput): string | null {
   for (const key of optionalCoords) {
     const v = course_data[key];
     if (v !== undefined && (typeof v !== 'number' || isNaN(v))) return `Invalid coordinate: ${key}`;
+  }
+
+  // Optional drawn outline. Accept undefined/null; otherwise it must be a
+  // bounded array of {lat, lon} numbers.
+  if (s.layout_data !== undefined && s.layout_data !== null) {
+    if (!Array.isArray(s.layout_data)) return 'Invalid layout data';
+    if (s.layout_data.length > MAX_LAYOUT_POINTS) return 'Too many layout points';
+    for (const p of s.layout_data) {
+      const pt = p as { lat?: unknown; lon?: unknown };
+      if (typeof pt?.lat !== 'number' || isNaN(pt.lat) ||
+          typeof pt?.lon !== 'number' || isNaN(pt.lon)) {
+        return 'Invalid layout point';
+      }
+    }
   }
 
   return null;

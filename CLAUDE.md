@@ -475,7 +475,7 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 
 **"Generate Course Mapping" button**: Placeholder in admin CoursesTab — will eventually produce fingerprint data for automatic track detection on the DovesDataLogger hardware.
 
-**Submissions**: The `submissions` table has `has_layout` (bool) and `layout_data` (jsonb) columns to carry drawing data through the submission workflow.
+**Submissions**: The `submissions` table has `has_layout` (bool) and `layout_data` (jsonb) columns to carry drawing data through the submission workflow. The client now sends a course's `layout` as `layout_data` (`SubmitTrackDialog` → `submit-track` edge fn, which validates point shape + caps at 5000 points), the drawing is folded into `courseContentHash` (so adding/editing a drawing re-flags the course for upload), and the admin **Submissions** tab previews the polyline (`DrawingPreview`) with an **Apply to course layout** action that matches the DB course (by short-name/name + course name) and calls `db.saveLayout`. `DbSubmission` carries `has_layout`/`layout_data`.
 
 **Public drawings**: Admin exports drawings to `public/drawings.json` (keyed by `shortName/courseName` → `[{lat, lon}, ...]`). Loaded by `trackStorage.ts:loadCourseDrawings()` (cached). Rendered on the race line map as a dashed polyline outline when a course is selected. Helper: `getDrawingForCourse(shortName, courseName)`.
 
@@ -491,10 +491,17 @@ classifies each user course as **new_track** (wholly new track —
 **course_modification** (an edited built-in course). A user "edit" that is
 byte-identical to the built-in course is skipped. The track-level rollup reads
 **New** vs **Edited** (adding a course never overwrites the track). A geometry
-**content hash** (`courseContentHash`, rounded to ~1cm) drives both the
-identical-skip and dedupe: `submittedTracksStorage.ts` (localStorage key
-`racing-datalog-submitted-v1`) remembers each submitted course's hash, so
-unchanged courses aren't re-sent and a later edit re-flags the course.
+**+ drawing content hash** (`courseContentHash`, rounded to ~1cm — now also folds
+in the course's `layout` polyline) drives both the identical-skip and dedupe:
+`submittedTracksStorage.ts` (localStorage key `racing-datalog-submitted-v1`)
+remembers each submitted course's hash, so unchanged courses aren't re-sent and a
+later edit — geometry *or* drawing — re-flags the course. A course's `layout`
+rides the plan as `SubmissionCourse.layout` → `layout_data` in the payload.
+
+The **"Submit to DB" button is always rendered** (in `TrackEditor`'s manage
+view) and **disabled when nothing is pending** — `TrackEditor` runs
+`buildSubmissionPlan` itself to compute `pendingSubmissionCount` for the
+enable/label (and refreshes it via `onSubmitted`).
 
 The review dialog sends all selected courses in **one** `submit-track` call
 (`{ submissions: [...], turnstile_token }`); the edge function validates each,
