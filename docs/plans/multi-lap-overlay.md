@@ -15,7 +15,12 @@ the distance-axis (#121) and G-G diagram (#125) work in the race-data-analysis a
 - Spatial drift-correction: **deferred to phase 2** (raw absolute GPS for now).
 - Selection UX: **per-lap toggle in the lap list** (LapTable) + per-snapshot toggle
   in LapSnapshotControls.
-- Surface: **pro-mode MiniMap only** (not the simple-mode RaceLineView).
+- Surface: **all four data views** — both maps (RaceLineView + MiniMap) **and** both
+  chart types (TelemetryChart speed + SingleSeriesChart per-series), with per-lap
+  values in the cursor tooltip. (Originally scoped to the MiniMap only; expanded
+  mid-phase-1 once the maintainer clarified the overlays should be full comparison
+  lines on the graphs too.)
+- **Current lap always on top** in every view.
 
 **Behavior**
 - Overlay any number of selected laps/snapshots as solid distinct-colored lines on

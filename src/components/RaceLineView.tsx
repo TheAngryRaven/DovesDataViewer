@@ -5,11 +5,12 @@ import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { formatLapTime } from '@/lib/lapCalculation';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
+import { unionBounds, type OverlayLine } from '@/lib/lapOverlays';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Moon, Satellite, Square, WifiOff, CloudSun, FileText } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff, CloudSun, FileText, X } from 'lucide-react';
 import { WeatherPanel } from '@/components/WeatherPanel';
 import { LocalWeatherDialog } from '@/components/LocalWeatherDialog';
 import { WeatherStation, WeatherData } from '@/lib/weatherService';
@@ -57,6 +58,10 @@ interface RaceLineViewProps {
   onWeatherStationResolved?: (station: WeatherStation) => void;
   isAllLaps?: boolean;
   parserStats?: ParserStats | null;
+  /** Extra racing lines (other laps / snapshots) to overlay, beneath the current lap. */
+  overlayLines?: OverlayLine[];
+  /** Remove an overlay by id (legend ✕). */
+  onRemoveOverlay?: (id: string) => void;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -138,7 +143,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], onRemoveOverlay }: RaceLineViewProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
@@ -146,6 +151,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
   const referenceLayerRef = useRef<L.LayerGroup | null>(null);
+  const overlayLinesLayerRef = useRef<L.LayerGroup | null>(null);
   const brakingZonesLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const startFinishRef = useRef<L.Polyline | null>(null);
@@ -293,6 +299,10 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     // Create layer group for braking zones (above reference, below race line)
     brakingZonesLayerRef.current = L.layerGroup().addTo(map);
 
+    // Create layer group for multi-lap overlay lines (above braking, below the
+    // current lap — current lap always stays on top)
+    overlayLinesLayerRef.current = L.layerGroup().addTo(map);
+
     // Create layer group for current lap polylines
     polylineLayerRef.current = L.layerGroup().addTo(map);
     
@@ -305,6 +315,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       map.remove();
       mapRef.current = null;
       referenceLayerRef.current = null;
+      overlayLinesLayerRef.current = null;
       brakingZonesLayerRef.current = null;
       speedEventsLayerRef.current = null;
       tileLayerRef.current = null;
@@ -347,10 +358,11 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
 
     if (samples.length === 0) return;
 
-    // Fit bounds
+    // Fit bounds — include overlay extents so off-lap overlays aren't clipped
+    const fit = unionBounds(bounds, overlayLines);
     const latLngBounds = L.latLngBounds([
-      [bounds.minLat, bounds.minLon],
-      [bounds.maxLat, bounds.maxLon]
+      [fit.minLat, fit.minLon],
+      [fit.maxLat, fit.maxLon]
     ]);
     map.fitBounds(latLngBounds, { padding: [20, 20] });
 
@@ -374,7 +386,19 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       );
       polylineLayer.addLayer(polyline);
     }
-  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed]);
+  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed, overlayLines]);
+
+  // Draw multi-lap overlay lines (other laps / snapshots) — solid colors,
+  // beneath the current lap. Rebuilt only when the overlay set changes.
+  useEffect(() => {
+    const layer = overlayLinesLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    for (const line of overlayLines) {
+      const coords = line.samples.map(s => [s.lat, s.lon] as [number, number]);
+      layer.addLayer(L.polyline(coords, { color: line.color, weight: 4, opacity: 0.7 }));
+    }
+  }, [overlayLines]);
 
   // Update speed event markers
   useEffect(() => {
@@ -532,7 +556,28 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full bg-black" />
-      
+
+      {/* Multi-lap overlay legend - bottom center */}
+      {overlayLines.length > 0 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[1000] flex max-w-[70%] flex-wrap justify-center gap-x-3 gap-y-1 rounded bg-card/90 backdrop-blur-sm border border-border px-2.5 py-1.5">
+          {overlayLines.map(line => (
+            <div key={line.id} className="flex items-center gap-1.5 text-xs font-mono">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: line.color }} />
+              <span className="truncate max-w-[140px] text-foreground/90">{line.label}</span>
+              {onRemoveOverlay && (
+                <button
+                  onClick={() => onRemoveOverlay(line.id)}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  title="Remove overlay"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Controls panel */}
       {showOverlays && (
         <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000] transition-opacity duration-200">

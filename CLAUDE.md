@@ -648,15 +648,22 @@ in `lib/ggDiagram.ts` (`pickGForcePair` honoring `gForceSource` → GPS `lat_g`/
 smoothing; `computeGGAxisMax` for the symmetric, clamped axis range). Raw IMU
 `accel_*` is intentionally excluded — it isn't guaranteed grip-frame-aligned.
 
-The **multi-lap line overlay** draws extra racing lines on the **pro-mode
-MiniMap** (only). Selection is per-lap (`LapTable` "Map" column) + per-snapshot
+The **multi-lap overlay** draws extra laps/snapshots across **all four data
+views at once**: racing lines on both maps (`RaceLineView` + `MiniMap`) and
+distance-aligned traces on both chart types (`TelemetryChart` speed +
+`SingleSeriesChart` per-series), with per-lap values in the cursor tooltip.
+Selection is per-lap (`LapTable` "Map" column) + per-snapshot
 (`LapSnapshotControls`), held by `useLapOverlays` as stable ids (`lap:<n>` /
 `snap:<id>`) and resolved by the pure, unit-tested `lib/lapOverlays.ts`
 (`resolveOverlayLines` → `OverlayLine[]` with palette colors; `unionBounds` to
-fit overlays that run outside the active lap). `SessionContext` carries
-`overlayLines` + `onToggleOverlay`; the MiniMap draws each as a solid colored
-polyline beneath the active heatmap and shows a remove-able legend. **Phase 1 is
-raw absolute GPS** (same-session laps share a receiver, so they register without
+fit map overlays that run outside the active lap). `SessionContext` carries
+`overlayLines` + `onToggleOverlay`. **The current lap always renders on top** —
+maps put overlays in a layer beneath the current heatmap; charts draw overlay
+traces before the current line. Chart overlays distance-align each lap onto the
+current lap via `alignByDistance` (`referenceUtils.ts`), over the full lap then
+sliced to the visible window (anchored at start-finish, like the reference);
+synthetic `__pace__`/`__braking_g__` series don't overlay. **Phase 1 is raw
+absolute GPS** (same-session laps share a receiver, so they register without
 correction); cross-session drift-alignment and external/cross-logger sources are
 deferred — see `docs/plans/multi-lap-overlay.md`.
 

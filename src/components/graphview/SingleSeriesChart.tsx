@@ -5,6 +5,8 @@ import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, det
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
 import { buildChartAxis } from '@/lib/chartAxis';
+import { alignByDistance } from '@/lib/referenceUtils';
+import type { OverlayLine } from '@/lib/lapOverlays';
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
@@ -20,13 +22,15 @@ interface SingleSeriesChartProps {
    *  (start-finish-anchored) X-axis labels while the window stays zoomed. */
   allSamples?: GpsSample[];
   rangeStart?: number;
+  /** Extra laps/snapshots to overlay (distance-aligned) for this series. */
+  overlayLines?: OverlayLine[];
 }
 
 export function SingleSeriesChart({
   samples, seriesKey, currentIndex, onScrub,
   color, label, onDelete,
   referenceValues = null, brakingGValues,
-  allSamples, rangeStart,
+  allSamples, rangeStart, overlayLines = [],
 }: SingleSeriesChartProps) {
   const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, chartXAxis } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
@@ -69,6 +73,30 @@ export function SingleSeriesChart({
     }
     return rawValues;
   }, [rawValues, isGForce, smoothingWindowSize]);
+
+  // Distance-align each overlay lap's value for this series onto the current
+  // lap. Only for real measured series (speed / channels) — the synthetic pace
+  // and brake-% series are reference-relative / derived, so they don't overlay.
+  const overlaySeries = useMemo(() => {
+    if (isPace || isBrakingG) return [];
+    const full = allSamples ?? samples;
+    if (overlayLines.length === 0 || full.length === 0) return [];
+    const start = rangeStart ?? 0;
+    const end = start + samples.length;
+    const getValue = isSpeed
+      ? (s: GpsSample) => (useKph ? s.speedKph : s.speedMph)
+      : (s: GpsSample) => s.extraFields[seriesKey];
+    return overlayLines.map((line) => {
+      let values = alignByDistance(full, line.samples, getValue).slice(start, end);
+      if (isGForce && smoothingWindowSize > 1) {
+        values = applySmoothingToValues(
+          values.map((v) => (v === null ? undefined : v)),
+          smoothingWindowSize,
+        ).map((v) => (v === undefined ? null : v));
+      }
+      return { id: line.id, color: line.color, label: line.label, values };
+    });
+  }, [overlayLines, allSamples, samples, rangeStart, isSpeed, isPace, isBrakingG, isGForce, seriesKey, useKph, smoothingWindowSize]);
 
   // Speed glitch filtering
   const interpolateIndices = useMemo(() => {
@@ -140,6 +168,15 @@ export function SingleSeriesChart({
       }
     }
 
+    // Expand range to fit overlay lap values too
+    for (const overlay of overlaySeries) {
+      const nums = overlay.values.filter((v): v is number => v !== null);
+      if (nums.length > 0) {
+        minVal = Math.min(minVal, ...nums);
+        maxVal = Math.max(maxVal, ...nums);
+      }
+    }
+
     if (isSpeed) { minVal = 0; maxVal = Math.ceil(maxVal / 10) * 10; }
     if (isBrakingG) { minVal = 0; maxVal = 100; } // 0-100% fixed range
     if (isPace) {
@@ -166,6 +203,22 @@ export function SingleSeriesChart({
       }
       ctx.stroke();
       ctx.setLineDash([]);
+    }
+
+    // Draw overlay lap lines (behind the main line — current lap stays on top)
+    for (const overlay of overlaySeries) {
+      ctx.beginPath();
+      ctx.strokeStyle = overlay.color;
+      ctx.lineWidth = 1.5;
+      let drawing = false;
+      for (let i = 0; i < samples.length; i++) {
+        const v = overlay.values[i];
+        if (v === null || v === undefined) { drawing = false; continue; }
+        const x = padding.left + axis.fracAt(i) * chartWidth;
+        const y = padding.top + (1 - (v - minVal) / range) * chartHeight;
+        if (!drawing) { ctx.moveTo(x, y); drawing = true; } else { ctx.lineTo(x, y); }
+      }
+      ctx.stroke();
     }
 
     // Draw zero line for pace and braking G
@@ -239,7 +292,7 @@ export function SingleSeriesChart({
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Current value tooltip
+      // Current value tooltip — current lap first, then each overlay lap.
       const displayVal = values[currentIndex];
       if (displayVal !== undefined) {
         const unit = isPace ? 's' : isBrakingG ? 'G' : isSpeed ? (useKph ? ' kph' : ' mph') : '';
@@ -257,32 +310,49 @@ export function SingleSeriesChart({
           }
         }
 
-        const fullText = mainText + deltaText;
-        const boxWidth = Math.max(90, ctx.measureText(fullText).width + 12);
-        const boxX = Math.min(x + 8, dimensions.width - boxWidth - 10);
-
-        ctx.fillStyle = chartColors.tooltipBg;
-        ctx.fillRect(boxX, padding.top + 4, boxWidth, 18);
-        ctx.strokeStyle = chartColors.tooltipBorder;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(boxX, padding.top + 4, boxWidth, 18);
-
-        ctx.textAlign = 'left';
         ctx.font = '10px JetBrains Mono, monospace';
 
-        // Draw main value
-        ctx.fillStyle = color;
-        ctx.fillText(mainText, boxX + 4, padding.top + 16);
+        // Overlay rows (value at the cursor for each overlaid lap)
+        const overlayRows = overlaySeries
+          .map((o) => ({ color: o.color, label: o.label, v: o.values[currentIndex] }))
+          .filter((r): r is { color: string; label: string; v: number } => r.v !== null && r.v !== undefined)
+          .map((r) => ({
+            color: r.color,
+            text: `${r.label.length > 16 ? `${r.label.slice(0, 15)}…` : r.label}: ${r.v.toFixed(1)}`,
+          }));
 
-        // Draw delta in separate color
+        let boxWidth = ctx.measureText(mainText + deltaText).width;
+        for (const r of overlayRows) boxWidth = Math.max(boxWidth, ctx.measureText(r.text).width);
+        boxWidth = Math.max(90, boxWidth + 12);
+        const boxHeight = 18 + overlayRows.length * 14;
+        const boxX = Math.min(x + 8, dimensions.width - boxWidth - 10);
+        const boxY = padding.top + 4;
+
+        ctx.fillStyle = chartColors.tooltipBg;
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeStyle = chartColors.tooltipBorder;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        ctx.textAlign = 'left';
+
+        // Main value (current lap, on top)
+        ctx.fillStyle = color;
+        ctx.fillText(mainText, boxX + 4, boxY + 12);
         if (deltaText) {
           const mainWidth = ctx.measureText(mainText).width;
           ctx.fillStyle = chartColors.deltaText;
-          ctx.fillText(deltaText, boxX + 4 + mainWidth, padding.top + 16);
+          ctx.fillText(deltaText, boxX + 4 + mainWidth, boxY + 12);
         }
+
+        // Overlay rows beneath
+        overlayRows.forEach((r, idx) => {
+          ctx.fillStyle = r.color;
+          ctx.fillText(r.text, boxX + 4, boxY + 12 + (idx + 1) * 14);
+        });
       }
     }
-  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues, chartColors, axis]);
+  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues, chartColors, axis, overlaySeries]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {

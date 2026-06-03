@@ -5,6 +5,7 @@ import { RangeSlider } from '@/components/RangeSlider';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GGDiagram } from './GGDiagram';
 import { GpsSample, FieldMapping } from '@/types/racing';
+import type { OverlayLine } from '@/lib/lapOverlays';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
 import { computeBrakingGSeriesSG, gToBrakePercent } from '@/lib/brakingZones';
 import { useSettingsContext } from '@/contexts/SettingsContext';
@@ -28,11 +29,12 @@ interface GraphPanelProps {
   minRange: number;
   formatRangeLabel: (idx: number) => string;
   sessionFileName: string | null;
+  overlayLines?: OverlayLine[];
 }
 
 export function GraphPanel({
   samples, filteredSamples, referenceSamples, fieldMappings, currentIndex, onScrub,
-  visibleRange, onRangeChange, minRange, formatRangeLabel, sessionFileName,
+  visibleRange, onRangeChange, minRange, formatRangeLabel, sessionFileName, overlayLines = [],
 }: GraphPanelProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
@@ -248,6 +250,7 @@ export function GraphPanel({
                   brakingGValues={key === '__braking_g__' ? brakingGFull.slice(visibleRange[0], visibleRange[1] + 1) : undefined}
                   allSamples={filteredSamples}
                   rangeStart={visibleRange[0]}
+                  overlayLines={overlayLines}
                 />
               )
             ))}

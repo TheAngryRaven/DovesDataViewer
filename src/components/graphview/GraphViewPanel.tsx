@@ -180,6 +180,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
           minRange={props.minRange}
           formatRangeLabel={props.formatRangeLabel}
           sessionFileName={props.sessionFileName}
+          overlayLines={props.overlayLines}
         />
       </ResizablePanel>
     </ResizablePanelGroup>
