@@ -274,12 +274,13 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   };
 
   const handleAddTrack = async () => {
-    const course = form.buildCourse();
-    if (!course || !form.formTrackName.trim()) return;
-    await addTrackToStorage(form.formTrackName.trim(), course, form.formTrackShortName.trim() || undefined);
+    const name = form.formTrackName.trim();
+    if (!name) return;
+    // A track is just a name (+ short name); courses are added afterwards.
+    await addTrackToStorage(name, undefined, form.formTrackShortName.trim() || undefined);
     await refreshTracks();
-    setTempTrackName(form.formTrackName.trim());
-    setTempCourseName(course.name);
+    setTempTrackName(name);
+    setTempCourseName('');
     form.resetForm();
     setIsAddTrackOpen(false);
   };
@@ -354,23 +355,13 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
 
   const addTrackDialogProps = {
     open: isAddTrackOpen,
-    onOpenChange: (open: boolean) => { setIsAddTrackOpen(open); if (!open) form.setEditorMode('visual'); },
-    editorMode: form.editorMode,
-    onEditorModeChange: form.setEditorMode,
-    courseFormProps: form.courseFormProps,
+    onOpenChange: (open: boolean) => { setIsAddTrackOpen(open); if (!open) form.resetForm(); },
+    trackName: form.courseFormProps.trackName,
+    shortName: form.courseFormProps.trackShortName,
+    onTrackNameChange: form.courseFormProps.onTrackNameChange,
+    onShortNameChange: form.courseFormProps.onTrackShortNameChange,
     onSubmit: handleAddTrack,
     onCancel: () => { setIsAddTrackOpen(false); form.resetForm(); },
-    startFinishA: form.visualEditorStartFinishA,
-    startFinishB: form.visualEditorStartFinishB,
-    sector2: form.visualEditorSector2,
-    sector3: form.visualEditorSector3,
-    onStartFinishChange: form.handleVisualStartFinishChange,
-    onSector2Change: form.handleVisualSector2Change,
-    onSector3Change: form.handleVisualSector3Change,
-    layoutPoints: form.formLayout,
-    onLayoutChange: form.handleVisualLayoutChange,
-    laps,
-    samples,
   } as const;
 
   // Track/Course selection UI (shared between compact dialog and non-compact inline)

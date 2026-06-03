@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,105 +9,56 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { EditorModeToggle } from './EditorModeToggle';
-const VisualEditor = lazy(() =>
-  import('./VisualEditor').then((m) => ({ default: m.VisualEditor })),
-);
-import { CourseForm } from './CourseForm';
-import type { CourseFormProps } from '@/hooks/useTrackEditorForm';
-import type { GpsPoint } from './VisualEditor';
-import type { SectorLine, Lap, GpsSample } from '@/types/racing';
 
 interface AddTrackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editorMode: 'manual' | 'visual';
-  onEditorModeChange: (mode: 'manual' | 'visual') => void;
-  courseFormProps: Omit<CourseFormProps, 'onSubmit' | 'onCancel' | 'submitLabel' | 'showTrackName'>;
+  trackName: string;
+  shortName: string;
+  onTrackNameChange: (value: string) => void;
+  onShortNameChange: (value: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
-  startFinishA: GpsPoint | null;
-  startFinishB: GpsPoint | null;
-  sector2: SectorLine | undefined;
-  sector3: SectorLine | undefined;
-  onStartFinishChange: (a: GpsPoint, b: GpsPoint) => void;
-  onSector2Change: (line: SectorLine) => void;
-  onSector3Change: (line: SectorLine) => void;
-  initialCenter?: GpsPoint | null;
-  /** Drawing support — draw the outline manually or generate it from a lap. */
-  layoutPoints?: Array<{ lat: number; lon: number }>;
-  onLayoutChange?: (points: Array<{ lat: number; lon: number }>) => void;
-  laps?: Lap[];
-  samples?: GpsSample[];
 }
 
+/**
+ * Create a new track — just a name + short name. A track is simply a couple of
+ * names; its courses (each with a start/finish line) are added afterwards from
+ * the track's course list, so adding a track stays a quick, form-light action.
+ */
 export function AddTrackDialog({
   open, onOpenChange,
-  editorMode, onEditorModeChange,
-  courseFormProps,
+  trackName, shortName,
+  onTrackNameChange, onShortNameChange,
   onSubmit, onCancel,
-  startFinishA, startFinishB, sector2, sector3,
-  onStartFinishChange, onSector2Change, onSector3Change,
-  initialCenter,
-  layoutPoints, onLayoutChange, laps, samples,
 }: AddTrackDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Track</DialogTitle>
         </DialogHeader>
-        <EditorModeToggle mode={editorMode} onModeChange={onEditorModeChange} />
-        {editorMode === 'manual' ? (
-          <CourseForm {...courseFormProps} onSubmit={onSubmit} onCancel={onCancel} submitLabel="Create Track" showShortName />
-        ) : (
-          <div className="space-y-4">
-            {/* Track/Course inputs above the map for better UX */}
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="newTrackName">Track Name</Label>
-                <Input id="newTrackName" value={courseFormProps.trackName} onChange={(e) => courseFormProps.onTrackNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" />
-              </div>
-              <div>
-                <Label htmlFor="newTrackShortName">Short Name (max 8 chars)</Label>
-                <Input id="newTrackShortName" value={courseFormProps.trackShortName} onChange={(e) => courseFormProps.onTrackShortNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., OKC" maxLength={8} className="font-mono" />
-                <p className="text-xs text-muted-foreground mt-1">Auto-filled from the track name — edit it if you'd like.</p>
-              </div>
-              <div>
-                <Label htmlFor="newCourseName">Course Name</Label>
-                <Input id="newCourseName" value={courseFormProps.courseName} onChange={(e) => courseFormProps.onCourseNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
-              </div>
-            </div>
-            <Suspense fallback={null}>
-              <VisualEditor
-                startFinishA={startFinishA}
-                startFinishB={startFinishB}
-                sector2={sector2}
-                sector3={sector3}
-                isNewTrack={true}
-                initialCenter={initialCenter}
-                onStartFinishChange={onStartFinishChange}
-                onSector2Change={onSector2Change}
-                onSector3Change={onSector3Change}
-                showDrawTool={true}
-                layoutPoints={layoutPoints}
-                onLayoutChange={onLayoutChange}
-                laps={laps}
-                samples={samples}
-              />
-            </Suspense>
-            <div className="flex gap-2">
-              <Button onClick={onSubmit} className="flex-1" disabled={!courseFormProps.trackName.trim() || !courseFormProps.courseName.trim() || !courseFormProps.latA || !courseFormProps.lonA || !courseFormProps.latB || !courseFormProps.lonB}>
-                <Check className="w-4 h-4 mr-2" />
-                Create Track
-              </Button>
-              <Button variant="outline" onClick={onCancel}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="newTrackName">Track Name</Label>
+            <Input id="newTrackName" value={trackName} onChange={(e) => onTrackNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" autoFocus />
           </div>
-        )}
+          <div>
+            <Label htmlFor="newTrackShortName">Short Name (max 8 chars)</Label>
+            <Input id="newTrackShortName" value={shortName} onChange={(e) => onShortNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., OKC" maxLength={8} className="font-mono" />
+            <p className="text-xs text-muted-foreground mt-1">Auto-filled from the track name — edit it if you'd like.</p>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={onSubmit} className="flex-1" disabled={!trackName.trim()}>
+              <Check className="w-4 h-4 mr-2" />
+              Create Track
+            </Button>
+            <Button variant="outline" onClick={onCancel}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

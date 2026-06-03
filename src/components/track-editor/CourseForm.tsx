@@ -7,13 +7,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import type { CourseFormProps } from '@/hooks/useTrackEditorForm';
 
 export function CourseForm({
-  trackName, trackShortName, courseName, latA, lonA, latB, lonB,
+  trackName, courseName, latA, lonA, latB, lonB,
   sector2, sector3,
-  onTrackNameChange, onTrackShortNameChange, onCourseNameChange,
+  onTrackNameChange, onCourseNameChange,
   onLatAChange, onLonAChange, onLatBChange, onLonBChange,
   onSector2Change, onSector3Change,
-  onSubmit, onCancel, submitLabel, showTrackName = true, showShortName = false,
-}: CourseFormProps & { showShortName?: boolean }) {
+  onSubmit, onCancel, submitLabel, showTrackName = true,
+}: CourseFormProps) {
   const [showSectors, setShowSectors] = useState(
     Boolean(sector2.aLat || sector2.aLon || sector3.aLat || sector3.aLon)
   );
@@ -25,13 +25,6 @@ export function CourseForm({
         <div>
           <Label htmlFor="trackName">Track Name</Label>
           <Input id="trackName" value={trackName} onChange={(e) => onTrackNameChange(e.target.value)} onKeyDownCapture={stopKeys} placeholder="e.g., Orlando Kart Center" className="font-mono" />
-        </div>
-      )}
-      {showShortName && (
-        <div>
-          <Label htmlFor="trackShortName">Short Name (max 8 chars)</Label>
-          <Input id="trackShortName" value={trackShortName} onChange={(e) => onTrackShortNameChange(e.target.value)} onKeyDownCapture={stopKeys} placeholder="e.g., OKC" maxLength={8} className="font-mono" />
-          <p className="text-xs text-muted-foreground mt-1">Auto-filled from the track name — edit it if you'd like.</p>
         </div>
       )}
       <div>

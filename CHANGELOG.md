@@ -30,7 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   thumbnail preview and an **Apply to course layout** button that saves it onto
   the matching DB course (so it flows into the exported drawings).
 
+### Fixed
+- **The track dropdown works again after loading a log.** Opening the
+  track/course selector from the header (or the track manager) put its dropdowns
+  *behind* the dialog, so picking a different track did nothing. The dropdown now
+  layers above the dialog and is fully clickable.
+
 ### Changed
+- **Adding a track is just a name now.** "Add Track" no longer makes you place a
+  start/finish line and define a course up front — a track is simply a name plus
+  an auto-filled short name. Courses (each with their own start/finish line) are
+  added afterwards from the track's course list, the same way everywhere a track
+  can be created. When a log loads on an unknown track, the prompt walks you
+  through it in two quick steps: create the track, then add its first course.
 - **"Submit to DB" is always visible now, greyed out when there's nothing to
   send.** Previously the button only appeared once you had local tracks. It now
   shows whenever the track manager is open and uses the upload-diffing logic to
