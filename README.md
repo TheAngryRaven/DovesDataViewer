@@ -124,6 +124,14 @@ The app includes an optional admin system for managing a community track databas
 
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
 
+> **Build version stamp:** `VITE_APP_VERSION`, `VITE_GIT_HASH`, and
+> `VITE_BUILD_DATE` are **not** configured by hand — `vite.config.ts` bakes them
+> in automatically (from `package.json` and git) for the home-page footer
+> version/commit stamp. The commit hash prefers CI-provided SHAs
+> (`WORKERS_CI_COMMIT_SHA` / `CF_PAGES_COMMIT_SHA` / `GITHUB_SHA`) so it's correct
+> even on shallow checkouts, falling back to a local `git` call and then
+> `"unknown"`.
+
 > **Stripe / paid tiers:** `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are
 > edge-function secrets (not `VITE_` client vars). Prices are resolved live by
 > **lookup_key** — there are no Price ids in code or env. Create the

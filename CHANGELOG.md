@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Build version + commit stamp in the home-page footer.** The landing page now
+  shows the running app version and the short git commit hash (e.g.
+  `v2.0.0 · 837b514`), baked in at build time. The hash links to that commit on
+  GitHub and the build date shows on hover, so it's easy to tell which revision
+  is deployed and when something changed.
 - **Manage your tracks straight from the home screen.** A new **Manage Tracks**
   button (below "Download from Datalogger") opens the track manager without
   having to load a datalog first — search for a location, drop the start/finish
