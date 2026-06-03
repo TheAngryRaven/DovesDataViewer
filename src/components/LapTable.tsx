@@ -142,6 +142,9 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
           onSelectExternalLap={onSelectExternalLap}
           onClearExternalRef={onClearExternalRef}
           onOpen={onRefreshSavedFiles}
+          laps={laps}
+          referenceLapNumber={referenceLapNumber}
+          onSetReference={onSetReference}
           trailing={hasSnapshotProps ? (
             <LapSnapshotControls
               snapshotsForCourse={snapshotsForCourse ?? []}
