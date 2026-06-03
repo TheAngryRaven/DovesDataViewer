@@ -769,11 +769,7 @@ re-merges it into the main chunk.
 - Pro view: `GraphViewTab` and `LabsTab` (`Index.tsx`)
 - `FileManagerDrawer` (slide-out drawer, `Index.tsx`)
 - `DataloggerDownload` (BLE entry point; keeps `lib/ble/*` out of initial bundle — `FileImport.tsx`, `drawer/FilesTab.tsx`)
-- `VisualEditor` (Leaflet drawing tools; `TrackEditor.tsx`, `track-editor/AddCourseDialog.tsx`, `track-editor/AddTrackDialog.tsx`, `admin/CoursesTab.tsx`)
-
-**`EditorModeToggle` lives in its own file** (`track-editor/EditorModeToggle.tsx`)
-so consumers can import the tiny toggle statically while `VisualEditor` stays
-lazy. Import the toggle from `./EditorModeToggle`, never from `./VisualEditor`.
+- `VisualEditor` (Leaflet drawing tools; `TrackEditor.tsx`, `track-editor/AddCourseDialog.tsx`, `admin/CoursesTab.tsx`). The shared map editor for **all** track managers — start/finish + sector lines (drag-to-place, auto-saved on release) and the course-outline Draw/Generate tools (auto-saved on each edit; no Done/Close button). There is no manual coordinate-entry mode — visual is the only editor.
 
 **Vendor chunks** (`manualChunks` in `vite.config.ts`): `vendor-react`,
 `vendor-query`, `vendor-leaflet`, `vendor-supabase`, `vendor-radix`. These cache

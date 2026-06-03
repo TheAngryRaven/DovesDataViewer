@@ -46,8 +46,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   track/course selector from the header (or the track manager) put its dropdowns
   *behind* the dialog, so picking a different track did nothing. The dropdown now
   layers above the dialog and is fully clickable.
+- **Course thumbnails now show for outlines you drew yourself.** A course you
+  drew (or generated) on the home-screen track manager kept its outline but
+  didn't render the little preview thumbnail in the course list — the preview
+  only looked at community-DB drawings. It now prefers the course's own drawn
+  outline, so your drawing shows up immediately.
+- **The home-screen track manager no longer shows "Back to Selection."** With no
+  datalog loaded there's no session selection to return to, so the button (which
+  dropped you onto an empty track/course picker) is hidden unless a session is
+  actually loaded.
 
 ### Changed
+- **The track/course editor is visual-only and fully auto-saving now.** The
+  Manual/Visual toggle (a leftover dev fallback) is gone — every track manager
+  uses the map editor. Drawn outlines and dragged start/finish & sector lines
+  save the instant you make the change, so the editor's old Done/Close button is
+  removed too. A persistent hint — *"Drawing an outline helps on-device course
+  detection. Click to place points."* — now shows in the editor across all the
+  managers.
 - **Adding a track is just a name now.** "Add Track" no longer makes you place a
   start/finish line and define a course up front — a track is simply a name plus
   an auto-filled short name. Courses (each with their own start/finish line) are

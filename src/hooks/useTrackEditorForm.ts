@@ -47,7 +47,6 @@ export function useTrackEditorForm() {
   // course and rides cloud-sync + community submission.
   const [formLayout, setFormLayout] = useState<Array<{ lat: number; lon: number }>>([]);
   const [editingCourse, setEditingCourse] = useState<{ trackName: string; courseName: string } | null>(null);
-  const [editorMode, setEditorMode] = useState<'manual' | 'visual'>('visual');
 
   const resetForm = useCallback(() => {
     setFormTrackName(''); setFormTrackShortName(''); setShortNameTouched(false);
@@ -171,7 +170,6 @@ export function useTrackEditorForm() {
     formSector2, formSector3,
     formLayout,
     editingCourse, setEditingCourse,
-    editorMode, setEditorMode,
     resetForm,
     buildCourse,
     openEditCourse,

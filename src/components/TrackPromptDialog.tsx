@@ -115,9 +115,7 @@ export function TrackPromptDialog({
 
   const addCourseDialogProps = {
     open: isAddCourseOpen,
-    onOpenChange: (o: boolean) => { setIsAddCourseOpen(o); if (!o) form.setEditorMode('visual'); },
-    editorMode: form.editorMode,
-    onEditorModeChange: form.setEditorMode,
+    onOpenChange: (o: boolean) => { setIsAddCourseOpen(o); if (!o) form.resetForm(); },
     courseFormProps: form.courseFormProps,
     onSubmit: handleAddCourse,
     onCancel: () => { setIsAddCourseOpen(false); form.resetForm(); },

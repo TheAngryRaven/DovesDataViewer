@@ -35,13 +35,11 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
-import { EditorModeToggle } from '@/components/track-editor/EditorModeToggle';
 // Lazy — VisualEditor pulls in Leaflet drawing logic; only loads when the
-// track editor dialog is opened in visual mode.
+// track editor dialog is opened.
 const VisualEditor = lazy(() =>
   import('@/components/track-editor/VisualEditor').then((m) => ({ default: m.VisualEditor })),
 );
-import { CourseForm } from '@/components/track-editor/CourseForm';
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { SubmitTrackDialog } from '@/components/SubmitTrackDialog';
@@ -334,9 +332,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   // Shared dialog props
   const addCourseDialogProps = {
     open: isAddCourseOpen,
-    onOpenChange: (open: boolean) => { setIsAddCourseOpen(open); if (!open) form.setEditorMode('visual'); },
-    editorMode: form.editorMode,
-    onEditorModeChange: form.setEditorMode,
+    onOpenChange: (open: boolean) => { setIsAddCourseOpen(open); if (!open) form.resetForm(); },
     courseFormProps: form.courseFormProps,
     onSubmit: handleAddCourse,
     onCancel: () => { setIsAddCourseOpen(false); form.resetForm(); },
@@ -399,42 +395,33 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
       <TabsContent value="courses" className="space-y-4">
         {form.editingCourse ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">Edit Course</h4>
-              <EditorModeToggle mode={form.editorMode} onModeChange={form.setEditorMode} />
+            <h4 className="font-medium">Edit Course</h4>
+            <Suspense fallback={null}>
+              <VisualEditor
+                startFinishA={form.visualEditorStartFinishA}
+                startFinishB={form.visualEditorStartFinishB}
+                sector2={form.visualEditorSector2}
+                sector3={form.visualEditorSector3}
+                onStartFinishChange={form.handleVisualStartFinishChange}
+                onSector2Change={form.handleVisualSector2Change}
+                onSector3Change={form.handleVisualSector3Change}
+                showDrawTool={true}
+                laps={laps}
+                samples={samples}
+                layoutPoints={form.formLayout.length >= 2 ? form.formLayout : resolveCourseDrawing(selectedTrack, form.editingCourse?.courseName)}
+                onLayoutChange={form.handleVisualLayoutChange}
+                showKnownDrawingToggle={true}
+              />
+            </Suspense>
+            <div className="flex gap-2">
+              <Button onClick={handleUpdateCourse} className="flex-1">
+                <Check className="w-4 h-4 mr-2" />
+                Update
+              </Button>
+              <Button variant="outline" onClick={() => { form.setEditingCourse(null); form.resetForm(); }}>
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-            {form.editorMode === 'manual' ? (
-              <CourseForm {...form.courseFormProps} onSubmit={handleUpdateCourse} onCancel={() => { form.setEditingCourse(null); form.resetForm(); form.setEditorMode('visual'); }} submitLabel="Update" showTrackName={false} />
-            ) : (
-              <div className="space-y-4">
-                <Suspense fallback={null}>
-                  <VisualEditor
-                    startFinishA={form.visualEditorStartFinishA}
-                    startFinishB={form.visualEditorStartFinishB}
-                    sector2={form.visualEditorSector2}
-                    sector3={form.visualEditorSector3}
-                    onStartFinishChange={form.handleVisualStartFinishChange}
-                    onSector2Change={form.handleVisualSector2Change}
-                    onSector3Change={form.handleVisualSector3Change}
-                    showDrawTool={true}
-                    laps={laps}
-                    samples={samples}
-                    layoutPoints={form.formLayout.length >= 2 ? form.formLayout : resolveCourseDrawing(selectedTrack, form.editingCourse?.courseName)}
-                    onLayoutChange={form.handleVisualLayoutChange}
-                    showKnownDrawingToggle={true}
-                  />
-                </Suspense>
-                <div className="flex gap-2">
-                  <Button onClick={handleUpdateCourse} className="flex-1">
-                    <Check className="w-4 h-4 mr-2" />
-                    Update
-                  </Button>
-                  <Button variant="outline" onClick={() => { form.setEditingCourse(null); form.resetForm(); form.setEditorMode('visual'); }}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="space-y-2">
@@ -446,7 +433,11 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             {selectedTrack && (
               <div className="mt-4 space-y-2">
                 {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => {
-                  const drawing = resolveCourseDrawing(selectedTrack, course.name);
+                  // Prefer the course's own drawn/generated outline; fall back to
+                  // a matching public (community-DB) drawing for built-in courses.
+                  const drawing = (course.layout && course.layout.length >= 2)
+                    ? course.layout
+                    : resolveCourseDrawing(selectedTrack, course.name);
                   return (
                   <div key={course.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
                     {drawing && drawing.length >= 2 && (
@@ -524,7 +515,11 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             </Tooltip>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>
+        {/* Only meaningful when a session is loaded — there's no selection to
+            return to from the home-screen track manager (no onSelectionChange). */}
+        {onSelectionChange && (
+          <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>
+        )}
       </div>
     </Tabs>
   );

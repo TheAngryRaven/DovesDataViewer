@@ -10,11 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { EditorModeToggle } from './EditorModeToggle';
 const VisualEditor = lazy(() =>
   import('./VisualEditor').then((m) => ({ default: m.VisualEditor })),
 );
-import { CourseForm } from './CourseForm';
 import type { CourseFormProps } from '@/hooks/useTrackEditorForm';
 import type { GpsPoint } from './VisualEditor';
 import type { SectorLine, Lap, GpsSample } from '@/types/racing';
@@ -22,8 +20,6 @@ import type { SectorLine, Lap, GpsSample } from '@/types/racing';
 interface AddCourseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editorMode: 'manual' | 'visual';
-  onEditorModeChange: (mode: 'manual' | 'visual') => void;
   courseFormProps: Omit<CourseFormProps, 'onSubmit' | 'onCancel' | 'submitLabel' | 'showTrackName'>;
   onSubmit: () => void;
   onCancel: () => void;
@@ -44,7 +40,6 @@ interface AddCourseDialogProps {
 
 export function AddCourseDialog({
   open, onOpenChange,
-  editorMode, onEditorModeChange,
   courseFormProps,
   onSubmit, onCancel,
   startFinishA, startFinishB, sector2, sector3,
@@ -59,46 +54,41 @@ export function AddCourseDialog({
         <DialogHeader>
           <DialogTitle>Add New Course</DialogTitle>
         </DialogHeader>
-        <EditorModeToggle mode={editorMode} onModeChange={onEditorModeChange} />
-        {editorMode === 'manual' ? (
-          <CourseForm {...courseFormProps} onSubmit={onSubmit} onCancel={onCancel} submitLabel="Create Course" />
-        ) : (
-          <div className="space-y-4">
-            <Suspense fallback={null}>
-              <VisualEditor
-                startFinishA={startFinishA}
-                startFinishB={startFinishB}
-                sector2={sector2}
-                sector3={sector3}
-                initialCenter={initialCenter}
-                onStartFinishChange={onStartFinishChange}
-                onSector2Change={onSector2Change}
-                onSector3Change={onSector3Change}
-                isNewTrack={true}
-                showDrawTool={true}
-                layoutPoints={layoutPoints}
-                onLayoutChange={onLayoutChange}
-                laps={laps}
-                samples={samples}
-              />
-            </Suspense>
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="addCourseName">Course Name</Label>
-                <Input id="addCourseName" value={courseFormProps.courseName} onChange={(e) => courseFormProps.onCourseNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={onSubmit} className="flex-1" disabled={!courseFormProps.courseName.trim() || !courseFormProps.latA || !courseFormProps.lonA || !courseFormProps.latB || !courseFormProps.lonB}>
-                <Check className="w-4 h-4 mr-2" />
-                Create Course
-              </Button>
-              <Button variant="outline" onClick={onCancel}>
-                <X className="w-4 h-4" />
-              </Button>
+        <div className="space-y-4">
+          <Suspense fallback={null}>
+            <VisualEditor
+              startFinishA={startFinishA}
+              startFinishB={startFinishB}
+              sector2={sector2}
+              sector3={sector3}
+              initialCenter={initialCenter}
+              onStartFinishChange={onStartFinishChange}
+              onSector2Change={onSector2Change}
+              onSector3Change={onSector3Change}
+              isNewTrack={true}
+              showDrawTool={true}
+              layoutPoints={layoutPoints}
+              onLayoutChange={onLayoutChange}
+              laps={laps}
+              samples={samples}
+            />
+          </Suspense>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="addCourseName">Course Name</Label>
+              <Input id="addCourseName" value={courseFormProps.courseName} onChange={(e) => courseFormProps.onCourseNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
             </div>
           </div>
-        )}
+          <div className="flex gap-2">
+            <Button onClick={onSubmit} className="flex-1" disabled={!courseFormProps.courseName.trim() || !courseFormProps.latA || !courseFormProps.lonA || !courseFormProps.latB || !courseFormProps.lonB}>
+              <Check className="w-4 h-4 mr-2" />
+              Create Course
+            </Button>
+            <Button variant="outline" onClick={onCancel}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

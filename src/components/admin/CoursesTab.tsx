@@ -10,7 +10,6 @@ import { getDatabase } from '@/lib/db';
 import type { DbTrack, DbCourse, DbCourseLayout } from '@/lib/db/types';
 import type { SectorLine } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
-import { EditorModeToggle } from '@/components/track-editor/EditorModeToggle';
 const VisualEditor = lazy(() =>
   import('@/components/track-editor/VisualEditor').then((m) => ({ default: m.VisualEditor })),
 );
@@ -18,8 +17,6 @@ import { Plus, Edit2, Check, X, Trash2, Star } from 'lucide-react';
 import { calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
 import { METERS_TO_FEET } from '@/lib/parserUtils';
 import L from 'leaflet';
-
-type EditorMode = 'manual' | 'visual';
 
 const COURSE_COLORS = [
   '#ff6600',  // orange
@@ -163,7 +160,6 @@ export function CoursesTab() {
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editorMode, setEditorMode] = useState<EditorMode>('visual');
   const [form, setForm] = useState<CourseFormState>(emptyForm);
 
   // Layout state (for edit form)
@@ -263,7 +259,6 @@ export function CoursesTab() {
   const startEdit = (course: DbCourse) => {
     setEditingId(course.id);
     setForm(formFromCourse(course));
-    setEditorMode('visual');
     loadLayout(course.id);
   };
 
@@ -300,66 +295,28 @@ export function CoursesTab() {
 
   const courseFormUI = (
     <div className="racing-card p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-base font-semibold">{editingId ? 'Edit Course' : 'New Course'}</Label>
-        <EditorModeToggle mode={editorMode} onModeChange={setEditorMode} />
-      </div>
+      <Label className="text-base font-semibold">{editingId ? 'Edit Course' : 'New Course'}</Label>
 
       <div>
         <Label>Course Name</Label>
         <Input value={form.name} onChange={e => setField('name', e.target.value)} placeholder="Normal" />
       </div>
 
-      {editorMode === 'visual' ? (
-        <Suspense fallback={null}>
-          <VisualEditor
-            startFinishA={visualStartA}
-            startFinishB={visualStartB}
-            sector2={visualSector2}
-            sector3={visualSector3}
-            onStartFinishChange={handleVisualStartFinish}
-            onSector2Change={handleVisualSector2}
-            onSector3Change={handleVisualSector3}
-            isNewTrack={!editingId}
-            showDrawTool={true}
-            layoutPoints={layoutPoints}
-            onLayoutChange={handleLayoutChange}
-          />
-        </Suspense>
-      ) : (
-        <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
-          {/* Start/Finish */}
-          <div className="space-y-2 p-3 border rounded bg-muted/20">
-            <p className="text-sm font-medium text-green-400">Start/Finish Line</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label className="text-xs">A Lat</Label><Input type="number" step="any" value={form.startALat} onChange={e => setField('startALat', e.target.value)} /></div>
-              <div><Label className="text-xs">A Lng</Label><Input type="number" step="any" value={form.startALng} onChange={e => setField('startALng', e.target.value)} /></div>
-              <div><Label className="text-xs">B Lat</Label><Input type="number" step="any" value={form.startBLat} onChange={e => setField('startBLat', e.target.value)} /></div>
-              <div><Label className="text-xs">B Lng</Label><Input type="number" step="any" value={form.startBLng} onChange={e => setField('startBLng', e.target.value)} /></div>
-            </div>
-          </div>
-          {/* Sector 2 */}
-          <div className="space-y-2 p-3 border rounded bg-muted/20">
-            <p className="text-sm font-medium text-purple-400">Sector 2 Line</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label className="text-xs">A Lat</Label><Input type="number" step="any" value={form.s2aLat} onChange={e => setField('s2aLat', e.target.value)} /></div>
-              <div><Label className="text-xs">A Lng</Label><Input type="number" step="any" value={form.s2aLng} onChange={e => setField('s2aLng', e.target.value)} /></div>
-              <div><Label className="text-xs">B Lat</Label><Input type="number" step="any" value={form.s2bLat} onChange={e => setField('s2bLat', e.target.value)} /></div>
-              <div><Label className="text-xs">B Lng</Label><Input type="number" step="any" value={form.s2bLng} onChange={e => setField('s2bLng', e.target.value)} /></div>
-            </div>
-          </div>
-          {/* Sector 3 */}
-          <div className="space-y-2 p-3 border rounded bg-muted/20">
-            <p className="text-sm font-medium text-purple-400">Sector 3 Line</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label className="text-xs">A Lat</Label><Input type="number" step="any" value={form.s3aLat} onChange={e => setField('s3aLat', e.target.value)} /></div>
-              <div><Label className="text-xs">A Lng</Label><Input type="number" step="any" value={form.s3aLng} onChange={e => setField('s3aLng', e.target.value)} /></div>
-              <div><Label className="text-xs">B Lat</Label><Input type="number" step="any" value={form.s3bLat} onChange={e => setField('s3bLat', e.target.value)} /></div>
-              <div><Label className="text-xs">B Lng</Label><Input type="number" step="any" value={form.s3bLng} onChange={e => setField('s3bLng', e.target.value)} /></div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Suspense fallback={null}>
+        <VisualEditor
+          startFinishA={visualStartA}
+          startFinishB={visualStartB}
+          sector2={visualSector2}
+          sector3={visualSector3}
+          onStartFinishChange={handleVisualStartFinish}
+          onSector2Change={handleVisualSector2}
+          onSector3Change={handleVisualSector3}
+          isNewTrack={!editingId}
+          showDrawTool={true}
+          layoutPoints={layoutPoints}
+          onLayoutChange={handleLayoutChange}
+        />
+      </Suspense>
 
       {/* Layout info */}
       {layoutPoints.length > 0 && (
@@ -394,7 +351,7 @@ export function CoursesTab() {
           </SelectContent>
         </Select>
         {selectedTrackId && (
-          <Button size="sm" onClick={() => { setForm(emptyForm); setShowAdd(!showAdd); setEditingId(null); setEditorMode('visual'); setLayoutPoints([]); setHasExistingLayout(false); }}>
+          <Button size="sm" onClick={() => { setForm(emptyForm); setShowAdd(!showAdd); setEditingId(null); setLayoutPoints([]); setHasExistingLayout(false); }}>
             <Plus className="w-4 h-4 mr-1" /> Add Course
           </Button>
         )}
