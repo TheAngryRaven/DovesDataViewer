@@ -4,9 +4,10 @@ import { GpsSample, Course } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
+import { unionBounds, type OverlayLine } from '@/lib/lapOverlays';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSettingsContext } from '@/contexts/SettingsContext';
-import { Moon, Satellite, Square, WifiOff, Zap, Octagon, Map as MapIcon } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff, Zap, Octagon, Map as MapIcon, X } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 type MapStyle = 'dark' | 'satellite' | 'none';
@@ -49,15 +50,20 @@ interface MiniMapProps {
   course: Course | null;
   bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
   isAllLaps?: boolean;
+  /** Extra racing lines (other laps / snapshots) to overlay. */
+  overlayLines?: OverlayLine[];
+  /** Remove an overlay by id (legend ✕). */
+  onRemoveOverlay?: (id: string) => void;
 }
 
-export function MiniMap({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, isAllLaps }: MiniMapProps) {
+export function MiniMap({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, isAllLaps, overlayLines = [], onRemoveOverlay }: MiniMapProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
   const referenceLayerRef = useRef<L.LayerGroup | null>(null);
   const brakingZonesLayerRef = useRef<L.LayerGroup | null>(null);
+  const overlayLinesLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
@@ -120,6 +126,7 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], currentInd
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
     referenceLayerRef.current = L.layerGroup().addTo(map);
     brakingZonesLayerRef.current = L.layerGroup().addTo(map);
+    overlayLinesLayerRef.current = L.layerGroup().addTo(map);
     polylineLayerRef.current = L.layerGroup().addTo(map);
     speedEventsLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
@@ -140,7 +147,10 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], currentInd
     pl.clearLayers();
     rl.clearLayers();
     if (samples.length === 0) return;
-    map.fitBounds(L.latLngBounds([[bounds.minLat, bounds.minLon], [bounds.maxLat, bounds.maxLon]]), { padding: [10, 10] });
+    // Fit to the active lap plus any overlays (a cross-session snapshot can run
+    // slightly outside the current lap's bounds).
+    const fit = unionBounds(bounds, overlayLines);
+    map.fitBounds(L.latLngBounds([[fit.minLat, fit.minLon], [fit.maxLat, fit.maxLon]]), { padding: [10, 10] });
     // Draw reference line underneath as grey
     if (referenceSamples.length > 0) {
       const refCoords = referenceSamples.map(s => [s.lat, s.lon] as [number, number]);
@@ -150,7 +160,18 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], currentInd
       const color = getSpeedColor(samples[i].speedMph, minSpeed, maxSpeed);
       pl.addLayer(L.polyline([[samples[i].lat, samples[i].lon], [samples[i + 1].lat, samples[i + 1].lon]], { color, weight: 3, opacity: 0.9 }));
     }
-  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed]);
+  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed, overlayLines]);
+
+  // Overlay racing lines (other laps / snapshots) — solid distinct colors, drawn
+  // beneath the active heatmap. Rebuilt only when the overlay set changes.
+  useEffect(() => {
+    const layer = overlayLinesLayerRef.current; if (!layer) return;
+    layer.clearLayers();
+    for (const line of overlayLines) {
+      const coords = line.samples.map(s => [s.lat, s.lon] as [number, number]);
+      layer.addLayer(L.polyline(coords, { color: line.color, weight: 3, opacity: 0.7 }));
+    }
+  }, [overlayLines]);
 
   // Speed events
   useEffect(() => {
@@ -225,6 +246,27 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], currentInd
           <Zap className="w-3 h-3" />
         </button>
       </div>
+
+      {/* Overlay legend - lower right */}
+      {overlayLines.length > 0 && (
+        <div className="absolute bottom-2 right-2 z-[1000] max-w-[55%] max-h-[40%] overflow-y-auto rounded bg-card/90 backdrop-blur-sm border border-border p-1.5 space-y-1 scrollbar-thin">
+          {overlayLines.map(line => (
+            <div key={line.id} className="flex items-center gap-1.5 text-[11px] font-mono">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: line.color }} />
+              <span className="truncate text-foreground/90">{line.label}</span>
+              {onRemoveOverlay && (
+                <button
+                  onClick={() => onRemoveOverlay(line.id)}
+                  className="ml-auto shrink-0 text-muted-foreground hover:text-destructive"
+                  title="Remove overlay"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {!isOnline && (
         <div className="absolute bottom-2 left-2 z-[1000] flex items-center gap-1 text-xs text-amber-500">

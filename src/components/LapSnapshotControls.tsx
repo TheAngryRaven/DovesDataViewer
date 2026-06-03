@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, Check, Plus, X } from "lucide-react";
+import { Camera, Check, Plus, Spline, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatLapTime } from "@/lib/lapCalculation";
 import type { LapSnapshot } from "@/lib/lapSnapshot";
+import { overlayId, type OverlayLine } from "@/lib/lapOverlays";
 import type { SaveSnapshotResult } from "@/hooks/useLapSnapshots";
 
 interface LapSnapshotControlsProps {
@@ -21,6 +22,10 @@ interface LapSnapshotControlsProps {
   triggerLabel?: string;
   /** Show the "save current lap" action (default true). Off for a load-only entry. */
   showSave?: boolean;
+  /** Active map overlays — drives the per-snapshot "show on map" toggle. */
+  overlayLines?: OverlayLine[];
+  /** Toggle a snapshot as a map overlay line (by overlay id). */
+  onToggleOverlay?: (id: string) => void;
 }
 
 /**
@@ -32,6 +37,7 @@ interface LapSnapshotControlsProps {
 export function LapSnapshotControls({
   snapshotsForCourse, activeSnapshotId, canSnapshot, hasCourse,
   onLoad, onClear, onSave, triggerLabel = "Snapshots", showSave = true,
+  overlayLines = [], onToggleOverlay,
 }: LapSnapshotControlsProps) {
   const [open, setOpen] = useState(false);
   if (!hasCourse) return null;
@@ -115,13 +121,13 @@ export function LapSnapshotControls({
             <ul className="space-y-0.5">
               {snapshotsForCourse.map((snap) => {
                 const isActive = snap.id === activeSnapshotId;
+                const ovId = overlayId("snap", snap.id);
+                const overlay = overlayLines.find((l) => l.id === ovId);
                 return (
-                  <li key={snap.id}>
+                  <li key={snap.id} className={`flex items-center rounded ${isActive ? "bg-primary/10" : ""}`}>
                     <button
                       type="button"
-                      className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left transition-colors hover:bg-muted/50 ${
-                        isActive ? "bg-primary/10" : ""
-                      }`}
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-2 text-left transition-colors hover:bg-muted/50"
                       onClick={() => {
                         if (isActive) {
                           onClear();
@@ -147,6 +153,18 @@ export function LapSnapshotControls({
                       </span>
                       {isActive && <span className="shrink-0 text-[11px] text-primary">Showing</span>}
                     </button>
+                    {onToggleOverlay && (
+                      <button
+                        type="button"
+                        className="ml-1 mr-1 shrink-0 rounded p-1.5 transition-colors hover:bg-muted/50"
+                        style={{ color: overlay ? overlay.color : undefined }}
+                        title={overlay ? "Hide line on map" : "Show line on map"}
+                        aria-pressed={!!overlay}
+                        onClick={() => onToggleOverlay(ovId)}
+                      >
+                        <Spline className={`h-4 w-4 ${overlay ? "" : "text-muted-foreground"}`} />
+                      </button>
+                    )}
                   </li>
                 );
               })}

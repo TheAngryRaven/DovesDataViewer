@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { GpsSample, Course, FieldMapping, Lap } from '@/types/racing';
+import type { OverlayLine } from '@/lib/lapOverlays';
 import { Vehicle } from '@/lib/vehicleStorage';
 import { VehicleSetup } from '@/lib/setupStorage';
 import { SetupTemplate } from '@/lib/templateStorage';
@@ -62,6 +63,9 @@ export interface GraphViewPanelProps {
   laps?: Lap[];
   selectedLapNumber?: number | null;
   paceData?: (number | null)[];
+  // Multi-lap overlay (extra racing lines drawn on the MiniMap)
+  overlayLines?: OverlayLine[];
+  onRemoveOverlay?: (id: string) => void;
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
@@ -146,6 +150,8 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 course={props.course}
                 bounds={props.bounds}
                 isAllLaps={props.isAllLaps}
+                overlayLines={props.overlayLines}
+                onRemoveOverlay={props.onRemoveOverlay}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

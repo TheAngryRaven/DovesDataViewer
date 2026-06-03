@@ -9,6 +9,7 @@ import type { Vehicle } from '@/lib/vehicleStorage';
 import type { VehicleSetup } from '@/lib/setupStorage';
 import type { SetupTemplate } from '@/lib/templateStorage';
 import type { LapSnapshot } from '@/lib/lapSnapshot';
+import type { OverlayLine } from '@/lib/lapOverlays';
 import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
 import type { PluginSnapshot } from '@/plugins/panels';
 
@@ -74,6 +75,11 @@ export interface SessionContextValue {
   onLoadSnapshot: (snap: LapSnapshot) => void;
   onClearSnapshot: () => void;
   onSaveSnapshot: (force?: boolean) => Promise<SaveSnapshotResult>;
+
+  // ── Map overlays (extra racing lines, pro-mode map) ───────────────────────
+  overlaySelections: string[];
+  overlayLines: OverlayLine[];
+  onToggleOverlay: (id: string) => void;
 
   // ── Session metadata ──────────────────────────────────────────────────────
   sessionGpsPoint?: { lat: number; lon: number };

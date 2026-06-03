@@ -46,6 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   click. Removes a confusing extra step where dragging a line and switching tools
   silently discarded the change.
 ### Added
+- **Multi-lap racing-line overlay on the pro-mode map.** You can now overlay
+  several laps' racing lines on the GraphView mini-map at once to compare lines
+  through a corner — toggle the **Map** column in the lap list to drop any lap's
+  line on the map, and the *Spline* button in the snapshot list to overlay a
+  saved snapshot. Each overlay gets a distinct color with a legend on the map
+  (tap ✕ to remove). The active lap keeps its speed heatmap; overlays draw as
+  solid colored lines beneath it. (Phase 1: current-session laps + snapshots,
+  raw GPS. Cross-session drift-alignment and external-file/cross-logger overlays
+  are planned follow-ups — see `docs/plans/multi-lap-overlay.md`.)
 - **G-G diagram (friction circle).** A new pro-mode graph plotting lateral vs.
   longitudinal G as a scatter, so you can see how much of the tyre's grip
   envelope you're using — the classic "are you driving the corners of the

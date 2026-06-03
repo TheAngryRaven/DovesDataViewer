@@ -44,6 +44,7 @@ import { useSessionData } from "@/hooks/useSessionData";
 import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
 import { useLapSnapshots } from "@/hooks/useLapSnapshots";
+import { useLapOverlays } from "@/hooks/useLapOverlays";
 import { LapSnapshotControls } from "@/components/LapSnapshotControls";
 import { LapSnapshotPromptDialog } from "@/components/LapSnapshotPromptDialog";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
@@ -176,6 +177,13 @@ export default function Index() {
     onLoadOverlay: loadSnapshotOverlay,
     onClearOverlay: handleClearExternalRef,
   });
+
+  // Multi-lap racing-line overlay (pro-mode map): which laps/snapshots to draw.
+  const { overlaySelections, overlayLines, toggleOverlay } = useLapOverlays(
+    data,
+    laps,
+    snapshots.snapshotsForCourse,
+  );
 
   // Reference-lap handlers: clear the other side when one is set.
   const handleSetReferenceWithClear = useCallback((lapNumber: number) => {
@@ -333,6 +341,9 @@ export default function Index() {
     onLoadSnapshot: snapshots.loadSnapshot,
     onClearSnapshot: snapshots.clearActive,
     onSaveSnapshot: snapshots.saveSelectedLap,
+    overlaySelections,
+    overlayLines,
+    onToggleOverlay: toggleOverlay,
     sessionGpsPoint,
     sessionStartDate: data?.startDate,
     sessionFileName: currentFileName,
@@ -368,6 +379,7 @@ export default function Index() {
     externalRefLabel, savedFiles,
     snapshots.snapshotsForCourse, snapshots.activeSnapshotId, snapshots.canSnapshot,
     snapshots.loadSnapshot, snapshots.clearActive, snapshots.saveSelectedLap,
+    overlaySelections, overlayLines, toggleOverlay,
     activeSnapshot, sessionSetup,
     sessionGpsPoint, currentFileName, sessionKartId, sessionSetupId, cachedWeatherStation,
     vehicleManager.vehicles, setupManager.setups, templateManager.templates,
@@ -507,6 +519,8 @@ export default function Index() {
             onLoad={snapshots.loadSnapshot}
             onClear={snapshots.clearActive}
             onSave={snapshots.saveSelectedLap}
+            overlayLines={overlayLines}
+            onToggleOverlay={toggleOverlay}
           />
 
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />

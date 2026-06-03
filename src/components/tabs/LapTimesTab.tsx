@@ -26,6 +26,8 @@ export const LapTimesTab = memo(function LapTimesTab() {
         onLoadSnapshot={s.onLoadSnapshot}
         onClearSnapshot={s.onClearSnapshot}
         onSaveSnapshot={s.onSaveSnapshot}
+        overlayLines={s.overlayLines}
+        onToggleOverlay={s.onToggleOverlay}
       />
     </div>
   );
