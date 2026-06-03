@@ -52,6 +52,8 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
               paceData={s.paceData}
               referenceSpeedData={s.referenceSpeedData}
               hasReference={s.hasReference}
+              allSamples={s.filteredSamples}
+              rangeStart={s.visibleRange[0]}
             />
           </div>
           {s.filteredSamples.length > 0 && (

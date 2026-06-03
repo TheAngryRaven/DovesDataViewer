@@ -19,6 +19,7 @@ export interface SettingsContextValue {
   enableLabs: boolean;
   darkMode: boolean;
   gForceSource: 'gps' | 'hw';
+  chartXAxis: 'time' | 'distance';
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);

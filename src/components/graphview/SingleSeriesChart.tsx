@@ -4,6 +4,7 @@ import { GpsSample } from '@/types/racing';
 import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
+import { buildChartAxis } from '@/lib/chartAxis';
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
@@ -15,15 +16,24 @@ interface SingleSeriesChartProps {
   onDelete: () => void;
   referenceValues?: (number | null)[] | null;
   brakingGValues?: number[];
+  /** Full lap samples + the visible window's start index, for absolute
+   *  (start-finish-anchored) X-axis labels while the window stays zoomed. */
+  allSamples?: GpsSample[];
+  rangeStart?: number;
 }
 
 export function SingleSeriesChart({
   samples, seriesKey, currentIndex, onScrub,
   color, label, onDelete,
   referenceValues = null, brakingGValues,
+  allSamples, rangeStart,
 }: SingleSeriesChartProps) {
-  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode } = useSettingsContext();
+  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, chartXAxis } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
+  const axis = useMemo(
+    () => buildChartAxis(samples, chartXAxis, { useKph, fullSamples: allSamples, rangeStart }),
+    [samples, chartXAxis, useKph, allSamples, rangeStart],
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -149,7 +159,7 @@ export function SingleSeriesChart({
       for (let i = 0; i < samples.length; i++) {
         const rv = referenceValues[i];
         if (rv === null || rv === undefined) { refDrawing = false; continue; }
-        const x = padding.left + (i / (samples.length - 1)) * chartWidth;
+        const x = padding.left + axis.fracAt(i) * chartWidth;
         const y = padding.top + (1 - (rv - minVal) / range) * chartHeight;
         if (!refDrawing) { ctx.moveTo(x, y); refDrawing = true; }
         else { ctx.lineTo(x, y); }
@@ -193,7 +203,7 @@ export function SingleSeriesChart({
         lastValidIndex = i;
       }
 
-      const x = padding.left + (i / (samples.length - 1)) * chartWidth;
+      const x = padding.left + axis.fracAt(i) * chartWidth;
       const y = padding.top + (1 - (val - minVal) / range) * chartHeight;
 
       if (!isDrawing) { ctx.moveTo(x, y); isDrawing = true; }
@@ -212,22 +222,16 @@ export function SingleSeriesChart({
       ctx.fillText(fmt, padding.left - 6, y + 3);
     }
 
-    // X axis labels (time)
+    // X axis labels (time or distance, per chartXAxis setting)
     ctx.textAlign = 'center';
-    const startTime = samples[0].t / 1000;
-    const endTime = samples[samples.length - 1].t / 1000;
-    const duration = endTime - startTime;
     for (let i = 0; i <= timeGridCount; i += 2) {
-      const time = (duration / timeGridCount) * i;
       const x = padding.left + (chartWidth / timeGridCount) * i;
-      const mins = Math.floor(time / 60);
-      const secs = (time % 60).toFixed(0).padStart(2, '0');
-      ctx.fillText(`${mins}:${secs}`, x, dimensions.height - 6);
+      ctx.fillText(axis.label(i / timeGridCount), x, dimensions.height - 6);
     }
 
     // Scrub cursor
     if (currentIndex >= 0 && currentIndex < samples.length) {
-      const x = padding.left + (currentIndex / (samples.length - 1)) * chartWidth;
+      const x = padding.left + axis.fracAt(currentIndex) * chartWidth;
       ctx.beginPath();
       ctx.moveTo(x, padding.top);
       ctx.lineTo(x, padding.top + chartHeight);
@@ -278,7 +282,7 @@ export function SingleSeriesChart({
         }
       }
     }
-  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues, chartColors]);
+  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues, chartColors, axis]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {
@@ -289,8 +293,8 @@ export function SingleSeriesChart({
     const chartWidth = rect.width - padding.left - padding.right;
     const x = clientX - rect.left - padding.left;
     const ratio = Math.max(0, Math.min(1, x / chartWidth));
-    onScrub(Math.round(ratio * (samples.length - 1)));
-  }, [samples, onScrub]);
+    onScrub(axis.indexAt(ratio));
+  }, [samples, onScrub, axis]);
 
   const handleMouseDown = (e: React.MouseEvent) => { setIsDragging(true); handleScrub(e.clientX); };
   const handleMouseMove = (e: React.MouseEvent) => { if (isDragging) handleScrub(e.clientX); };

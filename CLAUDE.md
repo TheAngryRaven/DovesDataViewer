@@ -613,11 +613,28 @@ Global BLE connection state is managed by `DeviceContext.tsx`, wrapping the app 
 
 `useSettings` hook (persists to localStorage) → `SettingsContext` for tree-wide access.
 
-Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZoneSettings` (thresholds, duration, smoothing, color, width), `enableLabs` (hidden when no labs features), `darkMode`, `deltaMethod` (`'position'` default | `'distance'` legacy), `deltaSampleMeters` (arc-length resample spacing for position delta, default 2).
+Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZoneSettings` (thresholds, duration, smoothing, color, width), `enableLabs` (hidden when no labs features), `darkMode`, `deltaMethod` (`'position'` default | `'distance'` legacy), `deltaSampleMeters` (arc-length resample spacing for position delta, default 2), `chartXAxis` (`'distance'` default | `'time'`) — the analysis-chart X-axis scale.
 
 `useReferenceLap.ts` routes pace through `computeLapPace` (`lapDelta.ts`), which
 switches on `deltaMethod`. The position method is the issue #29 port; `distance`
 falls back to the legacy `calculatePace` in `referenceUtils.ts`.
+
+`chartXAxis` is plumbed through `SettingsContext` and consumed by both analysis
+charts (`TelemetryChart`, `SingleSeriesChart`) via `lib/chartAxis.ts`
+(`buildChartAxis`): a pure, unit-tested helper that maps each sample to an
+x-fraction (elapsed-time fraction, or cumulative-distance fraction via
+`calculateDistanceArray`), supplies tick labels (distance unit follows `useKph`:
+MPH→ft/mi, KPH→m/km), and an `indexAt` inverse for scrubbing. Distance is the
+default so laps line up by track position; the reference/pace overlays already
+align by distance, so they sit correctly on either axis.
+
+The axis is **anchored at the start-finish line**: the charts draw the cropped
+visible window stretched to fill the canvas (zoom preserved), but pass the full
+lap (`allSamples`) + the window's `rangeStart` so `buildChartAxis` labels ticks
+in *absolute* distance/time from the lap origin (`0` = start-finish) rather than
+window-relative. The range-slider crop handles (`formatRangeLabel`, built in
+`Index.tsx`) follow the same scale — cumulative distance from the lap start in
+distance mode, elapsed time otherwise.
 
 Channels are normalized to canonical ids at parse time (`channels.ts` →
 `normalizeChannels()`), so `extraFields` keys and `FieldMapping.name` are uniform

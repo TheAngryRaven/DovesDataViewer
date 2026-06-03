@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon, RefreshCw, Timer, ChevronDown } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -214,6 +214,38 @@ export function SettingsModal({
                 />
                 <span className={`text-xs ${settings.deltaMethod === 'position' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                   Position
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Chart X-Axis Scale */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Ruler className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">Chart Scale</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <div>
+                <Label htmlFor="settings-chart-xaxis" className="text-sm text-muted-foreground">
+                  Telemetry chart X-axis
+                </Label>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  Distance plots against track position so laps line up
+                  corner-for-corner; Time plots against elapsed lap time
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${settings.chartXAxis === 'time' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  Time
+                </span>
+                <Switch
+                  id="settings-chart-xaxis"
+                  checked={settings.chartXAxis === 'distance'}
+                  onCheckedChange={(checked) => onSettingsChange({ chartXAxis: checked ? 'distance' : 'time' })}
+                />
+                <span className={`text-xs ${settings.chartXAxis === 'distance' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  Distance
                 </span>
               </div>
             </div>

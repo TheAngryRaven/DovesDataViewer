@@ -21,6 +21,7 @@ export interface AppSettings {
   gForceSource: 'gps' | 'hw';      // Which G-force source to show in simple mode (default: 'hw')
   deltaMethod: 'position' | 'distance'; // Lap delta algorithm (default: 'position')
   deltaSampleMeters: number;        // Arc-length resample spacing for position delta (default: 2)
+  chartXAxis: 'time' | 'distance';  // Analysis chart X-axis scale (default: 'distance')
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -45,6 +46,7 @@ const defaultSettings: AppSettings = {
   gForceSource: 'hw',
   deltaMethod: 'position',
   deltaSampleMeters: 2,
+  chartXAxis: 'distance',
 };
 
 export function useSettings() {

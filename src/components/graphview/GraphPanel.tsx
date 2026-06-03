@@ -225,6 +225,8 @@ export function GraphPanel({
                 onDelete={() => removeGraph(key)}
                 referenceValues={referenceValuesByKey[key]?.slice(visibleRange[0], visibleRange[1] + 1) ?? null}
                 brakingGValues={key === '__braking_g__' ? brakingGFull.slice(visibleRange[0], visibleRange[1] + 1) : undefined}
+                allSamples={filteredSamples}
+                rangeStart={visibleRange[0]}
               />
             ))}
             {/* Add more button */}
