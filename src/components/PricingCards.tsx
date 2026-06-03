@@ -81,7 +81,7 @@ function onlineCard(variant: Variant): FreeTier {
     price: "$0",
     slug: "free",
     inherits: variant === "register" ? "Everything included with offline mode" : "Everything in Free, plus",
-    features: [CLOUD_SYNC_FEATURE, "Fastest laps & synced setups — always free", "50 MB cloud storage"],
+    features: [CLOUD_SYNC_FEATURE, "Fastest laps & synced setups — always free", "50 MB cloud storage*"],
   };
 }
 
@@ -96,7 +96,7 @@ const PAID_TIERS: PaidTier[] = [
     highlight: true,
     inherits: "Everything in Free online, plus",
     features: [
-      "10 GB cloud storage",
+      "10 GB cloud storage*",
       "Video uploads & sharing (coming soon)",
       "You're helping support the project ❤️",
     ],
@@ -106,14 +106,14 @@ const PAID_TIERS: PaidTier[] = [
     blurb: "Max storage",
     slug: "premium",
     inherits: "Everything in Plus, plus",
-    features: ["100 GB cloud storage"],
+    features: ["100 GB cloud storage*"],
   },
   {
     name: "Pro",
     blurb: "With AI coaching",
     slug: "pro",
     inherits: "Everything in Premium, plus",
-    features: ["500 GB cloud storage", "AI coaching (coming soon)"],
+    features: ["500 GB cloud storage*", "AI coaching (coming soon)"],
   },
 ];
 
@@ -364,6 +364,12 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
             );
           })}
       </div>
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        * Storage on your own device is always <span className="font-medium text-foreground">unlimited and free</span>.
+        Paid plans only cover <span className="font-medium text-foreground">cloud backups of your datalogs</span> —
+        so you can dump as many logs as you like and keep them synced across devices. Upgrading mostly just helps
+        support development ❤️
+      </p>
     </section>
   );
 }

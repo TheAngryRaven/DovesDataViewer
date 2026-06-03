@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contended Web Lock survives reloads.)
 
 ### Changed
+- **Pricing cards now clarify that paid plans only cover cloud backups.** Every
+  storage line on the plan cards (home + sign-up) carries an asterisk to a new
+  footnote spelling out that storage on your own device is always unlimited and
+  free — paid tiers only back your datalogs up to the cloud (and help support
+  development). Removes the common confusion that you have to pay to keep using
+  the app or to store logs locally.
 - **Coverage badge now publishes to a GitHub Gist instead of a `badges` branch.**
   The orphan `badges` branch caused Cloudflare Workers Builds to repeatedly try
   (and fail) to deploy a branch with no app in it. The `coverage.yml` workflow
