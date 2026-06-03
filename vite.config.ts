@@ -66,8 +66,29 @@ export default defineConfig(({ mode }) => {
   // process.env. Lovable injects build secrets as real env vars, so we must
   // check process.env explicitly for the HTT_* (and VITE_*) fallbacks to work
   // when there's no committed .env file.
-  const pick = (viteKey: string, httKey: string, fallback: string) =>
-    env[viteKey] || process.env[viteKey] || env[httKey] || process.env[httKey] || fallback;
+  //
+  // PREVIEW BACKEND: Cloudflare Workers Builds sets WORKERS_CI_BRANCH on every
+  // build (Pages sets CF_PAGES_BRANCH). On any non-production branch we prefer
+  // parallel `*_PREVIEW` build variables (VITE_*_PREVIEW / HTT_*_PREVIEW), so a
+  // beta/preview deployment bakes in the Supabase **preview-branch** database
+  // instead of production. Production (`main`) builds and local dev never see
+  // the _PREVIEW values, so they're untouched. The creds are build-time-baked,
+  // not runtime — picking them here is the only place to switch backends.
+  const ciBranch = process.env.WORKERS_CI_BRANCH || process.env.CF_PAGES_BRANCH;
+  const PROD_BRANCH = "main";
+  const isPreviewBuild = !!ciBranch && ciBranch !== PROD_BRANCH;
+
+  const pick = (viteKey: string, httKey: string, fallback: string) => {
+    if (isPreviewBuild) {
+      const previewVal =
+        env[`${viteKey}_PREVIEW`] ||
+        process.env[`${viteKey}_PREVIEW`] ||
+        env[`${httKey}_PREVIEW`] ||
+        process.env[`${httKey}_PREVIEW`];
+      if (previewVal) return previewVal;
+    }
+    return env[viteKey] || process.env[viteKey] || env[httKey] || process.env[httKey] || fallback;
+  };
 
   const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
   const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)

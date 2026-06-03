@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contributed. In the admin **Submissions** tab, a submitted drawing shows a
   thumbnail preview and an **Apply to course layout** button that saves it onto
   the matching DB course (so it flows into the exported drawings).
+- **Preview deployments can target a Supabase preview-branch database.** Builds
+  on a non-production branch (Cloudflare Workers Builds / Pages) now prefer
+  parallel `*_PREVIEW` build variables (e.g. `HTT_SUPABASE_URL_PREVIEW`), so
+  beta/preview URLs point at a Supabase branch database instead of production.
+  Production (`main`) builds and local dev are unaffected. See the README
+  "Preview-branch backend" deployment section.
 
 ### Changed
 - **"Submit to DB" is always visible now, greyed out when there's nothing to

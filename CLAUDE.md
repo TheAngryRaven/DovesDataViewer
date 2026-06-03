@@ -688,6 +688,8 @@ Static hosting (Cloudflare Workers): the build is a pure static SPA (no server r
 
 `vite.config.ts` defines public backend fallbacks for `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_PROJECT_ID` so production builds still boot if managed env injection is missing; `.env` stays the preferred source when present.
 
+Per-branch preview backend: `vite.config.ts`'s `pick()` checks `WORKERS_CI_BRANCH` (Cloudflare Workers Builds) / `CF_PAGES_BRANCH` (Pages) and, on any non-`main` branch, prefers a parallel `*_PREVIEW` value for each key (`VITE_<KEY>_PREVIEW` or `HTT_<KEY>_PREVIEW`) before the normal value/fallback. This lets beta/preview deployments bake in a Supabase **preview-branch** database (creds are build-time-baked, never runtime). `main` builds and local dev never read the `_PREVIEW` vars. See the README "Preview-branch backend" deployment section.
+
 ---
 
 ## Commands

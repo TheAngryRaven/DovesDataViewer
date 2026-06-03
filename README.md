@@ -357,6 +357,30 @@ client variable and does not belong in Cloudflare. The Supabase edge functions
 (`supabase/functions/`) continue to run on Supabase; the Worker only serves the
 static frontend.
 
+#### Preview-branch backend (Supabase Branching → preview deployments)
+
+Pushes to a **non-production branch** produce a preview version/URL of the same
+Worker. To point those preview builds at a Supabase **preview-branch database**
+(so beta work doesn't touch production data), set parallel `*_PREVIEW` build
+variables. Workers Builds exposes `WORKERS_CI_BRANCH` (Pages: `CF_PAGES_BRANCH`)
+on every build; `vite.config.ts` prefers the `_PREVIEW` value of each key
+whenever that branch isn't `main`, and ignores them on `main` and in local dev.
+
+1. Enable **Branching** in Supabase, then copy the preview branch's URL, anon
+   key, and project ref from the **Branches** panel.
+2. In the Worker → **Settings → Build → Variables and Secrets**, add (alongside
+   the production values):
+
+   | Variable | Value |
+   |----------|-------|
+   | `HTT_SUPABASE_URL_PREVIEW` | preview branch URL |
+   | `HTT_SUPABASE_PUBLISHABLE_KEY_PREVIEW` | preview branch anon key |
+   | `HTT_SUPABASE_PROJECT_ID_PREVIEW` | preview branch project ref |
+
+   Any key works the same way (e.g. `HTT_ENABLE_CLOUD_PREVIEW`). `VITE_*_PREVIEW`
+   is also accepted. Add the Cloudflare preview URL to the preview branch's
+   **Auth → Redirect URLs** so cloud sign-in works there.
+
 ---
 
 ## Project Structure
