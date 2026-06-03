@@ -446,7 +446,11 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             {selectedTrack && (
               <div className="mt-4 space-y-2">
                 {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => {
-                  const drawing = resolveCourseDrawing(selectedTrack, course.name);
+                  // Prefer the course's own drawn/generated outline; fall back to
+                  // a matching public (community-DB) drawing for built-in courses.
+                  const drawing = (course.layout && course.layout.length >= 2)
+                    ? course.layout
+                    : resolveCourseDrawing(selectedTrack, course.name);
                   return (
                   <div key={course.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
                     {drawing && drawing.length >= 2 && (
@@ -524,7 +528,11 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             </Tooltip>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>
+        {/* Only meaningful when a session is loaded — there's no selection to
+            return to from the home-screen track manager (no onSelectionChange). */}
+        {onSelectionChange && (
+          <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>
+        )}
       </div>
     </Tabs>
   );

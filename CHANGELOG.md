@@ -46,6 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   track/course selector from the header (or the track manager) put its dropdowns
   *behind* the dialog, so picking a different track did nothing. The dropdown now
   layers above the dialog and is fully clickable.
+- **Course thumbnails now show for outlines you drew yourself.** A course you
+  drew (or generated) on the home-screen track manager kept its outline but
+  didn't render the little preview thumbnail in the course list — the preview
+  only looked at community-DB drawings. It now prefers the course's own drawn
+  outline, so your drawing shows up immediately.
+- **The home-screen track manager no longer shows "Back to Selection."** With no
+  datalog loaded there's no session selection to return to, so the button (which
+  dropped you onto an empty track/course picker) is hidden unless a session is
+  actually loaded.
 
 ### Changed
 - **Adding a track is just a name now.** "Add Track" no longer makes you place a
