@@ -129,7 +129,7 @@ src/
 │   ├── billingClient.ts / pendingCheckout.ts   # Supabase billing I/O + sign-up checkout stash
 │   ├── profanity.ts       # Basic client-side profanity filter for display names
 │   ├── weatherService.ts  # OpenWeatherMap (online-only)
-│   ├── buildInfo.ts       # Build version + git-hash + build-date stamp (landing footer "what changed" marker; values injected by vite define)
+│   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time; values injected by vite define)
 │   └── utils.ts           # Tailwind cn() helper
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section
 │   ├── (framework)        # types, registry, index, panels, mounts, storage + PluginPanelHost/PluginMount
@@ -712,7 +712,7 @@ existing user data keeps resolving without a destructive migration.
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`) when set |
-| `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` | Build (auto) | Footer version stamp — **not hand-set**. `vite.config.ts` bakes them in from `package.json` + git (`buildInfo.ts` reads them). Git hash prefers CI SHAs (`WORKERS_CI_COMMIT_SHA`/`CF_PAGES_COMMIT_SHA`/`GITHUB_SHA`), falls back to local `git`, then `"unknown"`. |
+| `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**. `vite.config.ts` bakes them in from `package.json` + git (`buildInfo.ts` reads them). The stamp mirrors the `_PREVIEW` switch: `main` shows `v<version> · <hash>`; any other branch shows `<branch> · <hash> · <commit time>`. Hash prefers CI SHAs (`WORKERS_CI_COMMIT_SHA`/`CF_PAGES_COMMIT_SHA`/`GITHUB_SHA`), branch prefers CI branch vars (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`/`GITHUB_REF_NAME`); both fall back to local `git`, then `"unknown"`. |
 
 PWA deployment detail: the active offline-capable worker is emitted as `/service-worker.js` and registered only outside preview/iframe contexts. `public/sw.js` is reserved as a legacy kill-switch worker to evict stale caches from older installs that previously registered `/sw.js`.
 

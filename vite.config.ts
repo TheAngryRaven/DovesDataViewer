@@ -35,6 +35,30 @@ function gitShortHash(): string {
   }
 }
 
+// Branch the build came from. Drives the footer stamp's mode: `main` shows the
+// version + hash; any other branch shows branch + hash + commit time (mirrors
+// the _PREVIEW backend switch). CI branch env vars are preferred so it's right
+// on detached/shallow CI checkouts, falling back to local `git`, then "unknown".
+function gitBranch(): string {
+  const fromEnv =
+    process.env.WORKERS_CI_BRANCH || process.env.CF_PAGES_BRANCH || process.env.GITHUB_REF_NAME;
+  if (fromEnv) return fromEnv;
+  try {
+    return execSync("git rev-parse --abbrev-ref HEAD", { cwd: __dirname }).toString().trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+// ISO timestamp of the build's commit (committer date), for the preview stamp.
+function gitCommitDate(): string {
+  try {
+    return execSync("git log -1 --format=%cI", { cwd: __dirname }).toString().trim();
+  } catch {
+    return "";
+  }
+}
+
 // Build-time loader for external plugin npm packages (the AI coach). Candidate
 // package names default to the public coach and can be overridden via the
 // DOVE_PLUGIN_PACKAGES env var (comma-separated). Only packages actually
@@ -123,6 +147,8 @@ export default defineConfig(({ mode }) => {
   const appVersion = readAppVersion();
   const gitHash = gitShortHash();
   const buildDate = new Date().toISOString();
+  const branch = gitBranch();
+  const commitDate = gitCommitDate();
 
   const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
   const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)
@@ -154,6 +180,8 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
       "import.meta.env.VITE_GIT_HASH": JSON.stringify(gitHash),
       "import.meta.env.VITE_BUILD_DATE": JSON.stringify(buildDate),
+      "import.meta.env.VITE_GIT_BRANCH": JSON.stringify(branch),
+      "import.meta.env.VITE_GIT_COMMIT_DATE": JSON.stringify(commitDate),
     },
     plugins: [
       react(),

@@ -8,6 +8,10 @@ interface ImportMetaEnv {
   readonly VITE_GIT_HASH?: string;
   /** ISO timestamp of when the bundle was built. */
   readonly VITE_BUILD_DATE?: string;
+  /** Branch the build came from (or "unknown"). Drives the footer stamp mode. */
+  readonly VITE_GIT_BRANCH?: string;
+  /** ISO commit (committer) date of the build's commit. */
+  readonly VITE_GIT_COMMIT_DATE?: string;
 }
 
 interface ImportMeta {
