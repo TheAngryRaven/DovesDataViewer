@@ -572,8 +572,9 @@ export default function Index() {
           />
 
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => fileManager.open()}>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3" onClick={() => fileManager.open()}>
             <FolderOpen className="w-4 h-4" />
+            <span className="hidden lg:inline">Garage</span>
           </Button>
         </div>
       </header>

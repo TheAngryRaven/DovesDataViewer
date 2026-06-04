@@ -67,7 +67,7 @@ export function LapSnapshotControls({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm">
           <Camera className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">{triggerLabel}</span>
+          <span className="hidden lg:inline">{triggerLabel}</span>
           {count > 0 && (
             <span className="ml-0.5 rounded bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
               {count}
