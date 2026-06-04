@@ -42,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is deployed and when something changed. On **preview/non-`main` builds** the
   stamp instead reads **`<branch> · <hash> · <commit time>`**, so you can tell at
   a glance which branch a beta deployment is running.
+- **Preview builds shout that they're previews.** On any non-`main` build the
+  footer turns amber (standing out in light *and* dark mode) and adds a warning:
+  the branch runs on a preview database, accounts can be wiped at any time, don't
+  rely on anything but local data, and — if payments are ever enabled — never
+  enter real payment information.
 - **Manage your tracks straight from the home screen.** A new **Manage Tracks**
   button (below "Download from Datalogger") opens the track manager without
   having to load a datalog first — search for a location, drop the start/finish

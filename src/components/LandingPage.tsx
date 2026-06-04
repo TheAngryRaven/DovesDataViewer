@@ -10,7 +10,8 @@ import { AboutDialog } from "@/components/AboutDialog";
 import { CreditsDialog } from "@/components/CreditsDialog";
 import { PricingCards } from "@/components/PricingCards";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildInfo, formatBuildLabel, commitUrl } from "@/lib/buildInfo";
+import { buildInfo, formatBuildLabel, commitUrl, isPreviewBuild } from "@/lib/buildInfo";
+import { cn } from "@/lib/utils";
 import type { ParsedData } from "@/types/racing";
 
 interface LandingPageProps {
@@ -195,7 +196,12 @@ export function LandingPage({
         </div>
       </main>
 
-      <footer className="border-t border-border px-6 py-4">
+      <footer
+        className={cn(
+          "border-t px-6 py-4",
+          isPreviewBuild() ? "border-warning/60 bg-warning/10" : "border-border",
+        )}
+      >
         <p className="text-center text-xs text-muted-foreground">
           Operated by{" "}
           <a
@@ -208,7 +214,10 @@ export function LandingPage({
           </a>
         </p>
         <p
-          className="mt-1 text-center text-[11px] text-muted-foreground/60"
+          className={cn(
+            "mt-1 text-center text-[11px]",
+            isPreviewBuild() ? "font-semibold text-warning" : "text-muted-foreground/60",
+          )}
           title={buildInfo.buildDate ? `Built ${new Date(buildInfo.buildDate).toLocaleString()}` : undefined}
         >
           {commitUrl() ? (
@@ -216,7 +225,10 @@ export function LandingPage({
               href={commitUrl()!}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline-offset-4 transition-colors hover:text-muted-foreground hover:underline"
+              className={cn(
+                "underline-offset-4 transition-colors hover:underline",
+                isPreviewBuild() ? "hover:text-warning/80" : "hover:text-muted-foreground",
+              )}
             >
               {formatBuildLabel()}
             </a>
@@ -224,6 +236,13 @@ export function LandingPage({
             formatBuildLabel()
           )}
         </p>
+        {isPreviewBuild() && (
+          <p className="mx-auto mt-2 max-w-2xl text-center text-[11px] leading-relaxed text-warning">
+            This branch is running on a preview database — accounts can be wiped at any time. Do not
+            rely on data being saved anywhere other than locally. If payments are activated,{" "}
+            <strong>do not enter real payment information.</strong>
+          </p>
+        )}
       </footer>
     </div>
   );

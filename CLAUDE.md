@@ -129,7 +129,7 @@ src/
 │   ├── billingClient.ts / pendingCheckout.ts   # Supabase billing I/O + sign-up checkout stash
 │   ├── profanity.ts       # Basic client-side profanity filter for display names
 │   ├── weatherService.ts  # OpenWeatherMap (online-only)
-│   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time; values injected by vite define)
+│   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time + amber preview-DB warning via isPreviewBuild(); values injected by vite define)
 │   └── utils.ts           # Tailwind cn() helper
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section
 │   ├── (framework)        # types, registry, index, panels, mounts, storage + PluginPanelHost/PluginMount
@@ -813,7 +813,7 @@ independently across deploys so app-only changes don't re-download vendor code.
 - **Tracks**: `public/tracks.json` is the source of truth at runtime; admin DB builds this file. Export format includes `longName`, `shortName`, `defaultCourse`, and per-course `lengthFt`. Tracks table has `default_course_id` FK. Course `lengthFt` values are imported as `length_ft_override` in the database.
 - **Course Detection**: `courseDetection.ts` handles auto-detection of track/course/direction on file load, with waypoint mode fallback. Find nearest track within 5mi, match course by lap distance vs `lengthFt`.
 - **Course Drawings**: Admin can export/import course layout drawings separately from tracks. Import clears `length_ft_override` for imported courses (drawing becomes source of truth).
-- **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors in components
+- **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors in components (e.g. `--warning`/`warning` — amber, light+dark — used for the preview-build footer)
 - **Admin code** is fully optional and gated behind env vars — core app has zero admin dependencies
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in `supabase/config.toml`
 - **Stale-state gotcha**: When calling a function immediately after `setState`, the new value isn't available in the current closure. Pass values explicitly (e.g., `calculateAndSetLaps(course, samples, fileName)`) instead of relying on state that was just set.
