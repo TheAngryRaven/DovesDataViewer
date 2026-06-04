@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-06-04
+
 ### Added
 - **Worldwide weather.** Session + local weather now work outside the US. The
   precise US path is unchanged (nearest NWS/ASOS station → historical METAR), but
