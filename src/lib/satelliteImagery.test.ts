@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   parseWaybackConfig,
   waybackToLeafletUrl,
+  fetchWaybackReleases,
   DEFAULT_SATELLITE_TILE_URL,
 } from './satelliteImagery';
 
@@ -56,5 +57,47 @@ describe('parseWaybackConfig', () => {
       foo: { itemTitle: 'World Imagery (Wayback 2022-02-02)', itemURL: WMTS(5) },
     });
     expect(out).toHaveLength(0);
+  });
+});
+
+describe('fetchWaybackReleases (memoisation + retry)', () => {
+  const RAW = {
+    '10842': { itemTitle: 'World Imagery (Wayback 2026-05-28)', itemURL: WMTS(10842) },
+    '49059': { itemTitle: 'World Imagery (Wayback 2026-04-30)', itemURL: WMTS(49059) },
+    '22869': { itemTitle: 'World Imagery (Wayback 2024-03-26)', itemURL: WMTS(22869) },
+  };
+  const okResponse = () => ({ ok: true, json: async () => RAW });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  // Guards the property the StrictMode-safe hook relies on: a second call while
+  // the first is in flight reuses the same promise (one network request).
+  it('memoises the promise across calls', async () => {
+    vi.resetModules();
+    const mod = await import('./satelliteImagery');
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    const p1 = mod.fetchWaybackReleases();
+    const p2 = mod.fetchWaybackReleases();
+    expect(p1).toBe(p2);
+
+    const out = await p1;
+    expect(out).toHaveLength(3);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  // The cache must clear on failure, otherwise a transient error would wedge the
+  // picker permanently (it could never retry).
+  it('clears the cache after a failed fetch so a retry can succeed', async () => {
+    vi.resetModules();
+    const mod = await import('./satelliteImagery');
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    await expect(mod.fetchWaybackReleases()).rejects.toThrow();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse()));
+    const out = await mod.fetchWaybackReleases();
+    expect(out).toHaveLength(3);
   });
 });

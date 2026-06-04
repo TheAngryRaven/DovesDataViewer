@@ -24,8 +24,14 @@ export function useWaybackImagery(): UseWaybackImagery {
 
   const load = useCallback(() => setRequested(true), []);
 
+  // Depend ONLY on `requested`. Including `loading` here would be fatal: the
+  // effect flips `loading` true, which would re-run the effect, whose cleanup
+  // sets `cancelled` on the in-flight request — cancelling our own fetch one
+  // tick after starting it (loading stuck true forever). `fetchWaybackReleases`
+  // memoises its promise, so a StrictMode double-mount re-attaches handlers to
+  // the same request and results still land.
   useEffect(() => {
-    if (!requested || releases.length > 0 || loading) return;
+    if (!requested) return;
     let cancelled = false;
     setLoading(true);
     setError(false);
@@ -34,7 +40,7 @@ export function useWaybackImagery(): UseWaybackImagery {
       .catch(() => { if (!cancelled) setError(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [requested, releases.length, loading]);
+  }, [requested]);
 
   return { releases, loading, error, load };
 }
