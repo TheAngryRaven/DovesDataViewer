@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Hide overlay lines from the maps.** The multi-lap overlay legend (both the
+  race-line map and the pro-mode MiniMap) now has a show/hide toggle. With many
+  overlays loaded the racing lines and legend can overwhelm the map, so one tap
+  tucks every overlay line away — collapsing the legend to a compact "N hidden"
+  pill — without dropping the selections (the charts and the picker keep them).
+  Tap again to bring them back.
+
 ### Changed
 - **About dialog feature list refreshed.** The home-screen **About** popup now
   lists the analysis features added across the last two releases — the G-G

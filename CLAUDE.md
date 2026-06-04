@@ -685,8 +685,12 @@ toggle. **Cross-session overlays (`snap:`/`file:`) can be drift-aligned** onto t
 current lap via `lib/lapAlignment.ts` (2D Kabsch rigid registration, map-only —
 charts compare by distance and are transform-invariant); same-session `lap:`
 overlays are never transformed. The **Align lines** toggle lives on the map
-legend (`useLapOverlays.alignOverlays`, default on). **The current lap always
-renders on top** —
+legend (`useLapOverlays.alignOverlays`, default on). A sibling **show/hide
+overlays** toggle (`useLapOverlays.overlaysVisible`, default on; same legend on
+both `RaceLineView` + `MiniMap`) drops every overlay line from the *maps* without
+clearing the selections — collapsing the legend to an "N hidden" pill — so a
+crowded 5+ line-up doesn't overwhelm the race line (map-only; charts + picker keep
+the selections). **The current lap always renders on top** —
 maps put overlays in a layer beneath the current heatmap; charts draw overlay
 traces before the current line. Chart overlays distance-align each lap onto the
 current lap via `alignByDistance` (`referenceUtils.ts`), over the full lap then

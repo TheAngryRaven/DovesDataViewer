@@ -83,6 +83,9 @@ export interface SessionContextValue {
   /** Drift-align cross-session overlays onto the current lap (map only). */
   alignOverlays: boolean;
   onToggleAlignOverlays: () => void;
+  /** Show the overlay racing lines on the maps (selections survive when off). */
+  overlaysVisible: boolean;
+  onToggleOverlaysVisible: () => void;
   /** Load another saved file's laps for the overlay picker. */
   onLoadOverlayFile: (fileName: string) => Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null>;
   /** Add a lap from a loaded external file as an overlay. */
