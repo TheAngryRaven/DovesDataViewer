@@ -83,6 +83,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Preview-branch backend" deployment section.
 
 ### Fixed
+- **Cropping the playback range now crops the overlay racing lines on the map
+  too.** Narrowing the range slider shrank the active lap's heatmap line (and the
+  comparison charts) to the selected section, but the overlaid laps/snapshots on
+  the race-line map and Pro mini-map stayed drawn at full lap length. They now
+  crop to the same on-track window as the active lap, so every line on the map
+  reflects the cropped section.
 - **The track dropdown works again after loading a log.** Opening the
   track/course selector from the header (or the track manager) put its dropdowns
   *behind* the dialog, so picking a different track did nothing. The dropdown now

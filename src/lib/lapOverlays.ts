@@ -18,6 +18,7 @@ import type { GpsSample, Lap } from '@/types/racing';
 import type { LapSnapshot } from './lapSnapshot';
 import { snapshotLapSamples } from './lapSnapshot';
 import { formatLapTime } from './lapCalculation';
+import { calculateDistanceArray } from './referenceUtils';
 
 export interface OverlayLine {
   /** Stable identity — `lap:<n>` or `snap:<id>`. */
@@ -143,4 +144,52 @@ export function unionBounds(base: MapBounds, lines: OverlayLine[]): MapBounds {
     }
   }
   return { minLat, maxLat, minLon, maxLon };
+}
+
+/**
+ * Crop each overlay line to the same on-track window as the current lap's
+ * visible playback range, so cropping the range shrinks the overlay racing
+ * lines on the map exactly like the active heatmap line (the charts already do
+ * this via {@link alignByDistance}).
+ *
+ * The window is the cumulative-distance span between `rangeStart` and
+ * `rangeEnd` (inclusive indices into `currentFull`, the full current lap); each
+ * overlay is sliced to the samples falling in that distance span. Both laps
+ * start at the start-finish line, so distance-from-start corresponds to track
+ * position — the same correspondence the charts use. Returns the lines
+ * unchanged when the range already spans the whole lap (the common case).
+ */
+export function cropOverlayLinesToWindow(
+  lines: OverlayLine[],
+  currentFull: GpsSample[],
+  rangeStart: number,
+  rangeEnd: number,
+): OverlayLine[] {
+  if (lines.length === 0 || currentFull.length === 0) return lines;
+  const lastIdx = currentFull.length - 1;
+  const start = Math.max(0, Math.min(rangeStart, lastIdx));
+  const end = Math.max(start, Math.min(rangeEnd, lastIdx));
+  // Whole lap visible — nothing to crop.
+  if (start <= 0 && end >= lastIdx) return lines;
+
+  const cum = calculateDistanceArray(currentFull);
+  const dStart = cum[start];
+  const dEnd = cum[end];
+
+  return lines.map((line) => {
+    if (line.samples.length < 2) return line;
+    const ov = calculateDistanceArray(line.samples);
+    // First sample at/after the window start; keep the one before (when any) so
+    // the cropped line reaches the window's leading edge rather than starting a
+    // sample short.
+    let lo = ov.findIndex((d) => d >= dStart);
+    if (lo === -1) lo = ov.length - 1;
+    if (lo > 0) lo -= 1;
+    // Last sample at/before the window end; extend one past it (when any) so the
+    // line reaches the trailing edge.
+    let hi = lo;
+    while (hi < ov.length - 1 && ov[hi + 1] <= dEnd) hi++;
+    if (hi < ov.length - 1) hi++;
+    return { ...line, samples: line.samples.slice(lo, hi + 1) };
+  });
 }
