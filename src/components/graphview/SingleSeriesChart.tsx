@@ -7,6 +7,10 @@ import { getChartColors } from '@/lib/chartColors';
 import { buildChartAxis } from '@/lib/chartAxis';
 import { alignByDistance } from '@/lib/referenceUtils';
 import type { OverlayLine } from '@/lib/lapOverlays';
+import { GraphResizeHandle } from './GraphResizeHandle';
+
+/** Default height (px) for a single-series chart card. */
+export const SINGLE_SERIES_DEFAULT_HEIGHT = 180;
 
 interface SingleSeriesChartProps {
   samples: GpsSample[];
@@ -24,6 +28,10 @@ interface SingleSeriesChartProps {
   rangeStart?: number;
   /** Extra laps/snapshots to overlay (distance-aligned) for this series. */
   overlayLines?: OverlayLine[];
+  /** Committed card height (px); defaults to SINGLE_SERIES_DEFAULT_HEIGHT. */
+  height?: number;
+  /** Persist a new card height (fired on resize-drag release). */
+  onHeightChange?: (height: number) => void;
 }
 
 export function SingleSeriesChart({
@@ -31,6 +39,7 @@ export function SingleSeriesChart({
   color, label, onDelete,
   referenceValues = null, brakingGValues,
   allSamples, rangeStart, overlayLines = [],
+  height, onHeightChange,
 }: SingleSeriesChartProps) {
   const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, chartXAxis } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
@@ -42,6 +51,12 @@ export function SingleSeriesChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
+
+  // Live card height — driven by the resize handle, seeded from the committed
+  // prop and re-synced whenever the parent's value changes.
+  const committedHeight = height ?? SINGLE_SERIES_DEFAULT_HEIGHT;
+  const [cardHeight, setCardHeight] = useState(committedHeight);
+  useEffect(() => { setCardHeight(committedHeight); }, [committedHeight]);
 
   const isSpeed = seriesKey === 'speed';
   const isPace = seriesKey === '__pace__';
@@ -373,7 +388,7 @@ export function SingleSeriesChart({
   const handleTouchMove = (e: React.TouchEvent) => { if (isDragging) handleScrub(e.touches[0].clientX); };
 
   return (
-    <div className="relative border-b border-border" style={{ minHeight: '150px', height: '180px' }}>
+    <div className="relative border-b border-border flex flex-col" style={{ height: `${cardHeight}px` }}>
       {/* Header */}
       <div className="absolute top-1 left-2 z-10 flex items-center gap-1.5">
         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
@@ -388,7 +403,7 @@ export function SingleSeriesChart({
       </button>
       <div
         ref={containerRef}
-        className="w-full h-full min-h-0 overflow-hidden cursor-crosshair"
+        className="flex-1 w-full min-h-0 overflow-hidden cursor-crosshair"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -399,6 +414,11 @@ export function SingleSeriesChart({
       >
         <canvas ref={canvasRef} className="block w-full h-full" />
       </div>
+      <GraphResizeHandle
+        height={cardHeight}
+        onResize={setCardHeight}
+        onCommit={(h) => { setCardHeight(h); onHeightChange?.(h); }}
+      />
     </div>
   );
 }

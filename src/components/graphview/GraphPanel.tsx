@@ -38,6 +38,7 @@ export function GraphPanel({
 }: GraphPanelProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
+  const [graphHeights, setGraphHeights] = useState<Record<string, number>>({});
   const loadedFileRef = useRef<string | null>(null);
 
   // Load saved graph prefs when session changes
@@ -45,15 +46,21 @@ export function GraphPanel({
     if (!sessionFileName || sessionFileName === loadedFileRef.current) return;
     loadedFileRef.current = sessionFileName;
     loadGraphPrefs(sessionFileName).then(saved => {
-      if (saved.length > 0) setActiveGraphs(saved);
+      if (saved.activeGraphs.length > 0) setActiveGraphs(saved.activeGraphs);
+      setGraphHeights(saved.graphHeights);
     }).catch(() => {});
   }, [sessionFileName]);
 
-  // Persist whenever activeGraphs change (skip initial empty state before load)
+  // Persist whenever active graphs or their heights change (skip initial empty
+  // state before load).
   useEffect(() => {
     if (!sessionFileName || loadedFileRef.current !== sessionFileName) return;
-    saveGraphPrefs(sessionFileName, activeGraphs).catch(() => {});
-  }, [activeGraphs, sessionFileName]);
+    saveGraphPrefs(sessionFileName, activeGraphs, graphHeights).catch(() => {});
+  }, [activeGraphs, graphHeights, sessionFileName]);
+
+  const setGraphHeight = useCallback((key: string, height: number) => {
+    setGraphHeights(prev => ({ ...prev, [key]: height }));
+  }, []);
 
   const hasReference = referenceSamples.length > 0;
 
@@ -188,6 +195,12 @@ export function GraphPanel({
 
   const removeGraph = useCallback((key: string) => {
     setActiveGraphs(prev => prev.filter(k => k !== key));
+    setGraphHeights(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }, []);
 
   const getColor = (key: string) => {
@@ -235,6 +248,8 @@ export function GraphPanel({
                   currentIndex={currentIndex}
                   label={getLabel(key)}
                   onDelete={() => removeGraph(key)}
+                  height={graphHeights[key]}
+                  onHeightChange={(h) => setGraphHeight(key, h)}
                 />
               ) : (
                 <SingleSeriesChart
@@ -251,6 +266,8 @@ export function GraphPanel({
                   allSamples={filteredSamples}
                   rangeStart={visibleRange[0]}
                   overlayLines={overlayLines}
+                  height={graphHeights[key]}
+                  onHeightChange={(h) => setGraphHeight(key, h)}
                 />
               )
             ))}
