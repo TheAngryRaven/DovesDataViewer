@@ -596,8 +596,9 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
       <>
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm">{displayLabel}</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsSelectDialogOpen(true)}>
+          <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 lg:px-3" onClick={() => setIsSelectDialogOpen(true)}>
             <Edit2 className="w-4 h-4" />
+            <span className="hidden lg:inline">Select track</span>
           </Button>
         </div>
 

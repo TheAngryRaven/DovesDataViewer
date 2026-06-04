@@ -286,7 +286,7 @@ export function SetupsTab({
           {setups.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3 py-16">
               <Wrench className="w-12 h-12 opacity-30" />
-              <p className="text-sm font-medium">No setups yet</p>
+              <p className="text-sm font-medium text-destructive">No setups yet</p>
               <p className="text-xs">Use the buttons below to get started.</p>
             </div>
           ) : (

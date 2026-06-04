@@ -121,6 +121,11 @@ export function NotesTab({
         <Button className="w-full" size="sm" onClick={handleSaveSetup} disabled={!canSave}>
           {sessionKartId ? "Update Selection" : "Save Selection"}
         </Button>
+        {!sessionSetupId && (
+          <p className="text-xs text-orange-500">
+            A setup should be saved for historical data comparisons.
+          </p>
+        )}
         {isSaved && sessionSetupRev && (
           <p className="text-xs text-muted-foreground">
             Setup revision{" "}

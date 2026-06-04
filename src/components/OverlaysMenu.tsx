@@ -141,7 +141,7 @@ export function OverlaysMenu({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm" onClick={openDialog}>
           <Layers className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Overlays</span>
+          <span className="hidden lg:inline">Overlays</span>
           {overlayLines.length > 0 && (
             <span className="ml-0.5 rounded bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
               {overlayLines.length}

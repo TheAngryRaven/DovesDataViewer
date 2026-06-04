@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical, AlertCircle } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { RaceLineTab } from "@/components/tabs/RaceLineTab";
@@ -36,6 +36,7 @@ import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useFileManager } from "@/hooks/useFileManager";
+import { getSetupIndicator, type SetupIndicator } from "@/lib/setupStatus";
 import { useVehicleManager } from "@/hooks/useVehicleManager";
 import { useNoteManager } from "@/hooks/useNoteManager";
 import { useSetupManager } from "@/hooks/useSetupManager";
@@ -137,6 +138,17 @@ export default function Index() {
   // Profile tab is self-gating too: appears only when a plugin (cloud-sync)
   // contributes a Profile panel (i.e. the cloud build flag is on).
   const showProfile = usePanelsForSlot(PanelSlot.Profile).length > 0;
+
+  // Setup-status nag: when the loaded session has no setup assigned, glow an
+  // exclamation in the tab bar (decision lives in the pure getSetupIndicator).
+  const setupIndicator = useMemo(
+    () => getSetupIndicator({
+      sessionSetupId,
+      setupCount: setupManager.setups.length,
+      vehicleCount: vehicleManager.vehicles.length,
+    }),
+    [sessionSetupId, setupManager.setups.length, vehicleManager.vehicles.length],
+  );
 
   // Video sync for Labs tab
   const videoSync = useVideoSync({
@@ -572,14 +584,15 @@ export default function Index() {
           />
 
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => fileManager.open()}>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3" onClick={() => fileManager.open()}>
             <FolderOpen className="w-4 h-4" />
+            <span className="hidden lg:inline">Garage</span>
           </Button>
         </div>
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} setupIndicator={setupIndicator} onSetupIndicatorClick={() => setupIndicator && fileManager.open(setupIndicator.target)} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -618,7 +631,7 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach, setupIndicator, onSetupIndicatorClick }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
@@ -626,6 +639,8 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   onToggleOverlays: () => void;
   showLabs: boolean;
   showCoach: boolean;
+  setupIndicator: SetupIndicator | null;
+  onSetupIndicatorClick: () => void;
 }) {
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
@@ -657,6 +672,32 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
         <button onClick={() => setTopPanelView("coach")} className={tabClass("coach")}>
           <Gauge className="w-4 h-4" /> <span className="hidden sm:inline">Coach</span>
         </button>
+      )}
+      {setupIndicator && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onSetupIndicatorClick}
+                aria-label="Session setup not configured"
+                className={`flex items-center px-3 py-2 animate-pulse transition-opacity hover:opacity-70 ${
+                  setupIndicator.tone === "red"
+                    ? "text-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]"
+                    : "text-orange-500 drop-shadow-[0_0_6px_rgba(249,115,22,0.85)]"
+                }`}
+              >
+                <AlertCircle className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {setupIndicator.tone === "red"
+                  ? "No vehicle or setup saved yet — click to add one"
+                  : "No setup saved for this session — click to configure"}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
       {topPanelView === "raceline" && (
         <div className="ml-auto mr-3">

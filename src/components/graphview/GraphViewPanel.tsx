@@ -155,6 +155,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                 bounds={props.bounds}
                 isAllLaps={props.isAllLaps}
                 overlayLines={props.overlayLines}
+                rangeStart={props.visibleRange[0]}
                 onRemoveOverlay={props.onRemoveOverlay}
                 alignOverlays={props.alignOverlays}
                 onToggleAlignOverlays={props.onToggleAlignOverlays}

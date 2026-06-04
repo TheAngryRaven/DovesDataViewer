@@ -4,7 +4,7 @@ import { GpsSample, Course } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
-import { unionBounds, type OverlayLine } from '@/lib/lapOverlays';
+import { unionBounds, cropOverlayLinesToWindow, type OverlayLine } from '@/lib/lapOverlays';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { Moon, Satellite, Square, WifiOff, Zap, Octagon, Map as MapIcon, X, Crosshair } from 'lucide-react';
@@ -52,6 +52,8 @@ interface MiniMapProps {
   isAllLaps?: boolean;
   /** Extra racing lines (other laps / snapshots) to overlay. */
   overlayLines?: OverlayLine[];
+  /** Visible-range start index into `allSamples` — crops overlays to the playback window. */
+  rangeStart?: number;
   /** Remove an overlay by id (legend ✕). */
   onRemoveOverlay?: (id: string) => void;
   /** Whether cross-session overlays are drift-aligned onto the current lap. */
@@ -59,8 +61,16 @@ interface MiniMapProps {
   onToggleAlignOverlays?: () => void;
 }
 
-export function MiniMap({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, isAllLaps, overlayLines = [], onRemoveOverlay, alignOverlays, onToggleAlignOverlays }: MiniMapProps) {
+export function MiniMap({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, isAllLaps, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays }: MiniMapProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
+
+  // Crop overlay racing lines to the same playback window as the active lap, so
+  // cropping the range shrinks them on the map exactly like the heatmap line
+  // (`samples` is the cropped window; `allSamples` is the full current lap).
+  const drawnOverlayLines = useMemo(
+    () => cropOverlayLinesToWindow(overlayLines, allSamples, rangeStart, rangeStart + samples.length - 1),
+    [overlayLines, allSamples, rangeStart, samples.length],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
@@ -152,7 +162,7 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], currentInd
     if (samples.length === 0) return;
     // Fit to the active lap plus any overlays (a cross-session snapshot can run
     // slightly outside the current lap's bounds).
-    const fit = unionBounds(bounds, overlayLines);
+    const fit = unionBounds(bounds, drawnOverlayLines);
     map.fitBounds(L.latLngBounds([[fit.minLat, fit.minLon], [fit.maxLat, fit.maxLon]]), { padding: [10, 10] });
     // Draw reference line underneath as grey
     if (referenceSamples.length > 0) {
@@ -163,18 +173,18 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], currentInd
       const color = getSpeedColor(samples[i].speedMph, minSpeed, maxSpeed);
       pl.addLayer(L.polyline([[samples[i].lat, samples[i].lon], [samples[i + 1].lat, samples[i + 1].lon]], { color, weight: 3, opacity: 0.9 }));
     }
-  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed, overlayLines]);
+  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed, drawnOverlayLines]);
 
   // Overlay racing lines (other laps / snapshots) — solid distinct colors, drawn
   // beneath the active heatmap. Rebuilt only when the overlay set changes.
   useEffect(() => {
     const layer = overlayLinesLayerRef.current; if (!layer) return;
     layer.clearLayers();
-    for (const line of overlayLines) {
+    for (const line of drawnOverlayLines) {
       const coords = line.samples.map(s => [s.lat, s.lon] as [number, number]);
       layer.addLayer(L.polyline(coords, { color: line.color, weight: 3, opacity: 0.7 }));
     }
-  }, [overlayLines]);
+  }, [drawnOverlayLines]);
 
   // Speed events
   useEffect(() => {

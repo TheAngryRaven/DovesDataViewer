@@ -30,8 +30,9 @@ export function SettingsModal({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8">
+        <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3">
           <Settings className="w-4 h-4" />
+          <span className="hidden lg:inline">Settings</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">

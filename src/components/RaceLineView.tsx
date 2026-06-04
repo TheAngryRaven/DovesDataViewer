@@ -5,7 +5,7 @@ import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { formatLapTime } from '@/lib/lapCalculation';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
-import { unionBounds, type OverlayLine } from '@/lib/lapOverlays';
+import { unionBounds, cropOverlayLinesToWindow, type OverlayLine } from '@/lib/lapOverlays';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { Switch } from '@/components/ui/switch';
@@ -60,6 +60,8 @@ interface RaceLineViewProps {
   parserStats?: ParserStats | null;
   /** Extra racing lines (other laps / snapshots) to overlay, beneath the current lap. */
   overlayLines?: OverlayLine[];
+  /** Visible-range start index into `allSamples` — crops overlays to the playback window. */
+  rangeStart?: number;
   /** Remove an overlay by id (legend ✕). */
   onRemoveOverlay?: (id: string) => void;
   /** Whether cross-session overlays are drift-aligned onto the current lap. */
@@ -146,10 +148,18 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], onRemoveOverlay, alignOverlays, onToggleAlignOverlays }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays }: RaceLineViewProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
+
+  // Crop overlay racing lines to the same playback window as the active lap, so
+  // cropping the range shrinks them on the map exactly like the heatmap line
+  // (`samples` is already the cropped window; `samplesForStats` is the full lap).
+  const drawnOverlayLines = useMemo(
+    () => cropOverlayLinesToWindow(overlayLines, samplesForStats, rangeStart, rangeStart + samples.length - 1),
+    [overlayLines, samplesForStats, rangeStart, samples.length],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const polylineLayerRef = useRef<L.LayerGroup | null>(null);
@@ -362,7 +372,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     if (samples.length === 0) return;
 
     // Fit bounds — include overlay extents so off-lap overlays aren't clipped
-    const fit = unionBounds(bounds, overlayLines);
+    const fit = unionBounds(bounds, drawnOverlayLines);
     const latLngBounds = L.latLngBounds([
       [fit.minLat, fit.minLon],
       [fit.maxLat, fit.maxLon]
@@ -389,7 +399,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       );
       polylineLayer.addLayer(polyline);
     }
-  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed, overlayLines]);
+  }, [samples, referenceSamples, bounds, minSpeed, maxSpeed, drawnOverlayLines]);
 
   // Draw multi-lap overlay lines (other laps / snapshots) — solid colors,
   // beneath the current lap. Rebuilt only when the overlay set changes.
@@ -397,11 +407,11 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     const layer = overlayLinesLayerRef.current;
     if (!layer) return;
     layer.clearLayers();
-    for (const line of overlayLines) {
+    for (const line of drawnOverlayLines) {
       const coords = line.samples.map(s => [s.lat, s.lon] as [number, number]);
       layer.addLayer(L.polyline(coords, { color: line.color, weight: 4, opacity: 0.7 }));
     }
-  }, [overlayLines]);
+  }, [drawnOverlayLines]);
 
   // Update speed event markers
   useEffect(() => {

@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Desktop text labels on header controls.** On large (desktop) screens the
+  **Settings** and **Garage** buttons in the header, the **track selection**
+  (pencil) button, and the **Snapshots** and **Overlays** controls now show a
+  text label next to their icon, taking advantage of the extra real estate. On
+  tablet and mobile these stay icon-only — the Snapshots and Overlays controls
+  keep their count bubble at every size.
+
 ### Added
 - **Brake % graph now overlays your selected laps.** In Pro view, the computed
   **Brake %** chart draws a line per active overlay lap/snapshot (distance-aligned,
@@ -25,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   beneath your session (reference lap vs. the selected overlay laps, each in its
   own color), and **Lat G / Lon G** switches the readout between lateral and
   longitudinal so the box stays readable.
+- **Glowing setup-status indicator in the tab bar.** When the loaded session has
+  no setup assigned, an exclamation icon glows just right of the **Coach** tab.
+  It glows **red** when there's nothing to assign yet — clicking opens the Garage
+  to **Vehicles** (or **Setups** if you already have a vehicle), where the empty
+  states now read "No vehicles yet" / "No setups yet" in red. It glows **orange**
+  when setups exist but this session isn't linked to one — clicking opens the
+  Garage **Notes** tab, which now shows an orange reminder that "a setup should
+  be saved for historical data comparisons."
 - **"Open Garage" shortcut in the Pro vehicle tab.** When no vehicle is linked to
   the session, the Pro-view **Vehicle** tab now shows an **Open Garage** button
   below **Save Selection** that opens the file-manager drawer straight to the
@@ -94,6 +110,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Preview-branch backend" deployment section.
 
 ### Fixed
+- **Cropping the playback range now crops the overlay racing lines on the map
+  too.** Narrowing the range slider shrank the active lap's heatmap line (and the
+  comparison charts) to the selected section, but the overlaid laps/snapshots on
+  the race-line map and Pro mini-map stayed drawn at full lap length. They now
+  crop to the same on-track window as the active lap, so every line on the map
+  reflects the cropped section.
 - **The track dropdown works again after loading a log.** Opening the
   track/course selector from the header (or the track manager) put its dropdowns
   *behind* the dialog, so picking a different track did nothing. The dropdown now

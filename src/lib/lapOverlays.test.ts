@@ -6,6 +6,8 @@ import {
   externalOverlayId,
   resolveOverlayLines,
   unionBounds,
+  cropOverlayLinesToWindow,
+  type OverlayLine,
 } from "./lapOverlays";
 import type { GpsSample, Lap } from "@/types/racing";
 import type { LapSnapshot } from "./lapSnapshot";
@@ -132,5 +134,49 @@ describe("unionBounds", () => {
   it("expands to enclose overlay samples", () => {
     const line = { id: "lap:1", label: "Lap 1", color: "x", samples: [sample(-2, 5), sample(3, -1)] };
     expect(unionBounds(base, [line])).toEqual({ minLat: -2, maxLat: 3, minLon: -1, maxLon: 5 });
+  });
+});
+
+describe("cropOverlayLinesToWindow", () => {
+  // 11-point straight line along longitude — cumulative distance is monotonic.
+  const lineOf = (id: string, n: number): OverlayLine => ({
+    id,
+    label: id,
+    color: "x",
+    samples: Array.from({ length: n }, (_, i) => sample(0, i)),
+  });
+  const current = lineOf("cur", 11).samples;
+
+  it("returns the lines unchanged when the range spans the whole lap", () => {
+    const lines = [lineOf("a", 11)];
+    expect(cropOverlayLinesToWindow(lines, current, 0, current.length - 1)).toBe(lines);
+  });
+
+  it("returns the lines unchanged with no overlays or no current lap", () => {
+    expect(cropOverlayLinesToWindow([], current, 2, 5)).toEqual([]);
+    const lines = [lineOf("a", 11)];
+    expect(cropOverlayLinesToWindow(lines, [], 2, 5)).toBe(lines);
+  });
+
+  it("crops an overlay to the same on-track window as the active lap", () => {
+    const [cropped] = cropOverlayLinesToWindow([lineOf("a", 11)], current, 3, 7);
+    // Window covers lon 3..7; the crop brackets it by one sample each side so the
+    // line reaches the window edges → lon 2..8 (7 samples).
+    expect(cropped.samples.map((s) => s.lon)).toEqual([2, 3, 4, 5, 6, 7, 8]);
+    expect(cropped.id).toBe("a");
+  });
+
+  it("preserves label/color/id of each line", () => {
+    const line: OverlayLine = { id: "snap:s1", label: "Engine · 1:02", color: "hsl(1,2%,3%)", samples: lineOf("x", 11).samples };
+    const [cropped] = cropOverlayLinesToWindow([line], current, 4, 6);
+    expect(cropped.id).toBe("snap:s1");
+    expect(cropped.label).toBe("Engine · 1:02");
+    expect(cropped.color).toBe("hsl(1,2%,3%)");
+  });
+
+  it("leaves a degenerate single-point line untouched", () => {
+    const tiny: OverlayLine = { id: "t", label: "t", color: "x", samples: [sample(0, 0)] };
+    const [out] = cropOverlayLinesToWindow([tiny], current, 3, 7);
+    expect(out.samples).toHaveLength(1);
   });
 });

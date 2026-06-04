@@ -101,7 +101,7 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
         {vehicles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
             <Car className="w-12 h-12 opacity-30" />
-            <p className="text-sm">No vehicles yet</p>
+            <p className="text-sm font-medium text-destructive">No vehicles yet</p>
             <p className="text-xs">Add a vehicle using the form below</p>
           </div>
         ) : (

@@ -39,6 +39,7 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
           isAllLaps={s.isAllLaps}
           parserStats={s.parserStats}
           overlayLines={s.overlayLines}
+          rangeStart={s.visibleRange[0]}
           onRemoveOverlay={s.onToggleOverlay}
           alignOverlays={s.alignOverlays}
           onToggleAlignOverlays={s.onToggleAlignOverlays}
