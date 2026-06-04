@@ -7,6 +7,10 @@ import { alignValuesByDistance } from '@/lib/referenceUtils';
 import type { OverlayLine } from '@/lib/lapOverlays';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
+import { GraphResizeHandle } from './GraphResizeHandle';
+
+/** Default height (px) for the G-G diagram card. */
+export const GG_DEFAULT_HEIGHT = 240;
 
 interface GGDiagramProps {
   samples: GpsSample[];
@@ -16,6 +20,10 @@ interface GGDiagramProps {
   currentIndex: number;
   label: string;
   onDelete: () => void;
+  /** Committed card height (px); defaults to GG_DEFAULT_HEIGHT. */
+  height?: number;
+  /** Persist a new card height (fired on resize-drag release). */
+  onHeightChange?: (height: number) => void;
 }
 
 type CompareMode = 'ref' | 'overlays';
@@ -24,12 +32,17 @@ type BoxAxis = 'lat' | 'lon';
 const SESSION_COLOR = 'hsl(180, 70%, 55%)'; // cyan cloud (matches speed series)
 const CURRENT_COLOR = 'hsl(0, 75%, 55%)';   // red current point
 
-export function GGDiagram({ samples, referenceSamples, overlayLines = [], currentIndex, label, onDelete }: GGDiagramProps) {
+export function GGDiagram({ samples, referenceSamples, overlayLines = [], currentIndex, label, onDelete, height, onHeightChange }: GGDiagramProps) {
   const { gForceSmoothing, gForceSmoothingStrength, gForceSource, darkMode } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  // Live card height — driven by the resize handle, seeded from the committed prop.
+  const committedHeight = height ?? GG_DEFAULT_HEIGHT;
+  const [cardHeight, setCardHeight] = useState(committedHeight);
+  useEffect(() => { setCardHeight(committedHeight); }, [committedHeight]);
 
   const hasReference = !!referenceSamples && referenceSamples.length > 0;
   const hasOverlays = overlayLines.length > 0;
@@ -237,7 +250,7 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], curren
   }, [dimensions, sessionPoints, refPoints, overlayClouds, activeMode, axisMax, currentIndex, pair, chartColors]);
 
   return (
-    <div className="relative border-b border-border" style={{ minHeight: '200px', height: '240px' }}>
+    <div className="relative border-b border-border flex flex-col" style={{ height: `${cardHeight}px` }}>
       <div className="absolute top-1 left-2 z-10 flex items-center gap-1.5 pointer-events-none">
         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SESSION_COLOR }} />
         <span className="text-xs font-mono text-muted-foreground">{label}</span>
@@ -249,7 +262,7 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], curren
       >
         <X className="w-3.5 h-3.5" />
       </button>
-      <div ref={containerRef} className="w-full h-full min-h-0 overflow-hidden">
+      <div ref={containerRef} className="flex-1 w-full min-h-0 overflow-hidden">
         <canvas ref={canvasRef} className="block w-full h-full" />
       </div>
 
@@ -290,6 +303,11 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], curren
           </div>
         </div>
       )}
+      <GraphResizeHandle
+        height={cardHeight}
+        onResize={setCardHeight}
+        onCommit={(h) => { setCardHeight(h); onHeightChange?.(h); }}
+      />
     </div>
   );
 }

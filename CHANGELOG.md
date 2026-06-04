@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keep their count bubble at every size.
 
 ### Added
+- **Resizable Pro-mode graphs.** Each graph in the Pro view (and the G-G diagram)
+  now has a drag handle along its bottom edge — grab it and drag up/down to set
+  that graph's height individually. Heights are saved per session (and sync with
+  the rest of your graph layout when cloud sync is on), so a layout you tune for
+  one log comes back the next time you open it.
 - **Brake % graph now overlays your selected laps.** In Pro view, the computed
   **Brake %** chart draws a line per active overlay lap/snapshot (distance-aligned,
   in each overlay's color), matching the reference brake line — so you can compare
