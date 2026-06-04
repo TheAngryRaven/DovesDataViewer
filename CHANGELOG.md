@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Collapse the overlay legend on the maps.** The multi-lap overlay legend
+  (both the race-line map and the pro-mode MiniMap) now has a collapse toggle.
+  With many overlays loaded the per-lap list can bury the map under labels, so
+  one tap folds it down to a compact "N overlays" pill — **the racing lines stay
+  drawn on the map**, only the list is hidden. Tap again to expand.
+
 ### Changed
 - **About dialog feature list refreshed.** The home-screen **About** popup now
   lists the analysis features added across the last two releases — the G-G

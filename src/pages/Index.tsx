@@ -196,7 +196,8 @@ export default function Index() {
   // to draw, plus cross-session drift alignment.
   const {
     overlaySelections, overlayLines, toggleOverlay,
-    alignOverlays, toggleAlignOverlays, loadOverlayFile, addExternalOverlay,
+    alignOverlays, toggleAlignOverlays, showOverlayLegend, toggleOverlayLegend,
+    loadOverlayFile, addExternalOverlay,
   } = useLapOverlays({
     data,
     laps,
@@ -383,6 +384,8 @@ export default function Index() {
     onToggleOverlay: toggleOverlay,
     alignOverlays,
     onToggleAlignOverlays: toggleAlignOverlays,
+    showOverlayLegend,
+    onToggleOverlayLegend: toggleOverlayLegend,
     onLoadOverlayFile: loadOverlayFile,
     onAddExternalOverlay: addExternalOverlay,
     sessionGpsPoint,
@@ -422,7 +425,8 @@ export default function Index() {
     snapshots.snapshotsForCourse, snapshots.activeSnapshotId, snapshots.canSnapshot,
     snapshots.loadSnapshot, snapshots.clearActive, snapshots.saveSelectedLap,
     overlaySelections, overlayLines, toggleOverlay,
-    alignOverlays, toggleAlignOverlays, loadOverlayFile, addExternalOverlay,
+    alignOverlays, toggleAlignOverlays, showOverlayLegend, toggleOverlayLegend,
+    loadOverlayFile, addExternalOverlay,
     activeSnapshot, sessionSetup,
     sessionGpsPoint, currentFileName, sessionKartId, sessionSetupId, cachedWeatherStation,
     vehicleManager.vehicles, setupManager.setups, templateManager.templates,
