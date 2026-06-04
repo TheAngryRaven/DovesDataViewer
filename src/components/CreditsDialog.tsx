@@ -23,6 +23,8 @@ const CREDITS: ReadonlyArray<readonly [name: string, url: string]> = [
   ["fix-webm-duration", "https://github.com/yusitnikov/fix-webm-duration"],
   ["JSZip", "https://stuk.github.io/jszip"],
   ["MoTeC i2", "https://www.motec.com.au"],
+  ["libxrk", "https://github.com/m3rlin45/libxrk"],
+  ["TrackDataAnalysis", "https://github.com/racer-coder/TrackDataAnalysis"],
 ];
 
 export function CreditsDialog() {

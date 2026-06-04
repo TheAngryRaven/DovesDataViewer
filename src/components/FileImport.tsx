@@ -19,6 +19,7 @@ interface FileImportProps {
 
 export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSaveFile }: FileImportProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -26,6 +27,7 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
     async (file: File) => {
       setIsLoading(true);
       setError(null);
+      setProgress(null);
       setFileName(file.name);
 
       try {
@@ -33,13 +35,16 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
         if (autoSave && autoSaveFile) {
           try { await autoSaveFile(file.name, file); } catch (e) { console.warn("Auto-save failed:", e); }
         }
-        const data = await parseDatalogFile(file);
+        // The progress callback only fires for the AiM XRK/XRZ path (wasm parse
+        // runs in a worker); other formats parse instantly.
+        const data = await parseDatalogFile(file, (p) => setProgress(p.message));
         onDataLoaded(data, file.name);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Failed to parse file";
         setError(autoSave ? `${msg} — file was saved and can be found in Browse Files.` : msg);
       } finally {
         setIsLoading(false);
+        setProgress(null);
       }
     },
     [onDataLoaded, autoSave, autoSaveFile],
@@ -77,8 +82,8 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
     >
       <div className="flex flex-col items-center gap-2 text-muted-foreground">
         {isLoading ? <Loader2 className="w-12 h-12 animate-spin text-primary" /> : <Upload className="w-12 h-12" />}
-        <p className="text-lg font-medium">{isLoading ? "Processing..." : "Drop datalog file here"}</p>
-        <p className="text-sm">Supports NMEA, UBX, VBO, Dove, Alfano, AiM, MoTeC CSV/LD and more.</p>
+        <p className="text-lg font-medium">{isLoading ? (progress ?? "Processing...") : "Drop datalog file here"}</p>
+        <p className="text-sm">Supports NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), MoTeC CSV/LD and more.</p>
         <p className="text-sm">
           <i>All processing done locally</i>
         </p>
@@ -88,7 +93,7 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
         <label>
           <input
             type="file"
-            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove,.dovex,.ld"
+            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove,.dovex,.ld,.xrk,.xrz"
             onChange={handleFileChange}
             className="hidden"
             disabled={isLoading}

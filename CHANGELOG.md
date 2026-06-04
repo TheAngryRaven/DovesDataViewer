@@ -20,6 +20,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   date picker (powered by Esri Wayback) to step back to an earlier, cloud-free
   capture of the same track. Online-only and lazy-loaded — it never runs for
   offline users or anyone on the default imagery.
+- **Native AiM `.xrk` / `.xrz` import.** MyChron / SoloDL binary logs can now be
+  opened directly — drag in a `.xrk` (or zlib-compressed `.xrz`) and it flows
+  through the normal analysis/plot pipeline like any other format, including as a
+  **reference lap or multi-lap overlay** and for lap snapshots. Parsing runs
+  **entirely client-side** by [libxrk](https://github.com/m3rlin45/libxrk)'s
+  pure-Rust core **compiled to a ~200 KB WebAssembly module** (no Pyodide/Python),
+  in a Web Worker so a large session never freezes the UI. It's **fully offline**
+  (the wasm is precached) and fast — a typical session parses in tens to a couple
+  hundred milliseconds. Import progress (load → parse → align) is shown inline.
+- **Full-screen loading overlay on file open.** Loading a datalog now dims the
+  screen with a spinner while it parses — automatic for imports, file-manager
+  reopens, and cloud-file opens. Fast formats finish instantly (you won't see
+  it); slow ones — chiefly the new AiM XRK path — show a live status message so
+  it's clear the app is working, not stuck.
+
+### Fixed
+- **Session date/time on untagged logs.** A session's start time is now recorded
+  on import even when its track isn't in the database yet (common for AiM XRK
+  logs from new venues), so the file browser shows the proper date/time name
+  instead of the raw filename, and the weather lookup has a timestamp to work
+  with. AiM XRK's separate log-date + log-time fields are combined into a real
+  timestamp (parsed explicitly so it works on Safari/iOS too).
 - **Collapse the overlay legend on the maps.** The multi-lap overlay legend
   (both the race-line map and the pro-mode MiniMap) now has a collapse toggle.
   With many overlays loaded the per-lap list can bury the map under labels, so

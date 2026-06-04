@@ -9,7 +9,7 @@ import {
 } from '@/lib/lapOverlays';
 import { alignLapToReference } from '@/lib/lapAlignment';
 import { getFile } from '@/lib/fileStorage';
-import { parseDatalogContent } from '@/lib/datalogParser';
+import { parseDatalogFile } from '@/lib/datalogParser';
 import { calculateLaps, formatLapTime } from '@/lib/lapCalculation';
 
 interface UseLapOverlaysArgs {
@@ -85,7 +85,9 @@ export function useLapOverlays({
 
       const blob = await getFile(fileName);
       if (!blob) return null;
-      const parsed = parseDatalogContent(await blob.arrayBuffer());
+      // Async parse so binary formats that need a worker (AiM XRK/XRZ) work as
+      // overlay sources too; results are cached above so this runs once per file.
+      const parsed = await parseDatalogFile(new File([blob], fileName));
       const computed = calculateLaps(parsed.samples, selectedCourse);
       if (computed.length === 0) return null;
 

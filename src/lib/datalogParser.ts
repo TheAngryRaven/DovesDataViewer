@@ -8,6 +8,8 @@ import { parseDovexFile, isDovexFormat } from './dovexParser';
 import { parseAlfanoFile, isAlfanoFormat } from './alfanoParser';
 import { parseAimFile, isAimFormat } from './aimParser';
 import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile } from './motecParser';
+import { isXrkFile, parseXrkFile, type XrkProgressCallback } from './xrk/xrkImporter';
+import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadingState';
 
 /**
  * Unified datalog parser that auto-detects format and routes to appropriate parser.
@@ -20,10 +22,32 @@ import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile 
  * - Dove CSV format (simple CSV with Unix timestamps)
  * - Alfano CSV format (Alfano data loggers)
  * - AiM CSV format (MyChron 5/6, Race Studio 3 exports)
+ * - AiM XRK/XRZ binary format (MyChron/SoloDL — parsed in-browser via libxrk wasm)
  * - NMEA text format (CSV with NMEA sentences, .nmea files)
+ *
+ * `onProgress` only fires for the async, worker-backed XRK path (wasm load +
+ * parse); every other format parses synchronously and ignores it.
+ *
+ * Brackets the whole load with the `fileLoadingState` overlay so every "open a
+ * file as the session" path (import, file-manager reopen, cloud open) dims the
+ * screen while it works. Fast formats finish in the same tick (overlay never
+ * paints); the slow XRK path streams its phase messages into the overlay.
  */
-export async function parseDatalogFile(file: File): Promise<ParsedData> {
-  return normalizeChannels(await routeDatalogFile(file));
+export async function parseDatalogFile(
+  file: File,
+  onProgress?: XrkProgressCallback,
+): Promise<ParsedData> {
+  beginFileLoading("Loading telemetry…");
+  try {
+    return normalizeChannels(
+      await routeDatalogFile(file, (progress) => {
+        updateFileLoading(progress.message);
+        onProgress?.(progress);
+      }),
+    );
+  } finally {
+    endFileLoading();
+  }
 }
 
 /**
@@ -33,14 +57,23 @@ export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
   return normalizeChannels(routeDatalogContent(content));
 }
 
-async function routeDatalogFile(file: File): Promise<ParsedData> {
+async function routeDatalogFile(
+  file: File,
+  onProgress?: XrkProgressCallback,
+): Promise<ParsedData> {
   const buffer = await file.arrayBuffer();
-  
+
+  // AiM XRK/XRZ binary — detected by extension or `<h` magic. Parsed in a
+  // wasm worker (libxrk), so this branch is async + the only one with progress.
+  if (isXrkFile(file.name, buffer)) {
+    return parseXrkFile(file, onProgress);
+  }
+
   // Check MoTeC LD binary format first (different magic bytes from UBX)
   if (isMotecLdFormat(buffer)) {
     return parseMotecLdFile(buffer);
   }
-  
+
   // Check if it's UBX binary format
   if (isUbxFormat(buffer)) {
     return parseUbxFile(buffer);
@@ -85,6 +118,14 @@ async function routeDatalogFile(file: File): Promise<ParsedData> {
 
 function routeDatalogContent(content: string | ArrayBuffer): ParsedData {
   if (content instanceof ArrayBuffer) {
+    // AiM XRK needs the async, worker-backed importer (wasm). This sync entry
+    // point can't run it, so fail clearly rather than mis-detecting the binary as
+    // a text format. In practice nothing reaches here with XRK — every "load a
+    // file" path (session, reference, overlay) uses async parseDatalogFile; the
+    // remaining sync callers (BLE download, bundled sample) are never XRK.
+    if (isXrkFile("", content)) {
+      throw new Error("AiM .xrk/.xrz files must be parsed via parseDatalogFile (async).");
+    }
     if (isMotecLdFormat(content)) {
       return parseMotecLdFile(content);
     }

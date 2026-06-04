@@ -103,6 +103,9 @@ src/
 ├── lib/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
 │   ├── *Parser.ts         # nmea, ubx, vbo, dove, dovex, alfano, aim, motec (+ parserUtils.ts)
+│   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk core (Rust→WASM) in a Web Worker
+│   │                      #   (xrkImporter entry, xrkWorker, xrkClient, pure xrkResample + xrkMapping,
+│   │                      #    xrkConfig/Types, committed wasm/ build artifacts)
 │   ├── channels.ts        # ★ Canonical channel registry (ids/labels/units/aliases) + normalizeChannels()
 │   ├── fieldResolver.ts   # Settings-facing adapter over channels.ts
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode
@@ -119,6 +122,7 @@ src/
 │   ├── submittedTracksStorage.ts # localStorage record of already-submitted course hashes (dedupe)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
 │   ├── garageEvents.ts    # ★ Host pub/sub: storage emits {store,key,put|delete}; cloud-sync syncs off it
+│   ├── fileLoadingState.ts # ★ Host pub/sub for the global file-load overlay; parseDatalogFile brackets begin/end
 │   ├── *Storage.ts        # IDB stores: file, kart(compat), vehicle, engine, template, note, setup,
 │   │                      #   video, videoFile, graphPrefs; trackStorage = localStorage (user tracks)
 │   ├── (racing math)      # brakingZones, speedEvents, speedBounds, gforceCalculation, referenceUtils, trackUtils
@@ -279,7 +283,37 @@ Each parser exports two functions:
 3. Update `README.md` supported formats table
 4. Update this file's architecture map
 
-Detection order matters: binary formats first (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM → NMEA fallback).
+Detection order matters: AiM XRK/XRZ first (binary, by extension/`<h` magic), then other binary formats (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM CSV → NMEA fallback).
+
+### AiM XRK/XRZ (`src/lib/xrk/`) — the async exception (wasm)
+
+AiM's native binary logs don't fit the sync `parseXxxFile` contract: they're
+parsed by **libxrk's pure-Rust core compiled to WebAssembly** (no Pyodide/
+Python), run in a Web Worker. Flow: `isXrkFile()` (extension or `<h` magic) →
+`parseXrkFile(file, onProgress?)` → worker (`xrkWorker.ts`) instantiates the wasm
+(`wasm/`, precached) once, calls `parse_xrk(bytes)` → pure `xrkResample.ts`
+aligns native-rate channels onto the GPS timebase (interpolate vs forward-fill
+per channel) → transferable `Float64Array`s → pure `xrkMapping.ts` builds
+`ParsedData` (then the router's `normalizeChannels` canonicalises it). Key facts:
+
+- **Parsing is async only** (worker), so it's reached via `parseDatalogFile()`.
+  Every "load a file" path uses that: FileImport, reopen from FilesTab, **and the
+  reference/overlay loaders** (`useReferenceLap`/`useLapOverlays` parse saved
+  files via `parseDatalogFile(new File([blob], name))`, cached per file). So XRK
+  works as main session, reference, and overlay. Snapshots use the loaded
+  session's samples, so they work too. The sync `parseDatalogContent()` still
+  throws for XRK as a safety net — its only callers (BLE, bundled sample) are
+  never XRK.
+- **Fully offline + fast.** The ~200 KB wasm is **precached** (`wasm` is in the
+  SW `globPatterns`); no network, no runtime download. Typical parse is tens to a
+  couple hundred ms.
+- **Built from source, committed.** `xrk-wasm/` is a thin `wasm-bindgen` wrapper
+  crate over libxrk's core, pinned to a libxrk `rev` in its `Cargo.toml`.
+  `scripts/build-xrk-wasm.sh` builds it → commits `src/lib/xrk/wasm/`
+  (`xrk_wasm.js` glue + `xrk_wasm_bg.wasm`). CI is JS-only and never builds Rust.
+  Licenses: `src/lib/xrk/wasm/THIRD-PARTY-NOTICES.txt`.
+- `onProgress` is threaded `parseDatalogFile` → router → `parseXrkFile` (XRK
+  only); other formats ignore it.
 
 ---
 

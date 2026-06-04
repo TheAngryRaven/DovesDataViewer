@@ -14,6 +14,10 @@ const PRIMARY_FORMATS = [
     body: <>Extended Dove format with a 4096-byte metadata header containing session info (driver, course, lap times) followed by standard Dove CSV GPS data. Extension: <code className="text-primary">.dovex</code></>,
   },
   {
+    name: "AiM XRK / XRZ (Binary)",
+    body: <>AiM's native binary telemetry from MyChron / SoloDL loggers, including the zlib-compressed <code className="text-primary">.xrz</code> variant. Parsed entirely in your browser by <a href="https://github.com/m3rlin45/libxrk" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">libxrk</a> compiled to WebAssembly — fast and fully offline, like every other format. Extensions: <code className="text-primary">.xrk</code>, <code className="text-primary">.xrz</code></>,
+  },
+  {
     name: "NMEA / CSV (Tab-Delimited)",
     body: <>Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code className="text-primary">.nmea</code>, <code className="text-primary">.csv</code>, <code className="text-primary">.txt</code></>,
   },
