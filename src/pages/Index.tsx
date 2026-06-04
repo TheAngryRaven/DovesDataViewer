@@ -558,7 +558,10 @@ export default function Index() {
             trackName={selection?.trackName}
             courseName={selectedCourse?.name}
             currentFileName={currentFileName}
+            laps={laps}
             overlayLines={overlayLines}
+            referenceLapNumber={referenceLapNumber}
+            externalRefLabel={externalRefLabel}
             onLoadOverlayFile={loadOverlayFile}
             onAddExternalOverlay={addExternalOverlay}
             onToggleOverlay={toggleOverlay}

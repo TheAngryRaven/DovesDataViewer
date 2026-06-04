@@ -15,14 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Overlays menu — manage overlay lines and set references in one place.** The
-  header **Overlays** button (renamed from "Overlay file") now opens a two-section
-  menu: **Current overlays** lists every active overlay line and lets you promote
-  any of them to the comparison **reference lap**, and **Add from other logs**
-  lists the other saved sessions tagged with the *current course* — shown by
-  date/time, never raw file names — so you can pull in more laps without leaving
-  the view. Snapshots are still added from the separate Snapshots menu. The old
-  "External Ref" bar at the top of the lap list is hidden (references are now set
-  from the Overlays menu and the per-row **Ref** buttons).
+  header **Overlays** button (renamed from "Overlay file") now opens a
+  three-section menu: **Current overlays** lists every active overlay line, lets
+  you promote any of them to the comparison **reference lap** (the active
+  reference stays highlighted), and remove them; **Current session laps** toggles
+  this session's laps on/off as overlays without leaving the view (the lap list
+  still works too); and **Add from other logs** lists the other saved sessions
+  tagged with the *current course* — shown by date/time, never raw file names — so
+  you can pull in more laps. Snapshots are still added from the separate Snapshots
+  menu. The old "External Ref" bar at the top of the lap list is hidden
+  (references are now set from the Overlays menu and the per-row **Ref** buttons).
 - **Overlay laps from other sessions/loggers, with drift alignment.** The
   multi-lap overlay can pull laps from **other saved files** — open **Overlays**
   (next to Snapshots), pick a log, and toggle its laps onto the maps +

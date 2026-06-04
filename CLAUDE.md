@@ -666,10 +666,12 @@ distance-aligned traces on both chart types (`TelemetryChart` speed +
 Selection: per-lap (`LapTable` "Map" column), per-snapshot
 (`LapSnapshotControls`), and laps from **other saved files** via the header
 **`OverlaysMenu`** (load+parse on demand, cached in `useLapOverlays`). The
-`OverlaysMenu` is a two-section dialog: **Current overlays** (each line
-promotable to the comparison reference via `onSetOverlayReference`, or
-removable) and **Add from other logs** — the other sessions tagged with the
-*current course*, listed by date/time (`filesTaggedWithCourse` in
+`OverlaysMenu` is a three-section dialog: **Current overlays** (each line
+promotable to the comparison reference via `onSetOverlayReference` — the active
+reference is highlighted by matching `referenceLapNumber`/`externalRefLabel` —
+or removable), **Current session laps** (toggle this session's laps as overlays
+without the lap list), and **Add from other logs** — the other sessions tagged
+with the *current course*, listed by date/time (`filesTaggedWithCourse` in
 `fileBrowserTree.ts`, never raw file names). It replaces the old "External Ref"
 bar (`ExternalRefBar`), which is now hidden-but-kept behind
 `SHOW_EXTERNAL_REF_BAR` in `LapTable`; references are still also set from the
