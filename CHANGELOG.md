@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are calculated from), and the Snapshots menu explains that you can save one
   snapshot per engine per course, capturing the full lap plus the session's setup
   information.
+- **Video panel note when empty.** The "No video loaded" state now mentions that
+  segmented videos are not yet supported.
 - **Overlays menu — manage overlay lines and set references in one place.** The
   header **Overlays** button (renamed from "Overlay file") now opens a
   three-section menu: **Current overlays** lists every active overlay line, lets

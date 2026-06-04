@@ -525,6 +525,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         <Button variant="outline" size="sm" onClick={actions.loadVideo} className="gap-2">
           <Video className="w-4 h-4" /> Load Video
         </Button>
+        <p className="text-xs text-muted-foreground/70">Segmented videos are not yet supported.</p>
       </div>
     );
   }
