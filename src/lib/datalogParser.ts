@@ -6,8 +6,9 @@ import { parseVboFile, isVboFormat } from './vboParser';
 import { parseDoveFile, isDoveFormat } from './doveParser';
 import { parseDovexFile, isDovexFormat } from './dovexParser';
 import { parseAlfanoFile, isAlfanoFormat } from './alfanoParser';
-import { parseAimFile, isAimFormat } from './aimParser';
+import { parseAimFile, isAimFormat, hasAimSignature } from './aimParser';
 import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile } from './motecParser';
+import { isIracingFormat, parseIracingFile } from './iracingParser';
 import { isXrkFile, parseXrkFile, type XrkProgressCallback } from './xrk/xrkImporter';
 import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadingState';
 
@@ -16,6 +17,7 @@ import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadi
  * Supports:
  * - MoTeC LD binary format (MoTeC data loggers, sim racing exports)
  * - UBX binary format (u-blox GPS receivers)
+ * - iRacing .ibt binary telemetry (the sim's native on-disk export)
  * - VBO format (Racelogic VBOX, RaceBox exports)
  * - MoTeC CSV format (i2 Pro exports)
  * - Dovex format (DovesDataLogger extended with metadata header)
@@ -78,7 +80,12 @@ async function routeDatalogFile(
   if (isUbxFormat(buffer)) {
     return parseUbxFile(buffer);
   }
-  
+
+  // Check if it's iRacing .ibt binary telemetry (validated by header + YAML probe)
+  if (isIracingFormat(buffer)) {
+    return parseIracingFile(buffer);
+  }
+
   // For text formats, read as string
   const text = await file.text();
   
@@ -101,17 +108,24 @@ async function routeDatalogFile(
   if (isDoveFormat(text)) {
     return parseDoveFile(text);
   }
-  
+
+  // AiM RaceStudio CSV carries an unambiguous "AiM CSV File" signature. Claim it
+  // before Alfano, whose loose header match (rpm/water) would otherwise grab it
+  // and then fail to parse the AiM layout.
+  if (hasAimSignature(text) && isAimFormat(text)) {
+    return parseAimFile(text);
+  }
+
   // Check if it's Alfano CSV format
   if (isAlfanoFormat(text)) {
     return parseAlfanoFile(text);
   }
-  
+
   // Check if it's AiM CSV format (MyChron, Race Studio 3)
   if (isAimFormat(text)) {
     return parseAimFile(text);
   }
-  
+
   // Otherwise, treat as NMEA text format
   return parseDatalog(text);
 }
@@ -132,6 +146,9 @@ function routeDatalogContent(content: string | ArrayBuffer): ParsedData {
     if (isUbxFormat(content)) {
       return parseUbxFile(content);
     }
+    if (isIracingFormat(content)) {
+      return parseIracingFile(content);
+    }
     // Convert to text for text-based format detection
     const decoder = new TextDecoder();
     const text = decoder.decode(content);
@@ -151,42 +168,50 @@ function routeDatalogContent(content: string | ArrayBuffer): ParsedData {
     if (isDoveFormat(text)) {
       return parseDoveFile(text);
     }
-    
+
+    if (hasAimSignature(text) && isAimFormat(text)) {
+      return parseAimFile(text);
+    }
+
     if (isAlfanoFormat(text)) {
       return parseAlfanoFile(text);
     }
-    
+
     if (isAimFormat(text)) {
       return parseAimFile(text);
     }
-    
+
     return parseDatalog(text);
   }
-  
+
   // String content
   if (isVboFormat(content)) {
     return parseVboFile(content);
   }
-  
+
   if (isMotecCsvFormat(content)) {
     return parseMotecCsvFile(content);
   }
-  
+
   if (isDovexFormat(content)) {
     return parseDovexFile(content);
   }
-  
+
   if (isDoveFormat(content)) {
     return parseDoveFile(content);
   }
-  
+
+  if (hasAimSignature(content) && isAimFormat(content)) {
+    return parseAimFile(content);
+  }
+
   if (isAlfanoFormat(content)) {
     return parseAlfanoFile(content);
   }
-  
+
   if (isAimFormat(content)) {
     return parseAimFile(content);
   }
-  
+
   return parseDatalog(content);
 }

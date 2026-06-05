@@ -7,7 +7,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { isAimFormat, parseAimFile } from "./aimParser";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { isAimFormat, hasAimSignature, parseAimFile } from "./aimParser";
 
 // ─── Synthetic fixtures ─────────────────────────────────────────────────────
 
@@ -103,5 +105,106 @@ describe("parseAimFile", () => {
 
   it("throws when no AiM header row can be found", () => {
     expect(() => parseAimFile("just\nrandom\ntext lines")).toThrow();
+  });
+});
+
+// ─── Real RaceStudio 3 export (regression for the Alfano mis-route bug) ───────
+//
+// RS3 CSVs differ from the synthetic underscore fixtures above in three ways
+// that all broke parsing: a literal "AiM CSV File" signature, *space*-delimited
+// channel names ("GPS Speed", not "GPS_Speed"), and the channel header buried
+// ~15 rows deep under the metadata preamble. Before the fix this file was
+// neither detected nor parsed as AiM (and got claimed by Alfano, which then
+// threw). Fixture is a trimmed real export supplied by the maintainer.
+
+describe("real RaceStudio 3 CSV (space-delimited, deep header)", () => {
+  const content = readFileSync(
+    resolve(__dirname, "__fixtures__/racestudio3-aim.csv"),
+    "utf-8",
+  );
+
+  it("carries the AiM CSV File signature", () => {
+    expect(hasAimSignature(content)).toBe(true);
+  });
+
+  it("is detected as AiM format despite space-delimited channel names", () => {
+    expect(isAimFormat(content)).toBe(true);
+  });
+
+  it("parses the deep channel header (row ~15) into real samples", () => {
+    const parsed = parseAimFile(content);
+    expect(parsed.samples.length).toBeGreaterThan(100);
+    expect(parsed.samples[0].t).toBe(0);
+  });
+
+  it("decodes GPS position + speed from the space-delimited columns", () => {
+    const parsed = parseAimFile(content);
+    const s = parsed.samples[0];
+    // Session was logged in Italy (≈45.5°N, 10.0°E).
+    expect(s.lat).toBeCloseTo(45.5167, 3);
+    expect(s.lon).toBeCloseTo(10.0052, 3);
+    expect(s.speedMph).toBeCloseTo(s.speedMps * 2.23694, 3);
+    expect(s.speedMph).toBeGreaterThan(0);
+  });
+
+  it("maps RS3 channels (Engine RPM, Water Temp, GPS Nsat) into extra fields", () => {
+    const parsed = parseAimFile(content);
+    const ef = parsed.samples[0].extraFields;
+    expect(ef["RPM"]).toBeGreaterThan(0);
+    expect(ef["Water Temp"]).toBeTypeOf("number");
+    expect(ef["Satellites"]).toBeGreaterThan(0);
+  });
+
+  it("reads the session start date from the Date/Time metadata rows", () => {
+    const parsed = parseAimFile(content);
+    expect(parsed.startDate).toBeInstanceOf(Date);
+    // Metadata: Date "Sunday, December 15, 2024", Time "1:34 PM".
+    expect(parsed.startDate!.getFullYear()).toBe(2024);
+    expect(parsed.startDate!.getMonth() + 1).toBe(12);
+    expect(parsed.startDate!.getDate()).toBe(15);
+  });
+});
+
+// ─── Start-date metadata parsing (weather + session naming depend on it) ──────
+
+describe("parseAimFile — start date", () => {
+  function aimWithMeta(dateRow: string, timeRow?: string): string {
+    const lines = ["Format,AiM CSV File", dateRow];
+    if (timeRow) lines.push(timeRow);
+    lines.push("Time,GPS_Speed,GPS_Lat,GPS_Long");
+    for (let i = 0; i < 3; i++) {
+      lines.push(`${(i * 0.1).toFixed(1)},60,28.401,${(-81.401 + i * 0.00001).toFixed(6)}`);
+    }
+    return lines.join("\n");
+  }
+
+  it("combines the Date and Time metadata rows", () => {
+    const parsed = parseAimFile(
+      aimWithMeta('Date,"Sunday, December 15, 2024"', "Time,1:34 PM"),
+    );
+    expect(parsed.startDate).toBeInstanceOf(Date);
+    expect(parsed.startDate!.getFullYear()).toBe(2024);
+  });
+
+  it("falls back to date-only when there is no Time row", () => {
+    const parsed = parseAimFile(aimWithMeta('Date,"December 15, 2024"'));
+    expect(parsed.startDate).toBeInstanceOf(Date);
+    expect(parsed.startDate!.getDate()).toBe(15);
+  });
+
+  it("leaves startDate undefined (without breaking parsing) on an unparseable date", () => {
+    const parsed = parseAimFile(aimWithMeta("Date,not-a-real-date"));
+    expect(parsed.startDate).toBeUndefined();
+    expect(parsed.samples.length).toBeGreaterThan(0); // still parses fine
+  });
+
+  it("leaves startDate undefined when no Date row is present", () => {
+    const noDate = [
+      "Format,AiM CSV File",
+      "Time,GPS_Speed,GPS_Lat,GPS_Long",
+      "0.0,60,28.401,-81.401",
+      "0.1,61,28.40101,-81.40101",
+    ].join("\n");
+    expect(parseAimFile(noDate).startDate).toBeUndefined();
   });
 });

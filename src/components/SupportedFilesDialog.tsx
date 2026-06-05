@@ -18,6 +18,10 @@ const PRIMARY_FORMATS = [
     body: <>AiM's native binary telemetry from MyChron / SoloDL loggers, including the zlib-compressed <code className="text-primary">.xrz</code> variant. Parsed entirely in your browser by <a href="https://github.com/m3rlin45/libxrk" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">libxrk</a> compiled to WebAssembly — fast and fully offline, like every other format. Extensions: <code className="text-primary">.xrk</code>, <code className="text-primary">.xrz</code></>,
   },
   {
+    name: "iRacing Telemetry (Binary)",
+    body: <>iRacing's native binary telemetry export — the same data the sim's live irsdk API serves, no third-party CSV/MoTeC conversion needed. Read directly in your browser (fully offline): GPS position, speed and altitude drive the map and laps, with throttle, brake, gear, steering, RPM, water/oil temp and native lateral/longitudinal g along for the ride. Extension: <code className="text-primary">.ibt</code></>,
+  },
+  {
     name: "NMEA / CSV (Tab-Delimited)",
     body: <>Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code className="text-primary">.nmea</code>, <code className="text-primary">.csv</code>, <code className="text-primary">.txt</code></>,
   },
