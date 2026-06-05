@@ -8,6 +8,7 @@ import { parseDovexFile, isDovexFormat } from './dovexParser';
 import { parseAlfanoFile, isAlfanoFormat } from './alfanoParser';
 import { parseAimFile, isAimFormat } from './aimParser';
 import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile } from './motecParser';
+import { isIracingFormat, parseIracingFile } from './iracingParser';
 import { isXrkFile, parseXrkFile, type XrkProgressCallback } from './xrk/xrkImporter';
 import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadingState';
 
@@ -16,6 +17,7 @@ import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadi
  * Supports:
  * - MoTeC LD binary format (MoTeC data loggers, sim racing exports)
  * - UBX binary format (u-blox GPS receivers)
+ * - iRacing .ibt binary telemetry (the sim's native on-disk export)
  * - VBO format (Racelogic VBOX, RaceBox exports)
  * - MoTeC CSV format (i2 Pro exports)
  * - Dovex format (DovesDataLogger extended with metadata header)
@@ -78,7 +80,12 @@ async function routeDatalogFile(
   if (isUbxFormat(buffer)) {
     return parseUbxFile(buffer);
   }
-  
+
+  // Check if it's iRacing .ibt binary telemetry (validated by header + YAML probe)
+  if (isIracingFormat(buffer)) {
+    return parseIracingFile(buffer);
+  }
+
   // For text formats, read as string
   const text = await file.text();
   
@@ -131,6 +138,9 @@ function routeDatalogContent(content: string | ArrayBuffer): ParsedData {
     }
     if (isUbxFormat(content)) {
       return parseUbxFile(content);
+    }
+    if (isIracingFormat(content)) {
+      return parseIracingFile(content);
     }
     // Convert to text for text-based format detection
     const decoder = new TextDecoder();

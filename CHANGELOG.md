@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **iRacing telemetry (`.ibt`) import.** You can now drop iRacing's native binary
+  telemetry file straight into the viewer — no third-party conversion to CSV or
+  MoTeC needed. The `.ibt` is parsed directly (in-browser, offline) into the same
+  GPS-first session as every other format: position/speed/altitude drive the map
+  and laps, with throttle, brake, gear, steering, RPM, water/oil temp and native
+  lateral/longitudinal g available as channels.
+
 ## [2.2.1] - 2026-06-05
 
 ### Added

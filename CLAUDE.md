@@ -102,7 +102,7 @@ src/
 │   └── useSubscription / useStripePrices   # billing, online — see docs/backend.md
 ├── lib/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
-│   ├── *Parser.ts         # nmea, ubx, vbo, dove, dovex, alfano, aim, motec (+ parserUtils.ts)
+│   ├── *Parser.ts         # nmea, ubx, iracing (.ibt), vbo, dove, dovex, alfano, aim, motec (+ parserUtils.ts)
 │   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk core (Rust→WASM) in a Web Worker
 │   │                      #   (xrkImporter entry, xrkWorker, xrkClient, pure xrkResample + xrkMapping,
 │   │                      #    xrkConfig/Types, committed wasm/ build artifacts)
@@ -284,7 +284,7 @@ Each parser exports two functions:
 3. Update `README.md` supported formats table
 4. Update this file's architecture map
 
-Detection order matters: AiM XRK/XRZ first (binary, by extension/`<h` magic), then other binary formats (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM CSV → NMEA fallback).
+Detection order matters: AiM XRK/XRZ first (binary, by extension/`<h` magic), then other binary formats (MoTeC LD → UBX → iRacing `.ibt`), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM CSV → NMEA fallback). The iRacing `.ibt` has no magic bytes, so it's detected by validating the irsdk header's internal consistency plus a `WeekendInfo` probe of the embedded session YAML (`isIracingFormat`).
 
 ### AiM XRK/XRZ (`src/lib/xrk/`) — the async exception (wasm)
 
@@ -315,6 +315,27 @@ per channel) → transferable `Float64Array`s → pure `xrkMapping.ts` builds
   Licenses: `src/lib/xrk/wasm/THIRD-PARTY-NOTICES.txt`.
 - `onProgress` is threaded `parseDatalogFile` → router → `parseXrkFile` (XRK
   only); other formats ignore it.
+
+### iRacing `.ibt` (`src/lib/iracingParser.ts`) — the sim's native export
+
+iRacing's only on-disk telemetry export is the binary `.ibt` (iRacing Binary
+Telemetry) the sim writes at the session tick rate (typically 60 Hz) once
+logging is armed (Alt-L / always-on setting) — the same data the live
+shared-memory **irsdk** API serves. There is no built-in CSV/MoTeC export; those
+are all third-party conversions of this file, so the parser reads `.ibt`
+**directly** (synchronous, pure JS `DataView`, fully offline — fits the normal
+`isXxxFormat`/`parseXxxFile` contract, unlike XRK). Layout (little-endian, per
+irsdk `irsdk_defines.h`): a 112-byte `irsdk_header` → a 32-byte
+`irsdk_diskSubHeader` (only in `.ibt`; carries `sessionStartDate` +
+`sessionRecordCount`) → the session-info **YAML** string → `varHeader[numVars]`
+(144 bytes each: type, in-row byte offset, name/desc/unit) → fixed-stride data
+rows (`sessionRecordCount` × `bufLen`, channel value at `rowBase + varHeader.offset`,
+decoded by `irsdk_VarType`). GPS `Lat`/`Lon` (degrees) + `Speed` (m/s) + `Alt`
+make it a first-class GPS source; `SessionTime` is the timebase. Driver inputs
+(throttle/brake/clutch → %, gear, steering → °), engine (RPM, water/oil temp),
+and **native** lateral/longitudinal g (`LatAccel`/`LongAccel` → `lat_g_native`/
+`lon_g_native`, coexisting with the GPS-derived `lat_g`/`lon_g`) ride along in
+`extraFields` under human names that `normalizeChannels` canonicalises.
 
 ---
 

@@ -23,7 +23,7 @@
 
 ## Features
 
-- Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM CSV + XRK/XRZ, Alfano, Dove, Dovex)
+- Multi-format file support (NMEA, UBX, iRacing IBT, VBO, MoTeC, AiM CSV + XRK/XRZ, Alfano, Dove, Dovex)
 - Automatic track & course detection within 5 miles
 - Automatic driving direction detection (forward/reverse)
 - Waypoint mode — lap timing anywhere, no track needed
@@ -72,6 +72,7 @@ All formats are auto-detected on import:
 | Format | Source | Extension |
 |--------|--------|-----------|
 | UBX Binary | u-blox GPS receivers | `.ubx` |
+| iRacing IBT | iRacing sim native binary telemetry | `.ibt` |
 | VBO | Racelogic VBOX, RaceBox | `.vbo` |
 | Dove CSV | DovesDataLogger | `.dove` |
 | Dovex | DovesDataLogger (extended with metadata) | `.dovex` |
@@ -88,6 +89,15 @@ All formats are auto-detected on import:
 > **offline** (the wasm is precached), and parses a typical session in tens to a
 > couple hundred milliseconds. See
 > [AiM XRK / XRZ import](#aim-xrk--xrz-import) for how the wasm is built and pinned.
+
+> **iRacing IBT** is the sim's only native on-disk telemetry export — the binary
+> `.ibt` file iRacing writes (at the session tick rate, typically 60 Hz) once
+> logging is armed (Alt-L, or the always-on telemetry setting). It is the same
+> data the live shared-memory irsdk API serves; iRacing has no built-in
+> CSV/MoTeC export (those are third-party conversions of this same file), so we
+> parse the `.ibt` directly. GPS `Lat`/`Lon`/`Speed`/`Alt` make it a first-class
+> GPS source; driver inputs (throttle, brake, gear, steering), engine channels
+> (RPM, water/oil temp) and native lateral/longitudinal g ride along.
 
 ---
 
@@ -427,6 +437,7 @@ src/
 │   ├── db/          # Modular database layer
 │   ├── nmeaParser.ts
 │   ├── ubxParser.ts
+│   ├── iracingParser.ts
 │   ├── vboParser.ts
 │   ├── doveParser.ts
 │   ├── alfanoParser.ts
