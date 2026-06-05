@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Pick the satellite imagery date in the track editor.** The visual track
+  editor's satellite map now has the same Esri Wayback date picker as the
+  race-line map, so you can step the basemap back to a cloud-free capture while
+  placing start/finish and sector lines (online-only, lazy-loaded).
+- **Generate a track outline with no laps.** When you create a fresh track right
+  after loading a file from a brand-new venue, there may be no detected laps to
+  generate the outline from. The "Generate" tool now offers a **Whole session**
+  option that builds the outline straight from the full GPS trace, so you don't
+  have to come back later once a course exists.
+
+### Fixed
+- **New tracks now apply immediately.** Creating a track/course while a session
+  is loaded re-processes the current file against it right away (laps recompute)
+  instead of needing a file reload, and the new track shows up in the track
+  selection dropdown without a page refresh. Editing the active session's course
+  (e.g. nudging its start/finish line) likewise re-processes immediately.
+
 ## [2.2.0] - 2026-06-04
 
 ### Added
