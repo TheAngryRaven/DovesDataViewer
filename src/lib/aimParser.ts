@@ -48,31 +48,52 @@ const AIM_HEADER_INDICATORS = [
   'gps_nsat',
 ];
 
+// RaceStudio always stamps this in the first metadata cell ("Format,AiM CSV
+// File"). It's an unambiguous AiM fingerprint that no other format carries — the
+// router uses it (via hasAimSignature) to claim the file before the broader
+// Alfano detector can.
+const AIM_FILE_SIGNATURE = 'aim csv file';
+
 /**
- * Detect if content is AiM CSV format
+ * High-confidence AiM marker: the literal "AiM CSV File" stamp RaceStudio writes
+ * into the metadata preamble. Used by the format router to give AiM precedence
+ * over Alfano, whose loose header match (rpm/water) would otherwise claim these
+ * files and then fail to parse them.
+ */
+export function hasAimSignature(content: string): boolean {
+  return content.slice(0, 5000).toLowerCase().includes(AIM_FILE_SIGNATURE);
+}
+
+/**
+ * Detect if content is AiM CSV format.
+ *
+ * RaceStudio exports come in two channel-naming styles — underscore
+ * (`GPS_Speed`, older RS2) and space (`GPS Speed`, RS3) — and bury the channel
+ * header well below the metadata preamble (~15 rows). We normalize separators so
+ * both styles match the same indicators, scan deep enough to reach the header,
+ * and short-circuit on the unambiguous "AiM CSV File" signature.
  */
 export function isAimFormat(content: string): boolean {
+  if (hasAimSignature(content)) return true;
+
   const lines = content.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return false;
-  
-  // Look for AiM-specific channel names in the first few lines
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
-    const line = lines[i].toLowerCase();
-    
-    // Count how many AiM-specific indicators we find
+
+  for (let i = 0; i < Math.min(20, lines.length); i++) {
+    // Collapse whitespace to underscores so "GPS Speed" and "GPS_Speed" both
+    // match the underscore-style indicators/patterns below.
+    const line = lines[i].toLowerCase().replace(/\s+/g, '_');
+
     let matches = 0;
     for (const indicator of AIM_HEADER_INDICATORS) {
       if (line.includes(indicator)) {
         matches++;
       }
     }
-    
-    // If we find 2+ AiM-specific headers, it's likely AiM format
     if (matches >= 2) {
       return true;
     }
-    
-    // Also check for regex patterns
+
     let patternMatches = 0;
     for (const pattern of AIM_CHANNEL_PATTERNS) {
       if (pattern.test(line)) {
@@ -83,8 +104,33 @@ export function isAimFormat(content: string): boolean {
       return true;
     }
   }
-  
+
   return false;
+}
+
+/**
+ * Best-effort start date from the RaceStudio metadata preamble. RaceStudio
+ * writes a locale-formatted `Date` row (e.g. "Sunday, December 15, 2024") and a
+ * separate `Time` row ("1:34 PM"). We combine and parse leniently; if the host
+ * locale isn't one the JS engine understands we return `undefined` rather than
+ * an Invalid Date, so the weather lookup and session naming just fall back to
+ * the first-sample time instead of breaking.
+ */
+function parseAimStartDate(metadataLines: string[], delimiter: string): Date | undefined {
+  let dateStr = '';
+  let timeStr = '';
+  for (const line of metadataLines) {
+    const fields = parseCsvLine(line, delimiter);
+    const key = fields[0]?.toLowerCase().trim();
+    if (key === 'date' && fields[1]?.trim()) dateStr = fields[1].trim();
+    else if (key === 'time' && fields[1]?.trim()) timeStr = fields[1].trim();
+  }
+  if (!dateStr) return undefined;
+
+  const combined = new Date(timeStr ? `${dateStr} ${timeStr}` : dateStr);
+  if (!isNaN(combined.getTime())) return combined;
+  const dateOnly = new Date(dateStr);
+  return isNaN(dateOnly.getTime()) ? undefined : dateOnly;
 }
 
 /**
@@ -100,15 +146,18 @@ export function parseAimFile(content: string): ParsedData {
   let headerIndex = -1;
   let delimiter = ',';
   
-  for (let i = 0; i < Math.min(10, lines.length); i++) {
-    const line = lines[i].toLowerCase();
-    
+  for (let i = 0; i < Math.min(30, lines.length); i++) {
+    // Normalize whitespace→underscore so space-delimited RS3 channel names
+    // ("GPS Speed") match the same indicators as underscore-style RS2 exports.
+    // The header sits below ~15 metadata rows, so scan deep enough to reach it.
+    const line = lines[i].toLowerCase().replace(/\s+/g, '_');
+
     // Check if this line looks like a header with AiM channels
     let matches = 0;
     for (const indicator of AIM_HEADER_INDICATORS) {
       if (line.includes(indicator)) matches++;
     }
-    
+
     if (matches >= 2 || line.includes('time') && (line.includes('gps') || line.includes('acc'))) {
       headerIndex = i;
       delimiter = detectDelimiter(lines[i]);
@@ -140,8 +189,8 @@ export function parseAimFile(content: string): ParsedData {
   const speedCol = colMap['gps_speed'] ?? colMap['speed'] ?? -1;
   const headingCol = colMap['gps_heading'] ?? colMap['gps_course'] ?? colMap['heading'] ?? colMap['course'] ?? -1;
   const altCol = colMap['gps_altitude'] ?? colMap['altitude'] ?? colMap['gps_alt'] ?? -1;
-  const latGCol = colMap['acc_lat'] ?? colMap['lateral_g'] ?? colMap['lat_g'] ?? colMap['gy'] ?? -1;
-  const lonGCol = colMap['acc_long'] ?? colMap['longitudinal_g'] ?? colMap['lon_g'] ?? colMap['long_g'] ?? colMap['gx'] ?? -1;
+  const latGCol = colMap['acc_lat'] ?? colMap['gps_latacc'] ?? colMap['lateral_g'] ?? colMap['lat_g'] ?? colMap['gy'] ?? -1;
+  const lonGCol = colMap['acc_long'] ?? colMap['gps_lonacc'] ?? colMap['longitudinal_g'] ?? colMap['lon_g'] ?? colMap['long_g'] ?? colMap['gx'] ?? -1;
   const rpmCol = colMap['rpm'] ?? colMap['engine_rpm'] ?? -1;
   const waterTempCol = colMap['t_h2o'] ?? colMap['water_temp'] ?? colMap['coolant'] ?? -1;
   const egtCol = colMap['t_egt'] ?? colMap['egt'] ?? colMap['exhaust_temp'] ?? -1;
@@ -301,11 +350,15 @@ export function parseAimFile(content: string): ParsedData {
   }));
   
   const duration = samples.length > 0 ? samples[samples.length - 1].t : 0;
-  
+
+  // Read the session date/time from the metadata rows above the channel header.
+  const startDate = parseAimStartDate(lines.slice(0, headerIndex), delimiter);
+
   return {
     samples,
     fieldMappings,
     bounds: calculateBounds(samples),
     duration,
+    startDate,
   };
 }
