@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AiM CSV File` signature, matches space- and underscore-delimited channel names
   alike, and scans deep enough to find the header; the format router gives an
   AiM-signed file precedence over Alfano.
+- **AiM sessions now carry their real date.** The AiM parser reads the `Date`/
+  `Time` rows from the RaceStudio metadata, so AiM imports get a proper session
+  start time — used for the historical-weather lookup and the file-browser
+  session naming (previously these files had no date and fell back to import
+  time). Unparseable/locale-specific dates degrade gracefully to no date rather
+  than failing the import.
 
 ## [2.2.1] - 2026-06-05
 

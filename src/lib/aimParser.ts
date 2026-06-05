@@ -109,6 +109,31 @@ export function isAimFormat(content: string): boolean {
 }
 
 /**
+ * Best-effort start date from the RaceStudio metadata preamble. RaceStudio
+ * writes a locale-formatted `Date` row (e.g. "Sunday, December 15, 2024") and a
+ * separate `Time` row ("1:34 PM"). We combine and parse leniently; if the host
+ * locale isn't one the JS engine understands we return `undefined` rather than
+ * an Invalid Date, so the weather lookup and session naming just fall back to
+ * the first-sample time instead of breaking.
+ */
+function parseAimStartDate(metadataLines: string[], delimiter: string): Date | undefined {
+  let dateStr = '';
+  let timeStr = '';
+  for (const line of metadataLines) {
+    const fields = parseCsvLine(line, delimiter);
+    const key = fields[0]?.toLowerCase().trim();
+    if (key === 'date' && fields[1]?.trim()) dateStr = fields[1].trim();
+    else if (key === 'time' && fields[1]?.trim()) timeStr = fields[1].trim();
+  }
+  if (!dateStr) return undefined;
+
+  const combined = new Date(timeStr ? `${dateStr} ${timeStr}` : dateStr);
+  if (!isNaN(combined.getTime())) return combined;
+  const dateOnly = new Date(dateStr);
+  return isNaN(dateOnly.getTime()) ? undefined : dateOnly;
+}
+
+/**
  * Parse AiM CSV file into ParsedData
  */
 export function parseAimFile(content: string): ParsedData {
@@ -325,11 +350,15 @@ export function parseAimFile(content: string): ParsedData {
   }));
   
   const duration = samples.length > 0 ? samples[samples.length - 1].t : 0;
-  
+
+  // Read the session date/time from the metadata rows above the channel header.
+  const startDate = parseAimStartDate(lines.slice(0, headerIndex), delimiter);
+
   return {
     samples,
     fieldMappings,
     bounds: calculateBounds(samples),
     duration,
+    startDate,
   };
 }
