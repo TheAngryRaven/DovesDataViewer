@@ -4,6 +4,7 @@ import "./index.css";
 import { toast } from "@/components/ui/sonner";
 import { registerSW } from "virtual:pwa-register";
 import { initPlugins } from "@/plugins";
+import { initDebugConsole } from "@/lib/debugConsole";
 
 /**
  * "Never auto-dismiss" duration for sonner toasts. Sonner doesn't export a
@@ -14,6 +15,10 @@ import { initPlugins } from "@/plugins";
  * long before this expires.
  */
 const PERSISTENT_TOAST_DURATION_MS = 24 * 60 * 60 * 1000;
+
+// Install the on-screen debug console capture before anything else renders, so
+// early/uncaught errors are caught on devices with no dev tools (?dbg=true).
+initDebugConsole();
 
 initPlugins();
 

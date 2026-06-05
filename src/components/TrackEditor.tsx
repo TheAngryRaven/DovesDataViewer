@@ -15,7 +15,9 @@ import {
   deleteTrack,
   loadCourseDrawings,
   CourseDrawing,
+  TRACKS_SYNC_STORE,
 } from '@/lib/trackStorage';
+import { onGarageChange } from '@/lib/garageEvents';
 import { buildSubmissionPlan } from '@/lib/trackSubmission';
 import { loadSubmittedRecords } from '@/lib/submittedTracksStorage';
 import { abbreviateTrackName } from '@/lib/trackUtils';
@@ -134,6 +136,19 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     const loaded = await loadTracks();
     setTracks(loaded);
     return loaded;
+  }, []);
+
+  // Keep this instance's track list in sync with edits made anywhere — another
+  // TrackEditor instance (e.g. the landing-page "Manage Tracks" dialog vs. the
+  // in-session header selector) or a cloud-sync pull. Track CRUD emits a garage
+  // change on the tracks store; refresh on any of those so a newly created
+  // track shows up in the dropdown without a page reload.
+  useEffect(() => {
+    return onGarageChange((change) => {
+      if (change.store === TRACKS_SYNC_STORE) {
+        loadTracks().then(setTracks);
+      }
+    });
   }, []);
 
   // Recompute how many courses still need submitting (uses the same diffing the
@@ -263,12 +278,25 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   const handleAddCourse = async () => {
     const course = form.buildCourse();
     if (!course || !form.formTrackName.trim()) return;
-    await addCourseToStorage(form.formTrackName.trim(), course);
-    await refreshTracks();
-    setTempTrackName(form.formTrackName.trim());
+    const trackName = form.formTrackName.trim();
+    await addCourseToStorage(trackName, course);
+    const loaded = await refreshTracks();
+    setTempTrackName(trackName);
     setTempCourseName(course.name);
     form.resetForm();
     setIsAddCourseOpen(false);
+
+    // If a session is loaded, immediately apply the just-created course so the
+    // current file is re-processed against it (laps recompute) without a manual
+    // re-select or a file reload. Close the manager so the user lands back on
+    // the now-updated session. With no session (landing-page track manager)
+    // there's no selection to drive, so we just stay in the dialog.
+    if (onSelectionChange) {
+      const stored = loaded.find((t) => t.name === trackName)?.courses.find((c) => c.name === course.name) ?? course;
+      onSelectionChange({ trackName, courseName: course.name, course: stored });
+      setIsSelectDialogOpen(false);
+      setIsManageMode(false);
+    }
   };
 
   const handleAddTrack = async () => {
@@ -287,11 +315,12 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     if (!form.editingCourse) return;
     const course = form.buildCourse();
     if (!course) return;
-    if (course.name !== form.editingCourse.courseName) {
-      await deleteCourse(form.editingCourse.trackName, form.editingCourse.courseName);
-      await addCourseToStorage(form.editingCourse.trackName, course);
+    const { trackName, courseName: oldCourseName } = form.editingCourse;
+    if (course.name !== oldCourseName) {
+      await deleteCourse(trackName, oldCourseName);
+      await addCourseToStorage(trackName, course);
     } else {
-      await updateCourse(form.editingCourse.trackName, form.editingCourse.courseName, {
+      await updateCourse(trackName, oldCourseName, {
         startFinishA: course.startFinishA,
         startFinishB: course.startFinishB,
         sector2: course.sector2,
@@ -299,10 +328,18 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
         layout: course.layout,
       });
     }
-    await refreshTracks();
+    const loaded = await refreshTracks();
     setTempCourseName(course.name);
     form.setEditingCourse(null);
     form.resetForm();
+
+    // If the course just edited is the one driving the live session, re-apply it
+    // so the moved start/finish or sector lines re-process the laps immediately
+    // (otherwise the change only takes effect on the next file reload).
+    if (onSelectionChange && selection?.trackName === trackName && selection.courseName === oldCourseName) {
+      const stored = loaded.find((t) => t.name === trackName)?.courses.find((c) => c.name === course.name) ?? course;
+      onSelectionChange({ trackName, courseName: course.name, course: stored });
+    }
   };
 
   const handleDeleteCourse = async (trackName: string, courseName: string) => {

@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Flag, Timer, Search, Loader2, LocateFixed, Pencil, Undo2, Trash2, Route, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Flag, Timer, Search, Loader2, LocateFixed, Pencil, Undo2, Trash2, Route, Eye, EyeOff, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { SectorLine } from '@/types/racing';
 import type { Lap, GpsSample } from '@/types/racing';
 import { resamplePolyline, calculatePolylineLength, generatedDrawingSpacing } from '@/lib/trackUtils';
+import { useWaybackImagery } from '@/hooks/useWaybackImagery';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { DEFAULT_SATELLITE_TILE_URL } from '@/lib/satelliteImagery';
+import { isDebugEnabled } from '@/lib/debugConsole';
 import L from 'leaflet';
 
 export interface GpsPoint {
@@ -52,10 +56,15 @@ interface VisualEditorToolbarProps {
   onClearDraw?: () => void;
   laps?: Lap[];
   onGenerateFromLap?: (lapNumber: number) => void;
+  /** Whole-session GPS available — enables Generate even with no detected laps. */
+  hasSamples?: boolean;
+  onGenerateFromSession?: () => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPointCount = 0, canToggleKnownDrawing = false, showKnownDrawing = true, onToggleKnownDrawing, onUndoDraw, onClearDraw, laps, onGenerateFromLap }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPointCount = 0, canToggleKnownDrawing = false, showKnownDrawing = true, onToggleKnownDrawing, onUndoDraw, onClearDraw, laps, onGenerateFromLap, hasSamples = false, onGenerateFromSession }: VisualEditorToolbarProps) {
   const [showLapPicker, setShowLapPicker] = useState(false);
+  const hasLaps = !!laps && laps.length > 0;
+  const canGenerate = hasLaps || hasSamples;
 
   const handleStartFinish = () => {
     onToolChange(activeTool === 'startFinish' ? null : 'startFinish');
@@ -74,7 +83,10 @@ function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPoint
   };
 
   const handleGenerateClick = () => {
-    if (!laps || laps.length === 0) {
+    if (!canGenerate) return;
+    // No laps to choose from → generate straight from the whole session.
+    if (!hasLaps) {
+      onGenerateFromSession?.();
       return;
     }
     setShowLapPicker(true);
@@ -83,6 +95,11 @@ function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPoint
   const handleLapSelect = (lapNumber: number) => {
     setShowLapPicker(false);
     onGenerateFromLap?.(lapNumber);
+  };
+
+  const handleSessionSelect = () => {
+    setShowLapPicker(false);
+    onGenerateFromSession?.();
   };
 
   const formatLapTime = (ms: number) => {
@@ -133,7 +150,7 @@ function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPoint
               Draw
             </Button>
         )}
-        {showDrawTool && laps && laps.length > 0 && (
+        {showDrawTool && canGenerate && (
               <Button
                 variant="outline"
                 size="sm"
@@ -178,11 +195,21 @@ function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPoint
           </>
         )}
       </div>
-      {showLapPicker && laps && laps.length > 0 && (
+      {showLapPicker && (
         <div className="p-3 bg-card border border-border rounded-lg space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Select a lap to generate drawing from:</p>
+          <p className="text-xs font-medium text-muted-foreground">Generate the outline from:</p>
           <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-            {laps.map(lap => (
+            {hasSamples && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleSessionSelect}
+              >
+                Whole session
+              </Button>
+            )}
+            {laps?.map(lap => (
               <Button
                 key={lap.lapNumber}
                 variant="outline"
@@ -212,7 +239,25 @@ export function VisualEditor({
 }: VisualEditorProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const [activeTool, setActiveTool] = useState<VisualEditorTool>(null);
+
+  // Satellite imagery date (Esri Wayback). '' = current best-available mosaic.
+  // Lets the user step the basemap back to a cloud-free capture while placing
+  // start/finish + sector lines — often the lines sit on a runway/paddock the
+  // current mosaic happens to have clouded over. Online-only + lazy, mirroring
+  // the race-line map's picker.
+  const isOnline = useOnlineStatus();
+  const wayback = useWaybackImagery();
+  const loadWayback = wayback.load;
+  const [satelliteDate, setSatelliteDate] = useState('');
+  useEffect(() => {
+    if (isOnline) loadWayback();
+  }, [isOnline, loadWayback]);
+  const satelliteTileUrl = useMemo(() => {
+    if (!satelliteDate) return DEFAULT_SATELLITE_TILE_URL;
+    return wayback.releases.find((r) => r.date === satelliteDate)?.tileUrl ?? DEFAULT_SATELLITE_TILE_URL;
+  }, [satelliteDate, wayback.releases]);
 
   // Pending coordinates while dragging
   const [pendingStartFinish, setPendingStartFinish] = useState<{ a: GpsPoint; b: GpsPoint } | null>(null);
@@ -580,35 +625,81 @@ export function VisualEditor({
     onLayoutChange?.([]); // auto-save
   }, [onLayoutChange]);
 
+  // Resample a raw GPS trace to an even outline and commit it as the drawing.
+  // The raw points are the full logger rate (10–25 Hz) — far denser than an
+  // outline needs, and unevenly so (more points in slow corners). Arc-length
+  // resample to an even spacing scaled to track length for a clean, compact
+  // polyline (5 m for karting up to 10 m for long road courses).
+  const applyGeneratedDrawing = useCallback((rawPoints: Array<{ lat: number; lon: number }>, label: string) => {
+    const dbg = isDebugEnabled();
+    if (rawPoints.length < 2) {
+      if (dbg) console.warn('[generate] aborted: rawPoints < 2', { rawPoints: rawPoints.length });
+      toast({ title: 'Not enough GPS data', description: 'Insufficient GPS points for a drawing', variant: 'destructive' });
+      return;
+    }
+    try {
+      const spacing = generatedDrawingSpacing(calculatePolylineLength(rawPoints));
+      const points = resamplePolyline(rawPoints, spacing);
+      if (dbg) console.info('[generate] resampled', { rawPoints: rawPoints.length, spacing, points: points.length, hasMap: !!mapRef.current, hasOnLayoutChange: !!onLayoutChange });
+      // A degenerate resample (e.g. a stationary trace) collapses to <2 points,
+      // which would neither render nor save — surface it instead of silently
+      // committing an empty outline.
+      if (points.length < 2) {
+        if (dbg) console.warn('[generate] aborted: resampled points < 2', { spacing, points: points.length });
+        toast({ title: 'Could not generate outline', description: 'The GPS trace was too short or stationary.', variant: 'destructive' });
+        return;
+      }
+      drawPointsRef.current = points;
+      setDrawPoints(points);
+      updateDrawPolyline(points);
+      onLayoutChange?.(points); // auto-save
+      if (dbg) console.info('[generate] committed', { drawn: !!drawPolylineRef.current });
+      // Fit map to the generated drawing
+      if (mapRef.current && points.length > 1) {
+        const bounds = L.latLngBounds(points.map(p => [p.lat, p.lon] as [number, number]));
+        mapRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
+      }
+      toast({ title: 'Drawing generated', description: `${label} (${points.length} points).` });
+    } catch (err) {
+      // Surface failures in the on-screen debug console (?dbg=true) — on mobile
+      // there's no dev-tools console to catch an exception here.
+      console.error('Drawing generation failed', err);
+      toast({ title: 'Could not generate outline', description: 'See debug log (?dbg=true) for details.', variant: 'destructive' });
+    }
+  }, [updateDrawPolyline, onLayoutChange]);
+
   const handleGenerateFromLap = useCallback((lapNumber: number) => {
-    if (!samples || !laps) return;
+    if (!samples || !laps) {
+      console.warn('Generate from lap: no samples/laps', { hasSamples: !!samples, hasLaps: !!laps });
+      return;
+    }
     const lap = laps.find(l => l.lapNumber === lapNumber);
-    if (!lap) return;
+    if (!lap) {
+      console.warn('Generate from lap: lap not found', lapNumber);
+      return;
+    }
     const lapSamples = samples.slice(lap.startIndex, lap.endIndex + 1);
     const rawPoints = lapSamples
       .filter(s => s.lat !== 0 && s.lon !== 0)
       .map(s => ({ lat: s.lat, lon: s.lon }));
-    if (rawPoints.length < 2) {
-      toast({ title: 'Not enough GPS data', description: 'This lap has insufficient GPS points for a drawing', variant: 'destructive' });
+    if (isDebugEnabled()) console.info('[generate] from lap', { lapNumber, startIndex: lap.startIndex, endIndex: lap.endIndex, totalSamples: samples.length, lapSamples: lapSamples.length, rawPoints: rawPoints.length });
+    applyGeneratedDrawing(rawPoints, `Generated from Lap ${lapNumber}`);
+  }, [samples, laps, applyGeneratedDrawing]);
+
+  // Fresh-track fallback: when no laps were detected (a brand-new venue, or
+  // waypoint timing that never closed a lap) there's nothing to pick from — so
+  // generate the outline straight from the whole session's GPS trace instead.
+  const handleGenerateFromSession = useCallback(() => {
+    if (!samples) {
+      console.warn('Generate from session: no samples');
       return;
     }
-    // The raw lap is the full logger rate (10–25 Hz) — far denser than an
-    // outline needs, and unevenly so (more points in slow corners). Arc-length
-    // resample to an even spacing scaled to track length for a clean, compact
-    // polyline (5 m for karting up to 10 m for long road courses).
-    const spacing = generatedDrawingSpacing(calculatePolylineLength(rawPoints));
-    const points = resamplePolyline(rawPoints, spacing);
-    drawPointsRef.current = points;
-    setDrawPoints(points);
-    updateDrawPolyline(points);
-    onLayoutChange?.(points); // auto-save
-    // Fit map to the generated drawing
-    if (mapRef.current && points.length > 1) {
-      const bounds = L.latLngBounds(points.map(p => [p.lat, p.lon] as [number, number]));
-      mapRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
-    }
-    toast({ title: 'Drawing generated', description: `Generated from Lap ${lapNumber} (${points.length} points).` });
-  }, [samples, laps, updateDrawPolyline, onLayoutChange]);
+    const rawPoints = samples
+      .filter(s => s.lat !== 0 && s.lon !== 0)
+      .map(s => ({ lat: s.lat, lon: s.lon }));
+    if (isDebugEnabled()) console.info('[generate] from session', { totalSamples: samples.length, rawPoints: rawPoints.length });
+    applyGeneratedDrawing(rawPoints, 'Generated from the full session');
+  }, [samples, applyGeneratedDrawing]);
 
   const handleToggleKnownDrawing = useCallback(() => {
     setShowKnownDrawing(prev => !prev);
@@ -709,7 +800,7 @@ export function VisualEditor({
       zoomControl: true,
     });
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    tileLayerRef.current = L.tileLayer(satelliteTileUrl, {
       attribution: 'Tiles © Esri',
       maxZoom: 21,
     }).addTo(map);
@@ -732,12 +823,20 @@ export function VisualEditor({
         mapRef.current.remove();
         mapRef.current = null;
       }
+      tileLayerRef.current = null;
     };
     // Mount-only effect — Leaflet setup; helpers used here intentionally not in
     // deps to avoid map reinit on every helper reference change. Slated for the
     // Leaflet integration cleanup in the post-Index.tsx roadmap.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Swap the basemap tiles when the Wayback date changes (without re-init).
+  useEffect(() => {
+    if (tileLayerRef.current) {
+      tileLayerRef.current.setUrl(satelliteTileUrl);
+    }
+  }, [satelliteTileUrl]);
 
   // Handle resize
   useEffect(() => {
@@ -838,11 +937,33 @@ export function VisualEditor({
         onClearDraw={handleClearDraw}
         laps={laps}
         onGenerateFromLap={handleGenerateFromLap}
+        hasSamples={!!samples && samples.length >= 2}
+        onGenerateFromSession={handleGenerateFromSession}
       />
       {showDrawTool && (
         <p className="text-xs text-muted-foreground">
           Drawing an outline helps on-device course detection.
         </p>
+      )}
+      {/* Satellite imagery date — step the basemap back to a cloud-free Esri
+          Wayback capture so lines can be placed on clear ground (online-only). */}
+      {isOnline && !wayback.error && (
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+          <span className="shrink-0">Imagery date:</span>
+          <select
+            value={satelliteDate}
+            onChange={(e) => setSatelliteDate(e.target.value)}
+            disabled={wayback.loading && wayback.releases.length === 0}
+            className="flex-1 min-w-0 bg-transparent text-foreground/90 text-xs outline-none cursor-pointer border border-border rounded px-1 py-0.5"
+            title="Satellite imagery capture date"
+          >
+            <option value="">{wayback.loading ? 'Loading dates…' : 'Latest (default)'}</option>
+            {wayback.releases.map((r) => (
+              <option key={r.releaseNum} value={r.date}>{r.date}</option>
+            ))}
+          </select>
+        </label>
       )}
       <div
         ref={mapContainerRef}

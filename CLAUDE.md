@@ -136,6 +136,7 @@ src/
 │   ├── profanity.ts       # Basic client-side profanity filter for display names
 │   ├── weatherService.ts  # Historical weather (online-only): US → NWS station + IEM ASOS METAR; else → Open-Meteo reanalysis fallback (keyless, global). fetchSessionWeather orchestrates.
 │   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time + amber preview-DB warning via isPreviewBuild(); values injected by vite define)
+│   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`): pure flag-parse + log ring-buffer + console/global-error capture (mobile/PWA has no dev tools) — rendered by components/DebugConsole.tsx
 │   └── utils.ts           # Tailwind cn() helper
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section
 │   ├── (framework)        # types, registry, index, panels, mounts, storage + PluginPanelHost/PluginMount
@@ -511,7 +512,9 @@ The `course_layouts` table stores polyline drawings of track layouts (1:1 with c
 
 **Manage Tracks (home screen)**: `FileImport` renders a **Manage Tracks** button (below "Download from Datalogger") that opens `TrackEditor` via its `triggerButton` + `startInManage` props — the track manager is reachable with no datalog loaded. The create-flow dialogs (`AddTrackDialog`/`AddCourseDialog`) pass `isNewTrack`/`showDrawTool` so location search + manual drawing are available there.
 
-**Generate Drawing**: A "Generate" button (visible when laps are available and `showDrawTool` is true) lets users select a lap and auto-populate the drawing from that lap's GPS samples. Available in user-side TrackEditor when session data is loaded. Laps and samples are threaded from `Index.tsx` → `TrackEditor` → `VisualEditor` (and into the create-flow dialogs). The drawing state lives in `useTrackEditorForm` (`formLayout`) and is written into the course via `buildCourse()`.
+**Generate Drawing**: A "Generate" button (visible when `showDrawTool` is true and either laps *or* GPS samples are available) auto-populates the drawing from GPS data. With detected laps it opens a picker — each lap **plus** a **Whole session** option; with no laps (a fresh track at a brand-new venue where waypoint mode never closed a lap) it generates straight from the full session trace, so the outline can be drawn before a course exists. Available in user-side TrackEditor when session data is loaded. Laps and samples are threaded from `Index.tsx` → `TrackEditor` → `VisualEditor` (and into the create-flow dialogs). The drawing state lives in `useTrackEditorForm` (`formLayout`) and is written into the course via `buildCourse()`. The editor's satellite basemap shares the race-line map's Esri **Wayback** imagery-date picker (`useWaybackImagery`), so lines can be placed against a cloud-free capture (online-only, lazy).
+
+When a track/course is created or edited while a session is loaded, `TrackEditor` immediately re-applies it via `onSelectionChange` (laps recompute, no file reload), and every `TrackEditor` instance refreshes its list off a `garageEvents` subscription on the `tracks` store so a new track appears in the selector without a page refresh.
 
 **"Generate Course Mapping" button**: Placeholder in admin CoursesTab — will eventually produce fingerprint data for automatic track detection on the DovesDataLogger hardware.
 

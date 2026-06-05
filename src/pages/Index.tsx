@@ -621,6 +621,8 @@ export default function Index() {
         onSelect={handleTrackPromptSelect}
         initialCenter={gpsCenter}
         detectionResult={detectionResult}
+        laps={laps}
+        samples={data?.samples}
       />
       <LapSnapshotPromptDialog
         prompt={snapshots.prompt}

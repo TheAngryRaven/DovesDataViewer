@@ -303,6 +303,17 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 | `npm test` | Run Vitest in watch mode |
 | `npm run test:run` | Run Vitest once (CI-style) |
 
+### On-screen debug console (`?dbg=true`)
+
+Phones and installed PWAs have no dev-tools console, so a silent runtime error is
+invisible. Append **`?dbg=true`** to the URL to show a bottom overlay that mirrors
+all `console.*` output plus uncaught errors and unhandled promise rejections, with
+copy / clear / collapse controls. The flag is sticky (persisted to
+`localStorage`); load `?dbg=false` to turn it back off. The capture installs
+before first render so early errors are caught, and the overlay renders nothing
+unless enabled. Implemented in `src/lib/debugConsole.ts` (pure flag-parse + log
+buffer + capture) and `src/components/DebugConsole.tsx` (overlay).
+
 ### Coverage badge
 
 The live coverage badge is a [shields.io endpoint](https://shields.io/badges/endpoint-badge)

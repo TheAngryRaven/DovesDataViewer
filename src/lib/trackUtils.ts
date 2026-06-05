@@ -135,8 +135,14 @@ export function generatedDrawingSpacing(lengthMeters: number): number {
 
 /**
  * Resample a polyline to evenly spaced points.
- * Walks along the path segment-by-segment, emitting a new interpolated
- * point every `spacingMeters` meters. Always includes the first point.
+ * Walks the path by cumulative arc length, emitting a new interpolated point
+ * every `spacingMeters` meters. Always includes the first point.
+ *
+ * `distSinceLast` accumulates the distance travelled since the last emitted
+ * point *across* segments, so a dense trace whose individual segments are all
+ * shorter than the spacing (e.g. high-rate GPS telemetry — ~1 m between samples
+ * vs. a 5 m spacing) still produces a point every `spacingMeters`, rather than
+ * collapsing to just the first point.
  */
 export function resamplePolyline(
   points: Array<{ lat: number; lon: number }>,
@@ -145,7 +151,7 @@ export function resamplePolyline(
   if (points.length < 2) return [...points];
 
   const result: Array<{ lat: number; lon: number }> = [{ ...points[0] }];
-  let carry = 0; // distance carried over from previous segment
+  let distSinceLast = 0; // arc length accumulated since the last emitted point
 
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1];
@@ -153,16 +159,20 @@ export function resamplePolyline(
     const segDist = haversineDistance(prev.lat, prev.lon, curr.lat, curr.lon);
     if (segDist === 0) continue;
 
-    let walked = carry;
-    while (walked + spacingMeters <= segDist) {
-      walked += spacingMeters;
-      const t = walked / segDist;
+    // Consume the segment, emitting a point each time the running distance
+    // since the last emit reaches a full `spacingMeters` step.
+    let consumed = 0;
+    while (distSinceLast + (segDist - consumed) >= spacingMeters) {
+      const step = spacingMeters - distSinceLast; // remaining distance to the next point
+      consumed += step;
+      const t = consumed / segDist;
       result.push({
         lat: prev.lat + t * (curr.lat - prev.lat),
         lon: prev.lon + t * (curr.lon - prev.lon),
       });
+      distSinceLast = 0;
     }
-    carry = segDist - walked;
+    distSinceLast += segDist - consumed;
   }
 
   return result;

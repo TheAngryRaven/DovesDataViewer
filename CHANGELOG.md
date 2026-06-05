@@ -13,6 +13,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-06-05
+
+### Added
+- **Pick the satellite imagery date in the track editor.** The visual track
+  editor's satellite map now has the same Esri Wayback date picker as the
+  race-line map, so you can step the basemap back to a cloud-free capture while
+  placing start/finish and sector lines (online-only, lazy-loaded).
+- **Generate a track outline with no laps.** When you create a fresh track right
+  after loading a file from a brand-new venue, there may be no detected laps to
+  generate the outline from. The "Generate" tool now offers a **Whole session**
+  option that builds the outline straight from the full GPS trace, so you don't
+  have to come back later once a course exists. This is also wired into the
+  **post-import "Create Track" prompt** (the dialog that appears when no known
+  track matches / waypoint timing) — it now carries the session's laps and GPS
+  through, so the Generate tool and the drawn outline both work while you're
+  first setting the track up.
+- **On-screen debug console for mobile.** Load the app with `?dbg=true` to show a
+  bottom overlay that mirrors `console.*` output plus uncaught errors and promise
+  rejections, with copy/clear/collapse controls. Phones and installed PWAs have
+  no dev-tools console, so this makes otherwise-invisible runtime errors readable
+  on-device. The flag persists (set `?dbg=false` to turn it off) and the overlay
+  renders nothing unless enabled.
+
+### Fixed
+- **New tracks now apply immediately.** Creating a track/course while a session
+  is loaded re-processes the current file against it right away (laps recompute)
+  instead of needing a file reload, and the new track shows up in the track
+  selection dropdown without a page refresh. Editing the active session's course
+  (e.g. nudging its start/finish line) likewise re-processes immediately.
+- **Generate outline now actually works on real telemetry.** The polyline
+  resampler accumulated distance incorrectly across segments, so a dense GPS
+  trace — where each sample is ~1 m apart, well under the 5 m outline spacing —
+  collapsed to a single point and generated nothing (no line, nothing saved, no
+  thumbnail). It now accumulates arc length across short segments, so generating
+  an outline from a lap or the whole session produces a proper polyline.
+- **Outline generation now reports failures.** A genuinely too-short/stationary
+  trace (or an unexpected error) now shows a clear toast instead of silently
+  doing nothing, and logs details to the debug console (`?dbg=true`).
+
 ## [2.2.0] - 2026-06-04
 
 ### Added

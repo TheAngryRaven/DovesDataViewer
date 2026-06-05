@@ -276,14 +276,12 @@ describe("resamplePolyline", () => {
     expect(out[0]).toEqual({ lat: 0, lon: 0 });
   });
 
-  it("carries leftover distance across a too-short segment (documented quirk)", () => {
-    // First segment is ~66.7m — too short to fit a 100m step, so the loop emits
-    // nothing and forwards carry = 66.7m. On the long second segment `walked` is
-    // SEEDED with that carry (66.7m) and the first emitted point lands at
-    // walked = 66.7 + 100 = ~166.7m INTO segment 2 — i.e. ~233m from the polyline
-    // start, not 100m. This is a known quirk: the carry shifts the first point of
-    // the next segment by the short segment's length rather than continuing
-    // seamlessly. Subsequent points are then a clean 100m apart.
+  it("accumulates a too-short segment seamlessly into the next", () => {
+    // First segment is ~66.7m — too short to fit a 100m step. The leftover is
+    // carried into the long second segment so the first emitted point lands a
+    // clean 100m from the start (66.7m of seg1 + 33.3m of seg2), and every point
+    // after is 100m apart. (Regression: the old carry logic shifted the first
+    // point to ~233m instead.)
     const pts = [
       { lat: 0, lon: 0 },
       { lat: 0, lon: 0.0006 }, // ~66.7m short hop (no point fits)
@@ -291,13 +289,24 @@ describe("resamplePolyline", () => {
     ];
     const out = resamplePolyline(pts, 100);
     expect(out.length).toBeGreaterThanOrEqual(2);
-    // First interior point sits ~233m from start (66.7 carry + 100 + 66.7 seg1).
-    const firstGap = haversineDistance(out[0].lat, out[0].lon, out[1].lat, out[1].lon);
-    expect(firstGap).toBeCloseTo(233, -1);
-    // From there, consecutive interior points are a clean ~100m apart.
-    for (let i = 2; i < out.length; i++) {
+    for (let i = 1; i < out.length; i++) {
       const step = haversineDistance(out[i - 1].lat, out[i - 1].lon, out[i].lat, out[i].lon);
       expect(step).toBeCloseTo(100, -1);
+    }
+  });
+
+  it("resamples a dense trace whose every segment is shorter than the spacing", () => {
+    // Real-world telemetry: ~1m between samples at high GPS rate, far shorter
+    // than the 5m outline spacing. The distance must accumulate ACROSS segments
+    // or the whole thing collapses to a single point (the bug that made
+    // generate-outline silently produce nothing). 220 points × ~1.11m ≈ 244m.
+    const pts = Array.from({ length: 220 }, (_, i) => ({ lat: 0, lon: i * 0.00001 }));
+    const out = resamplePolyline(pts, 5);
+    // ~244m / 5m ≈ 48 interior points + start — must be far more than 1.
+    expect(out.length).toBeGreaterThan(40);
+    for (let i = 1; i < out.length; i++) {
+      const step = haversineDistance(out[i - 1].lat, out[i - 1].lon, out[i].lat, out[i].lon);
+      expect(step).toBeCloseTo(5, 0);
     }
   });
 });

@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Track, TrackCourseSelection, CourseDetectionResult } from '@/types/racing';
+import { Track, TrackCourseSelection, CourseDetectionResult, Lap, GpsSample } from '@/types/racing';
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
@@ -33,10 +33,17 @@ interface TrackPromptDialogProps {
   initialCenter?: { lat: number; lon: number } | null;
   /** Auto-detection result with direction and waypoint info */
   detectionResult?: CourseDetectionResult | null;
+  /** Current session laps (e.g. waypoint-mode laps) — feeds the create-course
+   *  "Generate outline" picker so the outline can be drawn right here. */
+  laps?: Lap[];
+  /** Current session GPS samples — enables generating an outline from the whole
+   *  session even when no laps were detected. */
+  samples?: GpsSample[];
 }
 
 export function TrackPromptDialog({
   open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect, initialCenter, detectionResult,
+  laps, samples,
 }: TrackPromptDialogProps) {
   const [tracks, setTracks] = useState(initialTracks);
   const [selectedCourseName, setSelectedCourseName] = useState('');
@@ -127,6 +134,13 @@ export function TrackPromptDialog({
     onSector2Change: form.handleVisualSector2Change,
     onSector3Change: form.handleVisualSector3Change,
     initialCenter,
+    // Carry the drawing through so a generated/drawn outline is saved on the new
+    // course (buildCourse reads form.formLayout), and feed laps/samples so the
+    // "Generate" outline tool is available in this post-import create flow.
+    layoutPoints: form.formLayout,
+    onLayoutChange: form.handleVisualLayoutChange,
+    laps,
+    samples,
   } as const;
 
   const addTrackDialogProps = {
