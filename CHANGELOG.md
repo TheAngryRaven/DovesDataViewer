@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **AiM RaceStudio 3 CSV files now import.** RS3 exports (e.g. MyChron via Race
+  Studio 3) use space-delimited channel names (`GPS Speed`) and put the channel
+  header ~15 rows below the metadata, so they were neither detected nor parsed as
+  AiM — and the broad Alfano detector claimed them and then failed, leaving the
+  file unable to load at all. The AiM parser now recognizes RaceStudio's
+  `AiM CSV File` signature, matches space- and underscore-delimited channel names
+  alike, and scans deep enough to find the header; the format router gives an
+  AiM-signed file precedence over Alfano.
+
 ## [2.2.1] - 2026-06-05
 
 ### Added

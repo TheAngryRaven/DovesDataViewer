@@ -11,8 +11,10 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { parseDatalogFile, parseDatalogContent } from "./datalogParser";
-import { isAimFormat } from "./aimParser";
+import { isAimFormat, parseAimFile } from "./aimParser";
 import { isAlfanoFormat } from "./alfanoParser";
 import {
   subscribeFileLoading,
@@ -243,6 +245,23 @@ describe("parseDatalogContent — text routing", () => {
 
   it("falls back to the NMEA parser for unrecognized GPS text", () => {
     expect(parseDatalogContent(nmea()).samples.length).toBeGreaterThan(0);
+  });
+
+  it("routes a real RaceStudio CSV to AiM, not Alfano (signature wins)", () => {
+    // Regression: RS3 exports contain rpm/water columns, so isAlfanoFormat
+    // claims them — but Alfano can't parse the AiM layout and throws, so the
+    // file failed to load entirely. The "AiM CSV File" signature now gives AiM
+    // precedence. Assert the routed result matches the AiM parser's own output.
+    const rs3 = readFileSync(
+      resolve(__dirname, "__fixtures__/racestudio3-aim.csv"),
+      "utf-8",
+    );
+    expect(isAlfanoFormat(rs3)).toBe(true); // Alfano still (wrongly) detects it…
+    const routed = parseDatalogContent(rs3);
+    const direct = parseAimFile(rs3);
+    // …but routing picks AiM, so sample counts match the AiM parser exactly.
+    expect(routed.samples.length).toBe(direct.samples.length);
+    expect(routed.samples.length).toBeGreaterThan(100);
   });
 });
 
