@@ -20,6 +20,7 @@ export function useSessionMetadata(currentFileName: string | null) {
           stationId: meta.weatherStationId,
           name: meta.weatherStationName || meta.weatherStationId,
           distanceKm: meta.weatherStationDistanceKm || 0,
+          source: meta.weatherStationSource,
         });
       } else {
         setCachedWeatherStation(null);
@@ -43,6 +44,7 @@ export function useSessionMetadata(currentFileName: string | null) {
           weatherStationId: station.stationId,
           weatherStationName: station.name,
           weatherStationDistanceKm: station.distanceKm,
+          weatherStationSource: station.source,
         });
       }
     },

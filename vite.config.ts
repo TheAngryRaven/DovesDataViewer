@@ -225,7 +225,7 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,json,nmea}"],
+          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,json,nmea,wasm}"],
           globIgnores: ["**/tracks.zip"],
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [
@@ -259,6 +259,21 @@ export default defineConfig(({ mode }) => {
               handler: "CacheFirst",
               options: {
                 cacheName: "map-tiles-esri",
+                expiration: {
+                  maxEntries: 500,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              // Esri Wayback historical satellite imagery (date-picker tiles).
+              urlPattern: /^https:\/\/wayback\.maptiles\.arcgis\.com\/.*/i,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "map-tiles-wayback",
                 expiration: {
                   maxEntries: 500,
                   maxAgeSeconds: 60 * 60 * 24 * 30,

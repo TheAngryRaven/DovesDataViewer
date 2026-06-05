@@ -1,9 +1,18 @@
-// Weather data service using NWS API for station lookup and IEM ASOS for historical data
+// Weather data service.
+//
+// US sessions: NWS API for station lookup + IEM ASOS for historical METAR (precise,
+// real nearby station). Everywhere else (NWS is US-only): Open-Meteo's free, keyless,
+// global historical reanalysis by lat/lon — see fetchSessionWeather's fallback.
+
+/** Where an observation came from: a real ASOS/METAR station, or Open-Meteo reanalysis. */
+export type WeatherSource = "asos" | "open-meteo";
 
 export interface WeatherStation {
-  stationId: string; // e.g., "KOKC"
-  name: string; // e.g., "Oklahoma City"
+  stationId: string; // e.g., "KOKC", or "open-meteo"
+  name: string; // e.g., "Oklahoma City", or "Open-Meteo"
   distanceKm: number;
+  /** Defaults to "asos" when absent (back-compat with older cached metadata). */
+  source?: WeatherSource;
 }
 
 export interface WeatherData {
@@ -336,8 +345,155 @@ function haversineDistance(
   return R * c;
 }
 
+// ─── Open-Meteo (global, keyless, historical reanalysis) ──────────────────────
+
+const HPA_TO_INHG = 0.0295299830714;
+
+/** The synthetic "station" representing an Open-Meteo point query. */
+export const OPEN_METEO_STATION: WeatherStation = {
+  stationId: "open-meteo",
+  name: "Open-Meteo",
+  distanceKm: 0,
+  source: "open-meteo",
+};
+
+/** Hourly variables requested from Open-Meteo (knots for wind, °C for temp). */
+const OPEN_METEO_HOURLY = [
+  "temperature_2m",
+  "relative_humidity_2m",
+  "pressure_msl",
+  "surface_pressure",
+  "wind_speed_10m",
+  "wind_direction_10m",
+  "wind_gusts_10m",
+].join(",");
+
+function utcDateStamp(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+/** Parse an Open-Meteo UTC hour string ("YYYY-MM-DDTHH:MM") into a Date (cross-browser). */
+export function parseOpenMeteoTime(t: string): Date | null {
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]));
+}
+
+/** Index of the hourly sample closest to `target`, or -1 when none parse. */
+export function pickNearestHourIndex(times: string[], target: Date): number {
+  let best = -1;
+  let bestDiff = Infinity;
+  for (let i = 0; i < times.length; i++) {
+    const d = parseOpenMeteoTime(times[i]);
+    if (!d) continue;
+    const diff = Math.abs(d.getTime() - target.getTime());
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = i;
+    }
+  }
+  return best;
+}
+
 /**
- * Main function to fetch weather for a session
+ * Build the Open-Meteo request URL. Historical reanalysis (ERA5) lags ~5 days, so
+ * older sessions use the archive API and recent ones the forecast API (`past_days`).
+ */
+export function buildOpenMeteoUrl(lat: number, lon: number, date: Date, now: Date = new Date()): string {
+  const ageMs = now.getTime() - date.getTime();
+  const ARCHIVE_AFTER_MS = 6 * 24 * 60 * 60 * 1000; // ERA5 ~5-day lag
+  const common = `latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&hourly=${OPEN_METEO_HOURLY}&timezone=UTC&wind_speed_unit=kn`;
+  if (ageMs > ARCHIVE_AFTER_MS) {
+    const day = utcDateStamp(date);
+    return `https://archive-api.open-meteo.com/v1/archive?${common}&start_date=${day}&end_date=${day}`;
+  }
+  // Recent past / today: forecast endpoint with enough past_days to cover the date.
+  const pastDays = Math.min(92, Math.max(1, Math.ceil(ageMs / (24 * 60 * 60 * 1000)) + 1));
+  return `https://api.open-meteo.com/v1/forecast?${common}&past_days=${pastDays}&forecast_days=1`;
+}
+
+interface Observation {
+  temperatureF: number;
+  temperatureC: number;
+  humidity: number;
+  altimeterInHg: number;
+  windSpeedKts: number | null;
+  windDirectionDeg: number | null;
+  windGustKts: number | null;
+  time: Date;
+}
+
+/** Parse an Open-Meteo JSON response, picking the hour closest to `target`. Pure. */
+export function parseOpenMeteoResponse(json: unknown, target: Date): Observation | null {
+  const hourly = (json as { hourly?: Record<string, unknown> })?.hourly;
+  const times = hourly?.time as string[] | undefined;
+  if (!times || times.length === 0) return null;
+
+  const idx = pickNearestHourIndex(times, target);
+  if (idx < 0) return null;
+
+  const num = (key: string): number | null => {
+    const arr = hourly?.[key] as (number | null)[] | undefined;
+    const v = arr?.[idx];
+    return typeof v === "number" && Number.isFinite(v) ? v : null;
+  };
+
+  const tempC = num("temperature_2m");
+  const rh = num("relative_humidity_2m");
+  const pressureHpa = num("pressure_msl") ?? num("surface_pressure");
+  if (tempC === null || rh === null || pressureHpa === null) return null;
+
+  const obsTime = parseOpenMeteoTime(times[idx]) ?? target;
+  return {
+    temperatureC: Math.round(tempC * 10) / 10,
+    temperatureF: Math.round((tempC * 9) / 5 + 32),
+    humidity: Math.round(rh),
+    altimeterInHg: Math.round(pressureHpa * HPA_TO_INHG * 100) / 100,
+    windSpeedKts: num("wind_speed_10m") === null ? null : Math.round(num("wind_speed_10m")!),
+    windDirectionDeg: num("wind_direction_10m") === null ? null : Math.round(num("wind_direction_10m")!),
+    windGustKts: num("wind_gusts_10m") === null ? null : Math.round(num("wind_gusts_10m")!),
+    time: obsTime,
+  };
+}
+
+/** Fetch global historical weather for a point from Open-Meteo (no API key). */
+export async function fetchOpenMeteoWeather(
+  lat: number,
+  lon: number,
+  sessionDate: Date
+): Promise<WeatherData | null> {
+  try {
+    const response = await fetch(buildOpenMeteoUrl(lat, lon, sessionDate));
+    if (!response.ok) {
+      console.warn("Open-Meteo API failed:", response.status);
+      return null;
+    }
+    const obs = parseOpenMeteoResponse(await response.json(), sessionDate);
+    if (!obs) return null;
+
+    return {
+      station: OPEN_METEO_STATION,
+      temperatureF: obs.temperatureF,
+      temperatureC: obs.temperatureC,
+      humidity: obs.humidity,
+      altimeterInHg: obs.altimeterInHg,
+      densityAltitudeFt: calculateDensityAltitude(obs.temperatureC, obs.altimeterInHg),
+      windSpeedKts: obs.windSpeedKts,
+      windDirectionDeg: obs.windDirectionDeg,
+      windGustKts: obs.windGustKts,
+      observationTime: obs.time,
+    };
+  } catch (error) {
+    console.warn("Failed to fetch Open-Meteo weather:", error);
+    return null;
+  }
+}
+
+/**
+ * Main entry: fetch weather for a session. Tries the precise US path (cached or
+ * freshly-looked-up ASOS station → IEM METAR) first, then falls back to
+ * Open-Meteo's global reanalysis so non-US (and station-less) sessions still get
+ * weather. Returns null only when even the global fallback fails.
  */
 export async function fetchSessionWeather(
   lat: number,
@@ -349,10 +505,15 @@ export async function fetchSessionWeather(
     return null;
   }
 
-  const station = cachedStation ?? (await fetchNearestStation(lat, lon));
-  if (!station) {
-    return null;
+  // A cached Open-Meteo marker skips straight to the global path (no point trying
+  // ASOS again for a known non-US session).
+  if (cachedStation?.source !== "open-meteo") {
+    const station = cachedStation ?? (await fetchNearestStation(lat, lon));
+    if (station) {
+      const data = await fetchWeatherData(station, sessionDate);
+      if (data) return data;
+    }
   }
 
-  return fetchWeatherData(station, sessionDate);
+  return fetchOpenMeteoWeather(lat, lon, sessionDate);
 }

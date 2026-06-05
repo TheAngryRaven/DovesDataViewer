@@ -10,8 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  fetchNearestStation,
-  fetchWeatherData,
+  fetchSessionWeather,
   calculateDensityAltitude,
   WeatherStation,
   WeatherData,
@@ -59,18 +58,13 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
     setWeather(null);
 
     try {
-      const foundStation = await fetchNearestStation(lat, lon);
-      if (!foundStation) {
-        setError("No weather station found near this location.");
-        return;
-      }
-      setStation(foundStation);
-
-      const data = await fetchWeatherData(foundStation, new Date());
+      // US → nearest ASOS station; elsewhere → Open-Meteo global reanalysis.
+      const data = await fetchSessionWeather(lat, lon, new Date());
       if (!data) {
-        setError(`Station ${foundStation.stationId} found but no recent METAR data available.`);
+        setError("Weather is unavailable for this location right now.");
         return;
       }
+      setStation(data.station);
       setWeather(data);
     } catch {
       setError("Failed to fetch weather data. Please try again.");
@@ -252,8 +246,14 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
       {/* Station info */}
       <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border pb-2">
         <span>
-          Station: <span className="font-mono font-medium text-foreground">{weather.station.stationId}</span>
-          {" "}({weather.station.distanceKm} km away)
+          {weather.station.source === "open-meteo" ? (
+            <>Source: <span className="font-medium text-foreground">Open-Meteo</span> (reanalysis)</>
+          ) : (
+            <>
+              Station: <span className="font-mono font-medium text-foreground">{weather.station.stationId}</span>
+              {" "}({weather.station.distanceKm} km away)
+            </>
+          )}
         </span>
         {resolvedLocation && (
           <span className="truncate ml-2 max-w-[150px]" title={resolvedLocation}>

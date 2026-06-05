@@ -1,0 +1,43 @@
+Third-party notices for the bundled AiM XRK/XRZ parser (wasm)
+============================================================
+
+`xrk_wasm_bg.wasm` + `xrk_wasm.js` in this directory are a WebAssembly build of
+libxrk's pure-Rust core, used by Dove's DataViewer to parse AiM .xrk/.xrz
+telemetry files entirely in the browser. Built from source by
+scripts/build-xrk-wasm.sh via the wrapper crate in xrk-wasm/ (which depends on
+libxrk at the revision pinned in xrk-wasm/Cargo.toml). Redistributed under the
+MIT License.
+
+libxrk
+------
+  https://github.com/m3rlin45/libxrk
+  Incorporates code from TrackDataAnalysis (https://github.com/racer-coder/TrackDataAnalysis).
+
+MIT License
+
+(For components copied from TrackDataAnalysis)
+Copyright (c) 2024 Scott Smith
+
+Copyright (c) 2025 Christopher Dewan
+
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The wasm also statically links these MIT/Apache-2.0 Rust crates: binrw, flate2
+(miniz_oxide), wasm-bindgen, serde, serde-wasm-bindgen.

@@ -7,10 +7,12 @@ import { formatLapTime } from '@/lib/lapCalculation';
 import { detectBrakingZones, BrakingZoneConfig } from '@/lib/brakingZones';
 import { unionBounds, cropOverlayLinesToWindow, type OverlayLine } from '@/lib/lapOverlays';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useWaybackImagery } from '@/hooks/useWaybackImagery';
+import { DEFAULT_SATELLITE_TILE_URL } from '@/lib/satelliteImagery';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Moon, Satellite, Square, WifiOff, CloudSun, FileText, X, Crosshair } from 'lucide-react';
+import { Moon, Satellite, Square, WifiOff, CloudSun, FileText, X, Crosshair, List, ChevronDown, ChevronUp, CalendarClock } from 'lucide-react';
 import { WeatherPanel } from '@/components/WeatherPanel';
 import { LocalWeatherDialog } from '@/components/LocalWeatherDialog';
 import { WeatherStation, WeatherData } from '@/lib/weatherService';
@@ -24,7 +26,7 @@ const mapStyleConfig = {
     attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
   },
   satellite: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    url: DEFAULT_SATELLITE_TILE_URL,
     attribution: '&copy; Esri',
   },
   none: null,
@@ -67,6 +69,9 @@ interface RaceLineViewProps {
   /** Whether cross-session overlays are drift-aligned onto the current lap. */
   alignOverlays?: boolean;
   onToggleAlignOverlays?: () => void;
+  /** Expand the overlay legend (per-lap list). Racing lines stay drawn when collapsed. */
+  showOverlayLegend?: boolean;
+  onToggleOverlayLegend?: () => void;
 }
 
 // Get speed color (green -> yellow -> orange -> red)
@@ -148,7 +153,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], currentIndex, course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays, showOverlayLegend = true, onToggleOverlayLegend }: RaceLineViewProps) {
   const { useKph, brakingZoneSettings } = useSettingsContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
   const samplesForStats = allSamples ?? samples;
@@ -188,6 +193,20 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
   }, [isAllLaps]);
   const [showWeather, setShowWeather] = useState(true);
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
+
+  // Satellite imagery date (Esri Wayback). '' = current best-available mosaic.
+  const [satelliteDate, setSatelliteDate] = useState('');
+  const wayback = useWaybackImagery();
+  const loadWayback = wayback.load;
+  // Pull the Wayback release list the first time the user opens satellite view.
+  useEffect(() => {
+    if (mapStyle === 'satellite') loadWayback();
+  }, [mapStyle, loadWayback]);
+  const satelliteTileUrl = useMemo(() => {
+    if (!satelliteDate) return DEFAULT_SATELLITE_TILE_URL;
+    return wayback.releases.find((r) => r.date === satelliteDate)?.tileUrl
+      ?? DEFAULT_SATELLITE_TILE_URL;
+  }, [satelliteDate, wayback.releases]);
 
   // Calculate dropped packets: gaps in sample timestamps larger than expected
   const droppedPacketInfo = useMemo(() => {
@@ -349,14 +368,15 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
     // Add new tile layer if not "none"
     const config = mapStyleConfig[mapStyle];
     if (config) {
-      tileLayerRef.current = L.tileLayer(config.url, {
+      const url = mapStyle === 'satellite' ? satelliteTileUrl : config.url;
+      tileLayerRef.current = L.tileLayer(url, {
         attribution: config.attribution,
         maxZoom: 21,
       }).addTo(map);
       // Move tile layer to bottom
       tileLayerRef.current.bringToBack();
     }
-  }, [mapStyle]);
+  }, [mapStyle, satelliteTileUrl]);
 
   // Update bounds and race line when samples change
   useEffect(() => {
@@ -573,7 +593,20 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
       {/* Multi-lap overlay legend - bottom center */}
       {overlayLines.length > 0 && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[1000] flex max-w-[70%] flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded bg-card/90 backdrop-blur-sm border border-border px-2.5 py-1.5">
-          {onToggleAlignOverlays && overlayLines.some(l => !l.id.startsWith('lap:')) && (
+          {/* Collapse the per-lap list without touching the racing lines — keeps a
+              crowded line-up (5+ overlays) from burying the map under labels. */}
+          {onToggleOverlayLegend && (
+            <button
+              onClick={onToggleOverlayLegend}
+              className={`flex items-center gap-1.5 text-xs font-mono ${showOverlayLegend ? 'text-primary' : 'text-muted-foreground'}`}
+              title={showOverlayLegend ? 'Collapse overlay list' : `Show overlay list (${overlayLines.length})`}
+            >
+              <List className="w-3 h-3 shrink-0" />
+              <span>{showOverlayLegend ? 'Overlays' : `${overlayLines.length} overlay${overlayLines.length === 1 ? '' : 's'}`}</span>
+              {showOverlayLegend ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronUp className="w-3 h-3 shrink-0" />}
+            </button>
+          )}
+          {showOverlayLegend && onToggleAlignOverlays && overlayLines.some(l => !l.id.startsWith('lap:')) && (
             <button
               onClick={onToggleAlignOverlays}
               className={`flex items-center gap-1.5 text-xs font-mono ${alignOverlays ? 'text-primary' : 'text-muted-foreground'}`}
@@ -583,7 +616,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
               <span>Align: {alignOverlays ? 'on' : 'off'}</span>
             </button>
           )}
-          {overlayLines.map(line => (
+          {showOverlayLegend && overlayLines.map(line => (
             <div key={line.id} className="flex items-center gap-1.5 text-xs font-mono">
               <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: line.color }} />
               <span className="truncate max-w-[140px] text-foreground/90">{line.label}</span>
@@ -612,7 +645,35 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], curre
             {mapStyleIcon[mapStyle]}
             <span className="text-xs text-muted-foreground">Map: {mapStyleLabel[mapStyle]}</span>
           </button>
-          
+
+          {/* Satellite imagery date — pick an older Esri Wayback capture to dodge
+              clouds/seasonal cover in the current mosaic (online-only). */}
+          {mapStyle === 'satellite' && (
+            <div className="mb-2 -mt-1 px-2">
+              {!isOnline ? (
+                <p className="text-[11px] text-muted-foreground">Imagery date needs a connection.</p>
+              ) : wayback.error ? (
+                <p className="text-[11px] text-muted-foreground">Imagery dates unavailable.</p>
+              ) : (
+                <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <CalendarClock className="w-3 h-3 shrink-0" />
+                  <select
+                    value={satelliteDate}
+                    onChange={(e) => setSatelliteDate(e.target.value)}
+                    disabled={wayback.loading && wayback.releases.length === 0}
+                    className="flex-1 min-w-0 bg-transparent text-foreground/90 text-[11px] outline-none cursor-pointer"
+                    title="Satellite imagery capture date"
+                  >
+                    <option value="">{wayback.loading ? 'Loading dates…' : 'Latest (default)'}</option>
+                    {wayback.releases.map((r) => (
+                      <option key={r.releaseNum} value={r.date}>{r.date}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+
           <div className="border-t border-border pt-2">
             <div className="flex items-center gap-2">
               <Switch 

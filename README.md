@@ -23,7 +23,7 @@
 
 ## Features
 
-- Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM, Alfano, Dove, Dovex)
+- Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM CSV + XRK/XRZ, Alfano, Dove, Dovex)
 - Automatic track & course detection within 5 miles
 - Automatic driving direction detection (forward/reverse)
 - Waypoint mode — lap timing anywhere, no track needed
@@ -77,9 +77,17 @@ All formats are auto-detected on import:
 | Dovex | DovesDataLogger (extended with metadata) | `.dovex` |
 | Alfano CSV | Alfano ADA app, Off Camber Data | `.csv` |
 | AiM CSV | MyChron 5/6, Race Studio 3 | `.csv` |
+| AiM XRK/XRZ | MyChron / SoloDL native binary | `.xrk`, `.xrz` |
 | MoTeC CSV | MoTeC i2 Pro export | `.csv` |
 | MoTeC LD | MoTeC native binary | `.ld` |
 | NMEA | Standard GPS sentences | `.nmea`, `.txt`, `.csv` |
+
+> **AiM XRK/XRZ** is parsed by [libxrk](https://github.com/m3rlin45/libxrk)'s
+> pure-Rust core **compiled to a small (~200 KB) WebAssembly module** — no
+> Pyodide, no Python. It runs entirely **client-side** in a Web Worker, is fully
+> **offline** (the wasm is precached), and parses a typical session in tens to a
+> couple hundred milliseconds. See
+> [AiM XRK / XRZ import](#aim-xrk--xrz-import) for how the wasm is built and pinned.
 
 ---
 
@@ -90,7 +98,7 @@ All formats are auto-detected on import:
 | Framework | React 18 + TypeScript |
 | Build | Vite |
 | Styling | Tailwind CSS + shadcn/ui |
-| Mapping | Leaflet (OpenStreetMap) |
+| Mapping | Leaflet (CARTO basemaps + Esri World Imagery / Wayback) |
 | Charts | Custom Canvas 2D renderer |
 | Video Export | WebCodecs + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) (H.264 MP4) |
 | State | React Query |
@@ -436,17 +444,65 @@ Release history is tracked in **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
+## AiM XRK / XRZ import
+
+AiM's native binary logs (`.xrk`, and zlib-compressed `.xrz`) are parsed
+**entirely in the browser** by [libxrk](https://github.com/m3rlin45/libxrk)'s
+**pure-Rust core compiled to WebAssembly** (no Pyodide, no Python). No server
+round-trip; nothing is uploaded. XRK behaves like every other format — fast,
+fully offline, and usable as the main session, a reference, or an overlay.
+
+**How it runs (`src/lib/xrk/`):**
+
+- The wasm module (`src/lib/xrk/wasm/`, ~200 KB, precached) is instantiated in a
+  **Web Worker** the first time an XRK/XRZ file is parsed, so building a large
+  session's arrays never freezes the UI.
+- `xrkWorker.ts` runs libxrk on the uploaded bytes, then `xrkResample.ts` (pure,
+  unit-tested) aligns every channel onto the GPS timebase (interpolate vs
+  forward-fill per channel), and the worker ships the result back as transferable
+  `Float64Array` buffers.
+- `xrkMapping.ts` (pure, unit-tested) turns those channels into the app's
+  `ParsedData` — GPS Latitude/Longitude/Speed become the sample primaries; the
+  rest map to the canonical channel registry (`channels.ts`).
+- Progress (load → parse → align) is surfaced in the import UI.
+
+**Page weight & timing** (3.1 MB `.xrk` / 4.4 MB `.xrz`, measured in Node — the
+browser is comparable):
+
+| Cost | When | Size / time |
+|------|------|-------------|
+| App bundle delta | every load | ~negligible — a few KB of eager glue; the worker is a separate ~6 KB lazy chunk |
+| libxrk wasm (`src/lib/xrk/wasm/`) | first XRK import (precached) | **~200 KB** (~81 KB gzipped), instantiate in ~tens of ms |
+| Parse | per file | **~0.1 s** (3.1 MB / 4.7k samples) · **~0.3 s** (4.4 MB / 42k samples) |
+
+**Building / updating the wasm.** The artifacts are committed under
+`src/lib/xrk/wasm/`, built from libxrk's pure-Rust core via the thin wrapper
+crate in `xrk-wasm/` (which pins the libxrk revision in `xrk-wasm/Cargo.toml`).
+To rebuild (e.g. to bump libxrk), run:
+
+```bash
+scripts/build-xrk-wasm.sh   # needs rustup + (auto-downloads) wasm-bindgen
+```
+
+Bump the libxrk `rev` in `xrk-wasm/Cargo.toml` + the `wasm-bindgen` version in
+the build script together, then re-run it and commit the regenerated artifacts.
+License notices for libxrk + TrackDataAnalysis ship at
+`src/lib/xrk/wasm/THIRD-PARTY-NOTICES.txt`.
+
+---
+
 ## Credits
 
 Built on the shoulders of these incredible open-source projects and free services:
 
 - [React](https://react.dev) · [Vite](https://vite.dev) · [TypeScript](https://www.typescriptlang.org)
 - [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
-- [Leaflet](https://leafletjs.com) · [OpenStreetMap](https://www.openstreetmap.org)
+- [Leaflet](https://leafletjs.com) · [CARTO basemaps](https://carto.com) · [Esri World Imagery & Wayback](https://livingatlas.arcgis.com/wayback/) (satellite + historical imagery dates)
 - [TanStack Query](https://tanstack.com/query) · [Sonner](https://sonner.emilkowal.dev) · [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels)
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) · [Savitzky-Golay (ml.js)](https://github.com/mljs/savitzky-golay) · [JSZip](https://stuk.github.io/jszip) · [fix-webm-duration](https://github.com/yusitnikov/fix-webm-duration)
-- [IEM ASOS (Iowa State)](https://mesonet.agron.iastate.edu) · [NWS API](https://www.weather.gov/documentation/services-web-api)
+- [IEM ASOS (Iowa State)](https://mesonet.agron.iastate.edu) · [NWS API](https://www.weather.gov/documentation/services-web-api) · [Open-Meteo](https://open-meteo.com) (global weather fallback, CC-BY 4.0)
 - [MoTeC i2](https://www.motec.com.au) (file format reference)
+- [libxrk](https://github.com/m3rlin45/libxrk) (MIT) + [TrackDataAnalysis](https://github.com/racer-coder/TrackDataAnalysis) (MIT) — AiM XRK/XRZ parser (Rust → WebAssembly)
 
 Optional admin backend powered by [Supabase](https://supabase.com) via Lovable Cloud.
 

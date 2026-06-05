@@ -18,6 +18,8 @@ export interface FileMetadata {
   weatherStationId?: string;
   weatherStationName?: string;
   weatherStationDistanceKm?: number;
+  /** "asos" (NWS/IEM) or "open-meteo" (global reanalysis); absent = "asos". */
+  weatherStationSource?: "asos" | "open-meteo";
   // Session kart/setup link
   sessionKartId?: string;
   sessionSetupId?: string;

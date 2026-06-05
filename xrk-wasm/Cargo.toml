@@ -1,0 +1,26 @@
+[package]
+name = "xrk-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "wasm-bindgen wrapper exposing libxrk's pure-Rust AiM XRK/XRZ parser to the browser."
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.122"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+# libxrk's pure-Rust core (no Python). Pinned by rev; bump in lockstep with the
+# committed artifacts in src/lib/xrk/wasm/ (see scripts/build-xrk-wasm.sh).
+libxrk = { git = "https://github.com/m3rlin45/libxrk", rev = "fc6ca43e5073b507868d15dac21198065fd7fa33", package = "libxrk" }
+
+# Small, fast wasm: optimise for size, abort on panic (no unwinding tables).
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

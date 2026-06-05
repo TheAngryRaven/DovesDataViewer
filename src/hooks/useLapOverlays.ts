@@ -9,7 +9,7 @@ import {
 } from '@/lib/lapOverlays';
 import { alignLapToReference } from '@/lib/lapAlignment';
 import { getFile } from '@/lib/fileStorage';
-import { parseDatalogContent } from '@/lib/datalogParser';
+import { parseDatalogFile } from '@/lib/datalogParser';
 import { calculateLaps, formatLapTime } from '@/lib/lapCalculation';
 
 interface UseLapOverlaysArgs {
@@ -43,6 +43,10 @@ export function useLapOverlays({
   const [overlaySelections, setOverlaySelections] = useState<string[]>([]);
   const [externalOverlays, setExternalOverlays] = useState<Record<string, ExternalOverlay>>({});
   const [alignOverlays, setAlignOverlays] = useState(true);
+  // View-only toggle: collapse the overlay *legend* (the per-lap list shown on
+  // the maps) without touching the racing lines themselves, so a crowded line-up
+  // (5+ overlays) doesn't bury the map under labels. Lines stay drawn.
+  const [showOverlayLegend, setShowOverlayLegend] = useState(true);
   // Parsed external files (samples + laps) cached by name, for the picker.
   const parsedFiles = useRef<Map<string, { samples: GpsSample[]; laps: Lap[] }>>(new Map());
 
@@ -69,6 +73,7 @@ export function useLapOverlays({
 
   const clearOverlays = useCallback(() => setOverlaySelections([]), []);
   const toggleAlignOverlays = useCallback(() => setAlignOverlays((v) => !v), []);
+  const toggleOverlayLegend = useCallback(() => setShowOverlayLegend((v) => !v), []);
 
   // Load another saved file and compute its laps for the current course (for the
   // overlay picker). Returns the lap list, or null when it can't be used.
@@ -80,7 +85,9 @@ export function useLapOverlays({
 
       const blob = await getFile(fileName);
       if (!blob) return null;
-      const parsed = parseDatalogContent(await blob.arrayBuffer());
+      // Async parse so binary formats that need a worker (AiM XRK/XRZ) work as
+      // overlay sources too; results are cached above so this runs once per file.
+      const parsed = await parseDatalogFile(new File([blob], fileName));
       const computed = calculateLaps(parsed.samples, selectedCourse);
       if (computed.length === 0) return null;
 
@@ -132,6 +139,8 @@ export function useLapOverlays({
     clearOverlays,
     alignOverlays,
     toggleAlignOverlays,
+    showOverlayLegend,
+    toggleOverlayLegend,
     loadOverlayFile,
     addExternalOverlay,
   };

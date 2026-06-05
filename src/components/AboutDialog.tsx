@@ -28,7 +28,7 @@ const SECTIONS: Array<{ heading: string; body: React.ReactNode }> = [
 ];
 
 const FEATURES = [
-  "Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM, Alfano, Dove, Dovex)",
+  "Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM CSV + XRK/XRZ, Alfano, Dove, Dovex)",
   "Automatic track & course detection within 5 miles",
   "Automatic driving direction detection (forward/reverse)",
   "Waypoint mode — lap timing anywhere, no track needed",

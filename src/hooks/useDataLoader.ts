@@ -106,12 +106,15 @@ export function useDataLoader({
       let restoredFromMeta = false;
       if (fileName) {
         const meta = await getFileMetadata(fileName);
+        // Always record the session start time when the file carries one, so the
+        // browser shows a date/time name (and the weather lookup has a timestamp)
+        // even for *untagged* sessions whose track isn't in the database yet —
+        // common for AiM XRK logs from unknown venues. updateFileMetadata creates
+        // the row if there isn't one.
+        if (parsedData.startDate && (!meta || meta.sessionStartTime == null)) {
+          updateFileMetadata(fileName, { sessionStartTime: parsedData.startDate.getTime() });
+        }
         if (meta) {
-          // Backfill the session start time for files saved before this existed,
-          // so the browser's date/time display name works on older logs too.
-          if (meta.sessionStartTime == null && parsedData.startDate) {
-            updateFileMetadata(fileName, { sessionStartTime: parsedData.startDate.getTime() });
-          }
           const tracks = await loadTracks();
           const track = tracks.find((t) => t.name === meta.trackName);
           const course = track?.courses.find((c) => c.name === meta.courseName);

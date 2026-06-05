@@ -83,6 +83,9 @@ export interface SessionContextValue {
   /** Drift-align cross-session overlays onto the current lap (map only). */
   alignOverlays: boolean;
   onToggleAlignOverlays: () => void;
+  /** Expand the overlay legend (per-lap list) on the maps. Lines stay drawn when collapsed. */
+  showOverlayLegend: boolean;
+  onToggleOverlayLegend: () => void;
   /** Load another saved file's laps for the overlay picker. */
   onLoadOverlayFile: (fileName: string) => Promise<Array<{ lapNumber: number; lapTimeMs: number }> | null>;
   /** Add a lap from a loaded external file as an overlay. */

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { ParsedData, Lap, GpsSample, Course } from "@/types/racing";
 import { FileEntry, listFiles, getFile } from "@/lib/fileStorage";
-import { parseDatalogContent } from "@/lib/datalogParser";
+import { parseDatalogFile } from "@/lib/datalogParser";
 import { calculateLaps, formatLapTime } from "@/lib/lapCalculation";
 import { calculateReferenceSpeed } from "@/lib/referenceUtils";
 import { computeLapPace, type DeltaMethod } from "@/lib/lapDelta";
@@ -176,8 +176,9 @@ export function useExternalReference(selectedCourse: Course | null) {
       const blob = await getFile(fileName);
       if (!blob) return null;
 
-      const arrayBuffer = await blob.arrayBuffer();
-      const parsed = parseDatalogContent(arrayBuffer);
+      // Async parse so worker-backed binary formats (AiM XRK/XRZ) can be used as
+      // a reference source too; the result is cached on externalParsedRef below.
+      const parsed = await parseDatalogFile(new File([blob], fileName));
       const computedLaps = calculateLaps(parsed.samples, selectedCourse);
 
       if (computedLaps.length === 0) return null;

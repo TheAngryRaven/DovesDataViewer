@@ -50,6 +50,8 @@ export const GraphViewTab = memo(function GraphViewTab() {
       onRemoveOverlay={s.onToggleOverlay}
       alignOverlays={s.alignOverlays}
       onToggleAlignOverlays={s.onToggleAlignOverlays}
+      showOverlayLegend={s.showOverlayLegend}
+      onToggleOverlayLegend={s.onToggleOverlayLegend}
     />
   );
 });

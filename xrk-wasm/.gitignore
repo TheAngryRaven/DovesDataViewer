@@ -1,0 +1,4 @@
+# Cargo.lock — the wasm wrapper is built out-of-band (see scripts/build-xrk-wasm.sh),
+# not by the JS toolchain or CI, so the lockfile isn't required in-repo.
+/target
+Cargo.lock

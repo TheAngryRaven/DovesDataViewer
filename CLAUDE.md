@@ -55,7 +55,7 @@ will read it tomorrow.
 | Framework | React 18 + TypeScript |
 | Build | Vite + vite-plugin-pwa (`/service-worker.js` active SW, `/sw.js` cleanup kill-switch) |
 | Styling | Tailwind CSS + shadcn/ui (HSL design tokens in `index.css`) |
-| Mapping | Leaflet (CartoDB + Esri tiles, cached 30 days by SW) |
+| Mapping | Leaflet (CartoDB + Esri tiles, cached 30 days by SW; satellite view has an Esri **Wayback** imagery-date picker — `lib/satelliteImagery.ts` — to dodge cloud cover) |
 | Charts | Custom Canvas 2D (not a library — see `TelemetryChart.tsx`, `SingleSeriesChart.tsx`) |
 | Video Export | WebCodecs + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) (H.264 video + AAC audio → MP4 output) |
 | State | React hooks + React Query (for admin only) |
@@ -97,11 +97,15 @@ src/
 │   ├── useLapSnapshots.ts # ★ Lap-snapshot orchestration (capture/prompt/overlay)
 │   ├── useLapOverlays.ts  # Multi-lap map-overlay selection (lap/snapshot ids → OverlayLine[])
 │   ├── useReferenceLap / useVideoSync / useSettings / useSessionMetadata / useOnlineStatus
+│   ├── useWaybackImagery.ts# Lazy-loads the Esri Wayback release list on first open of the satellite imagery-date picker (off the initial path; never runs offline)
 │   ├── use*Manager.ts     # IndexedDB CRUD: File, Vehicle (←Kart compat), Engine, Template, Note, Setup
 │   └── useSubscription / useStripePrices   # billing, online — see docs/backend.md
 ├── lib/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
 │   ├── *Parser.ts         # nmea, ubx, vbo, dove, dovex, alfano, aim, motec (+ parserUtils.ts)
+│   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk core (Rust→WASM) in a Web Worker
+│   │                      #   (xrkImporter entry, xrkWorker, xrkClient, pure xrkResample + xrkMapping,
+│   │                      #    xrkConfig/Types, committed wasm/ build artifacts)
 │   ├── channels.ts        # ★ Canonical channel registry (ids/labels/units/aliases) + normalizeChannels()
 │   ├── fieldResolver.ts   # Settings-facing adapter over channels.ts
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode
@@ -118,17 +122,19 @@ src/
 │   ├── submittedTracksStorage.ts # localStorage record of already-submitted course hashes (dedupe)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
 │   ├── garageEvents.ts    # ★ Host pub/sub: storage emits {store,key,put|delete}; cloud-sync syncs off it
+│   ├── fileLoadingState.ts # ★ Host pub/sub for the global file-load overlay; parseDatalogFile brackets begin/end
 │   ├── *Storage.ts        # IDB stores: file, kart(compat), vehicle, engine, template, note, setup,
 │   │                      #   video, videoFile, graphPrefs; trackStorage = localStorage (user tracks)
 │   ├── (racing math)      # brakingZones, speedEvents, speedBounds, gforceCalculation, referenceUtils, trackUtils
 │   ├── (charts/video)     # chartUtils, chartColors, videoExport, overlayCanvasRenderer
+│   ├── satelliteImagery.ts # ★ Pure Esri Wayback parsing: waybackconfig.json → date-sorted release list + Leaflet tile URLs (online-only satellite imagery-date picker; useWaybackImagery hook lazy-loads it)
 │   ├── ble/               # Web Bluetooth DovesLapTimer protocol, split per-concern (see BLE Integration);
 │   │                      #   + bleDatalogger.ts (legacy barrel), deviceTrackSync.ts, deviceSettingsSchema.ts
 │   ├── db/                # Admin DB layer: ITrackDatabase + supabaseAdapter + getDatabase() factory
 │   ├── billing.ts         # ★ Pure subscription logic (tiers, coming-soon, annual-discount math), no Supabase import — see docs/backend.md
 │   ├── billingClient.ts / pendingCheckout.ts   # Supabase billing I/O + sign-up checkout stash
 │   ├── profanity.ts       # Basic client-side profanity filter for display names
-│   ├── weatherService.ts  # OpenWeatherMap (online-only)
+│   ├── weatherService.ts  # Historical weather (online-only): US → NWS station + IEM ASOS METAR; else → Open-Meteo reanalysis fallback (keyless, global). fetchSessionWeather orchestrates.
 │   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time + amber preview-DB warning via isPreviewBuild(); values injected by vite define)
 │   └── utils.ts           # Tailwind cn() helper
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section
@@ -277,7 +283,37 @@ Each parser exports two functions:
 3. Update `README.md` supported formats table
 4. Update this file's architecture map
 
-Detection order matters: binary formats first (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM → NMEA fallback).
+Detection order matters: AiM XRK/XRZ first (binary, by extension/`<h` magic), then other binary formats (MoTeC LD → UBX), then text formats from most-specific to least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM CSV → NMEA fallback).
+
+### AiM XRK/XRZ (`src/lib/xrk/`) — the async exception (wasm)
+
+AiM's native binary logs don't fit the sync `parseXxxFile` contract: they're
+parsed by **libxrk's pure-Rust core compiled to WebAssembly** (no Pyodide/
+Python), run in a Web Worker. Flow: `isXrkFile()` (extension or `<h` magic) →
+`parseXrkFile(file, onProgress?)` → worker (`xrkWorker.ts`) instantiates the wasm
+(`wasm/`, precached) once, calls `parse_xrk(bytes)` → pure `xrkResample.ts`
+aligns native-rate channels onto the GPS timebase (interpolate vs forward-fill
+per channel) → transferable `Float64Array`s → pure `xrkMapping.ts` builds
+`ParsedData` (then the router's `normalizeChannels` canonicalises it). Key facts:
+
+- **Parsing is async only** (worker), so it's reached via `parseDatalogFile()`.
+  Every "load a file" path uses that: FileImport, reopen from FilesTab, **and the
+  reference/overlay loaders** (`useReferenceLap`/`useLapOverlays` parse saved
+  files via `parseDatalogFile(new File([blob], name))`, cached per file). So XRK
+  works as main session, reference, and overlay. Snapshots use the loaded
+  session's samples, so they work too. The sync `parseDatalogContent()` still
+  throws for XRK as a safety net — its only callers (BLE, bundled sample) are
+  never XRK.
+- **Fully offline + fast.** The ~200 KB wasm is **precached** (`wasm` is in the
+  SW `globPatterns`); no network, no runtime download. Typical parse is tens to a
+  couple hundred ms.
+- **Built from source, committed.** `xrk-wasm/` is a thin `wasm-bindgen` wrapper
+  crate over libxrk's core, pinned to a libxrk `rev` in its `Cargo.toml`.
+  `scripts/build-xrk-wasm.sh` builds it → commits `src/lib/xrk/wasm/`
+  (`xrk_wasm.js` glue + `xrk_wasm_bg.wasm`). CI is JS-only and never builds Rust.
+  Licenses: `src/lib/xrk/wasm/THIRD-PARTY-NOTICES.txt`.
+- `onProgress` is threaded `parseDatalogFile` → router → `parseXrkFile` (XRK
+  only); other formats ignore it.
 
 ---
 
@@ -685,8 +721,12 @@ toggle. **Cross-session overlays (`snap:`/`file:`) can be drift-aligned** onto t
 current lap via `lib/lapAlignment.ts` (2D Kabsch rigid registration, map-only —
 charts compare by distance and are transform-invariant); same-session `lap:`
 overlays are never transformed. The **Align lines** toggle lives on the map
-legend (`useLapOverlays.alignOverlays`, default on). **The current lap always
-renders on top** —
+legend (`useLapOverlays.alignOverlays`, default on). A sibling **collapse-legend**
+toggle (`useLapOverlays.showOverlayLegend`, default on; same legend on both
+`RaceLineView` + `MiniMap`) folds the per-lap *list* down to a compact "N overlays"
+pill so a crowded 5+ line-up doesn't bury the map under labels — the racing lines
+themselves stay drawn (it hides only the legend chrome, not the overlays).
+**The current lap always renders on top** —
 maps put overlays in a layer beneath the current heatmap; charts draw overlay
 traces before the current line. Chart overlays distance-align each lap onto the
 current lap via `alignByDistance` (`referenceUtils.ts`), over the full lap then

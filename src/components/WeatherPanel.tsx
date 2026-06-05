@@ -3,8 +3,6 @@ import { Cloud, Thermometer, Droplets, Gauge, Wind, Mountain, Navigation } from 
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchSessionWeather,
-  fetchWeatherData,
-  fetchNearestStation,
   isValidGpsPoint,
   WeatherData,
   WeatherStation,
@@ -65,34 +63,19 @@ export function WeatherPanel({
     const doFetch = async () => {
       setLoading(true);
       try {
-        if (cachedStation) {
-          // Skip NWS lookup, go straight to weather data
-          const data = await fetchWeatherData(cachedStation, sessionDate);
-          if (!cancelled) {
-            if (data) {
-              setWeather(data);
-              onWeatherLoadedRef.current?.(data);
-              setError(false);
-            }
-          }
+        // One call: cached/US-ASOS path with an automatic global (Open-Meteo)
+        // fallback, so non-US sessions still resolve.
+        const data = await fetchSessionWeather(lat, lon, sessionDate, cachedStation);
+        if (cancelled) return;
+        if (data) {
+          setWeather(data);
+          onWeatherLoadedRef.current?.(data);
+          // Cache the resolved source (real station or the Open-Meteo marker) so
+          // the next open skips re-resolving it.
+          if (!cachedStation) onStationResolvedRef.current?.(data.station);
+          setError(false);
         } else {
-          // Full lookup: find station then fetch weather
-          const station = await fetchNearestStation(lat, lon);
-          if (cancelled) return;
-          if (!station) {
-            setError(true);
-            return;
-          }
-          // Notify parent so it can cache the station
-          onStationResolvedRef.current?.(station);
-          const data = await fetchWeatherData(station, sessionDate);
-          if (!cancelled) {
-            if (data) {
-              setWeather(data);
-              onWeatherLoadedRef.current?.(data);
-              setError(false);
-            }
-          }
+          setError(true);
         }
       } catch (e) {
         if (!cancelled) {
@@ -129,7 +112,7 @@ export function WeatherPanel({
         <span>Weather</span>
         {weather && (
           <span className="text-muted-foreground ml-auto font-mono text-[10px]">
-            {weather.station.stationId}
+            {weather.station.source === "open-meteo" ? "Open-Meteo" : weather.station.stationId}
           </span>
         )}
       </div>
