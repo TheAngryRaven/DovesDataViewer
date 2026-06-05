@@ -13,13 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-06-05
+
 ### Added
 - **iRacing telemetry (`.ibt`) import.** You can now drop iRacing's native binary
   telemetry file straight into the viewer — no third-party conversion to CSV or
   MoTeC needed. The `.ibt` is parsed directly (in-browser, offline) into the same
   GPS-first session as every other format: position/speed/altitude drive the map
   and laps, with throttle, brake, gear, steering, RPM, water/oil temp and native
-  lateral/longitudinal g available as channels.
+  lateral/longitudinal g available as channels. It's also listed in the
+  **Supported Files** dialog (under the AiM binary format).
+
 ### Fixed
 - **AiM RaceStudio 3 CSV files now import.** RS3 exports (e.g. MyChron via Race
   Studio 3) use space-delimited channel names (`GPS Speed`) and put the channel
