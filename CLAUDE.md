@@ -130,6 +130,8 @@ src/
 │   ├── satelliteImagery.ts # ★ Pure Esri Wayback parsing: waybackconfig.json → date-sorted release list + Leaflet tile URLs (online-only satellite imagery-date picker; useWaybackImagery hook lazy-loads it)
 │   ├── ble/               # Web Bluetooth DovesLapTimer protocol, split per-concern (see BLE Integration);
 │   │                      #   + bleDatalogger.ts (legacy barrel), deviceTrackSync.ts, deviceSettingsSchema.ts
+│   │   └── dfu/           # ★ Firmware update over BLE (legacy Nordic DFU): firmwareManifest (fetch+pure compare/pick),
+│   │                      #   dfuPackage (jszip unpack), version (DIS read), dfuProtocol (transfer state machine), dfuTransport (buttonless trigger+reconnect)
 │   ├── db/                # Admin DB layer: ITrackDatabase + supabaseAdapter + getDatabase() factory
 │   ├── billing.ts         # ★ Pure subscription logic (tiers, coming-soon, annual-discount math), no Supabase import — see docs/backend.md
 │   ├── billingClient.ts / pendingCheckout.ts   # Supabase billing I/O + sign-up checkout stash
@@ -611,6 +613,37 @@ LIST → select file → GET:filename → receive SIZE → stream data chunks �
 - `BATT` → device responds `BATT:<percent>,<voltage>` on fileStatus (e.g., `BATT:85,3.98`). 5s timeout.
 
 Settings schema is defined in `src/lib/deviceSettingsSchema.ts` — maps keys to labels, types, and validation rules. Unknown keys from the device are displayed as raw string fields (forward-compatible).
+
+### Firmware update over BLE — DFU (`src/lib/ble/dfu/`)
+
+The logger (Seeed XIAO nRF52840, Adafruit nRF52 core) is flashed in-app over Web
+Bluetooth using the **legacy** Nordic DFU protocol (not Secure DFU). The app is a
+pure consumer of **standard** services — no custom characteristic, no firmware
+change. Full design + hardware verification in
+[`docs/plans/firmware-bluetooth-dfu.md`](docs/plans/firmware-bluetooth-dfu.md).
+
+- **Check version** — read the standard **Device Information Service** (`0x180A`):
+  Firmware Revision (`0x2A26`) → version, Model Number (`0x2A24`,
+  `"BirdsEye-<variant>"`) → variant (which selects the manifest build).
+  `version.ts`; `0x180A` is added to `connectToDevice()`'s `optionalServices`.
+- **Manifest** — `firmwareManifest.ts`: fetch the online OTA index
+  (`theangryraven.github.io/.../manifest.json`, override
+  `VITE_FIRMWARE_MANIFEST_URL`) + pure `compareVersions`/`isUpdateAvailable`/
+  `pickBuildForVariant`. Online-only (a documented exception); a local `.zip`
+  sideload stays offline.
+- **Package** — `dfuPackage.ts`: unzip a `dfuZip` with `jszip` → `{ image (.bin),
+  initPacket (.dat), meta }`.
+- **Trigger + reconnect** — `dfuTransport.ts`: `triggerDfuMode()` writes
+  `0x01` to the Adafruit buttonless DFU control point (service
+  `00001530-…-785FEABCD123`) → board reboots into bootloader; `connectToDfu()`
+  reconnects to the bootloader's DFU service (needs a fresh `requestDevice`
+  gesture).
+- **Flash** — `dfuProtocol.ts`: `flashFirmware(transport, pkg, opts)` runs the
+  legacy DFU transfer (Start → init packet → PRN-flow-controlled image stream →
+  validate → activate&reset) with `onProgress` + `AbortSignal`. Pure/testable
+  against a mocked control-point/packet pair.
+
+UI is **not built yet** (a Device "Firmware" sub-tab is the planned home).
 
 ---
 

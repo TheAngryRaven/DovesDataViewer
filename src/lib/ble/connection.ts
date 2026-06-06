@@ -2,6 +2,8 @@
 
 import type { BleConnection } from "./types";
 import { SERVICE_UUID, FILE_LIST_CHAR, FILE_REQUEST_CHAR, FILE_DATA_CHAR, FILE_STATUS_CHAR } from "./internal";
+import { DFU_SERVICE_UUID } from "./dfu/dfuTypes";
+import { DIS_SERVICE_UUID } from "./dfu/version";
 
 /** Check if Web Bluetooth is available in the current browser. */
 export function isBleSupported(): boolean {
@@ -18,6 +20,9 @@ export async function connectToDevice(
 
   const device = await navigator.bluetooth.requestDevice({
     filters: [{ services: [SERVICE_UUID] }],
+    // DIS (firmware version/variant) + the buttonless DFU service must be listed
+    // so they're reachable on this same connection (version check + reboot-to-DFU).
+    optionalServices: [DIS_SERVICE_UUID, DFU_SERVICE_UUID],
   });
 
   updateStatus("Connecting...");

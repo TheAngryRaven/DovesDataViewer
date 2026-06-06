@@ -62,7 +62,7 @@ export async function flushMicrotasks(): Promise<void> {
   for (let i = 0; i < 8; i++) await Promise.resolve();
 }
 
-function createMockCharacteristic(): MockedChar {
+export function createMockCharacteristic(): MockedChar {
   // Use a plain object built around an EventTarget. EventTarget gives us
   // addEventListener / removeEventListener / dispatchEvent for free.
   const target = new EventTarget();
@@ -87,6 +87,11 @@ function createMockCharacteristic(): MockedChar {
           : new Uint8Array(data);
       // Copy so later mutations to the source don't change what we recorded
       written.push(new Uint8Array(bytes));
+    },
+    // Write-without-response (used by the DFU packet characteristic). Recorded
+    // into the same `written` log so tests can assert on packet payloads.
+    async writeValueWithoutResponse(data: BufferSource) {
+      await this.writeValue(data);
     },
     get value(): DataView | null {
       return currentValue;
