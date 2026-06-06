@@ -90,11 +90,24 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
                 </DialogTitle>
                 <DialogDescription asChild>
                   <div className="space-y-2 pt-1 text-left">
-                    <p>
-                      A new firmware version
-                      {fw.latestVersion ? ` (v${fw.latestVersion})` : ""} is available
-                      {fw.info?.version ? ` — you're on v${fw.info.version}.` : "."}
-                    </p>
+                    {fw.forced ? (
+                      <p>
+                        Flashing firmware
+                        {fw.latestVersion ? ` v${fw.latestVersion}` : ""}
+                        {fw.info?.version ? ` (current: v${fw.info.version}).` : "."}
+                      </p>
+                    ) : (
+                      <p>
+                        A new firmware version
+                        {fw.latestVersion ? ` (v${fw.latestVersion})` : ""} is available
+                        {fw.info?.version ? ` — you're on v${fw.info.version}.` : "."}
+                      </p>
+                    )}
+                    {fw.forced && (
+                      <p className="rounded-md bg-warning/10 px-2 py-1 text-xs text-warning">
+                        On beta branches updates always push through for testing.
+                      </p>
+                    )}
                     <p className="font-medium text-foreground">Before you start:</p>
                     <ul className="list-disc pl-5 space-y-1">
                       <li>Make sure the logger's battery is well charged.</li>

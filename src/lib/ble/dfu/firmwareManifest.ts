@@ -129,6 +129,7 @@ export function isUpdateAvailable(
 /** Why an update is / isn't offered (drives user-facing messaging). */
 export type FirmwareUpdateReason =
   | "update" // a newer build is available
+  | "forced" // version check bypassed (e.g. a beta/preview build) — always offered
   | "up-to-date" // installed >= latest
   | "no-version" // couldn't read the installed version
   | "no-build"; // no manifest build matches the device variant
@@ -146,16 +147,18 @@ export interface FirmwareUpdateEvaluation {
 /**
  * Decide whether an update is available for a device, given its reported
  * firmware info and the fetched manifest. Pure — no I/O.
+ *
+ * `force` (used on beta/preview builds) bypasses the version comparison: as long
+ * as a build matches the device variant, the update is always offered so testers
+ * can re-flash the same or an older version.
  */
 export function evaluateFirmwareUpdate(
   info: { version: string | null; variant: string | null },
   manifest: FirmwareManifest,
+  options?: { force?: boolean },
 ): FirmwareUpdateEvaluation {
   const build = pickBuildForVariant(manifest, info.variant);
   const latestVersion = manifest.version;
-  if (!info.version) {
-    return { available: false, reason: "no-version", build, latestVersion, installedVersion: null };
-  }
   if (!build) {
     return {
       available: false,
@@ -164,6 +167,12 @@ export function evaluateFirmwareUpdate(
       latestVersion,
       installedVersion: info.version,
     };
+  }
+  if (options?.force) {
+    return { available: true, reason: "forced", build, latestVersion, installedVersion: info.version };
+  }
+  if (!info.version) {
+    return { available: false, reason: "no-version", build, latestVersion, installedVersion: null };
   }
   const available = isUpdateAvailable(info.version, latestVersion);
   return {

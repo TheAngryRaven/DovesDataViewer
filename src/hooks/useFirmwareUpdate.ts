@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { BleConnection } from "@/lib/bleDatalogger";
 import { useDeviceContext } from "@/contexts/DeviceContext";
+import { isPreviewBuild } from "@/lib/buildInfo";
 import {
   connectToDfuDevice,
   evaluateFirmwareUpdate,
@@ -50,6 +51,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   const [checking, setChecking] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [pendingBuild, setPendingBuild] = useState<FirmwareBuild | null>(null);
+  const [forced, setForced] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [flashing, setFlashingLocal] = useState(false);
@@ -87,9 +89,14 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
       if (current !== info) setInfo(current);
       const manifest = await fetchFirmwareManifest();
       setLatestVersion(manifest.version);
-      const evaluation = evaluateFirmwareUpdate(current, manifest);
+      // On beta/preview builds the version check is bypassed so testers can
+      // always re-flash (same as our other non-main behaviors).
+      const evaluation = evaluateFirmwareUpdate(current, manifest, {
+        force: isPreviewBuild(),
+      });
       if (evaluation.available && evaluation.build) {
         setPendingBuild(evaluation.build);
+        setForced(evaluation.reason === "forced");
         setConfirmOpen(true);
         return;
       }
@@ -114,6 +121,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   const cancel = useCallback(() => {
     setConfirmOpen(false);
     setPendingBuild(null);
+    setForced(false);
   }, []);
 
   const startUpdate = useCallback(async () => {
@@ -192,6 +200,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     checking,
     latestVersion,
     pendingBuild,
+    forced,
     confirmOpen,
     flashing,
     phase,

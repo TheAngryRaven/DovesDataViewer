@@ -653,6 +653,12 @@ Orchestrated by `hooks/useFirmwareUpdate.ts`; the actual flash is marked on
 `DeviceContext` (`isFlashing`/`setFlashing`) so the expected BLE drop when the
 device reboots into its bootloader doesn't tear down the UI mid-update.
 
+On **beta/preview builds** (`isPreviewBuild()`, i.e. any non-`main` branch — same
+switch as the footer/preview-DB), `evaluateFirmwareUpdate(…, { force: true })`
+**bypasses the version check** so a matching build is always offered (testers can
+re-flash the same/older version); the confirm dialog shows an amber "on beta
+branches updates always push through for testing" note.
+
 ---
 
 ## Device Track Sync (`src/lib/deviceTrackSync.ts`)

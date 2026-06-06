@@ -149,6 +149,32 @@ describe("evaluateFirmwareUpdate", () => {
     const e = evaluateFirmwareUpdate({ version: "2.0.0", variant: "turbo" }, m);
     expect(e).toMatchObject({ available: false, reason: "no-build", build: null });
   });
+
+  describe("force (beta/preview builds)", () => {
+    it("always offers an update, even when up to date", () => {
+      const e = evaluateFirmwareUpdate({ version: "2.1.0", variant: "sense" }, m, {
+        force: true,
+      });
+      expect(e).toMatchObject({ available: true, reason: "forced", latestVersion: "2.1.0" });
+      expect(e.build?.name).toBe("BirdsEye-sense");
+    });
+
+    it("offers an update even when the installed version is older or unknown", () => {
+      expect(
+        evaluateFirmwareUpdate({ version: "1.0.0", variant: "sense" }, m, { force: true }),
+      ).toMatchObject({ available: true, reason: "forced" });
+      expect(
+        evaluateFirmwareUpdate({ version: null, variant: "sense" }, m, { force: true }),
+      ).toMatchObject({ available: true, reason: "forced" });
+    });
+
+    it("still requires a build matching the variant", () => {
+      const e = evaluateFirmwareUpdate({ version: "2.0.0", variant: "turbo" }, m, {
+        force: true,
+      });
+      expect(e).toMatchObject({ available: false, reason: "no-build" });
+    });
+  });
 });
 
 describe("fetchFirmwareManifest", () => {
