@@ -31,8 +31,13 @@ export {
   pickBuildForVariant,
   compareVersions,
   isUpdateAvailable,
+  evaluateFirmwareUpdate,
   fetchFirmwareManifest,
   fetchFirmwarePackage,
+} from "./firmwareManifest";
+export type {
+  FirmwareUpdateEvaluation,
+  FirmwareUpdateReason,
 } from "./firmwareManifest";
 
 export { parseDfuPackage } from "./dfuPackage";
@@ -46,5 +51,5 @@ export {
 export { flashFirmware } from "./dfuProtocol";
 export type { DfuTransport, FlashFirmwareOptions } from "./dfuProtocol";
 
-export { triggerDfuMode, connectToDfu } from "./dfuTransport";
-export type { DfuConnection } from "./dfuTransport";
+export { triggerDfuMode, connectToDfu, connectToDfuDevice } from "./dfuTransport";
+export type { DfuConnection, ConnectToDfuOptions } from "./dfuTransport";

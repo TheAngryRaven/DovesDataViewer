@@ -10,6 +10,7 @@ import {
   getSettingDef,
   validateSettingValue,
 } from "@/lib/deviceSettingsSchema";
+import { FirmwareUpdateSection } from "./FirmwareUpdateSection";
 
 interface DeviceSettingsTabProps {
   connection: BleConnection;
@@ -113,29 +114,21 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Reading settings…</span>
-      </div>
-    );
-  }
-
-  if (fetchError) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-3 text-center">
-        <AlertCircle className="w-8 h-8 text-destructive" />
-        <p className="text-sm text-muted-foreground">{fetchError}</p>
-        <Button variant="outline" size="sm" onClick={fetchSettings} className="gap-2">
-          <RefreshCw className="w-4 h-4" /> Retry
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+  const settingsBody = loading ? (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <span className="ml-2 text-sm text-muted-foreground">Reading settings…</span>
+    </div>
+  ) : fetchError ? (
+    <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
+      <AlertCircle className="w-8 h-8 text-destructive" />
+      <p className="text-sm text-muted-foreground">{fetchError}</p>
+      <Button variant="outline" size="sm" onClick={fetchSettings} className="gap-2">
+        <RefreshCw className="w-4 h-4" /> Retry
+      </Button>
+    </div>
+  ) : (
+    <div className="space-y-3">
       {rows.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">No settings found on device.</p>
       )}
@@ -208,6 +201,13 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
           )}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <FirmwareUpdateSection connection={connection} />
+      {settingsBody}
     </div>
   );
 }

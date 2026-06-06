@@ -54,7 +54,8 @@ export interface DfuConnection {
 /**
  * Prompt the user to pick the device now advertising in DFU mode, connect, and
  * resolve the control-point + packet characteristics. Requires a user gesture
- * (Web Bluetooth `requestDevice`).
+ * (Web Bluetooth `requestDevice`). Prefer {@link connectToDfuDevice} when the
+ * original device object is still in hand — it avoids a second picker.
  */
 export async function connectToDfu(
   onStatusChange?: (status: string) => void,
@@ -77,4 +78,68 @@ export async function connectToDfu(
   ]);
 
   return { device, server, transport: { controlPoint, packet } };
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export interface ConnectToDfuOptions {
+  /** Delay before the first reconnect attempt (let the board reboot). */
+  initialDelayMs?: number;
+  /** Number of reconnect attempts. */
+  attempts?: number;
+  /** Delay between attempts. */
+  intervalMs?: number;
+}
+
+/**
+ * Reconnect to a device that has just rebooted into its bootloader, reusing the
+ * **existing** {@link BluetoothDevice} (already permission-granted) — so no
+ * second `requestDevice` gesture is needed. The Adafruit bootloader re-advertises
+ * the same DFU service on the same identity, so retrying `gatt.connect()` picks
+ * it up once it's back. Resolves the control-point + packet characteristics.
+ */
+export async function connectToDfuDevice(
+  device: BluetoothDevice,
+  onStatusChange?: (status: string) => void,
+  options: ConnectToDfuOptions = {},
+): Promise<DfuConnection> {
+  const updateStatus = onStatusChange ?? (() => {});
+  const { initialDelayMs = 2000, attempts = 20, intervalMs = 1000 } = options;
+
+  // Ensure the stale app-mode link is torn down before reconnecting.
+  if (device.gatt?.connected) {
+    try {
+      device.gatt.disconnect();
+    } catch {
+      // ignore — already gone
+    }
+  }
+
+  updateStatus("Waiting for bootloader...");
+  await sleep(initialDelayMs);
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const server = await device.gatt!.connect();
+      const service = await server.getPrimaryService(DFU_SERVICE_UUID);
+      const [controlPoint, packet] = await Promise.all([
+        service.getCharacteristic(DFU_CONTROL_POINT_UUID),
+        service.getCharacteristic(DFU_PACKET_UUID),
+      ]);
+      updateStatus("Connected to bootloader");
+      return { device, server, transport: { controlPoint, packet } };
+    } catch (error) {
+      lastError = error;
+      try {
+        device.gatt?.disconnect();
+      } catch {
+        // ignore
+      }
+      await sleep(intervalMs);
+    }
+  }
+
+  const detail = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(`Could not connect to the device in DFU mode: ${detail}`);
 }

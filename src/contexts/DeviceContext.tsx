@@ -19,6 +19,14 @@ interface DeviceContextValue {
   connect: (onStatus?: (msg: string) => void) => Promise<BleConnection | null>;
   /** Disconnect the current device */
   disconnectDevice: () => void;
+  /** True while a firmware flash is in progress (suppresses auto-disconnect teardown). */
+  isFlashing: boolean;
+  /**
+   * Mark a firmware flash as active/inactive. While active, the expected BLE
+   * drop (the device reboots into its bootloader) does NOT reset the connection
+   * state, so the firmware UI stays mounted across the reboot.
+   */
+  setFlashing: (flashing: boolean) => void;
 }
 
 const DeviceContext = createContext<DeviceContextValue | null>(null);
@@ -27,15 +35,25 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
   const [connection, setConnection] = useState<BleConnection | null>(null);
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isFlashing, setIsFlashing] = useState(false);
   const bleSupported = isBleSupported();
   const connectionRef = useRef<BleConnection | null>(null);
+  const flashingRef = useRef(false);
 
   // Keep ref in sync for cleanup
   useEffect(() => {
     connectionRef.current = connection;
   }, [connection]);
 
+  const setFlashing = useCallback((flashing: boolean) => {
+    flashingRef.current = flashing;
+    setIsFlashing(flashing);
+  }, []);
+
   const handleDisconnect = useCallback(() => {
+    // During a firmware flash the device reboots into its bootloader; that BLE
+    // drop is expected, so keep the UI mounted instead of tearing it down.
+    if (flashingRef.current) return;
     setConnection(null);
     setDeviceName(null);
   }, []);
@@ -79,7 +97,7 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
 
   return (
     <DeviceContext.Provider
-      value={{ connection, deviceName, isConnecting, bleSupported, connect: connectFn, disconnectDevice }}
+      value={{ connection, deviceName, isConnecting, bleSupported, connect: connectFn, disconnectDevice, isFlashing, setFlashing }}
     >
       {children}
     </DeviceContext.Provider>

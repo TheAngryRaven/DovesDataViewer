@@ -126,6 +126,55 @@ export function isUpdateAvailable(
   return compareVersions(latest, installed) > 0;
 }
 
+/** Why an update is / isn't offered (drives user-facing messaging). */
+export type FirmwareUpdateReason =
+  | "update" // a newer build is available
+  | "up-to-date" // installed >= latest
+  | "no-version" // couldn't read the installed version
+  | "no-build"; // no manifest build matches the device variant
+
+/** Result of comparing a device's firmware against the manifest. Pure. */
+export interface FirmwareUpdateEvaluation {
+  available: boolean;
+  reason: FirmwareUpdateReason;
+  /** The build to flash (matched by variant), or `null` when none matches. */
+  build: FirmwareBuild | null;
+  latestVersion: string;
+  installedVersion: string | null;
+}
+
+/**
+ * Decide whether an update is available for a device, given its reported
+ * firmware info and the fetched manifest. Pure — no I/O.
+ */
+export function evaluateFirmwareUpdate(
+  info: { version: string | null; variant: string | null },
+  manifest: FirmwareManifest,
+): FirmwareUpdateEvaluation {
+  const build = pickBuildForVariant(manifest, info.variant);
+  const latestVersion = manifest.version;
+  if (!info.version) {
+    return { available: false, reason: "no-version", build, latestVersion, installedVersion: null };
+  }
+  if (!build) {
+    return {
+      available: false,
+      reason: "no-build",
+      build: null,
+      latestVersion,
+      installedVersion: info.version,
+    };
+  }
+  const available = isUpdateAvailable(info.version, latestVersion);
+  return {
+    available,
+    reason: available ? "update" : "up-to-date",
+    build,
+    latestVersion,
+    installedVersion: info.version,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Network I/O (fetch injectable for tests)
 // ---------------------------------------------------------------------------

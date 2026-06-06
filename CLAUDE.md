@@ -642,8 +642,16 @@ change. Full design + hardware verification in
   legacy DFU transfer (Start → init packet → PRN-flow-controlled image stream →
   validate → activate&reset) with `onProgress` + `AbortSignal`. Pure/testable
   against a mocked control-point/packet pair.
+- **Reconnect** — `dfuTransport.ts`: `connectToDfuDevice(device)` reuses the
+  already-granted `BluetoothDevice` to reconnect after the reboot (retries while
+  the bootloader comes up) — **no second `requestDevice` picker**.
 
-UI is **not built yet** (a Device "Firmware" sub-tab is the planned home).
+UI lives at the **top of the Device → Settings tab**
+(`drawer/FirmwareUpdateSection.tsx`): installed version + a **Check for updates**
+button → confirm dialog (battery warnings) → progress → auto-disconnect.
+Orchestrated by `hooks/useFirmwareUpdate.ts`; the actual flash is marked on
+`DeviceContext` (`isFlashing`/`setFlashing`) so the expected BLE drop when the
+device reboots into its bootloader doesn't tear down the UI mid-update.
 
 ---
 
@@ -818,6 +826,7 @@ existing user data keeps resolving without a destructive migration.
 | `VITE_ENABLE_GOOGLE_AUTH` | Client | `"true"` to show the "Continue with Google" buttons (Login/Register/Profile). Requires `VITE_ENABLE_CLOUD`. Default `"false"`: Google sign-in still routes through Lovable's OAuth broker (`src/integrations/lovable/`), so it's gated off until native Supabase Google OAuth is wired up. |
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
+| `VITE_FIRMWARE_MANIFEST_URL` | Client | Override the logger firmware OTA manifest URL (default `https://theangryraven.github.io/DovesDataLogger/manifest.json`). For preview/staging firmware channels. |
 | `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`) when set |
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**. `vite.config.ts` bakes them in from `package.json` + git (`buildInfo.ts` reads them). The stamp mirrors the `_PREVIEW` switch: `main` shows `v<version> · <hash>`; any other branch shows `<branch> · <hash> · <commit time>`. Hash prefers CI SHAs (`WORKERS_CI_COMMIT_SHA`/`CF_PAGES_COMMIT_SHA`/`GITHUB_SHA`), branch prefers CI branch vars (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`/`GITHUB_REF_NAME`); both fall back to local `git`, then `"unknown"`. |
 

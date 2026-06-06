@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Firmware updates over Bluetooth.** The Device → Settings tab now shows your
+  logger's installed firmware version with a **Check for updates** button. When a
+  newer build is available for your device, a confirmation dialog (battery /
+  don't-power-off warnings) lets you flash it directly over BLE — download,
+  reboot into update mode, install, and auto-disconnect when done. No desktop
+  tools needed. Fetching the firmware needs a connection; everything else runs
+  in-browser.
+
 ## [2.2.2] - 2026-06-05
 
 ### Added

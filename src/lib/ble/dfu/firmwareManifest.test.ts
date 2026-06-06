@@ -4,6 +4,7 @@ import {
   pickBuildForVariant,
   compareVersions,
   isUpdateAvailable,
+  evaluateFirmwareUpdate,
   fetchFirmwareManifest,
   fetchFirmwarePackage,
 } from "./firmwareManifest";
@@ -120,6 +121,33 @@ describe("isUpdateAvailable", () => {
   it("false when installed version is unknown", () => {
     expect(isUpdateAvailable(null, "2.1.0")).toBe(false);
     expect(isUpdateAvailable(undefined, "2.1.0")).toBe(false);
+  });
+});
+
+describe("evaluateFirmwareUpdate", () => {
+  const m = parseFirmwareManifest(SAMPLE); // latest 2.1.0
+
+  it("offers an update when a newer build exists for the variant", () => {
+    const e = evaluateFirmwareUpdate({ version: "2.0.0", variant: "sense" }, m);
+    expect(e).toMatchObject({ available: true, reason: "update", latestVersion: "2.1.0" });
+    expect(e.build?.name).toBe("BirdsEye-sense");
+  });
+
+  it("reports up-to-date when the installed version is current", () => {
+    const e = evaluateFirmwareUpdate({ version: "2.1.0", variant: "nonsense" }, m);
+    expect(e.available).toBe(false);
+    expect(e.reason).toBe("up-to-date");
+    expect(e.build?.name).toBe("BirdsEye-nonsense");
+  });
+
+  it("flags a missing version (can't compare)", () => {
+    const e = evaluateFirmwareUpdate({ version: null, variant: "sense" }, m);
+    expect(e).toMatchObject({ available: false, reason: "no-version", installedVersion: null });
+  });
+
+  it("flags when no build matches the device variant", () => {
+    const e = evaluateFirmwareUpdate({ version: "2.0.0", variant: "turbo" }, m);
+    expect(e).toMatchObject({ available: false, reason: "no-build", build: null });
   });
 });
 
