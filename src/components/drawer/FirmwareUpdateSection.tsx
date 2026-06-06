@@ -166,7 +166,7 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
                   <AlertTriangle className="w-5 h-5 text-destructive" />
                   {PHASE_LABEL.error}
                 </DialogTitle>
-                <DialogDescription className="text-left">
+                <DialogDescription className="text-left whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
                   {fw.flashError ?? "Something went wrong during the update."}
                 </DialogDescription>
               </DialogHeader>

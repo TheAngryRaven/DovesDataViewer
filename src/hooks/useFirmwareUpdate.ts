@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { BleConnection } from "@/lib/bleDatalogger";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { isPreviewBuild } from "@/lib/buildInfo";
+import { isDebugEnabled } from "@/lib/debugConsole";
 import {
   connectToDfuDevice,
   evaluateFirmwareUpdate,
@@ -29,6 +30,28 @@ export type FirmwareFlashPhase =
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+/** Debug log, only when the on-screen console is enabled (?dbg=true). */
+function fwLog(...args: unknown[]): void {
+  if (isDebugEnabled()) console.info("[firmware]", ...args);
+}
+
+/** A Web Bluetooth "Origin is not allowed to access the service" / SecurityError. */
+function isServiceAccessError(e: unknown): boolean {
+  const name = (e as { name?: string } | null)?.name ?? "";
+  const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  return name === "SecurityError" || msg.includes("not allowed to access");
+}
+
+/** Comma-joined UUIDs of the services this origin can currently access (diagnostic). */
+async function listAccessibleServices(server: BluetoothRemoteGATTServer): Promise<string> {
+  try {
+    const services = await server.getPrimaryServices();
+    return services.map((s) => s.uuid).join(", ") || "(none)";
+  } catch {
+    return "(could not enumerate)";
+  }
 }
 
 /**
@@ -136,15 +159,20 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
 
     try {
       setPhase("downloading");
+      fwLog("downloading package", build.name, build.dfuZip);
       const zip = await fetchFirmwarePackage(build.dfuZip);
       const pkg = await parseDfuPackage(zip);
+      fwLog("package ready", { imageBytes: pkg.image.byteLength });
 
       setPhase("rebooting");
+      fwLog("triggering DFU mode (writing to control point)…");
       await triggerDfuMode(connection.server);
       rebooted = true;
 
       setPhase("reconnecting");
+      fwLog("reconnecting to bootloader…");
       const dfu = await connectToDfuDevice(connection.device);
+      fwLog("connected to bootloader; starting transfer");
 
       await flashFirmware(dfu.transport, pkg, {
         onProgress: (p) => {
@@ -172,8 +200,24 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
       setFlashing(false);
       disconnectDevice();
     } catch (e) {
+      fwLog("update failed", { rebooted, name: (e as { name?: string })?.name, error: errorMessage(e) });
+      let message = errorMessage(e);
+      // A SecurityError on a service we *do* whitelist almost always means a
+      // stale browser permission for an already-paired device. Surface what the
+      // page can actually access + how to fix it.
+      if (isServiceAccessError(e) && !rebooted) {
+        const accessible = await listAccessibleServices(connection.server);
+        fwLog("accessible services:", accessible);
+        message =
+          `${errorMessage(e)}\n\n` +
+          "Your browser is blocking the firmware-update service — usually a stale " +
+          "Bluetooth permission from a previous pairing. Fix: disconnect, then remove " +
+          "this device under your browser's Bluetooth permissions " +
+          "(chrome://settings/content/bluetoothDevices), reconnect, and try again.\n\n" +
+          `Services currently accessible: ${accessible}`;
+      }
       setPhase("error");
-      setFlashError(errorMessage(e));
+      setFlashError(message);
       setNeedsDisconnect(rebooted);
       setFlashing(false);
       toast.error(`Firmware update failed: ${errorMessage(e)}`);
