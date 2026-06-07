@@ -1,6 +1,11 @@
 # Plan: SD-staged firmware update ("BirdsEye OTA")
 
-Status: **Planning** · Branch: `claude/firmware-bluetooth-dfu-mO0GV` → PR into `BETA`
+Status: **Planning; web protocol layer started** · Branch: `claude/firmware-bluetooth-dfu-mO0GV` → PR into `BETA`
+
+> **Prep landed (web):** `src/lib/ble/firmwareCrc.ts` (CRC-32, known-vector tested)
+> and `src/lib/ble/firmwareUpload.ts` (`beginFirmwareUpdate` / `uploadFirmwareImage`
+> / `applyFirmware`, the full handshake, mock-BLE tested) are implemented against
+> the contract below. The hook/UI rewrite + firmware side are still to do.
 Scope: **multi-repo** — DovesDataViewer (this repo, web client) **+** DovesDataLogger
 (firmware). This doc lives here; the firmware half is a contract for the logger repo.
 
@@ -209,15 +214,16 @@ Commands on `0x2A3E`, responses on `0x2A40`. CRC = **CRC-32/IEEE 802.3**.
   The logger stores them and **echoes back `FWCRC:<crc32>`** so the web app can
   confirm the control channel carried the checksum intact *before* uploading. (May
   also pre-erase/open `/fw/pending.bin` here.)
-- **Receive image**: file write to `/fw/pending.bin` via the existing file-write
-  protocol (extend `TPUT` or add `FWPUT`), streaming chunks on `0x2A3E`, acked on
-  `0x2A40`. Sent only after the web app accepts the `FWCRC` echo.
-- **Verify on device**: after the file lands, the logger computes CRC-32 of the
-  stored SD file and replies **`FWOK:<crc32>`** (matches `FWBEGIN`) or
-  **`FWERR:CRC`** (mismatch → abort; nothing else happens, running app untouched).
+- **`FWPUT:<size>`** — file write to `/fw/pending.bin` via the existing file-write
+  protocol. Logger replies **`FWREADY`**, the web app streams chunks on `0x2A3E`,
+  then sends **`FWDONE`**. Sent only after the web app accepts the `FWCRC` echo.
+- **Verify on device**: after `FWDONE`, the logger computes CRC-32 of the stored SD
+  file and replies **`FWOK:<crc32>`** (matches `FWBEGIN`) or **`FWERR:<reason>`**
+  (e.g. `FWERR:CRC` → abort; nothing else happens, running app untouched).
 - **`FWAPPLY`** — only valid after `FWOK`. Installs the staged image:
   - `0x2A40`: `FWSTAGE:<pct>` (copy SD → free internal flash, re-CRC there), then
-  - `FWREADY` → set `GPREGRET=0xB1` recovery flag → run the RAM flasher → reset.
+  - set `GPREGRET=0xB1` recovery flag → run the RAM flasher → emit **`FWAPPLIED`**
+    → reset. (Web side resolves on `FWAPPLIED`, then waits for the reboot.)
   - On reboot the new app advertises again; the web client confirms via DIS.
 - **Safety**: refuse if battery below threshold (reuse `BATT`); a variant/magic
   check + the CRC gate above; **never erase the app region until the staged copy is
@@ -254,10 +260,12 @@ DIS model (`BirdsEye-<variant>`) exactly as today.
 - **Phase 1 (firmware)** — `FWBEGIN` (+ `FWCRC` echo), `FWPUT` receive-to-SD,
   on-device verify (`FWOK`/`FWERR:CRC`), `FWAPPLY` (stage → flash → reset) +
   battery/variant guards.
-- **Phase 2 (web)** — `firmwareCrc.ts` (CRC-32, unit-tested to match firmware) +
-  `firmwareUpload.ts`, rework `useFirmwareUpdate` to the
-  download → crc → handshake → upload → verify → apply → reconnect → confirm flow,
-  update the UI, retire the dead DFU transport.
+- **Phase 2 (web)** — ✅ `firmwareCrc.ts` (CRC-32, unit-tested to match firmware) +
+  ✅ `firmwareUpload.ts` (handshake/upload/apply, mock-BLE tested). **Still TODO:**
+  rework `useFirmwareUpdate` to the download → crc → handshake → upload → verify →
+  apply → reconnect → confirm flow, update the UI, and retire the dead DFU
+  transport (`dfuProtocol.ts` + the blocklisted bits of `dfuTransport.ts`). Done
+  alongside firmware bring-up so the wire tokens can be validated on a real device.
 - **Phase 3 (polish)** — resume/retry of a partial SD upload, signed images
   (optional, our own signature since Chrome doesn't force it here), progress/ETA,
   changelog/README/CLAUDE updates.

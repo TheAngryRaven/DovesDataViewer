@@ -31,3 +31,17 @@ export {
   uploadTrackFile,
   deleteTrackFile,
 } from "./trackSync";
+
+// SD-staged firmware update (see docs/plans/firmware-sdcard-ota.md)
+export { crc32, crc32Hex } from "./firmwareCrc";
+export {
+  beginFirmwareUpdate,
+  uploadFirmwareImage,
+  applyFirmware,
+} from "./firmwareUpload";
+export type {
+  FirmwareUploadProgress,
+  BeginOptions,
+  UploadOptions,
+  ApplyOptions,
+} from "./firmwareUpload";
