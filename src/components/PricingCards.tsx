@@ -25,7 +25,6 @@ type Feature = string | { label: string; sub: string[] };
 
 interface FreeTier {
   name: string;
-  blurb: string;
   price: string;
   inherits?: string;
   features: Feature[];
@@ -36,7 +35,6 @@ interface FreeTier {
 
 interface PaidTier {
   name: string;
-  blurb: string;
   inherits: string;
   features: Feature[];
   slug: PaidSlug;
@@ -65,8 +63,7 @@ const CLOUD_SYNC_FEATURE: Feature = {
 };
 
 const OFFLINE_CARD: FreeTier = {
-  name: "No Account",
-  blurb: "Offline",
+  name: "Just the App",
   price: "Free",
   features: OFFLINE_FEATURES,
 };
@@ -76,12 +73,11 @@ const OFFLINE_CARD: FreeTier = {
 // it just inherits from it.
 function onlineCard(variant: Variant): FreeTier {
   return {
-    name: "Free Account",
-    blurb: "Online account",
+    name: "Cloud Access",
     price: "Free",
     slug: "free",
-    inherits: variant === "register" ? "Everything included with offline mode" : "Everything in No Account, plus",
-    features: [CLOUD_SYNC_FEATURE, "Fastest laps & synced setups — always free", "50 MB cloud storage*"],
+    inherits: variant === "register" ? "Everything included with offline mode" : "Everything in Just the App, plus",
+    features: [CLOUD_SYNC_FEATURE, "Fastest laps & synced setups — always free", "50 MB cloud storage for datalogs*"],
   };
 }
 
@@ -90,30 +86,27 @@ function onlineCard(variant: Variant): FreeTier {
 // + Pro are coming-soon (see billing.ts COMING_SOON_TIERS) and hidden entirely.
 const PAID_TIERS: PaidTier[] = [
   {
-    name: "Plus Account",
-    blurb: "For bigger garages",
+    name: "Cloud Access",
     slug: "plus",
     highlight: true,
-    inherits: "Everything in Free Account, plus",
+    inherits: "Everything in free Cloud Access, plus",
     features: [
-      "10 GB cloud storage*",
+      "10 GB cloud storage for datalogs*",
       "Video uploads & sharing (coming soon)",
       "You're helping support the project ❤️",
     ],
   },
   {
-    name: "Premium Account",
-    blurb: "Max storage",
+    name: "Cloud Access",
     slug: "premium",
-    inherits: "Everything in Plus Account, plus",
-    features: ["100 GB cloud storage*"],
+    inherits: "Everything in Plus, plus",
+    features: ["100 GB cloud storage for datalogs*"],
   },
   {
-    name: "Pro Account",
-    blurb: "With AI coaching",
+    name: "Cloud Access",
     slug: "pro",
-    inherits: "Everything in Premium Account, plus",
-    features: ["500 GB cloud storage*", "AI coaching (coming soon)"],
+    inherits: "Everything in Premium, plus",
+    features: ["500 GB cloud storage for datalogs*", "AI coaching (coming soon)"],
   },
 ];
 
@@ -148,7 +141,6 @@ function FeatureList({ features }: { features: Feature[] }) {
 
 function TierCard({
   name,
-  blurb,
   price,
   cadence,
   inherits,
@@ -157,7 +149,6 @@ function TierCard({
   cta,
 }: {
   name: string;
-  blurb: string;
   price: string;
   cadence?: string;
   inherits?: string;
@@ -176,10 +167,7 @@ function TierCard({
           Recommended
         </span>
       )}
-      <div className="space-y-0.5">
-        <h3 className="text-base font-semibold text-foreground">{name}</h3>
-        <p className="text-xs text-muted-foreground">{blurb}</p>
-      </div>
+      <h3 className="text-xl font-bold text-foreground">{name}</h3>
       {price && (
         <div className="mt-3 flex items-baseline gap-1">
           <span className="text-2xl font-bold text-foreground">{price}</span>
@@ -225,12 +213,12 @@ type Variant = "home" | "register";
 
 /**
  * Plans / pricing grid.
- * - `home` (landing page): three cards — No Account (offline), Free Account
- *   (online), Plus Account — with a monthly/annual toggle; signed-in users get
- *   live "Upgrade" / "Current plan" actions on Plus Account.
- * - `register` (sign-up): two cards — Free Account (which folds in the offline
- *   summary) and Plus Account — and no interval toggle (the billing interval is
- *   chosen in the checkout below the cards).
+ * - `home` (landing page): three cards — Just the App (offline), free Cloud
+ *   Access (online), paid Cloud Access (Plus) — with a monthly/annual toggle;
+ *   signed-in users get live "Upgrade" / "Current plan" actions on the paid card.
+ * - `register` (sign-up): two cards — free Cloud Access (which folds in the
+ *   offline summary) and paid Cloud Access (Plus) — and no interval toggle (the
+ *   billing interval is chosen in the checkout below the cards).
  * Premium + Pro are coming-soon and hidden entirely. When Stripe isn't configured
  * the paid cards drop out (free-only failback).
  */
@@ -334,9 +322,8 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
       <div className={`mt-6 grid gap-4 ${gridCols}`}>
         {freeCards.map((tier) => (
           <TierCard
-            key={`${tier.name}-${tier.blurb}`}
+            key={tier.slug ?? tier.name}
             name={tier.name}
-            blurb={tier.blurb}
             price={tier.price}
             inherits={tier.inherits}
             features={tier.features}
@@ -353,7 +340,6 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
               <TierCard
                 key={tier.slug}
                 name={tier.name}
-                blurb={tier.blurb}
                 price={formatPrice(price.unitAmount, price.currency)}
                 cadence={cadence}
                 inherits={tier.inherits}

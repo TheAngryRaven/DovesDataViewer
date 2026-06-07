@@ -14,11 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Clearer plans & pricing cards.** The plan cards now read **No Account**
-  (offline), **Free Account** (online), and **Plus Account** — instead of two
-  cards both titled "Free" showing "$0", which read as duplicates and tripped up
-  screen-reader/accessibility users. The two no-cost cards now say **Free** in
-  place of a "$0" price; only the paid plan shows an actual price.
+- **Clearer plans & pricing cards.** The plan cards now lead with bold,
+  larger-text titles — **Just the App** (offline) and **Cloud Access** (the
+  online plans) — with the descriptive subtitles dropped. Instead of two cards
+  both titled "Free" showing "$0" (which read as duplicates and tripped up
+  screen-reader/accessibility users), the two no-cost cards now show the word
+  **Free** in place of a price, and only the paid plan shows an actual price.
+  Storage lines read "cloud storage for datalogs" to make clear what the quota
+  covers.
 
 ### Added
 - **Firmware updates over Bluetooth.** The Device → Settings tab now shows your
