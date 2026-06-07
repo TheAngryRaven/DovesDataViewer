@@ -56,18 +56,37 @@ which is **not** blocklisted. So we split the job:
 2. **Apply (the hard part — firmware):** on an explicit command, the firmware
    installs the staged image into internal flash and reboots into it.
 
+### Transfer + verify handshake (paranoia baked in)
+
+CRC is exchanged and confirmed **both directions before and after** the upload, so
+neither the image **nor the agreed-upon checksum itself** can be silently
+corrupted in transit. CRC = **CRC-32 (IEEE 802.3)** on both ends.
+
+```
+1. [web]   compute crc32(image)
+2. [web] → FWBEGIN:<size>,<crc32>                 announce intent + expected CRC
+3. [web] ← FWCRC:<crc32>                           logger echoes the CRC it received
+          [web] aborts unless the echo == its own  (control channel itself verified)
+4. [web] → upload image (chunked file write) → SD  (only after the echo matches)
+5. [logger] compute crc32 of the stored SD file
+6. [web] ← FWOK:<crc32>  (or FWERR:CRC)            on-device file verified vs expected
+7. [web] → FWAPPLY                                 install: stage → flash → reset
+8.         …reset → reconnect → read DIS rev → confirm new version
+```
+
+Every step is gated on the previous one succeeding; any mismatch aborts **before**
+internal flash is ever touched, leaving the running firmware untouched.
+
 ```
 [web] manifest → download .bin (online)
    │
-   ├─(BLE, 0x1820 file write)→ [logger] writes /firmware/pending.bin to SD
-   │
-[web] send "apply" command (0x2A3E) ──────────────→ [logger]
-                                                       verify CRC of SD file
-                                                       install image to app flash
-                                                       reset
+   ├─(2/3) CRC handshake over 0x2A3E/0x2A40 ──────→ [logger] echoes CRC back
+   ├─(4)  BLE 0x1820 file write ─────────────────→ [logger] /fw/pending.bin → SD
+   ├─(5/6) on-device CRC verify ←─────────────────  [logger] FWOK / FWERR:CRC
+   ├─(7)  FWAPPLY (0x2A3E) ───────────────────────→ [logger] stage → flash → reset
 [logger] boots new firmware
    │
-[web] reconnect → read DIS firmware rev → confirm new version
+[web] (8) reconnect → read DIS firmware rev → confirm new version
 ```
 
 The nRF52840 executes from **internal flash**, so the image must ultimately land
@@ -148,15 +167,23 @@ transport/trigger changes (the blocklisted bits go).
 - `version.ts` — DIS read for current version + **post-update verification**.
 
 **New / changed:**
+- **CRC**: `ble/firmwareCrc.ts` → `crc32(bytes)` (CRC-32/IEEE 802.3), pure +
+  unit-tested against known vectors so it provably matches the firmware's CRC.
+- **CRC handshake**: `FWBEGIN:<size>,<crc32>` then await `FWCRC:<crc32>` on
+  `0x2A40`; **abort unless the echo equals the locally-computed CRC** (verifies the
+  control channel before any upload).
 - **Upload-to-SD**: stream `pkg.image` to the device as a file over `0x1820`,
   modeled on `ble/trackSync.ts:uploadTrackFile` (chunked `TPUT`-style write). New
   helper, e.g. `ble/firmwareUpload.ts` → `uploadFirmwareImage(conn, bytes, onProgress)`.
-- **Apply command**: send the new `0x2A3E` command (below) and watch `0x2A40` for
-  progress/result.
+  Runs **only after** the CRC echo matches.
+- **On-device verify + apply**: await `FWOK:<crc32>` (abort on `FWERR:CRC`), then
+  send `FWAPPLY` and watch `0x2A40` for staging/flash progress + result.
 - **Orchestration** (`useFirmwareUpdate.ts`): replace `triggerDfuMode` +
-  `connectToDfuDevice` + `flashFirmware` with: download → `uploadFirmwareImage`
-  → send apply → wait for device reset → reconnect → re-read DIS → verify version.
-  Keep `isFlashing` guard, progress UI, beta-branch `force`, error surfacing.
+  `connectToDfuDevice` + `flashFirmware` with the 8-step handshake: download →
+  crc → `FWBEGIN`/await `FWCRC` (verify echo) → `uploadFirmwareImage` →
+  await `FWOK` → `FWAPPLY` → wait for device reset → reconnect → re-read DIS →
+  verify version. Keep `isFlashing` guard, progress UI, beta-branch `force`,
+  error surfacing.
 - **Retire the dead code**: `dfuProtocol.ts` (legacy transfer) and the BLE-DFU
   bits of `dfuTransport.ts` (`triggerDfuMode`/`connectToDfu*`) are unreachable on
   web — delete or clearly quarantine. Keep tests for what remains.
@@ -165,8 +192,9 @@ transport/trigger changes (the blocklisted bits go).
   → Reconnecting → Verified**. Drop the "forget device" recovery (that was for the
   blocklist red herring).
 
-**CRC**: compute CRC32 of the image on the client and pass it in the apply command
-so the firmware verifies the SD file before it touches internal flash.
+**CRC**: CRC-32/IEEE on both ends, exchanged + echoed *before* the upload and
+re-verified on-device *after* it (the handshake above), so the image and the
+agreed checksum are both proven before internal flash is touched.
 
 ---
 
@@ -175,18 +203,27 @@ so the firmware verifies the SD file before it touches internal flash.
 Built on the existing BLE protocol (`0x1820` service, `0x2A3E` request / `0x2A40`
 status). Version reporting via **DIS** is already done.
 
-- **Receive image**: accept a file write to a known path (e.g. `/fw/pending.bin`)
-  via the existing file-write protocol (extend `TPUT` or add `FWPUT:<size>`),
-  streaming chunks on `0x2A3E`, ack on `0x2A40`.
-- **Apply command** on `0x2A3E`: `FWAPPLY:<size>,<crc32>` →
-  - `0x2A40`: `FWVERIFY` (checking SD CRC) → `FWERR:CRC` on mismatch, else
-  - `FWSTAGE:<pct>` (copying SD → free flash), then
+Commands on `0x2A3E`, responses on `0x2A40`. CRC = **CRC-32/IEEE 802.3**.
+
+- **`FWBEGIN:<size>,<crc32>`** — announce the incoming image + its expected CRC.
+  The logger stores them and **echoes back `FWCRC:<crc32>`** so the web app can
+  confirm the control channel carried the checksum intact *before* uploading. (May
+  also pre-erase/open `/fw/pending.bin` here.)
+- **Receive image**: file write to `/fw/pending.bin` via the existing file-write
+  protocol (extend `TPUT` or add `FWPUT`), streaming chunks on `0x2A3E`, acked on
+  `0x2A40`. Sent only after the web app accepts the `FWCRC` echo.
+- **Verify on device**: after the file lands, the logger computes CRC-32 of the
+  stored SD file and replies **`FWOK:<crc32>`** (matches `FWBEGIN`) or
+  **`FWERR:CRC`** (mismatch → abort; nothing else happens, running app untouched).
+- **`FWAPPLY`** — only valid after `FWOK`. Installs the staged image:
+  - `0x2A40`: `FWSTAGE:<pct>` (copy SD → free internal flash, re-CRC there), then
   - `FWREADY` → set `GPREGRET=0xB1` recovery flag → run the RAM flasher → reset.
   - On reboot the new app advertises again; the web client confirms via DIS.
-- **Safety**: refuse if battery below threshold (reuse `BATT`); verify image
-  size/CRC and a variant/magic check before erasing anything; never erase the app
-  region until the staged copy is verified in flash.
-- **(Strategy decided in Phase 0.)**
+- **Safety**: refuse if battery below threshold (reuse `BATT`); a variant/magic
+  check + the CRC gate above; **never erase the app region until the staged copy is
+  CRC-verified in flash**; every step abortable, with the running firmware
+  untouched until the final flasher runs.
+- **(Apply strategy A vs B decided in Phase 0.)**
 
 ---
 
@@ -214,10 +251,13 @@ DIS model (`BirdsEye-<variant>`) exactly as today.
 
 - **Phase 0** — hardware spikes (above). Decide Strategy A vs B and confirm the
   BLE recovery net. *Nothing else starts until these pass.*
-- **Phase 1 (firmware)** — `FWPUT` receive-to-SD + `FWAPPLY` (verify → stage →
-  flash → reset) + battery/variant guards.
-- **Phase 2 (web)** — `firmwareUpload.ts`, rework `useFirmwareUpdate` to the
-  download→upload→apply→verify flow, update the UI, retire the dead DFU transport.
+- **Phase 1 (firmware)** — `FWBEGIN` (+ `FWCRC` echo), `FWPUT` receive-to-SD,
+  on-device verify (`FWOK`/`FWERR:CRC`), `FWAPPLY` (stage → flash → reset) +
+  battery/variant guards.
+- **Phase 2 (web)** — `firmwareCrc.ts` (CRC-32, unit-tested to match firmware) +
+  `firmwareUpload.ts`, rework `useFirmwareUpdate` to the
+  download → crc → handshake → upload → verify → apply → reconnect → confirm flow,
+  update the UI, retire the dead DFU transport.
 - **Phase 3 (polish)** — resume/retry of a partial SD upload, signed images
   (optional, our own signature since Chrome doesn't force it here), progress/ETA,
   changelog/README/CLAUDE updates.
