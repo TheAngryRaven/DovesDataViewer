@@ -147,4 +147,19 @@ describe("applyFirmware", () => {
     conn.characteristics.fileStatus.simulate("FWERR:FLASH_FAIL\n");
     await expect(p).rejects.toThrow(/FLASH_FAIL/);
   });
+
+  it("resolves when the device disconnects after FWAPPLY (reset = apply)", async () => {
+    const conn = createMockConnection();
+    // Give the device an event target so we can fire gattserverdisconnected.
+    const device = new EventTarget() as unknown as BluetoothDevice;
+    conn.device = device;
+    const p = applyFirmware(conn);
+    await flushMicrotasks();
+
+    expect(lastWritten(conn.characteristics.fileRequest)).toBe("FWAPPLY");
+    // The device may reset (and reboot into the new firmware) without ever
+    // delivering FWAPPLIED — the disconnect itself is the success signal.
+    device.dispatchEvent(new Event("gattserverdisconnected"));
+    await expect(p).resolves.toBeUndefined();
+  });
 });

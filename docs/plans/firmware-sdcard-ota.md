@@ -231,8 +231,11 @@ Commands on `0x2A3E`, responses on `0x2A40`. CRC = **CRC-32/IEEE 802.3**.
   (e.g. `FWERR:CRC` → abort; nothing else happens, running app untouched).
 - **`FWAPPLY`** — only valid after `FWOK`. Installs the staged image:
   - `0x2A40`: `FWSTAGE:<pct>` (copy SD → free internal flash, re-CRC there), then
-  - set `GPREGRET=0xB1` recovery flag → run the RAM flasher → emit **`FWAPPLIED`**
-    → reset. (Web side resolves on `FWAPPLIED`, then waits for the reboot.)
+  - set `GPREGRET=0xB1` recovery flag → run the RAM flasher → reset. Emit
+    **`FWAPPLIED`** just before resetting **if you can** — but it's optional: the
+    web also treats the **disconnect** (the reset itself) as success, since a
+    single-bank apply can't reliably flush a notification right before it kills the
+    SoftDevice and reboots.
   - On reboot the new app advertises again; the web client confirms via DIS.
 - **Safety**: the variant gate at `FWBEGIN` (above) + refuse if battery below
   threshold (reuse `BATT`) + the CRC gate; **never erase the app region until the

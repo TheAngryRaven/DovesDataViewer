@@ -15,8 +15,8 @@ import { bleLog } from "./internal";
  *      channel before any upload).
  *   2. `uploadFirmwareImage` — `FWPUT:<size>` → `FWREADY` → stream chunks →
  *      `FWDONE` → device re-CRCs the stored file → `FWOK:<crc>` / `FWERR:<reason>`.
- *   3. `applyFirmware` — `FWAPPLY` → `FWSTAGE:<pct>` … → `FWAPPLIED` (device
- *      then reboots into the new image).
+ *   3. `applyFirmware` — `FWAPPLY` → `FWSTAGE:<pct>` … → `FWAPPLIED` (or the
+ *      device simply disconnects as it resets into the new image).
  *
  * These wire tokens are the contract the logger firmware implements.
  */
@@ -223,8 +223,9 @@ export async function uploadFirmwareImage(
 
 /**
  * Step 3 — install the staged image. Reports staging progress (0–100) via
- * `onProgress` and resolves on `FWAPPLIED` (the device then reboots). Rejects on
- * `FWERR:*` or timeout.
+ * `onProgress` and resolves on `FWAPPLIED` **or** the device disconnecting (the
+ * reset into the new firmware — a single-bank apply may reboot without delivering
+ * `FWAPPLIED`). Rejects on `FWERR:*` or timeout.
  */
 export async function applyFirmware(
   connection: BleConnection,
@@ -243,6 +244,15 @@ export async function applyFirmware(
         cleanup();
         reject(new Error("Timed out during firmware install"));
       }, timeoutMs);
+    };
+
+    // The install ends with the device resetting into the new firmware. A
+    // single-bank apply can't reliably emit FWAPPLIED + flush it over BLE right
+    // before it tears down the SoftDevice and reboots, so we also treat the
+    // disconnect (the reset itself) as success.
+    const onDisconnect = () => {
+      cleanup();
+      resolve();
     };
 
     const handle = (event: Event) => {
@@ -274,6 +284,7 @@ export async function applyFirmware(
         "characteristicvaluechanged",
         handle,
       );
+      connection.device.removeEventListener?.("gattserverdisconnected", onDisconnect);
     };
 
     try {
@@ -282,6 +293,7 @@ export async function applyFirmware(
         "characteristicvaluechanged",
         handle,
       );
+      connection.device.addEventListener?.("gattserverdisconnected", onDisconnect);
       await connection.characteristics.fileRequest.writeValue(encoder.encode("FWAPPLY"));
       arm();
     } catch (error) {
