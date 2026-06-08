@@ -13,11 +13,9 @@ import { useFirmwareUpdate, type FirmwareFlashPhase } from "@/hooks/useFirmwareU
 
 const PHASE_LABEL: Record<FirmwareFlashPhase, string> = {
   downloading: "Downloading firmware…",
-  rebooting: "Rebooting into update mode…",
-  reconnecting: "Reconnecting to device…",
-  transferring: "Installing firmware…",
-  validating: "Validating…",
-  activating: "Activating…",
+  uploading: "Uploading to device…",
+  verifying: "Verifying on device…",
+  installing: "Installing…",
   done: "Update complete!",
   error: "Update failed",
 };
@@ -38,7 +36,8 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
   const dialogOpen = fw.confirmOpen || fw.flashing || fw.phase === "error";
   const showProgress = fw.flashing || (fw.phase !== null && fw.phase !== "error");
   const isError = fw.phase === "error";
-  const isTransferring = fw.phase === "transferring";
+  // Uploading + installing report real percentages; the rest are indeterminate.
+  const hasPercent = fw.phase === "uploading" || fw.phase === "installing";
 
   const handleOpenChange = (open: boolean) => {
     if (open) return;
@@ -144,15 +143,15 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
                   {PHASE_LABEL[fw.phase]}
                 </DialogTitle>
                 <DialogDescription>
-                  {isTransferring
+                  {hasPercent
                     ? `${fw.percent}% — please keep the device powered on.`
                     : "Please keep the device powered on and nearby."}
                 </DialogDescription>
               </DialogHeader>
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className={`h-full bg-primary transition-all ${isTransferring ? "" : "animate-pulse"}`}
-                  style={{ width: isTransferring ? `${fw.percent}%` : "100%" }}
+                  className={`h-full bg-primary transition-all ${hasPercent ? "" : "animate-pulse"}`}
+                  style={{ width: hasPercent ? `${fw.percent}%` : "100%" }}
                 />
               </div>
             </>
@@ -170,12 +169,7 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
                   {fw.flashError ?? "Something went wrong during the update."}
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="gap-2 sm:gap-0">
-                {fw.canForgetDevice && (
-                  <Button variant="secondary" onClick={fw.forgetDevice}>
-                    Forget device &amp; reconnect
-                  </Button>
-                )}
+              <DialogFooter>
                 <Button variant="outline" onClick={fw.dismiss}>
                   Close
                 </Button>
