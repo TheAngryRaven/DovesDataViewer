@@ -10,13 +10,13 @@ import { bleLog } from "./internal";
  * (`0x2A40`). CRC is CRC-32/IEEE as an 8-char lowercase hex string.
  *
  * Paranoid handshake (see `docs/plans/firmware-sdcard-ota.md`):
- *   1. `beginFirmwareUpdate` — `FWBEGIN:<size>,<crc>` → device echoes
+ *   1. `beginFirmwareUpdate` — `FWBEGIN:<size>,<crc>,<variant>` → device echoes
  *      `FWCRC:<crc>`; we abort unless the echo matches (verifies the control
  *      channel before any upload).
  *   2. `uploadFirmwareImage` — `FWPUT:<size>` → `FWREADY` → stream chunks →
  *      `FWDONE` → device re-CRCs the stored file → `FWOK:<crc>` / `FWERR:<reason>`.
- *   3. `applyFirmware` — `FWAPPLY` → `FWSTAGE:<pct>` … → `FWAPPLIED` (device
- *      then reboots into the new image).
+ *   3. `applyFirmware` — `FWAPPLY` → `FWSTAGE:<pct>` … → `FWAPPLIED` (or the
+ *      device simply disconnects as it resets into the new image).
  *
  * These wire tokens are the contract the logger firmware implements.
  */
@@ -51,14 +51,17 @@ export interface ApplyOptions {
 }
 
 /**
- * Step 1 — announce the image + expected CRC and require the device to echo the
- * CRC back unchanged. Rejects on echo mismatch (control channel corrupted),
- * `FWERR:*`, or timeout.
+ * Step 1 — announce the image (size + expected CRC + target variant) and require
+ * the device to echo the CRC back unchanged. The device also rejects here
+ * (`FWERR:VARIANT`) if `variant` doesn't match its own build, so a wrong-variant
+ * image fails *before* the upload. Rejects on echo mismatch (control channel
+ * corrupted), `FWERR:*`, or timeout.
  */
 export async function beginFirmwareUpdate(
   connection: BleConnection,
   size: number,
   crcHex: string,
+  variant: string,
   options: BeginOptions = {},
 ): Promise<void> {
   const timeoutMs = options.timeoutMs ?? 10000;
@@ -107,7 +110,7 @@ export async function beginFirmwareUpdate(
         handle,
       );
       await connection.characteristics.fileRequest.writeValue(
-        encoder.encode(`FWBEGIN:${size},${expected}`),
+        encoder.encode(`FWBEGIN:${size},${expected},${variant}`),
       );
       timeout = setTimeout(() => {
         cleanup();
@@ -140,6 +143,24 @@ export async function uploadFirmwareImage(
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     let phase: "waiting_ready" | "uploading" | "waiting_ok" = "waiting_ready";
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      connection.characteristics.fileStatus.removeEventListener(
+        "characteristicvaluechanged",
+        handle,
+      );
+    };
+    // Watchdog: (re)start a single timeout. The upload resets it on every chunk,
+    // so a large image never trips it — only an actual stall (no progress for
+    // `timeoutMs`) does.
+    const arm = (message: string) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error(message));
+      }, timeoutMs);
+    };
 
     const handle = (event: Event) => {
       const raw = decode((event.target as BluetoothRemoteGATTCharacteristic).value);
@@ -174,23 +195,13 @@ export async function uploadFirmwareImage(
         const chunk = image.subarray(i, Math.min(i + chunkSize, image.length));
         await connection.characteristics.fileRequest.writeValue(chunk);
         onProgress?.({ sent: Math.min(i + chunkSize, image.length), total: image.length });
+        // Progress resets the watchdog — only a real stall trips it.
+        arm("Timed out during firmware upload — the device stopped responding");
         if (chunkDelayMs > 0) await new Promise((r) => setTimeout(r, chunkDelayMs));
       }
       await connection.characteristics.fileRequest.writeValue(encoder.encode("FWDONE"));
       phase = "waiting_ok";
-      if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        cleanup();
-        reject(new Error("Timed out waiting for on-device CRC verification"));
-      }, timeoutMs);
-    };
-
-    const cleanup = () => {
-      if (timeout) clearTimeout(timeout);
-      connection.characteristics.fileStatus.removeEventListener(
-        "characteristicvaluechanged",
-        handle,
-      );
+      arm("Timed out waiting for on-device CRC verification");
     };
 
     try {
@@ -202,10 +213,7 @@ export async function uploadFirmwareImage(
       await connection.characteristics.fileRequest.writeValue(
         encoder.encode(`FWPUT:${image.length}`),
       );
-      timeout = setTimeout(() => {
-        cleanup();
-        reject(new Error("Timed out waiting for the device to accept the firmware upload"));
-      }, timeoutMs);
+      arm("Timed out waiting for the device to accept the firmware upload");
     } catch (error) {
       cleanup();
       reject(error);
@@ -215,8 +223,9 @@ export async function uploadFirmwareImage(
 
 /**
  * Step 3 — install the staged image. Reports staging progress (0–100) via
- * `onProgress` and resolves on `FWAPPLIED` (the device then reboots). Rejects on
- * `FWERR:*` or timeout.
+ * `onProgress` and resolves on `FWAPPLIED` **or** the device disconnecting (the
+ * reset into the new firmware — a single-bank apply may reboot without delivering
+ * `FWAPPLIED`). Rejects on `FWERR:*` or timeout.
  */
 export async function applyFirmware(
   connection: BleConnection,
@@ -235,6 +244,15 @@ export async function applyFirmware(
         cleanup();
         reject(new Error("Timed out during firmware install"));
       }, timeoutMs);
+    };
+
+    // The install ends with the device resetting into the new firmware. A
+    // single-bank apply can't reliably emit FWAPPLIED + flush it over BLE right
+    // before it tears down the SoftDevice and reboots, so we also treat the
+    // disconnect (the reset itself) as success.
+    const onDisconnect = () => {
+      cleanup();
+      resolve();
     };
 
     const handle = (event: Event) => {
@@ -266,6 +284,7 @@ export async function applyFirmware(
         "characteristicvaluechanged",
         handle,
       );
+      connection.device.removeEventListener?.("gattserverdisconnected", onDisconnect);
     };
 
     try {
@@ -274,6 +293,7 @@ export async function applyFirmware(
         "characteristicvaluechanged",
         handle,
       );
+      connection.device.addEventListener?.("gattserverdisconnected", onDisconnect);
       await connection.characteristics.fileRequest.writeValue(encoder.encode("FWAPPLY"));
       arm();
     } catch (error) {

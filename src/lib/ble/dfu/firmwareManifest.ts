@@ -8,16 +8,29 @@
  * the offline bundle. A user-provided local `.zip` path stays fully offline.
  */
 
+import { isPreviewBuild } from "@/lib/buildInfo";
 import type { FirmwareBuild, FirmwareManifest } from "./dfuTypes";
 
-/** Default OTA manifest URL (override with `VITE_FIRMWARE_MANIFEST_URL`). */
+/** Production OTA manifest URL. */
 export const DEFAULT_MANIFEST_URL =
   "https://theangryraven.github.io/DovesDataLogger/manifest.json";
 
-/** Resolve the manifest URL, honoring the build-time env override. */
-export function getManifestUrl(): string {
+/** Beta-channel OTA manifest — used on non-`main` (preview) builds. */
+export const BETA_MANIFEST_URL =
+  "https://theangryraven.github.io/DovesDataLogger/beta/manifest.json";
+
+/**
+ * Resolve the firmware manifest URL. Precedence:
+ *   1. explicit `VITE_FIRMWARE_MANIFEST_URL` override (any branch)
+ *   2. the **beta channel** on non-`main`/preview builds (same `isPreviewBuild()`
+ *      switch as the footer / preview-DB / forced firmware update)
+ *   3. production.
+ * `preview` is injectable for tests; it defaults to `isPreviewBuild()`.
+ */
+export function getManifestUrl(preview: boolean = isPreviewBuild()): string {
   const override = import.meta.env?.VITE_FIRMWARE_MANIFEST_URL;
-  return (typeof override === "string" && override) || DEFAULT_MANIFEST_URL;
+  if (typeof override === "string" && override) return override;
+  return preview ? BETA_MANIFEST_URL : DEFAULT_MANIFEST_URL;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,7 +59,20 @@ export function parseFirmwareManifest(json: unknown): FirmwareManifest {
     const dfuZip = value.dfuZip;
     if (typeof dfuZip !== "string" || !dfuZip) continue; // skip malformed entries
     const variant = typeof value.variant === "string" ? value.variant : key;
-    parsedBuilds[key] = { name: key, variant, dfuZip };
+    parsedBuilds[key] = {
+      name: key,
+      variant,
+      dfuZip,
+      appBin: typeof value.appBin === "string" && value.appBin ? value.appBin : undefined,
+      appCrc32:
+        typeof value.appCrc32 === "string" && value.appCrc32
+          ? value.appCrc32.toLowerCase()
+          : undefined,
+      appSize:
+        typeof value.appSize === "number" && Number.isFinite(value.appSize)
+          ? value.appSize
+          : undefined,
+    };
   }
   if (Object.keys(parsedBuilds).length === 0) {
     throw new Error("Firmware manifest has no usable builds");
@@ -182,6 +208,29 @@ export function evaluateFirmwareUpdate(
     latestVersion,
     installedVersion: info.version,
   };
+}
+
+/**
+ * Verify a freshly-downloaded image against the manifest's published size + CRC
+ * (download-integrity, the first link of the full-circle CRC chain). `crcHex` is
+ * the CRC-32 the caller computed over `image`. No-op for the fields the manifest
+ * omits (older manifests). Throws on a mismatch. Pure.
+ */
+export function assertImageMatchesBuild(
+  build: FirmwareBuild,
+  image: Uint8Array,
+  crcHex: string,
+): void {
+  if (build.appSize != null && image.byteLength !== build.appSize) {
+    throw new Error(
+      `Downloaded firmware is ${image.byteLength} bytes but the manifest expects ${build.appSize} — aborting`,
+    );
+  }
+  if (build.appCrc32 && build.appCrc32.toLowerCase() !== crcHex.toLowerCase()) {
+    throw new Error(
+      `Downloaded firmware CRC ${crcHex} does not match the manifest CRC ${build.appCrc32} — corrupt download, aborting`,
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

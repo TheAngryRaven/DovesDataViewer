@@ -1,28 +1,57 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   parseFirmwareManifest,
   pickBuildForVariant,
   compareVersions,
   isUpdateAvailable,
   evaluateFirmwareUpdate,
+  assertImageMatchesBuild,
+  getManifestUrl,
+  DEFAULT_MANIFEST_URL,
+  BETA_MANIFEST_URL,
   fetchFirmwareManifest,
   fetchFirmwarePackage,
 } from "./firmwareManifest";
+import type { FirmwareBuild } from "./dfuTypes";
 
-// A trimmed copy of the real published manifest shape.
+describe("getManifestUrl", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("uses the production manifest on non-preview (main) builds", () => {
+    expect(getManifestUrl(false)).toBe(DEFAULT_MANIFEST_URL);
+  });
+
+  it("uses the beta-channel manifest on preview / non-main builds", () => {
+    expect(getManifestUrl(true)).toBe(BETA_MANIFEST_URL);
+  });
+
+  it("lets an explicit env override win over the beta channel", () => {
+    vi.stubEnv("VITE_FIRMWARE_MANIFEST_URL", "https://custom/manifest.json");
+    expect(getManifestUrl(true)).toBe("https://custom/manifest.json");
+    expect(getManifestUrl(false)).toBe("https://custom/manifest.json");
+  });
+});
+
+// A trimmed copy of the real published manifest shape (with the appBin fields).
 const SAMPLE = {
-  version: "2.1.0",
-  releaseTag: "v2.1.0",
-  publishedAt: "2026-06-06T06:10:26Z",
+  version: "2.2.0",
+  releaseTag: "v2.2.0",
+  publishedAt: "2026-06-08T04:02:55Z",
   releaseNotes: "https://example/notes",
   builds: {
     "BirdsEye-sense": {
       variant: "sense",
-      dfuZip: "https://example/firmware/2.1.0/BirdsEye-sense.zip",
+      dfuZip: "https://example/firmware/2.2.0/BirdsEye-sense.zip",
+      appBin: "https://example/firmware/2.2.0/BirdsEye-sense.bin",
+      appCrc32: "7e27fc48",
+      appSize: 287900,
     },
     "BirdsEye-nonsense": {
       variant: "nonsense",
-      dfuZip: "https://example/firmware/2.1.0/BirdsEye-nonsense.zip",
+      dfuZip: "https://example/firmware/2.2.0/BirdsEye-nonsense.zip",
+      appBin: "https://example/firmware/2.2.0/BirdsEye-nonsense.bin",
+      appCrc32: "53ebc1cd",
+      appSize: 287884,
     },
   },
 };
@@ -30,14 +59,36 @@ const SAMPLE = {
 describe("parseFirmwareManifest", () => {
   it("parses a well-formed manifest", () => {
     const m = parseFirmwareManifest(SAMPLE);
-    expect(m.version).toBe("2.1.0");
-    expect(m.releaseTag).toBe("v2.1.0");
+    expect(m.version).toBe("2.2.0");
+    expect(m.releaseTag).toBe("v2.2.0");
     expect(Object.keys(m.builds)).toEqual(["BirdsEye-sense", "BirdsEye-nonsense"]);
     expect(m.builds["BirdsEye-sense"]).toEqual({
       name: "BirdsEye-sense",
       variant: "sense",
-      dfuZip: "https://example/firmware/2.1.0/BirdsEye-sense.zip",
+      dfuZip: "https://example/firmware/2.2.0/BirdsEye-sense.zip",
+      appBin: "https://example/firmware/2.2.0/BirdsEye-sense.bin",
+      appCrc32: "7e27fc48",
+      appSize: 287900,
     });
+  });
+
+  it("leaves appBin/appCrc32/appSize undefined when absent (older manifests)", () => {
+    const m = parseFirmwareManifest({
+      version: "1.0.0",
+      builds: { "BirdsEye-sense": { variant: "sense", dfuZip: "z" } },
+    });
+    const b = m.builds["BirdsEye-sense"];
+    expect(b.appBin).toBeUndefined();
+    expect(b.appCrc32).toBeUndefined();
+    expect(b.appSize).toBeUndefined();
+  });
+
+  it("normalizes appCrc32 to lowercase", () => {
+    const m = parseFirmwareManifest({
+      version: "1.0.0",
+      builds: { s: { variant: "sense", dfuZip: "z", appCrc32: "7E27FC48" } },
+    });
+    expect(m.builds.s.appCrc32).toBe("7e27fc48");
   });
 
   it("defaults a build's variant to its key when absent", () => {
@@ -125,16 +176,16 @@ describe("isUpdateAvailable", () => {
 });
 
 describe("evaluateFirmwareUpdate", () => {
-  const m = parseFirmwareManifest(SAMPLE); // latest 2.1.0
+  const m = parseFirmwareManifest(SAMPLE); // latest 2.2.0
 
   it("offers an update when a newer build exists for the variant", () => {
     const e = evaluateFirmwareUpdate({ version: "2.0.0", variant: "sense" }, m);
-    expect(e).toMatchObject({ available: true, reason: "update", latestVersion: "2.1.0" });
+    expect(e).toMatchObject({ available: true, reason: "update", latestVersion: "2.2.0" });
     expect(e.build?.name).toBe("BirdsEye-sense");
   });
 
   it("reports up-to-date when the installed version is current", () => {
-    const e = evaluateFirmwareUpdate({ version: "2.1.0", variant: "nonsense" }, m);
+    const e = evaluateFirmwareUpdate({ version: "2.2.0", variant: "nonsense" }, m);
     expect(e.available).toBe(false);
     expect(e.reason).toBe("up-to-date");
     expect(e.build?.name).toBe("BirdsEye-nonsense");
@@ -152,10 +203,10 @@ describe("evaluateFirmwareUpdate", () => {
 
   describe("force (beta/preview builds)", () => {
     it("always offers an update, even when up to date", () => {
-      const e = evaluateFirmwareUpdate({ version: "2.1.0", variant: "sense" }, m, {
+      const e = evaluateFirmwareUpdate({ version: "2.2.0", variant: "sense" }, m, {
         force: true,
       });
-      expect(e).toMatchObject({ available: true, reason: "forced", latestVersion: "2.1.0" });
+      expect(e).toMatchObject({ available: true, reason: "forced", latestVersion: "2.2.0" });
       expect(e.build?.name).toBe("BirdsEye-sense");
     });
 
@@ -177,12 +228,49 @@ describe("evaluateFirmwareUpdate", () => {
   });
 });
 
+describe("assertImageMatchesBuild (download-integrity check)", () => {
+  const build: FirmwareBuild = {
+    name: "BirdsEye-sense",
+    variant: "sense",
+    dfuZip: "z",
+    appBin: "b",
+    appCrc32: "7e27fc48",
+    appSize: 4,
+  };
+  const image = new Uint8Array([1, 2, 3, 4]);
+
+  it("passes when size + CRC match the manifest", () => {
+    expect(() => assertImageMatchesBuild(build, image, "7e27fc48")).not.toThrow();
+  });
+
+  it("accepts a differently-cased CRC from the manifest", () => {
+    expect(() =>
+      assertImageMatchesBuild({ ...build, appCrc32: "7E27FC48" }, image, "7e27fc48"),
+    ).not.toThrow();
+  });
+
+  it("throws on a size mismatch", () => {
+    expect(() => assertImageMatchesBuild({ ...build, appSize: 99 }, image, "7e27fc48")).toThrow(
+      /bytes but the manifest expects 99/,
+    );
+  });
+
+  it("throws on a CRC mismatch (corrupt download)", () => {
+    expect(() => assertImageMatchesBuild(build, image, "deadbeef")).toThrow(/corrupt download/);
+  });
+
+  it("is a no-op when the manifest omits size + CRC (older manifests)", () => {
+    const bare: FirmwareBuild = { name: "x", variant: "sense", dfuZip: "z" };
+    expect(() => assertImageMatchesBuild(bare, image, "anything")).not.toThrow();
+  });
+});
+
 describe("fetchFirmwareManifest", () => {
   it("fetches + parses via an injected fetch", async () => {
     const fetchImpl = async () =>
       ({ ok: true, status: 200, json: async () => SAMPLE }) as unknown as Response;
     const m = await fetchFirmwareManifest("https://example/manifest.json", fetchImpl);
-    expect(m.version).toBe("2.1.0");
+    expect(m.version).toBe("2.2.0");
   });
 
   it("throws on a non-OK response", async () => {

@@ -1,4 +1,4 @@
-import { AlertTriangle, Cpu, Download, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Cpu, Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,11 +13,9 @@ import { useFirmwareUpdate, type FirmwareFlashPhase } from "@/hooks/useFirmwareU
 
 const PHASE_LABEL: Record<FirmwareFlashPhase, string> = {
   downloading: "Downloading firmware…",
-  rebooting: "Rebooting into update mode…",
-  reconnecting: "Reconnecting to device…",
-  transferring: "Installing firmware…",
-  validating: "Validating…",
-  activating: "Activating…",
+  uploading: "Uploading to device…",
+  verifying: "Verifying on device…",
+  installing: "Installing…",
   done: "Update complete!",
   error: "Update failed",
 };
@@ -34,16 +32,19 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
         ? `Version ${fw.info.version}${fw.info.variant ? ` · ${fw.info.variant}` : ""}`
         : "Version unknown";
 
-  // The dialog covers the confirm step, the in-progress flash, and the error state.
-  const dialogOpen = fw.confirmOpen || fw.flashing || fw.phase === "error";
-  const showProgress = fw.flashing || (fw.phase !== null && fw.phase !== "error");
+  // The dialog covers the confirm step, the in-progress flash, completion, and errors.
   const isError = fw.phase === "error";
-  const isTransferring = fw.phase === "transferring";
+  const isDone = fw.phase === "done";
+  const dialogOpen = fw.confirmOpen || fw.flashing || isError || isDone;
+  const showProgress = fw.flashing && !isDone;
+  // Uploading + installing report real percentages; the rest are indeterminate.
+  const hasPercent = fw.phase === "uploading" || fw.phase === "installing";
 
   const handleOpenChange = (open: boolean) => {
     if (open) return;
     if (fw.flashing) return; // can't dismiss mid-flash
-    if (isError) fw.dismiss();
+    if (isDone) fw.finish();
+    else if (isError) fw.dismiss();
     else fw.cancel();
   };
 
@@ -138,23 +139,40 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  {fw.phase !== "done" && (
-                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  )}
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   {PHASE_LABEL[fw.phase]}
                 </DialogTitle>
                 <DialogDescription>
-                  {isTransferring
+                  {hasPercent
                     ? `${fw.percent}% — please keep the device powered on.`
                     : "Please keep the device powered on and nearby."}
                 </DialogDescription>
               </DialogHeader>
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className={`h-full bg-primary transition-all ${isTransferring ? "" : "animate-pulse"}`}
-                  style={{ width: isTransferring ? `${fw.percent}%` : "100%" }}
+                  className={`h-full bg-primary transition-all ${hasPercent ? "" : "animate-pulse"}`}
+                  style={{ width: hasPercent ? `${fw.percent}%` : "100%" }}
                 />
               </div>
+            </>
+          )}
+
+          {/* ---- Complete step ---- */}
+          {isDone && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                  Flash complete!
+                </DialogTitle>
+                <DialogDescription className="text-left">
+                  Your logger is rebooting into the new firmware. Give it a few
+                  seconds, then reconnect to check it.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={fw.finish}>Done</Button>
+              </DialogFooter>
             </>
           )}
 
@@ -170,12 +188,7 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
                   {fw.flashError ?? "Something went wrong during the update."}
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="gap-2 sm:gap-0">
-                {fw.canForgetDevice && (
-                  <Button variant="secondary" onClick={fw.forgetDevice}>
-                    Forget device &amp; reconnect
-                  </Button>
-                )}
+              <DialogFooter>
                 <Button variant="outline" onClick={fw.dismiss}>
                   Close
                 </Button>

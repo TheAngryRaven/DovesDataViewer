@@ -4,27 +4,24 @@ import type { BleConnection } from "@/lib/bleDatalogger";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { isPreviewBuild } from "@/lib/buildInfo";
 import { isDebugEnabled } from "@/lib/debugConsole";
+import { crc32Hex, beginFirmwareUpdate, uploadFirmwareImage, applyFirmware } from "@/lib/ble";
 import {
-  connectToDfuDevice,
+  assertImageMatchesBuild,
   evaluateFirmwareUpdate,
   fetchFirmwareManifest,
   fetchFirmwarePackage,
-  flashFirmware,
   parseDfuPackage,
   readDeviceFirmwareInfo,
-  triggerDfuMode,
   type DeviceFirmwareInfo,
   type FirmwareBuild,
 } from "@/lib/ble/dfu";
 
-/** Coarse phase shown in the flashing dialog. */
+/** Coarse phase shown in the update dialog. */
 export type FirmwareFlashPhase =
   | "downloading"
-  | "rebooting"
-  | "reconnecting"
-  | "transferring"
-  | "validating"
-  | "activating"
+  | "uploading"
+  | "verifying"
+  | "installing"
   | "done"
   | "error";
 
@@ -37,32 +34,16 @@ function fwLog(...args: unknown[]): void {
   if (isDebugEnabled()) console.info("[firmware]", ...args);
 }
 
-/** A Web Bluetooth "Origin is not allowed to access the service" / SecurityError. */
-function isServiceAccessError(e: unknown): boolean {
-  const name = (e as { name?: string } | null)?.name ?? "";
-  const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
-  return name === "SecurityError" || msg.includes("not allowed to access");
-}
-
-/** Comma-joined UUIDs of the services this origin can currently access (diagnostic). */
-async function listAccessibleServices(server: BluetoothRemoteGATTServer): Promise<string> {
-  try {
-    const services = await server.getPrimaryServices();
-    return services.map((s) => s.uuid).join(", ") || "(none)";
-  } catch {
-    return "(could not enumerate)";
-  }
-}
-
 /**
- * Orchestrates the firmware-update flow for a connected logger:
- * read installed version → check the OTA manifest → (on confirm) download,
- * reboot into DFU, reconnect, flash, and auto-disconnect.
+ * Orchestrates the SD-staged firmware-update flow for a connected logger:
+ * read installed version → check the OTA manifest → (on confirm) download the
+ * image, run the CRC handshake, upload it to the device's SD, let the device
+ * verify + install it, and auto-disconnect when it reboots.
  *
- * The actual transfer/manifest/version logic is the unit-tested code in
- * `@/lib/ble/dfu`; this hook is the React state glue around it. Flashing is
- * marked on `DeviceContext` so the expected BLE drop (the reboot into the
- * bootloader) doesn't tear down the UI mid-update.
+ * The transfer/manifest/CRC/version logic is the unit-tested code in
+ * `@/lib/ble` + `@/lib/ble/dfu`; this hook is the React state glue. Installing is
+ * marked on `DeviceContext` so the expected BLE drop (the reboot into the new
+ * firmware) doesn't tear down the UI mid-update.
  */
 export function useFirmwareUpdate(connection: BleConnection | null) {
   const { setFlashing, disconnectDevice } = useDeviceContext();
@@ -81,8 +62,8 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   const [phase, setPhase] = useState<FirmwareFlashPhase | null>(null);
   const [percent, setPercent] = useState(0);
   const [flashError, setFlashError] = useState<string | null>(null);
-  // After the device has been rebooted into DFU, the app link is dead — closing
-  // the dialog must drop the (stale) software connection.
+  // If the install reached the point where the device reboots, the link is dead —
+  // closing the error dialog must drop the (stale) software connection.
   const [needsDisconnect, setNeedsDisconnect] = useState(false);
 
   // Read the installed firmware version whenever a connection appears.
@@ -155,77 +136,64 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     setPercent(0);
     setFlashingLocal(true);
     setFlashing(true);
-    let rebooted = false;
+    let installing = false;
 
     try {
+      // 0. Download the image (prefer the raw .bin), compute its CRC, and verify
+      //    against the manifest's published size/CRC — the first link of the
+      //    full-circle CRC chain (catches a corrupt download before the device
+      //    is involved). Falls back to unzipping the dfuZip for older manifests.
       setPhase("downloading");
-      fwLog("downloading package", build.name, build.dfuZip);
-      const zip = await fetchFirmwarePackage(build.dfuZip);
-      const pkg = await parseDfuPackage(zip);
-      fwLog("package ready", { imageBytes: pkg.image.byteLength });
-
-      setPhase("rebooting");
-      fwLog("triggering DFU mode (writing to control point)…");
-      await triggerDfuMode(connection.server);
-      rebooted = true;
-
-      setPhase("reconnecting");
-      fwLog("reconnecting to bootloader…");
-      const dfu = await connectToDfuDevice(connection.device);
-      fwLog("connected to bootloader; starting transfer");
-
-      await flashFirmware(dfu.transport, pkg, {
-        onProgress: (p) => {
-          if (p.phase === "transferring") {
-            setPhase("transferring");
-            setPercent(p.percent);
-          } else if (p.phase === "validating") {
-            setPhase("validating");
-          } else if (p.phase === "activating") {
-            setPhase("activating");
-          }
-        },
-      });
-
-      try {
-        dfu.server.disconnect();
-      } catch {
-        // ignore — the device resets itself on activate
+      let image: Uint8Array;
+      if (build.appBin) {
+        fwLog("downloading raw .bin", build.name, build.appBin);
+        image = new Uint8Array(await fetchFirmwarePackage(build.appBin));
+      } else {
+        fwLog("downloading dfuZip", build.name, build.dfuZip);
+        image = (await parseDfuPackage(await fetchFirmwarePackage(build.dfuZip))).image;
       }
+      const crc = crc32Hex(image);
+      assertImageMatchesBuild(build, image, crc);
+      fwLog("image ready + verified vs manifest", { bytes: image.byteLength, crc });
+
+      // 1–3. CRC handshake — verify the control channel, and declare the target
+      //       variant so the device rejects a wrong-variant image up front.
+      await beginFirmwareUpdate(connection, image.length, crc, build.variant);
+      fwLog("crc handshake ok", { variant: build.variant });
+
+      // 4–6. Upload to SD, then the device re-verifies the stored file's CRC.
+      setPhase("uploading");
+      await uploadFirmwareImage(connection, image, crc, (p) => {
+        setPercent(p.total > 0 ? Math.round((p.sent / p.total) * 100) : 0);
+        if (p.sent >= p.total) setPhase("verifying");
+      });
+      fwLog("upload + on-device CRC verified");
+
+      // 7–8. Install (stage → flash → reset).
+      installing = true;
+      setPhase("installing");
+      setPercent(0);
+      await applyFirmware(connection, (pct) => setPercent(pct));
+      fwLog("FWAPPLIED — device rebooting");
 
       setPhase("done");
       setPercent(100);
-      toast.success("Firmware updated — device is rebooting");
-      // Auto-disconnect the software side once finished.
-      setFlashing(false);
-      disconnectDevice();
+      toast.success("Firmware flashed — your device is rebooting");
+      // Keep DeviceContext's flashing flag TRUE so the reboot's BLE drop doesn't
+      // tear down the "complete" dialog. The user acknowledges via finish().
     } catch (e) {
-      fwLog("update failed", { rebooted, name: (e as { name?: string })?.name, error: errorMessage(e) });
-      let message = errorMessage(e);
-      // A SecurityError on a service we *do* whitelist almost always means a
-      // stale browser permission for an already-paired device. Surface what the
-      // page can actually access + how to fix it.
-      if (isServiceAccessError(e) && !rebooted) {
-        const accessible = await listAccessibleServices(connection.server);
-        fwLog("accessible services:", accessible);
-        message =
-          `${errorMessage(e)}\n\n` +
-          "Your browser is blocking the firmware-update service — usually a stale " +
-          "Bluetooth permission from a previous pairing. Tap “Forget device & reconnect” " +
-          "below, then reconnect and try again.\n\n" +
-          `Services currently accessible: ${accessible}`;
-      }
+      fwLog("update failed", { installing, error: errorMessage(e) });
       setPhase("error");
-      setFlashError(message);
-      setNeedsDisconnect(rebooted);
+      setFlashError(errorMessage(e));
+      setNeedsDisconnect(installing);
       setFlashing(false);
       toast.error(`Firmware update failed: ${errorMessage(e)}`);
     } finally {
       setFlashingLocal(false);
     }
-  }, [connection, pendingBuild, setFlashing, disconnectDevice]);
+  }, [connection, pendingBuild, setFlashing]);
 
-  /** Dismiss the error state; drops the stale connection if we'd rebooted. */
+  /** Dismiss the error state; drops the connection if the device had rebooted. */
   const dismiss = useCallback(() => {
     setPhase(null);
     setFlashError(null);
@@ -237,32 +205,16 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   }, [needsDisconnect, disconnectDevice]);
 
   /**
-   * Revoke this device's Web Bluetooth permission and disconnect, so the next
-   * connect re-pairs with a fresh grant (the fix for a stale permission that's
-   * missing the DFU service). Works without the browser's settings page —
-   * `BluetoothDevice.forget()` is supported on Chrome desktop + Android.
+   * Acknowledge a completed flash: clears the flashing flag (re-enabling normal
+   * disconnect handling) and drops the now-rebooted device so the UI returns to
+   * the connect screen. The user reconnects to the freshly-flashed firmware.
    */
-  const forgetDevice = useCallback(async () => {
-    const device = connection?.device as
-      | (BluetoothDevice & { forget?: () => Promise<void> })
-      | undefined;
-    try {
-      await device?.forget?.();
-      fwLog("device permission forgotten");
-    } catch (e) {
-      fwLog("forget() failed", errorMessage(e));
-    }
+  const finish = useCallback(() => {
     setPhase(null);
-    setFlashError(null);
     setPercent(0);
-    setNeedsDisconnect(false);
+    setFlashing(false);
     disconnectDevice();
-    toast.message("Bluetooth permission cleared — reconnect to try the update again");
-  }, [connection, disconnectDevice]);
-
-  /** Whether `BluetoothDevice.forget()` is available (to show the recovery button). */
-  const canForgetDevice =
-    typeof (connection?.device as { forget?: unknown } | undefined)?.forget === "function";
+  }, [setFlashing, disconnectDevice]);
 
   return {
     info,
@@ -277,11 +229,10 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     phase,
     percent,
     flashError,
-    canForgetDevice,
     checkForUpdates,
     cancel,
     startUpdate,
     dismiss,
-    forgetDevice,
+    finish,
   };
 }
