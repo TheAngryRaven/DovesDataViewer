@@ -59,7 +59,7 @@ export function ContactDialog({ variant = "footer" }: { variant?: "header" | "fo
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {variant === "header" ? (
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="default" size="sm" className="gap-2">
             <Mail className="w-4 h-4" />
             <span className="hidden sm:inline">Contact</span>
           </Button>

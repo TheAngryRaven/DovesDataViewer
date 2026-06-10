@@ -51,6 +51,7 @@ const FEATURES = [
   "Session notes per file",
   "BLE device integration (DovesDataLogger)",
   "Device track sync over Bluetooth",
+  "Over-the-air firmware updates — flash your logger straight from the app",
   "Custom track & course editor with community submissions",
   "Local weather lookup",
   "Dark & light mode",

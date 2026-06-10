@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-06-10
+
+### Changed
+- **Home page reshuffle.** The "Try it out!" sample-data panel now sits at the
+  top of the page (above the file import) and the "Build your own datalogger"
+  card moved below it, so new visitors see how to try the viewer first.
+- **Contact button stands out.** The header's Contact button is now a filled
+  primary button instead of a muted outline, so it's easier to find.
+- **About dialog mentions OTA.** The feature list in the About dialog now
+  includes over-the-air firmware updates for the DovesDataLogger.
+
 ## [2.3.0] - 2026-06-08
 
 ### Added

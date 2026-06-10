@@ -108,6 +108,28 @@ export function LandingPage({
             </h1>
           </div>
 
+          <div className="text-center text-sm text-muted-foreground space-y-3">
+            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <h3 className="font-medium text-foreground mb-2">Try it out!</h3>
+              <p className="text-xs mb-3">Load sample data from Orlando Kart Center to see how the viewer works.</p>
+              <Button variant="default" size="sm" onClick={onLoadSample} disabled={isLoadingSample}>
+                {isLoadingSample ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                {isLoadingSample ? "Loading..." : "Load Sample Data"}
+              </Button>
+            </div>
+          </div>
+
+          <FileImport
+            onDataLoaded={onDataLoaded}
+            onOpenFileManager={onOpenFileManager}
+            autoSave={autoSave}
+            autoSaveFile={autoSaveFile}
+          />
+
           <a
             href="https://github.com/TheAngryRaven/DovesDataLogger"
             target="_blank"
@@ -126,28 +148,6 @@ export function LandingPage({
               Get Started
             </Button>
           </a>
-
-          <FileImport
-            onDataLoaded={onDataLoaded}
-            onOpenFileManager={onOpenFileManager}
-            autoSave={autoSave}
-            autoSaveFile={autoSaveFile}
-          />
-
-          <div className="text-center text-sm text-muted-foreground space-y-3">
-            <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <h3 className="font-medium text-foreground mb-2">Try it out!</h3>
-              <p className="text-xs mb-3">Load sample data from Orlando Kart Center to see how the viewer works.</p>
-              <Button variant="default" size="sm" onClick={onLoadSample} disabled={isLoadingSample}>
-                {isLoadingSample ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4 mr-2" />
-                )}
-                {isLoadingSample ? "Loading..." : "Load Sample Data"}
-              </Button>
-            </div>
-          </div>
         </div>
 
         <PricingCards className="mx-auto w-full max-w-5xl" />
