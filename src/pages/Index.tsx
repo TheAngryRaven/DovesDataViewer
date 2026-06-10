@@ -72,6 +72,7 @@ export default function Index() {
   const setupManager = useSetupManager();
   const templateManager = useTemplateManager();
   const useKph = settings.useKph;
+  const useMetricDistance = settings.useMetricDistance;
 
   // Sync dark mode class when settings change (global init is in App.tsx)
   useEffect(() => {
@@ -283,15 +284,17 @@ export default function Index() {
     (idx: number) => {
       if (filteredDistances) {
         const d = filteredDistances[idx];
-        return d === undefined ? "" : formatAxisDistance(d, useKph);
+        return d === undefined ? "" : formatAxisDistance(d, useMetricDistance);
       }
       return formatRangeLabelTime(idx);
     },
-    [filteredDistances, useKph, formatRangeLabelTime],
+    [filteredDistances, useMetricDistance, formatRangeLabelTime],
   );
 
   const settingsContextValue = useMemo(() => ({
     useKph,
+    useMetricDistance,
+    useMetricWeather: settings.useMetricWeather,
     gForceSmoothing: settings.gForceSmoothing,
     gForceSmoothingStrength: settings.gForceSmoothingStrength,
     brakingZoneSettings,
@@ -299,7 +302,7 @@ export default function Index() {
     darkMode: settings.darkMode,
     gForceSource: settings.gForceSource,
     chartXAxis: settings.chartXAxis,
-  }), [useKph, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs, settings.darkMode, settings.gForceSource, settings.chartXAxis]);
+  }), [useKph, useMetricDistance, settings.useMetricWeather, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs, settings.darkMode, settings.gForceSource, settings.chartXAxis]);
 
   // Memoize sliced data arrays to avoid recreating on every render
   const slicedPaceData = useMemo(

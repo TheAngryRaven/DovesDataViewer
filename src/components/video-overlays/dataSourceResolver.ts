@@ -1,5 +1,6 @@
 import type { GpsSample, FieldMapping } from "@/types/racing";
 import { toChannelKey } from "@/lib/channels";
+import { isDistanceUnitChannel, distanceChannelValue, distanceChannelUnit } from "@/lib/units";
 
 /**
  * Find a data source by id, falling back to the canonical key for legacy
@@ -23,6 +24,7 @@ export function buildDataSources(
   fieldMappings: FieldMapping[],
   useKph: boolean,
   hasReference: boolean,
+  useMetricDistance: boolean = false,
 ): DataSourceDef[] {
   const sources: DataSourceDef[] = [];
 
@@ -77,16 +79,24 @@ export function buildDataSources(
 
   // Extra fields from parser
   for (const f of fieldMappings) {
+    // Distance-family channels (distance, altitude) are stored in meters but
+    // follow the distance unit toggle (m ⇄ ft).
+    const isDist = isDistanceUnitChannel(f.name);
+    const conv = (v: number) => (isDist ? distanceChannelValue(v, useMetricDistance) : v);
+    const unit = isDist ? distanceChannelUnit(useMetricDistance) : (f.unit ?? "");
     sources.push({
       id: f.name,
-      label: (f.label ?? f.name) + (f.unit ? ` (${f.unit})` : ""),
-      unit: f.unit ?? "",
-      getValue: (s) => s.extraFields[f.name] ?? null,
+      label: (f.label ?? f.name) + (unit ? ` (${unit})` : ""),
+      unit,
+      getValue: (s) => {
+        const v = s.extraFields[f.name];
+        return v === undefined ? null : conv(v);
+      },
       getMin: (samples) => {
         let min = Infinity;
         for (const s of samples) {
           const v = s.extraFields[f.name];
-          if (v !== undefined && v < min) min = v;
+          if (v !== undefined && conv(v) < min) min = conv(v);
         }
         return min === Infinity ? 0 : min;
       },
@@ -94,7 +104,7 @@ export function buildDataSources(
         let max = -Infinity;
         for (const s of samples) {
           const v = s.extraFields[f.name];
-          if (v !== undefined && v > max) max = v;
+          if (v !== undefined && conv(v) > max) max = conv(v);
         }
         return max === -Infinity ? 100 : max;
       },

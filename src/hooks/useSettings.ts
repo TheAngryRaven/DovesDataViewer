@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { isFieldHiddenByCanonical, CanonicalFieldId } from "@/lib/fieldResolver";
 
 export interface AppSettings {
-  useKph: boolean;
+  useKph: boolean;                  // Speed unit: false = MPH, true = KPH
+  useMetricDistance: boolean;       // Distance unit: false = ft/mi, true = m/km
+  useMetricWeather: boolean;        // Weather units: false = °F/mph/inHg/ft, true = °C/(km/h)/hPa/m
   gForceSmoothing: boolean;
   gForceSmoothingStrength: number; // 0-100, maps to window size
   defaultHiddenFields: CanonicalFieldId[]; // Canonical field IDs to hide by default
@@ -28,6 +30,8 @@ const SETTINGS_KEY = "dove-dataviewer-settings";
 
 const defaultSettings: AppSettings = {
   useKph: false,
+  useMetricDistance: false,
+  useMetricWeather: false,
   gForceSmoothing: true,
   gForceSmoothingStrength: 50,
   defaultHiddenFields: [],

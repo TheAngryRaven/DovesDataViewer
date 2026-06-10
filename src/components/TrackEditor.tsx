@@ -37,6 +37,8 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
+import { useOptionalSettingsContext } from '@/contexts/SettingsContext';
+import { formatTrackLength } from '@/lib/units';
 // Lazy — VisualEditor pulls in Leaflet drawing logic; only loads when the
 // track editor dialog is opened.
 const VisualEditor = lazy(() =>
@@ -88,6 +90,9 @@ export function TrackEditor({
   // Courses that still differ from the community DB (drives the always-visible
   // "Submit to DB" button: greyed out when there's nothing new to send).
   const [pendingSubmissionCount, setPendingSubmissionCount] = useState(0);
+  // Track length follows the distance unit setting; falls back to imperial when
+  // rendered outside the provider (e.g. the landing-page "Manage Tracks" entry).
+  const useMetricDistance = useOptionalSettingsContext()?.useMetricDistance ?? false;
 
   const form = useTrackEditorForm();
 /** Mini SVG preview of a course drawing outline */
@@ -486,7 +491,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                       {course.sector2 && course.sector3 && <span className="ml-2 text-xs text-accent-foreground/60">(sectors)</span>}
                       {course.lengthFt != null && course.lengthFt > 0 && (
                         <span className="ml-2 text-xs text-muted-foreground">
-                          {course.lengthFt.toLocaleString()} ft
+                          {formatTrackLength(course.lengthFt, useMetricDistance)}
                         </span>
                       )}
                     </div>

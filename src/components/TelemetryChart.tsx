@@ -4,6 +4,7 @@ import { G_FORCE_FIELDS, G_FORCE_FIELDS_GPS, G_FORCE_FIELDS_HW, applySmoothingTo
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
 import { buildChartAxis } from '@/lib/chartAxis';
+import { isDistanceUnitChannel, distanceChannelValue, distanceChannelUnit } from '@/lib/units';
 import { alignByDistance } from '@/lib/referenceUtils';
 import type { OverlayLine } from '@/lib/lapOverlays';
 
@@ -51,11 +52,11 @@ export function TelemetryChart({
   rangeStart,
   overlayLines = [],
 }: TelemetryChartProps) {
-  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, gForceSource, chartXAxis } = useSettingsContext();
+  const { useKph, useMetricDistance, gForceSmoothing, gForceSmoothingStrength, darkMode, gForceSource, chartXAxis } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
   const axis = useMemo(
-    () => buildChartAxis(samples, chartXAxis, { useKph, fullSamples: allSamples, rangeStart }),
-    [samples, chartXAxis, useKph, allSamples, rangeStart],
+    () => buildChartAxis(samples, chartXAxis, { useMetricDistance, fullSamples: allSamples, rangeStart }),
+    [samples, chartXAxis, useMetricDistance, allSamples, rangeStart],
   );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -479,13 +480,17 @@ export function TelemetryChart({
           const mappingIndex = fieldMappings.findIndex(f => f.name === field.name);
           const colorIndex = ((mappingIndex === -1 ? 0 : mappingIndex) + 1) % COLORS.length;
           ctx.fillStyle = COLORS[colorIndex];
-          ctx.fillText(`${field.label ?? field.name}: ${val.toFixed(1)}`, boxX + 8, boxY + 14 + fieldOffset * 16);
+          // Distance-family channels (distance, altitude) follow the distance unit toggle.
+          const isDist = isDistanceUnitChannel(field.name);
+          const shown = isDist ? distanceChannelValue(val, useMetricDistance) : val;
+          const unitSuffix = isDist ? ` ${distanceChannelUnit(useMetricDistance)}` : '';
+          ctx.fillText(`${field.label ?? field.name}: ${shown.toFixed(1)}${unitSuffix}`, boxX + 8, boxY + 14 + fieldOffset * 16);
           fieldOffset++;
         }
       });
     }
 
-  }, [samples, currentIndex, dimensions, enabledFields, useKph, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace, smoothedGForceData, chartColors, fieldMappings, getSpeed, axis, overlaySpeed]);
+  }, [samples, currentIndex, dimensions, enabledFields, useKph, useMetricDistance, speedUnit, paceData, referenceSpeedData, hasReference, showReferenceSpeed, showPace, smoothedGForceData, chartColors, fieldMappings, getSpeed, axis, overlaySpeed]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {

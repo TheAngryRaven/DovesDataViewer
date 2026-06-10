@@ -74,7 +74,7 @@ describe("computeAxisPositions", () => {
 describe("buildChartAxis.indexAt", () => {
   it("inverts fracAt to the nearest sample", () => {
     const samples = [makeSample(0, 0), makeSample(10, 100), makeSample(40, 200)];
-    const axis = buildChartAxis(samples, "distance", { useKph: true });
+    const axis = buildChartAxis(samples, "distance", { useMetricDistance: true });
     // Round-trip every sample's own fraction back to its index.
     samples.forEach((_, i) => expect(axis.indexAt(axis.fracAt(i))).toBe(i));
     // A fraction just past the midpoint snaps to the closer endpoint sample.
@@ -85,7 +85,7 @@ describe("buildChartAxis.indexAt", () => {
 
   it("clamps out-of-range fractions", () => {
     const samples = [makeSample(0, 0), makeSample(10, 100)];
-    const axis = buildChartAxis(samples, "time", { useKph: false });
+    const axis = buildChartAxis(samples, "time", { useMetricDistance: false });
     expect(axis.indexAt(-5)).toBe(0);
     expect(axis.indexAt(5)).toBe(1);
   });
@@ -94,18 +94,18 @@ describe("buildChartAxis.indexAt", () => {
 describe("buildChartAxis.label", () => {
   it("labels time mode as m:ss across the axis", () => {
     const samples = [makeSample(0, 0), makeSample(10, 90_000)]; // 90 s span
-    const axis = buildChartAxis(samples, "time", { useKph: false });
+    const axis = buildChartAxis(samples, "time", { useMetricDistance: false });
     expect(axis.label(0)).toBe("0:00");
     expect(axis.label(1)).toBe("1:30");
   });
 
-  it("labels distance mode in the speed-unit family", () => {
+  it("labels distance mode in the distance-unit family", () => {
     const samples = [makeSample(0, 0), makeSample(100, 1000)]; // 100 m span
-    const metric = buildChartAxis(samples, "distance", { useKph: true });
+    const metric = buildChartAxis(samples, "distance", { useMetricDistance: true });
     expect(metric.label(0)).toBe("0 m");
     expect(metric.label(1)).toBe("100 m");
 
-    const imperial = buildChartAxis(samples, "distance", { useKph: false });
+    const imperial = buildChartAxis(samples, "distance", { useMetricDistance: false });
     expect(imperial.label(1)).toBe("328 ft");
   });
 });
@@ -116,7 +116,7 @@ describe("buildChartAxis absolute labels (fullSamples + rangeStart)", () => {
 
   it("labels a cropped window in absolute distance from the lap start", () => {
     const window = fullLap.slice(3, 7); // 30 m .. 60 m
-    const axis = buildChartAxis(window, "distance", { useKph: true, fullSamples: fullLap, rangeStart: 3 });
+    const axis = buildChartAxis(window, "distance", { useMetricDistance: true, fullSamples: fullLap, rangeStart: 3 });
     // Window still fills the canvas (data fractions span 0..1)...
     expect(axis.fracAt(0)).toBe(0);
     expect(axis.fracAt(3)).toBeCloseTo(1, 6);
@@ -128,14 +128,14 @@ describe("buildChartAxis absolute labels (fullSamples + rangeStart)", () => {
 
   it("labels a cropped window in absolute time from the lap start", () => {
     const window = fullLap.slice(4, 9); // 4 s .. 8 s
-    const axis = buildChartAxis(window, "time", { useKph: false, fullSamples: fullLap, rangeStart: 4 });
+    const axis = buildChartAxis(window, "time", { useMetricDistance: false, fullSamples: fullLap, rangeStart: 4 });
     expect(axis.label(0)).toBe("0:04");
     expect(axis.label(1)).toBe("0:08");
   });
 
   it("anchors at 0 when the window starts at the lap origin", () => {
     const window = fullLap.slice(0, 5); // 0 m .. 40 m
-    const axis = buildChartAxis(window, "distance", { useKph: true, fullSamples: fullLap, rangeStart: 0 });
+    const axis = buildChartAxis(window, "distance", { useMetricDistance: true, fullSamples: fullLap, rangeStart: 0 });
     expect(axis.label(0)).toBe("0 m");
     expect(axis.label(1)).toBe("40 m");
   });

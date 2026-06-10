@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -112,6 +112,63 @@ export function SettingsModal({
                 />
                 <span className={`text-xs ${settings.useKph ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                   KPH
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Distance Unit */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Map className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">Distance Unit</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <Label htmlFor="settings-distance-unit" className="text-sm text-muted-foreground">
+                Track length, lap distance &amp; chart distance axis
+              </Label>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${!settings.useMetricDistance ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  ft/mi
+                </span>
+                <Switch
+                  id="settings-distance-unit"
+                  checked={settings.useMetricDistance}
+                  onCheckedChange={(checked) => onSettingsChange({ useMetricDistance: checked })}
+                />
+                <span className={`text-xs ${settings.useMetricDistance ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  m/km
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Weather Units */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <CloudSun className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">Weather Units</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <div>
+                <Label htmlFor="settings-weather-units" className="text-sm text-muted-foreground">
+                  Temperature, wind, pressure &amp; altitude
+                </Label>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  Imperial = °F, mph, inHg, ft · Metric = °C, km/h, hPa, m
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${!settings.useMetricWeather ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  Imp
+                </span>
+                <Switch
+                  id="settings-weather-units"
+                  checked={settings.useMetricWeather}
+                  onCheckedChange={(checked) => onSettingsChange({ useMetricWeather: checked })}
+                />
+                <span className={`text-xs ${settings.useMetricWeather ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                  Met
                 </span>
               </div>
             </div>

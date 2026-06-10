@@ -141,6 +141,7 @@ src/
 │   ├── weatherService.ts  # Historical weather (online-only): US → NWS station + IEM ASOS METAR; else → Open-Meteo reanalysis fallback (keyless, global). fetchSessionWeather orchestrates.
 │   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time + amber preview-DB warning via isPreviewBuild(); values injected by vite define)
 │   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`): pure flag-parse + log ring-buffer + console/global-error capture (mobile/PWA has no dev tools) — rendered by components/DebugConsole.tsx
+│   ├── units.ts           # ★ Pure unit conversions + display formatters for the 3 imperial/metric toggles (speed/distance/weather) — single home for every conversion constant
 │   └── utils.ts           # Tailwind cn() helper
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section
 │   ├── (framework)        # types, registry, index, panels, mounts, storage + PluginPanelHost/PluginMount
@@ -746,6 +747,13 @@ Global BLE connection state is managed by `DeviceContext.tsx`, wrapping the app 
 
 Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZoneSettings` (thresholds, duration, smoothing, color, width), `enableLabs` (hidden when no labs features), `darkMode`, `deltaMethod` (`'position'` default | `'distance'` legacy), `deltaSampleMeters` (arc-length resample spacing for position delta, default 2), `chartXAxis` (`'distance'` default | `'time'`) — the analysis-chart X-axis scale.
 
+**Units are three independent imperial/metric toggles** (all default imperial), one per measurement family, each a Switch in `SettingsModal`:
+- `useKph` (speed) — MPH ⇄ KPH. Picks `speedMph`/`speedKph` on every sample + speed axis labels.
+- `useMetricDistance` (distance) — ft/mi ⇄ m/km. Drives the chart distance axis (`buildChartAxis` `opts.useMetricDistance`), the range-crop labels, `TrackEditor` course lengths, and the meters-based **distance-family telemetry channels** (`distance`, `altitude` — `isDistanceUnitChannel`; converted to a single continuous m/ft unit in the graph charts + video overlays. GPS accuracy `h_acc`/`v_acc` stays in meters).
+- `useMetricWeather` (weather) — °F/mph/inHg/ft ⇄ °C/(km/h)/hPa/m. Drives `WeatherPanel` + `LocalWeatherDialog` (temp, dew point, wind, pressure, density/pressure altitude).
+
+All conversions + display formatters live in **`lib/units.ts`** (pure, unit-tested in `units.test.ts`): canonical internal values (distance→meters, temp→Celsius, wind→knots, pressure→inHg, altitude→feet) convert only at display time. `chartAxis.formatAxisDistance` is a re-export of `units.formatDistance`. Weather/track-length surfaces read the flag via `useOptionalSettingsContext()` so they also render outside the provider (landing page).
+
 `useReferenceLap.ts` routes pace through `computeLapPace` (`lapDelta.ts`), which
 switches on `deltaMethod`. The position method is the issue #29 port; `distance`
 falls back to the legacy `calculatePace` in `referenceUtils.ts`.
@@ -754,8 +762,8 @@ falls back to the legacy `calculatePace` in `referenceUtils.ts`.
 charts (`TelemetryChart`, `SingleSeriesChart`) via `lib/chartAxis.ts`
 (`buildChartAxis`): a pure, unit-tested helper that maps each sample to an
 x-fraction (elapsed-time fraction, or cumulative-distance fraction via
-`calculateDistanceArray`), supplies tick labels (distance unit follows `useKph`:
-MPH→ft/mi, KPH→m/km), and an `indexAt` inverse for scrubbing. Distance is the
+`calculateDistanceArray`), supplies tick labels (distance unit follows
+`useMetricDistance`: imperial→ft/mi, metric→m/km), and an `indexAt` inverse for scrubbing. Distance is the
 default so laps line up by track position; the reference/pace overlays already
 align by distance, so they sit correctly on either axis.
 

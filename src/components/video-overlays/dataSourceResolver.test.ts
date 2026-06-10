@@ -92,6 +92,24 @@ describe("buildDataSources", () => {
     expect(rpm.getMin([])).toBe(0);
     expect(rpm.getMax([])).toBe(100);
   });
+
+  it("distance-family channels follow the distance unit toggle", () => {
+    const DIST_FIELD: FieldMapping = { index: 2, name: "distance", label: "Distance", unit: "m", enabled: true };
+    const sample = makeSample({ extraFields: { distance: 1000 } });
+
+    // Imperial (default): meters → feet, unit + label switch to ft.
+    const imperial = buildDataSources([DIST_FIELD], false, false, false).find((s) => s.id === "distance")!;
+    expect(imperial.unit).toBe("ft");
+    expect(imperial.label).toBe("Distance (ft)");
+    expect(imperial.getValue(sample)).toBeCloseTo(3280.84, 1);
+    expect(imperial.getMax([sample])).toBeCloseTo(3280.84, 1);
+
+    // Metric: stays in meters.
+    const metric = buildDataSources([DIST_FIELD], false, false, true).find((s) => s.id === "distance")!;
+    expect(metric.unit).toBe("m");
+    expect(metric.label).toBe("Distance (m)");
+    expect(metric.getValue(sample)).toBe(1000);
+  });
 });
 
 // ─── resolveValue ──────────────────────────────────────────────────────────────

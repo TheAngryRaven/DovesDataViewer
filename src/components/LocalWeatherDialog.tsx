@@ -15,9 +15,14 @@ import {
   WeatherStation,
   WeatherData,
 } from "@/lib/weatherService";
-import { toast } from "@/hooks/use-toast";
-
-const knotsToMph = (kts: number) => Math.round(kts * 1.15078);
+import { useOptionalSettingsContext } from "@/contexts/SettingsContext";
+import {
+  formatTemperature,
+  formatPressure,
+  formatAltitudeFt,
+  windSpeedValue,
+  windSpeedUnit,
+} from "@/lib/units";
 
 interface LocalWeatherDialogProps {
   /** If provided, renders in session read-only mode (no search UI) */
@@ -222,6 +227,8 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
 
 /** Extracted weather results display */
 function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }: { weather: WeatherData; resolvedLocation?: string | null; showTuningNote?: boolean }) {
+  const metric = useOptionalSettingsContext()?.useMetricWeather ?? false;
+
   // Compute dew point from temp and humidity (Magnus formula)
   const dewPointC = (() => {
     const a = 17.27;
@@ -230,14 +237,13 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
     return Math.round(((b * alpha) / (a - alpha)) * 10) / 10;
   })();
 
-  const dewPointF = Math.round((dewPointC * 9) / 5 + 32);
   const pressureAltFt = Math.round((29.92 - weather.altimeterInHg) * 1000);
 
   const windValue = weather.windSpeedKts !== null
     ? (() => {
-        const mph = knotsToMph(weather.windSpeedKts);
-        const gustStr = weather.windGustKts ? ` G${knotsToMph(weather.windGustKts)}` : "";
-        return `${weather.windDirectionDeg ?? "VRB"}° @ ${mph} mph${gustStr}`;
+        const spd = windSpeedValue(weather.windSpeedKts, metric);
+        const gustStr = weather.windGustKts ? ` G${windSpeedValue(weather.windGustKts, metric)}` : "";
+        return `${weather.windDirectionDeg ?? "VRB"}° @ ${spd} ${windSpeedUnit(metric)}${gustStr}`;
       })()
     : "Calm";
 
@@ -272,7 +278,7 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
         <WeatherItem
           icon={<Thermometer className="w-4 h-4" />}
           label="Temperature"
-          value={`${weather.temperatureF}°F (${weather.temperatureC}°C)`}
+          value={formatTemperature(weather.temperatureC, metric)}
         />
         <WeatherItem
           icon={<Droplets className="w-4 h-4" />}
@@ -282,12 +288,12 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
         <WeatherItem
           icon={<Thermometer className="w-4 h-4" />}
           label="Dew Point"
-          value={`${dewPointF}°F (${dewPointC}°C)`}
+          value={formatTemperature(dewPointC, metric)}
         />
         <WeatherItem
           icon={<Gauge className="w-4 h-4" />}
           label="Barometer"
-          value={`${weather.altimeterInHg} inHg`}
+          value={formatPressure(weather.altimeterInHg, metric)}
         />
         <WeatherItem
           icon={<Wind className="w-4 h-4" />}
@@ -305,12 +311,12 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
         <WeatherItem
           icon={<Mountain className="w-4 h-4" />}
           label="Pressure Alt"
-          value={`${pressureAltFt.toLocaleString()} ft`}
+          value={formatAltitudeFt(pressureAltFt, metric)}
         />
         <WeatherItem
           icon={<Mountain className="w-4 h-4" />}
           label="Density Alt"
-          value={`${weather.densityAltitudeFt.toLocaleString()} ft`}
+          value={formatAltitudeFt(weather.densityAltitudeFt, metric)}
           highlight
         />
       </div>

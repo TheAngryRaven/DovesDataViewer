@@ -17,11 +17,9 @@
 
 import { GpsSample } from '@/types/racing';
 import { calculateDistanceArray } from './referenceUtils';
+import { formatDistance } from './units';
 
 export type ChartXAxisMode = 'time' | 'distance';
-
-const METERS_PER_FOOT = 0.3048;
-const FEET_PER_MILE = 5280;
 
 export interface ChartAxis {
   mode: ChartXAxisMode;
@@ -45,17 +43,11 @@ export function formatAxisTime(seconds: number): string {
 }
 
 /**
- * Format a distance (in meters) using the unit family implied by the speed
- * unit: KPH → meters/km, MPH → feet/miles. Switches to the larger unit once
- * past a full km / mile so long sessions stay readable.
+ * Format a distance (in meters) for the distance unit family: metric → m/km,
+ * imperial → ft/mi. Thin re-export of {@link formatDistance} so chart callers
+ * keep a single import.
  */
-export function formatAxisDistance(meters: number, useKph: boolean): string {
-  if (useKph) {
-    return meters >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${Math.round(meters)} m`;
-  }
-  const feet = meters / METERS_PER_FOOT;
-  return feet >= FEET_PER_MILE ? `${(feet / FEET_PER_MILE).toFixed(2)} mi` : `${Math.round(feet)} ft`;
-}
+export const formatAxisDistance = formatDistance;
 
 /**
  * Compute the per-sample axis fraction [0..1] for a mode. Falls back to a
@@ -108,8 +100,9 @@ function nearestIndex(positions: number[], frac: number): number {
 }
 
 /**
- * Build the axis helper for a sample set. `useKph` only affects distance-mode
- * tick labels (the unit family); positions are unit-agnostic fractions.
+ * Build the axis helper for a sample set. `useMetricDistance` only affects
+ * distance-mode tick labels (the unit family); positions are unit-agnostic
+ * fractions.
  *
  * Pass `fullSamples` + `rangeStart` to label **absolutely** from the full
  * series' origin (the lap start / start-finish line): the drawn fractions still
@@ -120,7 +113,7 @@ function nearestIndex(positions: number[], frac: number): number {
 export function buildChartAxis(
   samples: GpsSample[],
   mode: ChartXAxisMode,
-  opts: { useKph: boolean; fullSamples?: GpsSample[]; rangeStart?: number },
+  opts: { useMetricDistance: boolean; fullSamples?: GpsSample[]; rangeStart?: number },
 ): ChartAxis {
   const positions = computeAxisPositions(samples, mode);
   const n = samples.length;
@@ -155,7 +148,7 @@ export function buildChartAxis(
     indexAt: (frac: number) => nearestIndex(positions, frac),
     label: (frac: number) =>
       mode === 'distance'
-        ? formatAxisDistance(offset + extent * frac, opts.useKph)
+        ? formatDistance(offset + extent * frac, opts.useMetricDistance)
         : formatAxisTime(offset + extent * frac),
   };
 }

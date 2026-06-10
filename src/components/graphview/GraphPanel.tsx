@@ -8,6 +8,7 @@ import { GpsSample, FieldMapping } from '@/types/racing';
 import type { OverlayLine } from '@/lib/lapOverlays';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
 import { computeBrakingGSeriesSG, gToBrakePercent } from '@/lib/brakingZones';
+import { isDistanceUnitChannel, distanceChannelUnit } from '@/lib/units';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { saveGraphPrefs, loadGraphPrefs } from '@/lib/graphPrefsStorage';
 
@@ -36,7 +37,7 @@ export function GraphPanel({
   samples, filteredSamples, referenceSamples, fieldMappings, currentIndex, onScrub,
   visibleRange, onRangeChange, minRange, formatRangeLabel, sessionFileName, overlayLines = [],
 }: GraphPanelProps) {
-  const { useKph, brakingZoneSettings } = useSettingsContext();
+  const { useKph, useMetricDistance, brakingZoneSettings } = useSettingsContext();
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
   const [graphHeights, setGraphHeights] = useState<Record<string, number>>({});
   const loadedFileRef = useRef<string | null>(null);
@@ -169,7 +170,9 @@ export function GraphPanel({
     }
     fieldMappings.forEach(f => {
       const display = f.label ?? f.name;
-      let label = display + (f.unit ? ` (${f.unit})` : '');
+      // Distance-family channels (distance, altitude) follow the distance unit toggle.
+      const unit = isDistanceUnitChannel(f.name) ? distanceChannelUnit(useMetricDistance) : f.unit;
+      let label = display + (unit ? ` (${unit})` : '');
       // Add source indicator when both GPS and HW G-force data exist
       if (hasBothSources) {
         if (f.name === 'lat_g') label = 'Lat G (GPS)';
@@ -181,7 +184,7 @@ export function GraphPanel({
       sources.push({ key: f.name, label });
     });
     return sources;
-  }, [fieldMappings, useKph, hasReference, hasBothSources, hasGForce]);
+  }, [fieldMappings, useKph, useMetricDistance, hasReference, hasBothSources, hasGForce]);
 
   const unusedSources = useMemo(() => {
     return availableSources.filter(s => !activeGraphs.includes(s.key));

@@ -13,6 +13,8 @@ export interface BrakingZoneSettings {
 
 export interface SettingsContextValue {
   useKph: boolean;
+  useMetricDistance: boolean;
+  useMetricWeather: boolean;
   gForceSmoothing: boolean;
   gForceSmoothingStrength: number;
   brakingZoneSettings: BrakingZoneSettings;

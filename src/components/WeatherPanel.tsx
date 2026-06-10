@@ -7,8 +7,13 @@ import {
   WeatherData,
   WeatherStation,
 } from "@/lib/weatherService";
-
-const knotsToMph = (kts: number) => Math.round(kts * 1.15078);
+import { useOptionalSettingsContext } from "@/contexts/SettingsContext";
+import {
+  formatTemperature,
+  formatPressure,
+  formatAltitudeFt,
+  windSpeedValue,
+} from "@/lib/units";
 
 function isToday(date: Date): boolean {
   const now = new Date();
@@ -38,6 +43,7 @@ export function WeatherPanel({
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const metric = useOptionalSettingsContext()?.useMetricWeather ?? false;
   const onStationResolvedRef = useRef(onStationResolved);
   onStationResolvedRef.current = onStationResolved;
   const onWeatherLoadedRef = useRef(onWeatherLoaded);
@@ -139,17 +145,17 @@ export function WeatherPanel({
             </div>
           )}
 
-          <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Temp" value={`${weather.temperatureF}°F (${weather.temperatureC}°C)`} />
+          <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Temp" value={formatTemperature(weather.temperatureC, metric)} />
           <WeatherRow icon={<Droplets className="w-3 h-3" />} label="Humidity" value={`${weather.humidity}%`} />
-          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="Pressure" value={`${weather.altimeterInHg} inHg`} />
-          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="DA" value={`${weather.densityAltitudeFt.toLocaleString()} ft`} />
+          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="Pressure" value={formatPressure(weather.altimeterInHg, metric)} />
+          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="DA" value={formatAltitudeFt(weather.densityAltitudeFt, metric)} />
 
           {/* Extended fields - detailed only */}
           {detailed && (
             <>
-              <DewPointRow temperatureC={weather.temperatureC} humidity={weather.humidity} />
-              <WindRow weather={weather} />
-              <PressureAltRow altimeterInHg={weather.altimeterInHg} />
+              <DewPointRow temperatureC={weather.temperatureC} humidity={weather.humidity} metric={metric} />
+              <WindRow weather={weather} metric={metric} />
+              <PressureAltRow altimeterInHg={weather.altimeterInHg} metric={metric} />
               {sessionDate && isToday(sessionDate) && (
                 <TuningNote densityAltitudeFt={weather.densityAltitudeFt} humidity={weather.humidity} />
               )}
@@ -173,20 +179,19 @@ function WeatherRow({ icon, label, value }: { icon: React.ReactNode; label: stri
   );
 }
 
-function DewPointRow({ temperatureC, humidity }: { temperatureC: number; humidity: number }) {
+function DewPointRow({ temperatureC, humidity, metric }: { temperatureC: number; humidity: number; metric: boolean }) {
   const a = 17.27, b = 237.7;
   const alpha = (a * temperatureC) / (b + temperatureC) + Math.log(humidity / 100);
   const dewC = Math.round(((b * alpha) / (a - alpha)) * 10) / 10;
-  const dewF = Math.round((dewC * 9) / 5 + 32);
-  return <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Dew Pt" value={`${dewF}°F (${dewC}°C)`} />;
+  return <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Dew Pt" value={formatTemperature(dewC, metric)} />;
 }
 
-function WindRow({ weather }: { weather: WeatherData }) {
+function WindRow({ weather, metric }: { weather: WeatherData; metric: boolean }) {
   const windValue = weather.windSpeedKts !== null
     ? (() => {
-        const mph = knotsToMph(weather.windSpeedKts);
-        const gustStr = weather.windGustKts ? ` G${knotsToMph(weather.windGustKts)}` : "";
-        return `${weather.windDirectionDeg ?? "VRB"}° @ ${mph}${gustStr}`;
+        const spd = windSpeedValue(weather.windSpeedKts, metric);
+        const gustStr = weather.windGustKts ? ` G${windSpeedValue(weather.windGustKts, metric)}` : "";
+        return `${weather.windDirectionDeg ?? "VRB"}° @ ${spd}${gustStr}`;
       })()
     : "Calm";
   return (
@@ -205,9 +210,9 @@ function WindRow({ weather }: { weather: WeatherData }) {
   );
 }
 
-function PressureAltRow({ altimeterInHg }: { altimeterInHg: number }) {
+function PressureAltRow({ altimeterInHg, metric }: { altimeterInHg: number; metric: boolean }) {
   const pressureAltFt = Math.round((29.92 - altimeterInHg) * 1000);
-  return <WeatherRow icon={<Mountain className="w-3 h-3" />} label="Press Alt" value={`${pressureAltFt.toLocaleString()} ft`} />;
+  return <WeatherRow icon={<Mountain className="w-3 h-3" />} label="Press Alt" value={formatAltitudeFt(pressureAltFt, metric)} />;
 }
 
 function TuningNote({ densityAltitudeFt, humidity }: { densityAltitudeFt: number; humidity: number }) {

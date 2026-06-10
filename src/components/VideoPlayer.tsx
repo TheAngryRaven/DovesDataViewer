@@ -232,7 +232,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   course = null, referenceSamples = [], paceData = [],
   sessionFileName = null,
 }: VideoPlayerProps) {
-  const { useKph, brakingZoneSettings } = useSettingsContext();
+  const { useKph, useMetricDistance, brakingZoneSettings } = useSettingsContext();
   const progressRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -269,8 +269,8 @@ export const VideoPlayer = memo(function VideoPlayer({
   // Build data sources for overlays
   const hasReference = referenceSamples.length > 0;
   const dataSources = useMemo(() =>
-    buildDataSources(fieldMappings, useKph, hasReference),
-    [fieldMappings, useKph, hasReference]
+    buildDataSources(fieldMappings, useKph, hasReference, useMetricDistance),
+    [fieldMappings, useKph, hasReference, useMetricDistance]
   );
 
   // Build render context

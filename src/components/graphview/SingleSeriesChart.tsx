@@ -5,6 +5,7 @@ import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, det
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
 import { buildChartAxis } from '@/lib/chartAxis';
+import { isDistanceUnitChannel, distanceChannelValue, distanceChannelUnit } from '@/lib/units';
 import { alignByDistance, alignValuesByDistance } from '@/lib/referenceUtils';
 import { computeBrakingGSeriesSG, gToBrakePercent } from '@/lib/brakingZones';
 import type { OverlayLine } from '@/lib/lapOverlays';
@@ -42,11 +43,11 @@ export function SingleSeriesChart({
   allSamples, rangeStart, overlayLines = [],
   height, onHeightChange,
 }: SingleSeriesChartProps) {
-  const { useKph, gForceSmoothing, gForceSmoothingStrength, darkMode, chartXAxis, brakingZoneSettings } = useSettingsContext();
+  const { useKph, useMetricDistance, gForceSmoothing, gForceSmoothingStrength, darkMode, chartXAxis, brakingZoneSettings } = useSettingsContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
   const axis = useMemo(
-    () => buildChartAxis(samples, chartXAxis, { useKph, fullSamples: allSamples, rangeStart }),
-    [samples, chartXAxis, useKph, allSamples, rangeStart],
+    () => buildChartAxis(samples, chartXAxis, { useMetricDistance, fullSamples: allSamples, rangeStart }),
+    [samples, chartXAxis, useMetricDistance, allSamples, rangeStart],
   );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,13 @@ export function SingleSeriesChart({
   const isPace = seriesKey === '__pace__';
   const isBrakingG = seriesKey === '__braking_g__';
   const isGForce = G_FORCE_FIELDS.includes(seriesKey);
+  // Distance-family channels (distance, altitude) are stored in meters but
+  // follow the distance unit toggle (m ⇄ ft).
+  const isDist = isDistanceUnitChannel(seriesKey);
+  const toDist = useCallback(
+    (v: number | undefined) => (isDist && v !== undefined ? distanceChannelValue(v, useMetricDistance) : v),
+    [isDist, useMetricDistance],
+  );
 
   const smoothingWindowSize = useMemo(() =>
     isGForce ? computeSmoothingWindowSize(gForceSmoothing, gForceSmoothingStrength) : 1,
@@ -79,8 +87,14 @@ export function SingleSeriesChart({
     if (isSpeed) {
       return samples.map(s => useKph ? s.speedKph : s.speedMph);
     }
-    return samples.map(s => s.extraFields[seriesKey]);
-  }, [samples, seriesKey, isSpeed, isPace, isBrakingG, useKph, referenceValues, brakingGValues]);
+    return samples.map(s => toDist(s.extraFields[seriesKey]));
+  }, [samples, seriesKey, isSpeed, isPace, isBrakingG, useKph, referenceValues, brakingGValues, toDist]);
+
+  // Reference values, converted onto the same distance unit as the live series.
+  const refValues = useMemo(() => {
+    if (!referenceValues || !isDist) return referenceValues;
+    return referenceValues.map(v => (v === null ? null : distanceChannelValue(v, useMetricDistance)));
+  }, [referenceValues, isDist, useMetricDistance]);
 
   // Apply smoothing for G-force fields
   const values = useMemo(() => {
@@ -114,7 +128,7 @@ export function SingleSeriesChart({
     }
     const getValue = isSpeed
       ? (s: GpsSample) => (useKph ? s.speedKph : s.speedMph)
-      : (s: GpsSample) => s.extraFields[seriesKey];
+      : (s: GpsSample) => toDist(s.extraFields[seriesKey]);
     return overlayLines.map((line) => {
       let values = alignByDistance(full, line.samples, getValue).slice(start, end);
       if (isGForce && smoothingWindowSize > 1) {
@@ -125,7 +139,7 @@ export function SingleSeriesChart({
       }
       return { id: line.id, color: line.color, label: line.label, values };
     });
-  }, [overlayLines, allSamples, samples, rangeStart, isSpeed, isPace, isBrakingG, isGForce, seriesKey, useKph, smoothingWindowSize, brakingZoneSettings.graphWindow, brakingZoneSettings.brakeMaxG]);
+  }, [overlayLines, allSamples, samples, rangeStart, isSpeed, isPace, isBrakingG, isGForce, seriesKey, useKph, toDist, smoothingWindowSize, brakingZoneSettings.graphWindow, brakingZoneSettings.brakeMaxG]);
 
   // Speed glitch filtering
   const interpolateIndices = useMemo(() => {
@@ -189,8 +203,8 @@ export function SingleSeriesChart({
     let maxVal = Math.max(...numericValues);
 
     // Expand range to fit reference values
-    if (referenceValues && !isPace) {
-      const refNums = referenceValues.filter((v): v is number => v !== null);
+    if (refValues && !isPace) {
+      const refNums = refValues.filter((v): v is number => v !== null);
       if (refNums.length > 0) {
         minVal = Math.min(minVal, ...refNums);
         maxVal = Math.max(maxVal, ...refNums);
@@ -216,14 +230,14 @@ export function SingleSeriesChart({
     const range = maxVal - minVal || 1;
 
     // Draw reference line (behind main line)
-    if (referenceValues && !isPace) {
+    if (refValues && !isPace) {
       ctx.beginPath();
       ctx.strokeStyle = chartColors.refLine;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]);
       let refDrawing = false;
       for (let i = 0; i < samples.length; i++) {
-        const rv = referenceValues[i];
+        const rv = refValues[i];
         if (rv === null || rv === undefined) { refDrawing = false; continue; }
         const x = padding.left + axis.fracAt(i) * chartWidth;
         const y = padding.top + (1 - (rv - minVal) / range) * chartHeight;
@@ -324,14 +338,14 @@ export function SingleSeriesChart({
       // Current value tooltip — current lap first, then each overlay lap.
       const displayVal = values[currentIndex];
       if (displayVal !== undefined) {
-        const unit = isPace ? 's' : isBrakingG ? 'G' : isSpeed ? (useKph ? ' kph' : ' mph') : '';
+        const unit = isPace ? 's' : isBrakingG ? 'G' : isSpeed ? (useKph ? ' kph' : ' mph') : isDist ? ` ${distanceChannelUnit(useMetricDistance)}` : '';
         const prefix = (isPace || isBrakingG) && displayVal > 0 ? '+' : '';
         const mainText = `${prefix}${displayVal.toFixed((isPace || isBrakingG) ? 2 : 1)}${unit}`;
 
         // Delta text (difference from reference at same point)
         let deltaText = '';
-        if (referenceValues && !isPace) {
-          const refVal = referenceValues[currentIndex];
+        if (refValues && !isPace) {
+          const refVal = refValues[currentIndex];
           if (refVal !== null && refVal !== undefined) {
             const delta = displayVal - refVal;
             const sign = delta > 0 ? '+' : '';
@@ -381,7 +395,7 @@ export function SingleSeriesChart({
         });
       }
     }
-  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, useKph, interpolateIndices, referenceValues, chartColors, axis, overlaySeries]);
+  }, [samples, values, currentIndex, dimensions, color, isSpeed, isPace, isBrakingG, isDist, useKph, useMetricDistance, interpolateIndices, refValues, chartColors, axis, overlaySeries]);
 
   // Scrub handling
   const handleScrub = useCallback((clientX: number) => {
