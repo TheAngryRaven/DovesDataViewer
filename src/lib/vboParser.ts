@@ -12,14 +12,22 @@ import {
 
 /**
  * VBO Parser for Racelogic VBOX data files
- * 
+ *
  * VBO format structure:
  * - [header] section with metadata
  * - [column names] section with channel names
  * - [data] section with space-delimited rows
- * 
+ *
  * Standard VBO columns include:
  * - sats, time, lat, long, velocity, heading, height, etc.
+ *
+ * Racelogic encoding quirks (per the VBOX file spec):
+ * - `time` is UTC time-since-midnight packed as HHMMSS.SS
+ * - `lat`/`long` are *total decimal minutes* (+03119.09973 = 51.985°), with
+ *   longitude positive WEST of the prime meridian
+ * Third-party exporters (e.g. RaceBox) reuse the section layout but write
+ * signed decimal degrees instead, so the coordinate encoding is detected once
+ * per file (see detectVboCoordinateMode).
  */
 
 // Check if content is VBO format by looking for characteristic sections
@@ -65,47 +73,94 @@ const KNOWN_COLUMNS: Record<string, string> = {
   'distance': 'distance',
 };
 
-// Parse VBO time format (hhmmss.sss or seconds since midnight)
-function parseVboTime(value: string): number {
-  const num = parseFloat(value);
-  if (isNaN(num)) return 0;
-  
-  // Check if it's hhmmss.sss format (larger than 86400 would be impossible for seconds)
-  // or if it contains more than 6 digits before decimal
-  if (num >= 100000) {
-    // hhmmss.sss format
-    const str = value.padStart(10, '0');
-    const hours = parseInt(str.substring(0, 2), 10);
-    const minutes = parseInt(str.substring(2, 4), 10);
-    const secondsStr = str.substring(4);
-    const seconds = parseFloat(secondsStr);
-    return (hours * 3600 + minutes * 60 + seconds) * 1000;
+/**
+ * Parse the VBO `time` column. Racelogic packs UTC time-since-midnight as
+ * HHMMSS.SS, so the digits must be split relative to the decimal point —
+ * splitting by magnitude (the old approach) corrupted every session before
+ * 10:00 UTC (read as plain seconds, injecting ~40 phantom seconds per minute
+ * boundary) and mis-aligned 2-decimal values at/after 100000.00. A value whose
+ * minute/second digit pairs exceed 59 cannot be packed HHMMSS and falls back
+ * to plain seconds-since-midnight.
+ */
+export function parseVboTime(value: string): number {
+  const str = value.trim();
+  const num = parseFloat(str);
+  if (isNaN(num) || num < 0) return 0;
+
+  const dot = str.indexOf('.');
+  const intDigits = (dot === -1 ? str : str.slice(0, dot)).replace(/^\+/, '');
+  const fraction = dot === -1 ? 0 : parseFloat(`0${str.slice(dot)}`) || 0;
+
+  if (intDigits.length <= 6 && /^\d*$/.test(intDigits)) {
+    const padded = intDigits.padStart(6, '0');
+    const hours = parseInt(padded.slice(0, 2), 10);
+    const minutes = parseInt(padded.slice(2, 4), 10);
+    const seconds = parseInt(padded.slice(4, 6), 10);
+    if (hours < 24 && minutes < 60 && seconds < 60) {
+      return (hours * 3600 + minutes * 60 + seconds + fraction) * 1000;
+    }
   }
-  
-  // Already in seconds since midnight
+
+  // Not valid packed HHMMSS — treat as seconds since midnight.
   return num * 1000;
 }
 
-// Parse VBO coordinate - may be in decimal degrees or NMEA format
-function parseVboCoordinate(value: string): number {
-  const num = parseFloat(value);
-  if (isNaN(num)) return 0;
-  
-  // VBO files typically use decimal minutes format: DDDMM.MMMMM
-  // Check if this looks like decimal minutes (absolute value > 100 for lon, > 90 for lat usually)
-  // But RaceBox exports decimal degrees directly
-  
-  // If absolute value is reasonable for decimal degrees, use directly
-  if (Math.abs(num) <= 180) {
-    return num;
+/** How a VBO file encodes lat/long. Decided once per file, never per value. */
+export type VboCoordinateMode = 'minutes' | 'degrees';
+
+// Racelogic writes fixed-width zero-padded coordinates (+00031.12345): an
+// integer part of 4+ digits with a leading zero never occurs in plain decimal
+// degrees, so it identifies the minutes encoding even for values that are
+// numerically within degree range.
+const ZERO_PADDED_COORD = /^[+-]?0\d{3,}\.\d+$/;
+
+// Total decimal minutes can't exceed 90°/180° × 60. Values beyond that are
+// garbage rows, not evidence of the minutes encoding.
+const MAX_LAT_MINUTES = 90 * 60;
+const MAX_LON_MINUTES = 180 * 60;
+
+/**
+ * Decide how a VBO file encodes coordinates.
+ *
+ * Genuine Racelogic files store *total decimal minutes* (+03119.09973 =
+ * 3119.09973′ = 51.985°); some third-party exporters (e.g. RaceBox) write
+ * signed decimal degrees. Disambiguation:
+ *  - any |lat| > 90 or |lon| > 180 (within plausible minute range) is
+ *    impossible in degrees → minutes
+ *  - otherwise Racelogic's zero-padded fixed-width integer part → minutes
+ *  - otherwise → degrees
+ * Only a session within ~1.5° of the equator AND ~3° of the prime meridian
+ * (open Atlantic) reaches the zero-padding fallback.
+ */
+export function detectVboCoordinateMode(coordPairs: Array<{ lat: string; lon: string }>): VboCoordinateMode {
+  let sawZeroPadded = false;
+  for (const { lat, lon } of coordPairs) {
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    if (isNaN(latNum) || isNaN(lonNum)) continue;
+    const latAbs = Math.abs(latNum);
+    const lonAbs = Math.abs(lonNum);
+    if ((latAbs > 90 && latAbs <= MAX_LAT_MINUTES) || (lonAbs > 180 && lonAbs <= MAX_LON_MINUTES)) {
+      return 'minutes';
+    }
+    if (ZERO_PADDED_COORD.test(lat.trim()) || ZERO_PADDED_COORD.test(lon.trim())) {
+      sawZeroPadded = true;
+    }
   }
-  
-  // Otherwise, convert from DDDMM.MMMMM format
-  const sign = num < 0 ? -1 : 1;
-  const absNum = Math.abs(num);
-  const degrees = Math.floor(absNum / 100);
-  const minutes = absNum - degrees * 100;
-  return sign * (degrees + minutes / 60);
+  return sawZeroPadded ? 'minutes' : 'degrees';
+}
+
+/**
+ * Convert a raw VBO coordinate to signed decimal degrees (east-positive).
+ * In minutes mode the value is total decimal minutes and Racelogic longitude
+ * is positive WEST of the prime meridian, so longitude is negated.
+ */
+export function vboCoordinateToDegrees(value: string, mode: VboCoordinateMode, axis: 'lat' | 'lon'): number {
+  const num = parseFloat(value);
+  if (isNaN(num)) return NaN;
+  if (mode === 'degrees') return num;
+  const degrees = num / 60;
+  return axis === 'lon' ? -degrees : degrees;
 }
 
 export function parseVboFile(content: string): ParsedData {
@@ -151,29 +206,14 @@ export function parseVboFile(content: string): ParsedData {
     }
   }
   
-  // Parse data rows
-  const samples: GpsSample[] = [];
-  let baseTimeMs: number | null = null;
-  let startDate: Date | undefined;
-  
-  for (let i = dataStart + 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line.startsWith('[')) continue; // Skip empty lines and section headers
-    
-    const fields = line.split(/\s+/);
-    if (fields.length < 3) continue;
-    
-    // Extract core fields
-    const latIdx = columnMap['lat'];
-    const lonIdx = columnMap['lon'];
-    const timeIdx = columnMap['time'];
-    const velIdx = columnMap['velocity'];
-    const headingIdx = columnMap['heading'];
-    
-    // Must have at least lat/lon
-    if (latIdx === undefined || lonIdx === undefined) {
-      // Try positional defaults: sats, time, lat, long, velocity, heading, height...
-      // This is the standard VBOX order
+  // Must have at least lat/lon. With no usable [column names] mapping, fall
+  // back to the standard VBOX positional order (decided from the first data
+  // row): sats, time, lat, long, velocity, heading, height...
+  if (columnMap['lat'] === undefined || columnMap['lon'] === undefined) {
+    for (let i = dataStart + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('[')) continue;
+      const fields = line.split(/\s+/);
       if (fields.length >= 5) {
         columnMap['Satellites'] = 0;
         columnMap['time'] = 1;
@@ -182,13 +222,43 @@ export function parseVboFile(content: string): ParsedData {
         columnMap['velocity'] = 4;
         if (fields.length > 5) columnMap['heading'] = 5;
         if (fields.length > 6) columnMap['height'] = 6;
-      } else {
-        continue;
       }
+      break;
     }
-    
-    const lat = parseVboCoordinate(fields[columnMap['lat']]);
-    const lon = parseVboCoordinate(fields[columnMap['lon']]);
+  }
+
+  if (columnMap['lat'] === undefined || columnMap['lon'] === undefined) {
+    throw new Error('No valid GPS data found in VBO file');
+  }
+
+  // Decide once per file how coordinates are encoded (Racelogic decimal
+  // minutes vs signed decimal degrees). Capped scan — encoding is uniform,
+  // and the zero-padding fallback resolves from the very first row.
+  const coordPairs: Array<{ lat: string; lon: string }> = [];
+  for (let i = dataStart + 1; i < lines.length && coordPairs.length < 5000; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith('[')) continue;
+    const fields = line.split(/\s+/);
+    const latRaw = fields[columnMap['lat']];
+    const lonRaw = fields[columnMap['lon']];
+    if (latRaw !== undefined && lonRaw !== undefined) coordPairs.push({ lat: latRaw, lon: lonRaw });
+  }
+  const coordMode = detectVboCoordinateMode(coordPairs);
+
+  // Parse data rows
+  const samples: GpsSample[] = [];
+  let baseTimeMs: number | null = null;
+  let startDate: Date | undefined;
+
+  for (let i = dataStart + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith('[')) continue; // Skip empty lines and section headers
+
+    const fields = line.split(/\s+/);
+    if (fields.length < 3) continue;
+
+    const lat = vboCoordinateToDegrees(fields[columnMap['lat']] ?? '', coordMode, 'lat');
+    const lon = vboCoordinateToDegrees(fields[columnMap['lon']] ?? '', coordMode, 'lon');
 
     if (validateGpsCoords(lat, lon) !== null) continue;
     

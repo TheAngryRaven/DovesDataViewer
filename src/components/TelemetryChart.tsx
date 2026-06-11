@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { GpsSample, FieldMapping } from '@/types/racing';
-import { G_FORCE_FIELDS, G_FORCE_FIELDS_GPS, G_FORCE_FIELDS_HW, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
+import { G_FORCE_FIELDS, G_FORCE_FIELDS_GPS, G_FORCE_FIELDS_HW, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed, numericExtent } from '@/lib/chartUtils';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
 import { buildChartAxis } from '@/lib/chartAxis';
@@ -169,7 +169,7 @@ export function TelemetryChart({
 
     // Find speed range
     const speeds = samples.map(s => getSpeed(s));
-    const maxSpeed = Math.ceil(Math.max(...speeds) / 10) * 10;
+    const maxSpeed = Math.ceil((numericExtent(speeds)?.max ?? 0) / 10) * 10;
     const minSpeed = 0;
 
     // Draw reference speed line first (underneath, grey, dashed)
@@ -219,8 +219,7 @@ export function TelemetryChart({
     }
 
     // Draw speed line - smart glitch filtering
-    const allSpeeds = samples.map(s => getSpeed(s));
-    const interpolateIndices = detectSpeedGlitchIndices(allSpeeds);
+    const interpolateIndices = detectSpeedGlitchIndices(speeds);
 
     ctx.beginPath();
     ctx.strokeStyle = COLORS[0];
@@ -231,10 +230,10 @@ export function TelemetryChart({
 
     for (let i = 0; i < samples.length; i++) {
       const x = padding.left + axis.fracAt(i) * chartWidth;
-      let speed = allSpeeds[i];
+      let speed = speeds[i];
 
       if (interpolateIndices.has(i) && i > 0 && i < samples.length - 1) {
-        speed = interpolateGlitchSpeed(i, allSpeeds, interpolateIndices, lastValidSpeed, lastValidIndex);
+        speed = interpolateGlitchSpeed(i, speeds, interpolateIndices, lastValidSpeed, lastValidIndex);
       } else {
         lastValidSpeed = speed;
         lastValidIndex = i;
@@ -259,12 +258,11 @@ export function TelemetryChart({
         ? smoothedGForceData[field.name] || rawValues
         : rawValues;
       
-      const numericValues = values.filter((v): v is number => v !== undefined);
-      if (numericValues.length === 0) return;
-      
-      const maxVal = Math.max(...numericValues);
-      const minVal = Math.min(...numericValues);
-      const range = maxVal - minVal || 1;
+      const extent = numericExtent(values);
+      if (!extent) return;
+
+      const minVal = extent.min;
+      const range = extent.max - extent.min || 1;
 
       // Keep colors stable regardless of enabled/disabled state
       const mappingIndex = fieldMappings.findIndex(f => f.name === field.name);
@@ -300,10 +298,10 @@ export function TelemetryChart({
     // Draw pace chart (secondary axis area at bottom of chart)
     if (hasReference && showPace && paceData.length > 0) {
       // Find pace range, ensuring 0 is included
-      const validPaces = paceData.filter((p): p is number => p !== null);
-      if (validPaces.length > 0) {
-        const maxPace = Math.max(...validPaces, 0);
-        const minPace = Math.min(...validPaces, 0);
+      const paceRange = numericExtent(paceData);
+      if (paceRange) {
+        const maxPace = Math.max(paceRange.max, 0);
+        const minPace = Math.min(paceRange.min, 0);
         // Make symmetric around 0 if possible
         const paceExtent = Math.max(Math.abs(maxPace), Math.abs(minPace), 0.5);
         

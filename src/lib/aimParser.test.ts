@@ -3,13 +3,21 @@
  *
  * AiM exports use channel names like GPS_Speed / GPS_Lat / GPS_Long / Acc_Lat.
  * Detection needs 2+ AiM-specific channel names in the first lines. Time is
- * seconds (auto-scaled to ms); speed >50 in the first row is treated as km/h.
+ * seconds (auto-scaled to ms). The speed unit is decided once per file: an
+ * explicit unit label (units row / header cell) wins, otherwise it's inferred
+ * from the max speed across all rows — never from a single sample.
  */
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { isAimFormat, hasAimSignature, parseAimFile } from "./aimParser";
+import {
+  isAimFormat,
+  hasAimSignature,
+  parseAimFile,
+  speedMultiplierFromUnitLabel,
+  inferSpeedMultiplierFromMax,
+} from "./aimParser";
 
 // ─── Synthetic fixtures ─────────────────────────────────────────────────────
 
@@ -61,7 +69,7 @@ describe("parseAimFile", () => {
     expect(parsed.samples[1].t).toBeCloseTo(100, 5);
   });
 
-  it("derives a consistent speed triple and treats >50 as km/h", () => {
+  it("derives a consistent speed triple and infers km/h from the file's max speed", () => {
     const parsed = parseAimFile(makeAimCsv(4));
     const s = parsed.samples[0];
     expect(s.speedMph).toBeCloseTo(s.speedMps * 2.23694, 4);
@@ -108,6 +116,101 @@ describe("parseAimFile", () => {
   });
 });
 
+// ─── Speed-unit detection (regression for the single-sample heuristic) ───────
+//
+// The old code decided the unit from the FIRST GPS-valid row: a car rolling
+// out of the pits at 1–29 km/h flipped the whole file to m/s, multiplying
+// every speed by 3.6 (100 km/h → 224 mph). The unit is now an explicit label
+// when present, else a statistic over all rows.
+
+describe("parseAimFile — speed unit detection", () => {
+  /** Header + optional units row + rows with the given raw speeds. */
+  function aimWithSpeeds(speeds: number[], unitsRow?: string): string {
+    const lines = ["Time,GPS_Speed,GPS_Lat,GPS_Long"];
+    if (unitsRow) lines.push(unitsRow);
+    speeds.forEach((speed, i) => {
+      lines.push(
+        `${(i * 0.1).toFixed(1)},${speed},28.401,${(-81.401 + i * 0.00001).toFixed(6)}`,
+      );
+    });
+    return lines.join("\n");
+  }
+
+  it("does NOT flip to m/s when the first row is slow (pit roll-out, regression)", () => {
+    // First GPS row at 5 km/h, session tops out at 105 km/h → km/h.
+    const parsed = parseAimFile(aimWithSpeeds([5, 15, 80, 100, 105]));
+    expect(parsed.samples[0].speedKph).toBeCloseTo(5, 4);
+    expect(parsed.samples[4].speedKph).toBeCloseTo(105, 4);
+  });
+
+  it("honors an explicit m/s units row even with values that look like km/h", () => {
+    const parsed = parseAimFile(aimWithSpeeds([45, 50, 55], "s,m/s,deg,deg"));
+    expect(parsed.samples[0].speedMps).toBeCloseTo(45, 4);
+  });
+
+  it("honors an explicit mph units row", () => {
+    const parsed = parseAimFile(aimWithSpeeds([60, 65, 70], "s,mph,deg,deg"));
+    expect(parsed.samples[0].speedMph).toBeCloseTo(60, 3);
+  });
+
+  it("honors an explicit km/h units row", () => {
+    const parsed = parseAimFile(aimWithSpeeds([20, 25, 30], "s,km/h,deg,deg"));
+    // Without the label this slow file would be inferred as m/s.
+    expect(parsed.samples[0].speedKph).toBeCloseTo(20, 4);
+  });
+
+  it("reads a bracketed unit from the header cell itself", () => {
+    const lines = [
+      "Time,GPS_Speed [m/s],GPS_Lat,GPS_Long",
+      "0.0,50,28.401,-81.401000",
+      "0.1,51,28.401,-81.400990",
+    ];
+    const parsed = parseAimFile(lines.join("\n"));
+    expect(parsed.samples[0].speedMps).toBeCloseTo(50, 4);
+  });
+
+  it("infers m/s when the whole file never exceeds plausible m/s range", () => {
+    // Max 25 raw — implausible as a 25 km/h top-speed session → m/s.
+    const parsed = parseAimFile(aimWithSpeeds([10, 18, 25, 22]));
+    expect(parsed.samples[0].speedMps).toBeCloseTo(10, 4);
+  });
+});
+
+describe("speedMultiplierFromUnitLabel", () => {
+  it("recognizes km/h variants", () => {
+    expect(speedMultiplierFromUnitLabel("km/h")).toBeCloseTo(1 / 3.6, 6);
+    expect(speedMultiplierFromUnitLabel("KPH")).toBeCloseTo(1 / 3.6, 6);
+    expect(speedMultiplierFromUnitLabel("kmh")).toBeCloseTo(1 / 3.6, 6);
+  });
+
+  it("recognizes mph and m/s", () => {
+    expect(speedMultiplierFromUnitLabel("mph")).toBeCloseTo(0.44704, 6);
+    expect(speedMultiplierFromUnitLabel("m/s")).toBe(1);
+    expect(speedMultiplierFromUnitLabel("mps")).toBe(1);
+  });
+
+  it("returns null for unknown or empty labels and plain numbers", () => {
+    expect(speedMultiplierFromUnitLabel(undefined)).toBeNull();
+    expect(speedMultiplierFromUnitLabel("")).toBeNull();
+    expect(speedMultiplierFromUnitLabel("deg")).toBeNull();
+    expect(speedMultiplierFromUnitLabel("60")).toBeNull();
+  });
+});
+
+describe("inferSpeedMultiplierFromMax", () => {
+  it("treats a fast session as km/h", () => {
+    expect(inferSpeedMultiplierFromMax(105)).toBeCloseTo(1 / 3.6, 6);
+  });
+
+  it("treats an implausibly slow max as m/s", () => {
+    expect(inferSpeedMultiplierFromMax(25)).toBe(1);
+  });
+
+  it("defaults to km/h when there is no speed at all", () => {
+    expect(inferSpeedMultiplierFromMax(0)).toBeCloseTo(1 / 3.6, 6);
+  });
+});
+
 // ─── Real RaceStudio 3 export (regression for the Alfano mis-route bug) ───────
 //
 // RS3 CSVs differ from the synthetic underscore fixtures above in three ways
@@ -144,7 +247,8 @@ describe("real RaceStudio 3 CSV (space-delimited, deep header)", () => {
     expect(s.lat).toBeCloseTo(45.5167, 3);
     expect(s.lon).toBeCloseTo(10.0052, 3);
     expect(s.speedMph).toBeCloseTo(s.speedMps * 2.23694, 3);
-    expect(s.speedMph).toBeGreaterThan(0);
+    // Unit comes from the RS3 units row ("s,km/h,..."): 49.0581 km/h raw.
+    expect(s.speedKph).toBeCloseTo(49.0581, 2);
   });
 
   it("maps RS3 channels (Engine RPM, Water Temp, GPS Nsat) into extra fields", () => {
