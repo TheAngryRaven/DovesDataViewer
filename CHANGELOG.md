@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **VBO (Racelogic VBOX) time parsing.** The `time` column is now decoded as
+  the spec's packed UTC `HHMMSS.SS` by digit position. Previously, any session
+  before 10:00 UTC was misread as plain seconds-since-midnight (injecting ~40
+  phantom seconds at every minute boundary and corrupting lap times), and
+  2-decimal times at/after `100000.00` were mis-aligned, making time run
+  backwards at 10-minute boundaries.
+- **VBO (Racelogic VBOX) coordinates.** Standard Racelogic exports store
+  lat/long as *total decimal minutes* with longitude positive **west**; the
+  parser now detects this per file and converts correctly, instead of
+  misreading the values as `DDDMM.MMMMM` (which placed the race line ~2,300 km
+  away and mirrored hemispheres). RaceBox-style signed decimal-degree exports
+  still parse as before.
+- **AiM CSV speed units.** The km/h vs m/s vs mph decision now comes from the
+  file's explicit unit label (the RaceStudio units row, or a bracketed unit in
+  the header) with a whole-file statistic as fallback. Previously it was
+  decided from the first GPS-valid row alone, so a session that started slowly
+  (rolling out of the pits) had every speed multiplied by 3.6.
+- **Charts no longer crash on very long sessions.** Min/max computations in
+  the speed/telemetry charts and the heatmap bounds used argument spreading,
+  which threw `RangeError: Maximum call stack size exceeded` above ~65k
+  samples (e.g. viewing All Laps on a 2-hour 20 Hz session) and blanked the
+  chart. They now use plain loops.
+
 ## [2.3.1] - 2026-06-10
 
 ### Changed

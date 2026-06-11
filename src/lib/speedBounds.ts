@@ -1,5 +1,7 @@
 // Shared helpers for computing speed bounds used for visualization.
 
+import { numericExtent } from './chartUtils';
+
 interface SpeedBoundsOptions {
   /** Speeds below this are considered "low speed" for glitch-run detection. */
   minSpeedThresholdMph?: number;
@@ -19,8 +21,10 @@ export function computeHeatmapSpeedBoundsMph(
 ): { minSpeed: number; maxSpeed: number } {
   if (speedsMph.length === 0) return { minSpeed: 0, maxSpeed: 1 };
 
-  const rawMin = Math.min(...speedsMph);
-  const rawMax = Math.max(...speedsMph, 1);
+  // Loop-based extent — spreading a full-session array overflows the stack.
+  const extent = numericExtent(speedsMph) ?? { min: 0, max: 0 };
+  const rawMin = extent.min;
+  const rawMax = Math.max(extent.max, 1);
 
   const minSpeedThresholdMph = options.minSpeedThresholdMph ?? 1.0;
   // Visualization is more tolerant: treat up to ~10 samples of 0mph as a glitch.
@@ -71,8 +75,8 @@ export function computeHeatmapSpeedBoundsMph(
   if (minSpeed < minSpeedThresholdMph) {
     const lowRatio = lowCount / speedsMph.length;
     if (lowRatio > 0 && lowRatio <= 0.05) {
-      const nonLow = speedsMph.filter((s) => s >= minSpeedThresholdMph);
-      if (nonLow.length > 0) minSpeed = Math.min(...nonLow);
+      const nonLowExtent = numericExtent(speedsMph.filter((s) => s >= minSpeedThresholdMph));
+      if (nonLowExtent) minSpeed = nonLowExtent.min;
     }
   }
 

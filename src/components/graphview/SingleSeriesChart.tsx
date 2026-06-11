@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { GpsSample } from '@/types/racing';
-import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed } from '@/lib/chartUtils';
+import { G_FORCE_FIELDS, applySmoothingToValues, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed, numericExtent } from '@/lib/chartUtils';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { getChartColors } from '@/lib/chartColors';
 import { buildChartAxis } from '@/lib/chartAxis';
@@ -197,26 +197,25 @@ export function SingleSeriesChart({
     }
 
     // Compute min/max (include reference values in range)
-    const numericValues = values.filter((v): v is number => v !== undefined);
-    if (numericValues.length === 0) return;
-    let minVal = Math.min(...numericValues);
-    let maxVal = Math.max(...numericValues);
+    const mainExtent = numericExtent(values);
+    if (!mainExtent) return;
+    let { min: minVal, max: maxVal } = mainExtent;
 
     // Expand range to fit reference values
     if (refValues && !isPace) {
-      const refNums = refValues.filter((v): v is number => v !== null);
-      if (refNums.length > 0) {
-        minVal = Math.min(minVal, ...refNums);
-        maxVal = Math.max(maxVal, ...refNums);
+      const refExtent = numericExtent(refValues);
+      if (refExtent) {
+        minVal = Math.min(minVal, refExtent.min);
+        maxVal = Math.max(maxVal, refExtent.max);
       }
     }
 
     // Expand range to fit overlay lap values too
     for (const overlay of overlaySeries) {
-      const nums = overlay.values.filter((v): v is number => v !== null);
-      if (nums.length > 0) {
-        minVal = Math.min(minVal, ...nums);
-        maxVal = Math.max(maxVal, ...nums);
+      const overlayExtent = numericExtent(overlay.values);
+      if (overlayExtent) {
+        minVal = Math.min(minVal, overlayExtent.min);
+        maxVal = Math.max(maxVal, overlayExtent.max);
       }
     }
 

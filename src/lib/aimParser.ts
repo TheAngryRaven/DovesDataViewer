@@ -9,6 +9,8 @@ import {
   speedTriple,
   calculateBounds,
   KPH_TO_MPS,
+  MPH_TO_MPS,
+  KNOTS_TO_MPS,
 } from './parserUtils';
 
 /**
@@ -134,6 +136,41 @@ function parseAimStartDate(metadataLines: string[], delimiter: string): Date | u
 }
 
 /**
+ * Map a speed-unit label to a → m/s multiplier, or null when the label names
+ * no recognizable speed unit. Labels come from the units row RaceStudio writes
+ * directly under the channel header (`s,km/h,#,g,...`) or from a bracketed
+ * unit embedded in the header cell itself ("GPS Speed [km/h]").
+ */
+export function speedMultiplierFromUnitLabel(label: string | undefined): number | null {
+  if (!label) return null;
+  const u = label.toLowerCase();
+  if (/km\/?h|kph/.test(u)) return KPH_TO_MPS;
+  if (/mph/.test(u)) return MPH_TO_MPS;
+  if (/m\/?s|mps/.test(u)) return 1;
+  if (/\bkn?ots?\b|\bkts?\b/.test(u)) return KNOTS_TO_MPS;
+  return null;
+}
+
+/** Extract a bracketed/parenthesized unit from a header cell and map it. */
+function speedMultiplierFromHeaderCell(cell: string | undefined): number | null {
+  if (!cell) return null;
+  const match = cell.match(/[[(]([^\])]*)[\])]/);
+  return match ? speedMultiplierFromUnitLabel(match[1]) : null;
+}
+
+/**
+ * Infer the speed unit from the whole file's maximum speed when the export
+ * carries no explicit unit label. A session whose top speed never exceeds 40
+ * raw units is implausible as km/h (parking-lot pace for a logged session) but
+ * typical as m/s (40 m/s = 144 km/h); anything faster is AiM's default km/h.
+ * The unit must never be decided from a single sample — a car rolling out of
+ * the pits at 20 km/h on the first row must not flip the whole file to m/s.
+ */
+export function inferSpeedMultiplierFromMax(maxSpeed: number): number {
+  return maxSpeed > 0 && maxSpeed <= 40 ? 1 : KPH_TO_MPS;
+}
+
+/**
  * Parse AiM CSV file into ParsedData
  */
 export function parseAimFile(content: string): ParsedData {
@@ -172,14 +209,22 @@ export function parseAimFile(content: string): ParsedData {
   const headers = parseCsvLine(lines[headerIndex], delimiter).map(h => h.toLowerCase().trim());
   
   // Map column indices
-  const colMap: Record<string, number> = {};
-  headers.forEach((header, idx) => {
-    // Normalize common variations
-    const normalized = header
+  const normalizeHeader = (h: string) =>
+    h
       .replace(/\s+/g, '_')
       .replace(/gps_latitude/i, 'gps_lat')
       .replace(/gps_longitude/i, 'gps_long');
-    colMap[normalized] = idx;
+
+  const colMap: Record<string, number> = {};
+  headers.forEach((header, idx) => {
+    colMap[normalizeHeader(header)] = idx;
+    // Also register the name with a trailing bracketed unit stripped
+    // ("gps speed [km/h]" → gps_speed) so unit-suffixed exports still map.
+    const stripped = header.replace(/\s*[[(][^\])]*[\])]\s*$/, '').trim();
+    if (stripped && stripped !== header) {
+      const key = normalizeHeader(stripped);
+      if (!(key in colMap)) colMap[key] = idx;
+    }
   });
   
   // Find required columns with fallbacks
@@ -201,15 +246,36 @@ export function parseAimFile(content: string): ParsedData {
     throw new Error('AiM CSV missing required GPS coordinates (GPS_Lat, GPS_Long)');
   }
   
+  // Decide the speed unit once for the whole file: an explicit unit label
+  // wins (header cell, then the units row RaceStudio writes under the
+  // header); otherwise infer from the max speed across all rows.
+  let speedMultiplier = KPH_TO_MPS;
+  if (speedCol !== -1) {
+    let explicit = speedMultiplierFromHeaderCell(headers[speedCol]);
+    for (let j = headerIndex + 1; explicit === null && j <= headerIndex + 2 && j < lines.length; j++) {
+      explicit = speedMultiplierFromUnitLabel(parseCsvLine(lines[j], delimiter)[speedCol]);
+    }
+    if (explicit !== null) {
+      speedMultiplier = explicit;
+    } else {
+      let maxSpeed = 0;
+      for (let i = headerIndex + 1; i < lines.length; i++) {
+        const speedVal = parseFloat(parseCsvLine(lines[i], delimiter)[speedCol]);
+        // Ignore glitch values beyond any plausible speed in any unit.
+        if (!isNaN(speedVal) && speedVal <= 1000 && speedVal > maxSpeed) maxSpeed = speedVal;
+      }
+      speedMultiplier = inferSpeedMultiplierFromMax(maxSpeed);
+    }
+  }
+
   // Parse data rows
   const samples: GpsSample[] = [];
   let baseTime: number | null = null;
   let prevValidSample: GpsSample | null = null;
-  
-  // Detect time and speed units from first valid data row
+
+  // Detect time units from first valid data row
   let timeMultiplier = 1000; // default: seconds to ms
-  let speedMultiplier = KPH_TO_MPS; // default: km/h to m/s
-  
+
   for (let i = headerIndex + 1; i < lines.length; i++) {
     const values = parseCsvLine(lines[i], delimiter);
     if (values.length < Math.max(latCol, lonCol) + 1) continue;
@@ -236,18 +302,11 @@ export function parseAimFile(content: string): ParsedData {
       }
     }
     
-    // Parse speed
+    // Parse speed (unit multiplier decided once for the whole file above)
     let speedMps = 0;
     if (speedCol !== -1) {
       const speedVal = parseFloat(values[speedCol]);
       if (!isNaN(speedVal)) {
-        // AiM typically exports in km/h, but detect if already m/s
-        // Values over 100 are likely km/h, under 50 might be m/s
-        if (samples.length === 0 && speedVal > 50) {
-          speedMultiplier = KPH_TO_MPS; // km/h to m/s
-        } else if (samples.length === 0 && speedVal > 0 && speedVal < 30) {
-          speedMultiplier = 1; // already m/s
-        }
         speedMps = speedVal * speedMultiplier;
       }
     }

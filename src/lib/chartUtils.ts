@@ -15,6 +15,28 @@ export const G_FORCE_FIELDS = [...G_FORCE_FIELDS_GPS, ...G_FORCE_FIELDS_HW];
 export type GForceSource = 'gps' | 'hw';
 
 /**
+ * Min/max of a numeric series via a plain loop. `Math.min(...values)` spreads
+ * the array onto the call stack and throws RangeError above ~65k elements
+ * (mobile Safari; ~125k in V8) — a 2-hour 20 Hz session easily exceeds that,
+ * and the charts compute extents inside the draw effect on every cursor tick.
+ * Skips null/undefined/NaN entries; returns null when nothing numeric remains.
+ */
+export function numericExtent(
+  values: ReadonlyArray<number | null | undefined>,
+): { min: number; max: number } | null {
+  let min = Infinity;
+  let max = -Infinity;
+  let found = false;
+  for (const v of values) {
+    if (v === null || v === undefined || Number.isNaN(v)) continue;
+    found = true;
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return found ? { min, max } : null;
+}
+
+/**
  * Map a smoothing strength (0-100) to a window size for moving average.
  * Returns odd numbers for symmetric smoothing. Range: 1-15.
  */

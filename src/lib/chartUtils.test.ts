@@ -12,7 +12,40 @@ import {
   applySmoothingToValues,
   detectSpeedGlitchIndices,
   interpolateGlitchSpeed,
+  numericExtent,
 } from "./chartUtils";
+
+// ─── numericExtent ──────────────────────────────────────────────────────────
+
+describe("numericExtent", () => {
+  it("finds min and max of a plain numeric array", () => {
+    expect(numericExtent([3, -1, 7, 0])).toEqual({ min: -1, max: 7 });
+  });
+
+  it("skips null, undefined, and NaN entries", () => {
+    expect(numericExtent([null, 5, undefined, NaN, 2])).toEqual({ min: 2, max: 5 });
+  });
+
+  it("returns null when nothing numeric remains", () => {
+    expect(numericExtent([])).toBeNull();
+    expect(numericExtent([null, undefined, NaN])).toBeNull();
+  });
+
+  it("handles a single-element array", () => {
+    expect(numericExtent([42])).toEqual({ min: 42, max: 42 });
+  });
+
+  it("does not stack-overflow on very large arrays (regression for Math.max(...arr))", () => {
+    // Math.max(...arr) throws RangeError above ~65k elements on mobile Safari
+    // (~125k in V8) — a 2-hour 20 Hz session viewed as All Laps exceeds that.
+    const big = new Array<number>(200_000);
+    for (let i = 0; i < big.length; i++) big[i] = Math.sin(i) * 100;
+    const extent = numericExtent(big);
+    expect(extent).not.toBeNull();
+    expect(extent!.min).toBeGreaterThanOrEqual(-100);
+    expect(extent!.max).toBeLessThanOrEqual(100);
+  });
+});
 
 // ─── computeSmoothingWindowSize ─────────────────────────────────────────────
 

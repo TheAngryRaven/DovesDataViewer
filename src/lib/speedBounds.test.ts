@@ -15,6 +15,16 @@ describe("computeHeatmapSpeedBoundsMph", () => {
     expect(maxSpeed).toBe(60);
   });
 
+  it("does not stack-overflow on a full-session-sized array (regression)", () => {
+    // Math.min(...speeds) blew the call stack above ~65k elements; the
+    // heatmap feeds the whole session in when no lap is selected.
+    const speeds = new Array<number>(200_000);
+    for (let i = 0; i < speeds.length; i++) speeds[i] = 20 + (i % 50);
+    const { minSpeed, maxSpeed } = computeHeatmapSpeedBoundsMph(speeds);
+    expect(minSpeed).toBe(20);
+    expect(maxSpeed).toBe(69);
+  });
+
   it("floors maxSpeed at 1 even when all speeds are 0", () => {
     // rawMax = Math.max(...[0,0,0], 1) = 1.
     const { maxSpeed } = computeHeatmapSpeedBoundsMph([0, 0, 0]);
