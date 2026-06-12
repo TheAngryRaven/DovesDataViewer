@@ -8,7 +8,7 @@
 // everything else lands in `extraFields`.
 
 import { ParsedData, GpsSample, FieldMapping } from "@/types/racing";
-import { applyGForceCalculations } from "../gforceCalculation";
+import { ensureDerivedGForcePair } from "../gforceCalculation";
 import {
   speedTriple,
   calculateBounds,
@@ -150,17 +150,11 @@ export function mapXrkToParsedData(raw: XrkRawResult, _fileName: string): Parsed
     throw new Error("XRK file contains no valid GPS samples");
   }
 
-  // Derive lateral/longitudinal G from GPS when the log carries neither a
-  // GPS-derived nor native g pair — mirrors the CSV AiM parser.
-  const hasLatG = samples.some(
-    (s) => "Lat G" in s.extraFields || "Lateral G" in s.extraFields || "Lat G (Native)" in s.extraFields,
-  );
-  const hasLonG = samples.some(
-    (s) => "Lon G" in s.extraFields || "Longitudinal G" in s.extraFields || "Lon G (Native)" in s.extraFields,
-  );
-  if (!hasLatG || !hasLonG) {
-    applyGForceCalculations(samples, 5);
-  }
+  // Make sure the primary GPS g pair exists — mirrors the CSV AiM parser. The
+  // old check let a lone primary axis be overwritten by the derivation (and
+  // counted "(Native)"-only logs as covered, leaving them without a primary
+  // pair); the shared helper preserves a lone axis as native and derives both.
+  ensureDerivedGForcePair(samples, 5);
 
   // Build field mappings from whatever extraFields ended up present.
   const fieldNames = new Set<string>();

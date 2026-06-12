@@ -93,11 +93,31 @@ describe("parseAimFile", () => {
     const parsed = parseAimFile(makeAimCsv(4));
     const ef = parsed.samples[0].extraFields;
     expect(ef["RPM"]).toBe(5000);
+    // Logger acc_lat/acc_long land on the native channels; the primary
+    // Lat G / Lon G pair is GPS-derived and coexists.
+    expect(ef["Lat G (Native)"]).toBeCloseTo(0.5, 5);
+    expect(ef["Lon G (Native)"]).toBeCloseTo(0.3, 5);
     expect(ef["Lat G"]).toBeDefined();
     expect(ef["Lon G"]).toBeDefined();
     const names = parsed.fieldMappings.map((m) => m.name);
     expect(names).toContain("Lat G");
+    expect(names).toContain("Lat G (Native)");
     expect(names).toContain("RPM");
+  });
+
+  it("keeps a lone native axis instead of dropping/clobbering it (regression)", () => {
+    // Only Acc_Lat in the file: the old code stored it as the primary 'Lat G'
+    // and the GPS derivation then overwrote BOTH axes, destroying the logger's
+    // lateral channel.
+    const lines = ["Time,GPS_Speed,GPS_Lat,GPS_Long,Acc_Lat"];
+    for (let i = 0; i < 5; i++) {
+      lines.push(`${(i * 0.1).toFixed(1)},60,28.401,${(-81.401 + i * 0.00001).toFixed(6)},0.8`);
+    }
+    const parsed = parseAimFile(lines.join("\n"));
+    const ef = parsed.samples[0].extraFields;
+    expect(ef["Lat G (Native)"]).toBeCloseTo(0.8, 5);
+    expect(ef["Lat G"]).toBeDefined(); // GPS-derived primary still exists
+    expect(ef["Lon G"]).toBeDefined();
   });
 
   it("skips rows with invalid coordinates", () => {

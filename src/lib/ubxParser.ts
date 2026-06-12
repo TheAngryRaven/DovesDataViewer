@@ -183,10 +183,12 @@ export function parseUbxFile(buffer: ArrayBuffer): ParsedData {
     // Calculate time in ms since midnight
     const timeMs = (pvt.hour * 3600 + pvt.min * 60 + pvt.sec) * 1000 + Math.floor(pvt.nano / 1e6);
     
-    // Set base time and start date from first valid sample
+    // Set base time and start date from first valid sample.
+    // NAV-PVT date/time fields are UTC — build the epoch with Date.UTC so the
+    // session start doesn't shift by the browser's UTC offset (matches nmeaParser).
     if (baseTimeMs === null) {
       baseTimeMs = timeMs;
-      startDate = new Date(pvt.year, pvt.month - 1, pvt.day, pvt.hour, pvt.min, pvt.sec);
+      startDate = new Date(Date.UTC(pvt.year, pvt.month - 1, pvt.day, pvt.hour, pvt.min, pvt.sec));
     }
     
     // Calculate relative time (handle midnight wrap)

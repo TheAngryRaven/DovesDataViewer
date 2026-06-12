@@ -149,6 +149,35 @@ function detectAlfanoDelimiter(lines: string[]): string {
   return ',';
 }
 
+/**
+ * Decide the generic `time` column's unit for the whole file, returning the
+ * multiplier to milliseconds (1 = already ms, 1000 = seconds).
+ *
+ * - Any value above 100,000 can only be ms (≈27.8 h is impossible as seconds
+ *   since start/midnight).
+ * - Otherwise the median step between consecutive rows decides: at any
+ *   plausible log rate (1–50 Hz) a seconds column advances by ≤ 1 per row,
+ *   while a ms column advances by tens to hundreds.
+ * - An empty/constant column falls back to seconds (the historical default).
+ */
+export function detectAlfanoTimeMultiplier(timeValues: number[]): number {
+  if (timeValues.length === 0) return 1000;
+
+  let max = -Infinity;
+  for (const v of timeValues) if (v > max) max = v;
+  if (max > 100000) return 1;
+
+  const deltas: number[] = [];
+  for (let i = 1; i < timeValues.length; i++) {
+    const d = timeValues[i] - timeValues[i - 1];
+    if (d > 0) deltas.push(d);
+  }
+  if (deltas.length === 0) return 1000;
+  deltas.sort((a, b) => a - b);
+  const median = deltas[Math.floor(deltas.length / 2)];
+  return median >= 5 ? 1 : 1000;
+}
+
 export function parseAlfanoFile(content: string): ParsedData {
   const lines = content.split(/\r?\n/);
   const delimiter = detectAlfanoDelimiter(lines);
@@ -188,19 +217,35 @@ export function parseAlfanoFile(content: string): ParsedData {
     throw new Error('Could not find valid header row in Alfano CSV');
   }
   
+  // Decide the generic time column's unit ONCE for the whole file. The old
+  // per-row heuristic (`> 100000 ? ms : ×1000`) flipped units mid-file: a
+  // ms-based column had its first 100 seconds multiplied by 1000, then
+  // collapsed — time ran backwards and the midnight patch added a fake day.
+  let timeMultiplier = 1000; // seconds → ms (the historical default)
+  if (columnMap['time'] !== undefined && columnMap['time_ms'] === undefined) {
+    const timeValues: number[] = [];
+    for (let i = headerIndex + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || ALFANO_METADATA_PATTERNS.some(p => p.test(line))) continue;
+      const v = parseFloat(parseCsvLine(line, delimiter)[columnMap['time']]);
+      if (!isNaN(v)) timeValues.push(v);
+    }
+    timeMultiplier = detectAlfanoTimeMultiplier(timeValues);
+  }
+
   // Parse data rows
   const samples: GpsSample[] = [];
   let baseTimeMs: number | null = null;
   let startDate: Date | undefined;
   let hasNativeG = false;
-  
+
   for (let i = headerIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    
+
     // Skip metadata rows that might appear after header
     if (ALFANO_METADATA_PATTERNS.some(p => p.test(line))) continue;
-    
+
     const fields = parseCsvLine(line, delimiter);
     if (fields.length < 3) continue;
 
@@ -217,8 +262,7 @@ export function parseAlfanoFile(content: string): ParsedData {
     } else if (columnMap['time'] !== undefined) {
       const timeVal = parseFloat(fields[columnMap['time']]);
       if (!isNaN(timeVal)) {
-        // Detect if time is in seconds or milliseconds
-        timeMs = timeVal > 100000 ? timeVal : timeVal * 1000;
+        timeMs = timeVal * timeMultiplier;
       }
     }
     

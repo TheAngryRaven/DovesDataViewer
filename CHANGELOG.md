@@ -13,6 +13,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **UBX session start time was shifted by the browser's time zone.** The
+  parser now builds the session date from the receiver's UTC fields with
+  `Date.UTC` (matching the NMEA parser), so file-browser names and the weather
+  lookup hour are no longer off by the local UTC offset.
+- **Course auto-detection now enforces the documented 25% length tolerance.**
+  A course whose known length differs from the driven lap distance by more
+  than 25% is rejected (waypoint-mode fallback) instead of being tagged onto
+  the session with the wrong sector lines. Courses without a stored length
+  remain eligible.
+- **Alfano time units are decided once per file.** The old per-row heuristic
+  flipped a millisecond-based time column to seconds for the first 100 s, then
+  collapsed — time ran backwards and a fake day was added. The unit is now
+  detected from the whole column (value range + median row step).
+- **Native g-force channels are never silently clobbered or dropped.** AiM CSV
+  and MoTeC logger-reported lateral/longitudinal g now land on the dedicated
+  native channels and coexist with the GPS-derived primary pair (like Alfano,
+  VBO, and iRacing already did). When a file supplies only one g axis, that
+  axis is preserved as a native channel instead of being overwritten by the
+  GPS derivation — and the missing axis is now derived instead of absent
+  (previously a MoTeC file with only lateral g got no longitudinal g at all).
+  Same fix applied to AiM XRK imports.
+
 ### Changed
 - **Playback now runs at real time.** The playback loop no longer tears itself
   down and re-anchors its clock on every cursor tick, so high-rate (60 Hz)

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { isAlfanoFormat, parseAlfanoFile } from "./alfanoParser";
+import { isAlfanoFormat, parseAlfanoFile, detectAlfanoTimeMultiplier } from "./alfanoParser";
 
 // ─── Synthetic fixtures ─────────────────────────────────────────────────────
 
@@ -98,6 +98,23 @@ describe("parseAlfanoFile", () => {
     expect(names).toContain("Lat G (Native)");
   });
 
+  it("treats a millisecond time column uniformly (regression for the per-row heuristic)", () => {
+    // Time in ms at 10 Hz starting from 0: every value below the old 100000
+    // cutoff used to be multiplied by 1000, then collapse at 100 s — time ran
+    // backwards and the midnight patch added a fake day. The unit must be
+    // decided once per file.
+    const lines = [
+      "Driver:,Test",
+      "Time,GPS_Latitude,GPS_Longitude,GPS_Speed",
+    ];
+    for (let i = 0; i < 5; i++) {
+      lines.push(`${i * 100},28.401,${(-81.401 + i * 0.00001).toFixed(6)},50`);
+    }
+    const parsed = parseAlfanoFile(lines.join("\n"));
+    expect(parsed.samples.map((s) => s.t)).toEqual([0, 100, 200, 300, 400]);
+    expect(parsed.duration).toBe(400); // not 400,000 — and no +24 h patch
+  });
+
   it("handles a semicolon-delimited export", () => {
     const parsed = parseAlfanoFile(makeAlfanoCsv(4, ";"));
     expect(parsed.samples).toHaveLength(4);
@@ -118,5 +135,31 @@ describe("parseAlfanoFile", () => {
 
   it("throws when no valid header row is found", () => {
     expect(() => parseAlfanoFile("just\nrandom\ntext")).toThrow();
+  });
+});
+
+// ─── detectAlfanoTimeMultiplier ──────────────────────────────────────────────
+
+describe("detectAlfanoTimeMultiplier", () => {
+  it("detects seconds from sub-second row steps", () => {
+    const values = Array.from({ length: 50 }, (_, i) => i * 0.1); // 10 Hz, seconds
+    expect(detectAlfanoTimeMultiplier(values)).toBe(1000);
+  });
+
+  it("detects milliseconds from large values", () => {
+    const values = Array.from({ length: 50 }, (_, i) => 3_600_000 + i * 100);
+    expect(detectAlfanoTimeMultiplier(values)).toBe(1);
+  });
+
+  it("detects milliseconds from row steps even when all values are small", () => {
+    // A short ms-based session (< 100 s): every value is below the old 100000
+    // cutoff, but 100-unit steps at any sane log rate can only be ms.
+    const values = Array.from({ length: 50 }, (_, i) => i * 100);
+    expect(detectAlfanoTimeMultiplier(values)).toBe(1);
+  });
+
+  it("falls back to seconds for empty or constant columns", () => {
+    expect(detectAlfanoTimeMultiplier([])).toBe(1000);
+    expect(detectAlfanoTimeMultiplier([5, 5, 5])).toBe(1000);
   });
 });

@@ -76,7 +76,9 @@ function makeTrack(opts: {
     shortName: opts.shortName ?? "OKC",
     courses: opts.courses ?? [{
       name: "Full",
-      lengthFt: 700, // ~213m perimeter — about right for 4-sample path with samples 0.002° apart
+      // makeRacePathAtTrack's loop is ~2.6 km (~8500 ft) per lap: 0.002° east,
+      // 0.01° north, back. Must sit within the enforced 25% length tolerance.
+      lengthFt: 8500,
       startFinishA: { lat: origin.lat + 0.0001, lon: origin.lon },
       startFinishB: { lat: origin.lat - 0.0001, lon: origin.lon },
     }],
@@ -201,10 +203,9 @@ describe("autoDetectCourse - course matching", () => {
     expect(result!.course.name).toBe("Known");
   });
 
-  it("returns a course outside 25% tolerance but flags it via lengthMatchDiff", () => {
-    // Implementation still returns the closest course rather than failing —
-    // intentional UX choice (better to show something than nothing). The
-    // lengthMatchDiff field surfaces the confidence so UI can warn the user.
+  it("rejects a course outside the 25% tolerance and falls back to waypoint mode", () => {
+    // The documented tolerance is enforced: a wildly wrong length means wrong
+    // sector lines, so the session must not be tagged with that course.
     const origin = okcOrigin;
     const badMatchTrack: Track = {
       name: "OKC", shortName: "OKC",
@@ -216,11 +217,26 @@ describe("autoDetectCourse - course matching", () => {
       }],
     };
     const samples = makeRacePathAtTrack(origin, 3, 10000);
-    const result = autoDetectCourse(samples, [badMatchTrack])!;
-    expect(result.course.name).toBe("WayTooLong");
+    const result = autoDetectCourse(samples, [badMatchTrack]);
+    expect(result?.course.name).not.toBe("WayTooLong");
+    expect(result === null || result.isWaypointMode).toBe(true);
+  });
+
+  it("accepts a course just inside the 25% tolerance", () => {
+    const origin = okcOrigin;
+    const nearMissTrack: Track = {
+      name: "OKC", shortName: "OKC",
+      courses: [{
+        name: "NearMiss",
+        lengthFt: 10300, // ~21% above the actual ~8500ft — inside tolerance
+        startFinishA: { lat: origin.lat + 0.0001, lon: origin.lon },
+        startFinishB: { lat: origin.lat - 0.0001, lon: origin.lon },
+      }],
+    };
+    const samples = makeRacePathAtTrack(origin, 3, 10000);
+    const result = autoDetectCourse(samples, [nearMissTrack])!;
+    expect(result.course.name).toBe("NearMiss");
     expect(result.isWaypointMode).toBe(false);
-    expect(result.lengthMatchDiff).toBeDefined();
-    expect(result.lengthMatchDiff!).toBeGreaterThan(0.25); // outside documented tolerance
   });
 
   it("populates lengthMatchDiff with the actual fractional difference for good matches", () => {
@@ -288,7 +304,9 @@ describe("autoDetectCourse - direction detection", () => {
       name: "OKC", shortName: "OKC",
       courses: [{
         name: "Full",
-        lengthFt: 1500,
+        // makeSectorLap's loop is ~3.7 km (~12000 ft) per lap; the reverse
+        // sweep fixture is ~13800 ft — both within the 25% tolerance.
+        lengthFt: 12000,
         startFinishA: { lat: origin.lat + 0.0001, lon: origin.lon },
         startFinishB: { lat: origin.lat - 0.0001, lon: origin.lon },
         sector2: { a: { lat: origin.lat + 0.0001, lon: origin.lon + 0.003 }, b: { lat: origin.lat - 0.0001, lon: origin.lon + 0.003 } },

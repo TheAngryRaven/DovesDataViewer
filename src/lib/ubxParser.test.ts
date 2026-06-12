@@ -181,6 +181,21 @@ describe("parseUbxFile", () => {
     expect(parsed.startDate).toBeInstanceOf(Date);
     expect(parsed.duration).toBe(100);
   });
+
+  it("builds startDate as UTC, not local time (regression)", () => {
+    // NAV-PVT date/time fields are UTC. The old `new Date(year, …)` constructor
+    // interpreted them in the browser's local zone, shifting the session epoch
+    // by the UTC offset (wrong file-browser names, wrong weather hour) — and
+    // disagreeing with the NMEA parser for the same hardware.
+    const parsed = parseUbxFile(twoSampleFile());
+    const d = parsed.startDate!;
+    expect(d.getUTCFullYear()).toBe(2024);
+    expect(d.getUTCMonth() + 1).toBe(3);
+    expect(d.getUTCDate()).toBe(15);
+    expect(d.getUTCHours()).toBe(14);
+    expect(d.getUTCMinutes()).toBe(30);
+    expect(d.getUTCSeconds()).toBe(0);
+  });
 });
 
 // ─── parseUbxFile: reject paths ─────────────────────────────────────────────

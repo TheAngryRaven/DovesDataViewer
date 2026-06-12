@@ -132,8 +132,20 @@ export function autoDetectCourse(
     return createWaypointResult(samples);
   }
 
+  // Enforce the documented 25% tolerance: a course whose known length differs
+  // from the driven lap distance by more than that is a wrong match (wrong
+  // sector lines, wrong timing), not a near miss — fall back to waypoint mode
+  // instead of tagging the session with it. Courses without a lengthFt can't
+  // be length-checked and stay eligible.
+  const withinTolerance = candidates.filter(
+    c => c.lengthDiff === Infinity || c.lengthDiff <= LENGTH_MATCH_TOLERANCE
+  );
+  if (withinTolerance.length === 0) {
+    return createWaypointResult(samples);
+  }
+
   // Sort by number of laps (more = better) then by length match
-  candidates.sort((a, b) => {
+  withinTolerance.sort((a, b) => {
     // First prefer candidates with known length match
     if (a.lengthDiff !== Infinity && b.lengthDiff === Infinity) return -1;
     if (a.lengthDiff === Infinity && b.lengthDiff !== Infinity) return 1;
@@ -145,7 +157,7 @@ export function autoDetectCourse(
     return b.laps.length - a.laps.length;
   });
 
-  const best = candidates[0];
+  const best = withinTolerance[0];
 
   const direction = detectDirection(samples, best.course, best.laps);
 

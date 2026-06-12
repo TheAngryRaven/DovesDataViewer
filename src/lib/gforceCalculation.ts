@@ -122,3 +122,45 @@ export function applyGForceCalculations(samples: GpsSample[], smoothingWindow: n
   smoothField(samples, 'Lat G', smoothingWindow);
   smoothField(samples, 'Lon G', smoothingWindow);
 }
+
+// Human names that normalizeChannels maps onto the PRIMARY lat_g / lon_g ids
+// (see channels.ts aliases). The derivation above writes 'Lat G' / 'Lon G'.
+const PRIMARY_LAT_KEYS = ['Lat G', 'Lateral G', 'LatG'];
+const PRIMARY_LON_KEYS = ['Lon G', 'Longitudinal G', 'LonG'];
+const NATIVE_LAT_KEY = 'Lat G (Native)';
+const NATIVE_LON_KEY = 'Lon G (Native)';
+
+/**
+ * Make sure the primary lat/lon g pair exists without clobbering logger data.
+ *
+ * `applyGForceCalculations` unconditionally writes BOTH primary keys, so when
+ * a file supplied only one axis (e.g. a lateral-g-only logger channel), running
+ * it would silently overwrite that axis — and skipping it would leave the
+ * other axis missing entirely. Instead:
+ * - both primary axes present → leave the file's pair untouched
+ * - exactly one present → preserve it under the logger-native channel
+ *   (`lat_g_native`/`lon_g_native` per the channels.ts contract), then derive
+ *   the full primary pair from GPS
+ * - neither present → derive the full pair from GPS
+ * Native "(Native)" channels always coexist with the derived primaries.
+ */
+export function ensureDerivedGForcePair(samples: GpsSample[], smoothingWindow: number = 5): void {
+  const findKey = (keys: string[]) => keys.find(k => samples.some(s => k in s.extraFields));
+  const latKey = findKey(PRIMARY_LAT_KEYS);
+  const lonKey = findKey(PRIMARY_LON_KEYS);
+  if (latKey && lonKey) return;
+
+  const demote = (from: string, to: string) => {
+    for (const s of samples) {
+      if (from in s.extraFields) {
+        // Don't clobber an existing native channel either — first value wins.
+        if (!(to in s.extraFields)) s.extraFields[to] = s.extraFields[from];
+        delete s.extraFields[from];
+      }
+    }
+  };
+  if (latKey) demote(latKey, NATIVE_LAT_KEY);
+  if (lonKey) demote(lonKey, NATIVE_LON_KEY);
+
+  applyGForceCalculations(samples, smoothingWindow);
+}

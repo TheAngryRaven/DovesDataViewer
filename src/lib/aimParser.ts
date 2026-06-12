@@ -1,5 +1,5 @@
 import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
-import { applyGForceCalculations } from './gforceCalculation';
+import { ensureDerivedGForcePair } from './gforceCalculation';
 import {
   haversineDistance,
   parseCsvLine,
@@ -330,14 +330,17 @@ export function parseAimFile(content: string): ParsedData {
       if (!isNaN(alt)) extraFields['Altitude'] = alt;
     }
     
+    // Logger-reported g rides the native channels (channels.ts contract); the
+    // primary Lat G / Lon G pair is always GPS-derived below, so the sources
+    // coexist and a lone native axis can't be clobbered by the derivation.
     if (latGCol !== -1) {
       const latG = parseFloat(values[latGCol]);
-      if (!isNaN(latG)) extraFields['Lat G'] = normalizeAccelToG(latG);
+      if (!isNaN(latG)) extraFields['Lat G (Native)'] = normalizeAccelToG(latG);
     }
 
     if (lonGCol !== -1) {
       const lonG = parseFloat(values[lonGCol]);
-      if (!isNaN(lonG)) extraFields['Lon G'] = normalizeAccelToG(lonG);
+      if (!isNaN(lonG)) extraFields['Lon G (Native)'] = normalizeAccelToG(lonG);
     }
     
     if (rpmCol !== -1) {
@@ -389,14 +392,9 @@ export function parseAimFile(content: string): ParsedData {
     throw new Error('No valid GPS samples found in AiM file');
   }
   
-  // Calculate G-forces from GPS if not natively available
-  const hasNativeLatG = samples.some(s => 'Lat G' in s.extraFields);
-  const hasNativeLonG = samples.some(s => 'Lon G' in s.extraFields);
-  
-  if (!hasNativeLatG || !hasNativeLonG) {
-    // Use the improved shared G-force calculation
-    applyGForceCalculations(samples, 5);
-  }
+  // Derive the primary GPS Lat G / Lon G pair (native channels coexist; a
+  // lone primary axis from the file would be preserved as native first).
+  ensureDerivedGForcePair(samples, 5);
   
   // Build field mappings from extra fields
   const fieldNames = new Set<string>();

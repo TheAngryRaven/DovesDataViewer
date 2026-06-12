@@ -3,6 +3,7 @@ import {
   calculateAccelerations,
   smoothField,
   applyGForceCalculations,
+  ensureDerivedGForcePair,
 } from "./gforceCalculation";
 import { STANDARD_GRAVITY_MPS2 } from "./parserUtils";
 import type { GpsSample } from "@/types/racing";
@@ -223,5 +224,70 @@ describe("applyGForceCalculations", () => {
   it("handles empty input gracefully", () => {
     const samples: GpsSample[] = [];
     expect(() => applyGForceCalculations(samples)).not.toThrow();
+  });
+});
+
+// ─── ensureDerivedGForcePair ─────────────────────────────────────────────────
+
+describe("ensureDerivedGForcePair", () => {
+  /** A short straight run at constant speed — enough for the derivation to run. */
+  function makeRun(extra: (i: number) => Record<string, number>): GpsSample[] {
+    return Array.from({ length: 10 }, (_, i) =>
+      makeSample({ t: i * 100, speedMps: 20, heading: 90, extra: extra(i) }),
+    );
+  }
+
+  it("leaves a full primary pair from the file untouched (no derivation)", () => {
+    const samples = makeRun(() => ({ "Lateral G": 0.7, "Longitudinal G": -0.3 }));
+    ensureDerivedGForcePair(samples);
+    for (const s of samples) {
+      expect(s.extraFields["Lateral G"]).toBe(0.7);
+      expect(s.extraFields["Longitudinal G"]).toBe(-0.3);
+      // The derivation writes 'Lat G'/'Lon G' — it must not have run.
+      expect(s.extraFields["Lat G"]).toBeUndefined();
+      expect(s.extraFields["Lon G"]).toBeUndefined();
+    }
+  });
+
+  it("preserves a lone lat axis as native instead of clobbering it (regression)", () => {
+    // Old behavior: applyGForceCalculations overwrote BOTH primary keys, so a
+    // lateral-only logger channel was silently destroyed.
+    const samples = makeRun(() => ({ "Lat G": 0.9 }));
+    ensureDerivedGForcePair(samples);
+    for (const s of samples) {
+      expect(s.extraFields["Lat G (Native)"]).toBe(0.9);
+      expect(s.extraFields["Lat G"]).toBeDefined(); // derived, not the logger value
+      expect(s.extraFields["Lon G"]).toBeDefined(); // missing axis now exists
+    }
+  });
+
+  it("preserves a lone lon axis (alias name) as native and derives the pair", () => {
+    const samples = makeRun(() => ({ "Longitudinal G": -0.5 }));
+    ensureDerivedGForcePair(samples);
+    for (const s of samples) {
+      expect(s.extraFields["Lon G (Native)"]).toBe(-0.5);
+      expect(s.extraFields["Lat G"]).toBeDefined();
+      expect(s.extraFields["Lon G"]).toBeDefined();
+      expect(s.extraFields["Longitudinal G"]).toBeUndefined();
+    }
+  });
+
+  it("does not clobber an existing native channel when demoting", () => {
+    const samples = makeRun(() => ({ "Lat G": 0.9, "Lat G (Native)": 0.4 }));
+    ensureDerivedGForcePair(samples);
+    for (const s of samples) {
+      expect(s.extraFields["Lat G (Native)"]).toBe(0.4); // first value wins
+    }
+  });
+
+  it("derives the full pair when the file carried no primary g at all", () => {
+    const samples = makeRun(() => ({ "Lat G (Native)": 0.2, "Lon G (Native)": 0.1 }));
+    ensureDerivedGForcePair(samples);
+    for (const s of samples) {
+      // Natives coexist with the derived primaries.
+      expect(s.extraFields["Lat G (Native)"]).toBe(0.2);
+      expect(s.extraFields["Lat G"]).toBeDefined();
+      expect(s.extraFields["Lon G"]).toBeDefined();
+    }
   });
 });

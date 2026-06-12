@@ -1,5 +1,5 @@
 import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
-import { applyGForceCalculations } from './gforceCalculation';
+import { ensureDerivedGForcePair } from './gforceCalculation';
 import {
   haversineDistance,
   parseCsvLine,
@@ -152,8 +152,10 @@ export function parseMotecCsvFile(content: string): ParsedData {
     tryExtra(throttleCol, 'Throttle');
     tryExtra(waterTempCol, 'Water Temp');
     tryExtra(altCol, 'Altitude');
-    tryExtra(latGCol, 'Lat G', v => normalizeAccelToG(v));
-    tryExtra(lonGCol, 'Lon G', v => normalizeAccelToG(v));
+    // Logger-reported g rides the native channels; the primary pair is
+    // GPS-derived below so a lone native axis can't be clobbered.
+    tryExtra(latGCol, 'Lat G (Native)', v => normalizeAccelToG(v));
+    tryExtra(lonGCol, 'Lon G (Native)', v => normalizeAccelToG(v));
 
     let heading: number | undefined;
     if (headingCol >= 0) {
@@ -173,10 +175,8 @@ export function parseMotecCsvFile(content: string): ParsedData {
 
   if (samples.length === 0) throw new Error('No valid GPS samples found in MoTeC CSV');
 
-  // Fill G-forces from GPS if not native
-  if (!samples.some(s => 'Lat G' in s.extraFields)) {
-    applyGForceCalculations(samples, 5);
-  }
+  // Derive the primary GPS Lat G / Lon G pair (native channels coexist).
+  ensureDerivedGForcePair(samples, 5);
 
   const fieldNames = new Set<string>();
   samples.forEach(s => Object.keys(s.extraFields).forEach(k => fieldNames.add(k)));
@@ -416,8 +416,10 @@ export function parseMotecLdFile(buffer: ArrayBuffer): ParsedData {
     tryExtra(throttleCh, 'Throttle');
     tryExtra(waterTempCh, 'Water Temp');
     tryExtra(altCh, 'Altitude');
-    tryExtra(latGCh, 'Lat G', v => normalizeAccelToG(v));
-    tryExtra(lonGCh, 'Lon G', v => normalizeAccelToG(v));
+    // Logger-reported g rides the native channels; the primary pair is
+    // GPS-derived below so a lone native axis can't be clobbered.
+    tryExtra(latGCh, 'Lat G (Native)', v => normalizeAccelToG(v));
+    tryExtra(lonGCh, 'Lon G (Native)', v => normalizeAccelToG(v));
 
     const rawHeading = resample(headingCh, i);
     const heading = rawHeading !== undefined && !isNaN(rawHeading) ? rawHeading : undefined;
@@ -434,9 +436,8 @@ export function parseMotecLdFile(buffer: ArrayBuffer): ParsedData {
 
   if (samples.length === 0) throw new Error('No valid GPS samples found in MoTeC LD file');
 
-  if (!samples.some(s => 'Lat G' in s.extraFields)) {
-    applyGForceCalculations(samples, 5);
-  }
+  // Derive the primary GPS Lat G / Lon G pair (native channels coexist).
+  ensureDerivedGForcePair(samples, 5);
 
   // Collect extra channels not already mapped
   const fieldNames = new Set<string>();

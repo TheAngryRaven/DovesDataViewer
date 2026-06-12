@@ -84,9 +84,12 @@ describe("parseMotecCsvFile", () => {
     const parsed = parseMotecCsvFile(makeMotecCsv());
     const ef = parsed.samples[0].extraFields;
     expect(ef["RPM"]).toBe(5000);
-    // Native G is present, so it's kept as-is (not overwritten by GPS calc).
-    expect(ef["Lat G"]).toBeCloseTo(0.1, 6);
-    expect(ef["Lon G"]).toBeCloseTo(0.2, 6);
+    // Logger-reported G lands on the native channels (channels.ts contract);
+    // the primary Lat G / Lon G pair is GPS-derived and coexists with it.
+    expect(ef["Lat G (Native)"]).toBeCloseTo(0.1, 6);
+    expect(ef["Lon G (Native)"]).toBeCloseTo(0.2, 6);
+    expect(ef["Lat G"]).toBeDefined();
+    expect(ef["Lon G"]).toBeDefined();
   });
 
   it("throws when GPS latitude/longitude channels are absent", () => {
