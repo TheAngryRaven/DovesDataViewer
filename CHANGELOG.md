@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [Unreleased]
+## [2.4.0] - 2026-6-12
 
 ### Fixed
 - **UBX session start time was shifted by the browser's time zone.** The
