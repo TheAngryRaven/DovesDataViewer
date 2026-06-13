@@ -1,0 +1,85 @@
+{
+  "shell": {
+    "tabs": {
+      "garage": "Garage",
+      "profile": "Profile",
+      "device": "Device"
+    },
+    "garageTabs": {
+      "files": "Files",
+      "vehicles": "Vehicles",
+      "setups": "Setups",
+      "notes": "Notes"
+    },
+    "deviceTabs": {
+      "settings": "Settings",
+      "tracks": "Tracks"
+    },
+    "disconnect": "Disconnect",
+    "batteryTitle": "{{voltage}}V — click to refresh",
+    "btNotAvailable": "Bluetooth Not Available",
+    "btNotAvailableDesc": "Web Bluetooth is not supported in this browser. Try Chrome or Edge on a desktop or Android device.",
+    "connectTitle": "Connect to Logger",
+    "connectDesc": "Connect to your DovesDataLogger to manage device settings and tracks.",
+    "connecting": "Connecting…",
+    "connect": "Connect"
+  },
+  "files": {
+    "cloudRowTitle": "{{name}} — in the cloud, tap to download",
+    "inCloud": "In the cloud",
+    "videoLap": "Lap {{number}}",
+    "videoSession": "Session",
+    "videoSource": "Source",
+    "videoWithOverlays": "w/ overlays",
+    "exportDownload": "Export / Download",
+    "delete": "Delete",
+    "confirmLoad": "Load <name>{{name}}</name>?",
+    "confirmDelete": "Delete <name>{{name}}</name>? This cannot be undone.",
+    "cancel": "Cancel",
+    "load": "Load",
+    "emptyTitle": "No stored files",
+    "emptyHint": "Upload or import files to get started",
+    "storageUsed": "{{used}} used of {{quota}}",
+    "storageUnavailable": "Storage usage unavailable",
+    "uploadFiles": "Upload Files",
+    "downloadFailed": "Failed to download cloud log"
+  },
+  "browser": {
+    "allSessions": "All sessions",
+    "untagged": "Untagged",
+    "groupBy": "Group by",
+    "filterNone": "None",
+    "filterEngine": "Engine",
+    "filterKart": "Kart",
+    "emptyDefault": "No sessions here"
+  },
+  "vehicles": {
+    "deleteConfirm": "Delete this vehicle? This cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "emptyTitle": "No vehicles yet",
+    "emptyHint": "Add a vehicle using the form below",
+    "unknownType": "Unknown type",
+    "edit": "Edit",
+    "vehicleType": "Vehicle Type",
+    "selectType": "Select type…",
+    "name": "Name",
+    "namePlaceholder": "Vehicle name",
+    "number": "Number",
+    "weight": "Weight",
+    "update": "Update Vehicle",
+    "add": "Add Vehicle"
+  },
+  "engine": {
+    "label": "Engine",
+    "manage": "manage",
+    "placeholder": "Engine type",
+    "create": "Create \"{{name}}\"",
+    "manageTitle": "Manage engines",
+    "manageDesc": "Remove saved engine types. Engines in use by a vehicle can't be deleted.",
+    "empty": "No saved engines yet",
+    "inUse": "in use",
+    "inUseTitle": "In use by a vehicle",
+    "delete": "Delete"
+  }
+}

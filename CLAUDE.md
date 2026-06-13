@@ -935,10 +935,13 @@ in `Index.tsx`, `LapTable`, `LapSnapshotControls`, `OverlaysMenu`,
 `SingleSeriesChart`, `GGDiagram`, `InfoBox`, plus the simple `TelemetryChart`),
 and the **video** player + overlay/export system (`VideoPlayer`,
 `VideoExportDialog`, `OverlaySettingsPanel`, the overlay-type/theme catalog
-labels, and the text-bearing overlay widgets). The **garage drawer**
-(Files/Setups/Notes/Vehicles/Device — incl. the InfoBox setup-detail table
-shared with `SetupsTab`), tracks/device, plugins, and auth/admin are the next
-surfaces; the framework is whole.
+labels, and the text-bearing overlay widgets), and the **garage drawer's shell +
+Files + Vehicles** (`FileManagerDrawer` tab chrome, `FilesTab`, `SessionBrowser`,
+`VehiclesTab`, `EngineCombobox` — `drawer` namespace; the pure
+`fileBrowserTree` takes translated `allSessions`/`untagged` labels so it stays
+i18n-free). The rest of the garage (Setups/Notes/Device — incl. the InfoBox
+setup-detail table shared with `SetupsTab`), tracks, plugins, and auth/admin are
+the next surfaces; the framework is whole.
 
 - **Languages.** `en` (source of truth) + `es`, `fr`, `de`, `it`, `pt-BR`, `ja`,
   declared once in `lib/i18n/config.ts` (`SUPPORTED_LANGUAGES`, `NAMESPACES`).
@@ -961,7 +964,7 @@ surfaces; the framework is whole.
 - **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
   with the English JSON shape, so `t("settings:title")` is autocompleted and a
   missing/renamed key fails `tsc -b`. English is the canonical key set.
-- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`) map to per-language JSON files
+- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`) map to per-language JSON files
   and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
   preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
   `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),

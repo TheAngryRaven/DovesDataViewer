@@ -11,6 +11,7 @@ import type landing from "@/locales/en/landing.json";
 import type settings from "@/locales/en/settings.json";
 import type session from "@/locales/en/session.json";
 import type video from "@/locales/en/video.json";
+import type drawer from "@/locales/en/drawer.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -21,6 +22,7 @@ declare module "i18next" {
       settings: typeof settings;
       session: typeof session;
       video: typeof video;
+      drawer: typeof drawer;
     };
   }
 }

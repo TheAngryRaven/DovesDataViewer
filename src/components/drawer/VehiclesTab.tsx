@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Pencil, Trash2, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ const emptyForm = (defaultTypeId: string): Omit<Vehicle, "id"> => ({
 });
 
 export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove }: VehiclesTabProps) {
+  const { t } = useTranslation("drawer");
   const defaultTypeId = vehicleTypes[0]?.id ?? "";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm(defaultTypeId));
@@ -89,10 +91,10 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
     <div className="flex flex-col flex-1 min-h-0">
       {confirmDelete && (
         <div className="mx-3 mt-3 mb-1 p-3 rounded-md border border-border bg-muted/60 space-y-2 shrink-0">
-          <p className="text-sm text-foreground">Delete this vehicle? This cannot be undone.</p>
+          <p className="text-sm text-foreground">{t("vehicles.deleteConfirm")}</p>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-            <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>Delete</Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>{t("vehicles.cancel")}</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>{t("vehicles.delete")}</Button>
           </div>
         </div>
       )}
@@ -101,12 +103,12 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
         {vehicles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
             <Car className="w-12 h-12 opacity-30" />
-            <p className="text-sm font-medium text-destructive">No vehicles yet</p>
-            <p className="text-xs">Add a vehicle using the form below</p>
+            <p className="text-sm font-medium text-destructive">{t("vehicles.emptyTitle")}</p>
+            <p className="text-xs">{t("vehicles.emptyHint")}</p>
           </div>
         ) : (
           vehicles.map(vehicle => {
-            const vt = vehicleTypes.find(t => t.id === vehicle.vehicleTypeId);
+            const vt = vehicleTypes.find(vtt => vtt.id === vehicle.vehicleTypeId);
             return (
               <div
                 key={vehicle.id}
@@ -117,13 +119,13 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
                     #{vehicle.number} — {vehicle.name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {vt?.name ?? "Unknown type"} · {vehicle.engine} · {vehicle.weight} {vehicle.weightUnit}
+                    {vt?.name ?? t("vehicles.unknownType")} · {vehicle.engine} · {vehicle.weight} {vehicle.weightUnit}
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100" onClick={() => handleEdit(vehicle)} title="Edit">
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100" onClick={() => handleEdit(vehicle)} title={t("vehicles.edit")}>
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive" onClick={() => setConfirmDelete(vehicle.id)} title="Delete">
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive" onClick={() => setConfirmDelete(vehicle.id)} title={t("vehicles.delete")}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -134,9 +136,9 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
 
       <div className="border-t border-border p-4 space-y-3 shrink-0">
         <div className="space-y-1">
-          <Label className="text-xs">Vehicle Type</Label>
+          <Label className="text-xs">{t("vehicles.vehicleType")}</Label>
           <Select value={form.vehicleTypeId} onValueChange={v => setForm(f => ({ ...f, vehicleTypeId: v }))}>
-            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select type…" /></SelectTrigger>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder={t("vehicles.selectType")} /></SelectTrigger>
             <SelectContent>
               {vehicleTypes.map(vt => (
                 <SelectItem key={vt.id} value={vt.id}>{vt.name}</SelectItem>
@@ -146,8 +148,8 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs">Name</Label>
-            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Vehicle name" className="h-8 text-sm" />
+            <Label className="text-xs">{t("vehicles.name")}</Label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder={t("vehicles.namePlaceholder")} className="h-8 text-sm" />
           </div>
           <EngineCombobox
             value={form.engine}
@@ -158,11 +160,11 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
             usedNames={usedEngineNames}
           />
           <div className="space-y-1">
-            <Label className="text-xs">Number</Label>
+            <Label className="text-xs">{t("vehicles.number")}</Label>
             <Input type="number" value={form.number || ""} onChange={e => setForm(f => ({ ...f, number: parseInt(e.target.value) || 0 }))} placeholder="0" className="h-8 text-sm" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Weight</Label>
+            <Label className="text-xs">{t("vehicles.weight")}</Label>
             <div className="flex items-center gap-2">
               <Input type="number" step="0.01" value={form.weight || ""} onChange={e => setForm(f => ({ ...f, weight: parseFloat(e.target.value) || 0 }))} placeholder="0.00" className="h-8 text-sm flex-1" />
               <div className="flex items-center gap-1.5 shrink-0">
@@ -175,10 +177,10 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
         </div>
         <div className="flex items-center gap-2">
           <Button className="flex-1" size="sm" onClick={handleSubmit} disabled={!form.name.trim()}>
-            {editingId ? "Update Vehicle" : "Add Vehicle"}
+            {editingId ? t("vehicles.update") : t("vehicles.add")}
           </Button>
           {editingId && (
-            <Button variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>
+            <Button variant="ghost" size="sm" onClick={resetForm}>{t("vehicles.cancel")}</Button>
           )}
         </div>
       </div>

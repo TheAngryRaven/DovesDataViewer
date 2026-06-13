@@ -1,18 +1,18 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 3 in progress** · current branch: `claude/i18n-phase3-video` → PR into `BETA`
+Status: **Phase 4 in progress (garage, sub-slice 1/?)** · current branch: `claude/i18n-phase4-garage-files-vehicles` → PR into `BETA`
 
-> **Phase 0** shipped the engine + 6 seeded languages + landing/Settings.
-> **Phase 1** shipped the core in-session UI (`session` namespace). **Phase 2**
-> shipped the live analysis views (map + pro GraphView). **Phase 3 (this PR)**
-> adds the **`video` namespace** — the video player + overlay/export system
-> (`VideoPlayer`, `VideoExportDialog`, `OverlaySettingsPanel`, the overlay-type/
-> theme catalog labels surfaced in the picker, and the text-bearing overlay
-> widgets `PaceOverlay`/`LapTimeOverlay`). Channel/data-source labels and the
-> registry/theme `.ts` defaults stay English (data); they're translated at the UI
-> boundary. Deferred next: the **garage drawer** (Files/Setups/Notes/Vehicles/
-> Device — incl. the InfoBox setup-detail table, translated with `SetupsTab` so
-> the tire/PSI labels stay consistent), then tracks/device, plugins, auth/admin.
+> **Phases 0–3 shipped:** engine + 6 languages + landing/Settings (`common`/
+> `landing`/`settings`); core in-session UI + live analysis views (`session`);
+> video (`video`). **Phase 4 (this PR)** opens the **`drawer` namespace** and
+> does the garage drawer's **shell + Files + Vehicles** sub-slice
+> (`FileManagerDrawer` tab chrome incl. the Device connect/battery states,
+> `FilesTab` + the shared `SessionBrowser`, `VehiclesTab`, `EngineCombobox`). The
+> pure `fileBrowserTree` gained an optional labels arg so the UI passes
+> translated `allSessions`/`untagged` while the module + its tests stay i18n-free;
+> `KartsTab` is dead code and was skipped. **Remaining garage sub-slices:**
+> Setups (`SetupsTab` + the shared InfoBox setup-detail table) and Notes, then
+> Device (Settings/Tracks/firmware). After garage: tracks, plugins, auth/admin.
 >
 > One refinement vs. the original design: the source-of-truth
 > English locales live in **`src/locales/en/`** (bundled as i18next `resources`

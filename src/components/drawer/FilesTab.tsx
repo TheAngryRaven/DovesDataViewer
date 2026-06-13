@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { toast } from "sonner";
 import { Trash2, Download, Upload, FolderOpen, Loader2, Video, Cloud, CloudDownload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ export function FilesTab({
   onClose,
   autoSave,
 }: FilesTabProps) {
+  const { t } = useTranslation("drawer");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmLoad, setConfirmLoad] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -145,7 +147,10 @@ export function FilesTab({
     () => buildBrowserSessions(files, mergedMeta, vehicles, remoteFiles),
     [files, mergedMeta, vehicles, remoteFiles],
   );
-  const view = useMemo(() => computeBrowserView(sessions, nav), [sessions, nav]);
+  const view = useMemo(
+    () => computeBrowserView(sessions, nav, { allSessions: t("browser.allSessions"), untagged: t("browser.untagged") }),
+    [sessions, nav, t],
+  );
   const filesByName = useMemo(() => new Map(files.map((f) => [f.name, f])), [files]);
 
   // Load stored video metadata to show video icons
@@ -187,11 +192,11 @@ export function FilesTab({
       onDataLoaded(data, name);
       onClose();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to download cloud log");
+      toast.error(e instanceof Error ? e.message : t("files.downloadFailed"));
     } finally {
       setCloudBusy(null);
     }
-  }, [cloudBusy, onSaveFile, onDataLoaded, onClose]);
+  }, [cloudBusy, onSaveFile, onDataLoaded, onClose, t]);
 
   // A plugin (cloud-sync) can register an extra action to run on confirm — e.g.
   // also removing the synced copy from the cloud. The host stays cloud-agnostic.
@@ -254,7 +259,7 @@ export function FilesTab({
             className="flex-1 text-left min-w-0 cursor-pointer disabled:opacity-60"
             disabled={busy}
             onClick={() => handleOpenCloud(s.fileName)}
-            title={`${s.fileName} — in the cloud, tap to download`}
+            title={t("files.cloudRowTitle", { name: s.fileName })}
           >
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-medium truncate text-muted-foreground">{s.displayName}</span>
@@ -264,7 +269,7 @@ export function FilesTab({
                 : <Cloud className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
             </div>
             <div className="text-xs text-muted-foreground">
-              {s.size != null ? `${formatSize(s.size)} · ` : ""}In the cloud
+              {s.size != null ? `${formatSize(s.size)} · ` : ""}{t("files.inCloud")}
               {s.fastestLapMs != null && (
                 <span className="ml-1.5 text-primary font-medium">⚡ {formatLapTime(s.fastestLapMs)}</span>
               )}
@@ -291,8 +296,8 @@ export function FilesTab({
             {videoFiles.has(s.fileName) && (
               <span title={(() => {
                 const m = videoFiles.get(s.fileName)!;
-                const parts = [m.exportType === "lap" && m.lapNumber != null ? `Lap ${m.lapNumber}` : m.exportType === "session" ? "Session" : "Source"];
-                if (m.hasOverlays) parts.push("w/ overlays");
+                const parts = [m.exportType === "lap" && m.lapNumber != null ? t("files.videoLap", { number: m.lapNumber }) : m.exportType === "session" ? t("files.videoSession") : t("files.videoSource")];
+                if (m.hasOverlays) parts.push(t("files.videoWithOverlays"));
                 parts.push(`(${formatSize(m.size)})`);
                 return parts.join(" ");
               })()}>
@@ -313,7 +318,7 @@ export function FilesTab({
           size="icon"
           className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
           onClick={() => onExportFile(s.fileName)}
-          title="Export / Download"
+          title={t("files.exportDownload")}
         >
           <Download className="w-3.5 h-3.5" />
         </Button>
@@ -322,13 +327,13 @@ export function FilesTab({
           size="icon"
           className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive"
           onClick={() => setConfirmDelete(s.fileName)}
-          title="Delete"
+          title={t("files.delete")}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
       </div>
     );
-  }, [cloudBusy, handleOpenCloud, filesByName, mergedMeta, videoFiles, onExportFile]);
+  }, [cloudBusy, handleOpenCloud, filesByName, mergedMeta, videoFiles, onExportFile, t]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -338,13 +343,13 @@ export function FilesTab({
           {confirmLoad && (
             <>
               <p className="text-sm text-foreground">
-                Load <span className="font-mono font-medium">{confirmLoad}</span>?
+                <Trans ns="drawer" i18nKey="files.confirmLoad" values={{ name: confirmLoad }} components={{ name: <span className="font-mono font-medium" /> }} />
               </p>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setConfirmLoad(null)}>Cancel</Button>
+                <Button variant="outline" size="sm" onClick={() => setConfirmLoad(null)}>{t("files.cancel")}</Button>
                 <Button size="sm" onClick={handleLoadConfirm} disabled={loading}>
                   {loading && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                  Load
+                  {t("files.load")}
                 </Button>
               </div>
             </>
@@ -352,7 +357,7 @@ export function FilesTab({
           {confirmDelete && (
             <>
               <p className="text-sm text-foreground">
-                Delete <span className="font-mono font-medium">{confirmDelete}</span>? This cannot be undone.
+                <Trans ns="drawer" i18nKey="files.confirmDelete" values={{ name: confirmDelete }} components={{ name: <span className="font-mono font-medium" /> }} />
               </p>
               <PluginMount
                 key={confirmDelete}
@@ -360,8 +365,8 @@ export function FilesTab({
                 ctx={{ fileName: confirmDelete, registerOnConfirm: registerDeleteConfirm }}
               />
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancel</Button>
-                <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>Delete</Button>
+                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>{t("files.cancel")}</Button>
+                <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>{t("files.delete")}</Button>
               </div>
             </>
           )}
@@ -373,8 +378,8 @@ export function FilesTab({
         {files.length === 0 && remoteFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
             <FolderOpen className="w-12 h-12 opacity-30" />
-            <p className="text-sm">No stored files</p>
-            <p className="text-xs">Upload or import files to get started</p>
+            <p className="text-sm">{t("files.emptyTitle")}</p>
+            <p className="text-xs">{t("files.emptyHint")}</p>
           </div>
         ) : (
           <SessionBrowser view={view} onNavigate={setNav} renderRow={renderRow} />
@@ -392,11 +397,11 @@ export function FilesTab({
               />
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              {formatSize(storageUsed)} used of {formatSize(storageQuota)}
+              {t("files.storageUsed", { used: formatSize(storageUsed), quota: formatSize(storageQuota) })}
             </p>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground text-center">Storage usage unavailable</p>
+          <p className="text-xs text-muted-foreground text-center">{t("files.storageUnavailable")}</p>
         )}
       </div>
 
@@ -416,7 +421,7 @@ export function FilesTab({
           onClick={() => fileInputRef.current?.click()}
         >
           {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-          Upload Files
+          {t("files.uploadFiles")}
         </Button>
         <Suspense fallback={null}>
           <DataloggerDownload
