@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { Bluetooth, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,9 +27,16 @@ interface DataloggerDownloadProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
   autoSave?: boolean;
   autoSaveFile?: (name: string, blob: Blob) => Promise<void>;
+  /**
+   * Optional custom trigger (e.g. a big landing-page ActionTile). Receives the
+   * connect handler and whether Web Bluetooth is supported so the caller can
+   * render its own disabled/hint state. When omitted, the default outline
+   * button is rendered.
+   */
+  renderTrigger?: (args: { onConnect: () => void; bleSupported: boolean }) => ReactNode;
 }
 
-export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: DataloggerDownloadProps) {
+export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, renderTrigger }: DataloggerDownloadProps) {
   const device = useDeviceContext();
   const connection = device.connection;
   const [state, setState] = useState<DownloadState>("idle");
@@ -153,6 +160,129 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
 
   const isModalOpen = state !== "idle";
 
+  // The transfer modal — shared by every trigger variant below.
+  const downloadDialog = (
+    <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Bluetooth className="w-5 h-5" />
+            {state === "connecting" && "Connecting..."}
+            {state === "fetching-files" && "Fetching Files..."}
+            {state === "file-list" && "Select File to Download"}
+            {state === "downloading" && "Downloading..."}
+            {state === "error" && "Connection Error"}
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Connecting State */}
+        {state === "connecting" && (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <p className="text-muted-foreground">{statusMessage}</p>
+            <p className="text-sm text-muted-foreground">
+              If prompted, select "DovesLapTimer" from the list
+            </p>
+          </div>
+        )}
+
+        {/* Fetching Files State */}
+        {state === "fetching-files" && (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <p className="text-muted-foreground">{statusMessage}</p>
+          </div>
+        )}
+
+        {/* File List State */}
+        {state === "file-list" && (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground mb-2">
+              Click a file to download and load it:
+            </p>
+            <div className="max-h-80 overflow-y-auto space-y-1">
+              {files.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  No files found on device
+                </p>
+              ) : (
+                files.map((file) => (
+                  <button
+                    key={file.name}
+                    onClick={() => handleFileSelect(file)}
+                    className="w-full text-left px-3 py-2 rounded-md bg-muted/50 hover:bg-muted transition-colors flex justify-between items-center"
+                  >
+                    <span className="font-mono text-sm">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatBytes(file.size)}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Downloading State */}
+        {state === "downloading" && progress && (
+          <div className="flex flex-col gap-4 py-4">
+            <p className="font-mono text-sm text-center">{currentFile}</p>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-150"
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="text-muted-foreground">Received:</div>
+              <div className="text-right font-mono">
+                {formatBytes(progress.received)} / {formatBytes(progress.total)}
+              </div>
+
+              <div className="text-muted-foreground">Speed:</div>
+              <div className="text-right font-mono">{progress.speed}</div>
+
+              <div className="text-muted-foreground">ETA:</div>
+              <div className="text-right font-mono">{progress.eta}</div>
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground">
+              {progress.percent.toFixed(1)}% complete
+            </p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {state === "error" && (
+          <div className="flex flex-col items-center gap-4 py-4">
+            <p className="text-destructive text-center">{error}</p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleRetry}>Try Again</Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  // Custom-trigger mode (e.g. the landing-page ActionTile): caller owns the
+  // disabled/hint presentation; we just wire up the connect handler.
+  if (renderTrigger) {
+    return (
+      <>
+        {renderTrigger({ onConnect: handleConnect, bleSupported })}
+        {downloadDialog}
+      </>
+    );
+  }
+
   // Button disabled if BLE not supported
   if (!bleSupported) {
     return (
@@ -184,114 +314,7 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile }: Dat
         Download from DovesDataLogger
       </Button>
 
-      <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bluetooth className="w-5 h-5" />
-              {state === "connecting" && "Connecting..."}
-              {state === "fetching-files" && "Fetching Files..."}
-              {state === "file-list" && "Select File to Download"}
-              {state === "downloading" && "Downloading..."}
-              {state === "error" && "Connection Error"}
-            </DialogTitle>
-          </DialogHeader>
-
-          {/* Connecting State */}
-          {state === "connecting" && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <Loader2 className="w-12 h-12 animate-spin text-primary" />
-              <p className="text-muted-foreground">{statusMessage}</p>
-              <p className="text-sm text-muted-foreground">
-                If prompted, select "DovesLapTimer" from the list
-              </p>
-            </div>
-          )}
-
-          {/* Fetching Files State */}
-          {state === "fetching-files" && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <Loader2 className="w-12 h-12 animate-spin text-primary" />
-              <p className="text-muted-foreground">{statusMessage}</p>
-            </div>
-          )}
-
-          {/* File List State */}
-          {state === "file-list" && (
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-muted-foreground mb-2">
-                Click a file to download and load it:
-              </p>
-              <div className="max-h-80 overflow-y-auto space-y-1">
-                {files.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
-                    No files found on device
-                  </p>
-                ) : (
-                  files.map((file) => (
-                    <button
-                      key={file.name}
-                      onClick={() => handleFileSelect(file)}
-                      className="w-full text-left px-3 py-2 rounded-md bg-muted/50 hover:bg-muted transition-colors flex justify-between items-center"
-                    >
-                      <span className="font-mono text-sm">{file.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatBytes(file.size)}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Downloading State */}
-          {state === "downloading" && progress && (
-            <div className="flex flex-col gap-4 py-4">
-              <p className="font-mono text-sm text-center">{currentFile}</p>
-              
-              {/* Progress Bar */}
-              <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-150"
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-muted-foreground">Received:</div>
-                <div className="text-right font-mono">
-                  {formatBytes(progress.received)} / {formatBytes(progress.total)}
-                </div>
-                
-                <div className="text-muted-foreground">Speed:</div>
-                <div className="text-right font-mono">{progress.speed}</div>
-                
-                <div className="text-muted-foreground">ETA:</div>
-                <div className="text-right font-mono">{progress.eta}</div>
-              </div>
-
-              <p className="text-xs text-center text-muted-foreground">
-                {progress.percent.toFixed(1)}% complete
-              </p>
-            </div>
-          )}
-
-          {/* Error State */}
-          {state === "error" && (
-            <div className="flex flex-col items-center gap-4 py-4">
-              <p className="text-destructive text-center">{error}</p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleClose}>
-                  Cancel
-                </Button>
-                <Button onClick={handleRetry}>Try Again</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {downloadDialog}
     </>
   );
 }

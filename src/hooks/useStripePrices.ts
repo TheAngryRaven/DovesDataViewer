@@ -31,7 +31,7 @@ export function useStripePrices(): StripePricesState {
     let cancelled = false;
     setLoading(true);
     // Dynamic import: billingClient pulls the Supabase client, which must
-    // stay off the eager graph (PricingCards rides the landing page).
+    // stay off the eager graph (keep the offline-first payload Supabase-free).
     import("@/lib/billingClient")
       .then(({ fetchStripeConfig }) => fetchStripeConfig())
       .then((c) => {

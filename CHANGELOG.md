@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [Unreleased]
+
+### Changed
+- **Landing page UX overhaul** — the home screen is simpler and friendlier. The
+  cluster of small buttons that used to live inside the file dropzone is gone;
+  importing a file is now a single large drag-and-drop / click-to-browse zone,
+  and every other action (load sample data, browse saved files, download from
+  the logger over Bluetooth, manage tracks, build your own logger) is a big,
+  clearly-labelled tile. Pricing is no longer shown on the landing page — it
+  lives on the registration page where you pick a plan. Colors and design tokens
+  are unchanged; this is a layout/usability pass only.
+
 ## [2.5.0] - 2026-06-13
 
 ### Added

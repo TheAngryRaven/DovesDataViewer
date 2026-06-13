@@ -1,18 +1,39 @@
-import { Gauge, Github, Heart, Shield, BookOpen, Play, Loader2, LogIn, LogOut, FileText, Cpu } from "lucide-react";
+import { lazy, Suspense } from "react";
+import {
+  Gauge,
+  Github,
+  Heart,
+  Shield,
+  Play,
+  LogIn,
+  LogOut,
+  FileText,
+  Cpu,
+  FolderOpen,
+  Map,
+  Bluetooth,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileImport } from "@/components/FileImport";
+import { ActionTile } from "@/components/ActionTile";
+import { TrackEditor } from "@/components/TrackEditor";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { BrowserCompatDialog } from "@/components/BrowserCompatDialog";
 import { ContactDialog } from "@/components/ContactDialog";
 import { SupportedFilesDialog } from "@/components/SupportedFilesDialog";
 import { AboutDialog } from "@/components/AboutDialog";
 import { CreditsDialog } from "@/components/CreditsDialog";
-import { PricingCards } from "@/components/PricingCards";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildInfo, formatBuildLabel, commitUrl, isPreviewBuild } from "@/lib/buildInfo";
 import { cn } from "@/lib/utils";
 import type { ParsedData } from "@/types/racing";
+
+// Lazy so the BLE module (Web Bluetooth protocol) stays out of the initial
+// bundle — it only loads when this tile mounts on the landing page.
+const DataloggerDownload = lazy(() =>
+  import("./DataloggerDownload").then((m) => ({ default: m.DataloggerDownload })),
+);
 
 interface LandingPageProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
@@ -26,19 +47,22 @@ interface LandingPageProps {
 }
 
 const GITHUB_LINKS: Array<{ href: string; label: string }> = [
-  { href: "https://github.com/TheAngryRaven/DovesDataViewer", label: "View on GitHub" },
-  { href: "https://github.com/TheAngryRaven/DovesDataLogger", label: "View Datalogger" },
-  { href: "https://github.com/TheAngryRaven/DovesLapTimer", label: "View Timer Library" },
+  { href: "https://github.com/TheAngryRaven/DovesDataViewer", label: "DataViewer" },
+  { href: "https://github.com/TheAngryRaven/DovesDataLogger", label: "Datalogger" },
+  { href: "https://github.com/TheAngryRaven/DovesLapTimer", label: "Timer Library" },
   { href: "https://github.com/TheAngryRaven/DataViewer_coach", label: "Coach Plugin" },
 ];
 
 /**
- * The pre-data-load view shown by Index.tsx when no telemetry file is loaded.
- * Self-contained content (header, file import, sample loader, footer) plus
- * the three content-only dialogs (Supported Files, About, Credits).
+ * The pre-data-load home screen shown by Index.tsx when no telemetry file is
+ * loaded. The layout is deliberately simple: a large drag-and-drop dropzone
+ * as the primary action, then a grid of big, single-purpose action tiles for
+ * everything else (browse, sample, BLE download, track manager, hardware).
+ * Reference dialogs (supported files, about, weather, browser compat, contact)
+ * and resource links live below.
  *
  * Index.tsx owns the surrounding providers (DeviceProvider, etc.) and the
- * FileManagerDrawer, which can also be opened from this landing page via
+ * FileManagerDrawer, which the "Browse Saved Files" tile opens via
  * `onOpenFileManager`.
  */
 export function LandingPage({
@@ -57,18 +81,17 @@ export function LandingPage({
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Gauge className="w-8 h-8 text-primary" />
             <div>
               <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
-              <p className="text-sm text-muted-foreground">Experimental Data Viewer</p>
+              <p className="text-sm text-muted-foreground">Telemetry Data Viewer</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <SupportedFilesDialog />
             <AboutDialog />
-            <ContactDialog variant="header" />
             {enableCloud && (
               user ? (
                 <Button variant="ghost" size="sm" className="gap-2" onClick={logout} title={user.email ?? undefined}>
@@ -96,68 +119,103 @@ export function LandingPage({
         </div>
       </header>
 
-      <main className="flex-1 p-8 space-y-12">
-        <div className="mx-auto w-full max-w-xl space-y-6">
-          <div className="flex justify-end items-center gap-2">
-            <LocalWeatherDialog />
-          </div>
-
-          <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+      <main className="flex-1 px-6 py-10">
+        <div className="mx-auto w-full max-w-4xl space-y-10">
+          {/* Hero */}
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
               Free Online VBO, MoTeC, AiM &amp; NMEA Telemetry Viewer
-            </h1>
+            </h2>
+            <p className="mx-auto max-w-xl text-sm text-muted-foreground">
+              Drop in a datalog and explore your laps — maps, charts, sectors and video sync.
+              Everything runs locally in your browser. No upload, no account required.
+            </p>
           </div>
 
-          <div className="text-center text-sm text-muted-foreground space-y-3">
-            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <h3 className="font-medium text-foreground mb-2">Try it out!</h3>
-              <p className="text-xs mb-3">Load sample data from Orlando Kart Center to see how the viewer works.</p>
-              <Button variant="default" size="sm" onClick={onLoadSample} disabled={isLoadingSample}>
-                {isLoadingSample ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4 mr-2" />
+          {/* Primary action: drag & drop / click to browse */}
+          <FileImport onDataLoaded={onDataLoaded} autoSave={autoSave} autoSaveFile={autoSaveFile} />
+
+          {/* Secondary actions — big, single-purpose tiles */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ActionTile
+              icon={Play}
+              title="Load sample data"
+              description={isLoadingSample ? "Loading…" : "Try it now with a real session from Orlando Kart Center"}
+              onClick={onLoadSample}
+              disabled={isLoadingSample}
+              spinning={isLoadingSample}
+              featured
+            />
+
+            <ActionTile
+              icon={FolderOpen}
+              title="Browse saved files"
+              description="Reopen logs you've already imported on this device"
+              onClick={onOpenFileManager}
+            />
+
+            <Suspense
+              fallback={
+                <ActionTile
+                  icon={Bluetooth}
+                  title="Download from logger"
+                  description="Loading…"
+                  disabled
+                />
+              }
+            >
+              <DataloggerDownload
+                onDataLoaded={onDataLoaded}
+                autoSave={autoSave}
+                autoSaveFile={autoSaveFile}
+                renderTrigger={({ onConnect, bleSupported }) => (
+                  <ActionTile
+                    icon={Bluetooth}
+                    title="Download from logger"
+                    description={
+                      bleSupported
+                        ? "Pull logs over Bluetooth from your DovesDataLogger"
+                        : "Requires Chrome, Edge or Opera on desktop"
+                    }
+                    onClick={onConnect}
+                    disabled={!bleSupported}
+                    hint={bleSupported ? undefined : "Web Bluetooth is not supported in this browser"}
+                  />
                 )}
-                {isLoadingSample ? "Loading..." : "Load Sample Data"}
-              </Button>
-            </div>
+              />
+            </Suspense>
+
+            {/* Track manager — create/draw tracks & courses without a datalog. */}
+            <TrackEditor
+              startInManage
+              triggerButton={
+                <ActionTile
+                  icon={Map}
+                  title="Manage tracks"
+                  description="Create, draw and edit track & course layouts"
+                />
+              }
+            />
+
+            <ActionTile
+              icon={Cpu}
+              title="Build your own logger"
+              description="Open-source GPS hardware & firmware — the DovesDataLogger"
+              href="https://github.com/TheAngryRaven/DovesDataLogger"
+            />
           </div>
 
-          <FileImport
-            onDataLoaded={onDataLoaded}
-            onOpenFileManager={onOpenFileManager}
-            autoSave={autoSave}
-            autoSaveFile={autoSaveFile}
-          />
-
-          <a
-            href="https://github.com/TheAngryRaven/DovesDataLogger"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-6 py-6 text-center transition-colors hover:border-primary hover:bg-primary/10 sm:flex-row sm:text-left"
-          >
-            <Cpu className="h-8 w-8 shrink-0 text-primary" />
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold text-foreground">Build your own datalogger</h3>
-              <p className="text-sm text-muted-foreground">
-                The DovesDataLogger is fully open source — grab the hardware design and firmware to build your own GPS telemetry logger.
-              </p>
-            </div>
-            <Button variant="default" size="sm" className="mt-2 shrink-0 gap-2 sm:ml-auto sm:mt-0">
-              <Github className="h-4 w-4" />
-              Get Started
-            </Button>
-          </a>
-        </div>
-
-        <PricingCards className="mx-auto w-full max-w-5xl" />
-
-        <div className="mx-auto w-full max-w-xl space-y-4">
-          <div className="flex justify-center">
+          {/* Reference dialogs */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <BrowserCompatDialog />
+            <span className="inline-flex">
+              <LocalWeatherDialog />
+            </span>
+            <ContactDialog variant="header" />
           </div>
 
-          <div className="flex items-center justify-center gap-8">
+          {/* Open-source repos */}
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             {GITHUB_LINKS.map((link) => (
               <a
                 key={link.href}
@@ -166,7 +224,7 @@ export function LandingPage({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Github className="w-5 h-5" />
+                <Github className="w-4 h-4" />
                 <span className="text-sm">{link.label}</span>
               </a>
             ))}
@@ -181,7 +239,6 @@ export function LandingPage({
               <FileText className="w-3 h-3" />
               Terms of Service
             </Link>
-            <ContactDialog />
             <CreditsDialog />
             {enableAdmin && (
               <button

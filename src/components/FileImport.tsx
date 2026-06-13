@@ -1,27 +1,26 @@
-import { useCallback, useState, lazy, Suspense } from "react";
-import { Upload, FileText, FolderOpen, Loader2, Map } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TrackEditor } from "@/components/TrackEditor";
+import { useCallback, useState } from "react";
+import { Upload, Loader2 } from "lucide-react";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
-// Lazy so the BLE module (Web Bluetooth protocol) stays out of the initial
-// bundle — it only loads when the user opens the device download UI.
-const DataloggerDownload = lazy(() =>
-  import("./DataloggerDownload").then((m) => ({ default: m.DataloggerDownload })),
-);
 
 interface FileImportProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
-  onOpenFileManager?: () => void;
   autoSave?: boolean;
   autoSaveFile?: (name: string, blob: Blob) => Promise<void>;
 }
 
-export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSaveFile }: FileImportProps) {
+/**
+ * The landing page's primary action: a large drag-and-drop / click-to-browse
+ * zone. The whole card is the upload target — secondary actions (browse saved
+ * files, download from the logger, sample data, track manager) live as their
+ * own tiles in LandingPage rather than bundled inside this dropzone.
+ */
+export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const processFile = useCallback(
     async (file: File) => {
@@ -60,8 +59,9 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
   );
 
   const handleDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
+    (event: React.DragEvent<HTMLLabelElement>) => {
       event.preventDefault();
+      setIsDragging(false);
       const file = event.dataTransfer.files?.[0];
       if (file) {
         processFile(file);
@@ -70,72 +70,57 @@ export function FileImport({ onDataLoaded, onOpenFileManager, autoSave, autoSave
     [processFile],
   );
 
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
   }, []);
 
   return (
-    <div
-      className="flex flex-col items-center justify-center gap-4 p-8 border-2 border-dashed border-border rounded-lg bg-card/50 hover:border-primary/50 transition-colors cursor-pointer"
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-    >
-      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-        {isLoading ? <Loader2 className="w-12 h-12 animate-spin text-primary" /> : <Upload className="w-12 h-12" />}
-        <p className="text-lg font-medium">{isLoading ? (progress ?? "Processing...") : "Drop datalog file here"}</p>
-        <p className="text-sm">Supports NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), MoTeC CSV/LD and more.</p>
-        <p className="text-sm">
-          <i>All processing done locally</i>
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 justify-center">
-        <label>
-          <input
-            type="file"
-            accept=".csv,.nmea,.txt,.ubx,.vbo,.dove,.dovex,.ld,.xrk,.xrz"
-            onChange={handleFileChange}
-            className="hidden"
-            disabled={isLoading}
-          />
-          <Button variant="outline" disabled={isLoading} asChild>
-            <span className="cursor-pointer">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Files
-            </span>
-          </Button>
-        </label>
-
-        {onOpenFileManager && (
-          <Button variant="outline" onClick={onOpenFileManager}>
-            <FolderOpen className="w-4 h-4 mr-2" />
-            Browse Files
-          </Button>
-        )}
-
-        <Suspense fallback={null}>
-          <DataloggerDownload onDataLoaded={onDataLoaded} autoSave={autoSave} autoSaveFile={autoSaveFile} />
-        </Suspense>
-      </div>
-
-      {/* Track manager — create/draw tracks & courses without loading a datalog.
-          With no session loaded the visual editor offers location search + manual
-          drawing; once a datalog is open the header editor adds "Generate from lap". */}
-      <div className="flex justify-center">
-        <TrackEditor
-          startInManage
-          triggerButton={
-            <Button variant="outline">
-              <Map className="w-4 h-4 mr-2" />
-              Manage Tracks
-            </Button>
-          }
+    <div className="space-y-3">
+      <label
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={[
+          "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center transition-colors",
+          isDragging ? "border-primary bg-primary/10" : "border-border bg-card/50 hover:border-primary/50 hover:bg-card",
+        ].join(" ")}
+      >
+        <input
+          type="file"
+          accept=".csv,.nmea,.txt,.ubx,.vbo,.dove,.dovex,.ld,.xrk,.xrz,.ibt"
+          onChange={handleFileChange}
+          className="hidden"
+          disabled={isLoading}
         />
-      </div>
+        {isLoading ? (
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        ) : (
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Upload className="h-7 w-7" />
+          </span>
+        )}
+        <span className="text-xl font-semibold text-foreground">
+          {isLoading ? (progress ?? "Processing...") : "Open a datalog"}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          Drag &amp; drop a file here, or click to browse
+        </span>
+        <span className="max-w-md text-xs text-muted-foreground">
+          NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD and more —
+          <i> all processed locally on your device.</i>
+        </span>
+      </label>
 
-      {fileName && !error && <p className="text-sm text-muted-foreground font-mono">Loaded: {fileName}</p>}
-
-      {error && <p className="text-sm text-destructive font-medium">Error: {error}</p>}
+      {fileName && !error && (
+        <p className="text-center text-sm font-mono text-muted-foreground">Loaded: {fileName}</p>
+      )}
+      {error && <p className="text-center text-sm font-medium text-destructive">Error: {error}</p>}
     </div>
   );
 }
