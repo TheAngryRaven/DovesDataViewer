@@ -13,6 +13,8 @@ export interface ToolDef {
   name: string;
   /** One-liner shown on the picker card. */
   description: string;
+  /** Optional bubble tag on the picker card (e.g. maturity warning). */
+  badge?: string;
   icon: ComponentType<{ className?: string }>;
   component: ComponentType<PluginPanelProps>;
 }
@@ -23,6 +25,7 @@ export const TOOLS: ToolDef[] = [
     name: "Seat Position Visualizer",
     description:
       "See how sliding or tilting your kart seat shifts front/rear weight and CoG height — with a calibration mode for corner scales.",
+    badge: "Super experimental",
     icon: Armchair,
     component: lazy(() => import("./seat-position/SeatPositionTool")),
   },

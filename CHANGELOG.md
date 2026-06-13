@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   new first-party `tools` plugin. The tab self-gates like Coach (it shows only
   when a plugin contributes to the new `tools` panel slot) and opens on a
   picker of tools — icon + one-line description — that you click into.
-- **Kart seat position visualizer** — the first tool: a side-view rigid-body
+- **Kart seat position visualizer** — the first tool (tagged *super
+  experimental* on its picker card): a side-view rigid-body
   statics model showing how a fore/aft seat slide (±1", 1/16" detents) and a
   seat tilt (±5°, or rear-mount mm) shift front/rear weight distribution and
   CoG height relative to a user-set zero point. A stick-figure driver with

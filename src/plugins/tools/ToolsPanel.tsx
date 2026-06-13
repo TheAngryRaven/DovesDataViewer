@@ -30,7 +30,14 @@ export default function ToolsPanel(props: PluginPanelProps) {
                 >
                   <Icon className="w-6 h-6 text-primary shrink-0 mt-0.5" />
                   <span>
-                    <span className="block text-sm font-medium text-foreground">{tool.name}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-sm font-medium text-foreground">{tool.name}</span>
+                      {tool.badge && (
+                        <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning">
+                          {tool.badge}
+                        </span>
+                      )}
+                    </span>
                     <span className="mt-1 block text-xs text-muted-foreground">{tool.description}</span>
                   </span>
                 </button>
