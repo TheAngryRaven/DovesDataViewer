@@ -1,0 +1,41 @@
+{
+  "_machine": true,
+  "tagline": "Visualizador de dados de telemetria",
+  "hero": {
+    "title": "Visualizador de telemetria VBO, MoTeC, AiM e NMEA grátis online",
+    "subtitle": "Carregue um datalog e explore suas voltas: mapas, gráficos, setores e sincronização de vídeo. Tudo funciona localmente no seu navegador. Sem upload, sem necessidade de conta."
+  },
+  "tiles": {
+    "sample": {
+      "title": "Carregar dados de exemplo",
+      "description": "Experimente agora com uma sessão real do Orlando Kart Center"
+    },
+    "browse": {
+      "title": "Procurar arquivos salvos",
+      "description": "Reabra registros que você já importou neste dispositivo"
+    },
+    "logger": {
+      "title": "Baixar do registrador",
+      "description": "Baixe registros via Bluetooth do seu DovesDataLogger",
+      "unsupportedDescription": "Requer Chrome, Edge ou Opera no computador",
+      "unsupportedHint": "Web Bluetooth não é compatível com este navegador"
+    },
+    "tracks": {
+      "title": "Gerenciar pistas",
+      "description": "Crie, desenhe e edite traçados de pistas e percursos"
+    },
+    "build": {
+      "title": "Monte seu próprio registrador",
+      "description": "Hardware e firmware GPS de código aberto: o DovesDataLogger"
+    }
+  },
+  "links": {
+    "privacy": "Política de privacidade",
+    "terms": "Termos de serviço",
+    "trackManagement": "Gerenciamento de pistas"
+  },
+  "footer": {
+    "operatedBy": "Operado por",
+    "previewWarning": "Este branch está rodando em um banco de dados de prévia: as contas podem ser apagadas a qualquer momento. Não confie que os dados sejam salvos em outro lugar que não seja localmente. Se os pagamentos forem ativados, <strong>não insira informações de pagamento reais.</strong>"
+  }
+}

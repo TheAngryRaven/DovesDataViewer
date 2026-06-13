@@ -1,0 +1,41 @@
+{
+  "_machine": true,
+  "tagline": "テレメトリーデータビューア",
+  "hero": {
+    "title": "VBO・MoTeC・AiM・NMEA 対応の無料オンライン・テレメトリービューア",
+    "subtitle": "データログを読み込んでラップを分析しましょう。マップ、グラフ、セクター、動画同期に対応。すべてブラウザー上でローカルに動作します。アップロード不要、アカウント不要。"
+  },
+  "tiles": {
+    "sample": {
+      "title": "サンプルデータを読み込む",
+      "description": "Orlando Kart Center の実走セッションで今すぐ試す"
+    },
+    "browse": {
+      "title": "保存済みファイルを参照",
+      "description": "このデバイスにすでに取り込んだログを再び開く"
+    },
+    "logger": {
+      "title": "ロガーからダウンロード",
+      "description": "DovesDataLogger から Bluetooth でログを取得",
+      "unsupportedDescription": "デスクトップ版の Chrome、Edge、Opera が必要です",
+      "unsupportedHint": "このブラウザーは Web Bluetooth に対応していません"
+    },
+    "tracks": {
+      "title": "コースを管理",
+      "description": "コースやレイアウトの作成・描画・編集"
+    },
+    "build": {
+      "title": "自分だけのロガーを作る",
+      "description": "オープンソースの GPS ハードウェアとファームウェア — DovesDataLogger"
+    }
+  },
+  "links": {
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "trackManagement": "コース管理"
+  },
+  "footer": {
+    "operatedBy": "運営：",
+    "previewWarning": "このブランチはプレビュー用データベースで動作しています。アカウントはいつでも削除される可能性があります。データがローカル以外の場所に保存されることを当てにしないでください。決済が有効な場合は、<strong>実際の支払い情報を入力しないでください。</strong>"
+  }
+}

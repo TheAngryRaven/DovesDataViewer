@@ -1,0 +1,40 @@
+{
+  "tagline": "Telemetry Data Viewer",
+  "hero": {
+    "title": "Free Online VBO, MoTeC, AiM & NMEA Telemetry Viewer",
+    "subtitle": "Drop in a datalog and explore your laps — maps, charts, sectors and video sync. Everything runs locally in your browser. No upload, no account required."
+  },
+  "tiles": {
+    "sample": {
+      "title": "Load sample data",
+      "description": "Try it now with a real session from Orlando Kart Center"
+    },
+    "browse": {
+      "title": "Browse saved files",
+      "description": "Reopen logs you've already imported on this device"
+    },
+    "logger": {
+      "title": "Download from logger",
+      "description": "Pull logs over Bluetooth from your DovesDataLogger",
+      "unsupportedDescription": "Requires Chrome, Edge or Opera on desktop",
+      "unsupportedHint": "Web Bluetooth is not supported in this browser"
+    },
+    "tracks": {
+      "title": "Manage tracks",
+      "description": "Create, draw and edit track & course layouts"
+    },
+    "build": {
+      "title": "Build your own logger",
+      "description": "Open-source GPS hardware & firmware — the DovesDataLogger"
+    }
+  },
+  "links": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "trackManagement": "Track Management"
+  },
+  "footer": {
+    "operatedBy": "Operated by",
+    "previewWarning": "This branch is running on a preview database — accounts can be wiped at any time. Do not rely on data being saved anywhere other than locally. If payments are activated, <strong>do not enter real payment information.</strong>"
+  }
+}

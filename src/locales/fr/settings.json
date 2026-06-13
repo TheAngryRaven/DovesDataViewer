@@ -1,0 +1,89 @@
+{
+  "_machine": true,
+  "title": "Paramètres",
+  "theme": {
+    "heading": "Thème",
+    "darkMode": "Mode sombre"
+  },
+  "fileStorage": {
+    "heading": "Stockage des fichiers",
+    "autoSave": "Enregistrer automatiquement les fichiers importés/téléversés sur l'appareil",
+    "autoSaveHint": "Stocke automatiquement les fichiers sur l'appareil pour y accéder plus tard"
+  },
+  "speedUnit": {
+    "heading": "Unité de vitesse",
+    "label": "Afficher la vitesse en kilomètres par heure"
+  },
+  "distanceUnit": {
+    "heading": "Unité de distance",
+    "label": "Longueur du circuit, distance du tour et axe de distance du graphique"
+  },
+  "weatherUnits": {
+    "heading": "Unités météo",
+    "label": "Température, vent, pression et altitude",
+    "hint": "Impérial = °F, mph, inHg, ft · Métrique = °C, km/h, hPa, m",
+    "imperialShort": "Imp",
+    "metricShort": "Mét"
+  },
+  "gforceSmoothing": {
+    "heading": "Lissage des forces G",
+    "label": "Appliquer une réduction du bruit aux forces G calculées",
+    "strength": "Intensité du lissage",
+    "none": "Aucun",
+    "max": "Max"
+  },
+  "gforceSource": {
+    "heading": "Source des forces G",
+    "label": "Source des données de force G pour le graphique simple",
+    "hint": "GPS = dérivé de la vitesse/du cap, HW = accéléromètre matériel"
+  },
+  "lapDelta": {
+    "heading": "Delta de tour",
+    "label": "Calcul de l'écart par rapport à la référence",
+    "hint": "Position projette votre trajectoire sur la référence (robuste aux différences de trajectoire et de fréquence GPS) ; Distance est l'ancienne méthode de distance cumulée",
+    "distance": "Distance",
+    "position": "Position"
+  },
+  "chartScale": {
+    "heading": "Échelle du graphique",
+    "label": "Axe X du graphique de télémétrie",
+    "hint": "Distance trace selon la position sur la piste pour que les tours s'alignent virage par virage ; Temps trace selon le temps de tour écoulé",
+    "time": "Temps",
+    "distance": "Distance"
+  },
+  "braking": {
+    "heading": "Détection des zones de freinage",
+    "experimental": "Expérimental",
+    "intro": "Réglez l'algorithme de détection pour identifier les zones de freinage sur la carte.",
+    "entryThreshold": "Seuil d'entrée",
+    "exitThreshold": "Seuil de sortie",
+    "minDuration": "Durée minimale",
+    "smoothing": "Lissage",
+    "zoneWidth": "Largeur de zone",
+    "graphSmoothing": "Lissage du graphique",
+    "graphSmoothingUnit": "{{count}} pts",
+    "graphSmoothingHint": "Fenêtre du filtre Savitzky-Golay pour le graphique de % de frein. Plus grand = plus lisse.",
+    "brakeMaxLabel": "Frein 100 % = ",
+    "brakeMaxHint": "La force G de décélération qui correspond à 100 % de frein. Plus faible = plus sensible.",
+    "zoneColor": "Couleur de zone",
+    "colors": {
+      "blue": "Bleu",
+      "orange": "Orange",
+      "purple": "Violet",
+      "pink": "Rose",
+      "cyan": "Cyan",
+      "yellow": "Jaune"
+    }
+  },
+  "fieldVisibility": {
+    "heading": "Visibilité des champs par défaut",
+    "intro": "Choisissez quels champs de données sont visibles par défaut au chargement d'un fichier. Les champs masqués peuvent toujours être activés manuellement.",
+    "hidden": "Masqué",
+    "visible": "Visible"
+  },
+  "appUpdate": {
+    "heading": "Mise à jour de l'application",
+    "label": "Forcer la mise à jour et vider le cache",
+    "hint": "Vide les fichiers de l'application en cache et recharge la dernière version. Vos sessions et données enregistrées dans le Garage ne sont pas affectées."
+  }
+}

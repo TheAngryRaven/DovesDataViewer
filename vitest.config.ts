@@ -31,6 +31,7 @@ export default defineConfig({
         "src/integrations/supabase/**", // auto-generated — DO NOT EDIT
         "src/**/*.d.ts",
         "src/main.tsx",
+        "src/lib/i18n/index.ts", // i18next bootstrap — side-effecting init + dynamic-import backend (like main.tsx)
         "src/vite-env.d.ts",
       ],
       // Floors guard against regressions in the logic we test. Set a few points

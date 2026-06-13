@@ -1,0 +1,88 @@
+{
+  "title": "Settings",
+  "theme": {
+    "heading": "Theme",
+    "darkMode": "Dark mode"
+  },
+  "fileStorage": {
+    "heading": "File Storage",
+    "autoSave": "Auto-save imported/uploaded files to device",
+    "autoSaveHint": "Automatically store files in on-device storage for later access"
+  },
+  "speedUnit": {
+    "heading": "Speed Unit",
+    "label": "Display speed in kilometers per hour"
+  },
+  "distanceUnit": {
+    "heading": "Distance Unit",
+    "label": "Track length, lap distance & chart distance axis"
+  },
+  "weatherUnits": {
+    "heading": "Weather Units",
+    "label": "Temperature, wind, pressure & altitude",
+    "hint": "Imperial = °F, mph, inHg, ft · Metric = °C, km/h, hPa, m",
+    "imperialShort": "Imp",
+    "metricShort": "Met"
+  },
+  "gforceSmoothing": {
+    "heading": "G-Force Smoothing",
+    "label": "Apply noise reduction to calculated G-forces",
+    "strength": "Smoothing Strength",
+    "none": "None",
+    "max": "Max"
+  },
+  "gforceSource": {
+    "heading": "G-Force Source",
+    "label": "G-force data source for simple chart",
+    "hint": "GPS = derived from speed/heading, HW = hardware accelerometer"
+  },
+  "lapDelta": {
+    "heading": "Lap Delta",
+    "label": "Gap-to-reference calculation",
+    "hint": "Position projects your line onto the reference (robust to line & GPS-rate differences); Distance is the legacy cumulative-distance method",
+    "distance": "Distance",
+    "position": "Position"
+  },
+  "chartScale": {
+    "heading": "Chart Scale",
+    "label": "Telemetry chart X-axis",
+    "hint": "Distance plots against track position so laps line up corner-for-corner; Time plots against elapsed lap time",
+    "time": "Time",
+    "distance": "Distance"
+  },
+  "braking": {
+    "heading": "Braking Zone Detection",
+    "experimental": "Experimental",
+    "intro": "Tune the detection algorithm for identifying braking zones on the map.",
+    "entryThreshold": "Entry Threshold",
+    "exitThreshold": "Exit Threshold",
+    "minDuration": "Min Duration",
+    "smoothing": "Smoothing",
+    "zoneWidth": "Zone Width",
+    "graphSmoothing": "Graph Smoothing",
+    "graphSmoothingUnit": "{{count}} pts",
+    "graphSmoothingHint": "Savitzky-Golay filter window for the Brake % chart. Larger = smoother.",
+    "brakeMaxLabel": "Brake 100% = ",
+    "brakeMaxHint": "The deceleration G-force that maps to 100% brake. Lower = more sensitive.",
+    "zoneColor": "Zone Color",
+    "colors": {
+      "blue": "Blue",
+      "orange": "Orange",
+      "purple": "Purple",
+      "pink": "Pink",
+      "cyan": "Cyan",
+      "yellow": "Yellow"
+    }
+  },
+  "fieldVisibility": {
+    "heading": "Default Field Visibility",
+    "intro": "Choose which data fields are visible by default when loading a file. Hidden fields can still be enabled manually.",
+    "hidden": "Hidden",
+    "visible": "Visible"
+  },
+  "appUpdate": {
+    "heading": "App Update",
+    "label": "Force update & clear cache",
+    "hint": "Clears cached app files and reloads the latest version. Your saved sessions and data in the Garage are not affected."
+  }
+}

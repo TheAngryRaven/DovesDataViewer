@@ -14,6 +14,8 @@ const CREDITS: ReadonlyArray<readonly [name: string, url: string]> = [
   ["OpenStreetMap", "https://www.openstreetmap.org"],
   ["Lucide Icons", "https://lucide.dev"],
   ["TanStack Query", "https://tanstack.com/query"],
+  ["i18next", "https://www.i18next.com"],
+  ["react-i18next", "https://react.i18next.com"],
   ["IEM ASOS (Iowa State)", "https://mesonet.agron.iastate.edu"],
   ["NWS API", "https://www.weather.gov/documentation/services-web-api"],
   ["Open-Meteo", "https://open-meteo.com"],

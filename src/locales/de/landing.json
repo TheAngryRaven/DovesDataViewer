@@ -1,0 +1,41 @@
+{
+  "_machine": true,
+  "tagline": "Telemetrie-Datenbetrachter",
+  "hero": {
+    "title": "Kostenloser Online-Telemetrie-Viewer für VBO, MoTeC, AiM & NMEA",
+    "subtitle": "Lade ein Datalog und erkunde deine Runden – Karten, Diagramme, Sektoren und Videosynchronisation. Alles läuft lokal in deinem Browser. Kein Upload, kein Konto erforderlich."
+  },
+  "tiles": {
+    "sample": {
+      "title": "Beispieldaten laden",
+      "description": "Probiere es gleich mit einer echten Session vom Orlando Kart Center aus"
+    },
+    "browse": {
+      "title": "Gespeicherte Dateien durchsuchen",
+      "description": "Öffne bereits auf diesem Gerät importierte Logs erneut"
+    },
+    "logger": {
+      "title": "Vom Logger herunterladen",
+      "description": "Logs per Bluetooth von deinem DovesDataLogger abrufen",
+      "unsupportedDescription": "Erfordert Chrome, Edge oder Opera auf dem Desktop",
+      "unsupportedHint": "Web Bluetooth wird von diesem Browser nicht unterstützt"
+    },
+    "tracks": {
+      "title": "Strecken verwalten",
+      "description": "Strecken- und Kurslayouts erstellen, zeichnen und bearbeiten"
+    },
+    "build": {
+      "title": "Bau deinen eigenen Logger",
+      "description": "Open-Source-GPS-Hardware & -Firmware – der DovesDataLogger"
+    }
+  },
+  "links": {
+    "privacy": "Datenschutzerklärung",
+    "terms": "Nutzungsbedingungen",
+    "trackManagement": "Streckenverwaltung"
+  },
+  "footer": {
+    "operatedBy": "Betrieben von",
+    "previewWarning": "Dieser Branch läuft auf einer Vorschau-Datenbank – Konten können jederzeit gelöscht werden. Verlasse dich nicht darauf, dass Daten an einem anderen Ort als lokal gespeichert werden. Wenn Zahlungen aktiviert sind, <strong>gib keine echten Zahlungsinformationen ein.</strong>"
+  }
+}

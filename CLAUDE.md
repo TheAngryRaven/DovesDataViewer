@@ -150,7 +150,9 @@ src/
 │   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time + amber preview-DB warning via isPreviewBuild(); values injected by vite define)
 │   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`): pure flag-parse + log ring-buffer + console/global-error capture (mobile/PWA has no dev tools) — rendered by components/DebugConsole.tsx
 │   ├── units.ts           # ★ Pure unit conversions + display formatters for the 3 imperial/metric toggles (speed/distance/weather) — single home for every conversion constant
+│   ├── i18n/              # ★ Internationalization (i18next): config (languages/namespaces + pure resolveInitialLanguage), index (init + lazy dynamic-import backend, English bundled), format (Intl date/number/list), seedUtils (pure parity/placeholder checks) — see Internationalization section
 │   └── utils.ts           # Tailwind cn() helper
+├── locales/              # ★ Translation JSON, src/locales/<lng>/<ns>.json. en/ = source of truth (bundled + typed); es/fr/de/it/pt-BR/ja machine-seeded (lazy chunks). New surfaces add keys here as they're migrated.
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section
 │   ├── (framework)        # types, registry, index, panels, mounts, storage + PluginPanelHost/PluginMount
 │   ├── cloud-sync/         # ★ First-party plugin: Supabase file + garage sync — see docs/backend.md
@@ -922,6 +924,61 @@ existing user data keeps resolving without a destructive migration.
 
 ---
 
+## Internationalization (i18n) — `src/lib/i18n/` + `src/locales/`
+
+Multi-language support built on **i18next + react-i18next**. Phase 0 of a phased
+overhaul (full plan: `docs/plans/i18n-translation-system.md`); only the landing
+page + Settings are migrated so far, but the framework is whole.
+
+- **Languages.** `en` (source of truth) + `es`, `fr`, `de`, `it`, `pt-BR`, `ja`,
+  declared once in `lib/i18n/config.ts` (`SUPPORTED_LANGUAGES`, `NAMESPACES`).
+  Adding a language = one entry there + its `src/locales/<lng>/` files. **RTL is
+  out of scope** (needs a bidi/layout pass).
+- **Loading is offline-first + lazy.** English is **bundled** as i18next
+  `resources` (the always-present fallback, zero flash). Every other language is
+  a **dynamic import** of `src/locales/<lng>/<ns>.json` (`importBackend` in
+  `index.ts`) → Vite code-splits each into its own chunk, precached by the SW's
+  JS glob, so switching language works fully offline with no eager bundle cost.
+  i18next + react-i18next live in the `vendor-i18n` chunk.
+- **Language is a setting.** `AppSettings.language` (in `useSettings`, persisted
+  to the existing settings blob). `useSettings` bridges it to
+  `i18n.changeLanguage` via an effect, so the active language always tracks the
+  setting regardless of which UI changed it. First-run default is
+  browser-detected (`resolveInitialLanguage`, pure/tested), read **synchronously
+  from localStorage before render** in `index.ts` (imported first in `main.tsx`)
+  to avoid an English flash. `<html lang>` is kept in sync. The picker is in
+  `SettingsModal`.
+- **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
+  with the English JSON shape, so `t("settings:title")` is autocompleted and a
+  missing/renamed key fails `tsc -b`. English is the canonical key set.
+- **Namespaces** (`common`, `landing`, `settings`) map to per-language JSON files
+  and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
+  preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
+  `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),
+  brand/product names, channel ids and formats stay **literal** — translate words
+  around them, not them. Locale-aware date/number/list rendering lives in
+  `lib/i18n/format.ts` (`Intl` wrappers); **units stay a separate axis** owned by
+  `lib/units.ts` — language never swaps imperial/metric.
+- **Seeding.** Non-English files are machine-translated by
+  `scripts/seed-translations.mjs` (`npm run i18n:seed`) using
+  `scripts/i18n-glossary.json` (a motorsport glossary + do-not-translate list).
+  It's re-runnable (only translates new/changed keys, never overwrites a
+  `_reviewed` key), validates placeholder preservation, and writes
+  `"_machine": true` provenance. **Maintainer tool only** — it makes network/LLM
+  calls (`ANTHROPIC_API_KEY`, model via `I18N_SEED_MODEL`); it's never in the app
+  or the standard CI build. Pure parity/placeholder logic lives in
+  `lib/i18n/seedUtils.ts` (unit-tested; `i18n.test.ts` asserts every language has
+  exactly the English keys with placeholders preserved).
+- **Legal pages stay English by design** — the framework can translate them, but
+  Privacy/Terms are not machine-translated (legal review required).
+
+**Migrating a surface:** replace literals with `t("ns:key")`, add the key to
+`src/locales/en/<ns>.json` (new namespace → register in `config.ts` + add to the
+typing in `types/i18next.d.ts`), then run `npm run i18n:seed` to fill the other
+languages. `tsc -b` + the parity test gate key integrity.
+
+---
+
 ## Environment Variables
 
 | Variable | Client/Server | Description |
@@ -936,6 +993,8 @@ existing user data keeps resolving without a destructive migration.
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `VITE_FIRMWARE_MANIFEST_URL` | Client | Override the logger firmware OTA manifest URL. When unset, `main` builds use the production manifest (`…/DovesDataLogger/manifest.json`) and non-`main`/preview builds use the **beta channel** (`…/DovesDataLogger/beta/manifest.json`) — same `isPreviewBuild()` switch as the footer/preview-DB. Set this to force a specific channel on any branch. |
 | `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`) when set |
+| `ANTHROPIC_API_KEY` | Maintainer tool | Required by `npm run i18n:seed` (`scripts/seed-translations.mjs`) to machine-translate locales — `???`. **Not** used by the app or the standard CI build. |
+| `I18N_SEED_MODEL` | Maintainer tool | Optional override for the model `npm run i18n:seed` uses (default `claude-sonnet-4-6`). |
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**. `vite.config.ts` bakes them in from `package.json` + git (`buildInfo.ts` reads them). The stamp mirrors the `_PREVIEW` switch: `main` shows `v<version> · <hash>`; any other branch shows `<branch> · <hash> · <commit time>`. Hash prefers CI SHAs (`WORKERS_CI_COMMIT_SHA`/`CF_PAGES_COMMIT_SHA`/`GITHUB_SHA`), branch prefers CI branch vars (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`/`GITHUB_REF_NAME`); both fall back to local `git`, then `"unknown"`. |
 
 PWA deployment detail: the active offline-capable worker is emitted as `/service-worker.js` and registered only outside preview/iframe contexts. `public/sw.js` is reserved as a legacy kill-switch worker to evict stale caches from older installs that previously registered `/sw.js`.

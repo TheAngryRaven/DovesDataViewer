@@ -101,6 +101,22 @@ All formats are auto-detected on import:
 
 ---
 
+## Languages
+
+The interface is available in **English, Spanish, French, German, Italian,
+Brazilian Portuguese and Japanese**, switchable in Settings (auto-detected from
+your browser on first run). Translations load on demand and are cached for full
+offline use. English is the source of truth; the other languages start as
+machine translations (built on [i18next](https://www.i18next.com)) and are
+hand-tuned over time — contributions welcome via `src/locales/`. Translation
+coverage is being rolled out screen by screen.
+
+Maintainers seed/refresh non-English locales from the English source with
+`npm run i18n:seed` (needs `ANTHROPIC_API_KEY`; see the translation plan in
+`docs/plans/i18n-translation-system.md`). Legal pages remain English by design.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -150,6 +166,8 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 | `STRIPE_WEBHOOK_SECRET` | No (required for paid tiers) | Signing secret for the `stripe-webhook` endpoint, from the Stripe dashboard webhook config (edge function secret — `???`) |
 | `DELETION_CRON_SECRET` | No (required for scheduled account deletion) | Shared secret the `process-account-deletions` edge function requires in the `x-cron-secret` header. Must match the Vault secret `deletion_cron_secret` that the daily pg_cron job sends (edge function secret — `???`) |
 | `DOVE_PLUGIN_PACKAGES` | No | Build-time: comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`, the public AI coach) when set |
+| `ANTHROPIC_API_KEY` | No (translation tooling) | Required by `npm run i18n:seed` to machine-translate locale files (`scripts/seed-translations.mjs`). Maintainer tool only — never read by the app or the standard CI build (`???`). |
+| `I18N_SEED_MODEL` | No | Optional model override for `npm run i18n:seed` (default `claude-sonnet-4-6`). |
 
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
 
@@ -532,6 +550,7 @@ Built on the shoulders of these incredible open-source projects and free service
 - [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
 - [Leaflet](https://leafletjs.com) · [CARTO basemaps](https://carto.com) · [Esri World Imagery & Wayback](https://livingatlas.arcgis.com/wayback/) (satellite + historical imagery dates)
 - [TanStack Query](https://tanstack.com/query) · [Sonner](https://sonner.emilkowal.dev) · [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) · [dnd kit](https://dndkit.com) (sector list drag-to-reorder)
+- [i18next](https://www.i18next.com) · [react-i18next](https://react.i18next.com) (internationalization)
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) · [Savitzky-Golay (ml.js)](https://github.com/mljs/savitzky-golay) · [JSZip](https://stuk.github.io/jszip) · [fix-webm-duration](https://github.com/yusitnikov/fix-webm-duration)
 - [IEM ASOS (Iowa State)](https://mesonet.agron.iastate.edu) · [NWS API](https://www.weather.gov/documentation/services-web-api) · [Open-Meteo](https://open-meteo.com) (global weather fallback, CC-BY 4.0)
 - [MoTeC i2](https://www.motec.com.au) (file format reference)

@@ -1,0 +1,89 @@
+{
+  "_machine": true,
+  "title": "設定",
+  "theme": {
+    "heading": "テーマ",
+    "darkMode": "ダークモード"
+  },
+  "fileStorage": {
+    "heading": "ファイルの保存",
+    "autoSave": "取り込み・アップロードしたファイルを自動的にデバイスに保存",
+    "autoSaveHint": "後でアクセスできるよう、ファイルを自動的にデバイス内に保存します"
+  },
+  "speedUnit": {
+    "heading": "速度の単位",
+    "label": "速度を時速キロメートルで表示"
+  },
+  "distanceUnit": {
+    "heading": "距離の単位",
+    "label": "コース長、ラップ距離、グラフの距離軸"
+  },
+  "weatherUnits": {
+    "heading": "気象の単位",
+    "label": "気温、風、気圧、標高",
+    "hint": "ヤード・ポンド法 = °F、mph、inHg、ft · メートル法 = °C、km/h、hPa、m",
+    "imperialShort": "ヤード",
+    "metricShort": "メートル"
+  },
+  "gforceSmoothing": {
+    "heading": "G フォースの平滑化",
+    "label": "計算された G フォースにノイズ低減を適用",
+    "strength": "平滑化の強さ",
+    "none": "なし",
+    "max": "最大"
+  },
+  "gforceSource": {
+    "heading": "G フォースのソース",
+    "label": "シンプルチャート用の G フォースのデータソース",
+    "hint": "GPS = 速度／方位から算出、HW = ハードウェア加速度センサー"
+  },
+  "lapDelta": {
+    "heading": "ラップデルタ",
+    "label": "リファレンスとの差の計算",
+    "hint": "「位置」は自分のラインをリファレンスに投影します（ラインや GPS レートの違いに強い）。「距離」は従来の累積距離方式です",
+    "distance": "距離",
+    "position": "位置"
+  },
+  "chartScale": {
+    "heading": "グラフのスケール",
+    "label": "テレメトリーグラフの X 軸",
+    "hint": "「距離」はコース上の位置に沿って描画し、各ラップがコーナーごとに揃います。「時間」は経過ラップタイムに沿って描画します",
+    "time": "時間",
+    "distance": "距離"
+  },
+  "braking": {
+    "heading": "ブレーキングゾーン検出",
+    "experimental": "実験的機能",
+    "intro": "マップ上のブレーキングゾーンを特定するための検出アルゴリズムを調整します。",
+    "entryThreshold": "進入しきい値",
+    "exitThreshold": "脱出しきい値",
+    "minDuration": "最小継続時間",
+    "smoothing": "平滑化",
+    "zoneWidth": "ゾーン幅",
+    "graphSmoothing": "グラフの平滑化",
+    "graphSmoothingUnit": "{{count}} 点",
+    "graphSmoothingHint": "ブレーキ % グラフ用の Savitzky-Golay フィルター窓。大きいほど滑らかになります。",
+    "brakeMaxLabel": "ブレーキ 100% = ",
+    "brakeMaxHint": "100% ブレーキに対応する減速 G フォース。小さいほど高感度になります。",
+    "zoneColor": "ゾーンの色",
+    "colors": {
+      "blue": "青",
+      "orange": "オレンジ",
+      "purple": "紫",
+      "pink": "ピンク",
+      "cyan": "シアン",
+      "yellow": "黄"
+    }
+  },
+  "fieldVisibility": {
+    "heading": "既定のフィールド表示",
+    "intro": "ファイルを読み込んだときに既定で表示するデータフィールドを選びます。非表示のフィールドも手動で有効にできます。",
+    "hidden": "非表示",
+    "visible": "表示"
+  },
+  "appUpdate": {
+    "heading": "アプリの更新",
+    "label": "更新を強制してキャッシュを消去",
+    "hint": "キャッシュされたアプリファイルを消去し、最新バージョンを再読み込みします。ガレージに保存されたセッションやデータは影響を受けません。"
+  }
+}

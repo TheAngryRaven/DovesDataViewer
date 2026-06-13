@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.5.1] - unreleased
 
 ### Added
+- **Translations / multi-language support (foundation).** The app now has an
+  internationalization system (built on i18next) with a **Language** picker in
+  Settings. It auto-detects your browser language on first run and ships
+  **English, Spanish, French, German, Italian, Brazilian Portuguese and
+  Japanese**. Non-English languages start as machine translations and will be
+  hand-tuned over time. Everything stays fully offline — each language loads on
+  demand and is cached by the app. This first phase translates the home screen
+  and the Settings panel; more of the app follows in later updates. (Legal pages
+  remain English by design.)
 - **Log type bubble in the file browser.** Each session row (shown by date/time)
   now carries a small pill with the log's format — Dove, Dovex, XRK, XRZ,
   iRacing, VBO, MoTeC, UBX, NMEA, CSV, … — derived from the file's extension, so

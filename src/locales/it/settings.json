@@ -1,0 +1,89 @@
+{
+  "_machine": true,
+  "title": "Impostazioni",
+  "theme": {
+    "heading": "Tema",
+    "darkMode": "Modalità scura"
+  },
+  "fileStorage": {
+    "heading": "Archiviazione file",
+    "autoSave": "Salva automaticamente sul dispositivo i file importati/caricati",
+    "autoSaveHint": "Memorizza automaticamente i file sul dispositivo per accedervi in seguito"
+  },
+  "speedUnit": {
+    "heading": "Unità di velocità",
+    "label": "Mostra la velocità in chilometri orari"
+  },
+  "distanceUnit": {
+    "heading": "Unità di distanza",
+    "label": "Lunghezza pista, distanza del giro e asse della distanza del grafico"
+  },
+  "weatherUnits": {
+    "heading": "Unità meteo",
+    "label": "Temperatura, vento, pressione e altitudine",
+    "hint": "Imperiale = °F, mph, inHg, ft · Metrico = °C, km/h, hPa, m",
+    "imperialShort": "Imp",
+    "metricShort": "Met"
+  },
+  "gforceSmoothing": {
+    "heading": "Smussamento forza G",
+    "label": "Applica la riduzione del rumore alle forze G calcolate",
+    "strength": "Intensità dello smussamento",
+    "none": "Nessuno",
+    "max": "Max"
+  },
+  "gforceSource": {
+    "heading": "Sorgente forza G",
+    "label": "Sorgente dei dati di forza G per il grafico semplice",
+    "hint": "GPS = derivato da velocità/direzione, HW = accelerometro hardware"
+  },
+  "lapDelta": {
+    "heading": "Delta giro",
+    "label": "Calcolo del distacco dal riferimento",
+    "hint": "Posizione proietta la tua traiettoria sul riferimento (robusto rispetto alle differenze di traiettoria e di frequenza GPS); Distanza è il vecchio metodo a distanza cumulativa",
+    "distance": "Distanza",
+    "position": "Posizione"
+  },
+  "chartScale": {
+    "heading": "Scala del grafico",
+    "label": "Asse X del grafico di telemetria",
+    "hint": "Distanza traccia in base alla posizione in pista così che i giri si allineino curva per curva; Tempo traccia in base al tempo sul giro trascorso",
+    "time": "Tempo",
+    "distance": "Distanza"
+  },
+  "braking": {
+    "heading": "Rilevamento zone di frenata",
+    "experimental": "Sperimentale",
+    "intro": "Regola l'algoritmo di rilevamento per identificare le zone di frenata sulla mappa.",
+    "entryThreshold": "Soglia di ingresso",
+    "exitThreshold": "Soglia di uscita",
+    "minDuration": "Durata minima",
+    "smoothing": "Smussamento",
+    "zoneWidth": "Larghezza zona",
+    "graphSmoothing": "Smussamento grafico",
+    "graphSmoothingUnit": "{{count}} pt",
+    "graphSmoothingHint": "Finestra del filtro Savitzky-Golay per il grafico del % di freno. Più grande = più liscio.",
+    "brakeMaxLabel": "Freno 100% = ",
+    "brakeMaxHint": "La forza G di decelerazione corrispondente al 100% di freno. Più bassa = più sensibile.",
+    "zoneColor": "Colore zona",
+    "colors": {
+      "blue": "Blu",
+      "orange": "Arancione",
+      "purple": "Viola",
+      "pink": "Rosa",
+      "cyan": "Ciano",
+      "yellow": "Giallo"
+    }
+  },
+  "fieldVisibility": {
+    "heading": "Visibilità campi predefinita",
+    "intro": "Scegli quali campi dati sono visibili per impostazione predefinita al caricamento di un file. I campi nascosti possono comunque essere abilitati manualmente.",
+    "hidden": "Nascosto",
+    "visible": "Visibile"
+  },
+  "appUpdate": {
+    "heading": "Aggiornamento app",
+    "label": "Forza l'aggiornamento e svuota la cache",
+    "hint": "Svuota i file dell'app memorizzati nella cache e ricarica l'ultima versione. Le sessioni e i dati salvati nel Garage non vengono modificati."
+  }
+}

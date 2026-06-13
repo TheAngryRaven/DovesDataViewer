@@ -1,6 +1,16 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Planning** · Branch: `claude/translation-system-planning-34myab` → PR into `BETA`
+Status: **Phase 0 implemented** · Branch: `claude/translation-system-planning-34myab` → PR into `BETA`
+
+> **Phase 0 shipped** (landing page + Settings migrated; engine + 6 seeded
+> languages live). One refinement vs. the original design: the source-of-truth
+> English locales live in **`src/locales/en/`** (bundled as i18next `resources`
+> — the zero-flash fallback + the typed key set), and the other languages are
+> **dynamic-imported** from `src/locales/<lng>/<ns>.json` (Vite code-splits each
+> into its own JS chunk, precached by the SW). This is simpler and equally
+> offline vs. the `public/locales/` + fetch-backend sketch in §4 below — no
+> separate `includeAssets` entry needed, and a single source location the seed
+> script reads. The rest of the plan stands.
 
 Origin: the app is English-only but serves an international sim-racing/karting
 audience. We never planned for translation, so retrofitting it is a cross-cutting

@@ -1,0 +1,41 @@
+{
+  "_machine": true,
+  "tagline": "Visualiseur de données télémétriques",
+  "hero": {
+    "title": "Visualiseur de télémétrie VBO, MoTeC, AiM et NMEA gratuit en ligne",
+    "subtitle": "Importez un enregistrement et explorez vos tours : cartes, graphiques, secteurs et synchronisation vidéo. Tout fonctionne localement dans votre navigateur. Aucun envoi, aucun compte requis."
+  },
+  "tiles": {
+    "sample": {
+      "title": "Charger des données d'exemple",
+      "description": "Essayez tout de suite avec une vraie session du Orlando Kart Center"
+    },
+    "browse": {
+      "title": "Parcourir les fichiers enregistrés",
+      "description": "Rouvrez les enregistrements déjà importés sur cet appareil"
+    },
+    "logger": {
+      "title": "Télécharger depuis l'enregistreur",
+      "description": "Récupérez les enregistrements par Bluetooth depuis votre DovesDataLogger",
+      "unsupportedDescription": "Nécessite Chrome, Edge ou Opera sur ordinateur",
+      "unsupportedHint": "Web Bluetooth n'est pas pris en charge par ce navigateur"
+    },
+    "tracks": {
+      "title": "Gérer les circuits",
+      "description": "Créez, dessinez et modifiez les tracés de circuits et de parcours"
+    },
+    "build": {
+      "title": "Construisez votre propre enregistreur",
+      "description": "Matériel et firmware GPS open source : le DovesDataLogger"
+    }
+  },
+  "links": {
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation",
+    "trackManagement": "Gestion des circuits"
+  },
+  "footer": {
+    "operatedBy": "Exploité par",
+    "previewWarning": "Cette branche fonctionne sur une base de données de préversion : les comptes peuvent être effacés à tout moment. Ne comptez pas sur l'enregistrement des données ailleurs qu'en local. Si les paiements sont activés, <strong>n'entrez pas de véritables informations de paiement.</strong>"
+  }
+}

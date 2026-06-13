@@ -14,6 +14,7 @@ import {
   Bluetooth,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { FileImport } from "@/components/FileImport";
 import { ActionTile } from "@/components/ActionTile";
@@ -77,6 +78,7 @@ export function LandingPage({
 }: LandingPageProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation(["landing", "common"]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -86,7 +88,7 @@ export function LandingPage({
             <Gauge className="w-8 h-8 text-primary" />
             <div>
               <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
-              <p className="text-sm text-muted-foreground">Telemetry Data Viewer</p>
+              <p className="text-sm text-muted-foreground">{t("landing:tagline")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -96,12 +98,12 @@ export function LandingPage({
               user ? (
                 <Button variant="ghost" size="sm" className="gap-2" onClick={logout} title={user.email ?? undefined}>
                   <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign out</span>
+                  <span className="hidden sm:inline">{t("common:actions.signOut")}</span>
                 </Button>
               ) : (
                 <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/login')}>
                   <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign in</span>
+                  <span className="hidden sm:inline">{t("common:actions.signIn")}</span>
                 </Button>
               )
             )}
@@ -112,7 +114,7 @@ export function LandingPage({
             >
               <Button variant="outline" size="sm" className="gap-2">
                 <Heart className="w-4 h-4 text-pink-500" />
-                <span className="hidden sm:inline">Sponsor</span>
+                <span className="hidden sm:inline">{t("common:actions.sponsor")}</span>
               </Button>
             </a>
           </div>
@@ -124,11 +126,10 @@ export function LandingPage({
           {/* Hero */}
           <div className="text-center space-y-3">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-              Free Online VBO, MoTeC, AiM &amp; NMEA Telemetry Viewer
+              {t("landing:hero.title")}
             </h2>
             <p className="mx-auto max-w-xl text-sm text-muted-foreground">
-              Drop in a datalog and explore your laps — maps, charts, sectors and video sync.
-              Everything runs locally in your browser. No upload, no account required.
+              {t("landing:hero.subtitle")}
             </p>
           </div>
 
@@ -139,8 +140,8 @@ export function LandingPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <ActionTile
               icon={Play}
-              title="Load sample data"
-              description={isLoadingSample ? "Loading…" : "Try it now with a real session from Orlando Kart Center"}
+              title={t("landing:tiles.sample.title")}
+              description={isLoadingSample ? t("common:actions.loading") : t("landing:tiles.sample.description")}
               onClick={onLoadSample}
               disabled={isLoadingSample}
               spinning={isLoadingSample}
@@ -149,8 +150,8 @@ export function LandingPage({
 
             <ActionTile
               icon={FolderOpen}
-              title="Browse saved files"
-              description="Reopen logs you've already imported on this device"
+              title={t("landing:tiles.browse.title")}
+              description={t("landing:tiles.browse.description")}
               onClick={onOpenFileManager}
             />
 
@@ -158,8 +159,8 @@ export function LandingPage({
               fallback={
                 <ActionTile
                   icon={Bluetooth}
-                  title="Download from logger"
-                  description="Loading…"
+                  title={t("landing:tiles.logger.title")}
+                  description={t("common:actions.loading")}
                   disabled
                 />
               }
@@ -171,15 +172,15 @@ export function LandingPage({
                 renderTrigger={({ onConnect, bleSupported }) => (
                   <ActionTile
                     icon={Bluetooth}
-                    title="Download from logger"
+                    title={t("landing:tiles.logger.title")}
                     description={
                       bleSupported
-                        ? "Pull logs over Bluetooth from your DovesDataLogger"
-                        : "Requires Chrome, Edge or Opera on desktop"
+                        ? t("landing:tiles.logger.description")
+                        : t("landing:tiles.logger.unsupportedDescription")
                     }
                     onClick={onConnect}
                     disabled={!bleSupported}
-                    hint={bleSupported ? undefined : "Web Bluetooth is not supported in this browser"}
+                    hint={bleSupported ? undefined : t("landing:tiles.logger.unsupportedHint")}
                   />
                 )}
               />
@@ -191,16 +192,16 @@ export function LandingPage({
               triggerButton={
                 <ActionTile
                   icon={Map}
-                  title="Manage tracks"
-                  description="Create, draw and edit track & course layouts"
+                  title={t("landing:tiles.tracks.title")}
+                  description={t("landing:tiles.tracks.description")}
                 />
               }
             />
 
             <ActionTile
               icon={Cpu}
-              title="Build your own logger"
-              description="Open-source GPS hardware & firmware — the DovesDataLogger"
+              title={t("landing:tiles.build.title")}
+              description={t("landing:tiles.build.description")}
               href="https://github.com/TheAngryRaven/DovesDataLogger"
             />
           </div>
@@ -233,11 +234,11 @@ export function LandingPage({
           <div className="flex items-center justify-center gap-6 flex-wrap">
             <Link to="/privacy" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               <Shield className="w-3 h-3" />
-              Privacy Policy
+              {t("landing:links.privacy")}
             </Link>
             <Link to="/terms" className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               <FileText className="w-3 h-3" />
-              Terms of Service
+              {t("landing:links.terms")}
             </Link>
             <CreditsDialog />
             {enableAdmin && (
@@ -246,7 +247,7 @@ export function LandingPage({
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               >
                 <Shield className="w-3 h-3" />
-                Track Management
+                {t("landing:links.trackManagement")}
               </button>
             )}
           </div>
@@ -260,7 +261,7 @@ export function LandingPage({
         )}
       >
         <p className="text-center text-xs text-muted-foreground">
-          Operated by{" "}
+          {t("landing:footer.operatedBy")}{" "}
           <a
             href="https://PerchWerks.com"
             target="_blank"
@@ -295,9 +296,7 @@ export function LandingPage({
         </p>
         {isPreviewBuild() && (
           <p className="mx-auto mt-2 max-w-2xl text-center text-[11px] leading-relaxed text-warning">
-            This branch is running on a preview database — accounts can be wiped at any time. Do not
-            rely on data being saved anywhere other than locally. If payments are activated,{" "}
-            <strong>do not enter real payment information.</strong>
+            <Trans ns="landing" i18nKey="footer.previewWarning" components={{ strong: <strong /> }} />
           </p>
         )}
       </footer>

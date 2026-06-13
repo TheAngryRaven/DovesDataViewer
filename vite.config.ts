@@ -302,6 +302,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             "vendor-react": ["react", "react-dom", "react-router-dom"],
             "vendor-query": ["@tanstack/react-query"],
+            "vendor-i18n": ["i18next", "react-i18next"],
             "vendor-leaflet": ["leaflet"],
             "vendor-supabase": ["@supabase/supabase-js"],
             // Radix is many small packages; group them into one chunk.
