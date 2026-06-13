@@ -2,9 +2,10 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RangeSlider } from '@/components/RangeSlider';
+import { SectorCropSelect } from '@/components/SectorCropSelect';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GGDiagram } from './GGDiagram';
-import { GpsSample, FieldMapping } from '@/types/racing';
+import { GpsSample, FieldMapping, Course, Lap } from '@/types/racing';
 import type { OverlayLine } from '@/lib/lapOverlays';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
 import { computeBrakingGSeriesSG, gToBrakePercent } from '@/lib/brakingZones';
@@ -30,11 +31,15 @@ interface GraphPanelProps {
   formatRangeLabel: (idx: number) => string;
   sessionFileName: string | null;
   overlayLines?: OverlayLine[];
+  course?: Course | null;
+  laps?: Lap[];
+  selectedLapNumber?: number | null;
 }
 
 export function GraphPanel({
   samples, filteredSamples, referenceSamples, fieldMappings, onScrub,
   visibleRange, onRangeChange, minRange, formatRangeLabel, sessionFileName, overlayLines = [],
+  course = null, laps = [], selectedLapNumber = null,
 }: GraphPanelProps) {
   const { useKph, useMetricDistance, brakingZoneSettings } = useSettingsContext();
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
@@ -294,17 +299,29 @@ export function GraphPanel({
         )}
       </div>
 
-      {/* Range slider - fixed at bottom */}
+      {/* Range slider (80%) + crop-to-sector select (20%) - fixed at bottom */}
       {filteredSamples.length > 0 && (
-        <div className="shrink-0 px-4 py-2 border-t border-border bg-muted/30">
-          <RangeSlider
-            min={0}
-            max={filteredSamples.length - 1}
-            value={visibleRange}
-            onChange={onRangeChange}
-            minRange={minRange}
-            formatLabel={formatRangeLabel}
-          />
+        <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-t border-border bg-muted/30">
+          <div className="flex-[4] min-w-0">
+            <RangeSlider
+              min={0}
+              max={filteredSamples.length - 1}
+              value={visibleRange}
+              onChange={onRangeChange}
+              minRange={minRange}
+              formatLabel={formatRangeLabel}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <SectorCropSelect
+              course={course}
+              laps={laps}
+              selectedLapNumber={selectedLapNumber}
+              filteredLength={filteredSamples.length}
+              visibleRange={visibleRange}
+              onRangeChange={onRangeChange}
+            />
+          </div>
         </div>
       )}
     </div>

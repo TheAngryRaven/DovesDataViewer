@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -277,10 +277,10 @@ export function CoursesTab() {
 
   // Editor bridge helpers
   const [selectedLine, setSelectedLine] = useState<SelectedLine>(null);
-  const visualStartA: GpsPoint | null = form.startALat && form.startALng
-    ? { lat: parseFloat(form.startALat), lon: parseFloat(form.startALng) } : null;
-  const visualStartB: GpsPoint | null = form.startBLat && form.startBLng
-    ? { lat: parseFloat(form.startBLat), lon: parseFloat(form.startBLng) } : null;
+  const visualStartA = useMemo<GpsPoint | null>(() => (form.startALat && form.startALng
+    ? { lat: parseFloat(form.startALat), lon: parseFloat(form.startALng) } : null), [form.startALat, form.startALng]);
+  const visualStartB = useMemo<GpsPoint | null>(() => (form.startBLat && form.startBLng
+    ? { lat: parseFloat(form.startBLat), lon: parseFloat(form.startBLng) } : null), [form.startBLat, form.startBLng]);
 
   const handleVisualStartFinish = useCallback((a: GpsPoint, b: GpsPoint) => {
     setForm(prev => ({ ...prev, startALat: String(a.lat), startALng: String(a.lon), startBLat: String(b.lat), startBLng: String(b.lon) }));

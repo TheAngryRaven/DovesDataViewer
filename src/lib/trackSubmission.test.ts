@@ -75,6 +75,32 @@ describe('courseContentHash', () => {
     const onePoint = course('A', { layout: [{ lat: 28.41, lon: -81.38 }] });
     expect(courseContentHash(onePoint)).toBe(courseContentHash(course('A')));
   });
+
+  it('hashes a legacy sector2/3 course identically to the equivalent sectors array', () => {
+    // A majors-only course must hash the SAME whether stored as legacy
+    // sector2/sector3 or as the canonical two-major sectors array — so existing
+    // submission dedupe records stay valid after the overhaul.
+    const legacy = course('A', sectors);
+    const canonical = course('A', {
+      sectors: [
+        { line: sectors.sector2, major: true },
+        { line: sectors.sector3, major: true },
+      ],
+    });
+    expect(courseContentHash(canonical)).toBe(courseContentHash(legacy));
+  });
+
+  it('re-flags the course when a sub-sector is added', () => {
+    const majorsOnly = course('A', sectors);
+    const withSub = course('A', {
+      sectors: [
+        { line: { a: { lat: 28.4105, lon: -81.3805 }, b: { lat: 28.4106, lon: -81.3806 } }, major: false },
+        { line: sectors.sector2, major: true },
+        { line: sectors.sector3, major: true },
+      ],
+    });
+    expect(courseContentHash(withSub)).not.toBe(courseContentHash(majorsOnly));
+  });
 });
 
 describe('buildSubmissionPlan', () => {

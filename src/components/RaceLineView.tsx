@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo, useState, memo } from 'react';
 import L from 'leaflet';
-import { GpsSample, Course, courseHasSectors, ParserStats } from '@/types/racing';
+import { GpsSample, Course, ParserStats } from '@/types/racing';
+import { normalizeCourseSectors } from '@/lib/courseSectors';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { buildHeatmapSegments } from '@/lib/speedHeatmap';
@@ -133,8 +134,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
   const brakingZonesLayerRef = useRef<L.LayerGroup | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const startFinishRef = useRef<L.Polyline | null>(null);
-  const sector2Ref = useRef<L.Polyline | null>(null);
-  const sector3Ref = useRef<L.Polyline | null>(null);
+  const sectorsLayerRef = useRef<L.LayerGroup | null>(null);
   const speedEventsLayerRef = useRef<L.LayerGroup | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   
@@ -458,13 +458,9 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
       map.removeLayer(startFinishRef.current);
       startFinishRef.current = null;
     }
-    if (sector2Ref.current) {
-      map.removeLayer(sector2Ref.current);
-      sector2Ref.current = null;
-    }
-    if (sector3Ref.current) {
-      map.removeLayer(sector3Ref.current);
-      sector3Ref.current = null;
+    if (sectorsLayerRef.current) {
+      map.removeLayer(sectorsLayerRef.current);
+      sectorsLayerRef.current = null;
     }
 
     if (!course) return;
@@ -475,17 +471,21 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
       { color: 'hsl(0, 75%, 55%)', weight: 5, opacity: 1 }
     ).addTo(map);
 
-    // Draw sector lines if they exist (purple/magenta)
-    if (courseHasSectors(course) && course.sector2 && course.sector3) {
-      sector2Ref.current = L.polyline(
-        [[course.sector2.a.lat, course.sector2.a.lon], [course.sector2.b.lat, course.sector2.b.lon]],
-        { color: 'hsl(280, 70%, 55%)', weight: 4, opacity: 0.9 }
-      ).addTo(map);
-
-      sector3Ref.current = L.polyline(
-        [[course.sector3.a.lat, course.sector3.a.lon], [course.sector3.b.lat, course.sector3.b.lon]],
-        { color: 'hsl(280, 70%, 55%)', weight: 4, opacity: 0.9 }
-      ).addTo(map);
+    // Draw every sector line: majors purple, sub-sectors sky-blue (secondary).
+    const sectors = normalizeCourseSectors(course).sectors ?? [];
+    if (sectors.length > 0) {
+      const group = L.layerGroup();
+      for (const sec of sectors) {
+        const major = sec.major;
+        L.polyline(
+          [[sec.line.a.lat, sec.line.a.lon], [sec.line.b.lat, sec.line.b.lon]],
+          major
+            ? { color: 'hsl(280, 70%, 55%)', weight: 4, opacity: 0.9 }
+            : { color: 'hsl(199, 89%, 60%)', weight: 3, opacity: 0.7, dashArray: '6 5' }
+        ).addTo(group);
+      }
+      group.addTo(map);
+      sectorsLayerRef.current = group;
     }
   }, [course]);
 

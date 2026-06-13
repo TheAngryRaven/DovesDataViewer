@@ -309,7 +309,7 @@ export function countDeviceSectors(dc: DeviceCourseJson): number {
 
 /** Count device-visible sectors in an app course (0, 2, or 3 — majors only). */
 export function countAppSectors(course: Course): number {
-  const majors = majorSectorLines(course).length;
+  const majors = majorSectorLines(normalizeCourseSectors(course)).length;
   if (majors >= 2) return 3;
   if (majors === 1) return 2;
   return 0;

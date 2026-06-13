@@ -186,6 +186,9 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
           formatRangeLabel={props.formatRangeLabel}
           sessionFileName={props.sessionFileName}
           overlayLines={props.overlayLines}
+          course={props.course}
+          laps={props.laps}
+          selectedLapNumber={props.selectedLapNumber}
         />
       </ResizablePanel>
     </ResizablePanelGroup>

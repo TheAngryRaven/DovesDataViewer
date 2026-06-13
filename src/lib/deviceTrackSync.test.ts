@@ -12,7 +12,7 @@ import {
   type DeviceCourseJson,
   type DeviceTrackFile,
 } from "./deviceTrackSync";
-import type { Course, Track } from "@/types/racing";
+import type { Course, Track, SectorLine } from "@/types/racing";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -409,5 +409,39 @@ describe("buildMergedTrackList", () => {
     const deviceFiles: DeviceTrackFile[] = [{ shortName: "OKC", courses: [makeDeviceCourse()] }];
     const merged = buildMergedTrackList(tracks, deviceFiles);
     expect(merged).toHaveLength(1);
+  });
+});
+
+// ─── Unlimited sectors: only the three majors reach the device ───────────────
+
+describe("device export with sub-sectors", () => {
+  const s2: SectorLine = { a: { lat: 35.4002, lon: -97.3002 }, b: { lat: 35.4003, lon: -97.3003 } };
+  const s3: SectorLine = { a: { lat: 35.4004, lon: -97.3004 }, b: { lat: 35.4005, lon: -97.3005 } };
+  const sub: SectorLine = { a: { lat: 35.4006, lon: -97.3006 }, b: { lat: 35.4007, lon: -97.3007 } };
+
+  // Same course expressed legacy (sector2/3) vs new (sectors with extra sub-sector).
+  const legacyCourse = makeAppCourse({ sector2: s2, sector3: s3 });
+  const sectorCourse = makeAppCourse({
+    sectors: [
+      { line: sub, major: false }, // app-only sub-sector before the first major
+      { line: s2, major: true },
+      { line: s3, major: true },
+    ],
+  });
+
+  it("exports byte-identical device JSON whether sub-sectors exist or not", () => {
+    const legacyJson = appCourseToDeviceJson(legacyCourse);
+    const withSubJson = appCourseToDeviceJson(sectorCourse);
+    // The device only ever sees start/finish + the two majors.
+    expect(withSubJson).toEqual(legacyJson);
+    expect("sectors" in withSubJson).toBe(false);
+    expect(withSubJson.sector_2_a_lat).toBe(s2.a.lat);
+    expect(withSubJson.sector_3_a_lat).toBe(s3.a.lat);
+  });
+
+  it("treats a course with extra sub-sectors as synced against the device's two lines", () => {
+    const dev = appCourseToDeviceJson(legacyCourse);
+    // Adding an app-only sub-sector must NOT flag a mismatch.
+    expect(coursesMatch(sectorCourse, dev)).toBe(true);
   });
 });

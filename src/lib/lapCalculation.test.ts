@@ -337,6 +337,37 @@ describe("calculateLaps - sectors", () => {
     expect(laps[0].sectors!.s2).toBeUndefined();
     expect(laps[0].sectors!.s3).toBeUndefined();
   });
+
+  it("computes fine-grained sectorTimes for a sub-sector and rolls them up to the majors", () => {
+    // Same geometry as sectorCourse, but with an extra sub-sector at lon=0.0015
+    // splitting the first major sector. Order: S/F, sub(1.1), major2, major3.
+    const subSectorCourse: Course = {
+      name: "TestSubSectorCourse",
+      startFinishA: { lat: 0.0001, lon: 0 },
+      startFinishB: { lat: -0.0001, lon: 0 },
+      sectors: [
+        { line: { a: { lat: 0.0001, lon: 0.0015 }, b: { lat: -0.0001, lon: 0.0015 } }, major: false },
+        { line: { a: { lat: 0.0001, lon: 0.003 }, b: { lat: -0.0001, lon: 0.003 } }, major: true },
+        { line: { a: { lat: 0.0001, lon: 0.006 }, b: { lat: -0.0001, lon: 0.006 } }, major: true },
+      ],
+    };
+    const samples = [...makeSectorLap(0, 10000), ...makeSectorLap(10000, 10000)];
+    const lap = calculateLaps(samples, subSectorCourse)[0];
+
+    // 4 timing lines → 4 fine-grained segments, all crossed in order.
+    expect(lap.sectorTimes).toHaveLength(4);
+    expect(lap.sectorTimes!.every((t) => t !== undefined && t > 0)).toBe(true);
+    expect(lap.sectorBoundaries).toHaveLength(4);
+
+    // The major rollup matches the plain (no sub-sector) course exactly: the
+    // sub-sector only splits S1 into two segments that sum back to it.
+    const plain = calculateLaps(samples, sectorCourse)[0];
+    expect(lap.sectors!.s1).toBeCloseTo(plain.sectors!.s1!, -1);
+    expect(lap.sectors!.s2).toBeCloseTo(plain.sectors!.s2!, -1);
+    expect(lap.sectors!.s3).toBeCloseTo(plain.sectors!.s3!, -1);
+    // The two sub-segments of S1 sum to S1.
+    expect(lap.sectorTimes![0]! + lap.sectorTimes![1]!).toBeCloseTo(lap.sectors!.s1!, -1);
+  });
 });
 
 // ─── formatLapTime ───────────────────────────────────────────────────────────
@@ -387,6 +418,9 @@ describe("formatSectorTime", () => {
 // ─── calculateOptimalLap ─────────────────────────────────────────────────────
 
 function makeLap(lapNumber: number, lapTimeMs: number, sectors?: { s1?: number; s2?: number; s3?: number }): Lap {
+  // calculateOptimalLap reads the fine-grained sectorTimes; for a classic
+  // 3-major course that is just [s1, s2, s3].
+  const sectorTimes = sectors ? [sectors.s1, sectors.s2, sectors.s3] : undefined;
   return {
     lapNumber, lapTimeMs,
     startTime: 0, endTime: lapTimeMs,
@@ -394,6 +428,7 @@ function makeLap(lapNumber: number, lapTimeMs: number, sectors?: { s1?: number; 
     minSpeedMph: 10, minSpeedKph: 16,
     startIndex: 0, endIndex: 0,
     sectors,
+    sectorTimes,
   };
 }
 
@@ -414,9 +449,7 @@ describe("calculateOptimalLap", () => {
     const laps = [makeLap(1, 60000, { s1: 20000, s2: 18000, s3: 22000 })];
     const result = calculateOptimalLap(laps);
     expect(result).not.toBeNull();
-    expect(result!.bestS1).toBe(20000);
-    expect(result!.bestS2).toBe(18000);
-    expect(result!.bestS3).toBe(22000);
+    expect(result!.bestSegments).toEqual([20000, 18000, 22000]);
     expect(result!.optimalTimeMs).toBe(60000);
   });
 
@@ -427,9 +460,7 @@ describe("calculateOptimalLap", () => {
       makeLap(3, 60000, { s1: 21000, s2: 20000, s3: 19000 }), // best S3
     ];
     const result = calculateOptimalLap(laps)!;
-    expect(result.bestS1).toBe(19000);
-    expect(result.bestS2).toBe(18000);
-    expect(result.bestS3).toBe(19000);
+    expect(result.bestSegments).toEqual([19000, 18000, 19000]);
     expect(result.optimalTimeMs).toBe(19000 + 18000 + 19000);
   });
 
@@ -443,13 +474,24 @@ describe("calculateOptimalLap", () => {
     expect(result.deltaToFastest).toBe(58000 - 56000); // 2000
   });
 
-  it("ignores laps without full sectors when computing optimal", () => {
+  it("takes the best of each segment independently, even from partial laps", () => {
+    // The ideal lap uses the best time achieved in each segment regardless of
+    // whether that lap completed every segment — a real S1 still counts.
     const laps = [
-      makeLap(1, 60000, { s1: 17000, s2: 22000, s3: undefined }), // s3 missing — skipped
+      makeLap(1, 60000, { s1: 17000, s2: 22000, s3: undefined }), // S1 still counts
       makeLap(2, 60000, { s1: 20000, s2: 20000, s3: 20000 }),
     ];
     const result = calculateOptimalLap(laps)!;
-    expect(result.bestS1).toBe(20000); // 17000 from lap 1 ignored
+    expect(result.bestSegments).toEqual([17000, 20000, 20000]);
+    expect(result.optimalTimeMs).toBe(57000);
+  });
+
+  it("returns null when a segment was never completed in any lap", () => {
+    const laps = [
+      makeLap(1, 60000, { s1: 17000, s2: 22000, s3: undefined }),
+      makeLap(2, 60000, { s1: 20000, s2: 20000, s3: undefined }),
+    ];
+    expect(calculateOptimalLap(laps)).toBeNull(); // S3 never completed
   });
 
   it("considers ALL laps for fastest, even those without full sectors", () => {

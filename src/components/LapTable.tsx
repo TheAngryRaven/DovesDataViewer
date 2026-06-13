@@ -1,12 +1,13 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Lap, courseHasSectors, Course, GpsSample } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
-import { Trophy, Zap, Snail, Target, Spline } from 'lucide-react';
+import { normalizeCourseSectors, sectorLabels } from '@/lib/courseSectors';
+import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalRefBar } from '@/components/ExternalRefBar';
 import { LapSnapshotControls } from '@/components/LapSnapshotControls';
 import type { LapSnapshot } from '@/lib/lapSnapshot';
-import { overlayId, type OverlayLine } from '@/lib/lapOverlays';
+import { type OverlayLine } from '@/lib/lapOverlays';
 import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
 import { FileEntry } from '@/lib/fileStorage';
 import { useSettingsContext } from '@/contexts/SettingsContext';
@@ -50,6 +51,37 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
   const { useKph } = useSettingsContext();
 
   const showSectors = courseHasSectors(course);
+  const [view, setView] = useState<'simple' | 'full'>('simple');
+
+  // Full view = one column per fine-grained sector. Only offered when the course
+  // has sub-sectors beyond the three majors.
+  const full = useMemo(() => {
+    if (!course) return null;
+    const sectors = normalizeCourseSectors(course).sectors ?? [];
+    const hasSubSectors = sectors.some((s) => !s.major);
+    if (!hasSubSectors) return null;
+
+    const labels = sectorLabels(course); // length = lineCount (incl. start/finish)
+    const lineCount = labels.length;
+    // Major-group index per segment, for zebra striping.
+    const groupOf: number[] = [];
+    let g = 0;
+    for (let k = 0; k < lineCount; k++) {
+      if (k > 0 && sectors[k - 1].major) g++;
+      groupOf.push(g);
+    }
+    // Fastest (min) time per segment across laps.
+    const fastestIdx: (number | null)[] = new Array(lineCount).fill(null);
+    const best: number[] = new Array(lineCount).fill(Infinity);
+    laps.forEach((lap, idx) => {
+      lap.sectorTimes?.forEach((t, k) => {
+        if (t !== undefined && t < best[k]) { best[k] = t; fastestIdx[k] = idx; }
+      });
+    });
+    return { labels, lineCount, groupOf, fastestIdx };
+  }, [course, laps]);
+
+  const showFull = view === 'full' && full !== null;
 
   // Memoize expensive lap statistics computation
   const lapStats = useMemo(() => {
@@ -169,14 +201,41 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
           ) : undefined}
         />
       )}
-      <table className="w-full">
+      {/* Simple/Full toggle — only when the course has sub-sectors. */}
+      {full && (
+        <div className="flex items-center justify-end gap-1 px-2 py-1.5">
+          <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
+            <button
+              className={`rounded px-2 py-0.5 transition-colors ${!showFull ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setView('simple')}
+            >
+              Simple
+            </button>
+            <button
+              className={`rounded px-2 py-0.5 transition-colors ${showFull ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={() => setView('full')}
+            >
+              Full
+            </button>
+          </div>
+        </div>
+      )}
+      <table className={showFull ? 'min-w-max' : 'w-full'}>
         <thead className="sticky top-0 bg-card">
           <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
             <th className="px-2 py-3 font-medium w-16">Ref</th>
-            {onToggleOverlay && <th className="px-1 py-3 font-medium w-10 text-center" title="Show lap line on map">Map</th>}
             <th className="px-4 py-3 font-medium">Lap</th>
             <th className="px-4 py-3 font-medium">Time</th>
-            {showSectors && (
+            {showFull ? (
+              full.labels.map((label, k) => (
+                <th
+                  key={k}
+                  className={`px-3 py-3 font-medium text-center whitespace-nowrap ${full.groupOf[k] % 2 === 1 ? 'bg-muted/40' : ''}`}
+                >
+                  {label}
+                </th>
+              ))
+            ) : showSectors && (
               <>
                 <th className="px-3 py-3 font-medium text-center">S1</th>
                 <th className="px-3 py-3 font-medium text-center">S2</th>
@@ -222,23 +281,6 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                     {isReference ? 'Ref' : 'Set Ref'}
                   </Button>
                 </td>
-                {onToggleOverlay && (() => {
-                  const ovId = overlayId('lap', lap.lapNumber);
-                  const overlay = overlayLines.find((l) => l.id === ovId);
-                  return (
-                    <td className="px-1 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="rounded p-1.5 transition-colors hover:bg-muted/50"
-                        style={{ color: overlay ? overlay.color : undefined }}
-                        title={overlay ? 'Hide lap line on map' : 'Show lap line on map'}
-                        aria-pressed={!!overlay}
-                        onClick={() => onToggleOverlay(ovId)}
-                      >
-                        <Spline className={`w-4 h-4 ${overlay ? '' : 'text-muted-foreground'}`} />
-                      </button>
-                    </td>
-                  );
-                })()}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm">{lap.lapNumber}</span>
@@ -250,7 +292,21 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                 <td className={`px-4 py-3 font-mono text-sm ${isFastest ? 'text-racing-lapBest font-semibold' : ''}`}>
                   {formatLapTime(lap.lapTimeMs)}
                 </td>
-                {showSectors && (
+                {showFull ? (
+                  full.labels.map((_, k) => {
+                    const t = lap.sectorTimes?.[k];
+                    const isFastestSeg = full.fastestIdx[k] === idx;
+                    const zebra = full.groupOf[k] % 2 === 1 ? 'bg-muted/30' : '';
+                    return (
+                      <td
+                        key={k}
+                        className={`px-3 py-3 font-mono text-xs text-center whitespace-nowrap ${isFastestSeg ? 'text-purple-400 font-semibold bg-purple-500/10' : zebra}`}
+                      >
+                        {t !== undefined ? formatSectorTime(t) : '—'}
+                      </td>
+                    );
+                  })
+                ) : showSectors && (
                   <>
                     <td className={`px-3 py-3 font-mono text-xs text-center ${hasFastestS1 ? 'text-purple-400 font-semibold bg-purple-500/10' : ''}`}>
                       {lap.sectors?.s1 !== undefined ? formatSectorTime(lap.sectors.s1) : '—'}
