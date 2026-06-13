@@ -89,23 +89,20 @@ export function useTrackEditorForm() {
    * start/finish. Either way the user then drags it into place.
    */
   const addSector = useCallback((insertIndex?: number, center?: GpsPoint) => {
-    setFormSectors((prev) => {
-      const course: Course = {
-        name: formCourseName,
-        startFinishA: { lat: parseFloat(formLatA), lon: parseFloat(formLonA) },
-        startFinishB: { lat: parseFloat(formLatB), lon: parseFloat(formLonB) },
-        sectors: prev,
-      };
-      if (isAtSectorLimit(course)) return prev;
-      const line = center
-        ? centeredSectorLine(center)
-        : defaultSectorLine(formLatA, formLonA, formLatB, formLonB, prev.length);
-      const at = insertIndex === undefined ? prev.length : Math.max(0, Math.min(insertIndex, prev.length));
-      const next = [...prev.slice(0, at), { line, major: false }, ...prev.slice(at)];
-      setSelectedLine(at);
-      return next;
-    });
-  }, [formCourseName, formLatA, formLonA, formLatB, formLonB]);
+    const course: Course = {
+      name: formCourseName,
+      startFinishA: { lat: parseFloat(formLatA), lon: parseFloat(formLonA) },
+      startFinishB: { lat: parseFloat(formLatB), lon: parseFloat(formLonB) },
+      sectors: formSectors,
+    };
+    if (isAtSectorLimit(course)) return;
+    const line = center
+      ? centeredSectorLine(center)
+      : defaultSectorLine(formLatA, formLonA, formLatB, formLonB, formSectors.length);
+    const at = insertIndex === undefined ? formSectors.length : Math.max(0, Math.min(insertIndex, formSectors.length));
+    setFormSectors([...formSectors.slice(0, at), { line, major: false }, ...formSectors.slice(at)]);
+    setSelectedLine(at);
+  }, [formCourseName, formLatA, formLonA, formLatB, formLonB, formSectors]);
 
   const removeSector = useCallback((index: number) => {
     setFormSectors((prev) => prev.filter((_, i) => i !== index));
