@@ -27,6 +27,7 @@ import enCommon from "@/locales/en/common.json";
 import enLanding from "@/locales/en/landing.json";
 import enSettings from "@/locales/en/settings.json";
 import enSession from "@/locales/en/session.json";
+import enVideo from "@/locales/en/video.json";
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
 
@@ -49,6 +50,7 @@ const bundledEnglish = {
   landing: enLanding,
   settings: enSettings,
   session: enSession,
+  video: enVideo,
 } as const;
 
 const importBackend: BackendModule = {

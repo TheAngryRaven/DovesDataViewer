@@ -24,8 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Settings panel, the **core in-session UI** (view tabs, the lap-times table, and
   the Snapshots, Overlays and crop-to-sector controls), and the **live analysis
   views** — the race-line map and the pro graph view (legends, the graph picker,
-  the G-G diagram, and the info panel). More of the app follows in later updates.
-  (Legal pages remain English by design.)
+  the G-G diagram, and the info panel), and the **video** player and overlay/
+  export tools (player controls, the export dialog, overlay settings, and the
+  overlay widget labels). More of the app follows in later updates. (Legal pages
+  remain English by design.)
 - **Log type bubble in the file browser.** Each session row (shown by date/time)
   now carries a small pill with the log's format — Dove, Dovex, XRK, XRZ,
   iRacing, VBO, MoTeC, UBX, NMEA, CSV, … — derived from the file's extension, so
