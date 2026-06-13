@@ -19,6 +19,7 @@ import { Track, TrackCourseSelection, CourseDetectionResult, Lap, GpsSample } fr
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
+import { validateCourseSectors } from '@/lib/courseSectors';
 import { addTrack as addTrackToStorage, addCourse as addCourseToStorage, loadTracks } from '@/lib/trackStorage';
 
 interface TrackPromptDialogProps {
@@ -120,19 +121,35 @@ export function TrackPromptDialog({
     setIsAddCourseOpen(true);
   };
 
+  const addCourseCanSubmit = Boolean(
+    form.formCourseName.trim() && form.formLatA && form.formLonA && form.formLatB && form.formLonB &&
+    validateCourseSectors({
+      name: form.formCourseName,
+      startFinishA: form.visualEditorStartFinishA ?? { lat: 0, lon: 0 },
+      startFinishB: form.visualEditorStartFinishB ?? { lat: 0, lon: 0 },
+      sectors: form.formSectors,
+    }).valid,
+  );
+
   const addCourseDialogProps = {
     open: isAddCourseOpen,
     onOpenChange: (o: boolean) => { setIsAddCourseOpen(o); if (!o) form.resetForm(); },
-    courseFormProps: form.courseFormProps,
+    courseName: form.formCourseName,
+    onCourseNameChange: form.setFormCourseName,
+    canSubmit: addCourseCanSubmit,
     onSubmit: handleAddCourse,
     onCancel: () => { setIsAddCourseOpen(false); form.resetForm(); },
     startFinishA: form.visualEditorStartFinishA,
     startFinishB: form.visualEditorStartFinishB,
-    sector2: form.visualEditorSector2,
-    sector3: form.visualEditorSector3,
+    sectors: form.formSectors,
+    selectedLine: form.selectedLine,
+    onSelectLine: form.setSelectedLine,
     onStartFinishChange: form.handleVisualStartFinishChange,
-    onSector2Change: form.handleVisualSector2Change,
-    onSector3Change: form.handleVisualSector3Change,
+    onSectorLineChange: form.handleVisualSectorLineChange,
+    onAddSector: form.addSector,
+    onRemoveSector: form.removeSector,
+    onToggleMajor: form.toggleSectorMajor,
+    onReorder: form.reorderSectors,
     initialCenter,
     // Carry the drawing through so a generated/drawn outline is saved on the new
     // course (buildCourse reads form.formLayout), and feed laps/samples so the
@@ -146,10 +163,10 @@ export function TrackPromptDialog({
   const addTrackDialogProps = {
     open: isAddTrackOpen,
     onOpenChange: (o: boolean) => { setIsAddTrackOpen(o); if (!o) form.resetForm(); },
-    trackName: form.courseFormProps.trackName,
-    shortName: form.courseFormProps.trackShortName,
-    onTrackNameChange: form.courseFormProps.onTrackNameChange,
-    onShortNameChange: form.courseFormProps.onTrackShortNameChange,
+    trackName: form.formTrackName,
+    shortName: form.formTrackShortName,
+    onTrackNameChange: form.handleTrackNameChange,
+    onShortNameChange: form.handleTrackShortNameChange,
     onSubmit: handleAddTrack,
     onCancel: () => { setIsAddTrackOpen(false); form.resetForm(); },
   } as const;

@@ -11,6 +11,8 @@ const MAX_BATCH = 200;
 const MAX_ROWS_PER_HOUR = 300;
 // A drawn outline is a polyline; cap it so one row can't carry an unbounded blob.
 const MAX_LAYOUT_POINTS = 5000;
+// Max sub-sectors (excludes start/finish; app hidden cap is 25 timing lines).
+const MAX_COURSE_SECTORS = 24;
 
 interface SubmissionInput {
   type?: string;
@@ -68,6 +70,26 @@ function validateSubmission(s: SubmissionInput): string | null {
   for (const key of optionalCoords) {
     const v = course_data[key];
     if (v !== undefined && (typeof v !== 'number' || isNaN(v))) return `Invalid coordinate: ${key}`;
+  }
+
+  // Optional ordered sector list (sub-sectors + major flags). Bounded; each
+  // entry must be numeric coords + a boolean major; at most two may be major
+  // (start/finish is the implicit third), or none for a plain course.
+  const sectors = (course_data as { sectors?: unknown }).sectors;
+  if (sectors !== undefined && sectors !== null) {
+    if (!Array.isArray(sectors)) return 'Invalid sectors';
+    if (sectors.length > MAX_COURSE_SECTORS) return 'Too many sectors';
+    let majorCount = 0;
+    for (const sec of sectors) {
+      const e = sec as { a_lat?: unknown; a_lng?: unknown; b_lat?: unknown; b_lng?: unknown; major?: unknown };
+      for (const k of ['a_lat', 'a_lng', 'b_lat', 'b_lng'] as const) {
+        const v = e[k];
+        if (typeof v !== 'number' || isNaN(v)) return `Invalid sector coordinate: ${k}`;
+      }
+      if (typeof e.major !== 'boolean') return 'Invalid sector major flag';
+      if (e.major) majorCount++;
+    }
+    if (majorCount !== 0 && majorCount !== 2) return 'A course must mark exactly two major sectors (plus start/finish), or none';
   }
 
   // Optional drawn outline. Accept undefined/null; otherwise it must be a
@@ -176,6 +198,7 @@ Deno.serve(async (req) => {
 
     const rows = items.map((s) => {
       const hasLayout = Array.isArray(s.layout_data) && s.layout_data.length > 0;
+      const sectors = (s.course_data as { sectors?: unknown }).sectors;
       return {
         type: s.type,
         track_name: s.track_name!.trim(),
@@ -187,6 +210,7 @@ Deno.serve(async (req) => {
         batch_id: batchId,
         has_layout: hasLayout,
         layout_data: hasLayout ? s.layout_data : null,
+        sectors_data: Array.isArray(sectors) && sectors.length > 0 ? sectors : null,
       };
     });
 

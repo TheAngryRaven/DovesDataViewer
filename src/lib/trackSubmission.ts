@@ -20,6 +20,8 @@
 
 import type { Course, Track } from '@/types/racing';
 import { deriveShortName } from '@/lib/trackUtils';
+import { legacyMirror, normalizeCourseSectors } from '@/lib/courseSectors';
+import { sectorsToJson, type SectorJson } from '@/lib/trackStorage';
 
 /** Flat snake_case coordinate payload — the shape the edge fn + DB expect. */
 export interface CourseSubmissionData {
@@ -27,6 +29,7 @@ export interface CourseSubmissionData {
   start_a_lng: number;
   start_b_lat: number;
   start_b_lng: number;
+  // Legacy two-major fields — still sent for back-compat with the DB columns.
   sector_2_a_lat?: number;
   sector_2_a_lng?: number;
   sector_2_b_lat?: number;
@@ -35,6 +38,8 @@ export interface CourseSubmissionData {
   sector_3_a_lng?: number;
   sector_3_b_lat?: number;
   sector_3_b_lng?: number;
+  // Canonical ordered sector list (preferred; carries sub-sectors + major flags).
+  sectors?: SectorJson[];
 }
 
 /** Submission type understood by the `submissions` table. */
@@ -102,24 +107,32 @@ function r(n: number): number {
   return Math.round(n * 1e7) / 1e7;
 }
 
-/** Build the flat coordinate payload for a course (sectors only if both set). */
+/**
+ * Build the coordinate payload for a course. Sends the legacy two-major fields
+ * (derived from the majors) for DB back-compat AND the canonical `sectors` array
+ * carrying sub-sectors + major flags.
+ */
 export function courseToSubmissionData(course: Course): CourseSubmissionData {
+  const norm = normalizeCourseSectors(course);
   const data: CourseSubmissionData = {
     start_a_lat: course.startFinishA.lat,
     start_a_lng: course.startFinishA.lon,
     start_b_lat: course.startFinishB.lat,
     start_b_lng: course.startFinishB.lon,
   };
-  if (course.sector2 && course.sector3) {
-    data.sector_2_a_lat = course.sector2.a.lat;
-    data.sector_2_a_lng = course.sector2.a.lon;
-    data.sector_2_b_lat = course.sector2.b.lat;
-    data.sector_2_b_lng = course.sector2.b.lon;
-    data.sector_3_a_lat = course.sector3.a.lat;
-    data.sector_3_a_lng = course.sector3.a.lon;
-    data.sector_3_b_lat = course.sector3.b.lat;
-    data.sector_3_b_lng = course.sector3.b.lon;
+  const { sector2, sector3 } = legacyMirror(norm);
+  if (sector2 && sector3) {
+    data.sector_2_a_lat = sector2.a.lat;
+    data.sector_2_a_lng = sector2.a.lon;
+    data.sector_2_b_lat = sector2.b.lat;
+    data.sector_2_b_lng = sector2.b.lon;
+    data.sector_3_a_lat = sector3.a.lat;
+    data.sector_3_a_lng = sector3.a.lon;
+    data.sector_3_b_lat = sector3.b.lat;
+    data.sector_3_b_lng = sector3.b.lon;
   }
+  const sectors = sectorsToJson(norm.sectors);
+  if (sectors) data.sectors = sectors;
   return data;
 }
 
@@ -145,13 +158,23 @@ function layoutHashInput(layout?: Array<{ lat: number; lon: number }>): string {
  * geometry *or* drawing edits so a freshly-drawn outline re-flags the course.
  */
 export function courseContentHash(course: Course): string {
-  const d = courseToSubmissionData(course);
+  const norm = normalizeCourseSectors(course);
+  const d = courseToSubmissionData(norm);
   const parts = [
     d.start_a_lat, d.start_a_lng, d.start_b_lat, d.start_b_lng,
     d.sector_2_a_lat, d.sector_2_a_lng, d.sector_2_b_lat, d.sector_2_b_lng,
     d.sector_3_a_lat, d.sector_3_a_lng, d.sector_3_b_lat, d.sector_3_b_lng,
   ].map((n) => (n === undefined ? '' : String(r(n))));
   parts.push(layoutHashInput(course.layout));
+  // Only append sub-sector data when present, so a majors-only course hashes
+  // byte-identically to the pre-overhaul hash (existing dedupe records stay valid).
+  const subs = (norm.sectors ?? []).filter((s) => !s.major);
+  if (subs.length > 0) {
+    const seq = (norm.sectors ?? [])
+      .map((s) => `${s.major ? 'M' : 'm'}:${r(s.line.a.lat)} ${r(s.line.a.lon)} ${r(s.line.b.lat)} ${r(s.line.b.lon)}`)
+      .join(';');
+    parts.push(seq);
+  }
   return fnv1a(parts.join(','));
 }
 

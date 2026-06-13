@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Track, TrackCourseSelection } from '@/types/racing';
+import { Track, TrackCourseSelection, courseHasSectors } from '@/types/racing';
+import { legacyMirror, normalizeCourseSectors, validateCourseSectors } from '@/lib/courseSectors';
 import {
   loadTracks,
   loadDefaultTracks,
@@ -39,10 +40,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
 import { useOptionalSettingsContext } from '@/contexts/SettingsContext';
 import { formatTrackLength } from '@/lib/units';
-// Lazy — VisualEditor pulls in Leaflet drawing logic; only loads when the
-// track editor dialog is opened.
-const VisualEditor = lazy(() =>
-  import('@/components/track-editor/VisualEditor').then((m) => ({ default: m.VisualEditor })),
+// Lazy — CourseSectorEditor pulls in Leaflet drawing logic + the sector list;
+// only loads when the track editor dialog is opened.
+const CourseSectorEditor = lazy(() =>
+  import('@/components/track-editor/CourseSectorEditor').then((m) => ({ default: m.CourseSectorEditor })),
 );
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
@@ -222,18 +223,20 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
         courseData.lengthFt = course.lengthFt;
       }
 
-      if (course.sector2) {
-        courseData.sector_2_a_lat = course.sector2.a.lat;
-        courseData.sector_2_a_lng = course.sector2.a.lon;
-        courseData.sector_2_b_lat = course.sector2.b.lat;
-        courseData.sector_2_b_lng = course.sector2.b.lon;
+      // Device track JSON carries only the three major sectors (start/finish +
+      // the two majors), byte-identical to the pre-overhaul format.
+      const { sector2, sector3 } = legacyMirror(normalizeCourseSectors(course));
+      if (sector2) {
+        courseData.sector_2_a_lat = sector2.a.lat;
+        courseData.sector_2_a_lng = sector2.a.lon;
+        courseData.sector_2_b_lat = sector2.b.lat;
+        courseData.sector_2_b_lng = sector2.b.lon;
       }
-
-      if (course.sector3) {
-        courseData.sector_3_a_lat = course.sector3.a.lat;
-        courseData.sector_3_a_lng = course.sector3.a.lon;
-        courseData.sector_3_b_lat = course.sector3.b.lat;
-        courseData.sector_3_b_lng = course.sector3.b.lon;
+      if (sector3) {
+        courseData.sector_3_a_lat = sector3.a.lat;
+        courseData.sector_3_a_lng = sector3.a.lon;
+        courseData.sector_3_b_lat = sector3.b.lat;
+        courseData.sector_3_b_lng = sector3.b.lon;
       }
 
       result[course.name] = courseData;
@@ -328,6 +331,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
       await updateCourse(trackName, oldCourseName, {
         startFinishA: course.startFinishA,
         startFinishB: course.startFinishB,
+        sectors: course.sectors,
         sector2: course.sector2,
         sector3: course.sector3,
         layout: course.layout,
@@ -371,20 +375,43 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
 
   if (isLoading) return <div className="text-muted-foreground text-sm">Loading tracks...</div>;
 
+  // Shared sector-list editor props (start/finish + sectors + list operations).
+  const sectorEditorProps = {
+    startFinishA: form.visualEditorStartFinishA,
+    startFinishB: form.visualEditorStartFinishB,
+    sectors: form.formSectors,
+    selectedLine: form.selectedLine,
+    onSelectLine: form.setSelectedLine,
+    onStartFinishChange: form.handleVisualStartFinishChange,
+    onSectorLineChange: form.handleVisualSectorLineChange,
+    onAddSector: form.addSector,
+    onRemoveSector: form.removeSector,
+    onToggleMajor: form.toggleSectorMajor,
+    onReorder: form.reorderSectors,
+  } as const;
+
+  // Save is blocked unless the sector layout is valid (0 sectors or 3 majors).
+  const sectorsValid = validateCourseSectors({
+    name: form.formCourseName,
+    startFinishA: form.visualEditorStartFinishA ?? { lat: 0, lon: 0 },
+    startFinishB: form.visualEditorStartFinishB ?? { lat: 0, lon: 0 },
+    sectors: form.formSectors,
+  }).valid;
+
+  const addCourseCanSubmit = Boolean(
+    form.formCourseName.trim() && form.formLatA && form.formLonA && form.formLatB && form.formLonB && sectorsValid,
+  );
+
   // Shared dialog props
   const addCourseDialogProps = {
     open: isAddCourseOpen,
     onOpenChange: (open: boolean) => { setIsAddCourseOpen(open); if (!open) form.resetForm(); },
-    courseFormProps: form.courseFormProps,
+    courseName: form.formCourseName,
+    onCourseNameChange: form.setFormCourseName,
+    canSubmit: addCourseCanSubmit,
     onSubmit: handleAddCourse,
     onCancel: () => { setIsAddCourseOpen(false); form.resetForm(); },
-    startFinishA: form.visualEditorStartFinishA,
-    startFinishB: form.visualEditorStartFinishB,
-    sector2: form.visualEditorSector2,
-    sector3: form.visualEditorSector3,
-    onStartFinishChange: form.handleVisualStartFinishChange,
-    onSector2Change: form.handleVisualSector2Change,
-    onSector3Change: form.handleVisualSector3Change,
+    ...sectorEditorProps,
     layoutPoints: form.formLayout,
     onLayoutChange: form.handleVisualLayoutChange,
     laps,
@@ -394,10 +421,10 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   const addTrackDialogProps = {
     open: isAddTrackOpen,
     onOpenChange: (open: boolean) => { setIsAddTrackOpen(open); if (!open) form.resetForm(); },
-    trackName: form.courseFormProps.trackName,
-    shortName: form.courseFormProps.trackShortName,
-    onTrackNameChange: form.courseFormProps.onTrackNameChange,
-    onShortNameChange: form.courseFormProps.onTrackShortNameChange,
+    trackName: form.formTrackName,
+    shortName: form.formTrackShortName,
+    onTrackNameChange: form.handleTrackNameChange,
+    onShortNameChange: form.handleTrackShortNameChange,
     onSubmit: handleAddTrack,
     onCancel: () => { setIsAddTrackOpen(false); form.resetForm(); },
   } as const;
@@ -439,14 +466,8 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
           <div className="space-y-4">
             <h4 className="font-medium">Edit Course</h4>
             <Suspense fallback={null}>
-              <VisualEditor
-                startFinishA={form.visualEditorStartFinishA}
-                startFinishB={form.visualEditorStartFinishB}
-                sector2={form.visualEditorSector2}
-                sector3={form.visualEditorSector3}
-                onStartFinishChange={form.handleVisualStartFinishChange}
-                onSector2Change={form.handleVisualSector2Change}
-                onSector3Change={form.handleVisualSector3Change}
+              <CourseSectorEditor
+                {...sectorEditorProps}
                 showDrawTool={true}
                 laps={laps}
                 samples={samples}
@@ -456,7 +477,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
               />
             </Suspense>
             <div className="flex gap-2">
-              <Button onClick={handleUpdateCourse} className="flex-1">
+              <Button onClick={handleUpdateCourse} className="flex-1" disabled={!sectorsValid}>
                 <Check className="w-4 h-4 mr-2" />
                 Update
               </Button>
@@ -488,7 +509,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                     <div className="flex-1 min-w-0">
                       <span className="font-mono text-sm">{course.name}</span>
                       {!course.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">(default)</span>}
-                      {course.sector2 && course.sector3 && <span className="ml-2 text-xs text-accent-foreground/60">(sectors)</span>}
+                      {courseHasSectors(course) && <span className="ml-2 text-xs text-accent-foreground/60">(sectors)</span>}
                       {course.lengthFt != null && course.lengthFt > 0 && (
                         <span className="ml-2 text-xs text-muted-foreground">
                           {formatTrackLength(course.lengthFt, useMetricDistance)}

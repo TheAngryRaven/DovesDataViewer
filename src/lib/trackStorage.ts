@@ -1,5 +1,6 @@
-import { Track, Course, LegacyTrack, SectorLine } from '@/types/racing';
+import { Track, Course, CourseSector, LegacyTrack, SectorLine } from '@/types/racing';
 import { emitGarageChange } from '@/lib/garageEvents';
+import { normalizeCourseSectors } from '@/lib/courseSectors';
 
 const STORAGE_KEY = 'racing-datalog-tracks-v2';
 const LEGACY_STORAGE_KEY = 'racing-datalog-tracks';
@@ -11,6 +12,15 @@ const LEGACY_STORAGE_KEY = 'racing-datalog-tracks';
  */
 export const TRACKS_SYNC_STORE = 'tracks';
 
+/** One sector line in the JSON track format (flat lat/lng + major flag). */
+export interface SectorJson {
+  a_lat: number;
+  a_lng: number;
+  b_lat: number;
+  b_lng: number;
+  major: boolean;
+}
+
 interface DefaultCourseJson {
   name: string;
   lengthFt?: number;
@@ -18,6 +28,9 @@ interface DefaultCourseJson {
   start_a_lng: number;
   start_b_lat: number;
   start_b_lng: number;
+  // Canonical ordered sector list (preferred). Excludes start/finish.
+  sectors?: SectorJson[];
+  // Legacy two-major fields — read as a fallback, still written as a mirror.
   sector_2_a_lat?: number;
   sector_2_a_lng?: number;
   sector_2_b_lat?: number;
@@ -26,6 +39,27 @@ interface DefaultCourseJson {
   sector_3_a_lng?: number;
   sector_3_b_lat?: number;
   sector_3_b_lng?: number;
+}
+
+/** Map the JSON sector array into the canonical `CourseSector[]`. */
+export function sectorsFromJson(sectors?: SectorJson[]): CourseSector[] | undefined {
+  if (!Array.isArray(sectors) || sectors.length === 0) return undefined;
+  return sectors.map((s) => ({
+    line: { a: { lat: s.a_lat, lon: s.a_lng }, b: { lat: s.b_lat, lon: s.b_lng } },
+    major: Boolean(s.major),
+  }));
+}
+
+/** Serialize the canonical `CourseSector[]` back to the flat JSON array. */
+export function sectorsToJson(sectors?: CourseSector[]): SectorJson[] | undefined {
+  if (!sectors || sectors.length === 0) return undefined;
+  return sectors.map((s) => ({
+    a_lat: s.line.a.lat,
+    a_lng: s.line.a.lon,
+    b_lat: s.line.b.lat,
+    b_lng: s.line.b.lon,
+    major: s.major,
+  }));
 }
 
 interface DefaultTracksJson {
@@ -93,22 +127,26 @@ export async function loadDefaultTracks(): Promise<Track[]> {
           startFinishB: { lat: c.start_b_lat, lon: c.start_b_lng },
           isUserDefined: false,
         };
-        
-        // Parse sector lines if they exist
-        const sector2 = parseSectorLineFromJson(
-          c.sector_2_a_lat, c.sector_2_a_lng, c.sector_2_b_lat, c.sector_2_b_lng
-        );
-        const sector3 = parseSectorLineFromJson(
-          c.sector_3_a_lat, c.sector_3_a_lng, c.sector_3_b_lat, c.sector_3_b_lng
-        );
-        
-        // Only add sectors if both are present
-        if (sector2 && sector3) {
-          course.sector2 = sector2;
-          course.sector3 = sector3;
+
+        // Prefer the canonical sector array; fall back to the legacy two-major fields.
+        const sectors = sectorsFromJson(c.sectors);
+        if (sectors) {
+          course.sectors = sectors;
+        } else {
+          const sector2 = parseSectorLineFromJson(
+            c.sector_2_a_lat, c.sector_2_a_lng, c.sector_2_b_lat, c.sector_2_b_lng
+          );
+          const sector3 = parseSectorLineFromJson(
+            c.sector_3_a_lat, c.sector_3_a_lng, c.sector_3_b_lat, c.sector_3_b_lng
+          );
+          // Only add sectors if both are present
+          if (sector2 && sector3) {
+            course.sector2 = sector2;
+            course.sector3 = sector3;
+          }
         }
-        
-        return course;
+
+        return normalizeCourseSectors(course);
       });
       tracks.push({
         name: trackName,
@@ -134,7 +172,11 @@ function loadUserTracks(): Track[] {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const data: StoredData = JSON.parse(stored);
-      return data.tracks || [];
+      // Migrate any legacy-shaped courses into the canonical sector model on read.
+      return (data.tracks || []).map((t) => ({
+        ...t,
+        courses: t.courses.map(normalizeCourseSectors),
+      }));
     }
   } catch (e) {
     console.error('Failed to load user tracks:', e);
@@ -189,7 +231,8 @@ function saveUserTracks(tracks: Track[]): void {
       .filter(t => t.isUserDefined || t.courses.some(c => c.isUserDefined))
       .map(t => ({
         ...t,
-        courses: t.courses.filter(c => c.isUserDefined),
+        // Persist the canonical sectors AND the derived legacy mirror together.
+        courses: t.courses.filter(c => c.isUserDefined).map(normalizeCourseSectors),
       }))
       .filter(t => t.courses.length > 0 || t.isUserDefined);
     

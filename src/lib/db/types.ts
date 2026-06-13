@@ -27,6 +27,12 @@ export interface DbCourse {
   sector_3_a_lng: number | null;
   sector_3_b_lat: number | null;
   sector_3_b_lng: number | null;
+  /**
+   * Canonical ordered sector list (start/finish excluded), each entry
+   * `{a_lat,a_lng,b_lat,b_lng,major}`. The legacy `sector_2/3` columns mirror
+   * the two majors for back-compat + device export. Null on legacy rows.
+   */
+  sectors_data: Array<{ a_lat: number; a_lng: number; b_lat: number; b_lng: number; major: boolean }> | null;
   superseded_by: string | null;
   length_ft_override: number | null;
   created_at: string;
@@ -46,6 +52,8 @@ export interface DbSubmission {
   has_layout?: boolean;
   /** The drawn outline polyline, when `has_layout`. */
   layout_data?: Array<{ lat: number; lon: number }> | null;
+  /** Submitted ordered sector list (mirrors courses.sectors_data), when present. */
+  sectors_data?: Array<{ a_lat: number; a_lng: number; b_lat: number; b_lng: number; major: boolean }> | null;
   /** Ties courses uploaded together in one bulk submit. NULL for legacy rows. */
   batch_id: string | null;
   created_at: string;

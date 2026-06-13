@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Flag, Timer, Search, Loader2, LocateFixed, Pencil, Undo2, Trash2, Route, Eye, EyeOff, CalendarClock } from 'lucide-react';
+import { Search, Loader2, LocateFixed, Pencil, Undo2, Trash2, Route, Eye, EyeOff, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { SectorLine } from '@/types/racing';
+import { SectorLine, CourseSector } from '@/types/racing';
 import type { Lap, GpsSample } from '@/types/racing';
+import { sectorLabels } from '@/lib/courseSectors';
 import { resamplePolyline, calculatePolylineLength, generatedDrawingSpacing } from '@/lib/trackUtils';
 import { useWaybackImagery } from '@/hooks/useWaybackImagery';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -17,16 +18,24 @@ export interface GpsPoint {
   lon: number;
 }
 
-export type VisualEditorTool = 'startFinish' | 'sector2' | 'sector3' | 'draw' | null;
+/** Identifies an editable timing line: 'sf' = start/finish, number = sectors[index]. */
+export type LineId = 'sf' | number;
+
+// Line colors: start/finish green, major sectors purple, sub-sectors sky-blue.
+const COLOR_SF = '#22c55e';
+const COLOR_MAJOR = '#a855f7';
+const COLOR_SUB = '#38bdf8';
 
 interface VisualEditorProps {
   startFinishA: GpsPoint | null;
   startFinishB: GpsPoint | null;
-  sector2: SectorLine | undefined;
-  sector3: SectorLine | undefined;
+  /** Ordered sector lines after start/finish. */
+  sectors: CourseSector[];
+  /** Currently-selected line (controlled by the sector list), or null. */
+  selectedLine: LineId | null;
+  onSelectLine?: (id: LineId | null) => void;
   onStartFinishChange?: (a: GpsPoint, b: GpsPoint) => void;
-  onSector2Change?: (line: SectorLine) => void;
-  onSector3Change?: (line: SectorLine) => void;
+  onSectorLineChange?: (index: number, line: SectorLine) => void;
   isNewTrack?: boolean;
   /** Initial map center from loaded GPS data */
   initialCenter?: GpsPoint | null;
@@ -45,8 +54,8 @@ interface VisualEditorProps {
 }
 
 interface VisualEditorToolbarProps {
-  activeTool: VisualEditorTool;
-  onToolChange: (tool: VisualEditorTool) => void;
+  drawMode: boolean;
+  onToggleDraw: () => void;
   showDrawTool?: boolean;
   drawPointCount?: number;
   canToggleKnownDrawing?: boolean;
@@ -61,26 +70,10 @@ interface VisualEditorToolbarProps {
   onGenerateFromSession?: () => void;
 }
 
-function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPointCount = 0, canToggleKnownDrawing = false, showKnownDrawing = true, onToggleKnownDrawing, onUndoDraw, onClearDraw, laps, onGenerateFromLap, hasSamples = false, onGenerateFromSession }: VisualEditorToolbarProps) {
+function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCount = 0, canToggleKnownDrawing = false, showKnownDrawing = true, onToggleKnownDrawing, onUndoDraw, onClearDraw, laps, onGenerateFromLap, hasSamples = false, onGenerateFromSession }: VisualEditorToolbarProps) {
   const [showLapPicker, setShowLapPicker] = useState(false);
   const hasLaps = !!laps && laps.length > 0;
   const canGenerate = hasLaps || hasSamples;
-
-  const handleStartFinish = () => {
-    onToolChange(activeTool === 'startFinish' ? null : 'startFinish');
-  };
-
-  const handleSector2 = () => {
-    onToolChange(activeTool === 'sector2' ? null : 'sector2');
-  };
-
-  const handleSector3 = () => {
-    onToolChange(activeTool === 'sector3' ? null : 'sector3');
-  };
-
-  const handleDraw = () => {
-    onToolChange(activeTool === 'draw' ? null : 'draw');
-  };
 
   const handleGenerateClick = () => {
     if (!canGenerate) return;
@@ -109,42 +102,18 @@ function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPoint
     return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : `${secs}s`;
   };
 
+  // Nothing to show in the toolbar unless drawing tools are enabled.
+  if (!showDrawTool && !canToggleKnownDrawing) return null;
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg flex-wrap">
-        <Button
-          variant={activeTool === 'startFinish' ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          onClick={handleStartFinish}
-        >
-          <Flag className="w-3.5 h-3.5" />
-          Start/Finish
-        </Button>
-        <Button
-          variant={activeTool === 'sector2' ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          onClick={handleSector2}
-        >
-          <Timer className="w-3.5 h-3.5" />
-          Sector 2
-        </Button>
-        <Button
-          variant={activeTool === 'sector3' ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          onClick={handleSector3}
-        >
-          <Timer className="w-3.5 h-3.5" />
-          Sector 3
-        </Button>
         {showDrawTool && (
             <Button
-              variant={activeTool === 'draw' ? 'default' : 'outline'}
+              variant={drawMode ? 'default' : 'outline'}
               size="sm"
               className="h-8 gap-1.5 text-xs"
-              onClick={handleDraw}
+              onClick={onToggleDraw}
             >
               <Pencil className="w-3.5 h-3.5" />
               Draw
@@ -172,7 +141,7 @@ function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPoint
             Toggle Known Drawing
           </Button>
         )}
-        {activeTool === 'draw' && drawPointCount > 0 && (
+        {drawMode && drawPointCount > 0 && (
           <>
             <Button
               variant="outline"
@@ -231,8 +200,8 @@ function VisualEditorToolbar({ activeTool, onToolChange, showDrawTool, drawPoint
 }
 
 export function VisualEditor({
-  startFinishA, startFinishB, sector2, sector3,
-  onStartFinishChange, onSector2Change, onSector3Change,
+  startFinishA, startFinishB, sectors, selectedLine, onSelectLine,
+  onStartFinishChange, onSectorLineChange,
   isNewTrack = false, initialCenter: initialCenterProp = null,
   showDrawTool = false, layoutPoints: layoutPointsProp, showKnownDrawingToggle = false, onLayoutChange,
   laps, samples,
@@ -240,13 +209,11 @@ export function VisualEditor({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
-  const [activeTool, setActiveTool] = useState<VisualEditorTool>(null);
+  const [drawMode, setDrawMode] = useState(false);
 
   // Satellite imagery date (Esri Wayback). '' = current best-available mosaic.
   // Lets the user step the basemap back to a cloud-free capture while placing
-  // start/finish + sector lines — often the lines sit on a runway/paddock the
-  // current mosaic happens to have clouded over. Online-only + lazy, mirroring
-  // the race-line map's picker.
+  // start/finish + sector lines. Online-only + lazy, mirroring the race-line map.
   const isOnline = useOnlineStatus();
   const wayback = useWaybackImagery();
   const loadWayback = wayback.load;
@@ -259,14 +226,11 @@ export function VisualEditor({
     return wayback.releases.find((r) => r.date === satelliteDate)?.tileUrl ?? DEFAULT_SATELLITE_TILE_URL;
   }, [satelliteDate, wayback.releases]);
 
-  // Pending coordinates while dragging
-  const [pendingStartFinish, setPendingStartFinish] = useState<{ a: GpsPoint; b: GpsPoint } | null>(null);
-  const [pendingSector2, setPendingSector2] = useState<SectorLine | null>(null);
-  const [pendingSector3, setPendingSector3] = useState<SectorLine | null>(null);
+  // Pending coordinates for the line currently being dragged.
+  const [pendingLine, setPendingLine] = useState<{ id: LineId; coords: { a: GpsPoint; b: GpsPoint } } | null>(null);
 
   // Drawing state. The ref mirrors drawPoints so the draw handlers can read the
-  // latest points synchronously (across rapid clicks) and auto-save each change
-  // to the parent — there's no "Done" button anymore.
+  // latest points synchronously and auto-save each change to the parent.
   const [drawPoints, setDrawPoints] = useState<Array<{ lat: number; lon: number }>>(layoutPointsProp ?? []);
   const drawPointsRef = useRef<Array<{ lat: number; lon: number }>>(layoutPointsProp ?? []);
   const [showKnownDrawing, setShowKnownDrawing] = useState(true);
@@ -280,7 +244,6 @@ export function VisualEditor({
     drawPointsRef.current = incoming;
     setDrawPoints(incoming);
     if (incoming.length > 0) setShowKnownDrawing(true);
-    // Also update the polyline immediately if map exists
     if (mapRef.current && drawPolylineRef.current) {
       if (incoming.length > 0) {
         drawPolylineRef.current.setLatLngs(incoming.map(p => [p.lat, p.lon] as [number, number]));
@@ -296,35 +259,35 @@ export function VisualEditor({
   const activeLineRef = useRef<L.Polyline | null>(null);
   const staticLinesRef = useRef<L.Polyline[]>([]);
 
+  // Latest selection / callbacks for use inside Leaflet event handlers (refs so
+  // the marker-drag closures always see current values without re-binding).
+  const onSelectLineRef = useRef(onSelectLine);
+  onSelectLineRef.current = onSelectLine;
+
   // Location search state (only used when isNewTrack)
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocating, setIsLocating] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Create a new ~30m horizontal line at the map center
-  const createLineAtMapCenter = useCallback((tool: VisualEditorTool): { a: GpsPoint; b: GpsPoint } | null => {
-    const map = mapRef.current;
-    if (!map || !tool) return null;
+  // Color for a given line id.
+  const colorFor = useCallback((id: LineId): string => {
+    if (id === 'sf') return COLOR_SF;
+    return sectors[id]?.major ? COLOR_MAJOR : COLOR_SUB;
+  }, [sectors]);
 
-    const center = map.getCenter();
-    // ~0.00015 degrees longitude ≈ ~15 meters at most latitudes
-    const offset = 0.00015;
-    const newLine = {
-      a: { lat: center.lat, lon: center.lng - offset },
-      b: { lat: center.lat, lon: center.lng + offset },
-    };
-
-    // Set pending state for the line
-    if (tool === 'startFinish') {
-      setPendingStartFinish(newLine);
-    } else if (tool === 'sector2') {
-      setPendingSector2(newLine);
-    } else if (tool === 'sector3') {
-      setPendingSector3(newLine);
+  // Current coordinates for a given line id (pending drag wins).
+  const coordsFor = useCallback((id: LineId): { a: GpsPoint; b: GpsPoint } | null => {
+    if (pendingLine && pendingLine.id === id) return pendingLine.coords;
+    if (id === 'sf') {
+      if (startFinishA && startFinishB) return { a: startFinishA, b: startFinishB };
+      return null;
     }
+    const sec = sectors[id];
+    return sec ? { a: sec.line.a, b: sec.line.b } : null;
+  }, [pendingLine, startFinishA, startFinishB, sectors]);
 
-    return newLine;
-  }, []);
+  // All line ids in course order (start/finish first).
+  const allLineIds = useMemo<LineId[]>(() => ['sf', ...sectors.map((_, i) => i)], [sectors]);
 
   // Location search using Nominatim
   const handleLocationSearch = useCallback(async () => {
@@ -334,11 +297,7 @@ export function VisualEditor({
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.trim())}`,
-        {
-          headers: {
-            'User-Agent': 'DovesDataViewer/1.0',
-          },
-        }
+        { headers: { 'User-Agent': 'DovesDataViewer/1.0' } }
       );
       const results = await response.json();
 
@@ -347,18 +306,10 @@ export function VisualEditor({
         mapRef.current.setView([parseFloat(lat), parseFloat(lon)], 17, { animate: true });
         setSearchQuery('');
       } else {
-        toast({
-          title: 'Location not found',
-          description: 'Try a different search term',
-          variant: 'destructive',
-        });
+        toast({ title: 'Location not found', description: 'Try a different search term', variant: 'destructive' });
       }
     } catch {
-      toast({
-        title: 'Search failed',
-        description: 'Could not search for location',
-        variant: 'destructive',
-      });
+      toast({ title: 'Search failed', description: 'Could not search for location', variant: 'destructive' });
     } finally {
       setIsSearching(false);
     }
@@ -395,21 +346,6 @@ export function VisualEditor({
     );
   }, []);
 
-  // Get line coordinates for a specific tool
-  const getLineCoords = (tool: VisualEditorTool): { a: GpsPoint; b: GpsPoint } | null => {
-    if (tool === 'startFinish') {
-      if (pendingStartFinish) return pendingStartFinish;
-      if (startFinishA && startFinishB) return { a: startFinishA, b: startFinishB };
-    } else if (tool === 'sector2') {
-      if (pendingSector2) return { a: pendingSector2.a, b: pendingSector2.b };
-      if (sector2) return { a: sector2.a, b: sector2.b };
-    } else if (tool === 'sector3') {
-      if (pendingSector3) return { a: pendingSector3.a, b: pendingSector3.b };
-      if (sector3) return { a: sector3.a, b: sector3.b };
-    }
-    return null;
-  };
-
   // Clear interactive editing layers
   const clearEditingLayers = () => {
     markersRef.current.forEach(m => m.remove());
@@ -420,84 +356,42 @@ export function VisualEditor({
     }
   };
 
-  // Draw static lines (non-active lines, dimmed)
-  const drawStaticLines = (map: L.Map, excludeTool: VisualEditorTool) => {
+  // Draw static lines (all lines except the selected one), dimmed + clickable.
+  const drawStaticLines = useCallback((map: L.Map, excludeId: LineId | null) => {
     staticLinesRef.current.forEach(l => l.remove());
     staticLinesRef.current = [];
 
-    const lines: { coords: GpsPoint[]; color: string; isActive: boolean }[] = [];
-
-    // Start/Finish line
-    if (startFinishA && startFinishB) {
-      const isActive = excludeTool === 'startFinish';
-      const coords = pendingStartFinish && isActive
-        ? [pendingStartFinish.a, pendingStartFinish.b]
-        : [startFinishA, startFinishB];
-      if (!isActive) {
-        lines.push({ coords, color: '#22c55e', isActive });
-      }
-    }
-
-    // Sector 2 line
-    if (sector2) {
-      const isActive = excludeTool === 'sector2';
-      const coords = pendingSector2 && isActive
-        ? [pendingSector2.a, pendingSector2.b]
-        : [sector2.a, sector2.b];
-      if (!isActive) {
-        lines.push({ coords, color: '#a855f7', isActive });
-      }
-    }
-
-    // Sector 3 line
-    if (sector3) {
-      const isActive = excludeTool === 'sector3';
-      const coords = pendingSector3 && isActive
-        ? [pendingSector3.a, pendingSector3.b]
-        : [sector3.a, sector3.b];
-      if (!isActive) {
-        lines.push({ coords, color: '#a855f7', isActive });
-      }
-    }
-
-    lines.forEach(({ coords, color }) => {
+    for (const id of allLineIds) {
+      if (id === excludeId) continue;
+      const coords = coordsFor(id);
+      if (!coords) continue;
       const polyline = L.polyline(
-        coords.map(p => [p.lat, p.lon] as [number, number]),
-        { color, weight: 2, opacity: 0.5 }
+        [[coords.a.lat, coords.a.lon], [coords.b.lat, coords.b.lon]],
+        { color: colorFor(id), weight: 2, opacity: 0.5 }
       ).addTo(map);
+      // Click a static line to select it for editing.
+      polyline.on('click', () => onSelectLineRef.current?.(id));
       staticLinesRef.current.push(polyline);
-    });
-  };
+    }
+  }, [allLineIds, coordsFor, colorFor]);
 
-  // Create draggable markers and active line for the selected tool
-  // If coords is provided, use it directly (avoids async state issues)
-  const createEditingLayersWithCoords = (map: L.Map, tool: VisualEditorTool, coords: { a: GpsPoint; b: GpsPoint }) => {
+  // Create draggable markers + active line for a line id, using known coords.
+  const createEditingLayersWithCoords = useCallback((map: L.Map, id: LineId, coords: { a: GpsPoint; b: GpsPoint }) => {
     clearEditingLayers();
-    if (!tool) return;
+    const color = colorFor(id);
 
-    const color = tool === 'startFinish' ? '#22c55e' : '#a855f7';
-
-    // Create the active polyline
     const polyline = L.polyline(
       [[coords.a.lat, coords.a.lon], [coords.b.lat, coords.b.lon]],
       { color, weight: 4, opacity: 1 }
     ).addTo(map);
     activeLineRef.current = polyline;
 
-    // Create draggable markers
     const createMarker = (point: GpsPoint, isPointA: boolean) => {
       const marker = L.marker([point.lat, point.lon], {
         draggable: true,
         icon: L.divIcon({
           className: 'custom-marker',
-          html: `<div style="
-            width: 16px;
-            height: 16px;
-            background: ${color};
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-          "></div>`,
+          html: `<div style="width:16px;height:16px;background:${color};border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.5);"></div>`,
           iconSize: [16, 16],
           iconAnchor: [8, 8],
         }),
@@ -505,8 +399,6 @@ export function VisualEditor({
 
       marker.on('drag', (e: L.LeafletEvent) => {
         const latlng = (e.target as L.Marker).getLatLng();
-
-        // Update polyline in real-time
         if (activeLineRef.current) {
           const otherMarker = markersRef.current.find(m => m !== marker);
           if (otherMarker) {
@@ -525,25 +417,15 @@ export function VisualEditor({
         const otherMarker = markersRef.current.find(m => m !== marker);
         const otherLatLng = otherMarker?.getLatLng();
         const otherPoint = otherLatLng ? { lat: otherLatLng.lat, lon: otherLatLng.lng } : null;
-
         if (!otherPoint) return;
 
         const newA = isPointA ? newPoint : otherPoint;
         const newB = isPointA ? otherPoint : newPoint;
 
-        // Save immediately on release — no separate "Done" step needed. The
-        // pending state keeps the active markers consistent; the parent
-        // callback commits the line straight into the form.
-        if (tool === 'startFinish') {
-          setPendingStartFinish({ a: newA, b: newB });
-          onStartFinishChange?.(newA, newB);
-        } else if (tool === 'sector2') {
-          setPendingSector2({ a: newA, b: newB });
-          onSector2Change?.({ a: newA, b: newB });
-        } else if (tool === 'sector3') {
-          setPendingSector3({ a: newA, b: newB });
-          onSector3Change?.({ a: newA, b: newB });
-        }
+        // Save immediately on release — no separate "Done" step.
+        setPendingLine({ id, coords: { a: newA, b: newB } });
+        if (id === 'sf') onStartFinishChange?.(newA, newB);
+        else onSectorLineChange?.(id, { a: newA, b: newB });
       });
 
       return marker;
@@ -552,15 +434,7 @@ export function VisualEditor({
     const markerA = createMarker(coords.a, true);
     const markerB = createMarker(coords.b, false);
     markersRef.current = [markerA, markerB];
-  };
-
-  // Convenience wrapper that reads coords from state
-  const createEditingLayers = (map: L.Map, tool: VisualEditorTool) => {
-    if (!tool) return;
-    const lineCoords = getLineCoords(tool);
-    if (!lineCoords) return;
-    createEditingLayersWithCoords(map, tool, lineCoords);
-  };
+  }, [colorFor, onStartFinishChange, onSectorLineChange]);
 
   // --- Draw mode helpers ---
   const updateDrawPolyline = useCallback((points: Array<{ lat: number; lon: number }>) => {
@@ -589,9 +463,7 @@ export function VisualEditor({
   const enterDrawMode = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-
     clearDrawMode();
-
     const handler = (e: L.LeafletMouseEvent) => {
       const next = [...drawPointsRef.current, { lat: e.latlng.lat, lon: e.latlng.lng }];
       drawPointsRef.current = next;
@@ -612,7 +484,7 @@ export function VisualEditor({
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
     }
-    onLayoutChange?.(next); // auto-save
+    onLayoutChange?.(next);
   }, [updateDrawPolyline, onLayoutChange]);
 
   const handleClearDraw = useCallback(() => {
@@ -622,14 +494,10 @@ export function VisualEditor({
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
     }
-    onLayoutChange?.([]); // auto-save
+    onLayoutChange?.([]);
   }, [onLayoutChange]);
 
   // Resample a raw GPS trace to an even outline and commit it as the drawing.
-  // The raw points are the full logger rate (10–25 Hz) — far denser than an
-  // outline needs, and unevenly so (more points in slow corners). Arc-length
-  // resample to an even spacing scaled to track length for a clean, compact
-  // polyline (5 m for karting up to 10 m for long road courses).
   const applyGeneratedDrawing = useCallback((rawPoints: Array<{ lat: number; lon: number }>, label: string) => {
     const dbg = isDebugEnabled();
     if (rawPoints.length < 2) {
@@ -641,9 +509,6 @@ export function VisualEditor({
       const spacing = generatedDrawingSpacing(calculatePolylineLength(rawPoints));
       const points = resamplePolyline(rawPoints, spacing);
       if (dbg) console.info('[generate] resampled', { rawPoints: rawPoints.length, spacing, points: points.length, hasMap: !!mapRef.current, hasOnLayoutChange: !!onLayoutChange });
-      // A degenerate resample (e.g. a stationary trace) collapses to <2 points,
-      // which would neither render nor save — surface it instead of silently
-      // committing an empty outline.
       if (points.length < 2) {
         if (dbg) console.warn('[generate] aborted: resampled points < 2', { spacing, points: points.length });
         toast({ title: 'Could not generate outline', description: 'The GPS trace was too short or stationary.', variant: 'destructive' });
@@ -652,52 +517,31 @@ export function VisualEditor({
       drawPointsRef.current = points;
       setDrawPoints(points);
       updateDrawPolyline(points);
-      onLayoutChange?.(points); // auto-save
+      onLayoutChange?.(points);
       if (dbg) console.info('[generate] committed', { drawn: !!drawPolylineRef.current });
-      // Fit map to the generated drawing
       if (mapRef.current && points.length > 1) {
         const bounds = L.latLngBounds(points.map(p => [p.lat, p.lon] as [number, number]));
         mapRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
       }
       toast({ title: 'Drawing generated', description: `${label} (${points.length} points).` });
     } catch (err) {
-      // Surface failures in the on-screen debug console (?dbg=true) — on mobile
-      // there's no dev-tools console to catch an exception here.
       console.error('Drawing generation failed', err);
       toast({ title: 'Could not generate outline', description: 'See debug log (?dbg=true) for details.', variant: 'destructive' });
     }
   }, [updateDrawPolyline, onLayoutChange]);
 
   const handleGenerateFromLap = useCallback((lapNumber: number) => {
-    if (!samples || !laps) {
-      console.warn('Generate from lap: no samples/laps', { hasSamples: !!samples, hasLaps: !!laps });
-      return;
-    }
+    if (!samples || !laps) return;
     const lap = laps.find(l => l.lapNumber === lapNumber);
-    if (!lap) {
-      console.warn('Generate from lap: lap not found', lapNumber);
-      return;
-    }
+    if (!lap) return;
     const lapSamples = samples.slice(lap.startIndex, lap.endIndex + 1);
-    const rawPoints = lapSamples
-      .filter(s => s.lat !== 0 && s.lon !== 0)
-      .map(s => ({ lat: s.lat, lon: s.lon }));
-    if (isDebugEnabled()) console.info('[generate] from lap', { lapNumber, startIndex: lap.startIndex, endIndex: lap.endIndex, totalSamples: samples.length, lapSamples: lapSamples.length, rawPoints: rawPoints.length });
+    const rawPoints = lapSamples.filter(s => s.lat !== 0 && s.lon !== 0).map(s => ({ lat: s.lat, lon: s.lon }));
     applyGeneratedDrawing(rawPoints, `Generated from Lap ${lapNumber}`);
   }, [samples, laps, applyGeneratedDrawing]);
 
-  // Fresh-track fallback: when no laps were detected (a brand-new venue, or
-  // waypoint timing that never closed a lap) there's nothing to pick from — so
-  // generate the outline straight from the whole session's GPS trace instead.
   const handleGenerateFromSession = useCallback(() => {
-    if (!samples) {
-      console.warn('Generate from session: no samples');
-      return;
-    }
-    const rawPoints = samples
-      .filter(s => s.lat !== 0 && s.lon !== 0)
-      .map(s => ({ lat: s.lat, lon: s.lon }));
-    if (isDebugEnabled()) console.info('[generate] from session', { totalSamples: samples.length, rawPoints: rawPoints.length });
+    if (!samples) return;
+    const rawPoints = samples.filter(s => s.lat !== 0 && s.lon !== 0).map(s => ({ lat: s.lat, lon: s.lon }));
     applyGeneratedDrawing(rawPoints, 'Generated from the full session');
   }, [samples, applyGeneratedDrawing]);
 
@@ -709,9 +553,7 @@ export function VisualEditor({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    // If we're in draw mode, the draw polyline is managed separately
-    if (activeTool === 'draw') return;
-    // Show static layout if we have points and it is enabled
+    if (drawMode) return;
     if (showKnownDrawing && drawPoints.length > 0) {
       if (!drawPolylineRef.current) {
         drawPolylineRef.current = L.polyline(
@@ -727,88 +569,41 @@ export function VisualEditor({
       drawPolylineRef.current.remove();
       drawPolylineRef.current = null;
     }
-  }, [activeTool, drawPoints, showKnownDrawing, mapReady]);
+  }, [drawMode, drawPoints, showKnownDrawing, mapReady]);
 
-  const handleToolChange = (tool: VisualEditorTool) => {
+  // Toggle draw mode on/off.
+  const handleToggleDraw = useCallback(() => {
     const map = mapRef.current;
-
-    // If leaving draw mode, clean up click handler
-    if (activeTool === 'draw' && tool !== 'draw') {
-      clearDrawMode();
-      // Make the polyline dashed/static
-      if (drawPolylineRef.current) {
-        drawPolylineRef.current.setStyle({ opacity: 0.8, dashArray: '10 6' });
+    setDrawMode((prev) => {
+      const next = !prev;
+      if (next) {
+        // Entering draw mode: drop any line editing, deselect, enter draw.
+        onSelectLineRef.current?.(null);
+        if (map) {
+          clearEditingLayers();
+          drawStaticLines(map, null);
+          enterDrawMode();
+          if (drawPolylineRef.current) drawPolylineRef.current.setStyle({ opacity: 0.9, dashArray: undefined });
+        }
+      } else {
+        clearDrawMode();
+        if (drawPolylineRef.current) drawPolylineRef.current.setStyle({ opacity: 0.8, dashArray: '10 6' });
       }
-    }
-
-    // If switching away from a line tool without clicking Done, discard pending changes
-    if (activeTool && activeTool !== tool && activeTool !== 'draw') {
-      if (activeTool === 'startFinish') setPendingStartFinish(null);
-      else if (activeTool === 'sector2') setPendingSector2(null);
-      else if (activeTool === 'sector3') setPendingSector3(null);
-    }
-
-    setActiveTool(tool);
-
-    if (map && tool === 'draw') {
-      clearEditingLayers();
-      drawStaticLines(map, tool);
-      enterDrawMode();
-      // Make draw polyline solid
-      if (drawPolylineRef.current) {
-        drawPolylineRef.current.setStyle({ opacity: 0.9, dashArray: undefined });
-      }
-    } else if (map && tool) {
-      let lineCoords = getLineCoords(tool);
-
-      // If no line exists, create one at map center
-      if (!lineCoords) {
-        lineCoords = createLineAtMapCenter(tool);
-      }
-
-      if (lineCoords) {
-        // Fit map bounds to the selected line with padding
-        const bounds = L.latLngBounds(
-          [lineCoords.a.lat, lineCoords.a.lon],
-          [lineCoords.b.lat, lineCoords.b.lon]
-        );
-        map.fitBounds(bounds, {
-          padding: [80, 80],
-          maxZoom: 20,
-          animate: true
-        });
-
-        // Create layers directly with the known coordinates (avoids async state issue)
-        drawStaticLines(map, tool);
-        createEditingLayersWithCoords(map, tool, lineCoords);
-      }
-    } else if (map && !tool) {
-      // No tool selected, clear editing layers and redraw all static
-      clearEditingLayers();
-      drawStaticLines(map, null);
-    }
-  };
+      return next;
+    });
+  }, [drawStaticLines, enterDrawMode, clearDrawMode]);
 
   // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     const center = getInitialCenter();
-    const map = L.map(mapContainerRef.current, {
-      center,
-      zoom: 18,
-      zoomControl: true,
-    });
+    const map = L.map(mapContainerRef.current, { center, zoom: 18, zoomControl: true });
 
-    tileLayerRef.current = L.tileLayer(satelliteTileUrl, {
-      attribution: 'Tiles © Esri',
-      maxZoom: 21,
-    }).addTo(map);
+    tileLayerRef.current = L.tileLayer(satelliteTileUrl, { attribution: 'Tiles © Esri', maxZoom: 21 }).addTo(map);
 
     mapRef.current = map;
     setMapReady(true);
-
-    // Draw initial static lines
     drawStaticLines(map, null);
 
     return () => {
@@ -825,60 +620,81 @@ export function VisualEditor({
       }
       tileLayerRef.current = null;
     };
-    // Mount-only effect — Leaflet setup; helpers used here intentionally not in
-    // deps to avoid map reinit on every helper reference change. Slated for the
-    // Leaflet integration cleanup in the post-Index.tsx roadmap.
+    // Mount-only effect — Leaflet setup; helpers intentionally not in deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Swap the basemap tiles when the Wayback date changes (without re-init).
   useEffect(() => {
-    if (tileLayerRef.current) {
-      tileLayerRef.current.setUrl(satelliteTileUrl);
-    }
+    if (tileLayerRef.current) tileLayerRef.current.setUrl(satelliteTileUrl);
   }, [satelliteTileUrl]);
 
   // Handle resize
   useEffect(() => {
     if (!mapRef.current || !mapContainerRef.current) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      mapRef.current?.invalidateSize();
-    });
-
+    const resizeObserver = new ResizeObserver(() => mapRef.current?.invalidateSize());
     resizeObserver.observe(mapContainerRef.current);
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Update layers when activeTool changes
+  // Render editing layers when the selection (or geometry) changes.
   useEffect(() => {
-    if (!mapRef.current) return;
+    const map = mapRef.current;
+    if (!map || drawMode) return;
 
-    if (activeTool) {
-      drawStaticLines(mapRef.current, activeTool);
-      createEditingLayers(mapRef.current, activeTool);
+    if (selectedLine !== null) {
+      const coords = coordsFor(selectedLine);
+      drawStaticLines(map, selectedLine);
+      if (coords) {
+        createEditingLayersWithCoords(map, selectedLine, coords);
+      } else {
+        clearEditingLayers();
+      }
     } else {
       clearEditingLayers();
-      drawStaticLines(mapRef.current, null);
+      drawStaticLines(map, null);
     }
-    // Helpers omitted intentionally — including them would re-fire the layer
-    // redraw on every parent render. Slated for the Leaflet refactor.
+    // pendingLine intentionally excluded — dragging updates the active polyline
+    // imperatively; re-running here would rebuild markers mid-drag.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTool, pendingStartFinish, pendingSector2, pendingSector3]);
+  }, [selectedLine, sectors, startFinishA, startFinishB, drawMode, mapReady, drawStaticLines, createEditingLayersWithCoords]);
+
+  // Fit the map to the selected line when selection changes.
+  const lastFitRef = useRef<LineId | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || drawMode || selectedLine === null) { lastFitRef.current = null; return; }
+    if (lastFitRef.current === selectedLine) return;
+    lastFitRef.current = selectedLine;
+    const coords = coordsFor(selectedLine);
+    if (!coords) return;
+    map.fitBounds(L.latLngBounds([coords.a.lat, coords.a.lon], [coords.b.lat, coords.b.lon]), {
+      padding: [80, 80], maxZoom: 20, animate: true,
+    });
+    // coordsFor intentionally omitted — fit only when the selected id changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLine, drawMode]);
+
+  // Clear pending drag state once the committed geometry matches (selection change).
+  useEffect(() => {
+    setPendingLine(null);
+  }, [selectedLine]);
+
+  const labels = useMemo(() => sectorLabels({
+    name: '', startFinishA: { lat: 0, lon: 0 }, startFinishB: { lat: 0, lon: 0 }, sectors,
+  }), [sectors]);
 
   const getHelperText = (): string => {
-    if (!activeTool) return '';
-    if (activeTool === 'draw') {
+    if (drawMode) {
       return drawPoints.length === 0
         ? 'Click on the map to start drawing the track layout'
         : `${drawPoints.length} point${drawPoints.length !== 1 ? 's' : ''} — click to add more, Undo to remove last`;
     }
-    const lineCoords = getLineCoords(activeTool);
-    if (!lineCoords) {
-      return `No ${activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3'} line defined`;
-    }
-    const toolName = activeTool === 'startFinish' ? 'Start/Finish' : activeTool === 'sector2' ? 'Sector 2' : 'Sector 3';
-    return `Drag the markers to adjust the ${toolName} line — changes save automatically when you release`;
+    if (selectedLine === null) return '';
+    const name = selectedLine === 'sf' ? 'Start/Finish' : `Sector ${labels[selectedLine + 1] ?? ''}`;
+    const coords = coordsFor(selectedLine);
+    if (!coords) return `No ${name} line defined`;
+    return `Drag the markers to adjust the ${name} line — changes save automatically when you release`;
   };
 
   return (
@@ -896,38 +712,17 @@ export function VisualEditor({
             className="flex-1 h-8 text-sm"
             disabled={isSearching || !mapRef.current}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3"
-            onClick={handleLocationSearch}
-            disabled={isSearching || !searchQuery.trim() || !mapRef.current}
-          >
-            {isSearching ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
+          <Button variant="outline" size="sm" className="h-8 px-3" onClick={handleLocationSearch} disabled={isSearching || !searchQuery.trim() || !mapRef.current}>
+            {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3"
-            onClick={handleUseMyLocation}
-            disabled={isLocating || !mapRef.current}
-            title="Use my location"
-          >
-            {isLocating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <LocateFixed className="w-4 h-4" />
-            )}
+          <Button variant="outline" size="sm" className="h-8 px-3" onClick={handleUseMyLocation} disabled={isLocating || !mapRef.current} title="Use my location">
+            {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
           </Button>
         </div>
       )}
       <VisualEditorToolbar
-        activeTool={activeTool}
-        onToolChange={handleToolChange}
+        drawMode={drawMode}
+        onToggleDraw={handleToggleDraw}
         showDrawTool={showDrawTool}
         drawPointCount={drawPoints.length}
         canToggleKnownDrawing={showKnownDrawingToggle && drawPoints.length > 1}
@@ -969,7 +764,7 @@ export function VisualEditor({
         ref={mapContainerRef}
         className="w-full h-64 sm:h-80 md:h-96 rounded-lg border border-border overflow-hidden"
       />
-      {activeTool && (
+      {(drawMode || selectedLine !== null) && (
         <p className="text-xs text-muted-foreground text-center">
           {getHelperText()}
         </p>
@@ -977,4 +772,3 @@ export function VisualEditor({
     </div>
   );
 }
-

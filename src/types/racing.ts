@@ -17,13 +17,36 @@ export interface SectorLine {
   b: { lat: number; lon: number };
 }
 
+/**
+ * One timing line in a course's ordered sector list. The start/finish line is
+ * always the implicit first sector (always "major") and is NOT stored here —
+ * `Course.sectors` holds only the lines AFTER start/finish, in driving order.
+ *
+ * `major` flags one of the "traditional" sectors familiar to most drivers. A
+ * course either has zero additional sectors, or exactly three majors total
+ * (start/finish + two flagged here). Only the three major lines are exported to
+ * the BLE logger — sub-sectors are app-only. See `lib/courseSectors.ts`.
+ */
+export interface CourseSector {
+  line: SectorLine;
+  major: boolean;
+}
+
 export interface Course {
   name: string;
   lengthFt?: number; // known course length in feet (from track database)
   startFinishA: { lat: number; lon: number };
   startFinishB: { lat: number; lon: number };
-  sector2?: SectorLine; // Optional sector 2 line
-  sector3?: SectorLine; // Optional sector 3 line
+  /**
+   * Ordered sector lines after start/finish (canonical model). Normalized in
+   * from the legacy `sector2`/`sector3` fields at every load boundary via
+   * `normalizeCourseSectors` — the rest of the app reads only this.
+   */
+  sectors?: CourseSector[];
+  /** @deprecated read-compat mirror of the 2nd major line — derived on save. */
+  sector2?: SectorLine;
+  /** @deprecated read-compat mirror of the 3rd major line — derived on save. */
+  sector3?: SectorLine;
   isUserDefined?: boolean; // true if user added/modified this course
   /**
    * User-drawn (or lap-generated) track outline — an ordered polyline of
@@ -34,9 +57,18 @@ export interface Course {
   layout?: Array<{ lat: number; lon: number }>;
 }
 
-// Helper to check if course has valid sector lines
+/**
+ * True when a course produces the classic three major sectors (start/finish +
+ * two flagged majors). Reads the canonical `sectors` array, falling back to the
+ * legacy `sector2`/`sector3` pair for un-normalized courses.
+ */
 export function courseHasSectors(course: Course | null): boolean {
-  return Boolean(course?.sector2 && course?.sector3);
+  if (!course) return false;
+  if (course.sectors && course.sectors.length > 0) {
+    const majors = course.sectors.filter((s) => s.major).length;
+    return majors >= 2; // + the implicit start/finish major = 3 total
+  }
+  return Boolean(course.sector2 && course.sector3);
 }
 
 export interface Track {
@@ -62,11 +94,14 @@ export interface LapCrossing {
   fraction: number; // 0-1 position along segment
 }
 
-// Sector times (only present when course has sector lines)
+// Major-sector rollup times (only present when course has the three major sectors).
+// Derived from the fine-grained `sectorTimes` by `rollupMajorSectors` — kept so the
+// lap-table "Simple" view, video overlays, snapshots, and the coach plugin keep
+// working unchanged.
 export interface SectorTimes {
-  s1?: number; // ms from start/finish to sector2 crossing
-  s2?: number; // ms from sector2 to sector3 crossing
-  s3?: number; // ms from sector3 to next start/finish
+  s1?: number; // ms from start/finish to 2nd major crossing
+  s2?: number; // ms from 2nd major to 3rd major crossing
+  s3?: number; // ms from 3rd major to next start/finish
 }
 
 export interface Lap {
@@ -80,7 +115,20 @@ export interface Lap {
   minSpeedKph: number;
   startIndex: number;
   endIndex: number;
-  sectors?: SectorTimes; // Only present when course has sector lines
+  sectors?: SectorTimes; // Major rollup — present when course has 3 major sectors
+  /**
+   * Fine-grained per-segment times, one entry per timing line in course order
+   * (segment k = line k → line k+1, last wraps back to start/finish). `undefined`
+   * for a segment whose crossing was missed/out-of-order. Present whenever the
+   * course defines any sectors. Length === 1 + course.sectors.length.
+   */
+  sectorTimes?: (number | undefined)[];
+  /**
+   * Absolute sample index of each timing-line crossing within this lap, aligned
+   * to `sectorTimes` (boundary k = where line k was crossed; index 0 === lap
+   * start). `undefined` where the crossing was missed. Powers crop-to-sector.
+   */
+  sectorBoundaries?: (number | undefined)[];
 }
 
 export interface FieldMapping {

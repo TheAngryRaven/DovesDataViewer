@@ -8,10 +8,15 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
 import type { DbTrack, DbCourse, DbCourseLayout } from '@/lib/db/types';
-import type { SectorLine } from '@/types/racing';
+import type { SectorLine, CourseSector } from '@/types/racing';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
-const VisualEditor = lazy(() =>
-  import('@/components/track-editor/VisualEditor').then((m) => ({ default: m.VisualEditor })),
+import type { SelectedLine } from '@/hooks/useTrackEditorForm';
+import {
+  normalizeCourseSectors, legacyMirror, isAtSectorLimit,
+} from '@/lib/courseSectors';
+import { sectorsFromJson, sectorsToJson, type SectorJson } from '@/lib/trackStorage';
+const CourseSectorEditor = lazy(() =>
+  import('@/components/track-editor/CourseSectorEditor').then((m) => ({ default: m.CourseSectorEditor })),
 );
 import { Plus, Edit2, Check, X, Trash2, Star } from 'lucide-react';
 import { calculatePolylineLength, formatTrackLength } from '@/lib/trackUtils';
@@ -35,58 +40,61 @@ interface CourseFormState {
   startALng: string;
   startBLat: string;
   startBLng: string;
-  s2aLat: string;
-  s2aLng: string;
-  s2bLat: string;
-  s2bLng: string;
-  s3aLat: string;
-  s3aLng: string;
-  s3bLat: string;
-  s3bLng: string;
+  sectors: CourseSector[];
 }
 
 const emptyForm: CourseFormState = {
   name: '', startALat: '', startALng: '', startBLat: '', startBLng: '',
-  s2aLat: '', s2aLng: '', s2bLat: '', s2bLng: '',
-  s3aLat: '', s3aLng: '', s3bLat: '', s3bLng: '',
+  sectors: [],
 };
 
 function formFromCourse(c: DbCourse): CourseFormState {
+  // Prefer the canonical sectors_data; fall back to the legacy two-major columns.
+  const fromJson = sectorsFromJson(c.sectors_data as SectorJson[] | undefined);
+  let sectors = fromJson;
+  if (!sectors) {
+    const norm = normalizeCourseSectors({
+      name: c.name,
+      startFinishA: { lat: c.start_a_lat, lon: c.start_a_lng },
+      startFinishB: { lat: c.start_b_lat, lon: c.start_b_lng },
+      sector2: c.sector_2_a_lat != null && c.sector_2_a_lng != null && c.sector_2_b_lat != null && c.sector_2_b_lng != null
+        ? { a: { lat: c.sector_2_a_lat, lon: c.sector_2_a_lng }, b: { lat: c.sector_2_b_lat, lon: c.sector_2_b_lng } } : undefined,
+      sector3: c.sector_3_a_lat != null && c.sector_3_a_lng != null && c.sector_3_b_lat != null && c.sector_3_b_lng != null
+        ? { a: { lat: c.sector_3_a_lat, lon: c.sector_3_a_lng }, b: { lat: c.sector_3_b_lat, lon: c.sector_3_b_lng } } : undefined,
+    });
+    sectors = norm.sectors;
+  }
   return {
     name: c.name,
     startALat: String(c.start_a_lat), startALng: String(c.start_a_lng),
     startBLat: String(c.start_b_lat), startBLng: String(c.start_b_lng),
-    s2aLat: c.sector_2_a_lat != null ? String(c.sector_2_a_lat) : '',
-    s2aLng: c.sector_2_a_lng != null ? String(c.sector_2_a_lng) : '',
-    s2bLat: c.sector_2_b_lat != null ? String(c.sector_2_b_lat) : '',
-    s2bLng: c.sector_2_b_lng != null ? String(c.sector_2_b_lng) : '',
-    s3aLat: c.sector_3_a_lat != null ? String(c.sector_3_a_lat) : '',
-    s3aLng: c.sector_3_a_lng != null ? String(c.sector_3_a_lng) : '',
-    s3bLat: c.sector_3_b_lat != null ? String(c.sector_3_b_lat) : '',
-    s3bLng: c.sector_3_b_lng != null ? String(c.sector_3_b_lng) : '',
+    sectors: sectors ?? [],
   };
 }
 
-function parseOptional(v: string): number | null {
-  const n = parseFloat(v);
-  return isNaN(n) ? null : n;
-}
-
 function formToCourseData(f: CourseFormState) {
+  // Persist the legacy two-major mirror (for DB columns) AND the full sectors_data.
+  const { sector2, sector3 } = legacyMirror({
+    name: f.name,
+    startFinishA: { lat: parseFloat(f.startALat), lon: parseFloat(f.startALng) },
+    startFinishB: { lat: parseFloat(f.startBLat), lon: parseFloat(f.startBLng) },
+    sectors: f.sectors,
+  });
   return {
     name: f.name.trim(),
     start_a_lat: parseFloat(f.startALat),
     start_a_lng: parseFloat(f.startALng),
     start_b_lat: parseFloat(f.startBLat),
     start_b_lng: parseFloat(f.startBLng),
-    sector_2_a_lat: parseOptional(f.s2aLat),
-    sector_2_a_lng: parseOptional(f.s2aLng),
-    sector_2_b_lat: parseOptional(f.s2bLat),
-    sector_2_b_lng: parseOptional(f.s2bLng),
-    sector_3_a_lat: parseOptional(f.s3aLat),
-    sector_3_a_lng: parseOptional(f.s3aLng),
-    sector_3_b_lat: parseOptional(f.s3bLat),
-    sector_3_b_lng: parseOptional(f.s3bLng),
+    sector_2_a_lat: sector2?.a.lat ?? null,
+    sector_2_a_lng: sector2?.a.lon ?? null,
+    sector_2_b_lat: sector2?.b.lat ?? null,
+    sector_2_b_lng: sector2?.b.lon ?? null,
+    sector_3_a_lat: sector3?.a.lat ?? null,
+    sector_3_a_lng: sector3?.a.lon ?? null,
+    sector_3_b_lat: sector3?.b.lat ?? null,
+    sector_3_b_lng: sector3?.b.lon ?? null,
+    sectors_data: sectorsToJson(f.sectors) ?? null,
   };
 }
 
@@ -267,24 +275,50 @@ export function CoursesTab() {
     setLayoutPoints([]); setHasExistingLayout(false);
   };
 
-  // VisualEditor bridge helpers
+  // Editor bridge helpers
+  const [selectedLine, setSelectedLine] = useState<SelectedLine>(null);
   const visualStartA: GpsPoint | null = form.startALat && form.startALng
     ? { lat: parseFloat(form.startALat), lon: parseFloat(form.startALng) } : null;
   const visualStartB: GpsPoint | null = form.startBLat && form.startBLng
     ? { lat: parseFloat(form.startBLat), lon: parseFloat(form.startBLng) } : null;
-  const visualSector2: SectorLine | undefined = form.s2aLat && form.s2aLng && form.s2bLat && form.s2bLng
-    ? { a: { lat: parseFloat(form.s2aLat), lon: parseFloat(form.s2aLng) }, b: { lat: parseFloat(form.s2bLat), lon: parseFloat(form.s2bLng) } } : undefined;
-  const visualSector3: SectorLine | undefined = form.s3aLat && form.s3aLng && form.s3bLat && form.s3bLng
-    ? { a: { lat: parseFloat(form.s3aLat), lon: parseFloat(form.s3aLng) }, b: { lat: parseFloat(form.s3bLat), lon: parseFloat(form.s3bLng) } } : undefined;
 
   const handleVisualStartFinish = useCallback((a: GpsPoint, b: GpsPoint) => {
     setForm(prev => ({ ...prev, startALat: String(a.lat), startALng: String(a.lon), startBLat: String(b.lat), startBLng: String(b.lon) }));
   }, []);
-  const handleVisualSector2 = useCallback((line: SectorLine) => {
-    setForm(prev => ({ ...prev, s2aLat: String(line.a.lat), s2aLng: String(line.a.lon), s2bLat: String(line.b.lat), s2bLng: String(line.b.lon) }));
+  const handleSectorLineChange = useCallback((index: number, line: SectorLine) => {
+    setForm(prev => ({ ...prev, sectors: prev.sectors.map((s, i) => (i === index ? { ...s, line } : s)) }));
   }, []);
-  const handleVisualSector3 = useCallback((line: SectorLine) => {
-    setForm(prev => ({ ...prev, s3aLat: String(line.a.lat), s3aLng: String(line.a.lon), s3bLat: String(line.b.lat), s3bLng: String(line.b.lon) }));
+  const handleAddSector = useCallback((insertIndex?: number) => {
+    setForm(prev => {
+      const course = { name: prev.name, startFinishA: { lat: 0, lon: 0 }, startFinishB: { lat: 0, lon: 0 }, sectors: prev.sectors };
+      if (isAtSectorLimit(course)) return prev;
+      const a = visualStartA, b = visualStartB;
+      const midLat = a && b ? (a.lat + b.lat) / 2 : 28.4123;
+      const midLon = a && b ? (a.lon + b.lon) / 2 : -81.3797;
+      const offset = 0.0003 * (prev.sectors.length + 1);
+      const line: SectorLine = { a: { lat: midLat + offset, lon: midLon - 0.00015 }, b: { lat: midLat + offset, lon: midLon + 0.00015 } };
+      const at = insertIndex === undefined ? prev.sectors.length : Math.max(0, Math.min(insertIndex, prev.sectors.length));
+      const sectors = [...prev.sectors.slice(0, at), { line, major: false }, ...prev.sectors.slice(at)];
+      setSelectedLine(at);
+      return { ...prev, sectors };
+    });
+  }, [visualStartA, visualStartB]);
+  const handleRemoveSector = useCallback((index: number) => {
+    setForm(prev => ({ ...prev, sectors: prev.sectors.filter((_, i) => i !== index) }));
+    setSelectedLine(sel => (typeof sel === 'number' ? null : sel));
+  }, []);
+  const handleToggleMajor = useCallback((index: number) => {
+    setForm(prev => ({ ...prev, sectors: prev.sectors.map((s, i) => (i === index ? { ...s, major: !s.major } : s)) }));
+  }, []);
+  const handleReorder = useCallback((from: number, to: number) => {
+    setForm(prev => {
+      if (from === to || from < 0 || to < 0 || from >= prev.sectors.length || to >= prev.sectors.length) return prev;
+      const sectors = [...prev.sectors];
+      const [moved] = sectors.splice(from, 1);
+      sectors.splice(to, 0, moved);
+      return { ...prev, sectors };
+    });
+    setSelectedLine(null);
   }, []);
 
   const handleLayoutChange = useCallback((points: Array<{ lat: number; lon: number }>) => {
@@ -303,14 +337,18 @@ export function CoursesTab() {
       </div>
 
       <Suspense fallback={null}>
-        <VisualEditor
+        <CourseSectorEditor
           startFinishA={visualStartA}
           startFinishB={visualStartB}
-          sector2={visualSector2}
-          sector3={visualSector3}
+          sectors={form.sectors}
+          selectedLine={selectedLine}
+          onSelectLine={setSelectedLine}
           onStartFinishChange={handleVisualStartFinish}
-          onSector2Change={handleVisualSector2}
-          onSector3Change={handleVisualSector3}
+          onSectorLineChange={handleSectorLineChange}
+          onAddSector={handleAddSector}
+          onRemoveSector={handleRemoveSector}
+          onToggleMajor={handleToggleMajor}
+          onReorder={handleReorder}
           isNewTrack={!editingId}
           showDrawTool={true}
           layoutPoints={layoutPoints}

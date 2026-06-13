@@ -57,7 +57,10 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
   }
 
   async createCourse(input: Omit<DbCourse, 'id' | 'created_at' | 'updated_at'>): Promise<DbCourse> {
-    const { data, error } = await supabase.from('courses').insert({
+    // Built as a variable (not an object literal) so the extra `sectors_data`
+    // column — not yet in the generated Supabase types — isn't flagged as an
+    // excess property. Generated types are regenerated after the migration.
+    const payload = {
       track_id: input.track_id,
       name: input.name.trim(),
       enabled: input.enabled,
@@ -73,8 +76,10 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
       sector_3_a_lng: input.sector_3_a_lng,
       sector_3_b_lat: input.sector_3_b_lat,
       sector_3_b_lng: input.sector_3_b_lng,
+      sectors_data: input.sectors_data ?? null,
       superseded_by: input.superseded_by,
-    }).select().single();
+    };
+    const { data, error } = await supabase.from('courses').insert(payload).select().single();
     if (error) throw error;
     return data as DbCourse;
   }
@@ -218,6 +223,10 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
           obj.sector_3_a_lng = c.sector_3_a_lng;
           obj.sector_3_b_lat = c.sector_3_b_lat;
           obj.sector_3_b_lng = c.sector_3_b_lng;
+        }
+        // Canonical ordered sector list (incl. sub-sectors), when present.
+        if (Array.isArray(c.sectors_data) && c.sectors_data.length > 0) {
+          obj.sectors = c.sectors_data;
         }
         return obj;
       });
@@ -403,6 +412,17 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
           sector_3_b_lat: toNumLat(c.sector_3_b_lat, 'sector_3_b_lat'),
           sector_3_b_lng: toNumLng(c.sector_3_b_lng, 'sector_3_b_lng'),
         };
+
+        // Import the canonical ordered sector list, when present.
+        if (Array.isArray(c.sectors) && c.sectors.length > 0) {
+          courseData.sectors_data = (c.sectors as Array<Record<string, unknown>>).map((s) => ({
+            a_lat: validateLat(s.a_lat, 'sector a_lat'),
+            a_lng: validateLng(s.a_lng, 'sector a_lng'),
+            b_lat: validateLat(s.b_lat, 'sector b_lat'),
+            b_lng: validateLng(s.b_lng, 'sector b_lng'),
+            major: Boolean(s.major),
+          }));
+        }
 
         // Import lengthFt as length_ft_override
         if (c.lengthFt !== undefined && c.lengthFt !== null) {

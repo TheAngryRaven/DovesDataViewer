@@ -1,5 +1,6 @@
-import { GpsSample, Course, Lap, LapCrossing, SectorTimes, SectorLine, CourseDirection, courseHasSectors } from '@/types/racing';
+import { GpsSample, Course, Lap, LapCrossing, SectorTimes, SectorLine, CourseDirection } from '@/types/racing';
 import { EARTH_RADIUS_M } from './parserUtils';
+import { normalizeCourseSectors, majorSectorLines, rollupMajorSectors } from './courseSectors';
 
 interface Point {
   x: number;
@@ -64,7 +65,8 @@ const MIN_CROSSING_INTERVAL_MS = 5000; // 5 seconds for start/finish
 const MIN_SECTOR_CROSSING_INTERVAL_MS = 1000; // 1 second for sector lines
 
 interface LineCrossing {
-  lineType: 'sf' | 's2' | 's3'; // start/finish, sector2, sector3
+  // 'sf' = start/finish; a number is the 0-based index into course.sectors.
+  lineType: 'sf' | number;
   crossingTime: number;
   sampleIndex: number;
   fraction: number;
@@ -82,7 +84,7 @@ function detectLineCrossings(
   lineB: Point,
   centerLat: number,
   centerLon: number,
-  lineType: 'sf' | 's2' | 's3',
+  lineType: 'sf' | number,
   minInterval: number
 ): LineCrossing[] {
   const candidates: LineCrossing[] = [];
@@ -140,40 +142,40 @@ function projectSectorLine(
   };
 }
 
-export function calculateLaps(samples: GpsSample[], course: Course): Lap[] {
+export function calculateLaps(samples: GpsSample[], inputCourse: Course): Lap[] {
   if (samples.length < 2) return [];
-  
+
+  // Operate on the canonical sector model regardless of how the course was stored.
+  const course = normalizeCourseSectors(inputCourse);
+
   // Calculate center for projection
   const centerLat = (course.startFinishA.lat + course.startFinishB.lat) / 2;
   const centerLon = (course.startFinishA.lon + course.startFinishB.lon) / 2;
-  
+
   // Project start/finish line
   const sfA = projectToPlane(course.startFinishA.lat, course.startFinishA.lon, centerLat, centerLon);
   const sfB = projectToPlane(course.startFinishB.lat, course.startFinishB.lon, centerLat, centerLon);
-  
+
   // Detect start/finish crossings
   const sfCrossings = detectLineCrossings(samples, sfA, sfB, centerLat, centerLon, 'sf', MIN_CROSSING_INTERVAL_MS);
-  
+
   // Convert to LapCrossing format for backwards compatibility
   const crossings: LapCrossing[] = sfCrossings.map(c => ({
     sampleIndex: c.sampleIndex,
     crossingTime: c.crossingTime,
     fraction: c.fraction
   }));
-  
-  // Detect sector crossings only if course has both sector lines
-  const hasSectors = courseHasSectors(course);
-  let sector2Crossings: LineCrossing[] = [];
-  let sector3Crossings: LineCrossing[] = [];
-  
-  if (hasSectors && course.sector2 && course.sector3) {
-    const s2Line = projectSectorLine(course.sector2, centerLat, centerLon);
-    const s3Line = projectSectorLine(course.sector3, centerLat, centerLon);
-    
-    sector2Crossings = detectLineCrossings(samples, s2Line.a, s2Line.b, centerLat, centerLon, 's2', MIN_SECTOR_CROSSING_INTERVAL_MS);
-    sector3Crossings = detectLineCrossings(samples, s3Line.a, s3Line.b, centerLat, centerLon, 's3', MIN_SECTOR_CROSSING_INTERVAL_MS);
-  }
-  
+
+  // Detect crossings for every sector line in course order (index-tagged).
+  const courseSectors = course.sectors ?? [];
+  const sectorCrossings: LineCrossing[][] = courseSectors.map((sec, j) => {
+    const line = projectSectorLine(sec.line, centerLat, centerLon);
+    return detectLineCrossings(samples, line.a, line.b, centerLat, centerLon, j, MIN_SECTOR_CROSSING_INTERVAL_MS);
+  });
+  // Number of timing lines = start/finish + course sectors. Segment k spans
+  // line k → line k+1 (last segment wraps back to start/finish).
+  const lineCount = courseSectors.length + 1;
+
   // Calculate laps from crossings
   const laps: Lap[] = [];
   
@@ -233,52 +235,46 @@ export function calculateLaps(samples: GpsSample[], course: Course): Lap[] {
       }
     }
     
-    // Calculate sector times if sectors exist
+    // Compute fine-grained per-segment times when the course defines sectors.
     let sectors: SectorTimes | undefined;
-    
-    if (hasSectors) {
-      // Find sector2 crossing within this lap (after start.crossingTime, before end.crossingTime)
-      const s2Crossing = sector2Crossings.find(c => 
-        c.crossingTime > start.crossingTime && c.crossingTime < end.crossingTime
-      );
-      
-      // Find sector3 crossing within this lap (after sector2 if found, before end.crossingTime)
-      const s3Crossing = sector3Crossings.find(c => 
-        c.crossingTime > (s2Crossing?.crossingTime ?? start.crossingTime) && 
-        c.crossingTime < end.crossingTime
-      );
-      
-      // Only compute sector times if crossings are in correct order
-      if (s2Crossing && s3Crossing && s2Crossing.crossingTime < s3Crossing.crossingTime) {
-        sectors = {
-          s1: s2Crossing.crossingTime - start.crossingTime,
-          s2: s3Crossing.crossingTime - s2Crossing.crossingTime,
-          s3: end.crossingTime - s3Crossing.crossingTime
-        };
-      } else if (s2Crossing && !s3Crossing) {
-        // Only S1 is valid
-        sectors = {
-          s1: s2Crossing.crossingTime - start.crossingTime,
-          s2: undefined,
-          s3: undefined
-        };
-      } else if (!s2Crossing && s3Crossing) {
-        // S1 and S2 missing, S3 can't be computed alone
-        sectors = {
-          s1: undefined,
-          s2: undefined,
-          s3: undefined
-        };
-      } else {
-        // No sector crossings found
-        sectors = {
-          s1: undefined,
-          s2: undefined,
-          s3: undefined
-        };
+    let sectorTimes: (number | undefined)[] | undefined;
+    let sectorBoundaries: (number | undefined)[] | undefined;
+
+    if (courseSectors.length > 0) {
+      // Walk every sector line in order, finding the crossing for this lap. Each
+      // must fall after the previously matched boundary so out-of-order/missed
+      // crossings leave a gap rather than corrupting later sectors.
+      const boundaryTimes: (number | undefined)[] = new Array(lineCount);
+      const boundaryIdx: (number | undefined)[] = new Array(lineCount);
+      boundaryTimes[0] = start.crossingTime; // line 0 = start/finish
+      boundaryIdx[0] = start.sampleIndex;
+      let prevTime = start.crossingTime;
+
+      for (let j = 0; j < courseSectors.length; j++) {
+        const cross = sectorCrossings[j].find(
+          c => c.crossingTime > prevTime && c.crossingTime < end.crossingTime,
+        );
+        if (cross) {
+          boundaryTimes[j + 1] = cross.crossingTime;
+          boundaryIdx[j + 1] = cross.sampleIndex;
+          prevTime = cross.crossingTime;
+        } else {
+          boundaryTimes[j + 1] = undefined;
+          boundaryIdx[j + 1] = undefined;
+        }
       }
+
+      // Segment k = boundary k → boundary k+1 (last segment closes on start/finish).
+      sectorTimes = new Array(lineCount);
+      for (let k = 0; k < lineCount; k++) {
+        const tStart = boundaryTimes[k];
+        const tEnd = k + 1 < lineCount ? boundaryTimes[k + 1] : end.crossingTime;
+        sectorTimes[k] = tStart !== undefined && tEnd !== undefined ? tEnd - tStart : undefined;
+      }
+      sectorBoundaries = boundaryIdx;
+      sectors = rollupMajorSectors(course, sectorTimes);
     }
-    
+
     laps.push({
       lapNumber: i + 1,
       startTime: start.crossingTime,
@@ -290,7 +286,9 @@ export function calculateLaps(samples: GpsSample[], course: Course): Lap[] {
       minSpeedKph: minSpeedKph === Infinity ? 0 : minSpeedKph,
       startIndex: start.sampleIndex,
       endIndex: end.sampleIndex,
-      sectors
+      sectors,
+      sectorTimes,
+      sectorBoundaries
     });
   }
   
@@ -311,37 +309,36 @@ export function formatSectorTime(ms: number): string {
   return seconds.toFixed(3);
 }
 
-// Calculate optimal lap from best sectors
+// Calculate optimal lap from the best time of every fine-grained sector segment.
 export interface OptimalLapResult {
   optimalTimeMs: number;
-  bestS1: number;
-  bestS2: number;
-  bestS3: number;
+  /** Best (min) time for each segment, in course order. */
+  bestSegments: number[];
   deltaToFastest: number; // fastest lap - optimal (should be >= 0)
 }
 
+/**
+ * Optimal lap = sum of the fastest time achieved in each sector segment across
+ * all laps (now over ALL sectors, not just the three majors). Returns null
+ * unless every segment was completed in at least one lap.
+ */
 export function calculateOptimalLap(laps: Lap[]): OptimalLapResult | null {
-  // Filter laps that have all three valid sector times
-  const lapsWithAllSectors = laps.filter(lap => 
-    lap.sectors?.s1 !== undefined && 
-    lap.sectors?.s2 !== undefined && 
-    lap.sectors?.s3 !== undefined
-  );
-  
-  if (lapsWithAllSectors.length === 0) return null;
-  
-  // Find best time for each sector
-  let bestS1 = Infinity;
-  let bestS2 = Infinity;
-  let bestS3 = Infinity;
-  
-  for (const lap of lapsWithAllSectors) {
-    if (lap.sectors!.s1! < bestS1) bestS1 = lap.sectors!.s1!;
-    if (lap.sectors!.s2! < bestS2) bestS2 = lap.sectors!.s2!;
-    if (lap.sectors!.s3! < bestS3) bestS3 = lap.sectors!.s3!;
+  const lapsWithSegments = laps.filter(l => l.sectorTimes && l.sectorTimes.length > 0);
+  if (lapsWithSegments.length === 0) return null;
+
+  const segCount = Math.max(...lapsWithSegments.map(l => l.sectorTimes!.length));
+  const bestSegments = new Array<number>(segCount).fill(Infinity);
+
+  for (const lap of lapsWithSegments) {
+    lap.sectorTimes!.forEach((t, k) => {
+      if (t !== undefined && t < bestSegments[k]) bestSegments[k] = t;
+    });
   }
-  
-  const optimalTimeMs = bestS1 + bestS2 + bestS3;
+
+  // Every segment needs at least one completed lap to form a complete optimal.
+  if (bestSegments.some(b => !isFinite(b))) return null;
+
+  const optimalTimeMs = bestSegments.reduce((a, b) => a + b, 0);
 
   // Find fastest actual lap (single-pass to avoid stack overflow on huge inputs)
   let fastestLapMs = Infinity;
@@ -349,14 +346,8 @@ export function calculateOptimalLap(laps: Lap[]): OptimalLapResult | null {
     if (l.lapTimeMs < fastestLapMs) fastestLapMs = l.lapTimeMs;
   }
   const deltaToFastest = fastestLapMs - optimalTimeMs;
-  
-  return {
-    optimalTimeMs,
-    bestS1,
-    bestS2,
-    bestS3,
-    deltaToFastest
-  };
+
+  return { optimalTimeMs, bestSegments, deltaToFastest };
 }
 
 /**
@@ -374,16 +365,19 @@ export function calculateOptimalLap(laps: Lap[]): OptimalLapResult | null {
  *   - 'reverse' if S3 is crossed before S2
  *   - undefined if either line is never crossed, or the course has no sectors
  */
-export function detectSectorOrder(samples: GpsSample[], course: Course): CourseDirection | undefined {
-  if (!course.sector2 || !course.sector3 || samples.length < 2) {
+export function detectSectorOrder(samples: GpsSample[], inputCourse: Course): CourseDirection | undefined {
+  const course = normalizeCourseSectors(inputCourse);
+  // Direction is inferred from the first two major lines after start/finish.
+  const majors = majorSectorLines(course);
+  if (majors.length < 2 || samples.length < 2) {
     return undefined;
   }
 
   const centerLat = (course.startFinishA.lat + course.startFinishB.lat) / 2;
   const centerLon = (course.startFinishA.lon + course.startFinishB.lon) / 2;
 
-  const s2Line = projectSectorLine(course.sector2, centerLat, centerLon);
-  const s3Line = projectSectorLine(course.sector3, centerLat, centerLon);
+  const s2Line = projectSectorLine(majors[0], centerLat, centerLon);
+  const s3Line = projectSectorLine(majors[1], centerLat, centerLon);
 
   const firstS2Time = findFirstCrossingTime(samples, s2Line, centerLat, centerLon);
   const firstS3Time = findFirstCrossingTime(samples, s3Line, centerLat, centerLon);

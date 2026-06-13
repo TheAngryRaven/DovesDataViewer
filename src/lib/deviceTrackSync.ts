@@ -6,6 +6,7 @@
 
 import { Track, Course, SectorLine } from '@/types/racing';
 import { haversineDistance } from '@/lib/parserUtils';
+import { legacyMirror, majorSectorLines, normalizeCourseSectors } from '@/lib/courseSectors';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,7 +79,22 @@ function sectorLineFromDevice(
   return undefined;
 }
 
-/** Compare an app Course with a device course JSON. */
+function sectorLinesEqual(a?: SectorLine, b?: SectorLine): boolean {
+  if (!!a !== !!b) return false;
+  if (!a || !b) return true;
+  return (
+    coordsEqual(a.a.lat, b.a.lat) &&
+    coordsEqual(a.a.lon, b.a.lon) &&
+    coordsEqual(a.b.lat, b.b.lat) &&
+    coordsEqual(a.b.lon, b.b.lon)
+  );
+}
+
+/**
+ * Compare an app Course with a device course JSON. Only the device-visible
+ * projection (start/finish + the two major lines) is compared — app-only
+ * sub-sectors never flag a mismatch, since they're never sent to the device.
+ */
 export function coursesMatch(appCourse: Course, dc: DeviceCourseJson): boolean {
   // Compare start/finish
   if (!coordsEqual(appCourse.startFinishA.lat, dc.start_a_lat)) return false;
@@ -86,32 +102,20 @@ export function coursesMatch(appCourse: Course, dc: DeviceCourseJson): boolean {
   if (!coordsEqual(appCourse.startFinishB.lat, dc.start_b_lat)) return false;
   if (!coordsEqual(appCourse.startFinishB.lon, dc.start_b_lng)) return false;
 
-  // Compare sector 2
+  // Compare the two major sectors (mirror) against the device's two sector lines.
+  const { sector2, sector3 } = legacyMirror(normalizeCourseSectors(appCourse));
   const deviceS2 = sectorLineFromDevice(dc.sector_2_a_lat, dc.sector_2_a_lng, dc.sector_2_b_lat, dc.sector_2_b_lng);
-  if (!!appCourse.sector2 !== !!deviceS2) return false;
-  if (appCourse.sector2 && deviceS2) {
-    if (!coordsEqual(appCourse.sector2.a.lat, deviceS2.a.lat)) return false;
-    if (!coordsEqual(appCourse.sector2.a.lon, deviceS2.a.lon)) return false;
-    if (!coordsEqual(appCourse.sector2.b.lat, deviceS2.b.lat)) return false;
-    if (!coordsEqual(appCourse.sector2.b.lon, deviceS2.b.lon)) return false;
-  }
-
-  // Compare sector 3
   const deviceS3 = sectorLineFromDevice(dc.sector_3_a_lat, dc.sector_3_a_lng, dc.sector_3_b_lat, dc.sector_3_b_lng);
-  if (!!appCourse.sector3 !== !!deviceS3) return false;
-  if (appCourse.sector3 && deviceS3) {
-    if (!coordsEqual(appCourse.sector3.a.lat, deviceS3.a.lat)) return false;
-    if (!coordsEqual(appCourse.sector3.a.lon, deviceS3.a.lon)) return false;
-    if (!coordsEqual(appCourse.sector3.b.lat, deviceS3.b.lat)) return false;
-    if (!coordsEqual(appCourse.sector3.b.lon, deviceS3.b.lon)) return false;
-  }
 
-  return true;
+  return sectorLinesEqual(sector2, deviceS2) && sectorLinesEqual(sector3, deviceS3);
 }
 
 // ─── Conversion ───────────────────────────────────────────────────────────────
 
-/** Convert device course JSON to app Course */
+/**
+ * Convert device course JSON to app Course. The device's two sector lines become
+ * the course's two major sectors (the only sectors the device knows about).
+ */
 export function deviceCourseToAppCourse(dc: DeviceCourseJson): Course {
   const course: Course = {
     name: dc.name,
@@ -128,10 +132,14 @@ export function deviceCourseToAppCourse(dc: DeviceCourseJson): Course {
     course.sector3 = s3;
   }
 
-  return course;
+  return normalizeCourseSectors(course);
 }
 
-/** Convert an app Course to device JSON format */
+/**
+ * Convert an app Course to device JSON. Projects the course's three major
+ * sectors down to start/finish + the two legacy sector lines — byte-identical to
+ * the pre-overhaul output. App-only sub-sectors are intentionally dropped.
+ */
 export function appCourseToDeviceJson(course: Course): DeviceCourseJson {
   const dc: DeviceCourseJson = {
     name: course.name,
@@ -145,17 +153,18 @@ export function appCourseToDeviceJson(course: Course): DeviceCourseJson {
     dc.lengthFt = course.lengthFt;
   }
 
-  if (course.sector2) {
-    dc.sector_2_a_lat = course.sector2.a.lat;
-    dc.sector_2_a_lng = course.sector2.a.lon;
-    dc.sector_2_b_lat = course.sector2.b.lat;
-    dc.sector_2_b_lng = course.sector2.b.lon;
+  const { sector2, sector3 } = legacyMirror(normalizeCourseSectors(course));
+  if (sector2) {
+    dc.sector_2_a_lat = sector2.a.lat;
+    dc.sector_2_a_lng = sector2.a.lon;
+    dc.sector_2_b_lat = sector2.b.lat;
+    dc.sector_2_b_lng = sector2.b.lon;
   }
-  if (course.sector3) {
-    dc.sector_3_a_lat = course.sector3.a.lat;
-    dc.sector_3_a_lng = course.sector3.a.lon;
-    dc.sector_3_b_lat = course.sector3.b.lat;
-    dc.sector_3_b_lng = course.sector3.b.lon;
+  if (sector3) {
+    dc.sector_3_a_lat = sector3.a.lat;
+    dc.sector_3_a_lng = sector3.a.lon;
+    dc.sector_3_b_lat = sector3.b.lat;
+    dc.sector_3_b_lng = sector3.b.lon;
   }
 
   return dc;
@@ -298,10 +307,11 @@ export function countDeviceSectors(dc: DeviceCourseJson): number {
   return 0;
 }
 
-/** Count sectors in an app course. */
+/** Count device-visible sectors in an app course (0, 2, or 3 — majors only). */
 export function countAppSectors(course: Course): number {
-  if (course.sector2 && course.sector3) return 3;
-  if (course.sector2) return 2;
+  const majors = majorSectorLines(course).length;
+  if (majors >= 2) return 3;
+  if (majors === 1) return 2;
   return 0;
 }
 

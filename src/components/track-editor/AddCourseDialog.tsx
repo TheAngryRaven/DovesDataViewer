@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,26 +9,30 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-const VisualEditor = lazy(() =>
-  import('./VisualEditor').then((m) => ({ default: m.VisualEditor })),
-);
-import type { CourseFormProps } from '@/hooks/useTrackEditorForm';
+import { CourseSectorEditor } from './CourseSectorEditor';
 import type { GpsPoint } from './VisualEditor';
-import type { SectorLine, Lap, GpsSample } from '@/types/racing';
+import type { SelectedLine } from '@/hooks/useTrackEditorForm';
+import type { CourseSector, SectorLine, Lap, GpsSample } from '@/types/racing';
 
 interface AddCourseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  courseFormProps: Omit<CourseFormProps, 'onSubmit' | 'onCancel' | 'submitLabel' | 'showTrackName'>;
+  courseName: string;
+  onCourseNameChange: (value: string) => void;
+  canSubmit: boolean;
   onSubmit: () => void;
   onCancel: () => void;
   startFinishA: GpsPoint | null;
   startFinishB: GpsPoint | null;
-  sector2: SectorLine | undefined;
-  sector3: SectorLine | undefined;
+  sectors: CourseSector[];
+  selectedLine: SelectedLine;
+  onSelectLine: (id: SelectedLine) => void;
   onStartFinishChange: (a: GpsPoint, b: GpsPoint) => void;
-  onSector2Change: (line: SectorLine) => void;
-  onSector3Change: (line: SectorLine) => void;
+  onSectorLineChange: (index: number, line: SectorLine) => void;
+  onAddSector: (insertIndex?: number) => void;
+  onRemoveSector: (index: number) => void;
+  onToggleMajor: (index: number) => void;
+  onReorder: (from: number, to: number) => void;
   initialCenter?: GpsPoint | null;
   /** Drawing support — draw the outline manually or generate it from a lap. */
   layoutPoints?: Array<{ lat: number; lon: number }>;
@@ -40,47 +43,50 @@ interface AddCourseDialogProps {
 
 export function AddCourseDialog({
   open, onOpenChange,
-  courseFormProps,
+  courseName, onCourseNameChange, canSubmit,
   onSubmit, onCancel,
-  startFinishA, startFinishB, sector2, sector3,
-  onStartFinishChange, onSector2Change, onSector3Change,
+  startFinishA, startFinishB, sectors, selectedLine, onSelectLine,
+  onStartFinishChange, onSectorLineChange,
+  onAddSector, onRemoveSector, onToggleMajor, onReorder,
   initialCenter,
   layoutPoints, onLayoutChange, laps, samples,
 }: AddCourseDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Course</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <Suspense fallback={null}>
-            <VisualEditor
-              startFinishA={startFinishA}
-              startFinishB={startFinishB}
-              sector2={sector2}
-              sector3={sector3}
-              initialCenter={initialCenter}
-              onStartFinishChange={onStartFinishChange}
-              onSector2Change={onSector2Change}
-              onSector3Change={onSector3Change}
-              isNewTrack={true}
-              showDrawTool={true}
-              layoutPoints={layoutPoints}
-              onLayoutChange={onLayoutChange}
-              laps={laps}
-              samples={samples}
-            />
-          </Suspense>
+          <CourseSectorEditor
+            startFinishA={startFinishA}
+            startFinishB={startFinishB}
+            sectors={sectors}
+            selectedLine={selectedLine}
+            onSelectLine={onSelectLine}
+            onStartFinishChange={onStartFinishChange}
+            onSectorLineChange={onSectorLineChange}
+            onAddSector={onAddSector}
+            onRemoveSector={onRemoveSector}
+            onToggleMajor={onToggleMajor}
+            onReorder={onReorder}
+            isNewTrack
+            initialCenter={initialCenter}
+            showDrawTool
+            layoutPoints={layoutPoints}
+            onLayoutChange={onLayoutChange}
+            laps={laps}
+            samples={samples}
+          />
           <div className="space-y-3">
             <div>
               <Label htmlFor="addCourseName">Course Name</Label>
-              <Input id="addCourseName" value={courseFormProps.courseName} onChange={(e) => courseFormProps.onCourseNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
+              <Input id="addCourseName" value={courseName} onChange={(e) => onCourseNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={onSubmit} className="flex-1" disabled={!courseFormProps.courseName.trim() || !courseFormProps.latA || !courseFormProps.lonA || !courseFormProps.latB || !courseFormProps.lonB}>
+            <Button onClick={onSubmit} className="flex-1" disabled={!canSubmit}>
               <Check className="w-4 h-4 mr-2" />
               Create Course
             </Button>
