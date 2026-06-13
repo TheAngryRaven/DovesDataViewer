@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.5.1] - unreleased
 
 ### Added
+- **Tools on the home screen.** A new **Tools** tile on the landing page opens the
+  trackside tools (the seat-position visualizer and more) in a half-screen panel —
+  no datalog needed. A **Phone Datalogger** tool is listed as an early skeleton
+  (using your phone's GPS for lap timing is still being built).
 - **Translations / multi-language support (foundation).** The app now has an
   internationalization system (built on i18next) with a **Language** picker in
   Settings. It auto-detects your browser language on first run and ships

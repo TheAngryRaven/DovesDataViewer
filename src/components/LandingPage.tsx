@@ -25,6 +25,8 @@ import { ContactDialog } from "@/components/ContactDialog";
 import { SupportedFilesDialog } from "@/components/SupportedFilesDialog";
 import { AboutDialog } from "@/components/AboutDialog";
 import { CreditsDialog } from "@/components/CreditsDialog";
+import { PluginMount } from "@/plugins/PluginMount";
+import { MountSlot } from "@/plugins/mounts";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildInfo, formatBuildLabel, commitUrl, isPreviewBuild } from "@/lib/buildInfo";
 import { cn } from "@/lib/utils";
@@ -204,6 +206,11 @@ export function LandingPage({
               description={t("landing:tiles.build.description")}
               href="https://github.com/TheAngryRaven/DovesDataLogger"
             />
+
+            {/* Plugin-contributed landing tiles (e.g. the Tools plugin). Renders
+                nothing when no plugin targets the slot, so the grid is unchanged
+                in a plugin-absent build. */}
+            <PluginMount slot={MountSlot.Landing} ctx={{}} />
           </div>
 
           {/* Reference dialogs */}

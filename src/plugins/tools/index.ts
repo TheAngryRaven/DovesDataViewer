@@ -9,8 +9,10 @@ import { lazy } from "react";
 import { Wrench } from "lucide-react";
 import type { DataViewerPlugin } from "@/plugins/types";
 import { PANELS_POINT, PanelSlot, type PluginPanel } from "@/plugins/panels";
+import { MOUNTS_POINT, MountSlot, type LandingContext, type PluginMountDef } from "@/plugins/mounts";
 
 const ToolsPanel = lazy(() => import("./ToolsPanel"));
+const ToolsLandingTile = lazy(() => import("./ToolsLandingTile"));
 
 const plugin: DataViewerPlugin = {
   id: "tools",
@@ -26,6 +28,14 @@ const plugin: DataViewerPlugin = {
       // The panel owns its full layout (picker grid / opened tool).
       chromeless: true,
     } satisfies PluginPanel);
+
+    // A landing-page tile that opens the same Tools surface in a half-screen
+    // drawer, so the tools are reachable before any telemetry is loaded.
+    ctx.registry.contribute(MOUNTS_POINT, {
+      id: "tools-landing-tile",
+      slot: MountSlot.Landing,
+      component: ToolsLandingTile,
+    } satisfies PluginMountDef<LandingContext>);
   },
 };
 

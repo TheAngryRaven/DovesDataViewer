@@ -209,7 +209,7 @@ A plugin absent at build time simply never loads — the app builds/runs without
 | `external-plugins.d.ts` | Ambient type for the `virtual:external-plugins` module |
 | `panels.ts` | **UI panel framework**: `PluginPanel` / `PluginPanelProps` contract, `PANELS_POINT`, `PanelSlot`, `getPanelsForSlot(slot)`. The curated session snapshot is the entire surface a panel can rely on — incl. `sessionSetup` (the current session's assigned setup) + `activeSnapshot` (`PluginSnapshot`: the loaded reference lap snapshot with clean-lap samples + frozen engine/course/vehicle/setup), so a coach panel can compare the current setup against the frozen snapshot setup |
 | `PluginPanelHost.tsx` | Consumer: mounts every panel for a slot in a titled card, each wrapped in a per-panel error boundary; renders a `fallback` when none. A `chromeless` panel skips the card chrome (full-bleed); an all-chromeless slot (`isBareSlot`) drops the host's outer padding so one panel fills the tab |
-| `mounts.ts` | **Inline mount framework**: `PluginMountDef`, `MOUNTS_POINT`, `MountSlot` (`FileRow`, `FileDeleteConfirm`), per-slot context types, `getMounts(slot)`. For injecting raw components into fixed spots in core UI |
+| `mounts.ts` | **Inline mount framework**: `PluginMountDef`, `MOUNTS_POINT`, `MountSlot` (`FileRow`, `FileDeleteConfirm`, `Landing`), per-slot context types, `getMounts(slot)`. For injecting raw components into fixed spots in core UI |
 | `fileSources.ts` | **File-source framework**: `FILE_SOURCES_POINT`, `FileSource` (`listFiles`/`download`), `useFileSources()`. Lets a plugin feed *remote* (cloud) files into the host browser as inline `cloud` rows — host stays cloud-agnostic |
 | `PluginMount.tsx` | Consumer: `<PluginMount slot ctx>` renders every mount for a slot (error-boundaried + Suspense), or nothing when none — safe to drop into core UI unconditionally |
 | `storage.ts` | `getPluginStore(id)`: schema-less KV scoped to one plugin, in its own IndexedDB DB (`dove-plugin-<id>`). Decoupled from core `dbUtils`. Also exposed as `ctx.storage` |
@@ -257,7 +257,10 @@ file + metadata — cloud-sync's per-file sync toggle) and
 `MountSlot.FileDeleteConfirm` (inside the delete-confirm banner, ctx = the target
 file + a `registerOnConfirm` hook so a plugin can run an extra action — e.g.
 cloud-sync's "also delete the cloud copy" — without the host knowing about
-cloud). New mount locations are just new slot strings.
+cloud). `LandingPage` exposes a third, `MountSlot.Landing` (in the action-tile
+grid, ctx = none) — the **only off-session plugin surface**, so a plugin can add a
+home-screen tile before any telemetry is loaded (the `tools` plugin uses it). New
+mount locations are just new slot strings.
 
 **File sources (`fileSources.ts`, `FILE_SOURCES_POINT`):** the seam that puts
 *cloud* files inline in the browser without coupling the host to cloud. A plugin
@@ -285,12 +288,20 @@ stores → `sync_records` jsonb docs, raw blobs → the private `user-files` buc
 **Full data model, sync engine, conflict resolution, and backend live in
 `docs/backend.md`.**
 
-**Tools (first-party plugin, `src/plugins/tools/`):** contributes one chromeless
-panel to `PanelSlot.Tools`: a picker of trackside tools (icon + one-line
-description, catalog in `toolList.ts`) that opens the selected tool with a back
-bar. Everything is lazy (`ToolsPanel` and each tool component), so nothing rides
-the initial bundle, and fully offline. Tool state persists via
-`getPluginStore("tools")`. First tool: the **kart seat position visualizer**
+**Tools (first-party plugin, `src/plugins/tools/`):** contributes a chromeless
+panel to `PanelSlot.Tools` **and** a `MountSlot.Landing` tile: a picker of
+trackside tools (icon + one-line description, catalog in `toolList.ts`) that opens
+the selected tool with a back bar. The landing tile (`ToolsLandingTile.tsx`) opens
+the same picker in a **half-screen right drawer** (Garage-style markup) and hosts
+the Tools panel **sessionless** — it reads the *optional* session/settings
+contexts and falls back to nulls (the landing page is outside those providers),
+mirroring `ProfileTab`. Everything is lazy (`ToolsPanel`, the landing tile, and
+each tool component), so nothing rides the initial bundle, and fully offline. Tool
+state persists via `getPluginStore("tools")`. Tools: the **kart seat position
+visualizer** and a **Phone Datalogger** (`datalogger/DataloggerTool.tsx`) — a
+skeleton stub for using the phone's GPS as a lap-timing logger (the real capture
+is prototyped at the standalone `/gps-test` route, `pages/GpsTest.tsx` +
+`lib/gpsTestMetrics.ts`). First tool: the **kart seat position visualizer**
 (`seat-position/`) — a pure, unit-tested rigid-body statics model (`model.ts`:
 4-element mass model with a feet-on-pedals leg-coupling factor, slide + tilt
 about the front anchor, closed-form + central-difference sensitivities, knee IK,
