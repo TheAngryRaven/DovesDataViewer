@@ -1,9 +1,16 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 0 implemented** · Branch: `claude/translation-system-planning-34myab` → PR into `BETA`
+Status: **Phase 1 in progress** · current branch: `claude/i18n-phase1-session-ui` → PR into `BETA`
 
-> **Phase 0 shipped** (landing page + Settings migrated; engine + 6 seeded
-> languages live). One refinement vs. the original design: the source-of-truth
+> **Phase 0 shipped** (engine + 6 seeded languages; landing page + Settings
+> migrated). **Phase 1 (this PR)** migrates the core in-session UI under a new
+> `session` namespace: the view tab bar + session header (`Index.tsx`),
+> `LapTable`, `LapSnapshotControls`, `OverlaysMenu`, and `SectorCropSelect`. The
+> map (`RaceLineView`), pro graphs, and the video player/overlays are the next
+> slice (Phase 1b/2) — the original Phase 1 scope below also folded in `video`;
+> it's split out here to keep PRs reviewable.
+>
+> One refinement vs. the original design: the source-of-truth
 > English locales live in **`src/locales/en/`** (bundled as i18next `resources`
 > — the zero-flash fallback + the typed key set), and the other languages are
 > **dynamic-imported** from `src/locales/<lng>/<ns>.json` (Vite code-splits each

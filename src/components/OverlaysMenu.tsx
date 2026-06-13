@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -54,6 +55,7 @@ export function OverlaysMenu({
   referenceLapNumber, externalRefLabel,
   onLoadOverlayFile, onAddExternalOverlay, onToggleOverlay, onSetOverlayReference,
 }: OverlaysMenuProps) {
+  const { t } = useTranslation('session');
   const [open, setOpen] = useState(false);
   const [showCurrent, setShowCurrent] = useState(true);
   const [showSession, setShowSession] = useState(true);
@@ -90,12 +92,12 @@ export function OverlaysMenu({
     try {
       const result = await onLoadOverlayFile(file.fileName);
       if (!result || result.length === 0) {
-        setError('No laps detected for the current course.');
+        setError(t('overlays.errNoLaps'));
         return;
       }
       setExternalLaps(result);
     } catch {
-      setError('Failed to load or parse the file.');
+      setError(t('overlays.errLoad'));
     } finally {
       setLoadingLaps(false);
     }
@@ -131,7 +133,7 @@ export function OverlaysMenu({
           <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
         <span className={isFastest && !overlay ? 'text-racing-lapBest' : ''}>{label}</span>
-        {overlay && <span className="ml-auto text-[11px] text-muted-foreground">on map</span>}
+        {overlay && <span className="ml-auto text-[11px] text-muted-foreground">{t('overlays.onMap')}</span>}
       </button>
     );
   };
@@ -141,7 +143,7 @@ export function OverlaysMenu({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm" onClick={openDialog}>
           <Layers className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Overlays</span>
+          <span className="hidden lg:inline">{t('overlays.trigger')}</span>
           {overlayLines.length > 0 && (
             <span className="ml-0.5 rounded bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
               {overlayLines.length}
@@ -151,11 +153,11 @@ export function OverlaysMenu({
       </DialogTrigger>
       <DialogContent className="max-w-md max-h-[75vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Overlays</DialogTitle>
+          <DialogTitle>{t('overlays.title')}</DialogTitle>
         </DialogHeader>
 
         <p className="text-xs text-muted-foreground">
-          Overlays are technically separate from the main reference lap — the reference lap is where deltas are calculated from.
+          {t('overlays.info')}
         </p>
 
         <div className="overflow-y-auto flex-1 -mx-2 px-2 divide-y divide-border">
@@ -163,7 +165,7 @@ export function OverlaysMenu({
           <Collapsible open={showCurrent} onOpenChange={setShowCurrent}>
             <CollapsibleTrigger className="flex w-full items-center gap-2 py-2 text-sm font-medium">
               {showCurrent ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              Current overlays
+              {t('overlays.currentOverlays')}
               <span className="ml-auto rounded bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
                 {overlayLines.length}
               </span>
@@ -171,7 +173,7 @@ export function OverlaysMenu({
             <CollapsibleContent>
               {overlayLines.length === 0 ? (
                 <p className="px-3 py-3 text-sm text-muted-foreground">
-                  No overlays yet. Add laps from this session, the Snapshots menu, or another log below.
+                  {t('overlays.currentEmpty')}
                 </p>
               ) : (
                 <ul className="space-y-0.5 pb-2">
@@ -185,15 +187,15 @@ export function OverlaysMenu({
                           variant={ref ? 'secondary' : 'ghost'}
                           size="sm"
                           className={`h-6 px-2 text-xs gap-1 ${ref ? 'bg-muted-foreground/20 text-foreground' : ''}`}
-                          title={ref ? 'Current reference lap' : 'Use as reference lap'}
+                          title={ref ? t('overlays.refActiveTitle') : t('overlays.refUseTitle')}
                           onClick={() => onSetOverlayReference(line)}
                         >
                           <Target className="h-3 w-3" />
-                          Ref
+                          {t('overlays.ref')}
                         </Button>
                         <button
                           className="rounded p-1 transition-colors hover:bg-muted"
-                          title="Remove overlay"
+                          title={t('overlays.remove')}
                           onClick={() => onToggleOverlay(line.id)}
                         >
                           <X className="h-3.5 w-3.5 text-muted-foreground" />
@@ -210,18 +212,18 @@ export function OverlaysMenu({
           <Collapsible open={showSession} onOpenChange={setShowSession}>
             <CollapsibleTrigger className="flex w-full items-center gap-2 py-2 text-sm font-medium">
               {showSession ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              Current session laps
+              {t('overlays.sessionLaps')}
             </CollapsibleTrigger>
             <CollapsibleContent>
               {sessionLaps.length === 0 ? (
-                <p className="px-3 py-3 text-sm text-muted-foreground">No laps in this session.</p>
+                <p className="px-3 py-3 text-sm text-muted-foreground">{t('overlays.sessionEmpty')}</p>
               ) : (
                 <ul className="space-y-0.5 pb-2">
                   {sessionLaps.map((lap, idx) => (
                     <li key={lap.lapNumber}>
                       {lapRow(
                         overlayId('lap', lap.lapNumber),
-                        `Lap ${lap.lapNumber} : ${formatLapTime(lap.lapTimeMs)}`,
+                        t('overlays.lapLabel', { number: lap.lapNumber, time: formatLapTime(lap.lapTimeMs) }),
                         idx === sessionFastestIdx,
                       )}
                     </li>
@@ -235,7 +237,7 @@ export function OverlaysMenu({
           <Collapsible open={showAdd} onOpenChange={setShowAdd}>
             <CollapsibleTrigger className="flex w-full items-center gap-2 py-2 text-sm font-medium">
               {showAdd ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              {selectedFile ? `Laps — ${selectedFile.displayName}` : 'Add from other logs'}
+              {selectedFile ? t('overlays.lapsFrom', { name: selectedFile.displayName }) : t('overlays.addFromLogs')}
             </CollapsibleTrigger>
             <CollapsibleContent>
               {loadingFiles || loadingLaps ? (
@@ -246,13 +248,13 @@ export function OverlaysMenu({
                 <div className="py-4 text-center">
                   <p className="text-sm text-destructive">{error}</p>
                   <Button variant="outline" size="sm" className="mt-3" onClick={backToFiles}>
-                    Back to logs
+                    {t('overlays.backToLogs')}
                   </Button>
                 </div>
               ) : !selectedFile ? (
                 courseFiles.length === 0 ? (
                   <p className="px-3 py-3 text-sm text-muted-foreground">
-                    No other saved logs are tagged with this course.
+                    {t('overlays.noTaggedLogs')}
                   </p>
                 ) : (
                   <ul className="space-y-0.5 pb-2">
@@ -265,7 +267,7 @@ export function OverlaysMenu({
                           {file.displayName}
                           {file.fastestLapMs !== undefined && (
                             <span className="ml-2 text-xs text-muted-foreground">
-                              best {formatLapTime(file.fastestLapMs)}
+                              {t('overlays.best', { time: formatLapTime(file.fastestLapMs) })}
                             </span>
                           )}
                         </button>
@@ -298,9 +300,9 @@ export function OverlaysMenu({
                               <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                             )}
                             <span className={isFastest && !overlay ? 'text-racing-lapBest' : ''}>
-                              Lap {lap.lapNumber} : {formatLapTime(lap.lapTimeMs)}
+                              {t('overlays.lapLabel', { number: lap.lapNumber, time: formatLapTime(lap.lapTimeMs) })}
                             </span>
-                            {overlay && <span className="ml-auto text-[11px] text-muted-foreground">on map</span>}
+                            {overlay && <span className="ml-auto text-[11px] text-muted-foreground">{t('overlays.onMap')}</span>}
                           </button>
                         </li>
                       );
@@ -308,7 +310,7 @@ export function OverlaysMenu({
                   </ul>
                   <div className="px-3 pt-2">
                     <Button variant="ghost" size="sm" className="text-xs" onClick={backToFiles}>
-                      ← Back to logs
+                      {t('overlays.backToLogsArrow')}
                     </Button>
                   </div>
                 </div>

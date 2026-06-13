@@ -926,9 +926,12 @@ existing user data keeps resolving without a destructive migration.
 
 ## Internationalization (i18n) — `src/lib/i18n/` + `src/locales/`
 
-Multi-language support built on **i18next + react-i18next**. Phase 0 of a phased
-overhaul (full plan: `docs/plans/i18n-translation-system.md`); only the landing
-page + Settings are migrated so far, but the framework is whole.
+Multi-language support built on **i18next + react-i18next**. A phased overhaul
+(full plan: `docs/plans/i18n-translation-system.md`); migrated so far: the
+landing page, Settings, and the **core in-session UI** (the tab bar + session
+header in `Index.tsx`, `LapTable`, `LapSnapshotControls`, `OverlaysMenu`,
+`SectorCropSelect`). The map (`RaceLineView`), pro graphs, and video are the next
+surfaces; the framework is whole.
 
 - **Languages.** `en` (source of truth) + `es`, `fr`, `de`, `it`, `pt-BR`, `ja`,
   declared once in `lib/i18n/config.ts` (`SUPPORTED_LANGUAGES`, `NAMESPACES`).
@@ -951,7 +954,7 @@ page + Settings are migrated so far, but the framework is whole.
 - **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
   with the English JSON shape, so `t("settings:title")` is autocompleted and a
   missing/renamed key fails `tsc -b`. English is the canonical key set.
-- **Namespaces** (`common`, `landing`, `settings`) map to per-language JSON files
+- **Namespaces** (`common`, `landing`, `settings`, `session`) map to per-language JSON files
   and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
   preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
   `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),

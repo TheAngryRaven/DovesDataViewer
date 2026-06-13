@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Scissors } from 'lucide-react';
 import { Course, Lap } from '@/types/racing';
 import { normalizeCourseSectors, sectorLabels } from '@/lib/courseSectors';
@@ -28,6 +29,7 @@ interface CropOption {
 export function SectorCropSelect({
   course, laps, selectedLapNumber, filteredLength, visibleRange, onRangeChange,
 }: SectorCropSelectProps) {
+  const { t } = useTranslation('session');
   const lap = selectedLapNumber === null ? null : laps.find((l) => l.lapNumber === selectedLapNumber) ?? null;
 
   const options = useMemo<CropOption[]>(() => {
@@ -66,19 +68,19 @@ export function SectorCropSelect({
   };
 
   return (
-    <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Crop to a sector">
+    <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title={t('crop.title')}>
       <Scissors className="w-3.5 h-3.5 shrink-0" />
       <select
         value={currentKey}
         onChange={(e) => handleChange(e.target.value)}
         disabled={disabled}
         className="min-w-0 flex-1 cursor-pointer rounded border border-border bg-transparent px-1 py-0.5 text-xs text-foreground/90 outline-none disabled:cursor-not-allowed disabled:opacity-50"
-        title={disabled ? 'Select a lap with sectors to crop' : 'Crop the view to a sector'}
+        title={disabled ? t('crop.disabledTitle') : t('crop.enabledTitle')}
       >
-        {currentKey === 'custom' && <option value="custom">Custom range</option>}
+        {currentKey === 'custom' && <option value="custom">{t('crop.customRange')}</option>}
         {options.map((o) => (
           <option key={o.key} value={o.key}>
-            {o.key === 'full' ? o.label : `Sector ${o.label}`}
+            {o.key === 'full' ? t('crop.fullLap') : t('crop.sector', { label: o.label })}
           </option>
         ))}
       </select>

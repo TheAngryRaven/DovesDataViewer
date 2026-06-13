@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical, AlertCircle, Wrench } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
@@ -74,6 +75,7 @@ const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
 export default function Index() {
+  const { t } = useTranslation("session");
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
   const fileManager = useFileManager();
   const vehicleManager = useVehicleManager();
@@ -560,7 +562,7 @@ export default function Index() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{isPlaying ? "Pause" : "Play"} ({averageFrameRate ? `${averageFrameRate.toFixed(0)} Hz` : "–"})</p>
+                <p>{isPlaying ? t("header.pause") : t("header.play")} ({averageFrameRate ? `${averageFrameRate.toFixed(0)} Hz` : "–"})</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -570,13 +572,13 @@ export default function Index() {
           {laps.length > 0 && (
             <Select value={selectedLapNumber?.toString() ?? "all"} onValueChange={handleLapDropdownChange}>
               <SelectTrigger className="w-[140px] h-8 text-sm">
-                <SelectValue placeholder="All Laps" />
+                <SelectValue placeholder={t("header.allLaps")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Laps</SelectItem>
+                <SelectItem value="all">{t("header.allLaps")}</SelectItem>
                 {laps.map((lap) => (
                   <SelectItem key={lap.lapNumber} value={lap.lapNumber.toString()}>
-                    Lap {lap.lapNumber}
+                    {t("header.lap", { number: lap.lapNumber })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -613,7 +615,7 @@ export default function Index() {
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />
           <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3" onClick={() => fileManager.open()}>
             <FolderOpen className="w-4 h-4" />
-            <span className="hidden lg:inline">Garage</span>
+            <span className="hidden lg:inline">{t("header.garage")}</span>
           </Button>
         </div>
       </header>
@@ -674,6 +676,7 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   setupIndicator: SetupIndicator | null;
   onSetupIndicatorClick: () => void;
 }) {
+  const { t } = useTranslation("session");
   const tabClass = (view: TopPanelView) =>
     `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
       topPanelView === view
@@ -684,30 +687,30 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   return (
     <div className="flex items-center border-b border-border shrink-0">
       <button onClick={() => setTopPanelView("raceline")} className={tabClass("raceline")}>
-        <Map className="w-4 h-4" /> <span className="hidden sm:inline">Simple</span>
+        <Map className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.simple")}</span>
       </button>
       <button onClick={() => setTopPanelView("graphview")} className={tabClass("graphview")}>
-        <BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">Pro</span>
+        <BarChart3 className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.pro")}</span>
       </button>
       <button onClick={() => setTopPanelView("laptable")} className={tabClass("laptable")}>
-        <ListOrdered className="w-4 h-4" /> <span className="hidden sm:inline">Lap Times</span>
+        <ListOrdered className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.lapTimes")}</span>
         {laps.length > 0 && (
           <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
         )}
       </button>
       {showLabs && (
         <button onClick={() => setTopPanelView("labs")} className={tabClass("labs")}>
-          <FlaskConical className="w-4 h-4" /> <span className="hidden sm:inline">Labs</span>
+          <FlaskConical className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.labs")}</span>
         </button>
       )}
       {showCoach && (
         <button onClick={() => setTopPanelView("coach")} className={tabClass("coach")}>
-          <Gauge className="w-4 h-4" /> <span className="hidden sm:inline">Coach</span>
+          <Gauge className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.coach")}</span>
         </button>
       )}
       {showTools && (
         <button onClick={() => setTopPanelView("tools")} className={tabClass("tools")}>
-          <Wrench className="w-4 h-4" /> <span className="hidden sm:inline">Tools</span>
+          <Wrench className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.tools")}</span>
         </button>
       )}
       {setupIndicator && (
@@ -716,7 +719,7 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
             <TooltipTrigger asChild>
               <button
                 onClick={onSetupIndicatorClick}
-                aria-label="Session setup not configured"
+                aria-label={t("header.setupNotConfigured")}
                 className={`flex items-center px-3 py-2 animate-pulse transition-opacity hover:opacity-70 ${
                   setupIndicator.tone === "red"
                     ? "text-destructive drop-shadow-[0_0_6px_hsl(var(--destructive))]"
@@ -729,8 +732,8 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
             <TooltipContent>
               <p>
                 {setupIndicator.tone === "red"
-                  ? "No vehicle or setup saved yet — click to add one"
-                  : "No setup saved for this session — click to configure"}
+                  ? t("header.setupNoneRed")
+                  : t("header.setupNoneOrange")}
               </p>
             </TooltipContent>
           </Tooltip>
@@ -740,7 +743,7 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
         <div className="ml-auto mr-3">
           <Button variant="ghost" size="sm" onClick={onToggleOverlays} className="h-7 px-2 gap-1.5">
             {showOverlays ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            <span className="text-xs hidden sm:inline">Overlay</span>
+            <span className="text-xs hidden sm:inline">{t("header.overlay")}</span>
           </Button>
         </div>
       )}
