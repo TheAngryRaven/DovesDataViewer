@@ -17,7 +17,7 @@
 4. **Update credits** (in README) when adding new FOSS dependencies.
 5. **Never do on the server what you can do on the client.**
 6. **Add tests when possible**: New parsers, pure utilities, and protocol/format logic should ship with Vitest coverage. Bug fixes should add a regression test that fails before the fix. Don't leave testable logic untested.
-7. **Keep `CHANGELOG.md` updated**: Add user-facing changes under the `[Unreleased]` heading (Keep a Changelog format) as you make them — don't wait for release time. Cut a new version section + tag when releasing.
+7. **Keep `CHANGELOG.md` updated**: Add user-facing changes as you make them — don't wait for release time. **Once a beta version number has been picked (e.g. `2.5.1`), keep that version as the heading and mark it unreleased — `## [2.5.1] - unreleased` — and keep adding every change under that same section until it actually ships. Do NOT create a new `[Unreleased]` block or bump the patch number on every commit; we are not cutting a `.1` release per change.** Only on release do you set the date and tag, then start the next version. (A bare `[Unreleased]` is fine only before any beta version has been chosen.)
 8. **Keep it professional**: This is a public, released OSS project (v1.5.0+). Hold the bar — see the standards below.
 
 ---

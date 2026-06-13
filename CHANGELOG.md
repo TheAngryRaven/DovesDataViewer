@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [Unreleased]
+## [2.5.1] - unreleased
 
 ### Added
 - **Log type bubble in the file browser.** Each session row (shown by date/time)
@@ -19,26 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   iRacing, VBO, MoTeC, UBX, NMEA, CSV, … — derived from the file's extension, so
   you can tell at a glance what kind of log each one is. Appears on local and
   cloud rows and in the Profile → Cloud logs list.
-
-### Fixed
-- **Pro-mode panel resizing on touch.** Dragging a resizable divider (the
-  left/right split and the InfoBox/MiniMap split in pro mode, plus the video
-  panel) would stop after only a few pixels on touchscreens. The handle's
-  invisible grab strip was only a few pixels wide while the drag-start margin
-  extended over the neighbouring chart/map — so a finger landing just off the
-  divider started the resize on an element without `touch-action: none`, and the
-  browser reclaimed the gesture as a scroll. The grab strip is now wider and the
-  start margin is aligned to it, so touch drags track all the way.
-
-### Changed
-- **Mobile garage & header polish.** The Garage/Device drawer now covers the
-  full screen on mobile (it stays at half width on larger screens) so it's
-  easier to use on a phone. In the loaded-session header, the track/course label
-  and edit button are consolidated into a single course control — now using a
-  route icon (at every screen size) with the current track : course as its label
-  from tablet up.
-
-## [2.5.1] - 2026-06-13
 
 ### Changed
 - **Landing page UX overhaul** — the home screen is simpler and friendlier. The
@@ -49,6 +29,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clearly-labelled tile. Pricing is no longer shown on the landing page — it
   lives on the registration page where you pick a plan. Colors and design tokens
   are unchanged; this is a layout/usability pass only.
+- **Mobile garage & header polish.** The Garage/Device drawer now covers the
+  full screen on mobile (it stays at half width on larger screens) so it's
+  easier to use on a phone. In the loaded-session header, the track/course label
+  and edit button are consolidated into a single course control — now using a
+  route icon (at every screen size) with the current track : course as its label
+  from tablet up.
+
+### Fixed
+- **Pro-mode panel resizing on touch.** Dragging a resizable divider (the
+  left/right split and the InfoBox/MiniMap split in pro mode, plus the video
+  panel) would stop after only a few pixels on touchscreens. The handle's
+  invisible grab strip was only a few pixels wide while the drag-start margin
+  extended over the neighbouring chart/map — so a finger landing just off the
+  divider started the resize on an element without `touch-action: none`, and the
+  browser reclaimed the gesture as a scroll. The grab strip is now wider and the
+  start margin is aligned to it, so touch drags track all the way.
 
 ## [2.5.0] - 2026-06-13
 
