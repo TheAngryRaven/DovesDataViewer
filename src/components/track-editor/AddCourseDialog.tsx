@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,10 +10,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { CourseSectorEditor } from './CourseSectorEditor';
 import type { GpsPoint } from './VisualEditor';
 import type { SelectedLine } from '@/hooks/useTrackEditorForm';
 import type { CourseSector, SectorLine, Lap, GpsSample } from '@/types/racing';
+
+// Lazy — CourseSectorEditor pulls in the Leaflet drawing map + the dnd-kit
+// sector list, neither of which belongs in the eager landing bundle.
+const CourseSectorEditor = lazy(() =>
+  import('./CourseSectorEditor').then((m) => ({ default: m.CourseSectorEditor })),
+);
 
 interface AddCourseDialogProps {
   open: boolean;
@@ -59,6 +65,7 @@ export function AddCourseDialog({
           <DialogTitle>Add New Course</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <Suspense fallback={null}>
           <CourseSectorEditor
             startFinishA={startFinishA}
             startFinishB={startFinishB}
@@ -79,6 +86,7 @@ export function AddCourseDialog({
             laps={laps}
             samples={samples}
           />
+          </Suspense>
           <div className="space-y-3">
             <div>
               <Label htmlFor="addCourseName">Course Name</Label>
