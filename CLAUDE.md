@@ -932,9 +932,13 @@ landing page, Settings, the **core in-session UI** (the tab bar + session header
 in `Index.tsx`, `LapTable`, `LapSnapshotControls`, `OverlaysMenu`,
 `SectorCropSelect`), and the **live analysis views** — the map (`RaceLineView`,
 `MiniMap`) and the pro **GraphView** (`GraphViewPanel`, `GraphPanel`,
-`SingleSeriesChart`, `GGDiagram`, `InfoBox`, plus the simple `TelemetryChart`).
-The **video** player/overlays and the InfoBox setup-detail table (shared with the
-garage `SetupsTab`) are the next surfaces; the framework is whole.
+`SingleSeriesChart`, `GGDiagram`, `InfoBox`, plus the simple `TelemetryChart`),
+and the **video** player + overlay/export system (`VideoPlayer`,
+`VideoExportDialog`, `OverlaySettingsPanel`, the overlay-type/theme catalog
+labels, and the text-bearing overlay widgets). The **garage drawer**
+(Files/Setups/Notes/Vehicles/Device — incl. the InfoBox setup-detail table
+shared with `SetupsTab`), tracks/device, plugins, and auth/admin are the next
+surfaces; the framework is whole.
 
 - **Languages.** `en` (source of truth) + `es`, `fr`, `de`, `it`, `pt-BR`, `ja`,
   declared once in `lib/i18n/config.ts` (`SUPPORTED_LANGUAGES`, `NAMESPACES`).
@@ -957,7 +961,7 @@ garage `SetupsTab`) are the next surfaces; the framework is whole.
 - **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
   with the English JSON shape, so `t("settings:title")` is autocompleted and a
   missing/renamed key fails `tsc -b`. English is the canonical key set.
-- **Namespaces** (`common`, `landing`, `settings`, `session`) map to per-language JSON files
+- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`) map to per-language JSON files
   and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
   preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
   `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),

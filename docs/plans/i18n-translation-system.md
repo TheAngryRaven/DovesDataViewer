@@ -1,16 +1,18 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 2 in progress** · current branch: `claude/i18n-phase2-map-graphs-video` → PR into `BETA`
+Status: **Phase 3 in progress** · current branch: `claude/i18n-phase3-video` → PR into `BETA`
 
-> **Phase 0 shipped** (engine + 6 seeded languages; landing page + Settings).
-> **Phase 1 shipped** the core in-session UI under the `session` namespace (view
-> tab bar + session header, `LapTable`, `LapSnapshotControls`, `OverlaysMenu`,
-> `SectorCropSelect`). **Phase 2 (this PR)** extends `session` to the **live
-> analysis views**: the map (`RaceLineView`, `MiniMap`) and the pro **GraphView**
-> (`GraphViewPanel`, `GraphPanel`, `SingleSeriesChart`, `GGDiagram`, `InfoBox`,
-> plus the simple `TelemetryChart`). Deferred to the next slice: the **video**
-> player/overlays, and the InfoBox setup-detail table (translated with the garage
-> `SetupsTab` so the tire/PSI labels stay consistent).
+> **Phase 0** shipped the engine + 6 seeded languages + landing/Settings.
+> **Phase 1** shipped the core in-session UI (`session` namespace). **Phase 2**
+> shipped the live analysis views (map + pro GraphView). **Phase 3 (this PR)**
+> adds the **`video` namespace** — the video player + overlay/export system
+> (`VideoPlayer`, `VideoExportDialog`, `OverlaySettingsPanel`, the overlay-type/
+> theme catalog labels surfaced in the picker, and the text-bearing overlay
+> widgets `PaceOverlay`/`LapTimeOverlay`). Channel/data-source labels and the
+> registry/theme `.ts` defaults stay English (data); they're translated at the UI
+> boundary. Deferred next: the **garage drawer** (Files/Setups/Notes/Vehicles/
+> Device — incl. the InfoBox setup-detail table, translated with `SetupsTab` so
+> the tire/PSI labels stay consistent), then tracks/device, plugins, auth/admin.
 >
 > One refinement vs. the original design: the source-of-truth
 > English locales live in **`src/locales/en/`** (bundled as i18next `resources`
