@@ -25,9 +25,6 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Register = lazy(() => import("./pages/Register"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
-// Standalone GPS test / phone-as-datalogger demo. Lazy so its Leaflet weight
-// never rides the initial bundle; always mounted (no flag) — it's a dev scratch page.
-const GpsTest = lazy(() => import("./pages/GpsTest"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
@@ -68,7 +65,6 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
-              <Route path="/gps-test" element={<GpsTest />} />
               {(enableAdmin || enableCloud) && <Route path="/login" element={<Login />} />}
               {enableAdmin && <Route path="/admin" element={<Admin />} />}
               {enableCloud && <Route path="/register" element={<Register />} />}

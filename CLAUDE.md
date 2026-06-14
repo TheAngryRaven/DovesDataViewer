@@ -314,10 +314,11 @@ re-driving the batch timing fns over a growing buffer), and `dovepWriter.ts`
 (serializes the session to **`.dovep`** — "Dove phone", byte-compatible with
 `.dovex` so the app parses it unchanged; omits channels the phone can't measure
 rather than faking them). `useDatalogger.ts` is the thin browser glue (GPS +
-IndexedDB) and saves the `.dovep` log on session end (manual red **End** →
-confirm, or auto-idle) so it's reopened/processed like any upload. The earlier
-`/gps-test` route (`pages/GpsTest.tsx` + `lib/gpsTestMetrics.ts`) is a throwaway
-prototype that predates this module. First tool: the **kart seat position visualizer**
+IndexedDB) over a pure `DataloggerSession` controller (`datalogger/
+dataloggerSession.ts` — gate + record + timer + persist, deps injected so it's
+unit-tested with a fake geolocation + save fns) and saves the `.dovep` log on
+session end (manual red **End** → confirm, or auto-idle) so it's reopened/
+processed like any upload. First tool: the **kart seat position visualizer**
 (`seat-position/`) — a pure, unit-tested rigid-body statics model (`model.ts`:
 4-element mass model with a feet-on-pedals leg-coupling factor, slide + tilt
 about the front anchor, closed-form + central-difference sensitivities, knee IK,

@@ -77,6 +77,14 @@ const MIN_DETECT_SAMPLES = 10;
 const DETECT_EVERY = 5;
 /** Arc-length grid spacing (m) for the delta reference. */
 const DELTA_SAMPLE_METERS = 2;
+/**
+ * Minimum session-time gap between the two O(n) recomputes (full `calculateLaps`
+ * over the buffer + the position-delta search). At phone rates (~1 Hz) every fix
+ * already clears this, so behavior is unchanged; it only caps the cost if a
+ * higher-rate source (e.g. BLE GPS) is fed in later, keeping per-second work
+ * bounded instead of growing with the session.
+ */
+const HEAVY_RECOMPUTE_MS = 200;
 
 export class RealtimeLapTimer {
   private tracks: Track[];
@@ -93,6 +101,10 @@ export class RealtimeLapTimer {
   private refLap: ResampledLap | null = null;
   private refForBestLapNumber: number | null = null;
 
+  // Throttle state for the two O(n) recomputes (laps + delta).
+  private lastHeavyT = Number.NEGATIVE_INFINITY;
+  private cachedDeltaSec: number | null = null;
+
   private state: TimingState = EMPTY_TIMING_STATE;
 
   constructor(tracks: Track[] = []) {
@@ -102,6 +114,23 @@ export class RealtimeLapTimer {
   /** Provide/replace the known-tracks list (e.g. once loadTracks resolves). */
   setTracks(tracks: Track[]): void {
     this.tracks = tracks;
+  }
+
+  /** Clear all session state (keeps the tracks list) so a new session can start. */
+  reset(): void {
+    this.samples.length = 0;
+    this.laps = [];
+    this.course = null;
+    this.trackName = null;
+    this.direction = null;
+    this.isWaypointMode = false;
+    this.waypointCourseName = null;
+    this.samplesAtLastDetect = -DETECT_EVERY;
+    this.refLap = null;
+    this.refForBestLapNumber = null;
+    this.lastHeavyT = Number.NEGATIVE_INFINITY;
+    this.cachedDeltaSec = null;
+    this.state = EMPTY_TIMING_STATE;
   }
 
   /** Force a specific course (manual pick / known track), bypassing detection. */
@@ -164,8 +193,14 @@ export class RealtimeLapTimer {
 
   private computeState(latest: GpsSample): TimingState {
     if (!this.course) return { ...EMPTY_TIMING_STATE, speedMph: latest.speedMph };
-    this.laps = calculateLaps(this.samples, this.course);
-    this.updateReference();
+    // The two O(n) operations are throttled by session time; everything in
+    // deriveFromLaps is O(lapCount) and runs every fix so the readout stays live.
+    if (latest.t - this.lastHeavyT >= HEAVY_RECOMPUTE_MS) {
+      this.laps = calculateLaps(this.samples, this.course);
+      this.updateReference();
+      this.cachedDeltaSec = this.computeDelta(this.bestLap());
+      this.lastHeavyT = latest.t;
+    }
     return this.deriveFromLaps(this.course.name, latest);
   }
 
@@ -212,7 +247,7 @@ export class RealtimeLapTimer {
       bestLapMs: best ? best.lapTimeMs : null,
       bestLapNumber: best ? best.lapNumber : null,
       optimalMs: optimal ? optimal.optimalTimeMs : null,
-      deltaSec: this.computeDelta(best),
+      deltaSec: this.cachedDeltaSec,
       majorSectors: this.computeMajorSectors(last),
       speedMph: latest.speedMph,
     };
