@@ -90,6 +90,66 @@
       "PWA — installable & fully offline"
     ]
   },
+  "credits": {
+    "trigger": "Credits",
+    "title": "Credits",
+    "intro": "Built on the shoulders of these incredible open-source projects and free services."
+  },
+  "contact": {
+    "trigger": "Contact",
+    "title": "Contact Us",
+    "description": "Send us a message — we'll read every one.",
+    "categoryLabel": "Category *",
+    "categoryPlaceholder": "Select a category",
+    "categories": {
+      "comment": "Comment",
+      "featureRequest": "Feature Request",
+      "complaint": "Complaint",
+      "bugReport": "Bug Report"
+    },
+    "emailLabel": "Email",
+    "emailOptional": "(optional, for a reply)",
+    "emailPlaceholder": "your@email.com",
+    "messageLabel": "Message *",
+    "messagePlaceholder": "What's on your mind?",
+    "sending": "Sending…",
+    "send": "Send Message",
+    "missingFields": "Missing fields",
+    "missingFieldsDesc": "Please select a category and enter a message.",
+    "tooLong": "Message too long",
+    "tooLongDesc": "Max 2000 characters.",
+    "error": "Error",
+    "errorGeneric": "Something went wrong.",
+    "errorNetwork": "Could not send message. Please try again.",
+    "sent": "Message sent!",
+    "sentDesc": "Thanks for your feedback."
+  },
+  "browserCompat": {
+    "trigger": "Browser Compatibility",
+    "title": "Browser Compatibility",
+    "description": "Feature support for your current browser.",
+    "note": "All core features work across modern browsers. Some advanced features work best in Chrome or Edge.",
+    "features": {
+      "gpsFileParsing": "GPS File Parsing",
+      "videoSync": "Video Sync",
+      "videoExport": "Video Export (MP4)",
+      "audioInExport": "Audio in Export",
+      "bleDatalogger": "BLE Datalogger",
+      "filePicker": "File Picker",
+      "pwaOffline": "PWA / Offline"
+    },
+    "statuses": {
+      "supported": "Supported",
+      "notAvailable": "Not Available",
+      "frameAccurate": "Frame-accurate",
+      "approximateSync": "Approximate sync",
+      "mp4H264": "MP4 (H.264)",
+      "webmFallback": "WebM fallback",
+      "silentExports": "Silent exports",
+      "native": "Native",
+      "fileInputFallback": "File input fallback"
+    }
+  },
   "supportedFiles": {
     "trigger": "Supported Files",
     "title": "Supported File Formats",

@@ -144,5 +144,65 @@
         "body": "MyChron 5/6 向けの Race Studio 3（RS2Analysis 形式）からの CSV 書き出し。拡張子: <code>.csv</code>"
       }
     }
+  },
+  "credits": {
+    "trigger": "クレジット",
+    "title": "クレジット",
+    "intro": "これらの素晴らしいオープンソースプロジェクトと無料サービスの上に構築されています。"
+  },
+  "contact": {
+    "trigger": "お問い合わせ",
+    "title": "お問い合わせ",
+    "description": "メッセージをお送りください。すべて目を通します。",
+    "categoryLabel": "カテゴリ *",
+    "categoryPlaceholder": "カテゴリを選択",
+    "categories": {
+      "comment": "コメント",
+      "featureRequest": "機能リクエスト",
+      "complaint": "苦情",
+      "bugReport": "バグ報告"
+    },
+    "emailLabel": "メールアドレス",
+    "emailOptional": "（任意、返信用）",
+    "emailPlaceholder": "your@email.com",
+    "messageLabel": "メッセージ *",
+    "messagePlaceholder": "どうされましたか？",
+    "sending": "送信中…",
+    "send": "メッセージを送信",
+    "missingFields": "未入力の項目があります",
+    "missingFieldsDesc": "カテゴリを選択し、メッセージを入力してください。",
+    "tooLong": "メッセージが長すぎます",
+    "tooLongDesc": "最大2000文字です。",
+    "error": "エラー",
+    "errorGeneric": "問題が発生しました。",
+    "errorNetwork": "メッセージを送信できませんでした。もう一度お試しください。",
+    "sent": "メッセージを送信しました！",
+    "sentDesc": "フィードバックありがとうございます。"
+  },
+  "browserCompat": {
+    "trigger": "ブラウザ互換性",
+    "title": "ブラウザ互換性",
+    "description": "現在のブラウザの機能対応状況。",
+    "note": "すべての主要機能は最新のブラウザで動作します。一部の高度な機能は Chrome または Edge で最も適切に動作します。",
+    "features": {
+      "gpsFileParsing": "GPS ファイル解析",
+      "videoSync": "動画同期",
+      "videoExport": "動画書き出し（MP4）",
+      "audioInExport": "書き出し時の音声",
+      "bleDatalogger": "BLE データロガー",
+      "filePicker": "ファイル選択",
+      "pwaOffline": "PWA / オフライン"
+    },
+    "statuses": {
+      "supported": "対応",
+      "notAvailable": "利用不可",
+      "frameAccurate": "フレーム精度",
+      "approximateSync": "おおよその同期",
+      "mp4H264": "MP4 (H.264)",
+      "webmFallback": "WebM フォールバック",
+      "silentExports": "音声なしの書き出し",
+      "native": "ネイティブ",
+      "fileInputFallback": "ファイル入力フォールバック"
+    }
   }
 }

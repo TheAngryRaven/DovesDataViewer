@@ -1,6 +1,15 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 7 — auth pages + landing dialogs complete** · current branch: `claude/i18n-about-supported-files` → PR into `BETA`
+Status: **Phase 7 — auth pages + all landing dialogs complete** · current branch: `claude/i18n-landing-dialogs` → PR into `BETA`
+
+> **Phase 7c (this PR):** the last three landing-page dialogs — **Credits**
+> (`CreditsDialog`), **Contact** (`ContactDialog`), and **browser-compatibility**
+> (`BrowserCompatDialog`) — in the `landing` namespace. Open-source library names
+> + their GitHub links stay literal (Credits data is untranslated by design);
+> contact category **values** stay English (the submitted/admin key) while their
+> labels are translated. `lib/browserCompat.ts` was refactored to return stable
+> feature/status **ids** (typed unions) so the dialog translates them, keeping the
+> lib i18n-free. **Remaining overall:** the **admin** panel only.
 
 > **Phase 7b (this PR):** the two remaining landing-page content dialogs —
 > **About** (`AboutDialog`) and **Supported Files** (`SupportedFilesDialog`) —
