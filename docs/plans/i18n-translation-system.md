@@ -1,6 +1,15 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 7 — auth pages complete** · current branch: `claude/i18n-auth-pages` → PR into `BETA`
+Status: **Phase 7 — auth pages + landing dialogs complete** · current branch: `claude/i18n-about-supported-files` → PR into `BETA`
+
+> **Phase 7b (this PR):** the two remaining landing-page content dialogs —
+> **About** (`AboutDialog`) and **Supported Files** (`SupportedFilesDialog`) —
+> added to the existing `landing` namespace (`about.*` / `supportedFiles.*`).
+> Rich-text bodies use `<Trans>`; format names, file extensions (`.dove`, …) and
+> brand/library links (DovesDataLogger, libxrk) stay literal. The feature list is
+> an array via `returnObjects`. **Still untranslated on the landing page:** the
+> Credits, Contact, and browser-compatibility dialogs (Credits is mostly library
+> names; deferred). **Remaining overall:** the **admin** panel.
 
 > **Phase 7 (this PR):** the **auth pages** — `Login`, `Register`,
 > `ForgotPassword`, `ResetPassword`, `AuthCallback` — a new host `auth` namespace

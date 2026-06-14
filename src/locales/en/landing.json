@@ -36,5 +36,112 @@
   "footer": {
     "operatedBy": "Operated by",
     "previewWarning": "This branch is running on a preview database — accounts can be wiped at any time. Do not rely on data being saved anywhere other than locally. If payments are activated, <strong>do not enter real payment information.</strong>"
+  },
+  "about": {
+    "trigger": "About",
+    "title": "About HackTheTrack",
+    "featuresHeading": "Features",
+    "sections": {
+      "offline": {
+        "heading": "Works Offline & Can Be Installed",
+        "body": "HackTheTrack is a fully offline-capable web application. Once loaded, it works without an internet connection — perfect for the track. You can <strong>install it like a native app</strong> on your phone, tablet, or computer by using the \"Install\" option in your browser menu (or the prompt that appears at the bottom of the page)."
+      },
+      "data": {
+        "heading": "Your Data Stays on Your Device",
+        "body": "All data processing happens entirely in your browser, and everything is saved locally on your device by default. Cloud storage is entirely optional — nothing leaves your device unless you create an account and turn on sync."
+      },
+      "community": {
+        "heading": "Community Track Database",
+        "body": "Don't see your track? You can define custom track and course layouts in the editor, then submit them to the site-wide database for everyone to use. Submissions are reviewed before being added."
+      },
+      "oss": {
+        "heading": "Free & Open Source",
+        "body": "Every local feature in HackTheTrack is completely free, and the source code is open and available on GitHub. Optional cloud storage has a free tier; larger storage and AI coaching are paid add-ons that cover server and model costs — but all local features will always remain free."
+      }
+    },
+    "features": [
+      "Multi-format file support (NMEA, UBX, VBO, MoTeC, AiM CSV + XRK/XRZ, Alfano, Dove, Dovex)",
+      "Automatic track & course detection within 5 miles",
+      "Automatic driving direction detection (forward/reverse)",
+      "Waypoint mode — lap timing anywhere, no track needed",
+      "Interactive race line map with speed heatmap",
+      "Braking zone detection & visualization",
+      "Automatic lap detection via start/finish line",
+      "3-sector split timing with optimal lap",
+      "Pro graph view with multi-series telemetry charts",
+      "G-G diagram (friction circle) for grip-usage analysis",
+      "Distance or time chart axis — laps line up by track position",
+      "Reference lap overlay & pace delta comparison",
+      "Multi-lap overlay — compare laps across the map & graphs at once",
+      "Overlay laps from past sessions & other loggers (auto drift-aligned)",
+      "Lap snapshots — fastest lap saved per engine & course for comparison",
+      "Video sync with telemetry playback",
+      "9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)",
+      "MP4 video export with overlays & audio (H.264 + AAC)",
+      "Vehicle profiles & setup sheet management",
+      "Frozen setup history — every session keeps the setup it ran",
+      "Session notes per file",
+      "BLE device integration (DovesDataLogger)",
+      "Device track sync over Bluetooth",
+      "Over-the-air firmware updates — flash your logger straight from the app",
+      "Custom track & course editor with community submissions",
+      "Local weather lookup",
+      "Dark & light mode",
+      "PWA — installable & fully offline"
+    ]
+  },
+  "supportedFiles": {
+    "trigger": "Supported Files",
+    "title": "Supported File Formats",
+    "description": "All parsing is done locally in your browser — nothing is uploaded.",
+    "experimental": "Experimental",
+    "primary": {
+      "dove": {
+        "name": "Dove CSV",
+        "body": "Simple CSV with millisecond Unix timestamps, GPS data, RPM, and hardware accelerometer readings. The native format of <logger>DovesDataLogger</logger>. Extension: <code>.dove</code>"
+      },
+      "dovex": {
+        "name": "Dovex (Extended Dove)",
+        "body": "Extended Dove format with a 4096-byte metadata header containing session info (driver, course, lap times) followed by standard Dove CSV GPS data. Extension: <code>.dovex</code>"
+      },
+      "xrk": {
+        "name": "AiM XRK / XRZ (Binary)",
+        "body": "AiM's native binary telemetry from MyChron / SoloDL loggers, including the zlib-compressed <code>.xrz</code> variant. Parsed entirely in your browser by <libxrk>libxrk</libxrk> compiled to WebAssembly — fast and fully offline, like every other format. Extensions: <code>.xrk</code>, <code>.xrz</code>"
+      },
+      "iracing": {
+        "name": "iRacing Telemetry (Binary)",
+        "body": "iRacing's native binary telemetry export — the same data the sim's live irsdk API serves, no third-party CSV/MoTeC conversion needed. Read directly in your browser (fully offline): GPS position, speed and altitude drive the map and laps, with throttle, brake, gear, steering, RPM, water/oil temp and native lateral/longitudinal g along for the ride. Extension: <code>.ibt</code>"
+      },
+      "nmea": {
+        "name": "NMEA / CSV (Tab-Delimited)",
+        "body": "Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
+      }
+    },
+    "secondary": {
+      "ubx": {
+        "name": "u-blox UBX Binary",
+        "body": "Binary NAV-PVT messages from u-blox GPS receivers. Extension: <code>.ubx</code>"
+      },
+      "vbo": {
+        "name": "Racelogic VBO",
+        "body": "Racelogic VBOX and RaceBox export format. Extension: <code>.vbo</code>"
+      },
+      "motecLd": {
+        "name": "MoTeC LD Binary",
+        "body": "Binary data from MoTeC data loggers and sim racing exports (ACC, iRacing, etc.). Extension: <code>.ld</code>"
+      },
+      "motecCsv": {
+        "name": "MoTeC CSV",
+        "body": "CSV exports from MoTeC i2 Pro analysis software. Extension: <code>.csv</code>"
+      },
+      "alfano": {
+        "name": "Alfano CSV",
+        "body": "CSV exports from the Alfano ADA app. Extension: <code>.csv</code>"
+      },
+      "aimCsv": {
+        "name": "AiM MyChron CSV",
+        "body": "CSV exports from Race Studio 3 (RS2Analysis style) for MyChron 5/6. Extension: <code>.csv</code>"
+      }
+    }
   }
 }

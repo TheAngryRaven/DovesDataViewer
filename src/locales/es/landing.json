@@ -37,5 +37,112 @@
   "footer": {
     "operatedBy": "Operado por",
     "previewWarning": "Esta rama se ejecuta en una base de datos de vista previa: las cuentas pueden borrarse en cualquier momento. No confíes en que los datos se guarden en ningún sitio que no sea localmente. Si se activan los pagos, <strong>no introduzcas información de pago real.</strong>"
+  },
+  "about": {
+    "trigger": "Acerca de",
+    "title": "Acerca de HackTheTrack",
+    "featuresHeading": "Funciones",
+    "sections": {
+      "offline": {
+        "heading": "Funciona sin conexión y se puede instalar",
+        "body": "HackTheTrack es una aplicación web totalmente capaz de funcionar sin conexión. Una vez cargada, funciona sin conexión a internet, perfecta para la pista. Puedes <strong>instalarla como una app nativa</strong> en tu teléfono, tablet u ordenador usando la opción «Instalar» del menú de tu navegador (o el aviso que aparece al final de la página)."
+      },
+      "data": {
+        "heading": "Tus datos permanecen en tu dispositivo",
+        "body": "Todo el procesamiento de datos ocurre por completo en tu navegador, y todo se guarda localmente en tu dispositivo de forma predeterminada. El almacenamiento en la nube es totalmente opcional: nada sale de tu dispositivo a menos que crees una cuenta y actives la sincronización."
+      },
+      "community": {
+        "heading": "Base de datos comunitaria de pistas",
+        "body": "¿No ves tu pista? Puedes definir trazados de pistas y circuitos personalizados en el editor y luego enviarlos a la base de datos del sitio para que todos los usen. Los envíos se revisan antes de añadirse."
+      },
+      "oss": {
+        "heading": "Gratis y de código abierto",
+        "body": "Todas las funciones locales de HackTheTrack son completamente gratuitas, y el código fuente es abierto y está disponible en GitHub. El almacenamiento en la nube opcional tiene un nivel gratuito; más almacenamiento y el coaching con IA son complementos de pago que cubren los costes de servidor y modelos, pero todas las funciones locales siempre serán gratuitas."
+      }
+    },
+    "features": [
+      "Compatibilidad con múltiples formatos (NMEA, UBX, VBO, MoTeC, AiM CSV + XRK/XRZ, Alfano, Dove, Dovex)",
+      "Detección automática de pista y circuito en un radio de 5 millas",
+      "Detección automática del sentido de conducción (directo/inverso)",
+      "Modo waypoint: cronometraje de vueltas en cualquier lugar, sin necesidad de pista",
+      "Mapa interactivo de la trazada con mapa de calor de velocidad",
+      "Detección y visualización de zonas de frenado",
+      "Detección automática de vueltas mediante la línea de meta",
+      "Cronometraje por 3 sectores con vuelta óptima",
+      "Vista de gráficos pro con gráficos de telemetría de múltiples series",
+      "Diagrama G-G (círculo de fricción) para analizar el uso del agarre",
+      "Eje del gráfico por distancia o tiempo: las vueltas se alinean por posición en pista",
+      "Superposición de vuelta de referencia y comparación de delta de ritmo",
+      "Superposición de varias vueltas: compara vueltas en el mapa y los gráficos a la vez",
+      "Superpón vueltas de sesiones pasadas y otros loggers (alineadas automáticamente)",
+      "Instantáneas de vuelta: la vuelta más rápida guardada por motor y circuito para comparar",
+      "Sincronización de vídeo con reproducción de telemetría",
+      "9 tipos de indicadores superpuestos (digital, analógico, gráfico, barra, burbuja, mapa, ritmo, sector, tiempo de vuelta)",
+      "Exportación de vídeo MP4 con superposiciones y audio (H.264 + AAC)",
+      "Perfiles de vehículo y gestión de hojas de reglajes",
+      "Historial de reglajes congelado: cada sesión conserva el reglaje con el que rodó",
+      "Notas de sesión por archivo",
+      "Integración de dispositivos BLE (DovesDataLogger)",
+      "Sincronización de pistas del dispositivo por Bluetooth",
+      "Actualizaciones de firmware por aire: actualiza tu logger directamente desde la app",
+      "Editor de pistas y circuitos personalizados con envíos comunitarios",
+      "Consulta meteorológica local",
+      "Modo oscuro y claro",
+      "PWA: instalable y totalmente sin conexión"
+    ]
+  },
+  "supportedFiles": {
+    "trigger": "Archivos compatibles",
+    "title": "Formatos de archivo compatibles",
+    "description": "Todo el análisis se realiza localmente en tu navegador: no se sube nada.",
+    "experimental": "Experimental",
+    "primary": {
+      "dove": {
+        "name": "Dove CSV",
+        "body": "CSV simple con marcas de tiempo Unix en milisegundos, datos GPS, RPM y lecturas del acelerómetro de hardware. El formato nativo de <logger>DovesDataLogger</logger>. Extensión: <code>.dove</code>"
+      },
+      "dovex": {
+        "name": "Dovex (Dove extendido)",
+        "body": "Formato Dove extendido con una cabecera de metadatos de 4096 bytes que contiene información de la sesión (piloto, circuito, tiempos de vuelta) seguida de datos GPS en CSV Dove estándar. Extensión: <code>.dovex</code>"
+      },
+      "xrk": {
+        "name": "AiM XRK / XRZ (binario)",
+        "body": "Telemetría binaria nativa de AiM de los loggers MyChron / SoloDL, incluida la variante <code>.xrz</code> comprimida con zlib. Se analiza por completo en tu navegador con <libxrk>libxrk</libxrk> compilado a WebAssembly: rápido y totalmente sin conexión, como todos los demás formatos. Extensiones: <code>.xrk</code>, <code>.xrz</code>"
+      },
+      "iracing": {
+        "name": "Telemetría de iRacing (binario)",
+        "body": "Exportación de telemetría binaria nativa de iRacing: los mismos datos que sirve la API irsdk en vivo del simulador, sin necesidad de conversión CSV/MoTeC de terceros. Se lee directamente en tu navegador (totalmente sin conexión): la posición GPS, la velocidad y la altitud alimentan el mapa y las vueltas, junto con acelerador, freno, marcha, dirección, RPM, temperatura de agua/aceite y g lateral/longitudinal nativa. Extensión: <code>.ibt</code>"
+      },
+      "nmea": {
+        "name": "NMEA / CSV (delimitado por tabulaciones)",
+        "body": "CSV delimitado por tabulaciones con sentencias NMEA: el formato heredado usado por nuestros dataloggers personalizados anteriores. Extensiones: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
+      }
+    },
+    "secondary": {
+      "ubx": {
+        "name": "u-blox UBX binario",
+        "body": "Mensajes binarios NAV-PVT de receptores GPS u-blox. Extensión: <code>.ubx</code>"
+      },
+      "vbo": {
+        "name": "Racelogic VBO",
+        "body": "Formato de exportación de Racelogic VBOX y RaceBox. Extensión: <code>.vbo</code>"
+      },
+      "motecLd": {
+        "name": "MoTeC LD binario",
+        "body": "Datos binarios de loggers MoTeC y exportaciones de sim racing (ACC, iRacing, etc.). Extensión: <code>.ld</code>"
+      },
+      "motecCsv": {
+        "name": "MoTeC CSV",
+        "body": "Exportaciones CSV del software de análisis MoTeC i2 Pro. Extensión: <code>.csv</code>"
+      },
+      "alfano": {
+        "name": "Alfano CSV",
+        "body": "Exportaciones CSV de la app Alfano ADA. Extensión: <code>.csv</code>"
+      },
+      "aimCsv": {
+        "name": "AiM MyChron CSV",
+        "body": "Exportaciones CSV de Race Studio 3 (estilo RS2Analysis) para MyChron 5/6. Extensión: <code>.csv</code>"
+      }
+    }
   }
 }
