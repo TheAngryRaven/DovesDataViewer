@@ -62,6 +62,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from tablet up.
 
 ### Fixed
+- **Start/finish line couldn't be placed on a new track/course.** After the
+  sector-editor overhaul, a brand-new course had no coordinates for its
+  start/finish line, so it never appeared on the map and there was no way to
+  create or drag it (it effectively sat at null-island). The start/finish line is
+  now dropped into the center of the chosen map view — automatically once the
+  venue is known (a GPS-loaded session, or right after a location search / "use
+  my location") — and the start/finish row gains a **reset** button that
+  re-drops it in the current view so it can always be (re)placed and then dragged
+  into position, just like the other sector lines.
 - **Pro-mode panel resizing on touch.** Dragging a resizable divider (the
   left/right split and the InfoBox/MiniMap split in pro mode, plus the video
   panel) would stop after only a few pixels on touchscreens. The handle's

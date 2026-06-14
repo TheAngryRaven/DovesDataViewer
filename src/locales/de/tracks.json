@@ -26,7 +26,8 @@
     "guidance": "Füge einen Sektor hinzu, um die Runde aufzuteilen. Markiere genau drei Linien (Start/Ziel + zwei) als Hauptsektoren, um zu speichern.",
     "dragReorder": "Zum Umordnen ziehen",
     "markMajor": "Als Hauptsektor markieren",
-    "deleteSector": "Sektor löschen"
+    "deleteSector": "Sektor löschen",
+    "resetStartFinish": "Start-/Ziellinie zurücksetzen"
   },
   "visual": {
     "draw": "Zeichnen",

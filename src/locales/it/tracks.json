@@ -26,7 +26,8 @@
     "guidance": "Aggiungi un settore per iniziare a suddividere il giro. Contrassegna esattamente tre linee (partenza/arrivo + due) come settori principali per salvare.",
     "dragReorder": "Trascina per riordinare",
     "markMajor": "Contrassegna come settore principale",
-    "deleteSector": "Elimina settore"
+    "deleteSector": "Elimina settore",
+    "resetStartFinish": "Reimposta linea di partenza/arrivo"
   },
   "visual": {
     "draw": "Disegna",

@@ -9,7 +9,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Flag, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Flag, GripVertical, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,9 @@ interface SectorListEditorProps {
   onRemoveSector: (index: number) => void;
   onToggleMajor: (index: number) => void;
   onReorder: (from: number, to: number) => void;
+  /** Re-drop the start/finish line in the center of the current map view.
+   *  Drives the reset button on the start/finish row. */
+  onResetStartFinish?: () => void;
 }
 
 function sortableId(index: number): string {
@@ -40,6 +43,7 @@ function indexFromId(id: string): number {
 
 export function SectorListEditor({
   course, sectors, selectedLine, onSelectLine, onAddSector, onRemoveSector, onToggleMajor, onReorder,
+  onResetStartFinish,
 }: SectorListEditorProps) {
   const { t } = useTranslation('tracks');
   const labels = useMemo(() => sectorLabels(course), [course]);
@@ -81,9 +85,7 @@ export function SectorListEditor({
   return (
     <div className="space-y-1.5">
       {/* Start/finish — always sector 1, always major, fixed. */}
-      <button
-        type="button"
-        onClick={() => onSelectLine('sf')}
+      <div
         className={cn(
           'flex w-full items-center gap-2 rounded-md border px-2 py-2 text-left transition-colors',
           selectedLine === 'sf' ? 'border-primary bg-primary/10' : 'border-border bg-card hover:bg-accent/40',
@@ -91,9 +93,23 @@ export function SectorListEditor({
       >
         <span className="w-4" />
         <Flag className="h-4 w-4 shrink-0" style={{ color: '#22c55e' }} />
-        <span className="flex-1 text-sm font-semibold">{t('sectors.startFinish', { label: labels[0] })}</span>
+        <button type="button" onClick={() => onSelectLine('sf')} className="flex-1 text-left text-sm font-semibold">
+          {t('sectors.startFinish', { label: labels[0] })}
+        </button>
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('sectors.major')}</span>
-      </button>
+        {onResetStartFinish && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            aria-label={t('sectors.resetStartFinish')}
+            title={t('sectors.resetStartFinish')}
+            onClick={onResetStartFinish}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
 
       {sfHasOwnAddSlot && addButton(0, 'add-sf')}
 

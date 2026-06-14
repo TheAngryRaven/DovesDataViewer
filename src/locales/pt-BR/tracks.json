@@ -26,7 +26,8 @@
     "guidance": "Adicione um setor para começar a dividir a volta. Marque exatamente três linhas (largada/chegada + duas) como setores principais para salvar.",
     "dragReorder": "Arraste para reordenar",
     "markMajor": "Marcar como setor principal",
-    "deleteSector": "Excluir setor"
+    "deleteSector": "Excluir setor",
+    "resetStartFinish": "Redefinir linha de largada/chegada"
   },
   "visual": {
     "draw": "Desenhar",

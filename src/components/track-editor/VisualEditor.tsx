@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { SectorLine, CourseSector } from '@/types/racing';
 import type { Lap, GpsSample } from '@/types/racing';
-import { sectorLabels } from '@/lib/courseSectors';
+import { sectorLabels, centeredSectorLine } from '@/lib/courseSectors';
 import { resamplePolyline, calculatePolylineLength, generatedDrawingSpacing } from '@/lib/trackUtils';
 import { useWaybackImagery } from '@/hooks/useWaybackImagery';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -295,6 +295,18 @@ export function VisualEditor({
   // All line ids in course order (start/finish first).
   const allLineIds = useMemo<LineId[]>(() => ['sf', ...sectors.map((_, i) => i)], [sectors]);
 
+  // For a brand-new course the start/finish line has no coordinates yet, so it
+  // can't be rendered or dragged. Drop it in the center of the chosen view — when
+  // the venue is already known (GPS center) on mount, or right after the user
+  // searches / locates. Gated on "no S/F yet" so it never clobbers a placed line;
+  // the reset button re-drops on demand.
+  const maybeDropStartFinish = useCallback((center: GpsPoint) => {
+    if (!isNewTrack || (startFinishA && startFinishB)) return;
+    const line = centeredSectorLine(center);
+    onStartFinishChange?.(line.a, line.b);
+    onSelectLineRef.current?.('sf');
+  }, [isNewTrack, startFinishA, startFinishB, onStartFinishChange]);
+
   // Location search using Nominatim
   const handleLocationSearch = useCallback(async () => {
     if (!searchQuery.trim() || !mapRef.current) return;
@@ -311,6 +323,9 @@ export function VisualEditor({
         const { lat, lon } = results[0];
         mapRef.current.setView([parseFloat(lat), parseFloat(lon)], 17, { animate: true });
         setSearchQuery('');
+        // The user just chose their venue — drop the start/finish here if it
+        // hasn't been placed yet, so it lands in view rather than at the default.
+        maybeDropStartFinish({ lat: parseFloat(lat), lon: parseFloat(lon) });
       } else {
         toast({ title: t('visual.locNotFound'), description: t('visual.locNotFoundDesc'), variant: 'destructive' });
       }
@@ -319,7 +334,7 @@ export function VisualEditor({
     } finally {
       setIsSearching(false);
     }
-  }, [searchQuery, t]);
+  }, [searchQuery, t, maybeDropStartFinish]);
 
   // Calculate center from existing points, GPS data, or default
   const getInitialCenter = (): [number, number] => {
@@ -342,6 +357,7 @@ export function VisualEditor({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         mapRef.current?.setView([pos.coords.latitude, pos.coords.longitude], 17, { animate: true });
+        maybeDropStartFinish({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         setIsLocating(false);
       },
       (err) => {
@@ -350,7 +366,7 @@ export function VisualEditor({
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [t]);
+  }, [t, maybeDropStartFinish]);
 
   // Clear interactive editing layers
   const clearEditingLayers = () => {
@@ -645,6 +661,15 @@ export function VisualEditor({
   useEffect(() => {
     if (tileLayerRef.current) tileLayerRef.current.setUrl(satelliteTileUrl);
   }, [satelliteTileUrl]);
+
+  // New course whose venue is already known (GPS-loaded): drop the start/finish
+  // at that center as soon as the map is ready, so it's immediately editable.
+  // Blank new tracks wait for a search / locate / reset instead, so a line never
+  // lands at the default fallback location.
+  useEffect(() => {
+    if (!mapReady || !initialCenterProp) return;
+    maybeDropStartFinish(initialCenterProp);
+  }, [mapReady, initialCenterProp, maybeDropStartFinish]);
 
   // Handle resize
   useEffect(() => {

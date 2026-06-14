@@ -26,7 +26,8 @@
     "guidance": "Ajoutez un secteur pour commencer à découper le tour. Marquez exactement trois lignes (départ/arrivée + deux) comme secteurs principaux pour enregistrer.",
     "dragReorder": "Faites glisser pour réordonner",
     "markMajor": "Marquer comme secteur principal",
-    "deleteSector": "Supprimer le secteur"
+    "deleteSector": "Supprimer le secteur",
+    "resetStartFinish": "Réinitialiser la ligne de départ/arrivée"
   },
   "visual": {
     "draw": "Dessiner",

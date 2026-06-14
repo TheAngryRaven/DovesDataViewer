@@ -25,7 +25,8 @@
     "guidance": "Add a sector to start splitting the lap. Mark exactly three lines (start/finish + two) as Major sectors to save.",
     "dragReorder": "Drag to reorder",
     "markMajor": "Mark as major sector",
-    "deleteSector": "Delete sector"
+    "deleteSector": "Delete sector",
+    "resetStartFinish": "Reset start/finish line"
   },
   "visual": {
     "draw": "Draw",

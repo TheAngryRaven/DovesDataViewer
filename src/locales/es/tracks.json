@@ -26,7 +26,8 @@
     "guidance": "Añade un sector para empezar a dividir la vuelta. Marca exactamente tres líneas (salida/meta + dos) como sectores principales para guardar.",
     "dragReorder": "Arrastra para reordenar",
     "markMajor": "Marcar como sector principal",
-    "deleteSector": "Eliminar sector"
+    "deleteSector": "Eliminar sector",
+    "resetStartFinish": "Restablecer línea de salida/meta"
   },
   "visual": {
     "draw": "Dibujar",
