@@ -1,6 +1,17 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 4 in progress (garage, sub-slice 2/3)** · current branch: `claude/i18n-phase4-garage-setups-notes` → PR into `BETA`
+Status: **Phase 4 garage complete + weather** · current branch: `claude/i18n-phase4-device-weather` → PR into `BETA`
+
+> **Garage sub-slice 3 (this PR):** Device — `DeviceSettingsTab`,
+> `DeviceTracksTab`, `FirmwareUpdateSection` (`drawer.device`/`drawer.firmware`/
+> `drawer.deviceTracks`) — **plus the catch-up `weather` namespace**
+> (`WeatherPanel` + `LocalWeatherDialog`). Device-setting field labels stay
+> sourced from `deviceSettingsSchema.ts` (data; unknown keys pass through) — a
+> schema-level i18n pass is the deliberate follow-up. With this, the **whole
+> garage drawer is translated.** **Remaining:** tracks (editor + community
+> submission), plugins/cloud, auth/admin.
+>
+> (sub-slices 1 & 2 — shell+Files+Vehicles, Setups+Notes — already merged.)
 
 > **Garage sub-slice 2 (this PR):** Setups + Notes — `SetupsTab`,
 > `TemplateCreator`, `NotesTab`, and the shared `InfoBox` `SetupDetails` table

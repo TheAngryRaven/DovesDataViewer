@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ interface SettingRow {
 }
 
 export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSettingsTabProps) {
+  const { t } = useTranslation("drawer");
   const [rows, setRows] = useState<SettingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -53,11 +55,11 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
         }))
       );
     } catch (err) {
-      setFetchError((err instanceof Error ? err.message : "Failed to read settings"));
+      setFetchError((err instanceof Error ? err.message : t("device.readFailed")));
     } finally {
       setLoading(false);
     }
-  }, [connection]);
+  }, [connection, t]);
 
   useEffect(() => {
     fetchSettings();
@@ -88,12 +90,12 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
           i === index ? { ...r, originalValue: r.value, saving: false } : r
         )
       );
-      toast.success(`Saved ${getSettingDef(row.key)?.label ?? row.key}`);
+      toast.success(t("device.toastSaved", { name: getSettingDef(row.key)?.label ?? row.key }));
     } catch (err) {
       setRows((prev) =>
         prev.map((r, i) => (i === index ? { ...r, saving: false } : r))
       );
-      toast.error(`Failed to save: ${(err instanceof Error ? err.message : "Unknown error")}`);
+      toast.error(t("device.toastSaveFailed", { error: err instanceof Error ? err.message : t("device.unknownError") }));
     }
   };
 
@@ -105,10 +107,10 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     setResetting(true);
     try {
       await resetDeviceSettings(connection);
-      toast.success("Settings reset to defaults — device is rebooting");
+      toast.success(t("device.toastReset"));
       onResetComplete?.();
     } catch (err) {
-      toast.error(`Reset failed: ${(err instanceof Error ? err.message : "Unknown error")}`);
+      toast.error(t("device.toastResetFailed", { error: err instanceof Error ? err.message : t("device.unknownError") }));
       setResetting(false);
       setConfirmReset(false);
     }
@@ -117,20 +119,20 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
   const settingsBody = loading ? (
     <div className="flex items-center justify-center py-8">
       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      <span className="ml-2 text-sm text-muted-foreground">Reading settings…</span>
+      <span className="ml-2 text-sm text-muted-foreground">{t("device.readingSettings")}</span>
     </div>
   ) : fetchError ? (
     <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
       <AlertCircle className="w-8 h-8 text-destructive" />
       <p className="text-sm text-muted-foreground">{fetchError}</p>
       <Button variant="outline" size="sm" onClick={fetchSettings} className="gap-2">
-        <RefreshCw className="w-4 h-4" /> Retry
+        <RefreshCw className="w-4 h-4" /> {t("device.retry")}
       </Button>
     </div>
   ) : (
     <div className="space-y-3">
       {rows.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">No settings found on device.</p>
+        <p className="text-sm text-muted-foreground text-center py-8">{t("device.noSettings")}</p>
       )}
       {rows.map((row, i) => {
         const def = getSettingDef(row.key);
@@ -189,14 +191,14 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
             ) : (
               <RotateCcw className="w-4 h-4" />
             )}
-            {confirmReset ? "Confirm Reset — Device Will Reboot" : "Reset Settings to Default"}
+            {confirmReset ? t("device.resetConfirm") : t("device.reset")}
           </Button>
           {confirmReset && !resetting && (
             <button
               onClick={() => setConfirmReset(false)}
               className="w-full mt-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              Cancel
+              {t("device.cancel")}
             </button>
           )}
         </div>

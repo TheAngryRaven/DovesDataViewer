@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, CheckCircle2, Cpu, Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,26 +12,39 @@ import {
 import { type BleConnection } from "@/lib/bleDatalogger";
 import { useFirmwareUpdate, type FirmwareFlashPhase } from "@/hooks/useFirmwareUpdate";
 
-const PHASE_LABEL: Record<FirmwareFlashPhase, string> = {
-  downloading: "Downloading firmware…",
-  uploading: "Uploading to device…",
-  verifying: "Verifying on device…",
-  installing: "Installing…",
-  done: "Update complete!",
-  error: "Update failed",
-};
-
 /** Firmware version display + "Check for updates" + the update confirm/progress dialog. */
 export function FirmwareUpdateSection({ connection }: { connection: BleConnection }) {
+  const { t } = useTranslation("drawer");
   const fw = useFirmwareUpdate(connection);
 
+  const phaseLabel: Record<FirmwareFlashPhase, string> = {
+    downloading: t("firmware.phaseDownloading"),
+    uploading: t("firmware.phaseUploading"),
+    verifying: t("firmware.phaseVerifying"),
+    installing: t("firmware.phaseInstalling"),
+    done: t("firmware.phaseDone"),
+    error: t("firmware.phaseError"),
+  };
+
   const versionLabel = fw.loadingVersion
-    ? "Reading version…"
+    ? t("firmware.readingVersion")
     : fw.versionError
-      ? "Version unavailable"
+      ? t("firmware.versionUnavailable")
       : fw.info?.version
-        ? `Version ${fw.info.version}${fw.info.variant ? ` · ${fw.info.variant}` : ""}`
-        : "Version unknown";
+        ? `${t("firmware.version", { version: fw.info.version })}${fw.info.variant ? ` · ${fw.info.variant}` : ""}`
+        : t("firmware.versionUnknown");
+
+  // Confirm-step blurb: pick a key by which version bits are known (kept out of
+  // JSX so translators get whole sentences, not concatenated fragments).
+  const ver = fw.latestVersion;
+  const cur = fw.info?.version;
+  const confirmBlurb = fw.forced
+    ? ver
+      ? cur ? t("firmware.flashingForced", { version: ver, current: cur }) : t("firmware.flashingForcedNoCurrent", { version: ver })
+      : t("firmware.flashingForcedNoVersion")
+    : ver
+      ? cur ? t("firmware.available", { version: ver, current: cur }) : t("firmware.availableNoCurrent", { version: ver })
+      : t("firmware.availableNoVersion");
 
   // The dialog covers the confirm step, the in-progress flash, completion, and errors.
   const isError = fw.phase === "error";
@@ -54,7 +68,7 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
         <div className="flex items-center gap-2 min-w-0">
           <Cpu className="w-4 h-4 text-muted-foreground shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">Firmware</p>
+            <p className="text-sm font-medium text-foreground">{t("firmware.firmware")}</p>
             <p className="text-xs text-muted-foreground truncate">{versionLabel}</p>
           </div>
         </div>
@@ -72,7 +86,7 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
         ) : (
           <RefreshCw className="w-4 h-4" />
         )}
-        Check for updates
+        {t("firmware.checkForUpdates")}
       </Button>
 
       <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
@@ -87,48 +101,34 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-warning" />
-                  Update firmware
+                  {t("firmware.updateTitle")}
                 </DialogTitle>
                 <DialogDescription asChild>
                   <div className="space-y-2 pt-1 text-left">
-                    {fw.forced ? (
-                      <p>
-                        Flashing firmware
-                        {fw.latestVersion ? ` v${fw.latestVersion}` : ""}
-                        {fw.info?.version ? ` (current: v${fw.info.version}).` : "."}
-                      </p>
-                    ) : (
-                      <p>
-                        A new firmware version
-                        {fw.latestVersion ? ` (v${fw.latestVersion})` : ""} is available
-                        {fw.info?.version ? ` — you're on v${fw.info.version}.` : "."}
-                      </p>
-                    )}
+                    <p>{confirmBlurb}</p>
                     {fw.forced && (
                       <p className="rounded-md bg-warning/10 px-2 py-1 text-xs text-warning">
-                        On beta branches updates always push through for testing.
+                        {t("firmware.betaNote")}
                       </p>
                     )}
-                    <p className="font-medium text-foreground">Before you start:</p>
+                    <p className="font-medium text-foreground">{t("firmware.beforeStart")}</p>
                     <ul className="list-disc pl-5 space-y-1">
-                      <li>Make sure the logger's battery is well charged.</li>
-                      <li>Keep the device close and powered on.</li>
-                      <li>
-                        Don't close this tab or power off the device until it finishes.
-                      </li>
+                      <li>{t("firmware.li1")}</li>
+                      <li>{t("firmware.li2")}</li>
+                      <li>{t("firmware.li3")}</li>
                     </ul>
                     <p className="text-xs">
-                      Interrupting an update can require a manual recovery.
+                      {t("firmware.interrupting")}
                     </p>
                   </div>
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="gap-2 sm:gap-0">
                 <Button variant="outline" onClick={fw.cancel}>
-                  Cancel
+                  {t("firmware.cancel")}
                 </Button>
                 <Button className="gap-2" onClick={fw.startUpdate}>
-                  <Download className="w-4 h-4" /> Upload
+                  <Download className="w-4 h-4" /> {t("firmware.upload")}
                 </Button>
               </DialogFooter>
             </>
@@ -140,12 +140,12 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  {PHASE_LABEL[fw.phase]}
+                  {phaseLabel[fw.phase]}
                 </DialogTitle>
                 <DialogDescription>
                   {hasPercent
-                    ? `${fw.percent}% — please keep the device powered on.`
-                    : "Please keep the device powered on and nearby."}
+                    ? t("firmware.progressPercent", { percent: fw.percent })
+                    : t("firmware.progressIndeterminate")}
                 </DialogDescription>
               </DialogHeader>
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -163,15 +163,14 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-primary" />
-                  Flash complete!
+                  {t("firmware.complete")}
                 </DialogTitle>
                 <DialogDescription className="text-left">
-                  Your logger is rebooting into the new firmware. Give it a few
-                  seconds, then reconnect to check it.
+                  {t("firmware.completeDesc")}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button onClick={fw.finish}>Done</Button>
+                <Button onClick={fw.finish}>{t("firmware.done")}</Button>
               </DialogFooter>
             </>
           )}
@@ -182,15 +181,15 @@ export function FirmwareUpdateSection({ connection }: { connection: BleConnectio
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-destructive" />
-                  {PHASE_LABEL.error}
+                  {phaseLabel.error}
                 </DialogTitle>
                 <DialogDescription className="text-left whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
-                  {fw.flashError ?? "Something went wrong during the update."}
+                  {fw.flashError ?? t("firmware.genericError")}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <Button variant="outline" onClick={fw.dismiss}>
-                  Close
+                  {t("firmware.close")}
                 </Button>
               </DialogFooter>
             </>

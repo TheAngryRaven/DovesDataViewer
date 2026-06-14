@@ -940,9 +940,14 @@ shell + Files + Vehicles (`FileManagerDrawer` tab chrome, `FilesTab`,
 `SessionBrowser`, `VehiclesTab`, `EngineCombobox`; the pure `fileBrowserTree`
 takes translated `allSessions`/`untagged` labels so it stays i18n-free) **and
 Setups + Notes** (`SetupsTab`, `TemplateCreator`, `NotesTab`, and the shared
-`InfoBox` `SetupDetails` table) — all the `drawer` namespace. The garage
-**Device** sub-tabs (Settings/Tracks/firmware), tracks, plugins, and auth/admin
-are the next surfaces; the framework is whole.
+`InfoBox` `SetupDetails` table) and **Device** (Settings/Tracks/firmware:
+`DeviceSettingsTab`, `DeviceTracksTab`, `FirmwareUpdateSection`) — all the
+`drawer` namespace — plus the **weather** UI (`WeatherPanel`, `LocalWeatherDialog`
+— the `weather` namespace, shared by the in-session panel and the landing-page
+dialog). Tracks (editor/submission), plugins, and auth/admin are the next
+surfaces; the framework is whole. (Device-setting **labels** still come from
+`deviceSettingsSchema.ts` data — schema-level i18n is a deliberate follow-up so
+unknown device keys keep passing through as raw labels.)
 
 - **Languages.** `en` (source of truth) + `es`, `fr`, `de`, `it`, `pt-BR`, `ja`,
   declared once in `lib/i18n/config.ts` (`SUPPORTED_LANGUAGES`, `NAMESPACES`).
@@ -965,7 +970,7 @@ are the next surfaces; the framework is whole.
 - **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
   with the English JSON shape, so `t("settings:title")` is autocompleted and a
   missing/renamed key fails `tsc -b`. English is the canonical key set.
-- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`) map to per-language JSON files
+- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`) map to per-language JSON files
   and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
   preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
   `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),
