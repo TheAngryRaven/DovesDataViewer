@@ -31,10 +31,10 @@ export const TOOLS: ToolDef[] = [
   },
   {
     id: "datalogger",
-    name: "Phone Datalogger",
+    name: "Datalogger",
     description:
-      "Use your phone's GPS as a lap-timing datalogger. Skeleton only — wiring up the live capture is in progress.",
-    badge: "Skeleton",
+      "Turn your phone's GPS into a live lap timer — delta, lap times and sector splits, saved as a log you can review.",
+    badge: "Experimental",
     icon: Satellite,
     component: lazy(() => import("./datalogger/DataloggerTool")),
   },

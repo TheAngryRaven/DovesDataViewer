@@ -17,13 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tools on the home screen.** A new **Tools** tile on the landing page opens the
   trackside tools (the seat-position visualizer and more) in a full-screen panel —
   no datalog needed.
-- **Phone Datalogger (early/experimental).** A new tool that turns your phone's
-  GPS into a lap-timing datalogger: a live map with speed, delta (red when you're
-  slower, green when faster) and current/best lap times. It starts recording once
-  you're moving above 5 mph and saves the session as a `.dovep` log to your files
-  when you end it (auto-ends after 5 minutes stopped, or tap **End**) — then opens
-  and reviews exactly like any other log. Early days: the timing and UI will be
-  refined in upcoming updates.
+- **Datalogger (early/experimental).** A new tool that turns your phone's GPS into
+  a live lap timer: a big delta to your best lap (red when you're slower, green
+  when faster), current/best/last/optimal lap times, speed, and a **Lap Times**
+  list with major-sector splits. It starts recording once you're moving above
+  5 mph and saves the session as a `.dovep` log to your files when you end it
+  (auto-ends after 5 minutes stopped, or tap **End**) — then opens and reviews
+  exactly like any other log. Early days: the timing and UI will be refined in
+  upcoming updates.
 - **Translations / multi-language support (foundation).** The app now has an
   internationalization system (built on i18next) with a **Language** picker in
   Settings. It auto-detects your browser language on first run and ships

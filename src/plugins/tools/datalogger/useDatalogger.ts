@@ -1,8 +1,8 @@
 /**
- * Orchestration for the Phone Datalogger tool: wires the GPS source, the session
- * gate, and the realtime lap timer, and persists the session as a `.dovep` log
- * on end. All the testable logic lives in `@/lib/gps/*` (pure, unit-tested); this
- * hook is the thin browser-facing glue (geolocation + IndexedDB + React state).
+ * Orchestration for the Datalogger tool: wires the GPS source, the session gate,
+ * and the realtime lap timer, and persists the session as a `.dovep` log on end.
+ * All testable logic lives in `@/lib/gps/*` (pure, unit-tested); this hook is the
+ * thin browser-facing glue (geolocation + IndexedDB + React state).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -20,50 +20,55 @@ import {
   buildDovepFileName,
   type DovepSessionMeta,
 } from "@/lib/gps";
-import { MPS_TO_MPH } from "@/lib/parserUtils";
+import type { Lap, Track } from "@/types/racing";
 import { loadTracks } from "@/lib/trackStorage";
 import { saveFile, saveFileMetadata } from "@/lib/fileStorage";
 
-export interface DataloggerState {
+export interface DataloggerController {
   phase: SessionPhase;
   timing: TimingState;
-  /** Latest captured observation (for the live map/readouts). */
+  /** Completed laps with major-sector rollup (for the Lap Times list). */
+  laps: Lap[];
+  /** Latest captured observation (live speed/quality). */
   latest: GpsObservation | null;
-  /** Number of observations recorded into the log so far. */
-  recordedCount: number;
-  /** Filename once the session has been saved to IndexedDB. */
+  /** True while the `.dovep` log is being written to IndexedDB. */
+  saving: boolean;
+  /** Filename once the session has been saved. */
   savedFileName: string | null;
   error: string | null;
-}
-
-export interface DataloggerController extends DataloggerState {
-  /** Manually end + save the session (the red "End session" action). */
+  /** Manually end + save the session (red "End" action). */
   endSession: () => Promise<void>;
+  /** Discard the ended session and start a fresh capture. */
+  reset: () => void;
 }
 
 export function useDatalogger(): DataloggerController {
   const gpsRef = useRef<CustomGps | null>(null);
   const timerRef = useRef<RealtimeLapTimer | null>(null);
+  const tracksRef = useRef<Track[]>([]);
   const gateRef = useRef(initSessionGate());
   const recordedRef = useRef<GpsObservation[]>([]);
   const savingRef = useRef(false);
 
   const [phase, setPhase] = useState<SessionPhase>("waiting");
   const [timing, setTiming] = useState<TimingState>(EMPTY_TIMING_STATE);
+  const [laps, setLaps] = useState<Lap[]>([]);
   const [latest, setLatest] = useState<GpsObservation | null>(null);
-  const [recordedCount, setRecordedCount] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [savedFileName, setSavedFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   /** Serialize the recorded buffer to a `.dovep` log and store it in IndexedDB. */
   const persist = useCallback(async () => {
     if (savingRef.current) return;
-    savingRef.current = true;
     const observations = recordedRef.current;
-    if (observations.length === 0) return;
+    if (observations.length === 0) return; // nothing recorded — leave saving false
+
+    savingRef.current = true;
+    setSaving(true);
 
     const timer = timerRef.current;
-    const laps = timer ? [...timer.getLaps()] : [];
+    const completed = timer ? [...timer.getLaps()] : [];
     const t = timer?.getState() ?? EMPTY_TIMING_STATE;
     const startTs = observations[0].fix.timestamp;
     const fileName = buildDovepFileName(startTs);
@@ -72,7 +77,7 @@ export function useDatalogger(): DataloggerController {
       course: t.courseName ?? undefined,
       bestLapMs: t.bestLapMs ?? undefined,
       optimalMs: t.optimalMs ?? undefined,
-      lapTimesMs: laps.map((l) => l.lapTimeMs),
+      lapTimesMs: completed.map((l) => l.lapTimeMs),
     };
 
     try {
@@ -87,33 +92,55 @@ export function useDatalogger(): DataloggerController {
       setSavedFileName(fileName);
     } catch (e) {
       setError(`Failed to save session: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSaving(false);
     }
   }, []);
 
-  const finish = useCallback(async () => {
+  const endSession = useCallback(async () => {
+    if (gateRef.current.phase === "ended") return;
     gateRef.current = endSessionGate(gateRef.current);
     setPhase("ended");
     gpsRef.current?.stop();
     await persist();
   }, [persist]);
 
-  const endSession = useCallback(async () => {
-    if (gateRef.current.phase === "ended") return;
-    await finish();
-  }, [finish]);
+  const reset = useCallback(() => {
+    gateRef.current = initSessionGate();
+    recordedRef.current = [];
+    savingRef.current = false;
+    timerRef.current = new RealtimeLapTimer(tracksRef.current);
+    setPhase("waiting");
+    setTiming(EMPTY_TIMING_STATE);
+    setLaps([]);
+    setLatest(null);
+    setSaving(false);
+    setSavedFileName(null);
+    setError(null);
+    const gps = gpsRef.current;
+    if (gps) {
+      gps.clear();
+      gps.start();
+    }
+  }, []);
 
   useEffect(() => {
     const timer = new RealtimeLapTimer();
     timerRef.current = timer;
     // Tracks load async + offline-cached; the engine detects once available.
-    loadTracks().then((tracks) => timer.setTracks(tracks)).catch(() => { /* offline / no tracks */ });
+    loadTracks()
+      .then((tracks) => {
+        tracksRef.current = tracks;
+        timerRef.current?.setTracks(tracks);
+      })
+      .catch(() => { /* offline / no tracks */ });
 
     const gps = new CustomGps();
     gpsRef.current = gps;
 
     const offFix = gps.onFix((obs) => {
       setLatest(obs);
-      const speedMph = (obs.motion.speedMps ?? 0) * MPS_TO_MPH;
+      const speedMph = obs.fix.speed != null ? obs.fix.speed * 2.236936 : (obs.motion.speedMps ?? 0) * 2.236936;
       const step = stepSessionGate(gateRef.current, speedMph, obs.fix.timestamp);
       gateRef.current = step.state;
 
@@ -121,8 +148,9 @@ export function useDatalogger(): DataloggerController {
 
       if (gateRef.current.phase === "recording") {
         recordedRef.current.push(obs);
-        setRecordedCount(recordedRef.current.length);
-        setTiming(timer.update(observationToSample(obs)));
+        const t = timerRef.current!.update(observationToSample(obs));
+        setTiming(t);
+        setLaps([...timerRef.current!.getLaps()]);
       }
 
       if (step.autoEnded) {
@@ -142,5 +170,5 @@ export function useDatalogger(): DataloggerController {
     };
   }, [persist]);
 
-  return { phase, timing, latest, recordedCount, savedFileName, error, endSession };
+  return { phase, timing, laps, latest, saving, savedFileName, error, endSession, reset };
 }

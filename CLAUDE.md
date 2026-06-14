@@ -299,8 +299,9 @@ contexts and falls back to nulls (the landing page is outside those providers),
 mirroring `ProfileTab`. Everything is lazy (`ToolsPanel`, the landing tile, and
 each tool component), so nothing rides the initial bundle, and fully offline. Tool
 state persists via `getPluginStore("tools")`. Tools: the **kart seat position
-visualizer** and a **Phone Datalogger** (`datalogger/`) — live GPS lap timing
-using the phone as the logger (PHASE 1, rough UI). Its foundation is the
+visualizer** and a **Datalogger** (`datalogger/`) — live GPS lap timing using the
+phone as the logger (PHASE 1: laptimer-style readout, no map; delta-forward + a
+Lap Times list). Its foundation is the
 host-agnostic **`lib/gps/`** module: `gpsFix.ts` (the pure `GpsFix` record — an
 NMEA-sentence replacement carrying one normalized browser fix + a `GpsFixQuality`
 bucket from horizontal accuracy, the phone's HDOP analog — plus
