@@ -179,10 +179,21 @@ automated in the coach repo via a GitHub Actions workflow that runs
    are picked up automatically on the next install, while a minor/major bump
    (`0.5.0`+) stays an explicit, reviewed change — bump the tilde base when you
    intend to adopt a new minor.
-2. The loader in `vite.config.ts` defaults to `@perchwerks/eye-in-the-sky`, so
+2. The loader in `vite.config.ts` defaults to the coach package name, so
    the standard build picks it up with no env configuration. Override the
    candidate list via the `DOVE_PLUGIN_PACKAGES` env var (comma-separated) if
    you want to load different/additional packages.
+
+> **BETA branch override.** On the `BETA` branch the coach is pulled **directly
+> from the coach repo's `BETA` branch** as a git `optionalDependency`
+> (`"@theangryraven/eye-in-the-sky": "github:TheAngryRaven/DataViewer_coach#BETA"`),
+> with `DEFAULT_PLUGIN_PACKAGES` set to that name — so beta builds always track
+> the latest coach beta without cutting a tag/npm release for every iteration.
+> This is deliberately not on `main` (which stays pinned to the published npm
+> package). Note the tradeoff: a git dep records the resolved **commit SHA** in
+> `bun.lock`, so a new push to the coach's `BETA` does **not** auto-update — run
+> `bun update @theangryraven/eye-in-the-sky` (or re-install) to re-pin. When this
+> stabilizes, switch back to a tagged npm release before merging to `main`.
 
 Outcomes:
 

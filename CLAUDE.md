@@ -338,6 +338,29 @@ plugin contracts + `components/ui`).
 The coach shares the public stub's `id` with a higher `priority` to override it.
 See `src/plugins/README.md` for the full publish/wire workflow.
 
+> ## ⚠️ SUPER IMPORTANT — coach source differs by branch (DO NOT MERGE BLINDLY)
+>
+> **The `BETA` branch does NOT use the published npm package.** On `BETA` the
+> coach is pulled **straight from the coach repo's `BETA` branch** as a git
+> `optionalDependency` so beta builds always track the latest coach beta without
+> tagging/publishing per iteration:
+> - `package.json` → `"@theangryraven/eye-in-the-sky": "github:TheAngryRaven/DataViewer_coach#BETA"`
+> - `vite.config.ts` → `DEFAULT_PLUGIN_PACKAGES = "@theangryraven/eye-in-the-sky"`
+>
+> **`main` stays on the published npm package** (`@perchwerks/eye-in-the-sky`,
+> tilde-pinned). These are the **only two lines** that differ.
+>
+> **🛑 This must NOT ride a BETA → main merge.** The product-cut dance, **only
+> when the maintainer asks for it**:
+> 1. On `BETA`, flip both lines back to the **published, tagged npm release**
+>    (e.g. `"@theangryraven/eye-in-the-sky": "~X.Y.Z"` + matching
+>    `DEFAULT_PLUGIN_PACKAGES`), run `bun install`, test, **merge to `main`**.
+> 2. After the merge, flip `BETA` back to the `github:…#BETA` git dep above.
+>
+> Re-pin note: a git dep records the resolved **commit SHA** in `bun.lock`, so a
+> new push to the coach's `BETA` does not auto-update — run
+> `bun update @theangryraven/eye-in-the-sky` to pull the latest beta.
+
 Offline-first note: plugins are bundled internal code. Only a plugin's runtime
 network calls (e.g. AI model APIs) go online — the accepted compromise. Supabase
 cloud is purely file-sync.
