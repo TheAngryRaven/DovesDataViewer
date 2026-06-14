@@ -117,6 +117,7 @@
     "acquiringGps": "GPSを取得中…",
     "gpsQuality": "GPS ±{{accuracy}} m · {{quality}}",
     "speedometerMode": "スピードメーターモード — 近くにコースが見つかりません",
+    "trackDetected": "近くで {{track}} を検出しました",
     "farHint": "レース後の分析用にデータを記録しています。あとでここにコースを作成すると、ラップタイムを取得できます。",
     "waitingHint": "5 mph を超えると記録を開始します。",
     "statusRecording": "記録中",

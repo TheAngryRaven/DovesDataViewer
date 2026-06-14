@@ -194,6 +194,14 @@ describe("RealtimeLapTimer — track proximity (log-only when far)", () => {
     expect(timer.nearTrack(40, 40)).toBe(false);
     expect(timer.getSamples()).toHaveLength(0); // pure probe — nothing recorded
   });
+
+  it("nearestTrackName() names the nearby track (or null when far / not loaded)", () => {
+    const timer = new RealtimeLapTimer();
+    expect(timer.nearestTrackName(0, 0.0005)).toBeNull(); // tracks not loaded yet
+    timer.setTracks([nearTrack]); // start/finish at (0, 0)
+    expect(timer.nearestTrackName(0, 0.0005)).toBe("Near"); // ~55 m away
+    expect(timer.nearestTrackName(40, 40)).toBeNull(); // far → no name
+  });
 });
 
 describe("RealtimeLapTimer — 3-major course (sectors, optimal, delta)", () => {

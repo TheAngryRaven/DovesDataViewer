@@ -137,10 +137,12 @@ export class DataloggerSession {
       if (completed.length !== this.snapshot.laps.length) patch.laps = [...completed];
     } else {
       // Before logging arms, still surface track proximity so the UI can explain
-      // speedometer mode ("no tracks nearby") while waiting.
+      // speedometer mode — either "no tracks nearby" or, when we *do* recognise a
+      // track, confirm it by name (so a stationary driver knows detection worked).
       patch.timing = {
         ...this.snapshot.timing,
         nearKnownTrack: this.deps.timer.nearTrack(obs.fix.lat, obs.fix.lon),
+        nearbyTrackName: this.deps.timer.nearestTrackName(obs.fix.lat, obs.fix.lon),
       };
     }
     this.patch(patch);

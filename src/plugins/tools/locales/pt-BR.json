@@ -117,6 +117,7 @@
     "acquiringGps": "Adquirindo GPS…",
     "gpsQuality": "GPS ±{{accuracy}} m · {{quality}}",
     "speedometerMode": "Modo velocímetro — nenhuma pista encontrada por perto",
+    "trackDetected": "{{track}} detectada por perto",
     "farHint": "Dados sendo registrados para análise pós-corrida. Crie uma pista aqui mais tarde para obter os tempos de volta.",
     "waitingHint": "Acelere acima de 5 mph para começar a registrar.",
     "statusRecording": "Gravando",

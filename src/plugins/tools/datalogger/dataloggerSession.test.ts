@@ -8,6 +8,12 @@ const FAR_TRACK: Track = {
   courses: [{ name: "c", startFinishA: { lat: 40, lon: 40 }, startFinishB: { lat: 40, lon: 40.001 } }],
 };
 
+// The FakeGeo default fix is at (45, -73), so this track sits right under it.
+const NEAR_TRACK: Track = {
+  name: "Orlando Kart Center",
+  courses: [{ name: "Normal", startFinishA: { lat: 45, lon: -73 }, startFinishB: { lat: 45, lon: -72.999 } }],
+};
+
 /** Controllable fake Geolocation (mirrors the one in customGps.test.ts). */
 class FakeGeo {
   successCb: PositionCallback | null = null;
@@ -88,6 +94,17 @@ describe("DataloggerSession", () => {
     const s = session.getSnapshot();
     expect(s.phase).toBe("waiting");
     expect(s.timing.nearKnownTrack).toBe(false);
+  });
+
+  it("names the recognised track while still waiting (parked at a known track)", () => {
+    const { geo, timer, session } = setup();
+    timer.setTracks([NEAR_TRACK]);
+    session.start();
+    geo.emit({ latitude: 45, longitude: -73, speed: 1 }, BASE_TS); // ~2 mph → waiting
+    const s = session.getSnapshot();
+    expect(s.phase).toBe("waiting");
+    expect(s.timing.nearKnownTrack).toBe(true);
+    expect(s.timing.nearbyTrackName).toBe("Orlando Kart Center");
   });
 
   // Regression: ending with nothing recorded must NOT get stuck "saving" and must

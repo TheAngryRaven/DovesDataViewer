@@ -61,6 +61,13 @@ export interface TimingState {
    * "logging for post-race analysis" note); `null` until tracks have loaded.
    */
   nearKnownTrack: boolean | null;
+  /**
+   * Name of the nearest known track within range, or `null` (far / not loaded).
+   * Lets the UI confirm which track it recognised *before* logging arms — so a
+   * stationary driver sitting at a known track sees it was detected rather than
+   * a context-free speedometer.
+   */
+  nearbyTrackName: string | null;
 }
 
 export const EMPTY_TIMING_STATE: TimingState = {
@@ -78,6 +85,7 @@ export const EMPTY_TIMING_STATE: TimingState = {
   majorSectors: [],
   speedMph: null,
   nearKnownTrack: null,
+  nearbyTrackName: null,
 };
 
 /** Min samples before attempting detection (mirrors autoDetectCourse). */
@@ -214,6 +222,17 @@ export class RealtimeLapTimer {
     return findNearestTrack(lat, lon, this.tracks, NEAR_TRACK_RADIUS_M) !== null;
   }
 
+  /**
+   * Name of the nearest known track within ~10 mi of `(lat, lon)`, or `null`
+   * (far / not loaded / bad fix). Companion to `nearTrack` so the waiting-state
+   * UI can name the recognised track, not just know one is nearby.
+   */
+  nearestTrackName(lat: number, lon: number): string | null {
+    if (!this.tracksLoaded) return null;
+    if (validateGpsCoords(lat, lon) !== null) return null;
+    return findNearestTrack(lat, lon, this.tracks, NEAR_TRACK_RADIUS_M)?.name ?? null;
+  }
+
   /** All samples fed so far (the would-be log buffer). */
   getSamples(): readonly GpsSample[] {
     return this.samples;
@@ -305,6 +324,7 @@ export class RealtimeLapTimer {
       majorSectors: this.computeMajorSectors(last),
       speedMph: latest.speedMph,
       nearKnownTrack: this.nearKnownTrack,
+      nearbyTrackName: this.trackName,
     };
   }
 

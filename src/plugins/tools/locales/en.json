@@ -116,6 +116,7 @@
     "acquiringGps": "Acquiring GPS…",
     "gpsQuality": "GPS ±{{accuracy}} m · {{quality}}",
     "speedometerMode": "Speedometer mode — no tracks found nearby",
+    "trackDetected": "{{track}} detected nearby",
     "farHint": "Data being logged for post-race analysis. Create a track here later to get lap times.",
     "waitingHint": "Drive above 5 mph to start logging.",
     "statusRecording": "Recording",

@@ -117,6 +117,7 @@
     "acquiringGps": "GPS wird erfasst…",
     "gpsQuality": "GPS ±{{accuracy}} m · {{quality}}",
     "speedometerMode": "Tachomodus – keine Strecken in der Nähe gefunden",
+    "trackDetected": "{{track}} in der Nähe erkannt",
     "farHint": "Daten werden für die Analyse nach dem Rennen aufgezeichnet. Lege hier später eine Strecke an, um Rundenzeiten zu erhalten.",
     "waitingHint": "Fahre über 5 mph, um die Aufzeichnung zu starten.",
     "statusRecording": "Aufnahme",

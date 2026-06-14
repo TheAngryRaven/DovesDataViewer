@@ -154,16 +154,21 @@ function LiveView({
   const farFromTrack = timing.nearKnownTrack === false;
   const waiting = phase === "waiting";
   // Speedometer mode: before logging arms (confirm GPS/speed while stationary),
-  // or recording far from any known track (no timing context). The "no tracks
-  // nearby" title shows whenever we know there's no track — including while
-  // waiting — so the reason for speedometer mode is always explained.
+  // or recording far from any known track (no timing context). The title explains
+  // *why* we're showing a bare speedometer: "no tracks nearby" when we're far, or
+  // — when we recognise the track but logging hasn't armed yet — a confirmation
+  // that the track was detected (so sitting still at a known track doesn't look
+  // identical to being nowhere near one).
   if (waiting || farFromTrack) {
+    let title: string | undefined;
+    if (farFromTrack) title = t("datalogger.speedometerMode");
+    else if (timing.nearbyTrackName) title = t("datalogger.trackDetected", { track: timing.nearbyTrackName });
     return (
       <SpeedometerView
         speed={speed}
         speedUnit={speedUnit}
         latest={latest}
-        title={farFromTrack ? t("datalogger.speedometerMode") : undefined}
+        title={title}
         hint={waiting ? t("datalogger.waitingHint") : t("datalogger.farHint")}
       />
     );

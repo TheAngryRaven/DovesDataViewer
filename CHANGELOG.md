@@ -80,6 +80,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from tablet up.
 
 ### Fixed
+- **Datalogger looked like it didn't recognise the track while parked.** Sitting
+  still at a known venue, the tool shows a plain speedometer (lap timing only arms
+  once you're moving above 5 mph) — but it gave no sign the track had been
+  detected, so it was indistinguishable from the genuine "no tracks found nearby"
+  state. The waiting speedometer now names the recognised track (e.g. "Orlando
+  Kart Center detected nearby") when you're near one, so it's clear the track list
+  loaded and you're just waiting to start moving.
 - **Start/finish line couldn't be placed on a new track/course.** After the
   sector-editor overhaul, a brand-new course had no coordinates for its
   start/finish line, so it never appeared on the map and there was no way to
