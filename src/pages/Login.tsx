@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,9 +16,10 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
 
 export default function Login() {
+  const { t } = useTranslation('auth');
   useDocumentHead({
-    title: 'Sign in — HackTheTrack',
-    description: 'Sign in to HackTheTrack to sync your telemetry, garage and notes across devices.',
+    title: t('login.metaTitle'),
+    description: t('login.metaDescription'),
     canonical: 'https://hackthetrack.net/login',
   });
   const [email, setEmail] = useState('');
@@ -34,19 +36,19 @@ export default function Login() {
     try {
       const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', { body: {} });
       if (rateCheck && !rateCheck.allowed) {
-        toast({ title: 'Too many attempts', description: rateCheck.message || 'Please try again later.', variant: 'destructive' });
+        toast({ title: t('login.tooManyAttempts'), description: rateCheck.message || t('login.tooManyAttemptsDesc'), variant: 'destructive' });
         setIsLoading(false);
         return;
       }
       const { error } = await login(email, password);
       if (error) {
-        toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+        toast({ title: t('login.failed'), description: error.message, variant: 'destructive' });
       } else {
-        toast({ title: 'Signed in' });
+        toast({ title: t('login.signedIn') });
         navigate(next);
       }
     } catch {
-      toast({ title: 'Login failed', description: 'An unexpected error occurred.', variant: 'destructive' });
+      toast({ title: t('login.failed'), description: t('login.unexpectedError'), variant: 'destructive' });
     }
     setIsLoading(false);
   };
@@ -56,7 +58,7 @@ export default function Login() {
     const { error } = await signInWithGoogle();
     if (error) {
       setIsLoading(false);
-      toast({ title: 'Google sign-in failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('googleFailed'), description: error.message, variant: 'destructive' });
     }
     // On success the browser redirects to Google; nothing else to do.
   };
@@ -70,16 +72,16 @@ export default function Login() {
         </div>
 
         <div className="racing-card p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Sign in</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('login.heading')}</h2>
 
           {enableCloud && enableGoogleAuth && (
             <>
               <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
-                Continue with Google
+                {t('continueWithGoogle')}
               </Button>
               <div className="relative flex items-center">
                 <div className="flex-grow border-t border-border" />
-                <span className="mx-3 text-xs text-muted-foreground">or</span>
+                <span className="mx-3 text-xs text-muted-foreground">{t('or')}</span>
                 <div className="flex-grow border-t border-border" />
               </div>
             </>
@@ -87,34 +89,34 @@ export default function Login() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Please wait...' : 'Sign in'}
+              {isLoading ? t('pleaseWait') : t('login.submit')}
             </Button>
           </form>
 
           <div className="flex justify-between text-sm">
             {enableCloud ? (
               <Link to="/forgot-password" className="text-muted-foreground hover:text-foreground transition-colors">
-                Forgot password?
+                {t('login.forgotPassword')}
               </Link>
             ) : <span />}
             {enableCloud && (
               <Link to="/register" className="text-primary hover:underline">
-                Create account
+                {t('login.createAccount')}
               </Link>
             )}
           </div>
         </div>
 
         <Button variant="ghost" className="w-full gap-2" onClick={() => navigate('/')}>
-          <ArrowLeft className="w-4 h-4" /> Back to Home
+          <ArrowLeft className="w-4 h-4" /> {t('backToHome')}
         </Button>
       </div>
     </div>

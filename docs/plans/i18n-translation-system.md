@@ -1,8 +1,17 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 6 plugins complete (cloud-sync + Tools)** · current branch: `claude/i18n-phase6-tools` → PR into `BETA`
+Status: **Phase 7 — auth pages complete** · current branch: `claude/i18n-auth-pages` → PR into `BETA`
 
-> **Phase 6, slice 2 (this PR):** the **Tools plugin**, translated
+> **Phase 7 (this PR):** the **auth pages** — `Login`, `Register`,
+> `ForgotPassword`, `ResetPassword`, `AuthCallback` — a new host `auth` namespace
+> (`src/locales/<lng>/auth.json`, wired into `config.ts` NAMESPACES, the bundled
+> English in `index.ts`, and the typed resources in `types/i18next.d.ts`). Covers
+> every visible string + toast/validation message + `useDocumentHead` titles; the
+> age-confirmation line with its Terms/Privacy links uses `<Trans>`. Brand
+> ("HackTheTrack") stays literal. **Remaining:** the **admin** panel (env-gated,
+> `VITE_ENABLE_ADMIN`). (Legal pages stay English by design.)
+
+> **Phase 6, slice 2 (merged):** the **Tools plugin**, translated
 > **plugin-locally** — `ToolsPanel`, the `toolList` catalog labels, and the
 > seat-position visualizer (`SeatPositionTool` + `SeatDiagram`). Unlike every
 > prior surface, the strings live in the plugin's *own* folder

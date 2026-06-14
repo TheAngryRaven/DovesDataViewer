@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +18,10 @@ function hashHasRecovery(): boolean {
 }
 
 export default function ResetPassword() {
+  const { t } = useTranslation('auth');
   useDocumentHead({
-    title: 'Set New Password — HackTheTrack',
-    description: 'Set a new password for your HackTheTrack account.',
+    title: t('reset.metaTitle'),
+    description: t('reset.metaDescription'),
     canonical: 'https://hackthetrack.net/reset-password',
   });
   const [password, setPassword] = useState('');
@@ -47,27 +49,27 @@ export default function ResetPassword() {
     e.preventDefault();
     if (!recoveryReady) {
       toast({
-        title: 'Recovery link required',
-        description: 'Open the reset link from your email to set a new password.',
+        title: t('reset.recoveryRequired'),
+        description: t('reset.recoveryRequiredDesc'),
         variant: 'destructive',
       });
       return;
     }
     if (password !== confirm) {
-      toast({ title: 'Passwords do not match', variant: 'destructive' });
+      toast({ title: t('reset.passwordsNoMatch'), variant: 'destructive' });
       return;
     }
     if (password.length < 6) {
-      toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
+      toast({ title: t('reset.passwordTooShort'), variant: 'destructive' });
       return;
     }
     setIsLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setIsLoading(false);
     if (error) {
-      toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('reset.updateFailed'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Password updated', description: 'You are now signed in.' });
+      toast({ title: t('reset.passwordUpdated'), description: t('reset.passwordUpdatedDesc') });
       navigate('/');
     }
   };
@@ -80,30 +82,29 @@ export default function ResetPassword() {
           <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
         </div>
         <div className="racing-card p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Set New Password</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('reset.heading')}</h2>
           {recoveryReady ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
+                <Label htmlFor="password">{t('reset.newPassword')}</Label>
                 <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirm">Confirm New Password</Label>
+                <Label htmlFor="confirm">{t('reset.confirmNewPassword')}</Label>
                 <Input id="confirm" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Please wait...' : 'Update Password'}
+                {isLoading ? t('pleaseWait') : t('reset.submit')}
               </Button>
             </form>
           ) : (
             <p className="text-sm text-muted-foreground">
-              This page only works when opened from the password-reset link in your email.
-              Request a reset from the sign-in page, then follow the emailed link.
+              {t('reset.recoveryOnlyNote')}
             </p>
           )}
         </div>
         <Button variant="ghost" className="w-full gap-2" onClick={() => navigate('/')}>
-          <ArrowLeft className="w-4 h-4" /> Back to Home
+          <ArrowLeft className="w-4 h-4" /> {t('backToHome')}
         </Button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
@@ -9,6 +10,7 @@ import { Loader2 } from 'lucide-react';
  * onAuthStateChange (or an existing session) and bounce to ?next= or /.
  */
 export default function AuthCallback() {
+  const { t } = useTranslation('auth');
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
@@ -39,7 +41,7 @@ export default function AuthCallback() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex items-center gap-3 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin" /> Signing you in…
+        <Loader2 className="w-5 h-5 animate-spin" /> {t('callback.signingIn')}
       </div>
     </div>
   );
