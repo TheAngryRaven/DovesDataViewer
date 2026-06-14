@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useContext, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, Edit2, Check, X, Settings, Code, Copy, HelpCircle, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -78,6 +79,7 @@ export function TrackEditor({
   triggerButton,
   startInManage = false,
 }: TrackCourseEditorProps) {
+  const { t } = useTranslation('tracks');
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSelectDialogOpen, setIsSelectDialogOpen] = useState(false);
@@ -248,9 +250,9 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   const handleCopyJson = () => {
     const json = generateTrackJson();
     navigator.clipboard.writeText(json).then(() => {
-      toast({ title: 'Copied!', description: 'Track JSON copied to clipboard' });
+      toast({ title: t('trackEditor.toastCopied'), description: t('trackEditor.toastCopiedDesc') });
     }).catch(() => {
-      toast({ title: 'Failed to copy', variant: 'destructive' });
+      toast({ title: t('trackEditor.toastCopyFailed'), variant: 'destructive' });
     });
   };
 
@@ -373,7 +375,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     }
   };
 
-  if (isLoading) return <div className="text-muted-foreground text-sm">Loading tracks...</div>;
+  if (isLoading) return <div className="text-muted-foreground text-sm">{t('trackEditor.loading')}</div>;
 
   // Shared sector-list editor props (start/finish + sectors + list operations).
   const sectorEditorProps = {
@@ -433,10 +435,10 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   const selectionUI = (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Track</Label>
+        <Label>{t('trackEditor.track')}</Label>
         <div className="flex gap-2">
           <Select value={tempTrackName} onValueChange={handleTrackChange}>
-            <SelectTrigger className="flex-1"><SelectValue placeholder="Select track..." /></SelectTrigger>
+            <SelectTrigger className="flex-1"><SelectValue placeholder={t('trackEditor.selectTrack')} /></SelectTrigger>
             <SelectContent>{tracks.map(track => <SelectItem key={track.name} value={track.name}>{track.name}</SelectItem>)}</SelectContent>
           </Select>
           <Button variant="outline" size="icon" onClick={openAddTrack}><Plus className="w-4 h-4" /></Button>
@@ -444,10 +446,10 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
       </div>
       {tempTrackName && (
         <div className="space-y-2">
-          <Label>Course</Label>
+          <Label>{t('trackEditor.course')}</Label>
           <div className="flex gap-2">
             <Select value={tempCourseName} onValueChange={handleCourseChange} disabled={availableCourses.length === 0}>
-              <SelectTrigger className="flex-1"><SelectValue placeholder={availableCourses.length === 0 ? 'No courses' : 'Select course...'} /></SelectTrigger>
+              <SelectTrigger className="flex-1"><SelectValue placeholder={availableCourses.length === 0 ? t('trackEditor.noCourses') : t('trackEditor.selectCourse')} /></SelectTrigger>
               <SelectContent>{availableCourses.map(course => <SelectItem key={course.name} value={course.name}>{course.name}</SelectItem>)}</SelectContent>
             </Select>
             <Button variant="outline" size="icon" onClick={openAddCourse}><Plus className="w-4 h-4" /></Button>
@@ -460,11 +462,11 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   // Manage mode content (Courses + Tracks tabs)
   const manageModeContent = (
     <Tabs defaultValue="courses" className="w-full">
-      <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="courses">Courses</TabsTrigger><TabsTrigger value="tracks">Tracks</TabsTrigger></TabsList>
+      <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="courses">{t('trackEditor.coursesTab')}</TabsTrigger><TabsTrigger value="tracks">{t('trackEditor.tracksTab')}</TabsTrigger></TabsList>
       <TabsContent value="courses" className="space-y-4">
         {form.editingCourse ? (
           <div className="space-y-4">
-            <h4 className="font-medium">Edit Course</h4>
+            <h4 className="font-medium">{t('trackEditor.editCourse')}</h4>
             <Suspense fallback={null}>
               <CourseSectorEditor
                 {...sectorEditorProps}
@@ -479,7 +481,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             <div className="flex gap-2">
               <Button onClick={handleUpdateCourse} className="flex-1" disabled={!sectorsValid}>
                 <Check className="w-4 h-4 mr-2" />
-                Update
+                {t('trackEditor.update')}
               </Button>
               <Button variant="outline" onClick={() => { form.setEditingCourse(null); form.resetForm(); }}>
                 <X className="w-4 h-4" />
@@ -488,14 +490,14 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
           </div>
         ) : (
           <div className="space-y-2">
-            <Label>Select track to view courses</Label>
+            <Label>{t('trackEditor.selectTrackToView')}</Label>
             <Select value={tempTrackName} onValueChange={handleTrackChange}>
-              <SelectTrigger><SelectValue placeholder="Select track..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('trackEditor.selectTrack')} /></SelectTrigger>
               <SelectContent>{tracks.map(track => <SelectItem key={track.name} value={track.name}>{track.name}</SelectItem>)}</SelectContent>
             </Select>
             {selectedTrack && (
               <div className="mt-4 space-y-2">
-                {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">No courses defined</p> : selectedTrack.courses.map(course => {
+                {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">{t('trackEditor.noCoursesDefined')}</p> : selectedTrack.courses.map(course => {
                   // Prefer the course's own drawn/generated outline; fall back to
                   // a matching public (community-DB) drawing for built-in courses.
                   const drawing = (course.layout && course.layout.length >= 2)
@@ -508,8 +510,8 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                     )}
                     <div className="flex-1 min-w-0">
                       <span className="font-mono text-sm">{course.name}</span>
-                      {!course.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">(default)</span>}
-                      {courseHasSectors(course) && <span className="ml-2 text-xs text-accent-foreground/60">(sectors)</span>}
+                      {!course.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">{t('trackEditor.defaultTag')}</span>}
+                      {courseHasSectors(course) && <span className="ml-2 text-xs text-accent-foreground/60">{t('trackEditor.sectorsTag')}</span>}
                       {course.lengthFt != null && course.lengthFt > 0 && (
                         <span className="ml-2 text-xs text-muted-foreground">
                           {formatTrackLength(course.lengthFt, useMetricDistance)}
@@ -523,29 +525,29 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                   </div>
                   );
                 })}
-                <Button variant="outline" size="sm" onClick={openAddCourse} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />Add Course</Button>
+                <Button variant="outline" size="sm" onClick={openAddCourse} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />{t('trackEditor.addCourse')}</Button>
               </div>
             )}
           </div>
         )}
       </TabsContent>
       <TabsContent value="tracks" className="space-y-2">
-        {tracks.length === 0 ? <p className="text-muted-foreground text-sm">No tracks defined</p> : tracks.map(track => (
+        {tracks.length === 0 ? <p className="text-muted-foreground text-sm">{t('trackEditor.noTracksDefined')}</p> : tracks.map(track => (
           <div key={track.name} className="flex items-center justify-between p-2 border rounded bg-muted/30">
             <div>
               <span className="font-mono text-sm">{track.name}</span>
-              <span className="ml-2 text-xs text-muted-foreground">({track.courses.length} course{track.courses.length !== 1 ? 's' : ''})</span>
-              {!track.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">(default)</span>}
+              <span className="ml-2 text-xs text-muted-foreground">{t('trackEditor.courseCount', { count: track.courses.length })}</span>
+              {!track.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">{t('trackEditor.defaultTag')}</span>}
             </div>
             <div className="flex gap-1">{track.isUserDefined && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTrack(track.name)}><Trash2 className="w-3 h-3" /></Button>}</div>
           </div>
         ))}
-        <Button variant="outline" size="sm" onClick={openAddTrack} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />Add Track</Button>
+        <Button variant="outline" size="sm" onClick={openAddTrack} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />{t('trackEditor.addTrack')}</Button>
       </TabsContent>
       <div className="flex justify-between pt-4">
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsJsonViewOpen(true)} disabled={!selectedTrack}>
-            <Code className="w-4 h-4 mr-2" />View JSON
+            <Code className="w-4 h-4 mr-2" />{t('trackEditor.viewJson')}
           </Button>
           <div className="flex items-center gap-1">
             <SubmitTrackDialog
@@ -556,7 +558,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                   disabled={pendingSubmissionCount === 0}
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  Submit to DB{pendingSubmissionCount > 0 ? ` (${pendingSubmissionCount})` : ''}
+                  {pendingSubmissionCount > 0 ? t('trackEditor.submitToDbCount', { count: pendingSubmissionCount }) : t('trackEditor.submitToDb')}
                 </Button>
               }
             />
@@ -564,7 +566,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  aria-label="Why submit to the database?"
+                  aria-label={t('trackEditor.whySubmit')}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <HelpCircle className="w-4 h-4" />
@@ -572,8 +574,8 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p>{pendingSubmissionCount === 0
-                  ? 'Nothing new to share right now — create or edit a track/course (or add a drawing) and it\'ll show up here to contribute.'
-                  : 'Sharing your track configurations to the database helps the project grow — your tracks become available to everyone, so the community spends less time mapping and more time driving.'}</p>
+                  ? t('trackEditor.submitTooltipEmpty')
+                  : t('trackEditor.submitTooltip')}</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -581,7 +583,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
         {/* Only meaningful when a session is loaded — there's no selection to
             return to from the home-screen track manager (no onSelectionChange). */}
         {onSelectionChange && (
-          <Button variant="outline" onClick={() => setIsManageMode(false)}>Back to Selection</Button>
+          <Button variant="outline" onClick={() => setIsManageMode(false)}>{t('trackEditor.backToSelection')}</Button>
         )}
       </div>
     </Tabs>
@@ -594,7 +596,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Code className="w-5 h-5" />
-            {selectedTrack?.name} JSON
+            {t('trackEditor.jsonTitle', { name: selectedTrack?.name ?? '' })}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
@@ -605,9 +607,9 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleCopyJson}>
-              <Copy className="w-4 h-4 mr-2" />Copy to Clipboard
+              <Copy className="w-4 h-4 mr-2" />{t('trackEditor.copyToClipboard')}
             </Button>
-            <Button variant="outline" onClick={() => setIsJsonViewOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setIsJsonViewOpen(false)}>{t('trackEditor.close')}</Button>
           </div>
         </div>
       </DialogContent>
@@ -622,15 +624,15 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
 
   const selectDialog = (
     <Dialog open={isSelectDialogOpen} onOpenChange={(open) => { setIsSelectDialogOpen(open); if (!open) { setIsManageMode(false); form.setEditingCourse(null); form.resetForm(); } }}>
-      <DialogTrigger asChild><span className="sr-only">Open track selector</span></DialogTrigger>
+      <DialogTrigger asChild><span className="sr-only">{t('trackEditor.openSelector')}</span></DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{isManageMode ? 'Manage Tracks & Courses' : 'Select Track & Course'}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isManageMode ? t('trackEditor.manageTitle') : t('trackEditor.selectTitle')}</DialogTitle></DialogHeader>
         {!isManageMode ? (
           <>
             {selectionUI}
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleApplySelection} className="flex-1">Apply</Button>
-              <Button variant="outline" onClick={() => setIsManageMode(true)}><Settings className="w-4 h-4 mr-2" />Manage</Button>
+              <Button onClick={handleApplySelection} className="flex-1">{t('trackEditor.apply')}</Button>
+              <Button variant="outline" onClick={() => setIsManageMode(true)}><Settings className="w-4 h-4 mr-2" />{t('trackEditor.manage')}</Button>
             </div>
           </>
         ) : manageModeContent}
@@ -656,7 +658,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     // A single course control: the race-course icon shows at every size; the
     // current track : course selection rides as the button label from tablet up
     // (and the title tooltip) so the header stays compact on mobile.
-    const displayLabel = selection ? `${abbreviateTrackName(selection.trackName)} : ${selection.courseName}` : 'Select track';
+    const displayLabel = selection ? `${abbreviateTrackName(selection.trackName)} : ${selection.courseName}` : t('trackEditor.selectTrackShort');
 
     return (
       <>
@@ -687,7 +689,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
           const track = tracks.find(t => t.name === tempTrackName);
           const course = track?.courses.find(c => c.name === tempCourseName);
           if (track && course) onSelectionChange?.({ trackName: tempTrackName, courseName: tempCourseName, course });
-        }} className="w-full"><Check className="w-4 h-4 mr-2" />Apply Selection</Button>
+        }} className="w-full"><Check className="w-4 h-4 mr-2" />{t('trackEditor.applySelection')}</Button>
       )}
       <AddCourseDialog {...addCourseDialogProps} />
       <AddTrackDialog {...addTrackDialogProps} />

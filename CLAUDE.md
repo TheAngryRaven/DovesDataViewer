@@ -944,8 +944,13 @@ Setups + Notes** (`SetupsTab`, `TemplateCreator`, `NotesTab`, and the shared
 `DeviceSettingsTab`, `DeviceTracksTab`, `FirmwareUpdateSection`) — all the
 `drawer` namespace — plus the **weather** UI (`WeatherPanel`, `LocalWeatherDialog`
 — the `weather` namespace, shared by the in-session panel and the landing-page
-dialog). Tracks (editor/submission), plugins, and auth/admin are the next
-surfaces; the framework is whole. (Device-setting **labels** still come from
+dialog), and the **tracks** UI — the track/course editor + manager
+(`TrackEditor`, `AddTrackDialog`, `AddCourseDialog`, `SectorListEditor`,
+`VisualEditor`, `TrackPromptDialog`) and the community **submission** flow
+(`SubmitTrackDialog`) — the `tracks` namespace (the pure `courseSectors`
+validation strings + `deviceSettingsSchema` labels stay English data). Plugins
+(cloud-sync/Tools) and auth/admin are the next surfaces; the framework is whole.
+(Device-setting **labels** still come from
 `deviceSettingsSchema.ts` data — schema-level i18n is a deliberate follow-up so
 unknown device keys keep passing through as raw labels.)
 
@@ -970,7 +975,7 @@ unknown device keys keep passing through as raw labels.)
 - **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
   with the English JSON shape, so `t("settings:title")` is autocompleted and a
   missing/renamed key fails `tsc -b`. English is the canonical key set.
-- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`) map to per-language JSON files
+- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`, `tracks`) map to per-language JSON files
   and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
   preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
   `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),

@@ -1,8 +1,20 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 4 garage complete + weather** · current branch: `claude/i18n-phase4-device-weather` → PR into `BETA`
+Status: **Phase 5 tracks complete** · current branch: `claude/i18n-phase5-tracks` → PR into `BETA`
 
-> **Garage sub-slice 3 (this PR):** Device — `DeviceSettingsTab`,
+> **Phase 5 (this PR):** the **`tracks` namespace** — the track/course editor +
+> manager (`TrackEditor`, `AddTrackDialog`, `AddCourseDialog`, `SectorListEditor`,
+> `VisualEditor`, `TrackPromptDialog`) and the community **submission** flow
+> (`SubmitTrackDialog`). Sector numbering labels (from `sectorLabels()`) stay
+> literal; the pure `courseSectors` validation strings + `deviceSettingsSchema`
+> labels remain English data. With this the whole track-management surface is
+> translated. **Remaining:** plugins/cloud (cloud-sync panels, Tools) and
+> auth/admin. (Legal pages stay English by design.)
+>
+> (Phases 0–4 — engine + landing/Settings, core session UI, video, the full
+> garage drawer, and weather — already merged.)
+
+> **Garage sub-slice 3 (Phase 4):** Device — `DeviceSettingsTab`,
 > `DeviceTracksTab`, `FirmwareUpdateSection` (`drawer.device`/`drawer.firmware`/
 > `drawer.deviceTracks`) — **plus the catch-up `weather` namespace**
 > (`WeatherPanel` + `LocalWeatherDialog`). Device-setting field labels stay
