@@ -13,6 +13,11 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { DEFAULT_SATELLITE_TILE_URL } from '@/lib/satelliteImagery';
 import { isDebugEnabled } from '@/lib/debugConsole';
 import L from 'leaflet';
+// The editor map needs Leaflet's stylesheet to position its panes/tiles. The
+// in-session maps (RaceLineView, MiniMap) import it too, but neither mounts on
+// the landing page — so without this import the home-screen track editor renders
+// the map with no Leaflet CSS (tiles flow in document order, zoom off-centre).
+import 'leaflet/dist/leaflet.css';
 
 export interface GpsPoint {
   lat: number;

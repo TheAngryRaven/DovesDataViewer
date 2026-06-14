@@ -78,6 +78,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   button is gone, "Back to Selection" is now just **Back** and steps back one
   level at a time (course editor → course list → selection) without stranding the
   previous course.
+- **Track editor map was broken on the home screen.** Opening the satellite map
+  (Add/Edit course) from the landing-page track manager — with no session loaded
+  — rendered the map with scattered tiles and off-centre zoom. Leaflet's
+  stylesheet was only pulled in by the in-session maps (`RaceLineView`/`MiniMap`),
+  which don't mount on the landing page, so the editor map ran without it and its
+  tiles fell back to normal document flow. The editor map now imports
+  `leaflet/dist/leaflet.css` itself, so it renders correctly with or without a
+  loaded session.
 - **Pro-mode panel resizing on touch.** Dragging a resizable divider (the
   left/right split and the InfoBox/MiniMap split in pro mode, plus the video
   panel) would stop after only a few pixels on touchscreens. The handle's
