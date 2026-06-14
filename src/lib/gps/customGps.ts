@@ -39,6 +39,13 @@ export interface CustomGpsOptions {
   /** How many recent fixes the rolling `averageHz` spans. Default 20. */
   rateWindow?: number;
   /**
+   * Retain every observation in `this.buffer` (exposed via `observations`).
+   * Default true. Set false when the consumer keeps its own buffer (e.g. the
+   * datalogger) so the source doesn't hold a second, unbounded copy — `latest`
+   * and `fixCount` keep working regardless.
+   */
+  retainBuffer?: boolean;
+  /**
    * Geolocation implementation to drive. Defaults to `navigator.geolocation`.
    * Pass a fake in tests, or `null` to force the unsupported path.
    */
@@ -53,6 +60,7 @@ const DEFAULTS: ResolvedOptions = {
   maximumAge: 0,
   timeout: 30_000,
   rateWindow: 20,
+  retainBuffer: true,
 };
 
 /** A normalized, surfaced geolocation error. */
@@ -114,9 +122,12 @@ export class CustomGps {
 
   private watchId: number | null = null;
   private seq = 0;
+  private count = 0;
   private startTimestamp: number | null = null;
   private prevFix: GpsFix | null = null;
+  private lastObservation: GpsObservation | null = null;
   private readonly buffer: GpsObservation[] = [];
+  /** Only the most recent `rateWindow` timestamps — bounded, for averageHz. */
   private readonly timestamps: number[] = [];
 
   private readonly fixListeners = new Set<GpsObservationListener>();
@@ -128,6 +139,7 @@ export class CustomGps {
       maximumAge: options.maximumAge ?? DEFAULTS.maximumAge,
       timeout: options.timeout ?? DEFAULTS.timeout,
       rateWindow: options.rateWindow ?? DEFAULTS.rateWindow,
+      retainBuffer: options.retainBuffer ?? DEFAULTS.retainBuffer,
     };
     this.geo =
       options.geolocation !== undefined
@@ -142,19 +154,19 @@ export class CustomGps {
     return this.watchId !== null;
   }
 
-  /** Number of fixes captured this session. */
+  /** Number of fixes captured this session (independent of `retainBuffer`). */
   get fixCount(): number {
-    return this.buffer.length;
+    return this.count;
   }
 
-  /** The captured observations, in order (read-only view of the buffer). */
+  /** The retained observations in order (empty when `retainBuffer` is false). */
   get observations(): readonly GpsObservation[] {
     return this.buffer;
   }
 
   /** The most recent observation, or null before the first fix. */
   get latest(): GpsObservation | null {
-    return this.buffer.length > 0 ? this.buffer[this.buffer.length - 1] : null;
+    return this.lastObservation;
   }
 
   /** Rolling average rate (Hz) over the configured window; null until 2 fixes. */
@@ -217,8 +229,10 @@ export class CustomGps {
     this.buffer.length = 0;
     this.timestamps.length = 0;
     this.seq = 0;
+    this.count = 0;
     this.startTimestamp = null;
     this.prevFix = null;
+    this.lastObservation = null;
   }
 
   private handlePosition(position: GeolocationPosition): void {
@@ -230,6 +244,8 @@ export class CustomGps {
 
     const motion = deriveMotion(this.prevFix, fix);
     this.timestamps.push(fix.timestamp);
+    // Keep only what averageHz needs so this array can't grow unbounded.
+    if (this.timestamps.length > this.options.rateWindow) this.timestamps.shift();
 
     const observation: GpsObservation = {
       fix,
@@ -237,7 +253,9 @@ export class CustomGps {
       elapsedMs: fix.timestamp - this.startTimestamp,
       averageHz: averageHz(this.timestamps, this.options.rateWindow),
     };
-    this.buffer.push(observation);
+    if (this.options.retainBuffer) this.buffer.push(observation);
+    this.lastObservation = observation;
+    this.count++;
     this.prevFix = fix;
 
     // Snapshot the set so a listener that unsubscribes mid-iteration is safe.

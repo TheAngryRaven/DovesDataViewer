@@ -175,6 +175,20 @@ describe('CustomGps capture', () => {
     expect(gps.latest!.elapsedMs).toBe(0);
   });
 
+  it('does not retain the buffer when retainBuffer is false, but keeps latest/count', () => {
+    const g = new FakeGeolocation();
+    const lean = new CustomGps({ geolocation: g as unknown as Geolocation, retainBuffer: false });
+    const seenLean: GpsObservation[] = [];
+    lean.onFix((o) => seenLean.push(o));
+    lean.start();
+    g.emit({ latitude: 1, longitude: 1 }, 0);
+    g.emit({ latitude: 1.001, longitude: 1 }, 1_000);
+    expect(lean.observations).toHaveLength(0); // not retained
+    expect(lean.fixCount).toBe(2); // still counted
+    expect(lean.latest).toBe(seenLean[1]); // latest still tracked
+    expect(lean.averageHz).toBeCloseTo(1, 6); // rate still works
+  });
+
   it('stops delivering to an unsubscribed fix listener', () => {
     const extra: GpsObservation[] = [];
     const unsub = gps.onFix((o) => extra.push(o));

@@ -21,6 +21,7 @@ import {
   type DovepSessionMeta,
 } from "@/lib/gps";
 import type { Lap, Track } from "@/types/racing";
+import { MPS_TO_MPH } from "@/lib/parserUtils";
 import { loadTracks } from "@/lib/trackStorage";
 import { saveFile, saveFileMetadata } from "@/lib/fileStorage";
 
@@ -135,13 +136,14 @@ export function useDatalogger(): DataloggerController {
       })
       .catch(() => { /* offline / no tracks */ });
 
-    const gps = new CustomGps();
+    // The hook keeps its own recorded buffer; don't double-retain in the source.
+    const gps = new CustomGps({ retainBuffer: false });
     gpsRef.current = gps;
 
     const offFix = gps.onFix((obs) => {
       setLatest(obs);
-      const speedMph = obs.fix.speed != null ? obs.fix.speed * 2.236936 : (obs.motion.speedMps ?? 0) * 2.236936;
-      const step = stepSessionGate(gateRef.current, speedMph, obs.fix.timestamp);
+      const speedMps = obs.fix.speed != null ? obs.fix.speed : obs.motion.speedMps ?? 0;
+      const step = stepSessionGate(gateRef.current, speedMps * MPS_TO_MPH, obs.fix.timestamp);
       gateRef.current = step.state;
 
       if (step.justArmed) setPhase("recording");
@@ -150,7 +152,10 @@ export function useDatalogger(): DataloggerController {
         recordedRef.current.push(obs);
         const t = timerRef.current!.update(observationToSample(obs));
         setTiming(t);
-        setLaps([...timerRef.current!.getLaps()]);
+        // Completed laps are immutable once closed — only push a new array (and
+        // re-render the Lap Times table) when a lap actually completes.
+        const completed = timerRef.current!.getLaps();
+        setLaps((prev) => (prev.length === completed.length ? prev : [...completed]));
       }
 
       if (step.autoEnded) {

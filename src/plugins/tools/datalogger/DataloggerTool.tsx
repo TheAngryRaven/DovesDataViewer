@@ -12,7 +12,7 @@
  * (openable + processable like any uploaded session). A red control ends the
  * session manually after a confirm; ended sessions can be restarted.
  */
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Loader2, CheckCircle2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,7 +89,7 @@ export default function DataloggerTool(props: PluginPanelProps) {
               </>
             ) : savedFileName ? (
               <>
-                <CheckCircle2 className="mx-auto h-10 w-10 text-green-500" />
+                <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
                 <p className="text-sm font-medium text-foreground">Session saved</p>
                 <p className="break-all text-xs text-muted-foreground">{savedFileName}</p>
                 <p className="text-xs text-muted-foreground">Find it in your saved files to review like any log.</p>
@@ -129,7 +129,7 @@ export default function DataloggerTool(props: PluginPanelProps) {
 /** The laptimer heads-up: delta dominant, then current/best/last/optimal + speed. */
 function LiveView({ timing, speed, speedUnit }: { timing: TimingState; speed: number; speedUnit: string }) {
   const delta = timing.deltaSec;
-  const deltaColor = delta == null ? "text-muted-foreground" : delta > 0 ? "text-red-500" : "text-green-500";
+  const deltaColor = delta == null ? "text-muted-foreground" : delta > 0 ? "text-destructive" : "text-success";
   const deltaText = delta == null ? "—" : `${delta >= 0 ? "+" : "−"}${Math.abs(delta).toFixed(2)}`;
 
   return (
@@ -168,8 +168,12 @@ function LiveView({ timing, speed, speedUnit }: { timing: TimingState; speed: nu
   );
 }
 
-/** Completed laps with major-sector splits (fine-grained sectors live in the viewer). */
-function LapTimesView({ laps, bestLapNumber }: { laps: Lap[]; bestLapNumber: number | null }) {
+/**
+ * Completed laps with major-sector splits (fine-grained sectors live in the
+ * viewer). Memoized: laps + bestLapNumber only change when a lap completes, so
+ * the table doesn't re-render on every GPS fix while this view is open.
+ */
+const LapTimesView = memo(function LapTimesView({ laps, bestLapNumber }: { laps: Lap[]; bestLapNumber: number | null }) {
   if (laps.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-center">
@@ -208,7 +212,7 @@ function LapTimesView({ laps, bestLapNumber }: { laps: Lap[]; bestLapNumber: num
       </tbody>
     </table>
   );
-}
+});
 
 function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -226,8 +230,8 @@ function Tab({ active, onClick, children }: { active: boolean; onClick: () => vo
 function Status({ phase, courseName, trackName }: { phase: string; courseName: string | null; trackName: string | null }) {
   if (phase === "recording") {
     return (
-      <span className="text-xs text-red-500">
-        <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-red-500 align-middle" />
+      <span className="text-xs text-destructive">
+        <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-destructive align-middle" />
         {trackName ?? "Recording"}{courseName ? ` · ${courseName}` : ""}
       </span>
     );

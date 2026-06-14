@@ -14,6 +14,33 @@ const sfCourse: Course = {
   isUserDefined: false,
 };
 
+/**
+ * 3-major course: S/F (lon=0) + sector 2 (lon=0.003) + sector 3 (lon=0.006),
+ * mirrors the sector fixture in lapCalculation.test.ts.
+ */
+const sectorCourse: Course = {
+  name: "SectorCourse",
+  startFinishA: { lat: 0.0001, lon: 0 },
+  startFinishB: { lat: -0.0001, lon: 0 },
+  sector2: { a: { lat: 0.0001, lon: 0.003 }, b: { lat: -0.0001, lon: 0.003 } },
+  sector3: { a: { lat: 0.0001, lon: 0.006 }, b: { lat: -0.0001, lon: 0.006 } },
+};
+
+/** One sector-aware lap crossing S/F → S2 → S3 → loop back, like the lap-calc tests. */
+function makeSectorLap(startT: number, lapDur: number, speedMps = 20): GpsSample[] {
+  return [
+    makeSample(startT, 0, -0.001, speedMps),
+    makeSample(startT + lapDur * 0.1, 0, 0.001, speedMps), // cross S/F
+    makeSample(startT + lapDur * 0.2, 0, 0.002, speedMps),
+    makeSample(startT + lapDur * 0.3, 0, 0.004, speedMps), // cross S2
+    makeSample(startT + lapDur * 0.4, 0, 0.005, speedMps),
+    makeSample(startT + lapDur * 0.5, 0, 0.007, speedMps), // cross S3
+    makeSample(startT + lapDur * 0.6, 0.01, 0.007, speedMps),
+    makeSample(startT + lapDur * 0.8, 0.01, -0.001, speedMps),
+    makeSample(startT + lapDur, 0, -0.001, speedMps),
+  ];
+}
+
 /** N east-going S/F crossings → N-1 laps. */
 function makeRacePath(numCrossings: number, intervalMs: number, speedMps = 20): GpsSample[] {
   const samples: GpsSample[] = [];
@@ -60,9 +87,8 @@ describe('RealtimeLapTimer — locked course, incremental feed', () => {
     expect(state.courseName).toBe('TestCourse');
     expect(state.trackName).toBe('Test Track');
     expect(state.lapCount).toBe(2);
-    expect(state.bestLapMs).toBeGreaterThan(0);
-    expect(state.bestLapMs).toBeCloseTo(60_000, -3); // ~60 s lap
-    expect(state.lastLapMs).toBeCloseTo(60_000, -3);
+    expect(state.bestLapMs).toBeCloseTo(60_000, -1); // 60 s lap, ±5 ms
+    expect(state.lastLapMs).toBeCloseTo(60_000, -1);
     expect(state.bestLapNumber).not.toBeNull();
   });
 
@@ -73,7 +99,9 @@ describe('RealtimeLapTimer — locked course, incremental feed', () => {
     for (const s of makeRacePath(2, 40_000)) state = timer.update(s);
     expect(state.lapCount).toBe(1);
     expect(state.currentLapMs).not.toBeNull();
-    expect(state.currentLapMs!).toBeGreaterThanOrEqual(0);
+    // In-progress lap = time since the last crossing — bounded, not the whole session.
+    expect(state.currentLapMs!).toBeGreaterThan(0);
+    expect(state.currentLapMs!).toBeLessThan(40_000);
   });
 
   it('has no major-sector rollup for a start/finish-only course', () => {
@@ -92,5 +120,51 @@ describe('RealtimeLapTimer — locked course, incremental feed', () => {
     // extra stationary sample at the last position shouldn't drop laps
     timer.update(makeSample(200_000, 0, 0.001, 0));
     expect(timer.getState().lapCount).toBe(before);
+  });
+});
+
+describe("RealtimeLapTimer — 3-major course (sectors, optimal, delta)", () => {
+  function runSectorLaps(n: number, lapDur = 30_000): RealtimeLapTimer {
+    const timer = new RealtimeLapTimer();
+    timer.lockCourse(sectorCourse, "Sector Track");
+    for (let i = 0; i < n; i++) {
+      for (const s of makeSectorLap(i * lapDur, lapDur)) timer.update(s);
+    }
+    return timer;
+  }
+
+  it("rolls up the three major sectors with last + best", () => {
+    const state = runSectorLaps(3).getState();
+    expect(state.lapCount).toBe(2);
+    expect(state.majorSectors).toHaveLength(3);
+    for (const sec of state.majorSectors) {
+      expect(sec.best).not.toBeNull();
+      expect(sec.last).not.toBeNull();
+      expect(sec.best!).toBeGreaterThan(0);
+      // best is never slower than the last lap's value for that sector
+      expect(sec.best!).toBeLessThanOrEqual(sec.last!);
+    }
+  });
+
+  it("surfaces an optimal lap (sum of best segments) once laps complete", () => {
+    const state = runSectorLaps(3).getState();
+    expect(state.optimalMs).not.toBeNull();
+    expect(state.optimalMs!).toBeGreaterThan(0);
+    // optimal is never slower than the best actual lap
+    expect(state.optimalMs!).toBeLessThanOrEqual(state.bestLapMs!);
+  });
+
+  it("computes a live delta vs the best lap once a reference exists", () => {
+    const timer = new RealtimeLapTimer();
+    timer.lockCourse(sectorCourse, "Sector Track");
+    // First lap: no reference yet → delta null.
+    let state = timer.getState();
+    for (const s of makeSectorLap(0, 30_000)) state = timer.update(s);
+    expect(state.deltaSec).toBeNull();
+    // Drive a second lap partway → a best lap now exists, delta is a number.
+    const partial = makeSectorLap(30_000, 30_000).slice(0, 5);
+    for (const s of partial) state = timer.update(s);
+    expect(state.bestLapMs).not.toBeNull();
+    expect(typeof state.deltaSec).toBe("number");
   });
 });
