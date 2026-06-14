@@ -14,6 +14,19 @@ Status: **Phase 6 plugins complete (cloud-sync + Tools)** · current branch: `cl
 > guards them — so nothing about Tools depends on host locale files, keeping it
 > extraction-ready. cloud-sync stays host-coupled in the shared `plugins`
 > namespace. **Remaining:** auth/admin. (Legal pages stay English by design.)
+>
+> **Follow-up (deferred, low priority):** retrofit **cloud-sync** onto the same
+> plugin-local seam (`registerPluginLocale`) so its strings live in
+> `src/plugins/cloud-sync/locales/` too. The translation *content* already exists
+> (just moves from `src/locales/<lng>/plugins.json`), so this is mechanical — the
+> one wrinkle is that the `plugins` namespace is **shared**: the host
+> `PluginPanelHost` also owns `panelError`, the `loading` fallback, and renders
+> the panel **titles**. So the retrofit must first **split** that namespace —
+> keep the host chrome host-side (fold `panelError`/`loading` into `common`, let
+> titles resolve cross-namespace) and move only the cloud-sync-owned keys into the
+> plugin. Worth doing once the cloud-sync UI is itself further split out; skipped
+> for now because cloud-sync is permanently host-coupled (never extracted), so it
+> gains nothing from extraction-readiness today.
 
 > **Phase 6, slice 1 (merged):** the **`plugins` namespace**, cloud-sync slice —
 > every cloud-sync Profile panel (`StoragePanel`/Account, `LapSnapshotsPanel`,
