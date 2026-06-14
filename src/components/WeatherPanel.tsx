@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Cloud, Thermometer, Droplets, Gauge, Wind, Mountain, Navigation } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -40,6 +41,7 @@ export function WeatherPanel({
   onWeatherLoaded,
   detailed = false,
 }: WeatherPanelProps) {
+  const { t } = useTranslation("weather");
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -115,7 +117,7 @@ export function WeatherPanel({
     <div className="bg-card/90 backdrop-blur-sm border border-border rounded p-2 min-w-[140px]">
       <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-2 border-b border-border pb-1.5">
         <Cloud className="w-3.5 h-3.5 text-primary" />
-        <span>Weather</span>
+        <span>{t("title")}</span>
         {weather && (
           <span className="text-muted-foreground ml-auto font-mono text-[10px]">
             {weather.station.source === "open-meteo" ? "Open-Meteo" : weather.station.stationId}
@@ -133,7 +135,7 @@ export function WeatherPanel({
       )}
 
       {error && !loading && (
-        <div className="text-xs text-muted-foreground">Weather unavailable</div>
+        <div className="text-xs text-muted-foreground">{t("unavailable")}</div>
       )}
 
       {weather && !loading && (
@@ -141,14 +143,14 @@ export function WeatherPanel({
           {/* Observation time - detailed only */}
           {detailed && (
             <div className="text-[10px] text-muted-foreground mb-1">
-              Observed: {weather.observationTime.toLocaleString()}
+              {t("observed")} {weather.observationTime.toLocaleString()}
             </div>
           )}
 
-          <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Temp" value={formatTemperature(weather.temperatureC, metric)} />
-          <WeatherRow icon={<Droplets className="w-3 h-3" />} label="Humidity" value={`${weather.humidity}%`} />
-          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="Pressure" value={formatPressure(weather.altimeterInHg, metric)} />
-          <WeatherRow icon={<Gauge className="w-3 h-3" />} label="DA" value={formatAltitudeFt(weather.densityAltitudeFt, metric)} />
+          <WeatherRow icon={<Thermometer className="w-3 h-3" />} label={t("temp")} value={formatTemperature(weather.temperatureC, metric)} />
+          <WeatherRow icon={<Droplets className="w-3 h-3" />} label={t("humidity")} value={`${weather.humidity}%`} />
+          <WeatherRow icon={<Gauge className="w-3 h-3" />} label={t("pressure")} value={formatPressure(weather.altimeterInHg, metric)} />
+          <WeatherRow icon={<Gauge className="w-3 h-3" />} label={t("da")} value={formatAltitudeFt(weather.densityAltitudeFt, metric)} />
 
           {/* Extended fields - detailed only */}
           {detailed && (
@@ -180,25 +182,27 @@ function WeatherRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 }
 
 function DewPointRow({ temperatureC, humidity, metric }: { temperatureC: number; humidity: number; metric: boolean }) {
+  const { t } = useTranslation("weather");
   const a = 17.27, b = 237.7;
   const alpha = (a * temperatureC) / (b + temperatureC) + Math.log(humidity / 100);
   const dewC = Math.round(((b * alpha) / (a - alpha)) * 10) / 10;
-  return <WeatherRow icon={<Thermometer className="w-3 h-3" />} label="Dew Pt" value={formatTemperature(dewC, metric)} />;
+  return <WeatherRow icon={<Thermometer className="w-3 h-3" />} label={t("dewPt")} value={formatTemperature(dewC, metric)} />;
 }
 
 function WindRow({ weather, metric }: { weather: WeatherData; metric: boolean }) {
+  const { t } = useTranslation("weather");
   const windValue = weather.windSpeedKts !== null
     ? (() => {
         const spd = windSpeedValue(weather.windSpeedKts, metric);
         const gustStr = weather.windGustKts ? ` G${windSpeedValue(weather.windGustKts, metric)}` : "";
         return `${weather.windDirectionDeg ?? "VRB"}° @ ${spd}${gustStr}`;
       })()
-    : "Calm";
+    : t("calm");
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-1.5 text-muted-foreground">
         <Wind className="w-3 h-3" />
-        <span>Wind</span>
+        <span>{t("wind")}</span>
       </div>
       <div className="flex items-center gap-1">
         {weather.windSpeedKts !== null && weather.windDirectionDeg !== null && (
@@ -211,20 +215,22 @@ function WindRow({ weather, metric }: { weather: WeatherData; metric: boolean })
 }
 
 function PressureAltRow({ altimeterInHg, metric }: { altimeterInHg: number; metric: boolean }) {
+  const { t } = useTranslation("weather");
   const pressureAltFt = Math.round((29.92 - altimeterInHg) * 1000);
-  return <WeatherRow icon={<Mountain className="w-3 h-3" />} label="Press Alt" value={formatAltitudeFt(pressureAltFt, metric)} />;
+  return <WeatherRow icon={<Mountain className="w-3 h-3" />} label={t("pressAlt")} value={formatAltitudeFt(pressureAltFt, metric)} />;
 }
 
 function TuningNote({ densityAltitudeFt, humidity }: { densityAltitudeFt: number; humidity: number }) {
+  const { t } = useTranslation("weather");
   return (
     <div className="text-[10px] text-muted-foreground bg-muted/50 rounded p-1.5 leading-relaxed border border-border/50 mt-1 font-sans">
-      <span className="font-medium text-foreground">Tuning:</span>{" "}
+      <span className="font-medium text-foreground">{t("tuning")}</span>{" "}
       {densityAltitudeFt > 2000
-        ? "High DA — less power. Consider leaning mixture."
+        ? t("tuningHighDa")
         : densityAltitudeFt < 0
-          ? "Negative DA — more power. May need richer mixture."
-          : "Moderate DA. Standard jetting should be close."}
-      {humidity > 70 && " High humidity reduces effective air density."}
+          ? t("tuningNegDa")
+          : t("tuningModerateDa")}
+      {humidity > 70 && ` ${t("tuningHighHumidity")}`}
     </div>
   );
 }

@@ -29,7 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   overlay widget labels), and most of the **Garage drawer** — Files & Vehicles
   (the drawer/device tab chrome, the file browser, the vehicle + engine manager)
   plus **Setups & Notes** (the setup editor, the vehicle-type builder, session
-  notes, and the read-only setup table). More of the app follows in later updates.
+  notes, and the read-only setup table) and **Device** (device settings, the
+  firmware updater, and the track-sync manager). The **weather** panel and METAR
+  lookup dialog are also translated now. More of the app follows in later updates.
   (Legal pages remain English by design.)
 - **Log type bubble in the file browser.** Each session row (shown by date/time)
   now carries a small pill with the log's format — Dove, Dovex, XRK, XRZ,

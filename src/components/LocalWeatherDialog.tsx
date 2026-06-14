@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { CloudSun, Search, MapPin, Loader2, Thermometer, Droplets, Gauge, Wind, Mountain, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ interface LocalWeatherDialogProps {
 }
 
 export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpenChange }: LocalWeatherDialogProps = {}) {
+  const { t } = useTranslation("weather");
   const [internalOpen, setInternalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -66,17 +68,17 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
       // US → nearest ASOS station; elsewhere → Open-Meteo global reanalysis.
       const data = await fetchSessionWeather(lat, lon, new Date());
       if (!data) {
-        setError("Weather is unavailable for this location right now.");
+        setError(t("dialog.errUnavailable"));
         return;
       }
       setStation(data.station);
       setWeather(data);
     } catch {
-      setError("Failed to fetch weather data. Please try again.");
+      setError(t("dialog.errFetch"));
     } finally {
       setIsFetchingWeather(false);
     }
-  }, []);
+  }, [t]);
 
   const handleLocationSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
@@ -95,18 +97,18 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
         setResolvedLocation(display_name?.split(",").slice(0, 2).join(",").trim() || searchQuery);
         await fetchWeatherForCoords(parseFloat(lat), parseFloat(lon));
       } else {
-        setError("Location not found. Try a different search term.");
+        setError(t("dialog.errNotFound"));
       }
     } catch {
-      setError("Search failed. Please try again.");
+      setError(t("dialog.errSearch"));
     } finally {
       setIsSearching(false);
     }
-  }, [searchQuery, fetchWeatherForCoords, resetState]);
+  }, [searchQuery, fetchWeatherForCoords, resetState, t]);
 
   const handleGpsLookup = useCallback(async () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser.");
+      setError(t("dialog.errGeoUnsupported"));
       return;
     }
 
@@ -123,14 +125,14 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
       (err) => {
         setIsLocating(false);
         if (err.code === err.PERMISSION_DENIED) {
-          setError("Location access denied. Please allow GPS access and try again.");
+          setError(t("dialog.errGeoDenied"));
         } else {
-          setError("Could not determine your location. Please try again.");
+          setError(t("dialog.errGeoOther"));
         }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [fetchWeatherForCoords, resetState]);
+  }, [fetchWeatherForCoords, resetState, t]);
 
   const loading = isSearching || isLocating || isFetchingWeather;
 
@@ -139,7 +141,7 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <CloudSun className="w-5 h-5 text-primary" />
-          {isSessionMode ? "Session Weather (METAR)" : "Local Weather (METAR)"}
+          {isSessionMode ? t("dialog.titleSession") : t("dialog.titleLocal")}
         </DialogTitle>
       </DialogHeader>
 
@@ -149,7 +151,7 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
           <>
             <div className="flex gap-2">
               <Input
-                placeholder="Search address or track name..."
+                placeholder={t("dialog.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleLocationSearch()}
@@ -176,13 +178,13 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
               ) : (
                 <MapPin className="w-4 h-4" />
               )}
-              {isLocating ? "Getting location..." : "Use My GPS Location"}
+              {isLocating ? t("dialog.gettingLocation") : t("dialog.useGps")}
             </Button>
 
             {isFetchingWeather && (
               <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Fetching METAR data...
+                {t("dialog.fetchingMetar")}
               </div>
             )}
 
@@ -217,7 +219,7 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="w-full gap-2">
           <CloudSun className="w-4 h-4" />
-          Get Local Weather (METAR)
+          {t("dialog.trigger")}
         </Button>
       </DialogTrigger>
       {dialogContent}
@@ -227,6 +229,7 @@ export function LocalWeatherDialog({ sessionWeather, externalOpen, onExternalOpe
 
 /** Extracted weather results display */
 function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }: { weather: WeatherData; resolvedLocation?: string | null; showTuningNote?: boolean }) {
+  const { t } = useTranslation("weather");
   const metric = useOptionalSettingsContext()?.useMetricWeather ?? false;
 
   // Compute dew point from temp and humidity (Magnus formula)
@@ -245,7 +248,7 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
         const gustStr = weather.windGustKts ? ` G${windSpeedValue(weather.windGustKts, metric)}` : "";
         return `${weather.windDirectionDeg ?? "VRB"}° @ ${spd} ${windSpeedUnit(metric)}${gustStr}`;
       })()
-    : "Calm";
+    : t("calm");
 
   return (
     <div className="space-y-3">
@@ -253,11 +256,11 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
       <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border pb-2">
         <span>
           {weather.station.source === "open-meteo" ? (
-            <>Source: <span className="font-medium text-foreground">Open-Meteo</span> (reanalysis)</>
+            <>{t("dialog.sourceLabel")} <span className="font-medium text-foreground">Open-Meteo</span> {t("dialog.reanalysis")}</>
           ) : (
             <>
-              Station: <span className="font-mono font-medium text-foreground">{weather.station.stationId}</span>
-              {" "}({weather.station.distanceKm} km away)
+              {t("dialog.stationLabel")} <span className="font-mono font-medium text-foreground">{weather.station.stationId}</span>
+              {" "}({t("dialog.kmAway", { distance: weather.station.distanceKm })})
             </>
           )}
         </span>
@@ -270,34 +273,34 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
 
       {/* Observation time */}
       <div className="text-xs text-muted-foreground">
-        Observed: {weather.observationTime.toLocaleString()}
+        {t("observed")} {weather.observationTime.toLocaleString()}
       </div>
 
       {/* Main weather grid */}
       <div className="grid grid-cols-2 gap-3">
         <WeatherItem
           icon={<Thermometer className="w-4 h-4" />}
-          label="Temperature"
+          label={t("dialog.temperature")}
           value={formatTemperature(weather.temperatureC, metric)}
         />
         <WeatherItem
           icon={<Droplets className="w-4 h-4" />}
-          label="Humidity"
+          label={t("humidity")}
           value={`${weather.humidity}%`}
         />
         <WeatherItem
           icon={<Thermometer className="w-4 h-4" />}
-          label="Dew Point"
+          label={t("dialog.dewPoint")}
           value={formatTemperature(dewPointC, metric)}
         />
         <WeatherItem
           icon={<Gauge className="w-4 h-4" />}
-          label="Barometer"
+          label={t("dialog.barometer")}
           value={formatPressure(weather.altimeterInHg, metric)}
         />
         <WeatherItem
           icon={<Wind className="w-4 h-4" />}
-          label="Wind"
+          label={t("wind")}
           value={windValue}
           extra={
             weather.windSpeedKts !== null && weather.windDirectionDeg !== null ? (
@@ -310,12 +313,12 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
         />
         <WeatherItem
           icon={<Mountain className="w-4 h-4" />}
-          label="Pressure Alt"
+          label={t("dialog.pressureAlt")}
           value={formatAltitudeFt(pressureAltFt, metric)}
         />
         <WeatherItem
           icon={<Mountain className="w-4 h-4" />}
-          label="Density Alt"
+          label={t("dialog.densityAlt")}
           value={formatAltitudeFt(weather.densityAltitudeFt, metric)}
           highlight
         />
@@ -324,13 +327,13 @@ function WeatherResultsView({ weather, resolvedLocation, showTuningNote = true }
       {/* Racing note - only for current weather */}
       {showTuningNote && (
         <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5 leading-relaxed border border-border/50">
-          <span className="font-medium text-foreground">Tuning note:</span>{" "}
+          <span className="font-medium text-foreground">{t("dialog.tuningNote")}</span>{" "}
           {weather.densityAltitudeFt > 2000
-            ? "High density altitude — engine produces less power. Consider leaning the carb mixture."
+            ? t("dialog.tuningHighDa")
             : weather.densityAltitudeFt < 0
-              ? "Negative density altitude — engine produces more power than standard. May need to richen mixture."
-              : "Moderate density altitude. Standard jetting should be close."}
-          {weather.humidity > 70 && " High humidity further reduces effective air density."}
+              ? t("dialog.tuningNegDa")
+              : t("dialog.tuningModerateDa")}
+          {weather.humidity > 70 && ` ${t("dialog.tuningHighHumidity")}`}
         </div>
       )}
     </div>
