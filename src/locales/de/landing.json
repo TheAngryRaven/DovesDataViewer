@@ -204,5 +204,15 @@
       "native": "Nativ",
       "fileInputFallback": "Datei-Eingabe-Fallback"
     }
+  },
+  "fileImport": {
+    "title": "Datalog öffnen",
+    "processing": "Wird verarbeitet...",
+    "dragDrop": "Datei hierher ziehen und ablegen oder zum Durchsuchen klicken",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD und mehr — <i>alles lokal auf deinem Gerät verarbeitet.</i>",
+    "parseFailed": "Datei konnte nicht verarbeitet werden",
+    "parseErrorSaved": "{{message}} — die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
+    "loaded": "Geladen: {{name}}",
+    "errorLine": "Fehler: {{error}}"
   }
 }

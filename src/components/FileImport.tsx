@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { Upload, Loader2 } from "lucide-react";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
@@ -16,6 +17,7 @@ interface FileImportProps {
  * own tiles in LandingPage rather than bundled inside this dropzone.
  */
 export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportProps) {
+  const { t } = useTranslation("landing");
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +41,14 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
         const data = await parseDatalogFile(file, (p) => setProgress(p.message));
         onDataLoaded(data, file.name);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to parse file";
-        setError(autoSave ? `${msg} — file was saved and can be found in Browse Files.` : msg);
+        const msg = e instanceof Error ? e.message : t("fileImport.parseFailed");
+        setError(autoSave ? t("fileImport.parseErrorSaved", { message: msg }) : msg);
       } finally {
         setIsLoading(false);
         setProgress(null);
       }
     },
-    [onDataLoaded, autoSave, autoSaveFile],
+    [onDataLoaded, autoSave, autoSaveFile, t],
   );
 
   const handleFileChange = useCallback(
@@ -106,21 +108,20 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
           </span>
         )}
         <span className="text-xl font-semibold text-foreground">
-          {isLoading ? (progress ?? "Processing...") : "Open a datalog"}
+          {isLoading ? (progress ?? t("fileImport.processing")) : t("fileImport.title")}
         </span>
         <span className="text-sm text-muted-foreground">
-          Drag &amp; drop a file here, or click to browse
+          {t("fileImport.dragDrop")}
         </span>
         <span className="max-w-md text-xs text-muted-foreground">
-          NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD and more —
-          <i> all processed locally on your device.</i>
+          <Trans t={t} i18nKey="fileImport.formats" components={{ i: <i /> }} />
         </span>
       </label>
 
       {fileName && !error && (
-        <p className="text-center text-sm font-mono text-muted-foreground">Loaded: {fileName}</p>
+        <p className="text-center text-sm font-mono text-muted-foreground">{t("fileImport.loaded", { name: fileName })}</p>
       )}
-      {error && <p className="text-center text-sm font-medium text-destructive">Error: {error}</p>}
+      {error && <p className="text-center text-sm font-medium text-destructive">{t("fileImport.errorLine", { error })}</p>}
     </div>
   );
 }

@@ -204,5 +204,15 @@
       "native": "ネイティブ",
       "fileInputFallback": "ファイル入力フォールバック"
     }
+  },
+  "fileImport": {
+    "title": "データログを開く",
+    "processing": "処理中...",
+    "dragDrop": "ここにファイルをドラッグ＆ドロップ、またはクリックして参照",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD など — <i>すべて端末内でローカルに処理されます。</i>",
+    "parseFailed": "ファイルの解析に失敗しました",
+    "parseErrorSaved": "{{message}} — ファイルは保存され、「ファイルを参照」で見つけられます。",
+    "loaded": "読み込み済み: {{name}}",
+    "errorLine": "エラー: {{error}}"
   }
 }

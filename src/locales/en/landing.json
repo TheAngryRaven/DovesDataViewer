@@ -90,6 +90,16 @@
       "PWA — installable & fully offline"
     ]
   },
+  "fileImport": {
+    "title": "Open a datalog",
+    "processing": "Processing...",
+    "dragDrop": "Drag & drop a file here, or click to browse",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD and more — <i>all processed locally on your device.</i>",
+    "parseFailed": "Failed to parse file",
+    "parseErrorSaved": "{{message}} — file was saved and can be found in Browse Files.",
+    "loaded": "Loaded: {{name}}",
+    "errorLine": "Error: {{error}}"
+  },
   "credits": {
     "trigger": "Credits",
     "title": "Credits",

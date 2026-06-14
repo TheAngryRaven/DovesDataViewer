@@ -204,5 +204,15 @@
       "native": "Nativo",
       "fileInputFallback": "Ripiego su campo file"
     }
+  },
+  "fileImport": {
+    "title": "Apri un datalog",
+    "processing": "Elaborazione...",
+    "dragDrop": "Trascina un file qui o clicca per sfogliare",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD e altro — <i>tutto elaborato localmente sul tuo dispositivo.</i>",
+    "parseFailed": "Impossibile analizzare il file",
+    "parseErrorSaved": "{{message}} — il file è stato salvato e si trova in Sfoglia file.",
+    "loaded": "Caricato: {{name}}",
+    "errorLine": "Errore: {{error}}"
   }
 }

@@ -50,8 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sync/export status messages, and the **Tools** tab — the tool picker and the
   kart seat-position visualizer, and the **account pages** — sign in, create
   account, forgot/reset password, and the sign-in callback — and the home-screen
-  **About**, **Supported Files**, **Credits**, **Contact** and
-  **browser-compatibility** dialogs. More of the app follows in later updates.
+  **file drop zone** ("Open a datalog") plus the **About**, **Supported Files**,
+  **Credits**, **Contact** and **browser-compatibility** dialogs. More of the app
+  follows in later updates.
   (Open-source library names and GitHub link names stay in English by design, as
   do the legal pages.)
 - **Log type bubble in the file browser.** Each session row (shown by date/time)

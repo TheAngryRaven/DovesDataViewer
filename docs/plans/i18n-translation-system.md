@@ -1,6 +1,12 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 7 — auth pages + all landing dialogs complete** · current branch: `claude/i18n-landing-dialogs` → PR into `BETA`
+Status: **Phase 7 — auth pages + entire landing page complete** · current branch: `claude/i18n-file-import` → PR into `BETA`
+
+> **Phase 7d (this PR):** the landing page's primary **file drop zone**
+> (`FileImport`, "Open a datalog") — heading, drag/drop prompt, the
+> locally-processed format note (`<Trans>`; format list stays literal), progress
+> + error/loaded lines — in the `landing` namespace (`fileImport.*`). With this
+> the whole landing page is localized. **Remaining overall:** the **admin** panel.
 
 > **Phase 7c (this PR):** the last three landing-page dialogs — **Credits**
 > (`CreditsDialog`), **Contact** (`ContactDialog`), and **browser-compatibility**
