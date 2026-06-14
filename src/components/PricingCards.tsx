@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStripePrices } from "@/hooks/useStripePrices";
@@ -40,75 +41,6 @@ interface PaidTier {
   highlight?: boolean;
 }
 
-// Everything the always-free, fully-offline app does — no account needed. Shown
-// as its own card on the landing page and folded into the online card on sign-up.
-const OFFLINE_FEATURES: string[] = [
-  "Full data viewer",
-  "Bluetooth (BLE) device connectivity",
-  "Reference-lap overlay & comparison",
-  "Braking zones & G-force analysis",
-  "Add overlays & export videos",
-  "Offline mathematical session debrief",
-];
-
-// What syncing to the cloud (the free online account) actually buys you.
-const CLOUD_SYNC_FEATURE: Feature = {
-  label: "Sync data with the cloud",
-  sub: [
-    "Unique setup for each session",
-    "Fastest laptimes per engine",
-    "Personal tracks and session notes",
-  ],
-};
-
-const OFFLINE_CARD: FreeTier = {
-  name: "Just the App",
-  price: "Free",
-  features: OFFLINE_FEATURES,
-};
-
-// The online free card. On sign-up it leads with the offline summary (there's no
-// separate offline card there); on the landing page offline is its own card, so
-// it just inherits from it.
-function onlineCard(variant: Variant): FreeTier {
-  return {
-    name: "Cloud Access",
-    price: "Free",
-    slug: "free",
-    inherits: variant === "register" ? "Everything included with offline mode" : "Everything in Just the App, plus",
-    features: [CLOUD_SYNC_FEATURE, "Fastest laps & synced setups — always free", "50 MB cloud storage for datalogs*"],
-  };
-}
-
-// Paid tiers — feature copy is static; the price is resolved live from Stripe
-// (by lookup_key) and these cards are hidden when Stripe isn't wired up. Premium
-// + Pro are coming-soon (see billing.ts COMING_SOON_TIERS) and hidden entirely.
-const PAID_TIERS: PaidTier[] = [
-  {
-    name: "Cloud Access",
-    slug: "plus",
-    highlight: true,
-    inherits: "Everything in free Cloud Access, plus",
-    features: [
-      "10 GB cloud storage for datalogs*",
-      "Video uploads & sharing (coming soon)",
-      "You're helping support the project ❤️",
-    ],
-  },
-  {
-    name: "Cloud Access",
-    slug: "premium",
-    inherits: "Everything in Plus, plus",
-    features: ["100 GB cloud storage for datalogs*"],
-  },
-  {
-    name: "Cloud Access",
-    slug: "pro",
-    inherits: "Everything in Premium, plus",
-    features: ["500 GB cloud storage for datalogs*", "AI coaching (coming soon)"],
-  },
-];
-
 function FeatureList({ features }: { features: Feature[] }) {
   return (
     <ul className="mt-2 space-y-2">
@@ -145,6 +77,7 @@ function TierCard({
   inherits,
   features,
   highlight,
+  recommendedLabel,
   cta,
 }: {
   name: string;
@@ -153,6 +86,7 @@ function TierCard({
   inherits?: string;
   features: Feature[];
   highlight?: boolean;
+  recommendedLabel: string;
   cta?: ReactNode;
 }) {
   return (
@@ -163,7 +97,7 @@ function TierCard({
     >
       {highlight && (
         <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
-          Recommended
+          {recommendedLabel}
         </span>
       )}
       <h3 className="text-xl font-bold text-foreground">{name}</h3>
@@ -183,9 +117,11 @@ function TierCard({
 function IntervalToggle({
   value,
   onChange,
+  labels,
 }: {
   value: BillingInterval;
   onChange: (v: BillingInterval) => void;
+  labels: Record<BillingInterval, string>;
 }) {
   return (
     <div className="mt-4 inline-flex items-center rounded-full border border-border bg-card p-0.5 text-sm">
@@ -194,14 +130,14 @@ function IntervalToggle({
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
-          className={`rounded-full px-3 py-1 capitalize transition-colors ${
+          className={`rounded-full px-3 py-1 transition-colors ${
             value === opt
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"
           }`}
           aria-pressed={value === opt}
         >
-          {opt}
+          {labels[opt]}
         </button>
       ))}
     </div>
@@ -222,6 +158,7 @@ type Variant = "home" | "register";
  * the paid cards drop out (free-only failback).
  */
 export function PricingCards({ className, variant = "home" }: { className?: string; variant?: Variant }) {
+  const { t } = useTranslation("auth");
   const { user } = useAuth();
   const { currentTier } = useSubscription();
   const { config } = useStripePrices();
@@ -233,12 +170,35 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
   const purchasable = tiersWithPrices(config.prices);
   // The cards' interval: the toggle on home, fixed monthly on sign-up.
   const cardInterval: BillingInterval = variant === "register" ? "monthly" : interval;
-  const cadence = cardInterval === "annual" ? "/yr" : "/mo";
+  const cadence = cardInterval === "annual" ? t("pricing.cadenceYear") : t("pricing.cadenceMonth");
   const showToggle = variant === "home" && showPaid;
 
-  const freeCards: FreeTier[] = variant === "register" ? [onlineCard(variant)] : [OFFLINE_CARD, onlineCard(variant)];
+  // Feature copy is localized; prices resolve live from Stripe (see billing.ts).
+  const cloudSync: Feature = {
+    label: t("pricing.cloudSync.label"),
+    sub: t("pricing.cloudSync.sub", { returnObjects: true }) as string[],
+  };
+  const offlineCard: FreeTier = {
+    name: t("pricing.offlineCard.name"),
+    price: t("pricing.free"),
+    features: t("pricing.offlineCard.features", { returnObjects: true }) as string[],
+  };
+  const onlineCard: FreeTier = {
+    name: t("pricing.onlineCard.name"),
+    price: t("pricing.free"),
+    slug: "free",
+    inherits: variant === "register" ? t("pricing.onlineCard.inheritsRegister") : t("pricing.onlineCard.inheritsHome"),
+    features: [cloudSync, ...(t("pricing.onlineCard.features", { returnObjects: true }) as string[])],
+  };
+  const allPaidTiers: PaidTier[] = [
+    { name: t("pricing.plus.name"), slug: "plus", highlight: true, inherits: t("pricing.plus.inherits"), features: t("pricing.plus.features", { returnObjects: true }) as string[] },
+    { name: t("pricing.premium.name"), slug: "premium", inherits: t("pricing.premium.inherits"), features: t("pricing.premium.features", { returnObjects: true }) as string[] },
+    { name: t("pricing.pro.name"), slug: "pro", inherits: t("pricing.pro.inherits"), features: t("pricing.pro.features", { returnObjects: true }) as string[] },
+  ];
+
+  const freeCards: FreeTier[] = variant === "register" ? [onlineCard] : [offlineCard, onlineCard];
   // Only self-service-purchasable paid tiers (Premium/Pro are hidden at launch).
-  const paidTiers = PAID_TIERS.filter((t) => !isComingSoon(t.slug));
+  const paidTiers = allPaidTiers.filter((tier) => !isComingSoon(tier.slug));
 
   const onUpgrade = async (slug: PaidSlug) => {
     setBusy(slug);
@@ -249,7 +209,7 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
       const url = await createCheckout(slug, cardInterval, window.location.href);
       window.location.href = url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't start checkout.");
+      toast.error(e instanceof Error ? e.message : t("pricing.checkoutError"));
       setBusy(null);
     }
   };
@@ -264,7 +224,7 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
       const url = await createPortal(window.location.href);
       window.location.href = url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't open the billing portal.");
+      toast.error(e instanceof Error ? e.message : t("pricing.portalError"));
       setBusy(null);
     }
   };
@@ -280,7 +240,7 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
     if (kind === "current") {
       return (
         <Button variant="outline" className="w-full" disabled>
-          <Check className="h-4 w-4" /> Current plan
+          <Check className="h-4 w-4" /> {t("pricing.currentPlan")}
         </Button>
       );
     }
@@ -289,7 +249,7 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
       return (
         <Button className="w-full" disabled={isBusy} onClick={() => void onUpgrade(slug as PaidSlug)}>
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {isBusy ? "Redirecting…" : "Upgrade"}
+          {isBusy ? t("pricing.redirecting") : t("pricing.upgrade")}
         </Button>
       );
     }
@@ -298,7 +258,7 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
       return (
         <Button variant="outline" className="w-full" disabled={isBusy} onClick={() => void onManage(slug as PaidSlug)}>
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {isBusy ? "Redirecting…" : "Change plan"}
+          {isBusy ? t("pricing.redirecting") : t("pricing.changePlan")}
         </Button>
       );
     }
@@ -308,17 +268,20 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
   // Two cards on sign-up centre nicely at two columns; the landing page goes
   // three across from the tablet breakpoint up (single column on phones).
   const gridCols = variant === "register" ? "sm:grid-cols-2" : "sm:grid-cols-3";
+  const recommendedLabel = t("pricing.recommended");
 
   return (
     <section className={className}>
       <div className="text-center space-y-1">
-        <h2 className="text-xl font-bold text-foreground">Plans &amp; pricing</h2>
-        <p className="text-sm text-muted-foreground">
-          Start free and fully offline. Add an account for cross-device sync — upgrade only if you need more.
-        </p>
+        <h2 className="text-xl font-bold text-foreground">{t("pricing.heading")}</h2>
+        <p className="text-sm text-muted-foreground">{t("pricing.subtitle")}</p>
         {showToggle && (
           <div className="flex justify-center">
-            <IntervalToggle value={interval} onChange={setInterval} />
+            <IntervalToggle
+              value={interval}
+              onChange={setInterval}
+              labels={{ monthly: t("pricing.monthly"), annual: t("pricing.annual") }}
+            />
           </div>
         )}
       </div>
@@ -331,6 +294,7 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
             inherits={tier.inherits}
             features={tier.features}
             highlight={tier.highlight}
+            recommendedLabel={recommendedLabel}
             cta={tier.slug ? ctaFor(tier.slug, false) : null}
           />
         ))}
@@ -348,16 +312,14 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
                 inherits={tier.inherits}
                 features={tier.features}
                 highlight={tier.highlight}
+                recommendedLabel={recommendedLabel}
                 cta={ctaFor(tier.slug, true)}
               />
             );
           })}
       </div>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        * Storage on your own device is always <span className="font-medium text-foreground">unlimited and free</span>.
-        Paid plans only cover <span className="font-medium text-foreground">cloud backups of your datalogs</span> —
-        so you can dump as many logs as you like and keep them synced across devices. Upgrading mostly just helps
-        support development ❤️
+        <Trans t={t} i18nKey="pricing.footnote" components={{ b: <span className="font-medium text-foreground" /> }} />
       </p>
     </section>
   );

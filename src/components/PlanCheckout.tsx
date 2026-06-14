@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectContent,
@@ -49,6 +50,7 @@ export function PlanCheckout({
   onChange: (v: PlanSelection) => void;
   config: StripeConfig;
 }) {
+  const { t } = useTranslation("auth");
   if (!paidTiersVisible(config)) return null;
   const tiers = selectableTiers(config);
   if (tiers.length <= 1) return null; // only "free" — nothing to choose
@@ -66,7 +68,7 @@ export function PlanCheckout({
     <div className="space-y-3 rounded-lg border border-border bg-card/50 p-3">
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground" htmlFor="storage-tier">
-          Storage tier
+          {t("planCheckout.storageTier")}
         </label>
         <Select value={value.tier} onValueChange={(tier) => onChange({ ...value, tier })}>
           <SelectTrigger id="storage-tier">
@@ -83,18 +85,18 @@ export function PlanCheckout({
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-foreground">Billing</span>
+        <span className="text-sm font-medium text-foreground">{t("planCheckout.billing")}</span>
         <div className="flex items-center gap-2 text-sm">
           <span className={value.interval === "monthly" ? "text-foreground" : "text-muted-foreground"}>
-            Monthly
+            {t("planCheckout.monthly")}
           </span>
           <Switch
             checked={value.interval === "annual"}
             onCheckedChange={(checked) => setInterval(checked ? "annual" : "monthly")}
-            aria-label="Bill annually"
+            aria-label={t("planCheckout.billAnnually")}
           />
           <span className={value.interval === "annual" ? "text-foreground" : "text-muted-foreground"}>
-            Annual
+            {t("planCheckout.annual")}
           </span>
         </div>
       </div>
@@ -114,15 +116,16 @@ export function PlanCheckoutSummary({
   value: PlanSelection;
   config: StripeConfig;
 }) {
+  const { t } = useTranslation("auth");
   if (!paidTiersVisible(config)) return null;
 
   if (value.tier === "free") {
     return (
       <div className="leading-tight">
         <p className="text-lg font-bold text-foreground">
-          $0 <span className="text-xs font-normal text-muted-foreground">/mo</span>
+          $0 <span className="text-xs font-normal text-muted-foreground">{t("planCheckout.perMonth")}</span>
         </p>
-        <p className="text-[11px] text-muted-foreground">Free forever</p>
+        <p className="text-[11px] text-muted-foreground">{t("planCheckout.freeForever")}</p>
       </div>
     );
   }
@@ -139,17 +142,17 @@ export function PlanCheckoutSummary({
     <div className="leading-tight">
       <p className="text-lg font-bold text-foreground">
         {formatPrice(perMonth, selected.currency)}{" "}
-        <span className="text-xs font-normal text-muted-foreground">/mo</span>
+        <span className="text-xs font-normal text-muted-foreground">{t("planCheckout.perMonth")}</span>
       </p>
       {isAnnual ? (
         <p className="text-[11px] text-muted-foreground">
-          billed annually
+          {t("planCheckout.billedAnnually")}
           {discount != null && (
-            <span className="ml-1 font-medium text-emerald-600 dark:text-emerald-500">save {discount}%</span>
+            <span className="ml-1 font-medium text-emerald-600 dark:text-emerald-500">{t("planCheckout.save", { discount })}</span>
           )}
         </p>
       ) : (
-        <p className="text-[11px] text-muted-foreground">billed monthly</p>
+        <p className="text-[11px] text-muted-foreground">{t("planCheckout.billedMonthly")}</p>
       )}
     </div>
   );

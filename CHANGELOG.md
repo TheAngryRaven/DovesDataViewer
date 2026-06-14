@@ -49,7 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   privacy, plus the per-file cloud sync/delete toggles and the background
   sync/export status messages, and the **Tools** tab — the tool picker and the
   kart seat-position visualizer, and the **account pages** — sign in, create
-  account, forgot/reset password, and the sign-in callback — and the home-screen
+  account, forgot/reset password, the sign-in callback, and the **plans &
+  pricing** section on the sign-up page — and the home-screen
   **file drop zone** ("Open a datalog") plus the **About**, **Supported Files**,
   **Credits**, **Contact** and **browser-compatibility** dialogs. More of the app
   follows in later updates.
