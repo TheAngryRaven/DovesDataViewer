@@ -968,7 +968,8 @@ existing user data keeps resolving without a destructive migration.
 
 Multi-language support built on **i18next + react-i18next**. A phased overhaul
 (full plan: `docs/plans/i18n-translation-system.md`); migrated so far: the
-landing page, Settings, the **core in-session UI** (the tab bar + session header
+landing page (incl. the **About** + **Supported Files** dialogs, in the `landing`
+namespace), Settings, the **core in-session UI** (the tab bar + session header
 in `Index.tsx`, `LapTable`, `LapSnapshotControls`, `OverlaysMenu`,
 `SectorCropSelect`), and the **live analysis views** — the map (`RaceLineView`,
 `MiniMap`) and the pro **GraphView** (`GraphViewPanel`, `GraphPanel`,

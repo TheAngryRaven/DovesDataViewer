@@ -49,8 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   privacy, plus the per-file cloud sync/delete toggles and the background
   sync/export status messages, and the **Tools** tab — the tool picker and the
   kart seat-position visualizer, and the **account pages** — sign in, create
-  account, forgot/reset password, and the sign-in callback. More of the app
-  follows in later updates. (Legal pages remain English by design.)
+  account, forgot/reset password, and the sign-in callback — and the home-screen
+  **About** and **Supported Files** dialogs. More of the app follows in later
+  updates. (Legal pages remain English by design.)
 - **Log type bubble in the file browser.** Each session row (shown by date/time)
   now carries a small pill with the log's format — Dove, Dovex, XRK, XRZ,
   iRacing, VBO, MoTeC, UBX, NMEA, CSV, … — derived from the file's extension, so
