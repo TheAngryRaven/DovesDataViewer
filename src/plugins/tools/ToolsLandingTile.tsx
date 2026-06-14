@@ -10,7 +10,8 @@
 // boundaries, Suspense, chromeless layout) and automatically shows every tool —
 // no separate sessionless code path.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionTile } from "@/components/ActionTile";
@@ -27,6 +28,16 @@ export default function ToolsLandingTile(_props: { ctx: LandingContext }) {
   const session = useOptionalSessionContext();
   const settings = useOptionalSettingsContext();
 
+  // While the full-screen panel is open, lock the page behind it so touch
+  // gestures don't scroll the landing page — which on a non-installed mobile
+  // browser toggles the chrome bar, rubber-bands, and reveals the footer.
+  useEffect(() => {
+    if (!open) return;
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = overflow; };
+  }, [open]);
+
   return (
     <>
       <ActionTile
@@ -36,10 +47,12 @@ export default function ToolsLandingTile(_props: { ctx: LandingContext }) {
         onClick={() => setOpen(true)}
       />
 
-      {open && (
-        // Full-screen panel — tools (esp. the live datalogger) need the whole
-        // viewport to show data, not a side drawer.
-        <div className="fixed inset-0 z-[10001] bg-background flex flex-col animate-in fade-in duration-150">
+      {open && createPortal(
+        // Portaled to <body> so this full-screen layer owns the viewport rather
+        // than living inside the landing page's scroll/stacking context. h-dvh
+        // tracks the dynamic mobile viewport so the bottom-pinned content stays
+        // put as the browser chrome shows/hides.
+        <div className="fixed inset-0 z-[10001] flex h-[100dvh] flex-col bg-background overscroll-none animate-in fade-in duration-150">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
             <div className="flex items-center gap-2">
               <Wrench className="w-5 h-5 text-primary" />
@@ -49,7 +62,7 @@ export default function ToolsLandingTile(_props: { ctx: LandingContext }) {
               <X className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden overscroll-contain">
             <PluginPanelHost
               slot={PanelSlot.Tools}
               data={session?.data ?? null}
@@ -62,7 +75,8 @@ export default function ToolsLandingTile(_props: { ctx: LandingContext }) {
               fallback={<ToolsEmpty />}
             />
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

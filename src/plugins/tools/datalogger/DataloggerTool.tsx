@@ -82,7 +82,7 @@ export default function DataloggerTool(props: PluginPanelProps) {
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
         {effectiveView === "live" ? (
           <LiveView timing={timing} speed={speed} speedUnit={speedUnit} phase={phase} latest={latest} />
         ) : (
