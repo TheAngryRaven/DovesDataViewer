@@ -89,7 +89,7 @@ const plugin: DataViewerPlugin = {
     // storage bar measured against this device. Ordered first (top of the tab).
     ctx.registry.contribute(PANELS_POINT, {
       id: "cloud-sync-storage",
-      title: "Account",
+      title: "panels.account",
       slot: PanelSlot.Profile,
       order: 0,
       icon: User,
@@ -100,7 +100,7 @@ const plugin: DataViewerPlugin = {
     // signed out — the one snapshot feature available before sign-in).
     ctx.registry.contribute(PANELS_POINT, {
       id: "cloud-sync-snapshots",
-      title: "Lap snapshots",
+      title: "panels.lapSnapshots",
       slot: PanelSlot.Profile,
       order: 5,
       icon: Camera,
@@ -110,7 +110,7 @@ const plugin: DataViewerPlugin = {
     // Profile tab: manage (delete) the log files stored in the cloud.
     ctx.registry.contribute(PANELS_POINT, {
       id: "cloud-sync-logs",
-      title: "Cloud logs",
+      title: "panels.cloudLogs",
       slot: PanelSlot.Profile,
       order: 10,
       icon: Cloud,
@@ -121,7 +121,7 @@ const plugin: DataViewerPlugin = {
     // the destructive controls sit at the bottom of the tab.
     ctx.registry.contribute(PANELS_POINT, {
       id: "cloud-sync-data-privacy",
-      title: "Data & privacy",
+      title: "panels.dataPrivacy",
       slot: PanelSlot.Profile,
       order: 20,
       icon: ShieldCheck,

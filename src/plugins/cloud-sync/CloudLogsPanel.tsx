@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { Trash2, AlertTriangle, CloudDownload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
@@ -32,6 +33,7 @@ function formatDate(iso?: string): string {
 // copy only (other devices keep what they've downloaded); an opt-in toggle also
 // removes the local copy. "Download all" pulls every cloud log not on this device.
 export default function CloudLogsPanel(_props: PluginPanelProps) {
+  const { t } = useTranslation("plugins");
   const { user, loading } = useAuth();
   const online = useOnlineStatus();
   const [cloud, setCloud] = useState<CloudFile[] | null>(null);
@@ -57,9 +59,9 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
       setVehicles(vehs);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load cloud files");
+      setError(e instanceof Error ? e.message : t("cloudLogs.loadFailed"));
     }
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
     void refresh();
@@ -99,23 +101,23 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
       await unselectFile(name);
       if (removeLocal) await deleteFile(name);
       toast.success(removeLocal
-        ? `Deleted "${name}" from the cloud and this device.`
-        : `Deleted "${name}" from the cloud.`);
+        ? t("cloudLogs.deletedBoth", { name })
+        : t("cloudLogs.deletedCloud", { name }));
       setConfirming(null);
       setAlsoLocal(false);
       await refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
+      toast.error(e instanceof Error ? e.message : t("cloudLogs.deleteFailed"));
     } finally {
       setBusy(null);
     }
-  }, [user, alsoLocal, localFiles, refresh]);
+  }, [user, alsoLocal, localFiles, refresh, t]);
 
   const downloadAll = useCallback(async () => {
     if (!user || downloading) return;
     const pending = cloudOnlyNames((cloud ?? []).map((c) => c.name), localFiles.map((f) => f.name));
     if (pending.length === 0) {
-      toast("All cloud logs are already on this device.");
+      toast(t("cloudLogs.allOnDevice"));
       return;
     }
     setDownloading({ done: 0, total: pending.length });
@@ -133,10 +135,10 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
       setDownloading({ done: ok + failed, total: pending.length });
     }
     setDownloading(null);
-    if (failed) toast.error(`Downloaded ${ok} log${ok === 1 ? "" : "s"}; ${failed} failed.`);
-    else toast.success(`Downloaded ${ok} cloud log${ok === 1 ? "" : "s"} to this device.`);
+    if (failed) toast.error(t("cloudLogs.downloadedFailed", { count: ok, failed }));
+    else toast.success(t("cloudLogs.downloaded", { count: ok }));
     await refresh();
-  }, [user, downloading, cloud, localFiles, refresh]);
+  }, [user, downloading, cloud, localFiles, refresh, t]);
 
   const renderRow = useCallback((s: BrowserSession) => {
     const cf = cloudByName.get(s.fileName);
@@ -154,7 +156,7 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
             <p className="text-[11px] text-muted-foreground">
               {formatDate(cf?.uploadedAt)}
               {cf?.size != null && ` · ${formatBytes(cf.size)}`}
-              {onDevice ? " · on this device" : " · cloud only"}
+              {onDevice ? ` · ${t("cloudLogs.onThisDeviceTag")}` : ` · ${t("cloudLogs.cloudOnlyTag")}`}
             </p>
           </div>
           <Button
@@ -163,7 +165,7 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
             className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
             disabled={busy === s.fileName}
             onClick={() => { setConfirming(s.fileName); setAlsoLocal(false); }}
-            aria-label={`Delete ${s.fileName} from cloud`}
+            aria-label={t("cloudLogs.deleteAria", { name: s.fileName })}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -173,42 +175,42 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
           <div className="space-y-2 border-t border-destructive/30 bg-destructive/5 px-3 py-2.5">
             <p className="flex items-start gap-1.5 text-xs text-destructive">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>Permanently delete the <strong>cloud copy</strong>? This can't be undone.</span>
+              <span><Trans ns="plugins" i18nKey="cloudLogs.confirmCloud" components={{ b: <strong /> }} /></span>
             </p>
             {onDevice && (
               <div className="flex items-center gap-2">
                 <Switch id={`local-${s.fileName}`} checked={alsoLocal} onCheckedChange={setAlsoLocal} disabled={busy === s.fileName} />
                 <Label htmlFor={`local-${s.fileName}`} className="text-xs text-muted-foreground">
-                  Also delete the local file from this device (other devices keep their copy)
+                  {t("cloudLogs.alsoLocal")}
                 </Label>
               </div>
             )}
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={busy === s.fileName} onClick={() => setConfirming(null)}>
-                Cancel
+                {t("cloudLogs.cancel")}
               </Button>
               <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={busy === s.fileName} onClick={() => void handleDelete(s.fileName)}>
-                {busy === s.fileName ? "Deleting…" : "Delete"}
+                {busy === s.fileName ? t("cloudLogs.deleting") : t("cloudLogs.delete")}
               </Button>
             </div>
           </div>
         )}
       </div>
     );
-  }, [cloudByName, confirming, alsoLocal, busy, handleDelete]);
+  }, [cloudByName, confirming, alsoLocal, busy, handleDelete, t]);
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (loading) return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
   if (!user) {
     return (
       <p className="text-xs text-muted-foreground">
-        Sign in to manage the log files stored in your cloud.
+        {t("cloudLogs.signInToManage")}
       </p>
     );
   }
   if (error) return <p className="text-xs text-destructive">{error}</p>;
-  if (!cloud) return <p className="text-xs text-muted-foreground">Loading cloud files…</p>;
+  if (!cloud) return <p className="text-xs text-muted-foreground">{t("cloudLogs.loadingFiles")}</p>;
   if (cloud.length === 0) {
-    return <p className="text-xs text-muted-foreground">No log files in your cloud yet.</p>;
+    return <p className="text-xs text-muted-foreground">{t("cloudLogs.none")}</p>;
   }
 
   const pendingCount = cloudOnlyNames(cloud.map((c) => c.name), localFiles.map((f) => f.name)).length;
@@ -221,14 +223,14 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
             ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             : <CloudDownload className="w-4 h-4 mr-2" />}
           {downloading
-            ? `Downloading ${downloading.done}/${downloading.total}…`
-            : `Download all cloud logs (${pendingCount})`}
+            ? t("cloudLogs.downloading", { done: downloading.done, total: downloading.total })
+            : t("cloudLogs.downloadAll", { count: pendingCount })}
         </Button>
       )}
       {!online && (
-        <p className="text-xs text-muted-foreground text-center">You're offline.</p>
+        <p className="text-xs text-muted-foreground text-center">{t("cloudLogs.offline")}</p>
       )}
-      <SessionBrowser view={view} onNavigate={setNav} renderRow={renderRow} emptyText="No cloud logs here" />
+      <SessionBrowser view={view} onNavigate={setNav} renderRow={renderRow} emptyText={t("cloudLogs.empty")} />
     </div>
   );
 }

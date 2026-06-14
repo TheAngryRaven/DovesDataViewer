@@ -31,6 +31,7 @@ import enVideo from "@/locales/en/video.json";
 import enDrawer from "@/locales/en/drawer.json";
 import enWeather from "@/locales/en/weather.json";
 import enTracks from "@/locales/en/tracks.json";
+import enPlugins from "@/locales/en/plugins.json";
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
 
@@ -57,6 +58,7 @@ const bundledEnglish = {
   drawer: enDrawer,
   weather: enWeather,
   tracks: enTracks,
+  plugins: enPlugins,
 } as const;
 
 const importBackend: BackendModule = {

@@ -1,8 +1,19 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 5 tracks complete** · current branch: `claude/i18n-phase5-tracks` → PR into `BETA`
+Status: **Phase 6 plugins — cloud-sync slice complete** · current branch: `claude/i18n-phase6-plugins` → PR into `BETA`
 
-> **Phase 5 (this PR):** the **`tracks` namespace** — the track/course editor +
+> **Phase 6, slice 1 (this PR):** the **`plugins` namespace**, cloud-sync slice —
+> every cloud-sync Profile panel (`StoragePanel`/Account, `LapSnapshotsPanel`,
+> `CloudLogsPanel`, `DataPrivacyPanel`), the per-file `FileSyncToggle` +
+> `FileDeleteToggle` mounts, and the two non-React modules (`autoSync` quota/
+> offline notices + `accountExport` progress phases) via direct `i18n.t`. Panel
+> **titles** are now i18n keys: `PluginPanelHost` resolves `t(panel.title)` at
+> render (a literal non-key title falls through unchanged), so the host's error/
+> loading chrome is translated too. **Remaining:** the **Tools** plugin slice
+> (`ToolsPanel`, `toolList`, the seat-position visualizer) and then auth/admin.
+> (Legal pages stay English by design.)
+
+> **Phase 5 (merged):** the **`tracks` namespace** — the track/course editor +
 > manager (`TrackEditor`, `AddTrackDialog`, `AddCourseDialog`, `SectorListEditor`,
 > `VisualEditor`, `TrackPromptDialog`) and the community **submission** flow
 > (`SubmitTrackDialog`). Sector numbering labels (from `sectorLabels()`) stay

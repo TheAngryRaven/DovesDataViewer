@@ -1,13 +1,15 @@
 import { Component, Suspense, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { isBareSlot, usePanelsForSlot, type PluginPanelProps } from "./panels";
 
 /**
  * Isolates a single plugin panel: a throw in one panel renders a local notice
  * instead of taking down the tab (or the app). Plugin UI is untrusted-ish —
  * first-party today, potentially user-installed later — so each gets a boundary.
+ * The error label is passed in pre-translated (a class boundary can't use hooks).
  */
 class PanelErrorBoundary extends Component<
-  { title: string; children: ReactNode },
+  { errorLabel: string; children: ReactNode },
   { failed: boolean }
 > {
   state = { failed: false };
@@ -20,7 +22,7 @@ class PanelErrorBoundary extends Component<
     if (this.state.failed) {
       return (
         <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-muted-foreground">
-          The “{this.props.title}” panel hit an error and was unloaded.
+          {this.props.errorLabel}
         </div>
       );
     }
@@ -37,6 +39,7 @@ export function PluginPanelHost({
   fallback,
   ...props
 }: { slot: string; fallback?: ReactNode } & PluginPanelProps) {
+  const { t } = useTranslation("plugins");
   const panels = usePanelsForSlot(slot);
 
   if (panels.length === 0) return <>{fallback ?? null}</>;
@@ -50,10 +53,15 @@ export function PluginPanelHost({
       {panels.map((panel) => {
         const Icon = panel.icon;
         const Body = panel.component;
+        // Panel titles are i18n keys in the plugins namespace (e.g.
+        // "panels.account"); a literal title from a plugin without a matching key
+        // falls through unchanged. The key is dynamic (plugin-provided), so it's
+        // cast to a concrete plugins key for the type-safe t().
+        const title = t(panel.title as "panels.account");
 
         const body = (
-          <PanelErrorBoundary title={panel.title}>
-            <Suspense fallback={<p className="text-xs text-muted-foreground">Loading…</p>}>
+          <PanelErrorBoundary errorLabel={t("panelError", { title })}>
+            <Suspense fallback={<p className="text-xs text-muted-foreground">{t("loading")}</p>}>
               <Body {...props} />
             </Suspense>
           </PanelErrorBoundary>
@@ -66,7 +74,7 @@ export function PluginPanelHost({
           <section key={panel.id} className="rounded-lg border border-border bg-card">
             <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
               {Icon && <Icon className="w-4 h-4 text-primary" />}
-              <h3 className="text-sm font-medium text-foreground">{panel.title}</h3>
+              <h3 className="text-sm font-medium text-foreground">{title}</h3>
             </header>
             <div className="p-4">{body}</div>
           </section>

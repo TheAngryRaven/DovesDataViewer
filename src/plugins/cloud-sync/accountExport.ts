@@ -4,6 +4,7 @@
 // assembly lives in exportManifest.ts; this layer does the I/O.
 
 import JSZip from "jszip";
+import i18n from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { getFile, listFiles } from "@/lib/fileStorage";
 import { getAccessor } from "./storeAccessors";
@@ -55,7 +56,7 @@ export interface ExportProgress {
  * and reports coarse phases ("Gathering…", "Downloading files…", "Zipping…").
  */
 export async function downloadAccountExport(onProgress?: (p: ExportProgress) => void): Promise<void> {
-  onProgress?.({ phase: "Gathering your data…" });
+  onProgress?.({ phase: i18n.t("plugins:export.gathering") });
   const [cloud, local] = await Promise.all([fetchCloudExport(), gatherLocal()]);
 
   const zip = new JSZip();
@@ -64,7 +65,7 @@ export async function downloadAccountExport(onProgress?: (p: ExportProgress) => 
   }
 
   // Local session-file blobs.
-  onProgress?.({ phase: "Adding local files…" });
+  onProgress?.({ phase: i18n.t("plugins:export.addingLocal") });
   for (const name of local.fileNames) {
     const blob = await getFile(name);
     if (blob) zip.file(`local/files/${name}`, blob);
@@ -75,7 +76,7 @@ export async function downloadAccountExport(onProgress?: (p: ExportProgress) => 
   if (cloudFiles.length) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      onProgress?.({ phase: `Downloading ${cloudFiles.length} cloud file${cloudFiles.length === 1 ? "" : "s"}…` });
+      onProgress?.({ phase: i18n.t("plugins:export.downloadingFiles", { count: cloudFiles.length }) });
       for (const f of cloudFiles) {
         const blob = await downloadCloudFile(user.id, f.name);
         if (blob) zip.file(`cloud/files/${f.name}`, blob);
@@ -83,7 +84,7 @@ export async function downloadAccountExport(onProgress?: (p: ExportProgress) => 
     }
   }
 
-  onProgress?.({ phase: "Zipping…" });
+  onProgress?.({ phase: i18n.t("plugins:export.zipping") });
   const out = await zip.generateAsync({ type: "blob" });
   const url = URL.createObjectURL(out);
   const a = document.createElement("a");

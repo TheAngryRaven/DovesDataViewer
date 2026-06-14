@@ -948,8 +948,14 @@ dialog), and the **tracks** UI — the track/course editor + manager
 (`TrackEditor`, `AddTrackDialog`, `AddCourseDialog`, `SectorListEditor`,
 `VisualEditor`, `TrackPromptDialog`) and the community **submission** flow
 (`SubmitTrackDialog`) — the `tracks` namespace (the pure `courseSectors`
-validation strings + `deviceSettingsSchema` labels stay English data). Plugins
-(cloud-sync/Tools) and auth/admin are the next surfaces; the framework is whole.
+validation strings + `deviceSettingsSchema` labels stay English data), and the
+**cloud-sync plugin** UI — every Profile-tab panel (`StoragePanel`/Account,
+`LapSnapshotsPanel`, `CloudLogsPanel`, `DataPrivacyPanel`), the per-file sync +
+delete toggles, the background `autoSync` quota/offline notices and the
+`accountExport` progress phases (both non-React modules call `i18n.t` directly),
+plus the host `PluginPanelHost` (panel titles are now i18n keys translated at
+render, error/loading chrome) — the `plugins` namespace. The **Tools** plugin
+and auth/admin are the next surfaces; the framework is whole.
 (Device-setting **labels** still come from
 `deviceSettingsSchema.ts` data — schema-level i18n is a deliberate follow-up so
 unknown device keys keep passing through as raw labels.)
@@ -975,7 +981,7 @@ unknown device keys keep passing through as raw labels.)
 - **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
   with the English JSON shape, so `t("settings:title")` is autocompleted and a
   missing/renamed key fails `tsc -b`. English is the canonical key set.
-- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`, `tracks`) map to per-language JSON files
+- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`, `tracks`, `plugins`) map to per-language JSON files
   and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
   preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
   `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),

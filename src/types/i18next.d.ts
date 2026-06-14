@@ -14,6 +14,7 @@ import type video from "@/locales/en/video.json";
 import type drawer from "@/locales/en/drawer.json";
 import type weather from "@/locales/en/weather.json";
 import type tracks from "@/locales/en/tracks.json";
+import type plugins from "@/locales/en/plugins.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -27,6 +28,7 @@ declare module "i18next" {
       drawer: typeof drawer;
       weather: typeof weather;
       tracks: typeof tracks;
+      plugins: typeof plugins;
     };
   }
 }

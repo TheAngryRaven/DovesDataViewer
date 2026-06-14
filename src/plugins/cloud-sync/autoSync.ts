@@ -9,6 +9,7 @@
 // On sign-in it reconciles too. Garage documents + lap snapshots auto-sync here;
 // log blobs stay manual/opt-in. All three share one pooled per-tier byte budget.
 
+import i18n from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { STORE_NAMES } from "@/lib/dbUtils";
 import { onGarageChange, type GarageChange } from "@/lib/garageEvents";
@@ -85,7 +86,7 @@ async function flush(change: GarageChange): Promise<void> {
     await clearPending(change.store, change.key);
   } catch (err) {
     if (isQuotaError(err)) {
-      notify("Cloud storage is full — saved locally, not synced. Free up space or upgrade in Profile.", "error");
+      notify(i18n.t("plugins:autoSync.quotaSaveLocal"), "error");
     } else {
       // Network/other failure → keep it as a pending change to retry on reconnect.
       await markPending(change);
@@ -119,7 +120,7 @@ async function flushPending(userId: string): Promise<void> {
       await clearPending(change.store, change.key);
     } catch (err) {
       if (isQuotaError(err)) {
-        notify("Cloud storage is full — some changes didn't sync. Free up space or upgrade in Profile.", "error");
+        notify(i18n.t("plugins:autoSync.quotaSomeChanges"), "error");
       }
       // otherwise leave it pending for the next reconnect
     }
@@ -133,14 +134,11 @@ async function runReconcile(userId: string): Promise<void> {
     await flushPending(userId);
     const { skipped } = await reconcileDocs(userId, await pendingKeySet());
     if (skipped > 0) {
-      notify(
-        `Cloud storage is full — ${skipped} item${skipped === 1 ? "" : "s"} didn't sync.`,
-        "error",
-      );
+      notify(i18n.t("plugins:autoSync.quotaItems", { count: skipped }), "error");
     }
   } catch (err) {
     if (isQuotaError(err)) {
-      notify("Cloud storage is full — some items didn't sync.", "error");
+      notify(i18n.t("plugins:autoSync.quotaSomeItems"), "error");
     } else {
       console.error("auto-sync document reconcile failed", err);
     }
@@ -149,10 +147,7 @@ async function runReconcile(userId: string): Promise<void> {
   try {
     const snap = await reconcileSnapshots(userId);
     if (snap.skipped > 0) {
-      notify(
-        `Cloud storage is full — ${snap.skipped} snapshot${snap.skipped === 1 ? "" : "s"} didn't sync. Free up space or upgrade in Profile.`,
-        "error",
-      );
+      notify(i18n.t("plugins:autoSync.quotaSnapshots", { count: snap.skipped }), "error");
     }
   } catch (err) {
     console.error("auto-sync snapshot reconcile failed", err);
@@ -164,7 +159,7 @@ function handleOnline(): void {
 }
 
 function handleOffline(): void {
-  notify("You're offline — changes are saved locally and will sync when you reconnect.", "info");
+  notify(i18n.t("plugins:autoSync.offline"), "info");
 }
 
 /** Start the background document auto-sync. Idempotent. */
