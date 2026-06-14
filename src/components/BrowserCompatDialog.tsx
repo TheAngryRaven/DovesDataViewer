@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Monitor, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ const levelIcon = (level: CapabilityCheck["level"]) => {
 };
 
 export function BrowserCompatDialog() {
+  const { t } = useTranslation("landing");
   const checks = useMemo(() => detectCapabilities(), []);
   const hasIssues = checks.some((c) => c.level !== "green");
 
@@ -39,17 +41,17 @@ export function BrowserCompatDialog() {
           }
         >
           <Monitor className="w-3.5 h-3.5 mr-1.5" />
-          Browser Compatibility
+          {t("browserCompat.trigger")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Monitor className="w-5 h-5" />
-            Browser Compatibility
+            {t("browserCompat.title")}
           </DialogTitle>
           <DialogDescription>
-            Feature support for your current browser.
+            {t("browserCompat.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -61,18 +63,17 @@ export function BrowserCompatDialog() {
             >
               <div className="flex items-center gap-2 min-w-0">
                 {levelIcon(check.level)}
-                <span className="text-sm text-foreground">{check.feature}</span>
+                <span className="text-sm text-foreground">{t(`browserCompat.features.${check.feature}`)}</span>
               </div>
               <span className="text-xs text-muted-foreground shrink-0 font-mono">
-                {check.status}
+                {t(`browserCompat.statuses.${check.status}`)}
               </span>
             </div>
           ))}
         </div>
 
         <p className="text-[11px] text-muted-foreground leading-relaxed mt-2">
-          All core features work across modern browsers. Some advanced features
-          work best in Chrome or Edge.
+          {t("browserCompat.note")}
         </p>
       </DialogContent>
     </Dialog>

@@ -144,5 +144,65 @@
         "body": "Esportazioni CSV da Race Studio 3 (stile RS2Analysis) per MyChron 5/6. Estensione: <code>.csv</code>"
       }
     }
+  },
+  "credits": {
+    "trigger": "Crediti",
+    "title": "Crediti",
+    "intro": "Costruito sulle spalle di questi incredibili progetti open source e servizi gratuiti."
+  },
+  "contact": {
+    "trigger": "Contatti",
+    "title": "Contattaci",
+    "description": "Inviaci un messaggio: li leggiamo tutti.",
+    "categoryLabel": "Categoria *",
+    "categoryPlaceholder": "Seleziona una categoria",
+    "categories": {
+      "comment": "Commento",
+      "featureRequest": "Richiesta di funzionalità",
+      "complaint": "Reclamo",
+      "bugReport": "Segnalazione di bug"
+    },
+    "emailLabel": "Email",
+    "emailOptional": "(facoltativa, per una risposta)",
+    "emailPlaceholder": "tua@email.com",
+    "messageLabel": "Messaggio *",
+    "messagePlaceholder": "A cosa stai pensando?",
+    "sending": "Invio…",
+    "send": "Invia messaggio",
+    "missingFields": "Campi mancanti",
+    "missingFieldsDesc": "Seleziona una categoria e inserisci un messaggio.",
+    "tooLong": "Messaggio troppo lungo",
+    "tooLongDesc": "Massimo 2000 caratteri.",
+    "error": "Errore",
+    "errorGeneric": "Qualcosa è andato storto.",
+    "errorNetwork": "Impossibile inviare il messaggio. Riprova.",
+    "sent": "Messaggio inviato!",
+    "sentDesc": "Grazie per il tuo feedback."
+  },
+  "browserCompat": {
+    "trigger": "Compatibilità del browser",
+    "title": "Compatibilità del browser",
+    "description": "Supporto delle funzionalità per il tuo browser attuale.",
+    "note": "Tutte le funzionalità principali funzionano sui browser moderni. Alcune funzionalità avanzate funzionano meglio in Chrome o Edge.",
+    "features": {
+      "gpsFileParsing": "Analisi dei file GPS",
+      "videoSync": "Sincronizzazione video",
+      "videoExport": "Esportazione video (MP4)",
+      "audioInExport": "Audio nell'esportazione",
+      "bleDatalogger": "Datalogger BLE",
+      "filePicker": "Selettore di file",
+      "pwaOffline": "PWA / Offline"
+    },
+    "statuses": {
+      "supported": "Supportato",
+      "notAvailable": "Non disponibile",
+      "frameAccurate": "Precisione al fotogramma",
+      "approximateSync": "Sincronizzazione approssimativa",
+      "mp4H264": "MP4 (H.264)",
+      "webmFallback": "Ripiego WebM",
+      "silentExports": "Esportazioni mute",
+      "native": "Nativo",
+      "fileInputFallback": "Ripiego su campo file"
+    }
   }
 }
