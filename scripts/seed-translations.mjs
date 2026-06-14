@@ -59,6 +59,9 @@ function flatten(tree, prefix = "") {
 
 function setPath(tree, dotted, value) {
   const parts = dotted.split(".");
+  const isUnsafePart = (part) => part === "__proto__" || part === "constructor" || part === "prototype";
+  if (parts.some(isUnsafePart)) return;
+
   let node = tree;
   for (let i = 0; i < parts.length - 1; i++) {
     node[parts[i]] ??= {};
