@@ -33,6 +33,7 @@ import enWeather from "@/locales/en/weather.json";
 import enTracks from "@/locales/en/tracks.json";
 import enPlugins from "@/locales/en/plugins.json";
 import enAuth from "@/locales/en/auth.json";
+import enAdmin from "@/locales/en/admin.json";
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
 
@@ -61,6 +62,7 @@ const bundledEnglish = {
   tracks: enTracks,
   plugins: enPlugins,
   auth: enAuth,
+  admin: enAdmin,
 } as const;
 
 const importBackend: BackendModule = {

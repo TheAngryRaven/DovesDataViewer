@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
@@ -8,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import JSZip from 'jszip';
 
 export function ToolsTab() {
+  const { t } = useTranslation('admin');
   const [jsonOutput, setJsonOutput] = useState('');
   const [drawingsOutput, setDrawingsOutput] = useState('');
   const [importJson, setImportJson] = useState('');
@@ -21,9 +23,9 @@ export function ToolsTab() {
     try {
       const json = await db.buildTracksJson();
       setJsonOutput(json);
-      toast({ title: 'tracks.json built from database' });
+      toast({ title: t('tools.buildJsonDone') });
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -59,9 +61,9 @@ export function ToolsTab() {
       a.download = 'tracks.zip';
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: 'Tracks ZIP downloaded' });
+      toast({ title: t('tools.buildZipDone') });
     } catch (e: unknown) {
-      toast({ title: 'Error building ZIP', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('tools.buildZipError'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -71,9 +73,9 @@ export function ToolsTab() {
     try {
       const json = await db.buildDrawingsJson();
       setDrawingsOutput(json);
-      toast({ title: 'Course drawings exported' });
+      toast({ title: t('tools.exportDrawingsDone') });
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -94,9 +96,9 @@ export function ToolsTab() {
     try {
       await db.importFromTracksJson(importJson);
       setImportJson('');
-      toast({ title: 'Database rebuilt from JSON' });
+      toast({ title: t('tools.importDone') });
     } catch (e: unknown) {
-      toast({ title: 'Import error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('tools.importError'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -107,9 +109,9 @@ export function ToolsTab() {
     try {
       await db.importDrawingsJson(importDrawingsJson);
       setImportDrawingsJson('');
-      toast({ title: 'Course drawings imported. Overrides cleared for imported courses.' });
+      toast({ title: t('tools.importDrawingsDone') });
     } catch (e: unknown) {
-      toast({ title: 'Import error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('tools.importError'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -117,15 +119,15 @@ export function ToolsTab() {
   return (
     <div className="space-y-6 mt-4">
       <div className="racing-card p-4 space-y-3">
-        <h3 className="font-semibold text-foreground">Build tracks.json from Database</h3>
-        <p className="text-sm text-muted-foreground">Generates tracks.json with longName, shortName, defaultCourse, and lengthFt per course (from layout drawings or overrides).</p>
+        <h3 className="font-semibold text-foreground">{t('tools.buildJsonTitle')}</h3>
+        <p className="text-sm text-muted-foreground">{t('tools.buildJsonDesc')}</p>
         <div className="flex gap-2">
           <Button onClick={handleBuildJson} disabled={loading}>
-            <FileJson className="w-4 h-4 mr-2" /> Build JSON
+            <FileJson className="w-4 h-4 mr-2" /> {t('tools.buildJson')}
           </Button>
           {jsonOutput && (
             <Button variant="outline" onClick={handleDownloadJson}>
-              <Download className="w-4 h-4 mr-2" /> Download
+              <Download className="w-4 h-4 mr-2" /> {t('tools.download')}
             </Button>
           )}
         </div>
@@ -135,23 +137,23 @@ export function ToolsTab() {
       </div>
 
       <div className="racing-card p-4 space-y-3">
-        <h3 className="font-semibold text-foreground">Build Tracks ZIP</h3>
-        <p className="text-sm text-muted-foreground">Downloads individual track JSON files (with longName, shortName, defaultCourse, lengthFt) in a TRACKS/ folder.</p>
+        <h3 className="font-semibold text-foreground">{t('tools.buildZipTitle')}</h3>
+        <p className="text-sm text-muted-foreground">{t('tools.buildZipDesc')}</p>
         <Button onClick={handleBuildZip} disabled={loading}>
-          <Archive className="w-4 h-4 mr-2" /> Build & Download ZIP
+          <Archive className="w-4 h-4 mr-2" /> {t('tools.buildZip')}
         </Button>
       </div>
 
       <div className="racing-card p-4 space-y-3">
-        <h3 className="font-semibold text-foreground">Export Course Drawings</h3>
-        <p className="text-sm text-muted-foreground">Export all course layout drawings as JSON (keyed by shortName/courseName). Courses with manual length overrides are skipped.</p>
+        <h3 className="font-semibold text-foreground">{t('tools.exportDrawingsTitle')}</h3>
+        <p className="text-sm text-muted-foreground">{t('tools.exportDrawingsDesc')}</p>
         <div className="flex gap-2">
           <Button onClick={handleBuildDrawings} disabled={loading}>
-            <Pencil className="w-4 h-4 mr-2" /> Export Drawings
+            <Pencil className="w-4 h-4 mr-2" /> {t('tools.exportDrawings')}
           </Button>
           {drawingsOutput && (
             <Button variant="outline" onClick={handleDownloadDrawings}>
-              <Download className="w-4 h-4 mr-2" /> Download
+              <Download className="w-4 h-4 mr-2" /> {t('tools.download')}
             </Button>
           )}
         </div>
@@ -161,30 +163,30 @@ export function ToolsTab() {
       </div>
 
       <div className="racing-card p-4 space-y-3">
-        <h3 className="font-semibold text-foreground">Import Course Drawings</h3>
-        <p className="text-sm text-muted-foreground">Paste course drawings JSON. For each imported drawing, the length override is cleared (drawing becomes source of truth). Courses without a drawing are left alone.</p>
+        <h3 className="font-semibold text-foreground">{t('tools.importDrawingsTitle')}</h3>
+        <p className="text-sm text-muted-foreground">{t('tools.importDrawingsDesc')}</p>
         <Textarea
           value={importDrawingsJson}
           onChange={e => setImportDrawingsJson(e.target.value)}
-          placeholder='Paste course drawings JSON here... (e.g. {"OKC/Normal": [{lat, lon}, ...]})'
+          placeholder={t('tools.importDrawingsPlaceholder')}
           className="font-mono text-xs h-32"
         />
         <Button onClick={handleImportDrawings} disabled={loading || !importDrawingsJson.trim()}>
-          <Upload className="w-4 h-4 mr-2" /> Import Drawings
+          <Upload className="w-4 h-4 mr-2" /> {t('tools.importDrawings')}
         </Button>
       </div>
 
       <div className="racing-card p-4 space-y-3">
-        <h3 className="font-semibold text-foreground">Import tracks.json into Database</h3>
-        <p className="text-sm text-muted-foreground">Paste a tracks.json file to rebuild the database. Course lengthFt values are imported as length overrides.</p>
+        <h3 className="font-semibold text-foreground">{t('tools.importJsonTitle')}</h3>
+        <p className="text-sm text-muted-foreground">{t('tools.importJsonDesc')}</p>
         <Textarea
           value={importJson}
           onChange={e => setImportJson(e.target.value)}
-          placeholder="Paste tracks.json content here..."
+          placeholder={t('tools.importJsonPlaceholder')}
           className="font-mono text-xs h-32"
         />
         <Button onClick={handleImport} disabled={loading || !importJson.trim()}>
-          <Upload className="w-4 h-4 mr-2" /> Import
+          <Upload className="w-4 h-4 mr-2" /> {t('tools.import')}
         </Button>
       </div>
     </div>

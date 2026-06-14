@@ -1,0 +1,97 @@
+{
+  "loading": "Loading...",
+  "panelTitle": "Admin Panel",
+  "home": "Home",
+  "logout": "Logout",
+  "tabs": {
+    "messages": "Messages",
+    "submissions": "Submissions",
+    "tracks": "Tracks",
+    "courses": "Courses",
+    "tools": "Tools",
+    "banned": "Banned IPs"
+  },
+  "common": {
+    "error": "Error",
+    "loading": "Loading...",
+    "delete": "Delete"
+  },
+  "bannedIps": {
+    "title": "Banned IPs",
+    "banIp": "Ban IP",
+    "ipAddress": "IP Address",
+    "reasonOptional": "Reason (optional)",
+    "reasonPlaceholder": "Spam submissions",
+    "expiresAfter": "Expires after",
+    "duration": {
+      "oneDay": "1 day",
+      "sevenDays": "7 days",
+      "thirtyDays": "30 days",
+      "ninetyDays": "90 days",
+      "oneYear": "1 year",
+      "permanent": "Permanent"
+    },
+    "ban": "Ban",
+    "none": "No banned IPs.",
+    "expires": "expires: {{date}}",
+    "banned": "IP banned",
+    "unbanned": "IP unbanned"
+  },
+  "messages": {
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "filterRead": "Read",
+    "refresh": "Refresh",
+    "none": "No messages",
+    "loading": "Loading messages…",
+    "loadError": "Error loading messages",
+    "categories": {
+      "comment": "Comment",
+      "featureRequest": "Feature Request",
+      "complaint": "Complaint",
+      "bugReport": "Bug Report"
+    },
+    "emailLine": "Email: {{email}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "unknown"
+  },
+  "tracks": {
+    "title": "Tracks",
+    "addTrack": "Add Track",
+    "trackName": "Track Name",
+    "shortName": "Short Name (max 8)",
+    "create": "Create",
+    "none": "No tracks in database.",
+    "shortNameTooLong": "Short name must be 8 characters or less",
+    "created": "Track created",
+    "updated": "Track updated",
+    "deleted": "Track deleted"
+  },
+  "tools": {
+    "buildJsonTitle": "Build tracks.json from Database",
+    "buildJsonDesc": "Generates tracks.json with longName, shortName, defaultCourse, and lengthFt per course (from layout drawings or overrides).",
+    "buildJson": "Build JSON",
+    "download": "Download",
+    "buildJsonDone": "tracks.json built from database",
+    "buildZipTitle": "Build Tracks ZIP",
+    "buildZipDesc": "Downloads individual track JSON files (with longName, shortName, defaultCourse, lengthFt) in a TRACKS/ folder.",
+    "buildZip": "Build & Download ZIP",
+    "buildZipDone": "Tracks ZIP downloaded",
+    "buildZipError": "Error building ZIP",
+    "exportDrawingsTitle": "Export Course Drawings",
+    "exportDrawingsDesc": "Export all course layout drawings as JSON (keyed by shortName/courseName). Courses with manual length overrides are skipped.",
+    "exportDrawings": "Export Drawings",
+    "exportDrawingsDone": "Course drawings exported",
+    "importDrawingsTitle": "Import Course Drawings",
+    "importDrawingsDesc": "Paste course drawings JSON. For each imported drawing, the length override is cleared (drawing becomes source of truth). Courses without a drawing are left alone.",
+    "importDrawingsPlaceholder": "Paste course drawings JSON here... (e.g. {\"OKC/Normal\": [{lat, lon}, ...]})",
+    "importDrawings": "Import Drawings",
+    "importDrawingsDone": "Course drawings imported. Overrides cleared for imported courses.",
+    "importJsonTitle": "Import tracks.json into Database",
+    "importJsonDesc": "Paste a tracks.json file to rebuild the database. Course lengthFt values are imported as length overrides.",
+    "importJsonPlaceholder": "Paste tracks.json content here...",
+    "import": "Import",
+    "importDone": "Database rebuilt from JSON",
+    "importError": "Import error"
+  }
+}

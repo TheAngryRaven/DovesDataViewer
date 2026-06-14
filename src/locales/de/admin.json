@@ -1,0 +1,98 @@
+{
+  "_machine": true,
+  "loading": "Wird geladen...",
+  "panelTitle": "Admin-Bereich",
+  "home": "Startseite",
+  "logout": "Abmelden",
+  "tabs": {
+    "messages": "Nachrichten",
+    "submissions": "Einsendungen",
+    "tracks": "Strecken",
+    "courses": "Kurse",
+    "tools": "Werkzeuge",
+    "banned": "Gesperrte IPs"
+  },
+  "common": {
+    "error": "Fehler",
+    "loading": "Wird geladen...",
+    "delete": "Löschen"
+  },
+  "bannedIps": {
+    "title": "Gesperrte IPs",
+    "banIp": "IP sperren",
+    "ipAddress": "IP-Adresse",
+    "reasonOptional": "Grund (optional)",
+    "reasonPlaceholder": "Spam-Einsendungen",
+    "expiresAfter": "Läuft ab nach",
+    "duration": {
+      "oneDay": "1 Tag",
+      "sevenDays": "7 Tage",
+      "thirtyDays": "30 Tage",
+      "ninetyDays": "90 Tage",
+      "oneYear": "1 Jahr",
+      "permanent": "Dauerhaft"
+    },
+    "ban": "Sperren",
+    "none": "Keine gesperrten IPs.",
+    "expires": "läuft ab: {{date}}",
+    "banned": "IP gesperrt",
+    "unbanned": "IP entsperrt"
+  },
+  "messages": {
+    "filterAll": "Alle",
+    "filterUnread": "Ungelesen",
+    "filterRead": "Gelesen",
+    "refresh": "Aktualisieren",
+    "none": "Keine Nachrichten",
+    "loading": "Nachrichten werden geladen…",
+    "loadError": "Fehler beim Laden der Nachrichten",
+    "categories": {
+      "comment": "Kommentar",
+      "featureRequest": "Funktionswunsch",
+      "complaint": "Beschwerde",
+      "bugReport": "Fehlerbericht"
+    },
+    "emailLine": "E-Mail: {{email}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "unbekannt"
+  },
+  "tracks": {
+    "title": "Strecken",
+    "addTrack": "Strecke hinzufügen",
+    "trackName": "Streckenname",
+    "shortName": "Kurzname (max. 8)",
+    "create": "Erstellen",
+    "none": "Keine Strecken in der Datenbank.",
+    "shortNameTooLong": "Der Kurzname darf höchstens 8 Zeichen lang sein",
+    "created": "Strecke erstellt",
+    "updated": "Strecke aktualisiert",
+    "deleted": "Strecke gelöscht"
+  },
+  "tools": {
+    "buildJsonTitle": "tracks.json aus der Datenbank erzeugen",
+    "buildJsonDesc": "Erzeugt tracks.json mit longName, shortName, defaultCourse und lengthFt pro Kurs (aus Streckenzeichnungen oder Überschreibungen).",
+    "buildJson": "JSON erzeugen",
+    "download": "Herunterladen",
+    "buildJsonDone": "tracks.json aus der Datenbank erzeugt",
+    "buildZipTitle": "Strecken-ZIP erzeugen",
+    "buildZipDesc": "Lädt einzelne Strecken-JSON-Dateien (mit longName, shortName, defaultCourse, lengthFt) in einem TRACKS/-Ordner herunter.",
+    "buildZip": "ZIP erzeugen & herunterladen",
+    "buildZipDone": "Strecken-ZIP heruntergeladen",
+    "buildZipError": "Fehler beim Erzeugen des ZIP",
+    "exportDrawingsTitle": "Kurszeichnungen exportieren",
+    "exportDrawingsDesc": "Exportiert alle Kurs-Streckenzeichnungen als JSON (indiziert nach shortName/courseName). Kurse mit manueller Längenüberschreibung werden übersprungen.",
+    "exportDrawings": "Zeichnungen exportieren",
+    "exportDrawingsDone": "Kurszeichnungen exportiert",
+    "importDrawingsTitle": "Kurszeichnungen importieren",
+    "importDrawingsDesc": "Füge das JSON der Kurszeichnungen ein. Für jede importierte Zeichnung wird die Längenüberschreibung gelöscht (die Zeichnung wird zur maßgeblichen Quelle). Kurse ohne Zeichnung bleiben unverändert.",
+    "importDrawingsPlaceholder": "Kurszeichnungs-JSON hier einfügen... (z. B. {\"OKC/Normal\": [{lat, lon}, ...]})",
+    "importDrawings": "Zeichnungen importieren",
+    "importDrawingsDone": "Kurszeichnungen importiert. Überschreibungen für importierte Kurse gelöscht.",
+    "importJsonTitle": "tracks.json in die Datenbank importieren",
+    "importJsonDesc": "Füge eine tracks.json-Datei ein, um die Datenbank neu aufzubauen. Die lengthFt-Werte der Kurse werden als Längenüberschreibungen importiert.",
+    "importJsonPlaceholder": "tracks.json-Inhalt hier einfügen...",
+    "import": "Importieren",
+    "importDone": "Datenbank aus JSON neu aufgebaut",
+    "importError": "Importfehler"
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "_machine": true,
+  "loading": "Cargando...",
+  "panelTitle": "Panel de administración",
+  "home": "Inicio",
+  "logout": "Cerrar sesión",
+  "tabs": {
+    "messages": "Mensajes",
+    "submissions": "Envíos",
+    "tracks": "Pistas",
+    "courses": "Circuitos",
+    "tools": "Herramientas",
+    "banned": "IP bloqueadas"
+  },
+  "common": {
+    "error": "Error",
+    "loading": "Cargando...",
+    "delete": "Eliminar"
+  },
+  "bannedIps": {
+    "title": "IP bloqueadas",
+    "banIp": "Bloquear IP",
+    "ipAddress": "Dirección IP",
+    "reasonOptional": "Motivo (opcional)",
+    "reasonPlaceholder": "Envíos de spam",
+    "expiresAfter": "Caduca después de",
+    "duration": {
+      "oneDay": "1 día",
+      "sevenDays": "7 días",
+      "thirtyDays": "30 días",
+      "ninetyDays": "90 días",
+      "oneYear": "1 año",
+      "permanent": "Permanente"
+    },
+    "ban": "Bloquear",
+    "none": "No hay IP bloqueadas.",
+    "expires": "caduca: {{date}}",
+    "banned": "IP bloqueada",
+    "unbanned": "IP desbloqueada"
+  },
+  "messages": {
+    "filterAll": "Todos",
+    "filterUnread": "No leídos",
+    "filterRead": "Leídos",
+    "refresh": "Actualizar",
+    "none": "No hay mensajes",
+    "loading": "Cargando mensajes…",
+    "loadError": "Error al cargar los mensajes",
+    "categories": {
+      "comment": "Comentario",
+      "featureRequest": "Solicitud de función",
+      "complaint": "Queja",
+      "bugReport": "Informe de error"
+    },
+    "emailLine": "Correo: {{email}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "desconocida"
+  },
+  "tracks": {
+    "title": "Pistas",
+    "addTrack": "Añadir pista",
+    "trackName": "Nombre de la pista",
+    "shortName": "Nombre corto (máx. 8)",
+    "create": "Crear",
+    "none": "No hay pistas en la base de datos.",
+    "shortNameTooLong": "El nombre corto debe tener 8 caracteres o menos",
+    "created": "Pista creada",
+    "updated": "Pista actualizada",
+    "deleted": "Pista eliminada"
+  },
+  "tools": {
+    "buildJsonTitle": "Generar tracks.json desde la base de datos",
+    "buildJsonDesc": "Genera tracks.json con longName, shortName, defaultCourse y lengthFt por circuito (a partir de los trazados o las anulaciones).",
+    "buildJson": "Generar JSON",
+    "download": "Descargar",
+    "buildJsonDone": "tracks.json generado desde la base de datos",
+    "buildZipTitle": "Generar ZIP de pistas",
+    "buildZipDesc": "Descarga archivos JSON de pista individuales (con longName, shortName, defaultCourse, lengthFt) en una carpeta TRACKS/.",
+    "buildZip": "Generar y descargar ZIP",
+    "buildZipDone": "ZIP de pistas descargado",
+    "buildZipError": "Error al generar el ZIP",
+    "exportDrawingsTitle": "Exportar trazados de circuitos",
+    "exportDrawingsDesc": "Exporta todos los trazados de circuitos como JSON (indexados por shortName/courseName). Se omiten los circuitos con anulaciones manuales de longitud.",
+    "exportDrawings": "Exportar trazados",
+    "exportDrawingsDone": "Trazados de circuitos exportados",
+    "importDrawingsTitle": "Importar trazados de circuitos",
+    "importDrawingsDesc": "Pega el JSON de trazados de circuitos. Para cada trazado importado se borra la anulación de longitud (el trazado pasa a ser la fuente de verdad). Los circuitos sin trazado no se modifican.",
+    "importDrawingsPlaceholder": "Pega aquí el JSON de trazados de circuitos... (p. ej. {\"OKC/Normal\": [{lat, lon}, ...]})",
+    "importDrawings": "Importar trazados",
+    "importDrawingsDone": "Trazados de circuitos importados. Anulaciones borradas para los circuitos importados.",
+    "importJsonTitle": "Importar tracks.json a la base de datos",
+    "importJsonDesc": "Pega un archivo tracks.json para reconstruir la base de datos. Los valores de lengthFt de los circuitos se importan como anulaciones de longitud.",
+    "importJsonPlaceholder": "Pega aquí el contenido de tracks.json...",
+    "import": "Importar",
+    "importDone": "Base de datos reconstruida desde el JSON",
+    "importError": "Error de importación"
+  }
+}

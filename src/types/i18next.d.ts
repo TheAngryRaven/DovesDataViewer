@@ -16,6 +16,7 @@ import type weather from "@/locales/en/weather.json";
 import type tracks from "@/locales/en/tracks.json";
 import type plugins from "@/locales/en/plugins.json";
 import type auth from "@/locales/en/auth.json";
+import type admin from "@/locales/en/admin.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -31,6 +32,7 @@ declare module "i18next" {
       tracks: typeof tracks;
       plugins: typeof plugins;
       auth: typeof auth;
+      admin: typeof admin;
     };
   }
 }

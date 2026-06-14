@@ -1027,8 +1027,11 @@ visualizer), which owns its translations **plugin-locally**
 `registerPluginLocale`, with a plugin-local parity test + typed keys) so they
 travel with the plugin on extraction, and the **auth pages** — sign-in, sign-up,
 forgot/reset password, and the OAuth callback (`Login`, `Register`,
-`ForgotPassword`, `ResetPassword`, `AuthCallback`) — the `auth` namespace. The
-**admin** panel is the last untranslated surface; the framework is whole.
+`ForgotPassword`, `ResetPassword`, `AuthCallback`) — the `auth` namespace, and
+the **admin** panel (env-gated) — the shell + Messages, Tracks, Tools and Banned
+IPs tabs done (the `admin` namespace; `browserCompat`-style id maps keep the
+contact-category badge translated while its DB value stays English). Only the
+admin **Submissions** + **Courses** tabs remain; the framework is whole.
 (Device-setting **labels** still come from
 `deviceSettingsSchema.ts` data — schema-level i18n is a deliberate follow-up so
 unknown device keys keep passing through as raw labels.)
@@ -1054,7 +1057,7 @@ unknown device keys keep passing through as raw labels.)
 - **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
   with the English JSON shape, so `t("settings:title")` is autocompleted and a
   missing/renamed key fails `tsc -b`. English is the canonical key set.
-- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`, `tracks`, `plugins`, `auth`) map to per-language JSON files
+- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`, `tracks`, `plugins`, `auth`, `admin`) map to per-language JSON files
   under `src/locales/` and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
   preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
   `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),

@@ -1,0 +1,98 @@
+{
+  "_machine": true,
+  "loading": "Chargement...",
+  "panelTitle": "Panneau d'administration",
+  "home": "Accueil",
+  "logout": "Déconnexion",
+  "tabs": {
+    "messages": "Messages",
+    "submissions": "Soumissions",
+    "tracks": "Circuits",
+    "courses": "Parcours",
+    "tools": "Outils",
+    "banned": "IP bannies"
+  },
+  "common": {
+    "error": "Erreur",
+    "loading": "Chargement...",
+    "delete": "Supprimer"
+  },
+  "bannedIps": {
+    "title": "IP bannies",
+    "banIp": "Bannir une IP",
+    "ipAddress": "Adresse IP",
+    "reasonOptional": "Motif (facultatif)",
+    "reasonPlaceholder": "Soumissions de spam",
+    "expiresAfter": "Expire après",
+    "duration": {
+      "oneDay": "1 jour",
+      "sevenDays": "7 jours",
+      "thirtyDays": "30 jours",
+      "ninetyDays": "90 jours",
+      "oneYear": "1 an",
+      "permanent": "Permanent"
+    },
+    "ban": "Bannir",
+    "none": "Aucune IP bannie.",
+    "expires": "expire : {{date}}",
+    "banned": "IP bannie",
+    "unbanned": "IP débannie"
+  },
+  "messages": {
+    "filterAll": "Tous",
+    "filterUnread": "Non lus",
+    "filterRead": "Lus",
+    "refresh": "Actualiser",
+    "none": "Aucun message",
+    "loading": "Chargement des messages…",
+    "loadError": "Erreur lors du chargement des messages",
+    "categories": {
+      "comment": "Commentaire",
+      "featureRequest": "Demande de fonctionnalité",
+      "complaint": "Réclamation",
+      "bugReport": "Rapport de bug"
+    },
+    "emailLine": "E-mail : {{email}}",
+    "ipLine": "IP : {{ip}}",
+    "unknownIp": "inconnue"
+  },
+  "tracks": {
+    "title": "Circuits",
+    "addTrack": "Ajouter un circuit",
+    "trackName": "Nom du circuit",
+    "shortName": "Nom court (max 8)",
+    "create": "Créer",
+    "none": "Aucun circuit dans la base de données.",
+    "shortNameTooLong": "Le nom court doit comporter 8 caractères ou moins",
+    "created": "Circuit créé",
+    "updated": "Circuit mis à jour",
+    "deleted": "Circuit supprimé"
+  },
+  "tools": {
+    "buildJsonTitle": "Générer tracks.json depuis la base de données",
+    "buildJsonDesc": "Génère tracks.json avec longName, shortName, defaultCourse et lengthFt par parcours (à partir des tracés ou des remplacements).",
+    "buildJson": "Générer le JSON",
+    "download": "Télécharger",
+    "buildJsonDone": "tracks.json généré depuis la base de données",
+    "buildZipTitle": "Générer le ZIP des circuits",
+    "buildZipDesc": "Télécharge des fichiers JSON de circuit individuels (avec longName, shortName, defaultCourse, lengthFt) dans un dossier TRACKS/.",
+    "buildZip": "Générer et télécharger le ZIP",
+    "buildZipDone": "ZIP des circuits téléchargé",
+    "buildZipError": "Erreur lors de la génération du ZIP",
+    "exportDrawingsTitle": "Exporter les tracés de parcours",
+    "exportDrawingsDesc": "Exporte tous les tracés de parcours en JSON (indexés par shortName/courseName). Les parcours avec un remplacement manuel de longueur sont ignorés.",
+    "exportDrawings": "Exporter les tracés",
+    "exportDrawingsDone": "Tracés de parcours exportés",
+    "importDrawingsTitle": "Importer les tracés de parcours",
+    "importDrawingsDesc": "Collez le JSON des tracés de parcours. Pour chaque tracé importé, le remplacement de longueur est effacé (le tracé devient la source de vérité). Les parcours sans tracé ne sont pas modifiés.",
+    "importDrawingsPlaceholder": "Collez ici le JSON des tracés de parcours... (p. ex. {\"OKC/Normal\": [{lat, lon}, ...]})",
+    "importDrawings": "Importer les tracés",
+    "importDrawingsDone": "Tracés de parcours importés. Remplacements effacés pour les parcours importés.",
+    "importJsonTitle": "Importer tracks.json dans la base de données",
+    "importJsonDesc": "Collez un fichier tracks.json pour reconstruire la base de données. Les valeurs lengthFt des parcours sont importées comme remplacements de longueur.",
+    "importJsonPlaceholder": "Collez ici le contenu de tracks.json...",
+    "import": "Importer",
+    "importDone": "Base de données reconstruite depuis le JSON",
+    "importError": "Erreur d'importation"
+  }
+}

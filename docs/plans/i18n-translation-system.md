@@ -1,6 +1,14 @@
 # Plan: Internationalization (i18n) / translation system
 
-Status: **Phase 7 — auth pages + entire landing page complete** · current branch: `claude/i18n-file-import` → PR into `BETA`
+Status: **Phase 8 — admin panel (shell + 4 tabs)** · current branch: `claude/i18n-admin-shell` → PR into `BETA`
+
+> **Phase 8a (this PR):** the **admin** panel shell (`Admin.tsx`: login gate, header,
+> tab bar) + the **Messages**, **Tracks**, **Tools** and **Banned IPs** tabs — a
+> new host `admin` namespace (wired into `config.ts`, `index.ts` bundled English,
+> `types/i18next.d.ts`). The contact-category badge in Messages is translated via
+> an English-value→key map (the DB value stays English). `lib/browserCompat.ts`
+> pattern reused only conceptually. **Remaining:** the admin **Submissions** +
+> **Courses** tabs (Phase 8b) — the two biggest. Then i18n is complete.
 
 > **Phase 7d (this PR):** the landing page's primary **file drop zone**
 > (`FileImport`, "Open a datalog") — heading, drag/drop prompt, the

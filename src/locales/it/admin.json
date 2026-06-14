@@ -1,0 +1,98 @@
+{
+  "_machine": true,
+  "loading": "Caricamento...",
+  "panelTitle": "Pannello di amministrazione",
+  "home": "Home",
+  "logout": "Esci",
+  "tabs": {
+    "messages": "Messaggi",
+    "submissions": "Invii",
+    "tracks": "Piste",
+    "courses": "Circuiti",
+    "tools": "Strumenti",
+    "banned": "IP bloccati"
+  },
+  "common": {
+    "error": "Errore",
+    "loading": "Caricamento...",
+    "delete": "Elimina"
+  },
+  "bannedIps": {
+    "title": "IP bloccati",
+    "banIp": "Blocca IP",
+    "ipAddress": "Indirizzo IP",
+    "reasonOptional": "Motivo (facoltativo)",
+    "reasonPlaceholder": "Invii di spam",
+    "expiresAfter": "Scade dopo",
+    "duration": {
+      "oneDay": "1 giorno",
+      "sevenDays": "7 giorni",
+      "thirtyDays": "30 giorni",
+      "ninetyDays": "90 giorni",
+      "oneYear": "1 anno",
+      "permanent": "Permanente"
+    },
+    "ban": "Blocca",
+    "none": "Nessun IP bloccato.",
+    "expires": "scade: {{date}}",
+    "banned": "IP bloccato",
+    "unbanned": "IP sbloccato"
+  },
+  "messages": {
+    "filterAll": "Tutti",
+    "filterUnread": "Non letti",
+    "filterRead": "Letti",
+    "refresh": "Aggiorna",
+    "none": "Nessun messaggio",
+    "loading": "Caricamento messaggi…",
+    "loadError": "Errore nel caricamento dei messaggi",
+    "categories": {
+      "comment": "Commento",
+      "featureRequest": "Richiesta di funzionalità",
+      "complaint": "Reclamo",
+      "bugReport": "Segnalazione di bug"
+    },
+    "emailLine": "Email: {{email}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "sconosciuto"
+  },
+  "tracks": {
+    "title": "Piste",
+    "addTrack": "Aggiungi pista",
+    "trackName": "Nome della pista",
+    "shortName": "Nome breve (max 8)",
+    "create": "Crea",
+    "none": "Nessuna pista nel database.",
+    "shortNameTooLong": "Il nome breve deve avere 8 caratteri o meno",
+    "created": "Pista creata",
+    "updated": "Pista aggiornata",
+    "deleted": "Pista eliminata"
+  },
+  "tools": {
+    "buildJsonTitle": "Genera tracks.json dal database",
+    "buildJsonDesc": "Genera tracks.json con longName, shortName, defaultCourse e lengthFt per circuito (dai tracciati o dalle sostituzioni).",
+    "buildJson": "Genera JSON",
+    "download": "Scarica",
+    "buildJsonDone": "tracks.json generato dal database",
+    "buildZipTitle": "Genera ZIP delle piste",
+    "buildZipDesc": "Scarica singoli file JSON di pista (con longName, shortName, defaultCourse, lengthFt) in una cartella TRACKS/.",
+    "buildZip": "Genera e scarica ZIP",
+    "buildZipDone": "ZIP delle piste scaricato",
+    "buildZipError": "Errore durante la generazione dello ZIP",
+    "exportDrawingsTitle": "Esporta tracciati dei circuiti",
+    "exportDrawingsDesc": "Esporta tutti i tracciati dei circuiti come JSON (indicizzati per shortName/courseName). I circuiti con sostituzioni manuali della lunghezza vengono saltati.",
+    "exportDrawings": "Esporta tracciati",
+    "exportDrawingsDone": "Tracciati dei circuiti esportati",
+    "importDrawingsTitle": "Importa tracciati dei circuiti",
+    "importDrawingsDesc": "Incolla il JSON dei tracciati dei circuiti. Per ogni tracciato importato la sostituzione della lunghezza viene cancellata (il tracciato diventa la fonte di verità). I circuiti senza tracciato non vengono modificati.",
+    "importDrawingsPlaceholder": "Incolla qui il JSON dei tracciati dei circuiti... (es. {\"OKC/Normal\": [{lat, lon}, ...]})",
+    "importDrawings": "Importa tracciati",
+    "importDrawingsDone": "Tracciati dei circuiti importati. Sostituzioni cancellate per i circuiti importati.",
+    "importJsonTitle": "Importa tracks.json nel database",
+    "importJsonDesc": "Incolla un file tracks.json per ricostruire il database. I valori lengthFt dei circuiti vengono importati come sostituzioni della lunghezza.",
+    "importJsonPlaceholder": "Incolla qui il contenuto di tracks.json...",
+    "import": "Importa",
+    "importDone": "Database ricostruito dal JSON",
+    "importError": "Errore di importazione"
+  }
+}

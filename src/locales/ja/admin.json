@@ -1,0 +1,98 @@
+{
+  "_machine": true,
+  "loading": "読み込み中...",
+  "panelTitle": "管理パネル",
+  "home": "ホーム",
+  "logout": "ログアウト",
+  "tabs": {
+    "messages": "メッセージ",
+    "submissions": "投稿",
+    "tracks": "トラック",
+    "courses": "コース",
+    "tools": "ツール",
+    "banned": "禁止 IP"
+  },
+  "common": {
+    "error": "エラー",
+    "loading": "読み込み中...",
+    "delete": "削除"
+  },
+  "bannedIps": {
+    "title": "禁止 IP",
+    "banIp": "IP を禁止",
+    "ipAddress": "IP アドレス",
+    "reasonOptional": "理由（任意）",
+    "reasonPlaceholder": "スパム投稿",
+    "expiresAfter": "有効期限",
+    "duration": {
+      "oneDay": "1日",
+      "sevenDays": "7日",
+      "thirtyDays": "30日",
+      "ninetyDays": "90日",
+      "oneYear": "1年",
+      "permanent": "無期限"
+    },
+    "ban": "禁止",
+    "none": "禁止された IP はありません。",
+    "expires": "有効期限: {{date}}",
+    "banned": "IP を禁止しました",
+    "unbanned": "IP の禁止を解除しました"
+  },
+  "messages": {
+    "filterAll": "すべて",
+    "filterUnread": "未読",
+    "filterRead": "既読",
+    "refresh": "更新",
+    "none": "メッセージはありません",
+    "loading": "メッセージを読み込み中…",
+    "loadError": "メッセージの読み込みエラー",
+    "categories": {
+      "comment": "コメント",
+      "featureRequest": "機能リクエスト",
+      "complaint": "苦情",
+      "bugReport": "バグ報告"
+    },
+    "emailLine": "メール: {{email}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "不明"
+  },
+  "tracks": {
+    "title": "トラック",
+    "addTrack": "トラックを追加",
+    "trackName": "トラック名",
+    "shortName": "短縮名（最大8）",
+    "create": "作成",
+    "none": "データベースにトラックがありません。",
+    "shortNameTooLong": "短縮名は8文字以内にしてください",
+    "created": "トラックを作成しました",
+    "updated": "トラックを更新しました",
+    "deleted": "トラックを削除しました"
+  },
+  "tools": {
+    "buildJsonTitle": "データベースから tracks.json を生成",
+    "buildJsonDesc": "コースごとに longName、shortName、defaultCourse、lengthFt を含む tracks.json を生成します（レイアウト図またはオーバーライドから）。",
+    "buildJson": "JSON を生成",
+    "download": "ダウンロード",
+    "buildJsonDone": "データベースから tracks.json を生成しました",
+    "buildZipTitle": "トラック ZIP を生成",
+    "buildZipDesc": "個別のトラック JSON ファイル（longName、shortName、defaultCourse、lengthFt を含む）を TRACKS/ フォルダーでダウンロードします。",
+    "buildZip": "ZIP を生成してダウンロード",
+    "buildZipDone": "トラック ZIP をダウンロードしました",
+    "buildZipError": "ZIP 生成エラー",
+    "exportDrawingsTitle": "コース図をエクスポート",
+    "exportDrawingsDesc": "すべてのコースレイアウト図を JSON としてエクスポートします（shortName/courseName をキーとして）。手動の長さオーバーライドがあるコースはスキップされます。",
+    "exportDrawings": "図をエクスポート",
+    "exportDrawingsDone": "コース図をエクスポートしました",
+    "importDrawingsTitle": "コース図をインポート",
+    "importDrawingsDesc": "コース図の JSON を貼り付けます。インポートされた各図について、長さオーバーライドは解除されます（図が信頼できる情報源になります）。図のないコースはそのままです。",
+    "importDrawingsPlaceholder": "ここにコース図の JSON を貼り付け...（例: {\"OKC/Normal\": [{lat, lon}, ...]}）",
+    "importDrawings": "図をインポート",
+    "importDrawingsDone": "コース図をインポートしました。インポートされたコースのオーバーライドを解除しました。",
+    "importJsonTitle": "tracks.json をデータベースにインポート",
+    "importJsonDesc": "tracks.json ファイルを貼り付けてデータベースを再構築します。コースの lengthFt 値は長さオーバーライドとしてインポートされます。",
+    "importJsonPlaceholder": "ここに tracks.json の内容を貼り付け...",
+    "import": "インポート",
+    "importDone": "JSON からデータベースを再構築しました",
+    "importError": "インポートエラー"
+  }
+}
