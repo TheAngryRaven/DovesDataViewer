@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
@@ -22,10 +24,12 @@ function isBlocked(course: SubmissionCourse): boolean {
   return course.type === 'new_track' && !course.trackShortName?.trim();
 }
 
-const CHANGE_LABEL: Record<SubmissionCourse['change'], string> = {
-  'new-track': 'New track',
-  'new-course': 'New course',
-  modified: 'Modified',
+const changeLabel = (change: SubmissionCourse['change'], t: TFunction<'tracks'>): string => {
+  switch (change) {
+    case 'new-track': return t('submit.changeNewTrack');
+    case 'new-course': return t('submit.changeNewCourse');
+    default: return t('submit.changeModified');
+  }
 };
 
 const CHANGE_STYLE: Record<SubmissionCourse['change'], string> = {
@@ -35,6 +39,7 @@ const CHANGE_STYLE: Record<SubmissionCourse['change'], string> = {
 };
 
 export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogProps) {
+  const { t } = useTranslation('tracks');
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>('confirm');
   const [plan, setPlan] = useState<SubmissionPlan | null>(null);
@@ -61,10 +66,10 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
       }
       setSelected(next);
     } catch (e) {
-      toast({ title: 'Could not read your tracks', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('submit.toastCouldNotRead'), description: (e as Error).message, variant: 'destructive' });
     }
     setPlanLoading(false);
-  }, []);
+  }, [t]);
 
   // Load Turnstile script once.
   useEffect(() => {
@@ -123,11 +128,11 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
 
   const handleSubmit = async () => {
     if (selectedCourses.length === 0) {
-      toast({ title: 'Nothing selected to submit', variant: 'destructive' });
+      toast({ title: t('submit.toastNothingSelected'), variant: 'destructive' });
       return;
     }
     if (TURNSTILE_SITE_KEY && !turnstileToken) {
-      toast({ title: 'Please complete the verification', variant: 'destructive' });
+      toast({ title: t('submit.toastVerify'), variant: 'destructive' });
       return;
     }
 
@@ -155,13 +160,13 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
       markCoursesSubmitted(selectedCourses, batchId);
 
       toast({
-        title: 'Submission sent!',
-        description: `${selectedCourses.length} course${selectedCourses.length !== 1 ? 's' : ''} sent for review. Thank you for contributing!`,
+        title: t('submit.toastSent'),
+        description: t('submit.toastSentDesc', { count: selectedCourses.length }),
       });
       onSubmitted?.();
       setOpen(false);
     } catch (e: unknown) {
-      toast({ title: 'Submission failed', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('submit.toastFailed'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -178,35 +183,35 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-primary" />
-                Share your tracks with the community
+                {t('submit.confirmTitle')}
               </DialogTitle>
               <DialogDescription>
-                Contribute the tracks and courses you've created to the shared database.
+                {t('submit.confirmDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm text-muted-foreground">
-                <p className="text-foreground font-medium">What happens when you submit:</p>
+                <p className="text-foreground font-medium">{t('submit.whatHappens')}</p>
                 <ul className="list-disc list-inside space-y-1.5">
-                  <li>We figure out which of your tracks/courses aren't in the community database yet and send only those.</li>
-                  <li>An admin reviews each one and approves or rejects it.</li>
-                  <li>If approved, your track data becomes available to <strong className="text-foreground">all users</strong> in future updates.</li>
-                  <li>Your IP address is logged for anti-spam purposes — nothing else personal is stored.</li>
+                  <li>{t('submit.li1')}</li>
+                  <li>{t('submit.li2')}</li>
+                  <li><Trans ns="tracks" i18nKey="submit.li3" components={{ b: <strong className="text-foreground" /> }} /></li>
+                  <li>{t('submit.li4')}</li>
                 </ul>
               </div>
               <Button onClick={() => setStep('review')} className="w-full" disabled={planLoading}>
                 {planLoading
-                  ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Checking your tracks…</>)
-                  : (<><ArrowRight className="w-4 h-4 mr-2" /> Review what you'll send{pendingCount > 0 ? ` (${pendingCount})` : ''}</>)}
+                  ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('submit.checking')}</>)
+                  : (<><ArrowRight className="w-4 h-4 mr-2" /> {t('submit.reviewBtn')}{pendingCount > 0 ? ` (${pendingCount})` : ''}</>)}
               </Button>
             </div>
           </>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Review your contribution</DialogTitle>
+              <DialogTitle>{t('submit.reviewTitle')}</DialogTitle>
               <DialogDescription>
-                These are the tracks and courses that will be sent to the community database.
+                {t('submit.reviewDesc')}
               </DialogDescription>
             </DialogHeader>
 
@@ -214,7 +219,7 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
               {!hasAnything ? (
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
                   <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                  Everything you've created is already in the community database. Nothing new to send.
+                  {t('submit.nothingNew')}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -224,7 +229,7 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
                         <span className="text-sm font-medium text-foreground">{group.trackName}</span>
                         {group.shortName && <span className="text-xs text-muted-foreground">({group.shortName})</span>}
                         <span className={`text-xs px-2 py-0.5 rounded ${group.trackStatus === 'new' ? 'bg-primary/20 text-primary' : 'bg-amber-500/20 text-amber-400'}`}>
-                          {group.trackStatus === 'new' ? 'New' : 'Edited'}
+                          {group.trackStatus === 'new' ? t('submit.statusNew') : t('submit.statusEdited')}
                         </span>
                       </div>
                       <div className="space-y-1.5">
@@ -247,19 +252,19 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
                               <span className="flex-1 flex items-center gap-2 flex-wrap">
                                 <span className="text-foreground">{course.courseName}</span>
                                 <span className={`text-xs px-1.5 py-0.5 rounded ${CHANGE_STYLE[course.change]}`}>
-                                  {CHANGE_LABEL[course.change]}
+                                  {changeLabel(course.change, t)}
                                 </span>
                                 {course.layout && course.layout.length >= 2 && (
                                   <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
-                                    + drawing
+                                    {t('submit.drawingBadge')}
                                   </span>
                                 )}
                                 {course.alreadySubmitted && (
-                                  <span className="text-xs text-muted-foreground">already submitted</span>
+                                  <span className="text-xs text-muted-foreground">{t('submit.alreadySubmitted')}</span>
                                 )}
                                 {blocked && (
                                   <span className="flex items-center gap-1 text-xs text-amber-400">
-                                    <AlertTriangle className="w-3 h-3" /> needs a short name
+                                    <AlertTriangle className="w-3 h-3" /> {t('submit.needsShortName')}
                                   </span>
                                 )}
                               </span>
@@ -280,7 +285,7 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
 
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep('confirm')} className="flex-shrink-0">
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                  <ArrowLeft className="w-4 h-4 mr-1" /> {t('submit.back')}
                 </Button>
                 <Button
                   onClick={handleSubmit}
@@ -289,8 +294,8 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
                 >
                   <Send className="w-4 h-4 mr-2" />
                   {loading
-                    ? 'Submitting…'
-                    : `Submit ${selectedCourses.length} course${selectedCourses.length !== 1 ? 's' : ''}`}
+                    ? t('submit.submitting')
+                    : t('submit.submitBtn', { count: selectedCourses.length })}
                 </Button>
               </div>
             </div>

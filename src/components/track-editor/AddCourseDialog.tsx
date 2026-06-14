@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,12 +58,13 @@ export function AddCourseDialog({
   initialCenter,
   layoutPoints, onLayoutChange, laps, samples,
 }: AddCourseDialogProps) {
+  const { t } = useTranslation('tracks');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild><span className="sr-only">Add course</span></DialogTrigger>
+      <DialogTrigger asChild><span className="sr-only">{t('addCourse.srTrigger')}</span></DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Course</DialogTitle>
+          <DialogTitle>{t('addCourse.title')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <Suspense fallback={null}>
@@ -89,14 +91,14 @@ export function AddCourseDialog({
           </Suspense>
           <div className="space-y-3">
             <div>
-              <Label htmlFor="addCourseName">Course Name</Label>
-              <Input id="addCourseName" value={courseName} onChange={(e) => onCourseNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Full Track" className="font-mono" />
+              <Label htmlFor="addCourseName">{t('addCourse.courseName')}</Label>
+              <Input id="addCourseName" value={courseName} onChange={(e) => onCourseNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder={t('addCourse.courseNamePlaceholder')} className="font-mono" />
             </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={onSubmit} className="flex-1" disabled={!canSubmit}>
               <Check className="w-4 h-4 mr-2" />
-              Create Course
+              {t('addCourse.create')}
             </Button>
             <Button variant="outline" onClick={onCancel}>
               <X className="w-4 h-4" />

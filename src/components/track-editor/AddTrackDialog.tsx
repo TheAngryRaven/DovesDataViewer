@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,27 +33,28 @@ export function AddTrackDialog({
   onTrackNameChange, onShortNameChange,
   onSubmit, onCancel,
 }: AddTrackDialogProps) {
+  const { t } = useTranslation('tracks');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild><span className="sr-only">Add track</span></DialogTrigger>
+      <DialogTrigger asChild><span className="sr-only">{t('addTrack.srTrigger')}</span></DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Track</DialogTitle>
+          <DialogTitle>{t('addTrack.title')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="newTrackName">Track Name</Label>
-            <Input id="newTrackName" value={trackName} onChange={(e) => onTrackNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., Orlando Kart Center" className="font-mono" autoFocus />
+            <Label htmlFor="newTrackName">{t('addTrack.trackName')}</Label>
+            <Input id="newTrackName" value={trackName} onChange={(e) => onTrackNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder={t('addTrack.trackNamePlaceholder')} className="font-mono" autoFocus />
           </div>
           <div>
-            <Label htmlFor="newTrackShortName">Short Name (max 8 chars)</Label>
-            <Input id="newTrackShortName" value={shortName} onChange={(e) => onShortNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder="e.g., OKC" maxLength={8} className="font-mono" />
-            <p className="text-xs text-muted-foreground mt-1">Auto-filled from the track name — edit it if you'd like.</p>
+            <Label htmlFor="newTrackShortName">{t('addTrack.shortName')}</Label>
+            <Input id="newTrackShortName" value={shortName} onChange={(e) => onShortNameChange(e.target.value)} onKeyDownCapture={(e) => e.stopPropagation()} placeholder={t('addTrack.shortNamePlaceholder')} maxLength={8} className="font-mono" />
+            <p className="text-xs text-muted-foreground mt-1">{t('addTrack.shortNameHint')}</p>
           </div>
           <div className="flex gap-2 pt-2">
             <Button onClick={onSubmit} className="flex-1" disabled={!trackName.trim()}>
               <Check className="w-4 h-4 mr-2" />
-              Create Track
+              {t('addTrack.create')}
             </Button>
             <Button variant="outline" onClick={onCancel}>
               <X className="w-4 h-4" />
