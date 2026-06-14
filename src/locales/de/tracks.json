@@ -150,7 +150,7 @@
     "whySubmit": "Warum an die Datenbank senden?",
     "submitTooltipEmpty": "Im Moment nichts Neues zu teilen — erstelle oder bearbeite eine Strecke/einen Kurs (oder füge eine Zeichnung hinzu), und sie erscheint hier zum Beitragen.",
     "submitTooltip": "Das Teilen deiner Streckenkonfigurationen in der Datenbank hilft dem Projekt zu wachsen — deine Strecken werden für alle verfügbar, sodass die Community weniger Zeit mit dem Kartieren und mehr Zeit mit dem Fahren verbringt.",
-    "backToSelection": "Zurück zur Auswahl",
+    "back": "Zurück",
     "jsonTitle": "{{name}} JSON",
     "copyToClipboard": "In die Zwischenablage kopieren",
     "close": "Schließen",

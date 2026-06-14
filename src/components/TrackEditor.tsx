@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useContext, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, Edit2, Check, X, Settings, Code, Copy, HelpCircle, Route } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Settings, Code, Copy, HelpCircle, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -484,7 +484,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                 {t('trackEditor.update')}
               </Button>
               <Button variant="outline" onClick={() => { form.setEditingCourse(null); form.resetForm(); }}>
-                <X className="w-4 h-4" />
+                {t('trackEditor.back')}
               </Button>
             </div>
           </div>
@@ -580,10 +580,12 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
             </Tooltip>
           </div>
         </div>
-        {/* Only meaningful when a session is loaded — there's no selection to
-            return to from the home-screen track manager (no onSelectionChange). */}
-        {onSelectionChange && (
-          <Button variant="outline" onClick={() => setIsManageMode(false)}>{t('trackEditor.backToSelection')}</Button>
+        {/* Back to the track/course selection. Only meaningful when a session is
+            loaded — there's no selection to return to from the home-screen track
+            manager (no onSelectionChange) — and hidden while editing a course,
+            which has its own Back to the course list. */}
+        {onSelectionChange && !form.editingCourse && (
+          <Button variant="outline" onClick={() => setIsManageMode(false)}>{t('trackEditor.back')}</Button>
         )}
       </div>
     </Tabs>

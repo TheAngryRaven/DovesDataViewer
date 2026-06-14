@@ -149,7 +149,7 @@
     "whySubmit": "Why submit to the database?",
     "submitTooltipEmpty": "Nothing new to share right now — create or edit a track/course (or add a drawing) and it'll show up here to contribute.",
     "submitTooltip": "Sharing your track configurations to the database helps the project grow — your tracks become available to everyone, so the community spends less time mapping and more time driving.",
-    "backToSelection": "Back to Selection",
+    "back": "Back",
     "jsonTitle": "{{name}} JSON",
     "copyToClipboard": "Copy to Clipboard",
     "close": "Close",

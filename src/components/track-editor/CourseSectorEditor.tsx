@@ -58,6 +58,17 @@ export function CourseSectorEditor({
     onSelectLine('sf');
   }, [onStartFinishChange, onSelectLine]);
 
+  // Selecting a line that has no geometry yet — the start/finish on a brand-new
+  // course — drops one at the current view center instead of selecting an empty
+  // line, so a tap is enough and the user never has to hunt for the reset button.
+  const handleSelectLine = useCallback((id: SelectedLine) => {
+    if (isNewTrack && id === 'sf' && !(startFinishA && startFinishB)) {
+      handleResetStartFinish();
+      return;
+    }
+    onSelectLine(id);
+  }, [isNewTrack, startFinishA, startFinishB, handleResetStartFinish, onSelectLine]);
+
   // Minimal course for the list's labels + validation (coords unused there).
   const course = useMemo<Course>(() => ({
     name: '',
@@ -74,7 +85,7 @@ export function CourseSectorEditor({
           startFinishB={startFinishB}
           sectors={sectors}
           selectedLine={selectedLine as LineId | null}
-          onSelectLine={(id) => onSelectLine(id)}
+          onSelectLine={handleSelectLine}
           onStartFinishChange={onStartFinishChange}
           onSectorLineChange={onSectorLineChange}
           isNewTrack={isNewTrack}
@@ -92,7 +103,7 @@ export function CourseSectorEditor({
         course={course}
         sectors={sectors}
         selectedLine={selectedLine}
-        onSelectLine={onSelectLine}
+        onSelectLine={handleSelectLine}
         onAddSector={(insertIndex) => onAddSector(insertIndex, viewCenterRef.current ?? undefined)}
         onRemoveSector={onRemoveSector}
         onToggleMajor={onToggleMajor}

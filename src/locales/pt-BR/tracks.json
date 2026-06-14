@@ -150,7 +150,7 @@
     "whySubmit": "Por que enviar ao banco de dados?",
     "submitTooltipEmpty": "Nada de novo para compartilhar agora — crie ou edite uma pista/traçado (ou adicione um desenho) e ele aparecerá aqui para contribuir.",
     "submitTooltip": "Compartilhar suas configurações de pista no banco de dados ajuda o projeto a crescer — suas pistas ficam disponíveis para todos, então a comunidade gasta menos tempo mapeando e mais tempo dirigindo.",
-    "backToSelection": "Voltar à seleção",
+    "back": "Voltar",
     "jsonTitle": "JSON de {{name}}",
     "copyToClipboard": "Copiar para a área de transferência",
     "close": "Fechar",

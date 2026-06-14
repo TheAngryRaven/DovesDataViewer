@@ -70,7 +70,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   venue is known (a GPS-loaded session, or right after a location search / "use
   my location") — and the start/finish row gains a **reset** button that
   re-drops it in the current view so it can always be (re)placed and then dragged
-  into position, just like the other sector lines.
+  into position, just like the other sector lines. Tapping the start/finish row
+  itself also drops the line when none exists yet, so there's nothing to hunt for.
+- **Track editor back/close buttons.** The course editor had a redundant second
+  close button, and "Back to Selection" left the edited course open underneath —
+  so reopening Manage jumped straight back into that course. The extra close
+  button is gone, "Back to Selection" is now just **Back** and steps back one
+  level at a time (course editor → course list → selection) without stranding the
+  previous course.
 - **Pro-mode panel resizing on touch.** Dragging a resizable divider (the
   left/right split and the InfoBox/MiniMap split in pro mode, plus the video
   panel) would stop after only a few pixels on touchscreens. The handle's

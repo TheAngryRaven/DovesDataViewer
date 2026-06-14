@@ -150,7 +150,7 @@
     "whySubmit": "Pourquoi envoyer à la base de données ?",
     "submitTooltipEmpty": "Rien de nouveau à partager pour le moment — créez ou modifiez un circuit/tracé (ou ajoutez un dessin) et il apparaîtra ici pour être contribué.",
     "submitTooltip": "Partager vos configurations de circuit dans la base de données aide le projet à grandir — vos circuits deviennent accessibles à tous, ce qui permet à la communauté de passer moins de temps à cartographier et plus de temps à piloter.",
-    "backToSelection": "Retour à la sélection",
+    "back": "Retour",
     "jsonTitle": "JSON de {{name}}",
     "copyToClipboard": "Copier dans le presse-papiers",
     "close": "Fermer",
