@@ -66,7 +66,7 @@
         "vitest": "^4.1.6",
       },
       "optionalDependencies": {
-        "@theangryraven/eye-in-the-sky": "github:TheAngryRaven/DataViewer_coach#BETA",
+        "@perchwerks/eye-in-the-sky": "0.5.0",
       },
     },
   },
@@ -383,6 +383,8 @@
 
     "@oxc-project/types": ["@oxc-project/types@0.132.0", "", {}, "sha512-FESMOxil5Se014ui/Eq8fT5uHJo6nIRwH0PfJrZJXs6Gek3ZVFOrpUv3YIZT20m+extU98Hg1Ym72U58rlsxUQ=="],
 
+    "@perchwerks/eye-in-the-sky": ["@perchwerks/eye-in-the-sky@0.5.0", "", { "dependencies": { "uplot": "^1.6.32" }, "peerDependencies": { "i18next": "^23.0.0 || ^24.0.0 || ^25.0.0 || ^26.0.0", "leaflet": "^1.9.4", "react": "^18.3 || ^19.0.0", "react-dom": "^18.3 || ^19.0.0", "react-i18next": "^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-fwIfgSLf9llZMOUsyVYC74xADiKV8IXBgGiDUIDzoMqQjDKDa2VchZtNCNN4TNrhcntgGjKLVDcxM35cjwBz2w=="],
+
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
     "@radix-ui/number": ["@radix-ui/number@1.1.1", "", {}, "sha512-MkKCwxlXTgz6CFoJx3pCwn07GKp36+aZyu/u2Ln2VrA5DcdyCZkASEDBTd8x5whTQQL5CiYf4prXKLcgQdv29g=="],
@@ -598,8 +600,6 @@
     "@tanstack/query-core": ["@tanstack/query-core@5.83.0", "", {}, "sha512-0M8dA+amXUkyz5cVUm/B+zSk3xkQAcuXuz5/Q/LveT4ots2rBpPTZOzd7yJa2Utsf8D2Upl5KyjhHRY+9lB/XA=="],
 
     "@tanstack/react-query": ["@tanstack/react-query@5.83.0", "", { "dependencies": { "@tanstack/query-core": "5.83.0" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-/XGYhZ3foc5H0VM2jLSD/NyBRIOK4q9kfeml4+0x2DlL6xVuAcVEW+hTlTapAmejObg0i3eNqhkr2dT+eciwoQ=="],
-
-    "@theangryraven/eye-in-the-sky": ["@theangryraven/eye-in-the-sky@github:TheAngryRaven/DataViewer_coach#f8c6ff4", { "dependencies": { "uplot": "^1.6.32" }, "peerDependencies": { "i18next": "^23.0.0 || ^24.0.0 || ^25.0.0 || ^26.0.0", "leaflet": "^1.9.4", "react": "^18.3 || ^19.0.0", "react-dom": "^18.3 || ^19.0.0", "react-i18next": "^15.0.0 || ^16.0.0 || ^17.0.0" } }, "TheAngryRaven-DataViewer_coach-f8c6ff4", "sha512-fIE756b49GK603bwhKkwhJZlIhcx7wPTnvX99fPohoJ7srcc+kzfE8MttIV2h34q78fbC3w2sIBKAUhJVM3h6w=="],
 
     "@trickfilm400/rollup-plugin-off-main-thread": ["@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1", "", { "dependencies": { "ejs": "^3.1.10", "json5": "^2.2.3", "magic-string": "^0.30.21", "string.prototype.matchall": "^4.0.12" } }, "sha512-/67zpWDBLV+oYAEL682s1ktXL0HgqX76f6gaVGkGnVZlBbm1zd0v4Bz8MFF2GGhoX9rvfq3KSQHubFHwa6w6/Q=="],
 
