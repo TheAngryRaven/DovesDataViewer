@@ -14,6 +14,7 @@
     "noEmit": true,
     "noFallthroughCasesInSwitch": false,
     "noImplicitAny": true,
+    "resolveJsonModule": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {

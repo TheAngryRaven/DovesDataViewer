@@ -1,0 +1,89 @@
+{
+  "_machine": true,
+  "title": "Configurações",
+  "theme": {
+    "heading": "Tema",
+    "darkMode": "Modo escuro"
+  },
+  "fileStorage": {
+    "heading": "Armazenamento de arquivos",
+    "autoSave": "Salvar automaticamente no dispositivo os arquivos importados/enviados",
+    "autoSaveHint": "Armazena os arquivos automaticamente no dispositivo para acesso posterior"
+  },
+  "speedUnit": {
+    "heading": "Unidade de velocidade",
+    "label": "Exibir a velocidade em quilômetros por hora"
+  },
+  "distanceUnit": {
+    "heading": "Unidade de distância",
+    "label": "Comprimento da pista, distância da volta e eixo de distância do gráfico"
+  },
+  "weatherUnits": {
+    "heading": "Unidades meteorológicas",
+    "label": "Temperatura, vento, pressão e altitude",
+    "hint": "Imperial = °F, mph, inHg, ft · Métrico = °C, km/h, hPa, m",
+    "imperialShort": "Imp",
+    "metricShort": "Mét"
+  },
+  "gforceSmoothing": {
+    "heading": "Suavização de força G",
+    "label": "Aplicar redução de ruído às forças G calculadas",
+    "strength": "Intensidade da suavização",
+    "none": "Nenhuma",
+    "max": "Máx."
+  },
+  "gforceSource": {
+    "heading": "Fonte de força G",
+    "label": "Fonte de dados de força G para o gráfico simples",
+    "hint": "GPS = derivado de velocidade/direção, HW = acelerômetro de hardware"
+  },
+  "lapDelta": {
+    "heading": "Delta da volta",
+    "label": "Cálculo da diferença em relação à referência",
+    "hint": "Posição projeta sua trajetória sobre a referência (robusto a diferenças de trajetória e de taxa de GPS); Distância é o método antigo de distância acumulada",
+    "distance": "Distância",
+    "position": "Posição"
+  },
+  "chartScale": {
+    "heading": "Escala do gráfico",
+    "label": "Eixo X do gráfico de telemetria",
+    "hint": "Distância plota conforme a posição na pista para que as voltas se alinhem curva a curva; Tempo plota conforme o tempo de volta decorrido",
+    "time": "Tempo",
+    "distance": "Distância"
+  },
+  "braking": {
+    "heading": "Detecção de zonas de frenagem",
+    "experimental": "Experimental",
+    "intro": "Ajuste o algoritmo de detecção para identificar zonas de frenagem no mapa.",
+    "entryThreshold": "Limiar de entrada",
+    "exitThreshold": "Limiar de saída",
+    "minDuration": "Duração mínima",
+    "smoothing": "Suavização",
+    "zoneWidth": "Largura da zona",
+    "graphSmoothing": "Suavização do gráfico",
+    "graphSmoothingUnit": "{{count}} pts",
+    "graphSmoothingHint": "Janela do filtro Savitzky-Golay para o gráfico de % de freio. Maior = mais suave.",
+    "brakeMaxLabel": "Freio 100% = ",
+    "brakeMaxHint": "A força G de desaceleração que corresponde a 100% de freio. Menor = mais sensível.",
+    "zoneColor": "Cor da zona",
+    "colors": {
+      "blue": "Azul",
+      "orange": "Laranja",
+      "purple": "Roxo",
+      "pink": "Rosa",
+      "cyan": "Ciano",
+      "yellow": "Amarelo"
+    }
+  },
+  "fieldVisibility": {
+    "heading": "Visibilidade padrão dos campos",
+    "intro": "Escolha quais campos de dados ficam visíveis por padrão ao carregar um arquivo. Os campos ocultos ainda podem ser ativados manualmente.",
+    "hidden": "Oculto",
+    "visible": "Visível"
+  },
+  "appUpdate": {
+    "heading": "Atualização do app",
+    "label": "Forçar atualização e limpar cache",
+    "hint": "Limpa os arquivos do app em cache e recarrega a versão mais recente. Suas sessões e dados salvos na Garagem não são afetados."
+  }
+}

@@ -6,18 +6,20 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { TOOLS } from "./toolList";
+import { useToolsT } from "./i18n";
 
 export default function ToolsPanel(props: PluginPanelProps) {
+  const t = useToolsT();
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
-  const activeTool = TOOLS.find((t) => t.id === activeToolId) ?? null;
+  const activeTool = TOOLS.find((tool) => tool.id === activeToolId) ?? null;
 
   if (!activeTool) {
     return (
       <div className="h-full overflow-auto p-4">
         <div className="max-w-3xl mx-auto space-y-4">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Tools</h2>
-            <p className="text-xs text-muted-foreground">Trackside calculators and utilities.</p>
+            <h2 className="text-base font-semibold text-foreground">{t("picker.heading")}</h2>
+            <p className="text-xs text-muted-foreground">{t("picker.subtitle")}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {TOOLS.map((tool) => {
@@ -31,14 +33,14 @@ export default function ToolsPanel(props: PluginPanelProps) {
                   <Icon className="w-6 h-6 text-primary shrink-0 mt-0.5" />
                   <span>
                     <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-sm font-medium text-foreground">{tool.name}</span>
-                      {tool.badge && (
+                      <span className="text-sm font-medium text-foreground">{t(tool.nameKey)}</span>
+                      {tool.badgeKey && (
                         <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning">
-                          {tool.badge}
+                          {t(tool.badgeKey)}
                         </span>
                       )}
                     </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">{tool.description}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{t(tool.descriptionKey)}</span>
                   </span>
                 </button>
               );
@@ -55,12 +57,12 @@ export default function ToolsPanel(props: PluginPanelProps) {
       <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5 shrink-0">
         <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setActiveToolId(null)}>
           <ChevronLeft className="w-4 h-4" />
-          <span className="text-xs">Tools</span>
+          <span className="text-xs">{t("picker.back")}</span>
         </Button>
-        <span className="text-sm font-medium text-foreground">{activeTool.name}</span>
+        <span className="text-sm font-medium text-foreground">{t(activeTool.nameKey)}</span>
       </div>
       <div className="flex-1 min-h-0">
-        <Suspense fallback={<p className="p-4 text-xs text-muted-foreground">Loading tool…</p>}>
+        <Suspense fallback={<p className="p-4 text-xs text-muted-foreground">{t("picker.loadingTool")}</p>}>
           <ToolBody {...props} />
         </Suspense>
       </div>

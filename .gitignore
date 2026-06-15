@@ -8,6 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+
+# This project uses Bun as its sole package manager (bun.lock is committed).
+# Don't commit an npm/yarn/pnpm lockfile — a second lockfile drifts out of sync
+# and breaks the Cloudflare deploy's `bun install --frozen-lockfile`.
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 dist
 dist-ssr
 *.local

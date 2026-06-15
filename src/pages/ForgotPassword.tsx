@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,9 +10,10 @@ import { Gauge, ArrowLeft } from 'lucide-react';
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 export default function ForgotPassword() {
+  const { t } = useTranslation('auth');
   useDocumentHead({
-    title: 'Forgot Password — HackTheTrack',
-    description: 'Reset your HackTheTrack account password.',
+    title: t('forgot.metaTitle'),
+    description: t('forgot.metaDescription'),
     canonical: 'https://hackthetrack.net/forgot-password',
   });
   const [email, setEmail] = useState('');
@@ -25,9 +27,9 @@ export default function ForgotPassword() {
     const { error } = await resetPassword(email);
     setIsLoading(false);
     if (error) {
-      toast({ title: 'Reset failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('forgot.failed'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Check your email', description: 'Password reset link sent.' });
+      toast({ title: t('forgot.checkEmail'), description: t('forgot.linkSent') });
       navigate('/login');
     }
   };
@@ -40,23 +42,23 @@ export default function ForgotPassword() {
           <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
         </div>
         <div className="racing-card p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Reset Password</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('forgot.heading')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Please wait...' : 'Send Reset Link'}
+              {isLoading ? t('pleaseWait') : t('forgot.submit')}
             </Button>
           </form>
           <p className="text-sm text-muted-foreground text-center">
-            Remembered it?{' '}
-            <Link to="/login" className="text-primary hover:underline">Back to sign in</Link>
+            {t('forgot.remembered')}{' '}
+            <Link to="/login" className="text-primary hover:underline">{t('forgot.backToSignIn')}</Link>
           </p>
         </div>
         <Button variant="ghost" className="w-full gap-2" onClick={() => navigate('/')}>
-          <ArrowLeft className="w-4 h-4" /> Back to Home
+          <ArrowLeft className="w-4 h-4" /> {t('backToHome')}
         </Button>
       </div>
     </div>

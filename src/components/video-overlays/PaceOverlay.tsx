@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { OverlayInstance, OverlayRenderContext } from "./types";
 import { getTheme } from "./themes";
 
@@ -9,6 +10,7 @@ interface PaceOverlayProps {
 }
 
 export const PaceOverlay = memo(function PaceOverlay({ instance, ctx, fontSize }: PaceOverlayProps) {
+  const { t } = useTranslation("video");
   const theme = getTheme(instance.theme);
 
   const paceValue = ctx.paceData[ctx.currentIndex] ?? null;
@@ -95,8 +97,8 @@ export const PaceOverlay = memo(function PaceOverlay({ instance, ctx, fontSize }
         color: theme.textSecondary(instance.colorMode),
         marginTop: fontSize * 0.05,
       }}>
-        <span>SLOW</span>
-        <span>FAST</span>
+        <span>{t("widgets.slow")}</span>
+        <span>{t("widgets.fast")}</span>
       </div>
     </div>
   );

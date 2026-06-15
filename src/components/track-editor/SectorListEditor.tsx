@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor,
   useSensor, useSensors, type DragEndEvent,
@@ -8,7 +9,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Flag, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Flag, GripVertical, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,9 @@ interface SectorListEditorProps {
   onRemoveSector: (index: number) => void;
   onToggleMajor: (index: number) => void;
   onReorder: (from: number, to: number) => void;
+  /** Re-drop the start/finish line in the center of the current map view.
+   *  Drives the reset button on the start/finish row. */
+  onResetStartFinish?: () => void;
 }
 
 function sortableId(index: number): string {
@@ -39,7 +43,9 @@ function indexFromId(id: string): number {
 
 export function SectorListEditor({
   course, sectors, selectedLine, onSelectLine, onAddSector, onRemoveSector, onToggleMajor, onReorder,
+  onResetStartFinish,
 }: SectorListEditorProps) {
+  const { t } = useTranslation('tracks');
   const labels = useMemo(() => sectorLabels(course), [course]);
   const validation = useMemo(() => validateCourseSectors(course), [course]);
   const atLimit = isAtSectorLimit(course);
@@ -71,7 +77,7 @@ export function SectorListEditor({
         onClick={() => onAddSector(insertIndex)}
       >
         <Plus className="w-3.5 h-3.5" />
-        Add sector
+        {t('sectors.addSector')}
       </Button>
     </div>
   );
@@ -79,9 +85,7 @@ export function SectorListEditor({
   return (
     <div className="space-y-1.5">
       {/* Start/finish — always sector 1, always major, fixed. */}
-      <button
-        type="button"
-        onClick={() => onSelectLine('sf')}
+      <div
         className={cn(
           'flex w-full items-center gap-2 rounded-md border px-2 py-2 text-left transition-colors',
           selectedLine === 'sf' ? 'border-primary bg-primary/10' : 'border-border bg-card hover:bg-accent/40',
@@ -89,9 +93,23 @@ export function SectorListEditor({
       >
         <span className="w-4" />
         <Flag className="h-4 w-4 shrink-0" style={{ color: '#22c55e' }} />
-        <span className="flex-1 text-sm font-semibold">Start/finish (Sector {labels[0]})</span>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Major</span>
-      </button>
+        <button type="button" onClick={() => onSelectLine('sf')} className="flex-1 text-left text-sm font-semibold">
+          {t('sectors.startFinish', { label: labels[0] })}
+        </button>
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('sectors.major')}</span>
+        {onResetStartFinish && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            aria-label={t('sectors.resetStartFinish')}
+            title={t('sectors.resetStartFinish')}
+            onClick={onResetStartFinish}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
 
       {sfHasOwnAddSlot && addButton(0, 'add-sf')}
 
@@ -123,13 +141,12 @@ export function SectorListEditor({
       )}
       {atLimit && (
         <p className="pt-1 text-xs text-muted-foreground">
-          Sector limit reached ({MAX_SECTOR_LINES} including start/finish).
+          {t('sectors.limitReached', { max: MAX_SECTOR_LINES })}
         </p>
       )}
       {validation.valid && sectors.length === 0 && (
         <p className="pt-1 text-xs text-muted-foreground">
-          Add a sector to start splitting the lap. Mark exactly three lines (start/finish + two)
-          as Major sectors to save.
+          {t('sectors.guidance')}
         </p>
       )}
     </div>
@@ -147,6 +164,7 @@ interface SectorRowProps {
 }
 
 function SectorRow({ index, label, sector, selected, onSelect, onToggleMajor, onRemove }: SectorRowProps) {
+  const { t } = useTranslation('tracks');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sortableId(index) });
   const style = { transform: CSS.Transform.toString(transform), transition };
   const color = sector.major ? '#a855f7' : '#38bdf8';
@@ -165,7 +183,7 @@ function SectorRow({ index, label, sector, selected, onSelect, onToggleMajor, on
       <button
         type="button"
         className="cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
-        aria-label="Drag to reorder"
+        aria-label={t('sectors.dragReorder')}
         {...attributes}
         {...listeners}
       >
@@ -173,17 +191,17 @@ function SectorRow({ index, label, sector, selected, onSelect, onToggleMajor, on
       </button>
       <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color }} />
       <button type="button" onClick={onSelect} className="flex-1 text-left text-sm">
-        Sector {label}
+        {t('sectors.sectorRow', { label })}
       </button>
       <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-        Major
-        <Switch checked={sector.major} onCheckedChange={onToggleMajor} aria-label="Mark as major sector" />
+        {t('sectors.major')}
+        <Switch checked={sector.major} onCheckedChange={onToggleMajor} aria-label={t('sectors.markMajor')} />
       </label>
       <Button
         variant="ghost"
         size="icon"
         className="h-7 w-7 text-muted-foreground hover:text-destructive"
-        aria-label="Delete sector"
+        aria-label={t('sectors.deleteSector')}
         onClick={onRemove}
       >
         <Trash2 className="h-3.5 w-3.5" />

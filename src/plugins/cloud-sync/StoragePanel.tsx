@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   Check, CloudOff, CreditCard, Loader2, LogOut, Pencil, RefreshCw,
@@ -25,11 +26,11 @@ import {
 
 // The three segments of the one storage bar, in stacked order (logs first). Each
 // draws from the same pooled per-tier limit; the dot + bar share a colour.
-const SEGMENTS: { key: StorageType; label: string; color: string }[] = [
-  { key: "logs", label: "Logs", color: "bg-primary" },
-  { key: "snapshots", label: "Snapshots", color: "bg-amber-500" },
-  { key: "documents", label: "Garage", color: "bg-emerald-500" },
-];
+const SEGMENTS = [
+  { key: "logs", labelKey: "storage.segments.logs", color: "bg-primary" },
+  { key: "snapshots", labelKey: "storage.segments.snapshots", color: "bg-amber-500" },
+  { key: "documents", labelKey: "storage.segments.garage", color: "bg-emerald-500" },
+] as const satisfies { key: StorageType; labelKey: string; color: string }[];
 
 // Google sign-in is gated separately: it currently routes through Lovable's OAuth
 // broker, so it stays off until native Supabase Google OAuth is configured.
@@ -40,6 +41,7 @@ const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
 // storage bar measured against this device's local storage. Everything here works
 // offline — the cloud is an optional backup, not a requirement.
 export default function StoragePanel(_props: PluginPanelProps) {
+  const { t } = useTranslation("plugins");
   const { user, loading, logout } = useAuth();
   const online = useOnlineStatus();
   const [usage, setUsage] = useState<StorageUsage | null>(null);
@@ -57,9 +59,9 @@ export default function StoragePanel(_props: PluginPanelProps) {
       }
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load storage usage");
+      setError(e instanceof Error ? e.message : t("account.loadUsageFailed"));
     }
-  }, [user]);
+  }, [user, t]);
 
   // Re-read on mount and whenever connectivity flips (pending changes flush on
   // reconnect). Signed out, also track on-device garage changes live, so the
@@ -71,7 +73,7 @@ export default function StoragePanel(_props: PluginPanelProps) {
     return onGarageChange(() => void refresh());
   }, [refresh, online, user]);
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (loading) return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
 
   if (!user) {
     return (
@@ -89,7 +91,7 @@ export default function StoragePanel(_props: PluginPanelProps) {
         email={user.email ?? ""}
         action={
           <Button variant="ghost" size="sm" className="shrink-0 self-start text-muted-foreground" onClick={logout}>
-            <LogOut className="mr-1.5 h-4 w-4" /> Sign out
+            <LogOut className="mr-1.5 h-4 w-4" /> {t("account.signOut")}
           </Button>
         }
       />
@@ -100,16 +102,16 @@ export default function StoragePanel(_props: PluginPanelProps) {
         <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
           <CloudOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            You're offline.{" "}
+            {t("account.offline")}{" "}
             {pending > 0
-              ? `${pending} change${pending === 1 ? "" : "s"} saved locally — they'll sync when you reconnect.`
-              : "Changes are saved locally and will sync when you reconnect."}
+              ? t("account.offlinePending", { count: pending })
+              : t("account.offlineNoPending")}
           </span>
         </div>
       )}
       {online && pending > 0 && (
         <p className="text-xs text-muted-foreground">
-          Syncing {pending} pending change{pending === 1 ? "" : "s"}…
+          {t("account.syncingPending", { count: pending })}
         </p>
       )}
 
@@ -121,6 +123,7 @@ export default function StoragePanel(_props: PluginPanelProps) {
 // Sign-in entry point (moved here from the old Account panel): Google one-tap plus
 // email sign-in / registration. Offline disables it with a hint.
 function SignInPrompt() {
+  const { t } = useTranslation("plugins");
   const { signInWithGoogle } = useAuth();
   const online = useOnlineStatus();
   const [busy, setBusy] = useState(false);
@@ -130,30 +133,29 @@ function SignInPrompt() {
     const { error } = await signInWithGoogle();
     if (error) {
       setBusy(false);
-      toast.error(error.message || "Google sign-in failed");
+      toast.error(error.message || t("account.googleSignInFailed"));
     }
   };
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Sign in to back up and sync your files, garage and notes across devices.
-        Everything here still works offline against this device — Cloud Sync is optional.
+        {t("account.signInBlurb")}
       </p>
       <div className="flex flex-col gap-2">
         {enableGoogleAuth && (
           <Button variant="outline" onClick={handleGoogle} disabled={busy || !online}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue with Google"}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("account.continueWithGoogle")}
           </Button>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <Button asChild variant="secondary"><Link to="/login?next=/">Sign in</Link></Button>
-          <Button asChild><Link to="/register">Create account</Link></Button>
+          <Button asChild variant="secondary"><Link to="/login?next=/">{t("account.signIn")}</Link></Button>
+          <Button asChild><Link to="/register">{t("account.createAccount")}</Link></Button>
         </div>
       </div>
       {!online && (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <WifiOff className="h-3.5 w-3.5" /> You're offline — sign-in needs a connection.
+          <WifiOff className="h-3.5 w-3.5" /> {t("account.offlineSignIn")}
         </p>
       )}
     </div>
@@ -161,6 +163,7 @@ function SignInPrompt() {
 }
 
 function DisplayName({ userId, email, action }: { userId: string; email: string; action?: ReactNode }) {
+  const { t } = useTranslation("plugins");
   const [name, setName] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -192,15 +195,15 @@ function DisplayName({ userId, email, action }: { userId: string; email: string;
     if (result.ok) {
       setName(draft.trim());
       setEditing(false);
-      toast.success("Display name updated.");
+      toast.success(t("account.nameUpdated"));
     } else if (result.reason === "taken") {
-      toast.error("That name's taken — try another.");
+      toast.error(t("account.nameTaken"));
     } else if (result.reason === "empty") {
-      toast.error("Display name can't be empty.");
+      toast.error(t("account.nameEmpty"));
     } else if (result.reason === "profanity") {
-      toast.error("Please choose a cleaner display name.");
+      toast.error(t("account.nameProfanity"));
     } else {
-      toast.error(result.message ?? "Couldn't update display name.");
+      toast.error(result.message ?? t("account.nameUpdateFailed"));
     }
   };
 
@@ -247,6 +250,7 @@ function DisplayName({ userId, email, action }: { userId: string; email: string;
 }
 
 function PlanSection() {
+  const { t } = useTranslation("plugins");
   const { tiers, currentTier, subscription, loading } = useSubscription();
   const [busy, setBusy] = useState<"manage" | "change" | null>(null);
 
@@ -273,29 +277,29 @@ function PlanSection() {
       const url = await createPortal(window.location.href, which === "change" ? "update" : undefined);
       window.location.href = url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't open the billing portal.");
+      toast.error(e instanceof Error ? e.message : t("plan.portalFailed"));
       setBusy(null);
     }
   };
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Plan</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("plan.title")}</p>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground">{loading ? "…" : label}</p>
           {subscribed && renews && (
             <p className="text-[11px] text-muted-foreground">
-              {cancelsAtPeriodEnd ? `Cancels ${renews}` : `Renews ${renews}`}
+              {cancelsAtPeriodEnd ? t("plan.cancels", { date: renews }) : t("plan.renews", { date: renews })}
             </p>
           )}
           {inGrace && (
             <p className="text-[11px] text-amber-600 dark:text-amber-500">
-              Subscription ended. Cloud logs trim to the free tier on {graceUntil} — resubscribe to keep them.
+              {t("plan.grace", { date: graceUntil })}
             </p>
           )}
           {!subscribed && !inGrace && (
-            <p className="text-[11px] text-muted-foreground">Upgrade from the Plans &amp; pricing cards.</p>
+            <p className="text-[11px] text-muted-foreground">{t("plan.upgrade")}</p>
           )}
         </div>
         {canManage && (
@@ -312,7 +316,7 @@ function PlanSection() {
                 onClick={() => void openPortal("change")}
               >
                 {busy === "change" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Change plan
+                {t("plan.changePlan")}
               </Button>
             )}
             <Button
@@ -323,7 +327,7 @@ function PlanSection() {
               onClick={() => void openPortal("manage")}
             >
               {busy === "manage" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-              Manage subscription
+              {t("plan.manageSubscription")}
             </Button>
           </div>
         )}
@@ -337,16 +341,17 @@ function PlanSection() {
 function StorageSection({
   usage, error, local,
 }: { usage: StorageUsage | null; error: string | null; local: boolean }) {
+  const { t } = useTranslation("plugins");
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline gap-x-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Storage</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("storage.title")}</p>
         <p className="text-[11px] text-muted-foreground">
-          {local ? "Stored on this device." : "Local storage is always free."}
+          {local ? t("storage.onThisDevice") : t("storage.alwaysFree")}
         </p>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
-      {!usage && !error && <p className="text-xs text-muted-foreground">Loading usage…</p>}
+      {!usage && !error && <p className="text-xs text-muted-foreground">{t("storage.loadingUsage")}</p>}
       {usage && <StorageBar usage={usage} local={local} />}
     </div>
   );
@@ -357,6 +362,7 @@ function StorageSection({
 // empty remainder is muted. Over the limit, segments fill the whole bar and the
 // readout turns destructive. `local` measures this device against the browser quota.
 function StorageBar({ usage, local }: { usage: StorageUsage; local: boolean }) {
+  const { t } = useTranslation("plugins");
   const used = totalUsed(usage);
   const over = used > usage.totalLimit;
   const fractions = segmentFractions(usage);
@@ -365,7 +371,7 @@ function StorageBar({ usage, local }: { usage: StorageUsage; local: boolean }) {
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between text-sm">
-        <span className="text-foreground">{pct}% used</span>
+        <span className="text-foreground">{t("storage.percentUsed", { pct })}</span>
         <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>
           {formatBytes(used)} / {formatBytes(usage.totalLimit)}
         </span>
@@ -383,7 +389,7 @@ function StorageBar({ usage, local }: { usage: StorageUsage; local: boolean }) {
         {SEGMENTS.map((seg) => (
           <div key={seg.key} className="flex items-center gap-1.5 text-[11px]">
             <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${seg.color}`} />
-            <span className="text-foreground">{seg.label}</span>
+            <span className="text-foreground">{t(seg.labelKey)}</span>
             <span className="tabular-nums text-muted-foreground">{formatBytes(usage[seg.key])}</span>
           </div>
         ))}
@@ -391,18 +397,17 @@ function StorageBar({ usage, local }: { usage: StorageUsage; local: boolean }) {
 
       {local ? (
         <p className="text-[11px] text-muted-foreground">
-          Measured against this device's storage. Sign in to back it up to the cloud.
+          {t("storage.localNote")}
         </p>
       ) : (
         <p className="text-[11px] text-muted-foreground">
-          Garage data and snapshots always sync, even when you're full — they still
-          count toward your storage, but only logs stop syncing when the cap is reached.
+          {t("storage.cloudNote")}
         </p>
       )}
 
       {over && !local && (
         <p className="text-[11px] text-destructive">
-          You're over your plan's storage. New cloud syncs are saved locally until you free up space or upgrade.
+          {t("storage.overLimit")}
         </p>
       )}
     </div>

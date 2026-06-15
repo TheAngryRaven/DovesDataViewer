@@ -1,8 +1,7 @@
 import { Fragment } from "react";
+import { useTranslation } from "react-i18next";
 import { Folder, ChevronRight } from "lucide-react";
 import type { BrowserView, BrowserSession, FilterMode, NavState } from "@/lib/fileBrowserTree";
-
-const FILTER_LABELS: Record<FilterMode, string> = { none: "None", engine: "Engine", kart: "Kart" };
 
 interface SessionBrowserProps {
   /** The resolved view to render (from `computeBrowserView`). */
@@ -19,7 +18,13 @@ interface SessionBrowserProps {
  * filter + folders + the caller-rendered log rows. Pure UI over a computed
  * `BrowserView` — shared by the Files tab and the Profile cloud-logs panel.
  */
-export function SessionBrowser({ view, onNavigate, renderRow, emptyText = "No sessions here" }: SessionBrowserProps) {
+export function SessionBrowser({ view, onNavigate, renderRow, emptyText }: SessionBrowserProps) {
+  const { t } = useTranslation("drawer");
+  const filterLabels: Record<FilterMode, string> = {
+    none: t("browser.filterNone"),
+    engine: t("browser.filterEngine"),
+    kart: t("browser.filterKart"),
+  };
   return (
     <div className="space-y-1">
       {/* Breadcrumb — always shown so date-named logs read in context. */}
@@ -47,7 +52,7 @@ export function SessionBrowser({ view, onNavigate, renderRow, emptyText = "No se
       {/* Engine/Kart filter — only on the final log level. */}
       {view.showFilter && (
         <div className="flex items-center gap-2 px-1 pb-1">
-          <span className="text-xs text-muted-foreground">Group by</span>
+          <span className="text-xs text-muted-foreground">{t("browser.groupBy")}</span>
           <div className="flex gap-0.5 bg-muted/50 rounded-md p-0.5">
             {(["none", "engine", "kart"] as const).map((mode) => (
               <button
@@ -64,7 +69,7 @@ export function SessionBrowser({ view, onNavigate, renderRow, emptyText = "No se
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {FILTER_LABELS[mode]}
+                {filterLabels[mode]}
               </button>
             ))}
           </div>
@@ -92,7 +97,7 @@ export function SessionBrowser({ view, onNavigate, renderRow, emptyText = "No se
       ))}
 
       {view.folders.length === 0 && view.sessions.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-6">{emptyText}</p>
+        <p className="text-xs text-muted-foreground text-center py-6">{emptyText ?? t("browser.emptyDefault")}</p>
       )}
     </div>
   );

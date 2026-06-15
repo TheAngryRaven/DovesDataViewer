@@ -1,0 +1,89 @@
+{
+  "_machine": true,
+  "title": "Einstellungen",
+  "theme": {
+    "heading": "Design",
+    "darkMode": "Dunkelmodus"
+  },
+  "fileStorage": {
+    "heading": "Dateispeicher",
+    "autoSave": "Importierte/hochgeladene Dateien automatisch auf dem Gerät speichern",
+    "autoSaveHint": "Speichert Dateien automatisch im Gerätespeicher für späteren Zugriff"
+  },
+  "speedUnit": {
+    "heading": "Geschwindigkeitseinheit",
+    "label": "Geschwindigkeit in Kilometern pro Stunde anzeigen"
+  },
+  "distanceUnit": {
+    "heading": "Entfernungseinheit",
+    "label": "Streckenlänge, Rundendistanz & Distanzachse des Diagramms"
+  },
+  "weatherUnits": {
+    "heading": "Wettereinheiten",
+    "label": "Temperatur, Wind, Druck & Höhe",
+    "hint": "Imperial = °F, mph, inHg, ft · Metrisch = °C, km/h, hPa, m",
+    "imperialShort": "Imp",
+    "metricShort": "Met"
+  },
+  "gforceSmoothing": {
+    "heading": "G-Kraft-Glättung",
+    "label": "Rauschunterdrückung auf berechnete G-Kräfte anwenden",
+    "strength": "Glättungsstärke",
+    "none": "Keine",
+    "max": "Max"
+  },
+  "gforceSource": {
+    "heading": "G-Kraft-Quelle",
+    "label": "G-Kraft-Datenquelle für das einfache Diagramm",
+    "hint": "GPS = aus Geschwindigkeit/Richtung abgeleitet, HW = Hardware-Beschleunigungssensor"
+  },
+  "lapDelta": {
+    "heading": "Runden-Delta",
+    "label": "Berechnung des Abstands zur Referenz",
+    "hint": "Position projiziert deine Linie auf die Referenz (robust gegenüber Linien- und GPS-Raten-Unterschieden); Distanz ist die alte Methode der kumulativen Distanz",
+    "distance": "Distanz",
+    "position": "Position"
+  },
+  "chartScale": {
+    "heading": "Diagrammskala",
+    "label": "X-Achse des Telemetriediagramms",
+    "hint": "Distanz zeichnet anhand der Streckenposition, sodass Runden Kurve für Kurve übereinstimmen; Zeit zeichnet anhand der verstrichenen Rundenzeit",
+    "time": "Zeit",
+    "distance": "Distanz"
+  },
+  "braking": {
+    "heading": "Bremszonenerkennung",
+    "experimental": "Experimentell",
+    "intro": "Stelle den Erkennungsalgorithmus zur Identifizierung von Bremszonen auf der Karte ein.",
+    "entryThreshold": "Einstiegsschwelle",
+    "exitThreshold": "Ausstiegsschwelle",
+    "minDuration": "Mindestdauer",
+    "smoothing": "Glättung",
+    "zoneWidth": "Zonenbreite",
+    "graphSmoothing": "Diagrammglättung",
+    "graphSmoothingUnit": "{{count}} Pkt.",
+    "graphSmoothingHint": "Savitzky-Golay-Filterfenster für das Brems-%-Diagramm. Größer = glatter.",
+    "brakeMaxLabel": "Bremse 100 % = ",
+    "brakeMaxHint": "Die Verzögerungs-G-Kraft, die 100 % Bremse entspricht. Niedriger = empfindlicher.",
+    "zoneColor": "Zonenfarbe",
+    "colors": {
+      "blue": "Blau",
+      "orange": "Orange",
+      "purple": "Violett",
+      "pink": "Rosa",
+      "cyan": "Cyan",
+      "yellow": "Gelb"
+    }
+  },
+  "fieldVisibility": {
+    "heading": "Standard-Feldsichtbarkeit",
+    "intro": "Wähle, welche Datenfelder beim Laden einer Datei standardmäßig sichtbar sind. Ausgeblendete Felder können weiterhin manuell aktiviert werden.",
+    "hidden": "Ausgeblendet",
+    "visible": "Sichtbar"
+  },
+  "appUpdate": {
+    "heading": "App-Update",
+    "label": "Update erzwingen & Cache leeren",
+    "hint": "Leert die zwischengespeicherten App-Dateien und lädt die neueste Version neu. Deine gespeicherten Sessions und Daten in der Garage sind nicht betroffen."
+  }
+}

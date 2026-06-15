@@ -1,0 +1,23 @@
+{
+  "_machine": true,
+  "appName": "HackTheTrack.net",
+  "actions": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "sponsor": "Soutenir",
+    "loading": "Chargement…",
+    "reset": "Réinitialiser les valeurs par défaut",
+    "update": "Mettre à jour",
+    "updating": "Mise à jour…"
+  },
+  "language": {
+    "heading": "Langue",
+    "label": "Langue d'affichage"
+  },
+  "updateToast": {
+    "title": "Mise à jour disponible",
+    "description": "Actualisez pour vider les fichiers en cache obsolètes et charger la dernière version de l'application.",
+    "refresh": "Actualiser",
+    "later": "Plus tard"
+  }
+}

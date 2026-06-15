@@ -1,0 +1,22 @@
+{
+  "appName": "HackTheTrack.net",
+  "actions": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "sponsor": "Sponsor",
+    "loading": "Loading…",
+    "reset": "Reset to Defaults",
+    "update": "Update",
+    "updating": "Updating…"
+  },
+  "language": {
+    "heading": "Language",
+    "label": "Display language"
+  },
+  "updateToast": {
+    "title": "Update ready",
+    "description": "Refresh to clear stale cached files and load the latest app version.",
+    "refresh": "Refresh",
+    "later": "Later"
+  }
+}

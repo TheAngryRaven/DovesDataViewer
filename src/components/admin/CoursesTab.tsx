@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -100,6 +101,7 @@ function formToCourseData(f: CourseFormState) {
 
 /** Read-only Leaflet map showing all course layouts for a track */
 function LayoutsOverviewMap({ courses, layouts }: { courses: DbCourse[]; layouts: DbCourseLayout[] }) {
+  const { t } = useTranslation('admin');
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -146,7 +148,7 @@ function LayoutsOverviewMap({ courses, layouts }: { courses: DbCourse[]; layouts
       const coords = layout.layout_data.map(p => [p.lat, p.lon] as [number, number]);
       if (coords.length === 0) return;
 
-      const courseName = courseIndex >= 0 ? courses[courseIndex].name : 'Unknown';
+      const courseName = courseIndex >= 0 ? courses[courseIndex].name : t('courses.unknownCourse');
       L.polyline(coords, { color, weight: 5, opacity: 0.9 })
         .bindTooltip(courseName, { sticky: true })
         .addTo(map);
@@ -156,12 +158,13 @@ function LayoutsOverviewMap({ courses, layouts }: { courses: DbCourse[]; layouts
     if (allBounds.length > 0) {
       map.fitBounds(L.latLngBounds(allBounds as [number, number][]), { padding: [30, 30] });
     }
-  }, [courses, layouts]);
+  }, [courses, layouts, t]);
 
   return <div ref={mapContainerRef} className="h-64 sm:h-80 md:h-96 w-full rounded-md overflow-hidden" />;
 }
 
 export function CoursesTab() {
+  const { t } = useTranslation('admin');
   const [tracks, setTracks] = useState<DbTrack[]>([]);
   const [selectedTrackId, setSelectedTrackId] = useState<string>('');
   const [courses, setCourses] = useState<DbCourse[]>([]);
@@ -181,8 +184,8 @@ export function CoursesTab() {
 
   const loadTracks = useCallback(async () => {
     try { setTracks(await db.getTracks()); }
-    catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
-  }, [db]);
+    catch (e: unknown) { toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' }); }
+  }, [db, t]);
 
   const loadCourses = useCallback(async () => {
     if (!selectedTrackId) { setCourses([]); setTrackLayouts([]); return; }
@@ -195,9 +198,9 @@ export function CoursesTab() {
       const layouts = await db.getLayoutsForCourses(courseIds);
       setTrackLayouts(layouts);
     }
-    catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
+    catch (e: unknown) { toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' }); }
     setLoading(false);
-  }, [selectedTrackId, db]);
+  }, [selectedTrackId, db, t]);
 
   useEffect(() => { loadTracks(); }, [loadTracks]);
   useEffect(() => { loadCourses(); }, [loadCourses]);
@@ -231,8 +234,8 @@ export function CoursesTab() {
         await db.saveLayout(course.id, layoutPoints);
       }
       setForm(emptyForm); setShowAdd(false); setLayoutPoints([]); setHasExistingLayout(false);
-      toast({ title: 'Course created' }); loadCourses();
-    } catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
+      toast({ title: t('courses.created') }); loadCourses();
+    } catch (e: unknown) { toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' }); }
   };
 
   const handleUpdate = async () => {
@@ -245,8 +248,8 @@ export function CoursesTab() {
         await db.deleteLayout(editingId);
       }
       setForm(emptyForm); setEditingId(null); setLayoutPoints([]); setHasExistingLayout(false);
-      toast({ title: 'Course updated' }); loadCourses();
-    } catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
+      toast({ title: t('courses.updated') }); loadCourses();
+    } catch (e: unknown) { toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' }); }
   };
 
   const handleDeleteLayout = async () => {
@@ -255,13 +258,13 @@ export function CoursesTab() {
       await db.deleteLayout(editingId);
       setLayoutPoints([]);
       setHasExistingLayout(false);
-      toast({ title: 'Layout deleted' });
-    } catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
+      toast({ title: t('courses.layoutDeleted') });
+    } catch (e: unknown) { toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' }); }
   };
 
   const handleToggle = async (id: string, enabled: boolean) => {
     try { await db.toggleCourse(id, enabled); loadCourses(); }
-    catch (e: unknown) { toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' }); }
+    catch (e: unknown) { toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' }); }
   };
 
   const startEdit = (course: DbCourse) => {
@@ -333,10 +336,10 @@ export function CoursesTab() {
 
   const courseFormUI = (
     <div className="racing-card p-4 space-y-4">
-      <Label className="text-base font-semibold">{editingId ? 'Edit Course' : 'New Course'}</Label>
+      <Label className="text-base font-semibold">{editingId ? t('courses.editCourse') : t('courses.newCourse')}</Label>
 
       <div>
-        <Label>Course Name</Label>
+        <Label>{t('courses.courseName')}</Label>
         <Input value={form.name} onChange={e => setField('name', e.target.value)} placeholder="Normal" />
       </div>
 
@@ -363,10 +366,10 @@ export function CoursesTab() {
       {/* Layout info */}
       {layoutPoints.length > 0 && (
         <div className="flex items-center justify-between p-2 bg-orange-500/10 border border-orange-500/30 rounded text-sm">
-          <span className="text-orange-400">{layoutPoints.length} layout points drawn</span>
+          <span className="text-orange-400">{t('courses.layoutPointsDrawn', { count: layoutPoints.length })}</span>
           {hasExistingLayout && (
             <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={handleDeleteLayout}>
-              <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete Layout
+              <Trash2 className="w-3.5 h-3.5 mr-1" /> {t('courses.deleteLayout')}
             </Button>
           )}
         </div>
@@ -374,7 +377,7 @@ export function CoursesTab() {
 
       <div className="flex gap-2 flex-wrap">
         <Button size="sm" onClick={editingId ? handleUpdate : handleAdd} disabled={!isValid}>
-          <Check className="w-4 h-4 mr-1" /> {editingId ? 'Update' : 'Create'}
+          <Check className="w-4 h-4 mr-1" /> {editingId ? t('courses.update') : t('courses.create')}
         </Button>
         <Button size="sm" variant="outline" onClick={cancel}>
           <X className="w-4 h-4" />
@@ -387,14 +390,14 @@ export function CoursesTab() {
     <div className="space-y-4 mt-4">
       <div className="flex items-center gap-4">
         <Select value={selectedTrackId} onValueChange={setSelectedTrackId}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="Select track..." /></SelectTrigger>
+          <SelectTrigger className="w-64"><SelectValue placeholder={t('courses.selectTrack')} /></SelectTrigger>
           <SelectContent>
-            {tracks.map(t => <SelectItem key={t.id} value={t.id}>{t.name} ({t.short_name})</SelectItem>)}
+            {tracks.map(tr => <SelectItem key={tr.id} value={tr.id}>{tr.name} ({tr.short_name})</SelectItem>)}
           </SelectContent>
         </Select>
         {selectedTrackId && (
           <Button size="sm" onClick={() => { setForm(emptyForm); setShowAdd(!showAdd); setEditingId(null); setLayoutPoints([]); setHasExistingLayout(false); }}>
-            <Plus className="w-4 h-4 mr-1" /> Add Course
+            <Plus className="w-4 h-4 mr-1" /> {t('courses.addCourse')}
           </Button>
         )}
       </div>
@@ -402,11 +405,11 @@ export function CoursesTab() {
       {(showAdd || editingId) && courseFormUI}
 
       {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       ) : !selectedTrackId ? (
-        <p className="text-muted-foreground">Select a track to view courses.</p>
+        <p className="text-muted-foreground">{t('courses.selectTrackToView')}</p>
       ) : courses.length === 0 ? (
-        <p className="text-muted-foreground">No courses for this track.</p>
+        <p className="text-muted-foreground">{t('courses.noCourses')}</p>
       ) : (
         <div className="space-y-2">
           {courses.map((course, index) => {
@@ -423,28 +426,28 @@ export function CoursesTab() {
                     <span
                       className="inline-block w-3 h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: color }}
-                      title="Has layout drawing"
+                      title={t('courses.hasLayoutTitle')}
                     />
                   )}
                   <span className="font-medium text-foreground">{course.name}</span>
-                  {isDefault && <span className="text-xs text-primary font-medium">(default)</span>}
+                  {isDefault && <span className="text-xs text-primary font-medium">{t('courses.defaultTag')}</span>}
                   {course.sector_2_a_lat != null && course.sector_3_a_lat != null ? (
-                    <span className="text-[10px] font-medium bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded" title="Has sector 2 & 3 lines">Sectors</span>
+                    <span className="text-[10px] font-medium bg-green-500/15 text-green-500 px-1.5 py-0.5 rounded" title={t('courses.sectorsTitle')}>{t('courses.sectors')}</span>
                   ) : (
-                    <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded" title="No sector lines defined">No Sectors</span>
+                    <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded" title={t('courses.noSectorsTitle')}>{t('courses.noSectors')}</span>
                   )}
                   {(() => {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- length_ft_override column not in generated types; remove on next regen
                     const overrideFt = (course as any).length_ft_override;
                     if (overrideFt != null) {
-                      return <span className="text-xs text-yellow-500" title="Manual override">{overrideFt} ft ⚡</span>;
+                      return <span className="text-xs text-yellow-500" title={t('courses.manualOverrideTitle')}>{t('courses.overrideBadge', { ft: overrideFt })}</span>;
                     }
                     if (layout && layout.layout_data.length >= 2) {
                       return <span className="text-xs text-muted-foreground">({formatTrackLength(calculatePolylineLength(layout.layout_data))})</span>;
                     }
                     return null;
                   })()}
-                  {course.superseded_by && <span className="text-xs text-muted-foreground">(superseded)</span>}
+                  {course.superseded_by && <span className="text-xs text-muted-foreground">{t('courses.superseded')}</span>}
                 </div>
                 <div className="flex items-center gap-1">
                   <TooltipProvider>
@@ -458,16 +461,16 @@ export function CoursesTab() {
                             try {
                               await db.updateTrack(selectedTrackId, { default_course_id: course.id });
                               setTracks(prev => prev.map(t => t.id === selectedTrackId ? { ...t, default_course_id: course.id } : t));
-                              toast({ title: `"${course.name}" set as default course` });
+                              toast({ title: t('courses.setDefaultDone', { name: course.name }) });
                             } catch (e: unknown) {
-                              toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+                              toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
                             }
                           }}
                         >
                           <Star className={`w-4 h-4 ${isDefault ? 'fill-current' : ''}`} />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent><p>Set as default course</p></TooltipContent>
+                      <TooltipContent><p>{t('courses.setAsDefault')}</p></TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(course)}>
@@ -484,7 +487,7 @@ export function CoursesTab() {
       {selectedTrackId && courses.length > 0 && (
         <div className="racing-card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-base font-semibold">Course Layouts</Label>
+            <Label className="text-base font-semibold">{t('courses.courseLayouts')}</Label>
           </div>
 
           {/* Length overrides */}
@@ -500,14 +503,14 @@ export function CoursesTab() {
                 <div key={course.id} className="flex items-center gap-3 text-sm">
                   <span className="w-32 truncate font-medium text-foreground">{course.name}</span>
                   {calculatedFt != null && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">Drawn: {calculatedFt} ft</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{t('courses.drawn', { ft: calculatedFt })}</span>
                   )}
                   <div className="flex items-center gap-1.5 ml-auto">
-                    <Label className="text-xs text-muted-foreground whitespace-nowrap">Override (ft)</Label>
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap">{t('courses.overrideLabel')}</Label>
                     <Input
                       type="number"
                       className="w-24 h-7 text-xs"
-                      placeholder="auto"
+                      placeholder={t('courses.overridePlaceholder')}
                       value={overrideVal ?? ''}
                       onChange={async (e) => {
                         const val = e.target.value.trim();
@@ -518,7 +521,7 @@ export function CoursesTab() {
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- length_ft_override column not in generated types; remove on next regen
                           setCourses(prev => prev.map(c => c.id === course.id ? { ...c, length_ft_override: newOverride } as any : c));
                         } catch (err: unknown) {
-                          toast({ title: 'Error', description: (err as Error).message, variant: 'destructive' });
+                          toast({ title: t('common.error'), description: (err as Error).message, variant: 'destructive' });
                         }
                       }}
                     />
@@ -532,7 +535,7 @@ export function CoursesTab() {
             <LayoutsOverviewMap courses={courses} layouts={trackLayouts} />
           ) : (
             <div className="h-32 flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
-              No layouts drawn yet. Edit a course and use the Draw tool to trace the track outline.
+              {t('courses.noLayouts')}
             </div>
           )}
         </div>

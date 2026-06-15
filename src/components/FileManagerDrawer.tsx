@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Gauge, Cpu, User, Bluetooth, BluetoothOff, Loader2, Settings, MapPin, Battery, BatteryLow, BatteryMedium, BatteryFull, BatteryWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileEntry, FileMetadata } from "@/lib/fileStorage";
@@ -20,18 +21,6 @@ import { isBleSupported, requestBatteryLevel, type BatteryInfo } from "@/lib/ble
 type TopTab = "garage" | "profile" | "device";
 type GarageTab = "files" | "vehicles" | "setups" | "notes";
 type DeviceTab = "settings" | "tracks";
-
-const garageTabs: { key: GarageTab; label: string }[] = [
-  { key: "files", label: "Files" },
-  { key: "vehicles", label: "Vehicles" },
-  { key: "setups", label: "Setups" },
-  { key: "notes", label: "Notes" },
-];
-
-const deviceTabs: { key: DeviceTab; label: string; icon: React.ReactNode }[] = [
-  { key: "settings", label: "Settings", icon: <Settings className="w-3.5 h-3.5" /> },
-  { key: "tracks", label: "Tracks", icon: <MapPin className="w-3.5 h-3.5" /> },
-];
 
 interface FileManagerDrawerProps {
   isOpen: boolean;
@@ -94,9 +83,22 @@ export function FileManagerDrawer({
   setups, onAddSetup, onUpdateSetup, onRemoveSetup, onGetLatestSetupForVehicle,
   onAddVehicleType, onRemoveVehicleType,
 }: FileManagerDrawerProps) {
+  const { t } = useTranslation("drawer");
   const [topTab, setTopTab] = useState<TopTab>("garage");
   const [garageTab, setGarageTab] = useState<GarageTab>("files");
   const [deviceTab, setDeviceTab] = useState<DeviceTab>("settings");
+
+  const garageTabs: { key: GarageTab; label: string }[] = [
+    { key: "files", label: t("shell.garageTabs.files") },
+    { key: "vehicles", label: t("shell.garageTabs.vehicles") },
+    { key: "setups", label: t("shell.garageTabs.setups") },
+    { key: "notes", label: t("shell.garageTabs.notes") },
+  ];
+
+  const deviceTabs: { key: DeviceTab; label: string; icon: React.ReactNode }[] = [
+    { key: "settings", label: t("shell.deviceTabs.settings"), icon: <Settings className="w-3.5 h-3.5" /> },
+    { key: "tracks", label: t("shell.deviceTabs.tracks"), icon: <MapPin className="w-3.5 h-3.5" /> },
+  ];
 
   const device = useDeviceContext();
   const bleAvailable = isBleSupported();
@@ -139,7 +141,7 @@ export function FileManagerDrawer({
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             {topTab === "garage" ? <Gauge className="w-5 h-5 text-primary" /> : topTab === "profile" ? <User className="w-5 h-5 text-primary" /> : <Cpu className="w-5 h-5 text-primary" />}
-            <h2 className="font-semibold text-foreground">{topTab === "garage" ? "Garage" : topTab === "profile" ? "Profile" : "Device"}</h2>
+            <h2 className="font-semibold text-foreground">{topTab === "garage" ? t("shell.tabs.garage") : topTab === "profile" ? t("shell.tabs.profile") : t("shell.tabs.device")}</h2>
             {topTab === "device" && device.deviceName && (
               <span className="text-xs text-muted-foreground truncate max-w-[120px]">— {device.deviceName}</span>
             )}
@@ -151,7 +153,7 @@ export function FileManagerDrawer({
                 className={`flex items-center gap-1 h-7 px-2 rounded text-xs font-medium transition-colors hover:bg-muted/50 ${
                   battery.percent <= 15 ? "text-destructive" : battery.percent <= 30 ? "text-orange-500" : "text-muted-foreground"
                 }`}
-                title={`${battery.voltage.toFixed(2)}V — click to refresh`}
+                title={t("shell.batteryTitle", { voltage: battery.voltage.toFixed(2) })}
               >
                 {battery.percent <= 15 ? <BatteryWarning className="w-4 h-4" /> :
                  battery.percent <= 30 ? <BatteryLow className="w-4 h-4" /> :
@@ -161,7 +163,7 @@ export function FileManagerDrawer({
               </button>
             )}
             {topTab === "device" && device.connection && (
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={device.disconnectDevice}>Disconnect</Button>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={device.disconnectDevice}>{t("shell.disconnect")}</Button>
             )}
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}><X className="w-4 h-4" /></Button>
           </div>
@@ -170,15 +172,15 @@ export function FileManagerDrawer({
         {/* Top-level Tab Bar */}
         <div className="flex border-b border-border shrink-0">
           <button onClick={() => setTopTab("garage")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${topTab === "garage" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}>
-            <Gauge className="w-4 h-4" /> Garage
+            <Gauge className="w-4 h-4" /> {t("shell.tabs.garage")}
           </button>
           {showProfile && (
             <button onClick={() => setTopTab("profile")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${topTab === "profile" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}>
-              <User className="w-4 h-4" /> Profile
+              <User className="w-4 h-4" /> {t("shell.tabs.profile")}
             </button>
           )}
           <button onClick={() => setTopTab("device")} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${topTab === "device" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"}`}>
-            <Cpu className="w-4 h-4" /> Device
+            <Cpu className="w-4 h-4" /> {t("shell.tabs.device")}
           </button>
         </div>
 
@@ -244,16 +246,16 @@ export function FileManagerDrawer({
             {!bleAvailable ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 text-center">
                 <BluetoothOff className="w-12 h-12 text-muted-foreground" />
-                <h3 className="font-semibold text-foreground">Bluetooth Not Available</h3>
-                <p className="text-sm text-muted-foreground max-w-[260px]">Web Bluetooth is not supported in this browser. Try Chrome or Edge on a desktop or Android device.</p>
+                <h3 className="font-semibold text-foreground">{t("shell.btNotAvailable")}</h3>
+                <p className="text-sm text-muted-foreground max-w-[260px]">{t("shell.btNotAvailableDesc")}</p>
               </div>
             ) : !device.connection ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 text-center">
                 <Bluetooth className="w-12 h-12 text-muted-foreground" />
-                <h3 className="font-semibold text-foreground">Connect to Logger</h3>
-                <p className="text-sm text-muted-foreground max-w-[260px]">Connect to your DovesDataLogger to manage device settings and tracks.</p>
+                <h3 className="font-semibold text-foreground">{t("shell.connectTitle")}</h3>
+                <p className="text-sm text-muted-foreground max-w-[260px]">{t("shell.connectDesc")}</p>
                 <Button onClick={() => device.connect()} disabled={device.isConnecting} className="gap-2">
-                  {device.isConnecting ? (<><Loader2 className="w-4 h-4 animate-spin" /> Connecting…</>) : (<><Bluetooth className="w-4 h-4" /> Connect</>)}
+                  {device.isConnecting ? (<><Loader2 className="w-4 h-4 animate-spin" /> {t("shell.connecting")}</>) : (<><Bluetooth className="w-4 h-4" /> {t("shell.connect")}</>)}
                 </Button>
               </div>
             ) : (

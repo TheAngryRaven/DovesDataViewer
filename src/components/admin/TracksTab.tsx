@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import type { DbTrack } from '@/lib/db/types';
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 
 export function TracksTab() {
+  const { t } = useTranslation('admin');
   const [tracks, setTracks] = useState<DbTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -25,26 +27,26 @@ export function TracksTab() {
     try {
       setTracks(await db.getTracks());
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
-  }, [db]);
+  }, [db, t]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleAdd = async () => {
     if (!newName.trim() || !newShortName.trim()) return;
     if (newShortName.trim().length > 8) {
-      toast({ title: 'Short name must be 8 characters or less', variant: 'destructive' });
+      toast({ title: t('tracks.shortNameTooLong'), variant: 'destructive' });
       return;
     }
     try {
       await db.createTrack({ name: newName.trim(), short_name: newShortName.trim() });
       setNewName(''); setNewShortName(''); setShowAdd(false);
-      toast({ title: 'Track created' });
+      toast({ title: t('tracks.created') });
       load();
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
   };
 
@@ -53,10 +55,10 @@ export function TracksTab() {
     try {
       await db.updateTrack(id, { name: editName.trim(), short_name: editShortName.trim() });
       setEditingId(null);
-      toast({ title: 'Track updated' });
+      toast({ title: t('tracks.updated') });
       load();
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
   };
 
@@ -65,50 +67,50 @@ export function TracksTab() {
       await db.updateTrack(id, { enabled });
       load();
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await db.deleteTrack(id);
-      toast({ title: 'Track deleted' });
+      toast({ title: t('tracks.deleted') });
       load();
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
   };
 
   return (
     <div className="space-y-4 mt-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-foreground">Tracks</h3>
-        <Button size="sm" onClick={() => setShowAdd(!showAdd)}><Plus className="w-4 h-4 mr-1" /> Add Track</Button>
+        <h3 className="font-semibold text-foreground">{t('tracks.title')}</h3>
+        <Button size="sm" onClick={() => setShowAdd(!showAdd)}><Plus className="w-4 h-4 mr-1" /> {t('tracks.addTrack')}</Button>
       </div>
 
       {showAdd && (
         <div className="racing-card p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Track Name</Label>
+              <Label>{t('tracks.trackName')}</Label>
               <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Orlando Kart Center" />
             </div>
             <div>
-              <Label>Short Name (max 8)</Label>
+              <Label>{t('tracks.shortName')}</Label>
               <Input value={newShortName} onChange={e => setNewShortName(e.target.value.slice(0, 8))} placeholder="OKC" maxLength={8} />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleAdd}><Check className="w-4 h-4 mr-1" /> Create</Button>
+            <Button size="sm" onClick={handleAdd}><Check className="w-4 h-4 mr-1" /> {t('tracks.create')}</Button>
             <Button size="sm" variant="outline" onClick={() => setShowAdd(false)}><X className="w-4 h-4" /></Button>
           </div>
         </div>
       )}
 
       {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       ) : tracks.length === 0 ? (
-        <p className="text-muted-foreground">No tracks in database.</p>
+        <p className="text-muted-foreground">{t('tracks.none')}</p>
       ) : (
         <div className="space-y-2">
           {tracks.map(track => (

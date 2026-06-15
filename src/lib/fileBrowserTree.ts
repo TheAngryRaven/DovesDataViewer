@@ -209,7 +209,7 @@ interface TopGroup {
 }
 
 /** Top-level groups: one per track (alpha), then an "Untagged" bucket if needed. */
-function topLevelGroups(sessions: BrowserSession[]): TopGroup[] {
+function topLevelGroups(sessions: BrowserSession[], untaggedLabel: string): TopGroup[] {
   const tagged = sessions.filter(isTagged);
   const untagged = sessions.filter((s) => !isTagged(s));
   const groups: TopGroup[] = distinctSorted(tagged.map((s) => s.trackName!)).map((track) => ({
@@ -218,7 +218,7 @@ function topLevelGroups(sessions: BrowserSession[]): TopGroup[] {
     sessions: tagged.filter((s) => s.trackName === track),
   }));
   if (untagged.length > 0) {
-    groups.push({ key: UNTAGGED_TRACK, label: "Untagged", sessions: untagged });
+    groups.push({ key: UNTAGGED_TRACK, label: untaggedLabel, sessions: untagged });
   }
   return groups;
 }
@@ -275,9 +275,21 @@ function logsView(
  * so the user only sees folders where there's a real choice to make. Stale nav
  * (a track/course that no longer exists) gracefully falls back toward the root.
  */
-export function computeBrowserView(sessions: BrowserSession[], nav: NavState): BrowserView {
-  const groups = topLevelGroups(sessions);
-  const breadcrumb: BreadcrumbSegment[] = [{ label: "All sessions", nav: ROOT_NAV }];
+/** Display labels for the two synthetic, non-data strings the tree produces.
+ * Defaulted to English so pure callers/tests need not supply them; the UI passes
+ * translated values (i18n stays out of this pure module). */
+export interface BrowserViewLabels {
+  allSessions?: string;
+  untagged?: string;
+}
+
+export function computeBrowserView(
+  sessions: BrowserSession[],
+  nav: NavState,
+  labels: BrowserViewLabels = {},
+): BrowserView {
+  const groups = topLevelGroups(sessions, labels.untagged ?? "Untagged");
+  const breadcrumb: BreadcrumbSegment[] = [{ label: labels.allSessions ?? "All sessions", nav: ROOT_NAV }];
 
   // ── Track level ──
   let effTrack = nav.track;

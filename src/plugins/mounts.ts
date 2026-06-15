@@ -21,6 +21,10 @@ export const MountSlot = {
   /** Rendered inside the file delete-confirm banner. Context: the target file +
    *  a hook to run an extra action when the user confirms the delete. */
   FileDeleteConfirm: "file-delete-confirm",
+  /** Rendered in the landing-page (pre-session) action-tile grid. Context: none.
+   *  Lets a plugin add a home-screen entry (e.g. the Tools tile) before any
+   *  telemetry is loaded — the only plugin surface that exists off-session. */
+  Landing: "landing",
 } as const;
 export type MountSlot = (typeof MountSlot)[keyof typeof MountSlot];
 
@@ -41,6 +45,13 @@ export interface FileDeleteConfirmContext {
    */
   registerOnConfirm: (fn: (() => Promise<void>) | null) => void;
 }
+
+/**
+ * Context handed to a `MountSlot.Landing` component. Empty for now — the landing
+ * page has no per-item context; reserved so the contract can grow without
+ * touching call sites.
+ */
+export type LandingContext = Record<string, never>;
 
 /**
  * A mount descriptor. The component receives its slot's context as a single

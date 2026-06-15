@@ -1,17 +1,23 @@
 import { useState, useEffect, useCallback, useMemo, useRef, type MutableRefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Loader2, LocateFixed, Pencil, Undo2, Trash2, Route, Eye, EyeOff, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { SectorLine, CourseSector } from '@/types/racing';
 import type { Lap, GpsSample } from '@/types/racing';
-import { sectorLabels } from '@/lib/courseSectors';
+import { sectorLabels, centeredSectorLine } from '@/lib/courseSectors';
 import { resamplePolyline, calculatePolylineLength, generatedDrawingSpacing } from '@/lib/trackUtils';
 import { useWaybackImagery } from '@/hooks/useWaybackImagery';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { DEFAULT_SATELLITE_TILE_URL } from '@/lib/satelliteImagery';
 import { isDebugEnabled } from '@/lib/debugConsole';
 import L from 'leaflet';
+// The editor map needs Leaflet's stylesheet to position its panes/tiles. The
+// in-session maps (RaceLineView, MiniMap) import it too, but neither mounts on
+// the landing page — so without this import the home-screen track editor renders
+// the map with no Leaflet CSS (tiles flow in document order, zoom off-centre).
+import 'leaflet/dist/leaflet.css';
 
 export interface GpsPoint {
   lat: number;
@@ -74,6 +80,7 @@ interface VisualEditorToolbarProps {
 }
 
 function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCount = 0, canToggleKnownDrawing = false, showKnownDrawing = true, onToggleKnownDrawing, onUndoDraw, onClearDraw, laps, onGenerateFromLap, hasSamples = false, onGenerateFromSession }: VisualEditorToolbarProps) {
+  const { t } = useTranslation('tracks');
   const [showLapPicker, setShowLapPicker] = useState(false);
   const hasLaps = !!laps && laps.length > 0;
   const canGenerate = hasLaps || hasSamples;
@@ -119,7 +126,7 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
               onClick={onToggleDraw}
             >
               <Pencil className="w-3.5 h-3.5" />
-              Draw
+              {t('visual.draw')}
             </Button>
         )}
         {showDrawTool && canGenerate && (
@@ -130,7 +137,7 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
                 onClick={handleGenerateClick}
               >
                 <Route className="w-3.5 h-3.5" />
-                Generate
+                {t('visual.generate')}
               </Button>
         )}
         {canToggleKnownDrawing && (
@@ -141,7 +148,7 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
             onClick={onToggleKnownDrawing}
           >
             {showKnownDrawing ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            Toggle Known Drawing
+            {t('visual.toggleKnownDrawing')}
           </Button>
         )}
         {drawMode && drawPointCount > 0 && (
@@ -153,7 +160,7 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
               onClick={onUndoDraw}
             >
               <Undo2 className="w-3.5 h-3.5" />
-              Undo
+              {t('visual.undo')}
             </Button>
             <Button
               variant="outline"
@@ -162,14 +169,14 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
               onClick={onClearDraw}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Clear
+              {t('visual.clear')}
             </Button>
           </>
         )}
       </div>
       {showLapPicker && (
         <div className="p-3 bg-card border border-border rounded-lg space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Generate the outline from:</p>
+          <p className="text-xs font-medium text-muted-foreground">{t('visual.generateFrom')}</p>
           <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
             {hasSamples && (
               <Button
@@ -178,7 +185,7 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
                 className="h-7 text-xs"
                 onClick={handleSessionSelect}
               >
-                Whole session
+                {t('visual.wholeSession')}
               </Button>
             )}
             {laps?.map(lap => (
@@ -189,12 +196,12 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
                 className="h-7 text-xs font-mono"
                 onClick={() => handleLapSelect(lap.lapNumber)}
               >
-                Lap {lap.lapNumber} — {formatLapTime(lap.lapTimeMs)}
+                {t('visual.lapOption', { number: lap.lapNumber, time: formatLapTime(lap.lapTimeMs) })}
               </Button>
             ))}
           </div>
           <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowLapPicker(false)}>
-            Cancel
+            {t('visual.cancel')}
           </Button>
         </div>
       )}
@@ -209,6 +216,7 @@ export function VisualEditor({
   showDrawTool = false, layoutPoints: layoutPointsProp, showKnownDrawingToggle = false, onLayoutChange,
   laps, samples, viewCenterRef,
 }: VisualEditorProps) {
+  const { t } = useTranslation('tracks');
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
@@ -292,6 +300,18 @@ export function VisualEditor({
   // All line ids in course order (start/finish first).
   const allLineIds = useMemo<LineId[]>(() => ['sf', ...sectors.map((_, i) => i)], [sectors]);
 
+  // For a brand-new course the start/finish line has no coordinates yet, so it
+  // can't be rendered or dragged. Drop it in the center of the chosen view — when
+  // the venue is already known (GPS center) on mount, or right after the user
+  // searches / locates. Gated on "no S/F yet" so it never clobbers a placed line;
+  // the reset button re-drops on demand.
+  const maybeDropStartFinish = useCallback((center: GpsPoint) => {
+    if (!isNewTrack || (startFinishA && startFinishB)) return;
+    const line = centeredSectorLine(center);
+    onStartFinishChange?.(line.a, line.b);
+    onSelectLineRef.current?.('sf');
+  }, [isNewTrack, startFinishA, startFinishB, onStartFinishChange]);
+
   // Location search using Nominatim
   const handleLocationSearch = useCallback(async () => {
     if (!searchQuery.trim() || !mapRef.current) return;
@@ -308,15 +328,18 @@ export function VisualEditor({
         const { lat, lon } = results[0];
         mapRef.current.setView([parseFloat(lat), parseFloat(lon)], 17, { animate: true });
         setSearchQuery('');
+        // The user just chose their venue — drop the start/finish here if it
+        // hasn't been placed yet, so it lands in view rather than at the default.
+        maybeDropStartFinish({ lat: parseFloat(lat), lon: parseFloat(lon) });
       } else {
-        toast({ title: 'Location not found', description: 'Try a different search term', variant: 'destructive' });
+        toast({ title: t('visual.locNotFound'), description: t('visual.locNotFoundDesc'), variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'Search failed', description: 'Could not search for location', variant: 'destructive' });
+      toast({ title: t('visual.searchFailed'), description: t('visual.searchFailedDesc'), variant: 'destructive' });
     } finally {
       setIsSearching(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, t, maybeDropStartFinish]);
 
   // Calculate center from existing points, GPS data, or default
   const getInitialCenter = (): [number, number] => {
@@ -332,22 +355,23 @@ export function VisualEditor({
   // Use device geolocation to center the map
   const handleUseMyLocation = useCallback(() => {
     if (!mapRef.current || !navigator.geolocation) {
-      toast({ title: 'Geolocation not available', description: 'Your browser does not support geolocation', variant: 'destructive' });
+      toast({ title: t('visual.geoUnavailable'), description: t('visual.geoUnavailableDesc'), variant: 'destructive' });
       return;
     }
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         mapRef.current?.setView([pos.coords.latitude, pos.coords.longitude], 17, { animate: true });
+        maybeDropStartFinish({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         setIsLocating(false);
       },
       (err) => {
-        toast({ title: 'Location error', description: err.message, variant: 'destructive' });
+        toast({ title: t('visual.locError'), description: err.message, variant: 'destructive' });
         setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, []);
+  }, [t, maybeDropStartFinish]);
 
   // Clear interactive editing layers
   const clearEditingLayers = () => {
@@ -505,7 +529,7 @@ export function VisualEditor({
     const dbg = isDebugEnabled();
     if (rawPoints.length < 2) {
       if (dbg) console.warn('[generate] aborted: rawPoints < 2', { rawPoints: rawPoints.length });
-      toast({ title: 'Not enough GPS data', description: 'Insufficient GPS points for a drawing', variant: 'destructive' });
+      toast({ title: t('visual.notEnoughGps'), description: t('visual.notEnoughGpsDesc'), variant: 'destructive' });
       return;
     }
     try {
@@ -514,7 +538,7 @@ export function VisualEditor({
       if (dbg) console.info('[generate] resampled', { rawPoints: rawPoints.length, spacing, points: points.length, hasMap: !!mapRef.current, hasOnLayoutChange: !!onLayoutChange });
       if (points.length < 2) {
         if (dbg) console.warn('[generate] aborted: resampled points < 2', { spacing, points: points.length });
-        toast({ title: 'Could not generate outline', description: 'The GPS trace was too short or stationary.', variant: 'destructive' });
+        toast({ title: t('visual.couldNotGenerate'), description: t('visual.tooShort'), variant: 'destructive' });
         return;
       }
       drawPointsRef.current = points;
@@ -526,12 +550,12 @@ export function VisualEditor({
         const bounds = L.latLngBounds(points.map(p => [p.lat, p.lon] as [number, number]));
         mapRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
       }
-      toast({ title: 'Drawing generated', description: `${label} (${points.length} points).` });
+      toast({ title: t('visual.drawingGenerated'), description: t('visual.drawingGeneratedDesc', { label, count: points.length }) });
     } catch (err) {
       console.error('Drawing generation failed', err);
-      toast({ title: 'Could not generate outline', description: 'See debug log (?dbg=true) for details.', variant: 'destructive' });
+      toast({ title: t('visual.couldNotGenerate'), description: t('visual.seeDebug'), variant: 'destructive' });
     }
-  }, [updateDrawPolyline, onLayoutChange]);
+  }, [updateDrawPolyline, onLayoutChange, t]);
 
   const handleGenerateFromLap = useCallback((lapNumber: number) => {
     if (!samples || !laps) return;
@@ -539,14 +563,14 @@ export function VisualEditor({
     if (!lap) return;
     const lapSamples = samples.slice(lap.startIndex, lap.endIndex + 1);
     const rawPoints = lapSamples.filter(s => s.lat !== 0 && s.lon !== 0).map(s => ({ lat: s.lat, lon: s.lon }));
-    applyGeneratedDrawing(rawPoints, `Generated from Lap ${lapNumber}`);
-  }, [samples, laps, applyGeneratedDrawing]);
+    applyGeneratedDrawing(rawPoints, t('visual.generatedFromLap', { number: lapNumber }));
+  }, [samples, laps, applyGeneratedDrawing, t]);
 
   const handleGenerateFromSession = useCallback(() => {
     if (!samples) return;
     const rawPoints = samples.filter(s => s.lat !== 0 && s.lon !== 0).map(s => ({ lat: s.lat, lon: s.lon }));
-    applyGeneratedDrawing(rawPoints, 'Generated from the full session');
-  }, [samples, applyGeneratedDrawing]);
+    applyGeneratedDrawing(rawPoints, t('visual.generatedFromSession'));
+  }, [samples, applyGeneratedDrawing, t]);
 
   const handleToggleKnownDrawing = useCallback(() => {
     setShowKnownDrawing(prev => !prev);
@@ -643,6 +667,15 @@ export function VisualEditor({
     if (tileLayerRef.current) tileLayerRef.current.setUrl(satelliteTileUrl);
   }, [satelliteTileUrl]);
 
+  // New course whose venue is already known (GPS-loaded): drop the start/finish
+  // at that center as soon as the map is ready, so it's immediately editable.
+  // Blank new tracks wait for a search / locate / reset instead, so a line never
+  // lands at the default fallback location.
+  useEffect(() => {
+    if (!mapReady || !initialCenterProp) return;
+    maybeDropStartFinish(initialCenterProp);
+  }, [mapReady, initialCenterProp, maybeDropStartFinish]);
+
   // Handle resize
   useEffect(() => {
     if (!mapRef.current || !mapContainerRef.current) return;
@@ -701,14 +734,14 @@ export function VisualEditor({
   const getHelperText = (): string => {
     if (drawMode) {
       return drawPoints.length === 0
-        ? 'Click on the map to start drawing the track layout'
-        : `${drawPoints.length} point${drawPoints.length !== 1 ? 's' : ''} — click to add more, Undo to remove last`;
+        ? t('visual.drawStart')
+        : t('visual.drawPoints', { count: drawPoints.length });
     }
     if (selectedLine === null) return '';
-    const name = selectedLine === 'sf' ? 'Start/Finish' : `Sector ${labels[selectedLine + 1] ?? ''}`;
+    const name = selectedLine === 'sf' ? t('visual.startFinishLine') : t('sectors.sectorRow', { label: labels[selectedLine + 1] ?? '' });
     const coords = coordsFor(selectedLine);
-    if (!coords) return `No ${name} line defined`;
-    return `Drag the markers to adjust the ${name} line — changes save automatically when you release`;
+    if (!coords) return t('visual.noLineDefined', { name });
+    return t('visual.dragMarkers', { name });
   };
 
   return (
@@ -716,7 +749,7 @@ export function VisualEditor({
       {isNewTrack && (
         <div className="flex gap-2">
           <Input
-            placeholder="Search location..."
+            placeholder={t('visual.searchLocation')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -729,7 +762,7 @@ export function VisualEditor({
           <Button variant="outline" size="sm" className="h-8 px-3" onClick={handleLocationSearch} disabled={isSearching || !searchQuery.trim() || !mapRef.current}>
             {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           </Button>
-          <Button variant="outline" size="sm" className="h-8 px-3" onClick={handleUseMyLocation} disabled={isLocating || !mapRef.current} title="Use my location">
+          <Button variant="outline" size="sm" className="h-8 px-3" onClick={handleUseMyLocation} disabled={isLocating || !mapRef.current} title={t('visual.useMyLocation')}>
             {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
           </Button>
         </div>
@@ -751,7 +784,7 @@ export function VisualEditor({
       />
       {showDrawTool && (
         <p className="text-xs text-muted-foreground">
-          Drawing an outline helps on-device course detection.
+          {t('visual.drawingHelps')}
         </p>
       )}
       {/* Satellite imagery date — step the basemap back to a cloud-free Esri
@@ -759,15 +792,15 @@ export function VisualEditor({
       {isOnline && !wayback.error && (
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <CalendarClock className="w-3.5 h-3.5 shrink-0" />
-          <span className="shrink-0">Imagery date:</span>
+          <span className="shrink-0">{t('visual.imageryDate')}</span>
           <select
             value={satelliteDate}
             onChange={(e) => setSatelliteDate(e.target.value)}
             disabled={wayback.loading && wayback.releases.length === 0}
             className="flex-1 min-w-0 bg-transparent text-foreground/90 text-xs outline-none cursor-pointer border border-border rounded px-1 py-0.5"
-            title="Satellite imagery capture date"
+            title={t('visual.imageryDateTitle')}
           >
-            <option value="">{wayback.loading ? 'Loading dates…' : 'Latest (default)'}</option>
+            <option value="">{wayback.loading ? t('visual.loadingDates') : t('visual.latestDefault')}</option>
             {wayback.releases.map((r) => (
               <option key={r.releaseNum} value={r.date}>{r.date}</option>
             ))}

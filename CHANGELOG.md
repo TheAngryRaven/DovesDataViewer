@@ -11,9 +11,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [2.5.1] - unreleased
+## [2.6.0] - unreleased
 
 ### Added
+- **Tools on the home screen.** A new **Tools** tile on the landing page opens the
+  trackside tools (the seat-position visualizer and more) in a full-screen panel —
+  no datalog needed.
+- **Datalogger (early/experimental).** A new tool that turns your phone's GPS into
+  a live lap timer: a big delta to your best lap (red when you're slower, green
+  when faster), current/best/last/optimal lap times, speed, and a **Lap Times**
+  list with major-sector splits. It starts recording once you're moving above
+  5 mph and saves the session as a `.dovep` log to your files when you end it
+  (auto-ends after 5 minutes stopped, or tap **End**) — then opens and reviews
+  exactly like any other log. Early days: the timing and UI will be refined in
+  upcoming updates.
+- **Translations / multi-language support (foundation).** The app now has an
+  internationalization system (built on i18next) with a **Language** picker in
+  Settings. It auto-detects your browser language on first run and ships
+  **English, Spanish, French, German, Italian, Brazilian Portuguese and
+  Japanese**. Non-English languages start as machine translations and will be
+  hand-tuned over time. Everything stays fully offline — each language loads on
+  demand and is cached by the app. Translated so far: the home screen, the
+  Settings panel, the **core in-session UI** (view tabs, the lap-times table, and
+  the Snapshots, Overlays and crop-to-sector controls), and the **live analysis
+  views** — the race-line map and the pro graph view (legends, the graph picker,
+  the G-G diagram, and the info panel), and the **video** player and overlay/
+  export tools (player controls, the export dialog, overlay settings, and the
+  overlay widget labels), and most of the **Garage drawer** — Files & Vehicles
+  (the drawer/device tab chrome, the file browser, the vehicle + engine manager)
+  plus **Setups & Notes** (the setup editor, the vehicle-type builder, session
+  notes, and the read-only setup table) and **Device** (device settings, the
+  firmware updater, and the track-sync manager). The **weather** panel and METAR
+  lookup dialog are also translated now, along with the **track tools** — the
+  track/course editor and manager (including the visual line/outline editor and
+  the auto-detect prompt) and the community track-submission flow, and the
+  **Cloud Sync** Profile panels — Account, Lap snapshots, Cloud logs, and Data &
+  privacy, plus the per-file cloud sync/delete toggles and the background
+  sync/export status messages, and the **Tools** tab — the tool picker and the
+  kart seat-position visualizer, and the **account pages** — sign in, create
+  account, forgot/reset password, the sign-in callback, and the **plans &
+  pricing** section on the sign-up page — and the home-screen
+  **file drop zone** ("Open a datalog") plus the **About**, **Supported Files**,
+  **Credits**, **Contact** and **browser-compatibility** dialogs, and the entire
+  **admin panel** (every tab — Messages, Submissions, Tracks, Courses, Tools and
+  Banned IPs). With this, the whole app is translated.
+  (Open-source library names and GitHub link names stay in English by design, as
+  do the legal pages.)
 - **Log type bubble in the file browser.** Each session row (shown by date/time)
   now carries a small pill with the log's format — Dove, Dovex, XRK, XRZ,
   iRacing, VBO, MoTeC, UBX, NMEA, CSV, … — derived from the file's extension, so
@@ -37,6 +80,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from tablet up.
 
 ### Fixed
+- **Datalogger looked like it didn't recognise the track while parked.** Sitting
+  still at a known venue, the tool shows a plain speedometer (lap timing only arms
+  once you're moving above 5 mph) — but it gave no sign the track had been
+  detected, so it was indistinguishable from the genuine "no tracks found nearby"
+  state. The waiting speedometer now names the recognised track (e.g. "Orlando
+  Kart Center detected nearby") when you're near one, so it's clear the track list
+  loaded and you're just waiting to start moving.
+- **Start/finish line couldn't be placed on a new track/course.** After the
+  sector-editor overhaul, a brand-new course had no coordinates for its
+  start/finish line, so it never appeared on the map and there was no way to
+  create or drag it (it effectively sat at null-island). The start/finish line is
+  now dropped into the center of the chosen map view — automatically once the
+  venue is known (a GPS-loaded session, or right after a location search / "use
+  my location") — and the start/finish row gains a **reset** button that
+  re-drops it in the current view so it can always be (re)placed and then dragged
+  into position, just like the other sector lines. Tapping the start/finish row
+  itself also drops the line when none exists yet, so there's nothing to hunt for.
+- **Track editor back/close buttons.** The course editor had a redundant second
+  close button, and "Back to Selection" left the edited course open underneath —
+  so reopening Manage jumped straight back into that course. The extra close
+  button is gone, "Back to Selection" is now just **Back** and steps back one
+  level at a time (course editor → course list → selection) without stranding the
+  previous course.
+- **Track editor map was broken on the home screen.** Opening the satellite map
+  (Add/Edit course) from the landing-page track manager — with no session loaded
+  — rendered the map with scattered tiles and off-centre zoom. Leaflet's
+  stylesheet was only pulled in by the in-session maps (`RaceLineView`/`MiniMap`),
+  which don't mount on the landing page, so the editor map ran without it and its
+  tiles fell back to normal document flow. The editor map now imports
+  `leaflet/dist/leaflet.css` itself, so it renders correctly with or without a
+  loaded session.
 - **Pro-mode panel resizing on touch.** Dragging a resizable divider (the
   left/right split and the InfoBox/MiniMap split in pro mode, plus the video
   panel) would stop after only a few pixels on touchscreens. The handle's

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo, useState, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import { GpsSample, Course, ParserStats } from '@/types/racing';
 import { normalizeCourseSectors } from '@/lib/courseSectors';
@@ -110,6 +111,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
 }
 
 export function RaceLineView({ samples, allSamples, referenceSamples = [], course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays, showOverlayLegend = true, onToggleOverlayLegend }: RaceLineViewProps) {
+  const { t } = useTranslation('session');
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const { currentIndex } = usePlaybackContext();
   // Use allSamples for statistics if provided, otherwise fall back to samples
@@ -520,9 +522,9 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
   };
 
   const mapStyleLabel = {
-    dark: 'Dark',
-    satellite: 'Satellite',
-    none: 'None',
+    dark: t('map.styleDark'),
+    satellite: t('map.styleSatellite'),
+    none: t('map.styleNone'),
   };
 
   const unit = useKph ? 'kph' : 'mph';
@@ -541,10 +543,10 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
             <button
               onClick={onToggleOverlayLegend}
               className={`flex items-center gap-1.5 text-xs font-mono ${showOverlayLegend ? 'text-primary' : 'text-muted-foreground'}`}
-              title={showOverlayLegend ? 'Collapse overlay list' : `Show overlay list (${overlayLines.length})`}
+              title={showOverlayLegend ? t('map.overlaysCollapseTitle') : t('map.overlaysShowTitle', { count: overlayLines.length })}
             >
               <List className="w-3 h-3 shrink-0" />
-              <span>{showOverlayLegend ? 'Overlays' : `${overlayLines.length} overlay${overlayLines.length === 1 ? '' : 's'}`}</span>
+              <span>{showOverlayLegend ? t('map.overlays') : t('map.overlayCount', { count: overlayLines.length })}</span>
               {showOverlayLegend ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronUp className="w-3 h-3 shrink-0" />}
             </button>
           )}
@@ -552,10 +554,10 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
             <button
               onClick={onToggleAlignOverlays}
               className={`flex items-center gap-1.5 text-xs font-mono ${alignOverlays ? 'text-primary' : 'text-muted-foreground'}`}
-              title="Drift-align cross-session overlays onto the current lap"
+              title={t('map.alignTitle')}
             >
               <Crosshair className="w-3 h-3 shrink-0" />
-              <span>Align: {alignOverlays ? 'on' : 'off'}</span>
+              <span>{t('map.align')}: {alignOverlays ? t('map.on') : t('map.off')}</span>
             </button>
           )}
           {showOverlayLegend && overlayLines.map(line => (
@@ -566,7 +568,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                 <button
                   onClick={() => onRemoveOverlay(line.id)}
                   className="shrink-0 text-muted-foreground hover:text-destructive"
-                  title="Remove overlay"
+                  title={t('overlays.remove')}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -585,7 +587,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
             className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted/50 transition-colors mb-2"
           >
             {mapStyleIcon[mapStyle]}
-            <span className="text-xs text-muted-foreground">Map: {mapStyleLabel[mapStyle]}</span>
+            <span className="text-xs text-muted-foreground">{t('map.mapPrefix')}: {mapStyleLabel[mapStyle]}</span>
           </button>
 
           {/* Satellite imagery date — pick an older Esri Wayback capture to dodge
@@ -593,9 +595,9 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
           {mapStyle === 'satellite' && (
             <div className="mb-2 -mt-1 px-2">
               {!isOnline ? (
-                <p className="text-[11px] text-muted-foreground">Imagery date needs a connection.</p>
+                <p className="text-[11px] text-muted-foreground">{t('map.imageryNeedsConnection')}</p>
               ) : wayback.error ? (
-                <p className="text-[11px] text-muted-foreground">Imagery dates unavailable.</p>
+                <p className="text-[11px] text-muted-foreground">{t('map.imageryUnavailable')}</p>
               ) : (
                 <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <CalendarClock className="w-3 h-3 shrink-0" />
@@ -604,9 +606,9 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                     onChange={(e) => setSatelliteDate(e.target.value)}
                     disabled={wayback.loading && wayback.releases.length === 0}
                     className="flex-1 min-w-0 bg-transparent text-foreground/90 text-[11px] outline-none cursor-pointer"
-                    title="Satellite imagery capture date"
+                    title={t('map.imageryDateTitle')}
                   >
-                    <option value="">{wayback.loading ? 'Loading dates…' : 'Latest (default)'}</option>
+                    <option value="">{wayback.loading ? t('map.imageryLoading') : t('map.imageryLatest')}</option>
                     {wayback.releases.map((r) => (
                       <option key={r.releaseNum} value={r.date}>{r.date}</option>
                     ))}
@@ -625,18 +627,18 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                 className="scale-75"
               />
               <Label htmlFor="speed-events" className="text-xs text-muted-foreground cursor-pointer">
-                Speed events
+                {t('map.speedEvents')}
               </Label>
             </div>
             {showSpeedEvents && speedEventsForMarkers.length > 0 && (
               <div className="flex items-center gap-3 mt-2 text-xs">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(142, 76%, 36%)' }} />
-                  <span className="text-muted-foreground">Peak</span>
+                  <span className="text-muted-foreground">{t('map.peak')}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(0, 84%, 50%)' }} />
-                  <span className="text-muted-foreground">Valley</span>
+                  <span className="text-muted-foreground">{t('map.valley')}</span>
                 </div>
               </div>
             )}
@@ -650,7 +652,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                 className="scale-75"
               />
               <Label htmlFor="braking-zones" className="text-xs text-muted-foreground cursor-pointer">
-                Braking zones
+                {t('map.brakingZones')}
               </Label>
             </div>
             {showBrakingZones && brakingZones.length > 0 && (
@@ -659,7 +661,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                   className="w-3 h-3 rounded" 
                   style={{ backgroundColor: brakingZoneSettings?.color ?? 'hsl(210, 90%, 55%)' }} 
                 />
-                <span className="text-muted-foreground">Braking ({brakingZones.length})</span>
+                <span className="text-muted-foreground">{t('map.brakingCount', { count: brakingZones.length })}</span>
               </div>
             )}
           </div>
@@ -667,7 +669,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
             <div className="border-t border-border pt-2 mt-2">
               <div className="flex items-center gap-1.5 text-xs text-amber-500">
                 <WifiOff className="w-3 h-3" />
-                <span>maps offline!</span>
+                <span>{t('map.mapsOffline')}</span>
               </div>
             </div>
           )}
@@ -679,7 +681,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
         <button
           onClick={() => setSessionMetarOpen(true)}
           className="absolute bottom-4 right-14 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 text-primary"
-          title="Session METAR detail"
+          title={t('map.metarDetail')}
         >
           <FileText className="w-4 h-4" />
         </button>
@@ -689,7 +691,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
       <button
         onClick={() => setShowWeather(prev => !prev)}
         className={`absolute bottom-4 right-4 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 ${showWeather ? 'text-primary' : 'text-muted-foreground'}`}
-        title={showWeather ? 'Hide weather' : 'Show weather'}
+        title={showWeather ? t('map.weatherHide') : t('map.weatherShow')}
       >
         <CloudSun className="w-4 h-4" />
       </button>
@@ -704,7 +706,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
       {/* Speed legend and stats panel */}
       {showOverlays && (
         <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000] min-w-[120px] transition-opacity duration-200">
-          <div className="text-xs text-muted-foreground mb-1">Speed ({unit})</div>
+          <div className="text-xs text-muted-foreground mb-1">{t('map.speedLegend', { unit })}</div>
           <div className="w-full h-3 speed-gradient rounded" />
           <div className="flex justify-between text-xs text-muted-foreground mt-1 font-mono">
             <span>{convertSpeed(minSpeed).toFixed(0)}</span>
@@ -727,7 +729,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                 {/* Lap Time - shown above Avg Top Speed */}
                 {lapTimeMs !== null && (
                   <div className="flex justify-between text-xs mb-2 pb-2 border-b border-border">
-                    <span className="text-muted-foreground">Lap Time:</span>
+                    <span className="text-muted-foreground">{t('stats.lapTime')}:</span>
                     <span className="font-mono text-foreground font-semibold">
                       {formatLapTime(lapTimeMs)}
                     </span>
@@ -735,13 +737,13 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                 )}
                 
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Avg Top Speed:</span>
+                  <span className="text-muted-foreground">{t('stats.avgTopSpeed')}:</span>
                   <span className="font-mono" style={{ color: 'hsl(142, 76%, 45%)' }}>
                     {avgTop !== null ? `${convertSpeed(avgTop).toFixed(1)} ${unit}` : '—'}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Avg Min Speed:</span>
+                  <span className="text-muted-foreground">{t('stats.avgMinSpeed')}:</span>
                   <span className="font-mono" style={{ color: 'hsl(0, 84%, 55%)' }}>
                     {avgMin !== null ? `${convertSpeed(avgMin).toFixed(1)} ${unit}` : '—'}
                   </span>
@@ -751,17 +753,17 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                 {(referenceLapNumber !== null || lapToFastestDelta !== null || deltaTopSpeed !== null || deltaMinSpeed !== null) && (
                   <div className="mt-2 pt-2 border-t border-border space-y-1">
                     <div className="text-xs text-muted-foreground mb-1 text-center">
-                      Δ {paceDiffLabel}
+                      Δ {paceDiffLabel === 'best' ? t('stats.best') : t('stats.ref')}
                     </div>
                     {referenceLapNumber !== null && (
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Δ Lap</span>
+                        <span className="text-muted-foreground">Δ {t('stats.lap')}</span>
                         <span className="font-mono text-foreground">{referenceLapNumber}</span>
                       </div>
                     )}
                     {lapToFastestDelta !== null && (
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Δ Time:</span>
+                        <span className="text-muted-foreground">Δ {t('stats.time')}:</span>
                         <span 
                           className="font-mono"
                           style={{ color: lapToFastestDelta < 0 ? 'hsl(142, 76%, 45%)' : lapToFastestDelta > 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
@@ -772,7 +774,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                     )}
                     {deltaTopSpeed !== null && (
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Δ Top Speed:</span>
+                        <span className="text-muted-foreground">Δ {t('stats.topSpeed')}:</span>
                         <span 
                           className="font-mono"
                           style={{ color: deltaTopSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaTopSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
@@ -783,7 +785,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                     )}
                     {deltaMinSpeed !== null && (
                       <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Δ Min Speed:</span>
+                        <span className="text-muted-foreground">Δ {t('stats.minSpeed')}:</span>
                         <span 
                           className="font-mono"
                           style={{ color: deltaMinSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaMinSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}
@@ -820,24 +822,27 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
           {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
             <div>
               <span className="text-destructive font-semibold">{droppedPacketInfo.droppedCount}</span>
-              {' '}pkt{droppedPacketInfo.droppedCount !== 1 ? 's' : ''} dropped
-              {' '}({droppedPacketInfo.dropRate.toFixed(1)}% loss @ {droppedPacketInfo.hz.toFixed(0)}Hz)
+              {' '}{t('map.pktDropped', {
+                count: droppedPacketInfo.droppedCount,
+                loss: droppedPacketInfo.dropRate.toFixed(1),
+                hz: droppedPacketInfo.hz.toFixed(0),
+              })}
             </div>
           )}
           {parserStats && parserStats.acceptedRows < parserStats.totalRows && (() => {
             const r = parserStats.rejected;
             const totalRejected = parserStats.totalRows - parserStats.acceptedRows;
             const reasons: string[] = [];
-            if (r.teleportation > 0) reasons.push(`${r.teleportation} teleport`);
-            if (r.nanFields > 0) reasons.push(`${r.nanFields} NaN`);
-            if (r.zeroCoords > 0) reasons.push(`${r.zeroCoords} zero-coord`);
-            if (r.outOfRange > 0) reasons.push(`${r.outOfRange} OOR`);
-            if (r.speedCap > 0) reasons.push(`${r.speedCap} speed-cap`);
-            if (r.incompleteRow > 0) reasons.push(`${r.incompleteRow} short-row`);
+            if (r.teleportation > 0) reasons.push(`${r.teleportation} ${t('map.reasonTeleport')}`);
+            if (r.nanFields > 0) reasons.push(`${r.nanFields} ${t('map.reasonNan')}`);
+            if (r.zeroCoords > 0) reasons.push(`${r.zeroCoords} ${t('map.reasonZeroCoord')}`);
+            if (r.outOfRange > 0) reasons.push(`${r.outOfRange} ${t('map.reasonOor')}`);
+            if (r.speedCap > 0) reasons.push(`${r.speedCap} ${t('map.reasonSpeedCap')}`);
+            if (r.incompleteRow > 0) reasons.push(`${r.incompleteRow} ${t('map.reasonShortRow')}`);
             return (
               <div>
                 <span className="text-yellow-500 font-semibold">{totalRejected}</span>
-                {' '}row{totalRejected !== 1 ? 's' : ''} rejected
+                {' '}{t('map.rowsRejected', { count: totalRejected })}
                 {reasons.length > 0 && ` (${reasons.join(', ')})`}
               </div>
             );

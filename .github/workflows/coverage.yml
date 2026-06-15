@@ -23,21 +23,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - run: npm ci
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
 
       - name: Run coverage with gate
         # Fails the job if line coverage drops below the threshold set in
         # vitest.config.ts (currently 1%). Raise it as coverage grows.
-        run: npm run test:coverage
+        run: bun run test:coverage
 
       # ---- Per-PR coverage summary comment (first-party only) ----
       - name: Generate coverage summary
         if: github.event_name == 'pull_request'
-        run: npm run coverage:summary
+        run: bun run coverage:summary
 
       - name: Post coverage summary comment
         if: github.event_name == 'pull_request'
@@ -77,7 +74,7 @@ jobs:
       - name: Generate badge fields
         id: badge
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: npm run coverage:badge
+        run: bun run coverage:badge
 
       - name: Push badge to coverage gist
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'

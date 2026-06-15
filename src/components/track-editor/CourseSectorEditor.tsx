@@ -1,5 +1,6 @@
-import { lazy, Suspense, useMemo, useRef } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useRef } from 'react';
 import { Course, CourseSector, SectorLine, Lap, GpsSample } from '@/types/racing';
+import { centeredSectorLine } from '@/lib/courseSectors';
 import { SectorListEditor } from './SectorListEditor';
 import type { GpsPoint, LineId } from './VisualEditor';
 import type { SelectedLine } from '@/hooks/useTrackEditorForm';
@@ -46,6 +47,28 @@ export function CourseSectorEditor({
   // new sector drops in the middle of the current view.
   const viewCenterRef = useRef<GpsPoint | null>(null);
 
+  // Re-drop the start/finish line in the center of the current map view (used by
+  // the reset button on the start/finish row, and the only way to (re)place it
+  // on a brand-new course where it has no coordinates yet).
+  const handleResetStartFinish = useCallback(() => {
+    const center = viewCenterRef.current;
+    if (!center) return;
+    const line = centeredSectorLine(center);
+    onStartFinishChange(line.a, line.b);
+    onSelectLine('sf');
+  }, [onStartFinishChange, onSelectLine]);
+
+  // Selecting a line that has no geometry yet — the start/finish on a brand-new
+  // course — drops one at the current view center instead of selecting an empty
+  // line, so a tap is enough and the user never has to hunt for the reset button.
+  const handleSelectLine = useCallback((id: SelectedLine) => {
+    if (isNewTrack && id === 'sf' && !(startFinishA && startFinishB)) {
+      handleResetStartFinish();
+      return;
+    }
+    onSelectLine(id);
+  }, [isNewTrack, startFinishA, startFinishB, handleResetStartFinish, onSelectLine]);
+
   // Minimal course for the list's labels + validation (coords unused there).
   const course = useMemo<Course>(() => ({
     name: '',
@@ -62,7 +85,7 @@ export function CourseSectorEditor({
           startFinishB={startFinishB}
           sectors={sectors}
           selectedLine={selectedLine as LineId | null}
-          onSelectLine={(id) => onSelectLine(id)}
+          onSelectLine={handleSelectLine}
           onStartFinishChange={onStartFinishChange}
           onSectorLineChange={onSectorLineChange}
           isNewTrack={isNewTrack}
@@ -80,11 +103,12 @@ export function CourseSectorEditor({
         course={course}
         sectors={sectors}
         selectedLine={selectedLine}
-        onSelectLine={onSelectLine}
+        onSelectLine={handleSelectLine}
         onAddSector={(insertIndex) => onAddSector(insertIndex, viewCenterRef.current ?? undefined)}
         onRemoveSector={onRemoveSector}
         onToggleMajor={onToggleMajor}
         onReorder={onReorder}
+        onResetStartFinish={isNewTrack ? handleResetStartFinish : undefined}
       />
     </div>
   );

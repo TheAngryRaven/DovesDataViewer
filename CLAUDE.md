@@ -27,8 +27,8 @@
 This repo is public, released, and CI-gated. Treat every change as if a stranger
 will read it tomorrow.
 
-- **Green before merge**: `npm run lint`, `npm run typecheck`, `npm run test:run`,
-  and `npm run build` must all pass. CI runs them as four separate workflows on
+- **Green before merge**: `bun run lint`, `bun run typecheck`, `bun run test:run`,
+  and `bun run build` must all pass. CI runs them as four separate workflows on
   every PR — don't merge red.
 - **Tests are part of the change, not a follow-up.** See Golden Rule #6.
 - **Changelog is part of the change.** See Golden Rule #7.
@@ -127,6 +127,7 @@ src/
 │   ├── fileLoadingState.ts # ★ Host pub/sub for the global file-load overlay; parseDatalogFile brackets begin/end
 │   ├── *Storage.ts        # IDB stores: file, kart(compat), vehicle, engine, template, note, setup,
 │   │                      #   video, videoFile, graphPrefs; trackStorage = localStorage (user tracks)
+│   ├── gps/               # ★ Phone-as-datalogger layer: gpsFix (pure GpsFix record = NMEA-sentence replacement + quality/motion/rate helpers), customGps (CustomGps source over watchPosition, injectable geolocation), observationSample (→GpsSample bridge), sessionGate (arm>5mph / auto-end after 5min idle), realtimeTimer (RealtimeLapTimer — incremental laps/sectors/delta reusing the batch timing fns), dovepWriter (.dovep log serializer)
 │   ├── (racing math)      # brakingZones, speedEvents, speedBounds, gforceCalculation, referenceUtils, trackUtils
 │   ├── (charts/video)     # chartUtils (+ buildSeriesPoints per-pixel min/max decimation),
 │   │                      #   canvas2d (prepare2dCanvas conditional buffer resize + strokeSeriesPath),
@@ -150,7 +151,9 @@ src/
 │   ├── buildInfo.ts       # Build version/hash/branch/commit-date stamp (landing footer "what changed" marker; main → version+hash, other branches → branch+hash+commit time + amber preview-DB warning via isPreviewBuild(); values injected by vite define)
 │   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`): pure flag-parse + log ring-buffer + console/global-error capture (mobile/PWA has no dev tools) — rendered by components/DebugConsole.tsx
 │   ├── units.ts           # ★ Pure unit conversions + display formatters for the 3 imperial/metric toggles (speed/distance/weather) — single home for every conversion constant
+│   ├── i18n/              # ★ Internationalization (i18next): config (languages/namespaces + pure resolveInitialLanguage), index (init + lazy dynamic-import backend, English bundled), pluginLocales (registerPluginLocale: plugin-owned namespaces sourced from the plugin's own folder), format (Intl date/number/list), seedUtils (pure parity/placeholder checks) — see Internationalization section
 │   └── utils.ts           # Tailwind cn() helper
+├── locales/              # ★ Translation JSON, src/locales/<lng>/<ns>.json. en/ = source of truth (bundled + typed); es/fr/de/it/pt-BR/ja machine-seeded (lazy chunks). New surfaces add keys here as they're migrated.
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see Plugin Framework section
 │   ├── (framework)        # types, registry, index, panels, mounts, storage + PluginPanelHost/PluginMount
 │   ├── cloud-sync/         # ★ First-party plugin: Supabase file + garage sync — see docs/backend.md
@@ -207,7 +210,7 @@ A plugin absent at build time simply never loads — the app builds/runs without
 | `external-plugins.d.ts` | Ambient type for the `virtual:external-plugins` module |
 | `panels.ts` | **UI panel framework**: `PluginPanel` / `PluginPanelProps` contract, `PANELS_POINT`, `PanelSlot`, `getPanelsForSlot(slot)`. The curated session snapshot is the entire surface a panel can rely on — incl. `sessionSetup` (the current session's assigned setup) + `activeSnapshot` (`PluginSnapshot`: the loaded reference lap snapshot with clean-lap samples + frozen engine/course/vehicle/setup), so a coach panel can compare the current setup against the frozen snapshot setup |
 | `PluginPanelHost.tsx` | Consumer: mounts every panel for a slot in a titled card, each wrapped in a per-panel error boundary; renders a `fallback` when none. A `chromeless` panel skips the card chrome (full-bleed); an all-chromeless slot (`isBareSlot`) drops the host's outer padding so one panel fills the tab |
-| `mounts.ts` | **Inline mount framework**: `PluginMountDef`, `MOUNTS_POINT`, `MountSlot` (`FileRow`, `FileDeleteConfirm`), per-slot context types, `getMounts(slot)`. For injecting raw components into fixed spots in core UI |
+| `mounts.ts` | **Inline mount framework**: `PluginMountDef`, `MOUNTS_POINT`, `MountSlot` (`FileRow`, `FileDeleteConfirm`, `Landing`), per-slot context types, `getMounts(slot)`. For injecting raw components into fixed spots in core UI |
 | `fileSources.ts` | **File-source framework**: `FILE_SOURCES_POINT`, `FileSource` (`listFiles`/`download`), `useFileSources()`. Lets a plugin feed *remote* (cloud) files into the host browser as inline `cloud` rows — host stays cloud-agnostic |
 | `PluginMount.tsx` | Consumer: `<PluginMount slot ctx>` renders every mount for a slot (error-boundaried + Suspense), or nothing when none — safe to drop into core UI unconditionally |
 | `storage.ts` | `getPluginStore(id)`: schema-less KV scoped to one plugin, in its own IndexedDB DB (`dove-plugin-<id>`). Decoupled from core `dbUtils`. Also exposed as `ctx.storage` |
@@ -255,7 +258,10 @@ file + metadata — cloud-sync's per-file sync toggle) and
 `MountSlot.FileDeleteConfirm` (inside the delete-confirm banner, ctx = the target
 file + a `registerOnConfirm` hook so a plugin can run an extra action — e.g.
 cloud-sync's "also delete the cloud copy" — without the host knowing about
-cloud). New mount locations are just new slot strings.
+cloud). `LandingPage` exposes a third, `MountSlot.Landing` (in the action-tile
+grid, ctx = none) — the **only off-session plugin surface**, so a plugin can add a
+home-screen tile before any telemetry is loaded (the `tools` plugin uses it). New
+mount locations are just new slot strings.
 
 **File sources (`fileSources.ts`, `FILE_SOURCES_POINT`):** the seam that puts
 *cloud* files inline in the browser without coupling the host to cloud. A plugin
@@ -283,12 +289,39 @@ stores → `sync_records` jsonb docs, raw blobs → the private `user-files` buc
 **Full data model, sync engine, conflict resolution, and backend live in
 `docs/backend.md`.**
 
-**Tools (first-party plugin, `src/plugins/tools/`):** contributes one chromeless
-panel to `PanelSlot.Tools`: a picker of trackside tools (icon + one-line
-description, catalog in `toolList.ts`) that opens the selected tool with a back
-bar. Everything is lazy (`ToolsPanel` and each tool component), so nothing rides
-the initial bundle, and fully offline. Tool state persists via
-`getPluginStore("tools")`. First tool: the **kart seat position visualizer**
+**Tools (first-party plugin, `src/plugins/tools/`):** contributes a chromeless
+panel to `PanelSlot.Tools` **and** a `MountSlot.Landing` tile: a picker of
+trackside tools (icon + one-line description, catalog in `toolList.ts`) that opens
+the selected tool with a back bar. The landing tile (`ToolsLandingTile.tsx`) opens
+the same picker in a **half-screen right drawer** (Garage-style markup) and hosts
+the Tools panel **sessionless** — it reads the *optional* session/settings
+contexts and falls back to nulls (the landing page is outside those providers),
+mirroring `ProfileTab`. Everything is lazy (`ToolsPanel`, the landing tile, and
+each tool component), so nothing rides the initial bundle, and fully offline. Tool
+state persists via `getPluginStore("tools")`. Tools: the **kart seat position
+visualizer** and a **Datalogger** (`datalogger/`) — live GPS lap timing using the
+phone as the logger (PHASE 1: laptimer-style readout, no map; delta-forward + a
+Lap Times list). Its foundation is the
+host-agnostic **`lib/gps/`** module: `gpsFix.ts` (the pure `GpsFix` record — an
+NMEA-sentence replacement carrying one normalized browser fix + a `GpsFixQuality`
+bucket from horizontal accuracy, the phone's HDOP analog — plus
+`deriveMotion`/`averageHz`), `customGps.ts` (the `CustomGps` source — drives
+`watchPosition` high-accuracy/never-cached, injectable geolocation for tests,
+emits `GpsObservation`s), `sessionGate.ts` (pure arm/auto-idle state machine:
+record above 5 mph, auto-end after 5 min stopped), `realtimeTimer.ts`
+(`RealtimeLapTimer` — incremental laps/major-sectors/best/optimal/delta by
+re-driving the batch timing fns over a growing buffer; the two O(n) recomputes
+are throttled to ≤5 Hz of session time. Exposes `nearKnownTrack`: >~10 mi from
+every known track it stops timing and just logs — the tool then shows speed + a
+"logging for post-race analysis" note), and `dovepWriter.ts`
+(serializes the session to **`.dovep`** — "Dove phone", byte-compatible with
+`.dovex` so the app parses it unchanged; omits channels the phone can't measure
+rather than faking them). `useDatalogger.ts` is the thin browser glue (GPS +
+IndexedDB) over a pure `DataloggerSession` controller (`datalogger/
+dataloggerSession.ts` — gate + record + timer + persist, deps injected so it's
+unit-tested with a fake geolocation + save fns) and saves the `.dovep` log on
+session end (manual red **End** → confirm, or auto-idle) so it's reopened/
+processed like any upload. First tool: the **kart seat position visualizer**
 (`seat-position/`) — a pure, unit-tested rigid-body statics model (`model.ts`:
 4-element mass model with a feet-on-pedals leg-coupling factor, slide + tilt
 about the front anchor, closed-form + central-difference sensitivities, knee IK,
@@ -304,6 +337,29 @@ plugin contracts + `components/ui`).
 `DOVE_PLUGIN_PACKAGES` (build env var) overrides the candidate list when set.
 The coach shares the public stub's `id` with a higher `priority` to override it.
 See `src/plugins/README.md` for the full publish/wire workflow.
+
+> ## ⚠️ SUPER IMPORTANT — coach source differs by branch (DO NOT MERGE BLINDLY)
+>
+> **The `BETA` branch does NOT use the published npm package.** On `BETA` the
+> coach is pulled **straight from the coach repo's `BETA` branch** as a git
+> `optionalDependency` so beta builds always track the latest coach beta without
+> tagging/publishing per iteration:
+> - `package.json` → `"@theangryraven/eye-in-the-sky": "github:TheAngryRaven/DataViewer_coach#BETA"`
+> - `vite.config.ts` → `DEFAULT_PLUGIN_PACKAGES = "@theangryraven/eye-in-the-sky"`
+>
+> **`main` stays on the published npm package** (`@perchwerks/eye-in-the-sky`,
+> tilde-pinned). These are the **only two lines** that differ.
+>
+> **🛑 This must NOT ride a BETA → main merge.** The product-cut dance, **only
+> when the maintainer asks for it**:
+> 1. On `BETA`, flip both lines back to the **published, tagged npm release**
+>    (e.g. `"@theangryraven/eye-in-the-sky": "~X.Y.Z"` + matching
+>    `DEFAULT_PLUGIN_PACKAGES`), run `bun install`, test, **merge to `main`**.
+> 2. After the merge, flip `BETA` back to the `github:…#BETA` git dep above.
+>
+> Re-pin note: a git dep records the resolved **commit SHA** in `bun.lock`, so a
+> new push to the coach's `BETA` does not auto-update — run
+> `bun update @theangryraven/eye-in-the-sky` to pull the latest beta.
 
 Offline-first note: plugins are bundled internal code. Only a plugin's runtime
 network calls (e.g. AI model APIs) go online — the accepted compromise. Supabase
@@ -425,6 +481,15 @@ Byte 8192+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
 ```
 
 GPS data is always parseable even if metadata is corrupted. Metadata is attached as `ParsedData.dovexMetadata`.
+
+**`.dovep` ("Dove phone")** is the Phone Datalogger tool's output
+(`lib/gps/dovepWriter.ts`). It is **byte-compatible `.dovex`** — same metadata
+preamble + Dove CSV — so `isDovexFormat`/`parseDovexFile` read it with no new
+parser (content-based routing in `datalogParser.ts` already matches it). The only
+difference: it carries **only the channels a phone can measure**
+(`timestamp,lat,lng,speed_mph,altitude_m,heading_deg,h_acc_m`) and omits the
+device-only ones (`sats,hdop,rpm,accel_*`) rather than fabricating them. The
+`.dovep` extension just drives the file-browser type bubble (`logFileType.ts`).
 
 ---
 
@@ -922,6 +987,118 @@ existing user data keeps resolving without a destructive migration.
 
 ---
 
+## Internationalization (i18n) — `src/lib/i18n/` + `src/locales/`
+
+Multi-language support built on **i18next + react-i18next**. A phased overhaul
+(full plan: `docs/plans/i18n-translation-system.md`); migrated so far: the
+landing page (incl. the **About**, **Supported Files**, **Credits**, **Contact**
+and **browser-compatibility** dialogs, in the `landing` namespace —
+`browserCompat.ts` returns stable ids the dialog translates), Settings, the
+**core in-session UI** (the tab bar + session header
+in `Index.tsx`, `LapTable`, `LapSnapshotControls`, `OverlaysMenu`,
+`SectorCropSelect`), and the **live analysis views** — the map (`RaceLineView`,
+`MiniMap`) and the pro **GraphView** (`GraphViewPanel`, `GraphPanel`,
+`SingleSeriesChart`, `GGDiagram`, `InfoBox`, plus the simple `TelemetryChart`),
+and the **video** player + overlay/export system (`VideoPlayer`,
+`VideoExportDialog`, `OverlaySettingsPanel`, the overlay-type/theme catalog
+labels, and the text-bearing overlay widgets), and the **garage drawer** —
+shell + Files + Vehicles (`FileManagerDrawer` tab chrome, `FilesTab`,
+`SessionBrowser`, `VehiclesTab`, `EngineCombobox`; the pure `fileBrowserTree`
+takes translated `allSessions`/`untagged` labels so it stays i18n-free) **and
+Setups + Notes** (`SetupsTab`, `TemplateCreator`, `NotesTab`, and the shared
+`InfoBox` `SetupDetails` table) and **Device** (Settings/Tracks/firmware:
+`DeviceSettingsTab`, `DeviceTracksTab`, `FirmwareUpdateSection`) — all the
+`drawer` namespace — plus the **weather** UI (`WeatherPanel`, `LocalWeatherDialog`
+— the `weather` namespace, shared by the in-session panel and the landing-page
+dialog), and the **tracks** UI — the track/course editor + manager
+(`TrackEditor`, `AddTrackDialog`, `AddCourseDialog`, `SectorListEditor`,
+`VisualEditor`, `TrackPromptDialog`) and the community **submission** flow
+(`SubmitTrackDialog`) — the `tracks` namespace (the pure `courseSectors`
+validation strings + `deviceSettingsSchema` labels stay English data), and the
+**cloud-sync plugin** UI — every Profile-tab panel (`StoragePanel`/Account,
+`LapSnapshotsPanel`, `CloudLogsPanel`, `DataPrivacyPanel`), the per-file sync +
+delete toggles, the background `autoSync` quota/offline notices and the
+`accountExport` progress phases (both non-React modules call `i18n.t` directly),
+plus the host `PluginPanelHost` (panel titles are now i18n keys translated at
+render, error/loading chrome) — the `plugins` namespace — and the **Tools
+plugin** (`ToolsPanel`, the tool catalog labels, and the seat-position
+visualizer), which owns its translations **plugin-locally**
+(`src/plugins/tools/locales/<lng>.json`, its own `tools` namespace registered via
+`registerPluginLocale`, with a plugin-local parity test + typed keys) so they
+travel with the plugin on extraction, and the **auth pages** — sign-in, sign-up,
+forgot/reset password, and the OAuth callback (`Login`, `Register`,
+`ForgotPassword`, `ResetPassword`, `AuthCallback`) — the `auth` namespace, and
+the **admin** panel (env-gated) — every tab (shell, Messages, Tracks, Tools,
+Banned IPs, Submissions, Courses) in the `admin` namespace; English-value→key
+maps keep DB-stored values (contact-category badge, submission status) shown
+translated while the stored/queried value stays English. **Every user-facing
+surface is now translated** — the i18n migration is complete (legal pages stay
+English by design).
+(Device-setting **labels** still come from
+`deviceSettingsSchema.ts` data — schema-level i18n is a deliberate follow-up so
+unknown device keys keep passing through as raw labels.)
+
+- **Languages.** `en` (source of truth) + `es`, `fr`, `de`, `it`, `pt-BR`, `ja`,
+  declared once in `lib/i18n/config.ts` (`SUPPORTED_LANGUAGES`, `NAMESPACES`).
+  Adding a language = one entry there + its `src/locales/<lng>/` files. **RTL is
+  out of scope** (needs a bidi/layout pass).
+- **Loading is offline-first + lazy.** English is **bundled** as i18next
+  `resources` (the always-present fallback, zero flash). Every other language is
+  a **dynamic import** of `src/locales/<lng>/<ns>.json` (`importBackend` in
+  `index.ts`) → Vite code-splits each into its own chunk, precached by the SW's
+  JS glob, so switching language works fully offline with no eager bundle cost.
+  i18next + react-i18next live in the `vendor-i18n` chunk.
+- **Language is a setting.** `AppSettings.language` (in `useSettings`, persisted
+  to the existing settings blob). `useSettings` bridges it to
+  `i18n.changeLanguage` via an effect, so the active language always tracks the
+  setting regardless of which UI changed it. First-run default is
+  browser-detected (`resolveInitialLanguage`, pure/tested), read **synchronously
+  from localStorage before render** in `index.ts` (imported first in `main.tsx`)
+  to avoid an English flash. `<html lang>` is kept in sync. The picker is in
+  `SettingsModal`.
+- **Keys are typed.** `src/types/i18next.d.ts` augments react-i18next's resources
+  with the English JSON shape, so `t("settings:title")` is autocompleted and a
+  missing/renamed key fails `tsc -b`. English is the canonical key set.
+- **Namespaces** (`common`, `landing`, `settings`, `session`, `video`, `drawer`, `weather`, `tracks`, `plugins`, `auth`, `admin`) map to per-language JSON files
+  under `src/locales/` and load on demand for their surface. Rich text uses `<Trans>` (e.g. the
+  preview-DB warning); interpolation uses `{{var}}`; pluralization uses i18next's
+  `count`/CLDR (never hand-rolled `s` suffixes). Unit symbols (`km`, `°C`, …),
+  brand/product names, channel ids and formats stay **literal** — translate words
+  around them, not them. Locale-aware date/number/list rendering lives in
+  `lib/i18n/format.ts` (`Intl` wrappers); **units stay a separate axis** owned by
+  `lib/units.ts` — language never swaps imperial/metric.
+- **Plugin-owned namespaces.** A plugin destined for its own repo keeps its
+  translations *in its own folder* instead of `src/locales/`. It calls
+  `registerPluginLocale(ns, en, { es: () => import('./locales/es.json'), … })`
+  (`lib/i18n/pluginLocales.ts`): English is added eagerly via
+  `i18n.addResourceBundle` (zero flash), other languages lazy-load from the
+  plugin dir through the host backend's `read` hook (still offline-precached).
+  The **Tools** plugin is the first user — `src/plugins/tools/locales/<lng>.json`,
+  namespace `tools`, registered in its `setup()`, with a plugin-local parity test
+  (`tools/i18n.test.ts`) and typed keys derived from its own `en.json`
+  (`useToolsT`), so nothing about it depends on the host locale files. cloud-sync,
+  by contrast, is permanently host-coupled and lives in the shared `plugins`
+  namespace under `src/locales/`.
+- **Seeding.** Non-English files are machine-translated by
+  `scripts/seed-translations.mjs` (`bun run i18n:seed`) using
+  `scripts/i18n-glossary.json` (a motorsport glossary + do-not-translate list).
+  It's re-runnable (only translates new/changed keys, never overwrites a
+  `_reviewed` key), validates placeholder preservation, and writes
+  `"_machine": true` provenance. **Maintainer tool only** — it makes network/LLM
+  calls (`ANTHROPIC_API_KEY`, model via `I18N_SEED_MODEL`); it's never in the app
+  or the standard CI build. Pure parity/placeholder logic lives in
+  `lib/i18n/seedUtils.ts` (unit-tested; `i18n.test.ts` asserts every language has
+  exactly the English keys with placeholders preserved).
+- **Legal pages stay English by design** — the framework can translate them, but
+  Privacy/Terms are not machine-translated (legal review required).
+
+**Migrating a surface:** replace literals with `t("ns:key")`, add the key to
+`src/locales/en/<ns>.json` (new namespace → register in `config.ts` + add to the
+typing in `types/i18next.d.ts`), then run `bun run i18n:seed` to fill the other
+languages. `tsc -b` + the parity test gate key integrity.
+
+---
+
 ## Environment Variables
 
 | Variable | Client/Server | Description |
@@ -936,11 +1113,13 @@ existing user data keeps resolving without a destructive migration.
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `VITE_FIRMWARE_MANIFEST_URL` | Client | Override the logger firmware OTA manifest URL. When unset, `main` builds use the production manifest (`…/DovesDataLogger/manifest.json`) and non-`main`/preview builds use the **beta channel** (`…/DovesDataLogger/beta/manifest.json`) — same `isPreviewBuild()` switch as the footer/preview-DB. Set this to force a specific channel on any branch. |
 | `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`) when set |
+| `ANTHROPIC_API_KEY` | Maintainer tool | Required by `bun run i18n:seed` (`scripts/seed-translations.mjs`) to machine-translate locales — `???`. **Not** used by the app or the standard CI build. |
+| `I18N_SEED_MODEL` | Maintainer tool | Optional override for the model `bun run i18n:seed` uses (default `claude-sonnet-4-6`). |
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**. `vite.config.ts` bakes them in from `package.json` + git (`buildInfo.ts` reads them). The stamp mirrors the `_PREVIEW` switch: `main` shows `v<version> · <hash>`; any other branch shows `<branch> · <hash> · <commit time>`. Hash prefers CI SHAs (`WORKERS_CI_COMMIT_SHA`/`CF_PAGES_COMMIT_SHA`/`GITHUB_SHA`), branch prefers CI branch vars (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`/`GITHUB_REF_NAME`); both fall back to local `git`, then `"unknown"`. |
 
 PWA deployment detail: the active offline-capable worker is emitted as `/service-worker.js` and registered only outside preview/iframe contexts. `public/sw.js` is reserved as a legacy kill-switch worker to evict stale caches from older installs that previously registered `/sw.js`.
 
-Static hosting (Cloudflare Workers): the build is a pure static SPA (no server runtime). `wrangler.jsonc` (repo root) configures a static-assets-only Worker — no `main` script — with `assets.directory: "./dist"` and `not_found_handling: "single-page-application"` for client-side route fallback. `public/_headers` (copied into `./dist` by Vite, honored by Workers static assets) sets `no-cache` on the service workers + `index.html` and immutable long-cache on `/assets/*`. `.nvmrc` pins Node 20. Workers Builds runs `npm run build` then `wrangler deploy`. Supabase edge functions stay on Supabase — the Worker only serves the frontend. See the README "Deployment" section.
+Static hosting (Cloudflare Workers): the build is a pure static SPA (no server runtime). `wrangler.jsonc` (repo root) configures a static-assets-only Worker — no `main` script — with `assets.directory: "./dist"` and `not_found_handling: "single-page-application"` for client-side route fallback. `public/_headers` (copied into `./dist` by Vite, honored by Workers static assets) sets `no-cache` on the service workers + `index.html` and immutable long-cache on `/assets/*`. `.nvmrc` pins Node 20. Workers Builds runs `bun run build` then `wrangler deploy`. Supabase edge functions stay on Supabase — the Worker only serves the frontend. See the README "Deployment" section.
 
 `vite.config.ts` defines public backend fallbacks for `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_PROJECT_ID` so production builds still boot if managed env injection is missing; `.env` stays the preferred source when present.
 
@@ -950,15 +1129,24 @@ Per-branch preview backend: `vite.config.ts`'s `pick()` checks `WORKERS_CI_BRANC
 
 ## Commands
 
+**Package manager: Bun (only).** `bun.lock` is the **sole committed lockfile**;
+CI and the Cloudflare deploy both run `bun install --frozen-lockfile`. Do **not**
+add an npm/yarn/pnpm lockfile — a second lockfile silently drifts when deps
+change and breaks the frozen install (`package-lock.json` etc. are gitignored).
+Run scripts with `bun run <script>` — note `bun run test` (Vitest), **not**
+`bun test` (Bun's own runner). When you add/remove a dependency, run
+`bun install` and commit the updated `bun.lock`.
+
 ```bash
-npm run dev        # Dev server on :8080
-npm run build      # Production build → dist/
-npm run lint       # ESLint
-npm run typecheck  # tsc -b (must use build mode to follow project references)
-npm run preview    # Preview production build
-npm test           # Vitest in watch mode
-npm run test:run   # Vitest single pass (CI-style)
-npm run test:coverage  # Vitest + v8 coverage (enforces thresholds in vitest.config.ts)
+bun install        # Install deps (use --frozen-lockfile in CI)
+bun run dev        # Dev server on :8080
+bun run build      # Production build → dist/
+bun run lint       # ESLint
+bun run typecheck  # tsc -b (must use build mode to follow project references)
+bun run preview    # Preview production build
+bun run test       # Vitest in watch mode (NOT `bun test`)
+bun run test:run   # Vitest single pass (CI-style)
+bun run test:coverage  # Vitest + v8 coverage (enforces thresholds in vitest.config.ts)
 ```
 
 > **Coverage scope (`vitest.config.ts`).** Coverage is deliberately scoped to

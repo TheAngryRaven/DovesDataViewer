@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, FlaskConical, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, Languages, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,12 +8,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "@/hooks/useSettings";
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n/config";
 import { FIELD_CATEGORIES, CanonicalFieldId } from "@/lib/fieldResolver";
 import { cn } from "@/lib/utils";
 
@@ -27,34 +36,63 @@ export function SettingsModal({
   onSettingsChange,
   onToggleFieldDefault,
 }: SettingsModalProps) {
+  const { t } = useTranslation(["settings", "common"]);
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3">
           <Settings className="w-4 h-4" />
-          <span className="hidden lg:inline">Settings</span>
+          <span className="hidden lg:inline">{t("settings:title")}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
-            Settings
+            {t("settings:title")}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0 pr-3 scrollbar-thin">
           {/* Compact toggle settings — responsive 2-column grid on tablet+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
+          {/* Language */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Languages className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-medium">{t("common:language.heading")}</h3>
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <Label htmlFor="settings-language" className="text-sm text-muted-foreground">
+                {t("common:language.label")}
+              </Label>
+              <Select
+                value={settings.language}
+                onValueChange={(value) => onSettingsChange({ language: value as SupportedLanguage })}
+              >
+                <SelectTrigger id="settings-language" className="h-8 w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      {lang.nativeName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Theme Toggle */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               {settings.darkMode ? <Moon className="w-4 h-4 text-muted-foreground" /> : <Sun className="w-4 h-4 text-muted-foreground" />}
-              <h3 className="font-medium">Theme</h3>
+              <h3 className="font-medium">{t("settings:theme.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <Label htmlFor="settings-dark-mode" className="text-sm text-muted-foreground">
-                Dark mode
+                {t("settings:theme.darkMode")}
               </Label>
               <div className="flex items-center gap-2">
                 <Sun className={`w-3.5 h-3.5 ${!settings.darkMode ? "text-foreground" : "text-muted-foreground"}`} />
@@ -72,15 +110,15 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <HardDrive className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">File Storage</h3>
+              <h3 className="font-medium">{t("settings:fileStorage.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <div>
                 <Label htmlFor="settings-auto-save" className="text-sm text-muted-foreground">
-                  Auto-save imported/uploaded files to device
+                  {t("settings:fileStorage.autoSave")}
                 </Label>
                 <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Automatically store files in on-device storage for later access
+                  {t("settings:fileStorage.autoSaveHint")}
                 </p>
               </div>
               <Switch
@@ -95,11 +133,11 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Gauge className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">Speed Unit</h3>
+              <h3 className="font-medium">{t("settings:speedUnit.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <Label htmlFor="settings-speed-unit" className="text-sm text-muted-foreground">
-                Display speed in kilometers per hour
+                {t("settings:speedUnit.label")}
               </Label>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${!settings.useKph ? "text-foreground font-medium" : "text-muted-foreground"}`}>
@@ -121,11 +159,11 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Map className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">Distance Unit</h3>
+              <h3 className="font-medium">{t("settings:distanceUnit.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <Label htmlFor="settings-distance-unit" className="text-sm text-muted-foreground">
-                Track length, lap distance &amp; chart distance axis
+                {t("settings:distanceUnit.label")}
               </Label>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${!settings.useMetricDistance ? "text-foreground font-medium" : "text-muted-foreground"}`}>
@@ -147,20 +185,20 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <CloudSun className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">Weather Units</h3>
+              <h3 className="font-medium">{t("settings:weatherUnits.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <div>
                 <Label htmlFor="settings-weather-units" className="text-sm text-muted-foreground">
-                  Temperature, wind, pressure &amp; altitude
+                  {t("settings:weatherUnits.label")}
                 </Label>
                 <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Imperial = °F, mph, inHg, ft · Metric = °C, km/h, hPa, m
+                  {t("settings:weatherUnits.hint")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${!settings.useMetricWeather ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Imp
+                  {t("settings:weatherUnits.imperialShort")}
                 </span>
                 <Switch
                   id="settings-weather-units"
@@ -168,7 +206,7 @@ export function SettingsModal({
                   onCheckedChange={(checked) => onSettingsChange({ useMetricWeather: checked })}
                 />
                 <span className={`text-xs ${settings.useMetricWeather ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Met
+                  {t("settings:weatherUnits.metricShort")}
                 </span>
               </div>
             </div>
@@ -178,11 +216,11 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">G-Force Smoothing</h3>
+              <h3 className="font-medium">{t("settings:gforceSmoothing.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <Label htmlFor="settings-gforce-smoothing" className="text-sm text-muted-foreground">
-                Apply noise reduction to calculated G-forces
+                {t("settings:gforceSmoothing.label")}
               </Label>
               <Switch
                 id="settings-gforce-smoothing"
@@ -193,13 +231,13 @@ export function SettingsModal({
             {settings.gForceSmoothing && (
               <div className="pl-6 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm text-muted-foreground">Smoothing Strength</Label>
+                  <Label className="text-sm text-muted-foreground">{t("settings:gforceSmoothing.strength")}</Label>
                   <span className="text-xs font-mono text-muted-foreground">
                     {settings.gForceSmoothingStrength}%
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">None</span>
+                  <span className="text-xs text-muted-foreground">{t("settings:gforceSmoothing.none")}</span>
                   <Slider
                     value={[settings.gForceSmoothingStrength]}
                     onValueChange={([value]) => onSettingsChange({ gForceSmoothingStrength: value })}
@@ -208,7 +246,7 @@ export function SettingsModal({
                     step={5}
                     className="flex-1"
                   />
-                  <span className="text-xs text-muted-foreground">Max</span>
+                  <span className="text-xs text-muted-foreground">{t("settings:gforceSmoothing.max")}</span>
                 </div>
               </div>
             )}
@@ -218,15 +256,15 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">G-Force Source</h3>
+              <h3 className="font-medium">{t("settings:gforceSource.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <div>
                 <Label htmlFor="settings-gforce-source" className="text-sm text-muted-foreground">
-                  G-force data source for simple chart
+                  {t("settings:gforceSource.label")}
                 </Label>
                 <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  GPS = derived from speed/heading, HW = hardware accelerometer
+                  {t("settings:gforceSource.hint")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -249,21 +287,20 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Timer className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">Lap Delta</h3>
+              <h3 className="font-medium">{t("settings:lapDelta.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <div>
                 <Label htmlFor="settings-delta-method" className="text-sm text-muted-foreground">
-                  Gap-to-reference calculation
+                  {t("settings:lapDelta.label")}
                 </Label>
                 <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Position projects your line onto the reference (robust to line &amp; GPS-rate
-                  differences); Distance is the legacy cumulative-distance method
+                  {t("settings:lapDelta.hint")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${settings.deltaMethod === 'distance' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Distance
+                  {t("settings:lapDelta.distance")}
                 </span>
                 <Switch
                   id="settings-delta-method"
@@ -271,7 +308,7 @@ export function SettingsModal({
                   onCheckedChange={(checked) => onSettingsChange({ deltaMethod: checked ? 'position' : 'distance' })}
                 />
                 <span className={`text-xs ${settings.deltaMethod === 'position' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Position
+                  {t("settings:lapDelta.position")}
                 </span>
               </div>
             </div>
@@ -281,21 +318,20 @@ export function SettingsModal({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Ruler className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">Chart Scale</h3>
+              <h3 className="font-medium">{t("settings:chartScale.heading")}</h3>
             </div>
             <div className="flex items-center justify-between pl-6">
               <div>
                 <Label htmlFor="settings-chart-xaxis" className="text-sm text-muted-foreground">
-                  Telemetry chart X-axis
+                  {t("settings:chartScale.label")}
                 </Label>
                 <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Distance plots against track position so laps line up
-                  corner-for-corner; Time plots against elapsed lap time
+                  {t("settings:chartScale.hint")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${settings.chartXAxis === 'time' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Time
+                  {t("settings:chartScale.time")}
                 </span>
                 <Switch
                   id="settings-chart-xaxis"
@@ -303,7 +339,7 @@ export function SettingsModal({
                   onCheckedChange={(checked) => onSettingsChange({ chartXAxis: checked ? 'distance' : 'time' })}
                 />
                 <span className={`text-xs ${settings.chartXAxis === 'distance' ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                  Distance
+                  {t("settings:chartScale.distance")}
                 </span>
               </div>
             </div>
@@ -314,17 +350,17 @@ export function SettingsModal({
           {/* Braking Zone Detection — collapsible, full width */}
           <CollapsibleSection
             icon={<Circle className="w-4 h-4 text-primary" />}
-            title="Braking Zone Detection"
-            badge={<span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Experimental</span>}
+            title={t("settings:braking.heading")}
+            badge={<span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{t("settings:braking.experimental")}</span>}
           >
             <p className="text-xs text-muted-foreground pl-6">
-              Tune the detection algorithm for identifying braking zones on the map.
+              {t("settings:braking.intro")}
             </p>
-            
+
             {/* Entry Threshold */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Entry Threshold</Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.entryThreshold")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   -{(settings.brakingEntryThreshold / 100).toFixed(2)}g
                 </span>
@@ -346,7 +382,7 @@ export function SettingsModal({
             {/* Exit Threshold */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Exit Threshold</Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.exitThreshold")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   -{(settings.brakingExitThreshold / 100).toFixed(2)}g
                 </span>
@@ -368,7 +404,7 @@ export function SettingsModal({
             {/* Min Duration */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Min Duration</Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.minDuration")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {settings.brakingMinDuration}ms
                 </span>
@@ -390,7 +426,7 @@ export function SettingsModal({
             {/* Smoothing Alpha */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Smoothing</Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.smoothing")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {(settings.brakingSmoothingAlpha / 100).toFixed(2)}
                 </span>
@@ -412,7 +448,7 @@ export function SettingsModal({
             {/* Zone Width */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Zone Width</Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.zoneWidth")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {settings.brakingZoneWidth}px
                 </span>
@@ -434,13 +470,13 @@ export function SettingsModal({
             {/* Graph Smoothing Window */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Graph Smoothing</Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.graphSmoothing")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
-                  {settings.brakingGraphWindow} pts
+                  {t("settings:braking.graphSmoothingUnit", { count: settings.brakingGraphWindow })}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground/70">
-                Savitzky-Golay filter window for the Brake % chart. Larger = smoother.
+                {t("settings:braking.graphSmoothingHint")}
               </p>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">5</span>
@@ -462,13 +498,13 @@ export function SettingsModal({
             {/* Brake Max G (100% calibration) */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Brake 100% = </Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.brakeMaxLabel")}</Label>
                 <span className="text-xs font-mono text-muted-foreground">
                   {((settings.brakeMaxG ?? 150) / 100).toFixed(2)}G
                 </span>
               </div>
               <p className="text-xs text-muted-foreground/70">
-                The deceleration G-force that maps to 100% brake. Lower = more sensitive.
+                {t("settings:braking.brakeMaxHint")}
               </p>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">0.5G</span>
@@ -487,16 +523,16 @@ export function SettingsModal({
             {/* Zone Color */}
             <div className="pl-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-muted-foreground">Zone Color</Label>
+                <Label className="text-sm text-muted-foreground">{t("settings:braking.zoneColor")}</Label>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {[
-                  { color: 'hsl(210, 90%, 55%)', label: 'Blue' },
-                  { color: 'hsl(30, 90%, 50%)', label: 'Orange' },
-                  { color: 'hsl(280, 70%, 55%)', label: 'Purple' },
-                  { color: 'hsl(340, 80%, 55%)', label: 'Pink' },
-                  { color: 'hsl(180, 70%, 50%)', label: 'Cyan' },
-                  { color: 'hsl(60, 80%, 50%)', label: 'Yellow' },
+                  { color: 'hsl(210, 90%, 55%)', label: t("settings:braking.colors.blue") },
+                  { color: 'hsl(30, 90%, 50%)', label: t("settings:braking.colors.orange") },
+                  { color: 'hsl(280, 70%, 55%)', label: t("settings:braking.colors.purple") },
+                  { color: 'hsl(340, 80%, 55%)', label: t("settings:braking.colors.pink") },
+                  { color: 'hsl(180, 70%, 50%)', label: t("settings:braking.colors.cyan") },
+                  { color: 'hsl(60, 80%, 50%)', label: t("settings:braking.colors.yellow") },
                 ].map(({ color, label }) => (
                   <button
                     key={color}
@@ -531,7 +567,7 @@ export function SettingsModal({
                 className="gap-2 text-xs"
               >
                 <RefreshCw className="w-3 h-3" />
-                Reset to Defaults
+                {t("common:actions.reset")}
               </Button>
             </div>
           </CollapsibleSection>
@@ -539,10 +575,10 @@ export function SettingsModal({
           {/* Default Field Visibility — collapsible, full width */}
           <CollapsibleSection
             icon={<Eye className="w-4 h-4 text-primary" />}
-            title="Default Field Visibility"
+            title={t("settings:fieldVisibility.heading")}
           >
             <p className="text-xs text-muted-foreground pl-6">
-              Choose which data fields are visible by default when loading a file. Hidden fields can still be enabled manually.
+              {t("settings:fieldVisibility.intro")}
             </p>
             
             {FIELD_CATEGORIES.map((category) => (
@@ -578,7 +614,7 @@ export function SettingsModal({
                           </div>
                         </div>
                         <span className={`text-xs px-2 py-0.5 rounded ${isHidden ? "bg-muted text-muted-foreground" : "bg-primary/20 text-primary"}`}>
-                          {isHidden ? "Hidden" : "Visible"}
+                          {isHidden ? t("settings:fieldVisibility.hidden") : t("settings:fieldVisibility.visible")}
                         </span>
                       </button>
                     );
@@ -630,6 +666,7 @@ function CollapsibleSection({ icon, title, badge, defaultOpen = false, children 
 }
 
 function ForceUpdateSection() {
+  const { t } = useTranslation(["settings", "common"]);
   const [updating, setUpdating] = useState(false);
 
   const handleForceUpdate = async () => {
@@ -660,15 +697,15 @@ function ForceUpdateSection() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <RefreshCw className="w-4 h-4 text-muted-foreground" />
-        <h3 className="font-medium">App Update</h3>
+        <h3 className="font-medium">{t("settings:appUpdate.heading")}</h3>
       </div>
       <div className="flex items-center justify-between pl-6">
         <div>
           <Label htmlFor="force-update" className="text-sm text-muted-foreground">
-            Force update &amp; clear cache
+            {t("settings:appUpdate.label")}
           </Label>
           <p className="text-xs text-muted-foreground/70 mt-0.5">
-            Clears cached app files and reloads the latest version. Your saved sessions and data in the Garage are not affected.
+            {t("settings:appUpdate.hint")}
           </p>
         </div>
         <Button
@@ -679,7 +716,7 @@ function ForceUpdateSection() {
           className="gap-1.5"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${updating ? "animate-spin" : ""}`} />
-          {updating ? "Updating…" : "Update"}
+          {updating ? t("common:actions.updating") : t("common:actions.update")}
         </Button>
       </div>
     </div>

@@ -1,0 +1,23 @@
+{
+  "_machine": true,
+  "appName": "HackTheTrack.net",
+  "actions": {
+    "signIn": "ログイン",
+    "signOut": "ログアウト",
+    "sponsor": "支援する",
+    "loading": "読み込み中…",
+    "reset": "デフォルトに戻す",
+    "update": "更新",
+    "updating": "更新中…"
+  },
+  "language": {
+    "heading": "言語",
+    "label": "表示言語"
+  },
+  "updateToast": {
+    "title": "更新があります",
+    "description": "再読み込みして古いキャッシュファイルを消去し、最新のアプリバージョンを読み込みます。",
+    "refresh": "再読み込み",
+    "later": "後で"
+  }
+}

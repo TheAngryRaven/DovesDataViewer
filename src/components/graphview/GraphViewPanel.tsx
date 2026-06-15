@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GpsSample, Course, FieldMapping, Lap } from '@/types/racing';
 import type { OverlayLine } from '@/lib/lapOverlays';
 import { Vehicle } from '@/lib/vehicleStorage';
@@ -72,6 +73,7 @@ export interface GraphViewPanelProps {
 }
 
 export function GraphViewPanel(props: GraphViewPanelProps) {
+  const { t } = useTranslation('session');
   const [mapVisible, setMapVisible] = useState(true);
   const mapPanelRef = useRef<ImperativePanelHandle>(null);
   const savedSizeRef = useRef(30);
@@ -166,7 +168,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
             onClick={toggleMap}
             className="absolute bottom-1 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-1 px-2 py-0.5 rounded bg-card/90 backdrop-blur-sm border border-border hover:bg-muted/50 text-muted-foreground text-xs"
           >
-            {mapVisible ? <><EyeOff className="w-3 h-3" /> Hide Map</> : <><MapIcon className="w-3 h-3" /> Show Map</>}
+            {mapVisible ? <><EyeOff className="w-3 h-3" /> {t('graphs.hideMap')}</> : <><MapIcon className="w-3 h-3" /> {t('graphs.showMap')}</>}
           </button>
         </div>
       </ResizablePanel>

@@ -1,4 +1,5 @@
 import { Fragment, memo, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Lap, courseHasSectors, Course, GpsSample } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { normalizeCourseSectors, sectorLabels } from '@/lib/courseSectors';
@@ -48,6 +49,7 @@ interface LapTableProps {
 }
 
 export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot, overlayLines = [], onToggleOverlay }: LapTableProps) {
+  const { t } = useTranslation('session');
   const { useKph } = useSettingsContext();
 
   const showSectors = courseHasSectors(course);
@@ -187,8 +189,8 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         <p className="text-center">
-          No laps detected.<br />
-          <span className="text-sm">Select a track with a start/finish line</span>
+          {t('lapTable.noLaps')}<br />
+          <span className="text-sm">{t('lapTable.noLapsHint')}</span>
         </p>
       </div>
     );
@@ -224,7 +226,7 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
               onLoad={onLoadSnapshot}
               onClear={onClearSnapshot}
               onSave={onSaveSnapshot}
-              triggerLabel="Load snapshot as reference"
+              triggerLabel={t('snapshots.loadReferenceTrigger')}
               showSave={false}
               overlayLines={overlayLines}
               onToggleOverlay={onToggleOverlay}
@@ -240,9 +242,9 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
             <button
               className={`rounded-md border border-border px-2 py-0.5 text-xs transition-colors ${showSectorSums ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               onClick={() => setShowSectorSums((v) => !v)}
-              title="Show a running S1/S2/S3 total before each major sector"
+              title={t('lapTable.sectorSumsTitle')}
             >
-              Sector sums
+              {t('lapTable.sectorSums')}
             </button>
           )}
           <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
@@ -250,13 +252,13 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
               className={`rounded px-2 py-0.5 transition-colors ${!showFull ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               onClick={() => setView('simple')}
             >
-              Simple
+              {t('lapTable.simple')}
             </button>
             <button
               className={`rounded px-2 py-0.5 transition-colors ${showFull ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               onClick={() => setView('full')}
             >
-              Full
+              {t('lapTable.full')}
             </button>
           </div>
         </div>
@@ -264,15 +266,15 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
       <table className={showFull ? 'min-w-max' : 'w-full'}>
         <thead className="sticky top-0 bg-card">
           <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
-            <th className="px-2 py-3 font-medium w-16">Ref</th>
-            <th className="px-4 py-3 font-medium">Lap</th>
-            <th className="px-4 py-3 font-medium">Time</th>
+            <th className="px-2 py-3 font-medium w-16">{t('lapTable.colRef')}</th>
+            <th className="px-4 py-3 font-medium">{t('lapTable.colLap')}</th>
+            <th className="px-4 py-3 font-medium">{t('lapTable.colTime')}</th>
             {showFull ? (
               full.labels.map((label, k) => (
                 <Fragment key={k}>
                   {showSums && full.isGroupStart[k] && (
                     <th className="px-3 py-3 font-semibold text-center whitespace-nowrap bg-primary/20 text-primary">
-                      {`S${full.groupOf[k] + 1} Sum`}
+                      {t('lapTable.sectorSum', { number: full.groupOf[k] + 1 })}
                     </th>
                   )}
                   <th
@@ -289,8 +291,8 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                 <th className="px-3 py-3 font-medium text-center">S3</th>
               </>
             )}
-            <th className="px-4 py-3 font-medium">Top Speed</th>
-            <th className="px-4 py-3 font-medium">Min Speed</th>
+            <th className="px-4 py-3 font-medium">{t('lapTable.colTopSpeed')}</th>
+            <th className="px-4 py-3 font-medium">{t('lapTable.colMinSpeed')}</th>
           </tr>
         </thead>
         <tbody>
@@ -325,7 +327,7 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                     {isReference ? (
                       <Target className="w-3 h-3 mr-1" />
                     ) : null}
-                    {isReference ? 'Ref' : 'Set Ref'}
+                    {isReference ? t('lapTable.refActive') : t('lapTable.setRef')}
                   </Button>
                 </td>
                 <td className="px-4 py-3">
@@ -407,7 +409,7 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
       <div className="sticky bottom-0 bg-card border-t border-border px-4 py-3">
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <div>
-            <span className="text-muted-foreground">Best Lap: </span>
+            <span className="text-muted-foreground">{t('lapTable.bestLap')}: </span>
             <span className="font-mono text-racing-lapBest font-semibold">
               {formatLapTime(laps[fastestLapIdx].lapTimeMs)}
             </span>
@@ -415,13 +417,13 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
           {optimalLap && (
             <>
               <div>
-                <span className="text-muted-foreground">Optimal: </span>
+                <span className="text-muted-foreground">{t('lapTable.optimal')}: </span>
                 <span className="font-mono text-purple-400 font-semibold">
                   {formatLapTime(optimalLap.optimalTimeMs)}
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground">Delta: </span>
+                <span className="text-muted-foreground">{t('lapTable.delta')}: </span>
                 <span className="font-mono text-muted-foreground font-semibold">
                   +{formatSectorTime(optimalLap.deltaToFastest)}
                 </span>
@@ -430,9 +432,12 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
           )}
           {avgLapLength !== null && (
             <div>
-              <span className="text-muted-foreground">Avg Lap Length: </span>
+              <span className="text-muted-foreground">{t('lapTable.avgLapLength')}: </span>
               <span className="font-mono text-foreground font-semibold">
-                {`${(avgLapLength * METERS_TO_FEET).toLocaleString(undefined, { maximumFractionDigits: 0 })} ft / ${avgLapLength.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`}
+                {t('lapTable.avgLapValue', {
+                  feet: (avgLapLength * METERS_TO_FEET).toLocaleString(undefined, { maximumFractionDigits: 0 }),
+                  meters: avgLapLength.toLocaleString(undefined, { maximumFractionDigits: 0 }),
+                })}
               </span>
             </div>
           )}

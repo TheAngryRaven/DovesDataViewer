@@ -1,0 +1,39 @@
+{
+  "_comment": "Glossary fed to the LLM by scripts/seed-translations.mjs. doNotTranslate terms must appear verbatim in every language (brand names, file formats, units, third-party names). notes give per-domain guidance so motorsport jargon is rendered idiomatically rather than literally.",
+  "doNotTranslate": [
+    "HackTheTrack.net",
+    "DovesDataLogger",
+    "DovesDataViewer",
+    "PerchWerks LLC",
+    "Orlando Kart Center",
+    "Bluetooth",
+    "Web Bluetooth",
+    "GPS",
+    "VBO",
+    "MoTeC",
+    "AiM",
+    "NMEA",
+    "Savitzky-Golay",
+    "Chrome",
+    "Edge",
+    "Opera",
+    "G",
+    "HW",
+    "°F",
+    "°C",
+    "mph",
+    "km/h",
+    "inHg",
+    "hPa",
+    "ft",
+    "m"
+  ],
+  "notes": [
+    "This is a motorsport telemetry app (karting, sim racing, track days). Use racing terminology a driver would recognise in the target language.",
+    "'lap' = a single time around the circuit; 'sector' = a timed segment of a lap; 'track'/'course' = the circuit layout; 'datalog'/'log' = a recorded session file; 'reference lap' = the lap others are compared against.",
+    "'G-force' is the lateral/longitudinal acceleration; keep the unit symbol 'G' verbatim.",
+    "Keep UI text concise — these are buttons, labels and short hints in a dense settings panel.",
+    "Preserve every {{placeholder}} and <tag> exactly as written; do not translate, reorder, or add them.",
+    "Preserve leading/trailing spaces and punctuation (e.g. a trailing space after '= ')."
+  ]
+}

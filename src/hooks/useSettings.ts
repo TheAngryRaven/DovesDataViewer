@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { isFieldHiddenByCanonical, CanonicalFieldId } from "@/lib/fieldResolver";
+import i18n, { initialLanguage } from "@/lib/i18n";
+import type { SupportedLanguage } from "@/lib/i18n/config";
 
 export interface AppSettings {
   useKph: boolean;                  // Speed unit: false = MPH, true = KPH
@@ -24,6 +26,7 @@ export interface AppSettings {
   deltaMethod: 'position' | 'distance'; // Lap delta algorithm (default: 'position')
   deltaSampleMeters: number;        // Arc-length resample spacing for position delta (default: 2)
   chartXAxis: 'time' | 'distance';  // Analysis chart X-axis scale (default: 'distance')
+  language: SupportedLanguage;      // Display language (default: browser-detected, else 'en')
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -51,6 +54,9 @@ const defaultSettings: AppSettings = {
   deltaMethod: 'position',
   deltaSampleMeters: 2,
   chartXAxis: 'distance',
+  // Default to the language i18n resolved at boot (saved pref → browser → 'en'),
+  // so a first-run user sees their browser language without an explicit choice.
+  language: initialLanguage,
 };
 
 export function useSettings() {
@@ -74,6 +80,15 @@ export function useSettings() {
       console.error("Failed to save settings:", e);
     }
   }, [settings]);
+
+  // Bridge the language preference to i18next. Lives here (not in a single UI
+  // handler) so the active language always tracks the setting, no matter which
+  // surface changed it. changeLanguage lazy-loads the locale's chunks on demand.
+  useEffect(() => {
+    if (i18n.language !== settings.language) {
+      void i18n.changeLanguage(settings.language);
+    }
+  }, [settings.language]);
 
   const setSettings = useCallback((updates: Partial<AppSettings>) => {
     setSettingsState((prev) => ({ ...prev, ...updates }));

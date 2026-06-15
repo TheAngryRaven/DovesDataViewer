@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ const emptySection = (): TemplateSection => ({
 });
 
 export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, onCancel }: TemplateCreatorProps) {
+  const { t } = useTranslation("drawer");
   const [name, setName] = useState("");
   const [wheelCount, setWheelCount] = useState<2 | 4>(4);
   const [includeTires, setIncludeTires] = useState(true);
@@ -39,7 +41,7 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
 
   const handleCopyFrom = useCallback((templateId: string) => {
     setCopyFrom(templateId);
-    const tpl = existingTemplates.find(t => t.id === templateId);
+    const tpl = existingTemplates.find(tt => tt.id === templateId);
     if (tpl) {
       // Deep clone sections with new IDs
       const cloned = tpl.sections.map(s => ({
@@ -88,9 +90,9 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
 
   const handleSave = useCallback(async () => {
     const trimmed = name.trim();
-    if (!trimmed) { setNameError("Name is required"); return; }
+    if (!trimmed) { setNameError(t("templateCreator.nameRequired")); return; }
     if (existingTypeNames.some(n => n.toLowerCase() === trimmed.toLowerCase())) {
-      setNameError("A vehicle type with this name already exists");
+      setNameError(t("templateCreator.nameExists"));
       return;
     }
     // Filter out empty sections/fields
@@ -104,7 +106,7 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
       .filter(s => s.fields.length > 0);
 
     await onSave(trimmed, wheelCount, includeTires, cleaned);
-  }, [name, wheelCount, includeTires, sections, existingTypeNames, onSave]);
+  }, [name, wheelCount, includeTires, sections, existingTypeNames, onSave, t]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -112,17 +114,17 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <h3 className="text-sm font-semibold text-foreground flex-1">New Vehicle Type</h3>
+        <h3 className="text-sm font-semibold text-foreground flex-1">{t("templateCreator.title")}</h3>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {/* Name */}
         <div className="space-y-1">
-          <Label className="text-xs">Vehicle Type Name</Label>
+          <Label className="text-xs">{t("templateCreator.vehicleTypeName")}</Label>
           <Input
             value={name}
             onChange={e => { setName(e.target.value); setNameError(""); }}
-            placeholder="e.g. Sprint Car, MX Bike"
+            placeholder={t("templateCreator.vehicleTypeNamePlaceholder")}
             className={`h-9 ${nameError ? "border-destructive" : ""}`}
           />
           {nameError && <p className="text-xs text-destructive">{nameError}</p>}
@@ -130,13 +132,13 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
 
         {/* Copy from */}
         <div className="space-y-1">
-          <Label className="text-xs">Copy from existing (optional)</Label>
+          <Label className="text-xs">{t("templateCreator.copyFrom")}</Label>
           <Select value={copyFrom} onValueChange={handleCopyFrom}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Start from scratch" /></SelectTrigger>
+            <SelectTrigger className="h-9"><SelectValue placeholder={t("templateCreator.startFromScratch")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Start from scratch</SelectItem>
-              {existingTemplates.map(t => (
-                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+              <SelectItem value="none">{t("templateCreator.startFromScratch")}</SelectItem>
+              {existingTemplates.map(tpl => (
+                <SelectItem key={tpl.id} value={tpl.id}>{tpl.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -144,23 +146,23 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
 
         {/* Wheel count */}
         <div className="space-y-1">
-          <Label className="text-xs">Wheel Configuration</Label>
+          <Label className="text-xs">{t("templateCreator.wheelConfig")}</Label>
           <div className="flex gap-1 bg-muted/50 rounded-md p-0.5">
-            <button type="button" onClick={() => setWheelCount(2)} className={`flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors ${wheelCount === 2 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>2 Wheels</button>
-            <button type="button" onClick={() => setWheelCount(4)} className={`flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors ${wheelCount === 4 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>4 Wheels</button>
+            <button type="button" onClick={() => setWheelCount(2)} className={`flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors ${wheelCount === 2 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{t("templateCreator.wheels2")}</button>
+            <button type="button" onClick={() => setWheelCount(4)} className={`flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors ${wheelCount === 4 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{t("templateCreator.wheels4")}</button>
           </div>
         </div>
 
         {/* Include tires */}
         <div className="flex items-center justify-between">
-          <Label className="text-xs">Include tire management</Label>
+          <Label className="text-xs">{t("templateCreator.includeTires")}</Label>
           <Switch checked={includeTires} onCheckedChange={setIncludeTires} className="scale-90" />
         </div>
 
         {/* Sections */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Setup Sections</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("templateCreator.setupSections")}</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
@@ -170,7 +172,7 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
                 <Input
                   value={section.name}
                   onChange={e => updateSection(section.id, { name: e.target.value })}
-                  placeholder="Section name (e.g. Alignment)"
+                  placeholder={t("templateCreator.sectionNamePlaceholder")}
                   className="h-8 text-sm flex-1"
                 />
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive shrink-0" onClick={() => removeSection(section.id)} disabled={sections.length <= 1}>
@@ -185,7 +187,7 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
                       <Input
                         value={field.name}
                         onChange={e => updateField(section.id, field.id, { name: e.target.value })}
-                        placeholder="Field name"
+                        placeholder={t("templateCreator.fieldName")}
                         className="h-8 text-sm"
                       />
                       <Select
@@ -194,25 +196,25 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
                       >
                         <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="number">Number</SelectItem>
-                          <SelectItem value="string">Text</SelectItem>
+                          <SelectItem value="number">{t("templateCreator.number")}</SelectItem>
+                          <SelectItem value="string">{t("templateCreator.text")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="space-y-0.5">
-                        <Label className="text-[10px] text-muted-foreground">Unit</Label>
+                        <Label className="text-[10px] text-muted-foreground">{t("templateCreator.unit")}</Label>
                         <Input
                           value={field.unit ?? ""}
                           onChange={e => updateField(section.id, field.id, { unit: e.target.value || undefined })}
-                          placeholder="e.g. psi"
+                          placeholder={t("templateCreator.unitPlaceholder")}
                           className="h-7 text-xs"
                         />
                       </div>
                       {field.type === "number" && (
                         <>
                           <div className="space-y-0.5">
-                            <Label className="text-[10px] text-muted-foreground">Min</Label>
+                            <Label className="text-[10px] text-muted-foreground">{t("templateCreator.min")}</Label>
                             <Input
                               type="number"
                               value={field.min ?? ""}
@@ -221,7 +223,7 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
                             />
                           </div>
                           <div className="space-y-0.5">
-                            <Label className="text-[10px] text-muted-foreground">Max</Label>
+                            <Label className="text-[10px] text-muted-foreground">{t("templateCreator.max")}</Label>
                             <Input
                               type="number"
                               value={field.max ?? ""}
@@ -240,20 +242,20 @@ export function TemplateCreator({ existingTemplates, existingTypeNames, onSave, 
               ))}
 
               <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => addField(section.id)}>
-                <Plus className="w-3 h-3" /> Add Field
+                <Plus className="w-3 h-3" /> {t("templateCreator.addField")}
               </Button>
             </div>
           ))}
 
           <Button variant="outline" size="sm" className="w-full gap-1" onClick={addSection}>
-            <Plus className="w-3.5 h-3.5" /> Add Section
+            <Plus className="w-3.5 h-3.5" /> {t("templateCreator.addSection")}
           </Button>
         </div>
       </div>
 
       <div className="shrink-0 px-3 py-3 border-t border-border flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={onCancel}>Cancel</Button>
-        <Button className="flex-1" onClick={handleSave} disabled={!name.trim()}>Create</Button>
+        <Button variant="outline" className="flex-1" onClick={onCancel}>{t("templateCreator.cancel")}</Button>
+        <Button className="flex-1" onClick={handleSave} disabled={!name.trim()}>{t("templateCreator.create")}</Button>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { BannedIpsTab } from '@/components/admin/BannedIpsTab';
 import { MessagesTab } from '@/components/admin/MessagesTab';
 
 export default function Admin() {
+  const { t } = useTranslation('admin');
   const { user, isAdmin, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -25,7 +27,7 @@ export default function Admin() {
   }, [user, isAdmin, loading, navigate]);
 
   if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t('loading')}</div>;
   }
 
   if (!user || !isAdmin) return null;
@@ -37,16 +39,16 @@ export default function Admin() {
           <div className="flex items-center gap-3">
             <Gauge className="w-8 h-8 text-primary" />
             <div>
-              <h1 className="text-xl font-semibold text-foreground">Admin Panel</h1>
+              <h1 className="text-xl font-semibold text-foreground">{t('panelTitle')}</h1>
               <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Home
+              <ArrowLeft className="w-4 h-4 mr-2" /> {t('home')}
             </Button>
             <Button variant="outline" size="sm" onClick={logout}>
-              <LogOut className="w-4 h-4 mr-2" /> Logout
+              <LogOut className="w-4 h-4 mr-2" /> {t('logout')}
             </Button>
           </div>
         </div>
@@ -56,18 +58,18 @@ export default function Admin() {
         <Tabs defaultValue="messages" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="messages" className="relative">
-              Messages
+              {t('tabs.messages')}
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="submissions">Submissions</TabsTrigger>
-            <TabsTrigger value="tracks">Tracks</TabsTrigger>
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="tools">Tools</TabsTrigger>
-            <TabsTrigger value="banned">Banned IPs</TabsTrigger>
+            <TabsTrigger value="submissions">{t('tabs.submissions')}</TabsTrigger>
+            <TabsTrigger value="tracks">{t('tabs.tracks')}</TabsTrigger>
+            <TabsTrigger value="courses">{t('tabs.courses')}</TabsTrigger>
+            <TabsTrigger value="tools">{t('tabs.tools')}</TabsTrigger>
+            <TabsTrigger value="banned">{t('tabs.banned')}</TabsTrigger>
           </TabsList>
           <TabsContent value="messages"><MessagesTab onUnreadCount={setUnreadCount} /></TabsContent>
           <TabsContent value="submissions"><SubmissionsTab /></TabsContent>

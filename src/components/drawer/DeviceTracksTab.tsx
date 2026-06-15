@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Check,
@@ -48,6 +49,7 @@ interface DeviceTracksTabProps {
 type View = "loading" | "tracks" | "courses";
 
 export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
+  const { t } = useTranslation("drawer");
   const [view, setView] = useState<View>("loading");
   const [loadProgress, setLoadProgress] = useState({ current: 0, total: 0, label: "" });
   const [mergedTracks, setMergedTracks] = useState<MergedTrackEntry[]>([]);
@@ -67,11 +69,11 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     setView("loading");
     setSelectedTrack(null);
     try {
-      setLoadProgress({ current: 0, total: 0, label: "Fetching track list…" });
+      setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.fetchingList") });
       const filenames = await requestTrackFileList(connection);
 
       if (filenames.length === 0) {
-        setLoadProgress({ current: 0, total: 0, label: "No track files on device" });
+        setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.noFilesOnDevice") });
       }
 
       const files: DeviceTrackFile[] = [];
@@ -95,10 +97,10 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       setView("tracks");
     } catch (err) {
       console.error("Track sync failed:", err);
-      toast.error("Failed to sync tracks from device");
+      toast.error(t("deviceTracks.syncFailedToast"));
       setView("tracks");
     }
-  }, [connection]);
+  }, [connection, t]);
 
   useEffect(() => {
     syncAll();
@@ -119,10 +121,10 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       const json = buildTrackJsonForUpload(entry.appTrack);
       const data = new TextEncoder().encode(json);
       await uploadTrackFile(connection, entry.shortName + ".json", data);
-      toast.success(`Sent ${entry.shortName} to device`);
+      toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
       await syncAll();
     } catch (err) {
-      toast.error(`Send failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(t("deviceTracks.sendFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     } finally {
       setUploading(null);
     }
@@ -137,12 +139,12 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         await addCourse(trackName, course);
       }
       await addTrack(trackName);
-      toast.success(`Downloaded ${trackName} to app`);
+      toast.success(t("deviceTracks.downloadedToast", { name: trackName }));
       const tracks = await loadTracks();
       setAppTracks(tracks);
       setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
     } catch (err) {
-      toast.error(`Download failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(t("deviceTracks.downloadFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     }
   };
 
@@ -151,11 +153,11 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     setUploading(entry.shortName);
     try {
       await deleteTrackFile(connection, entry.shortName + ".json");
-      toast.success(`Deleted ${entry.shortName} from device`);
+      toast.success(t("deviceTracks.deletedToast", { name: entry.shortName }));
       setDeleteConfirm(null);
       await syncAll();
     } catch (err) {
-      toast.error(`Delete failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(t("deviceTracks.deleteFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     } finally {
       setUploading(null);
     }
@@ -169,18 +171,18 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       if (remaining.length === 0) {
         // No courses left, delete the whole file
         await deleteTrackFile(connection, trackEntry.shortName + ".json");
-        toast.success(`Deleted ${trackEntry.shortName} from device (no courses remaining)`);
+        toast.success(t("deviceTracks.deletedNoCoursesToast", { name: trackEntry.shortName }));
       } else {
         // Re-upload without the deleted course
         const json = JSON.stringify(remaining, null, '\t');
         const data = new TextEncoder().encode(json);
         await uploadTrackFile(connection, trackEntry.shortName + ".json", data);
-        toast.success(`Removed course "${courseName}" from device`);
+        toast.success(t("deviceTracks.removedCourseToast", { name: courseName }));
       }
       setDeleteConfirm(null);
       await syncAll();
     } catch (err) {
-      toast.error(`Delete failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(t("deviceTracks.deleteFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     } finally {
       setUploading(null);
     }
@@ -213,11 +215,11 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       const json = JSON.stringify(allDeviceCourses, null, '\t');
       const data = new TextEncoder().encode(json);
       await uploadTrackFile(connection, trackEntry.shortName + ".json", data);
-      toast.success(`Sent course "${courseName}" to device`);
+      toast.success(t("deviceTracks.sentCourseToast", { name: courseName }));
       setDiffCourse(null);
       await syncAll();
     } catch (err) {
-      toast.error(`Send failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(t("deviceTracks.sendFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     } finally {
       setUploading(null);
     }
@@ -229,7 +231,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       const trackName = trackEntry.trackName || trackEntry.shortName;
       const course = deviceCourseToAppCourse(dc);
       await addCourse(trackName, course);
-      toast.success(`Downloaded course "${dc.name}" to app`);
+      toast.success(t("deviceTracks.downloadedCourseToast", { name: dc.name }));
       setDiffCourse(null);
       const tracks = await loadTracks();
       setAppTracks(tracks);
@@ -237,7 +239,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       const updated = buildMergedTrackList(tracks, deviceFiles).find(t => t.shortName === trackEntry.shortName);
       if (updated) setSelectedTrack(updated);
     } catch (err) {
-      toast.error(`Download failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(t("deviceTracks.downloadFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     }
   };
 
@@ -246,11 +248,11 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     setResyncConfirm(false);
     const toSync = mergedTracks.filter(t => t.appTrack); // Only tracks we know about in app
     if (toSync.length === 0) {
-      toast.info("No app tracks to sync");
+      toast.info(t("deviceTracks.noAppTracksToast"));
       return;
     }
 
-    setResyncProgress({ current: 0, total: toSync.length, label: "Starting…" });
+    setResyncProgress({ current: 0, total: toSync.length, label: t("deviceTracks.starting") });
     setView("loading");
 
     for (let i = 0; i < toSync.length; i++) {
@@ -268,12 +270,12 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         await uploadTrackFile(connection, entry.shortName + ".json", data);
       } catch (err) {
         console.error(`Resync failed for ${entry.shortName}:`, err);
-        toast.error(`Failed to sync ${entry.shortName}: ${err instanceof Error ? err.message : "Unknown"}`);
+        toast.error(t("deviceTracks.resyncFailedToast", { name: entry.shortName, error: err instanceof Error ? err.message : t("deviceTracks.unknownShort") }));
       }
     }
 
     setResyncProgress(null);
-    toast.success(`Resynced ${toSync.length} track(s) to device`);
+    toast.success(t("deviceTracks.resyncedToast", { count: toSync.length }));
     await syncAll();
   };
 
@@ -294,11 +296,11 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-3 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <h3 className="font-semibold text-foreground">{resyncProgress ? "Resyncing Tracks" : "Syncing Track Data"}</h3>
+        <h3 className="font-semibold text-foreground">{resyncProgress ? t("deviceTracks.resyncing") : t("deviceTracks.syncing")}</h3>
         <p className="text-sm text-muted-foreground">{progress.label}</p>
         {progress.total > 0 && (
           <p className="text-xs text-muted-foreground">
-            {progress.current} / {progress.total} {resyncProgress ? "tracks" : "files"}
+            {progress.current} / {progress.total} {resyncProgress ? t("deviceTracks.progressUnitTracks") : t("deviceTracks.progressUnitFiles")}
           </p>
         )}
       </div>
@@ -324,7 +326,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         {/* Course list */}
         <div className="flex-1 overflow-y-auto">
           {selectedTrack.mergedCourses.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">No courses</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">{t("deviceTracks.noCourses")}</div>
           ) : (
             selectedTrack.mergedCourses.map((mc) => (
               <div
@@ -342,7 +344,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
                     disabled={uploading === selectedTrack.shortName}
                     onClick={() => handleSendCourseToDevice(selectedTrack, mc.name, 'app')}
                   >
-                    <Upload className="w-3.5 h-3.5" /> Send
+                    <Upload className="w-3.5 h-3.5" /> {t("deviceTracks.send")}
                   </Button>
                 )}
                 {mc.status === 'device_only' && mc.deviceCourse && (
@@ -353,7 +355,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
                       className="h-7 px-2 text-xs gap-1"
                       onClick={() => handleDownloadCourseToApp(selectedTrack, mc.deviceCourse!)}
                     >
-                      <Download className="w-3.5 h-3.5" /> Get
+                      <Download className="w-3.5 h-3.5" /> {t("deviceTracks.get")}
                     </Button>
                     <Button
                       variant="ghost"
@@ -373,7 +375,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
                       className="h-7 px-2 text-xs gap-1"
                       onClick={() => setDiffCourse(mc)}
                     >
-                      <GitCompare className="w-3.5 h-3.5" /> Compare
+                      <GitCompare className="w-3.5 h-3.5" /> {t("deviceTracks.compare")}
                     </Button>
                     <Button
                       variant="ghost"
@@ -417,11 +419,11 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         {deleteConfirm && (
           <ConfirmDeleteDialog
             title={deleteConfirm.type === 'track'
-              ? `Delete ${deleteConfirm.trackEntry.shortName} from device?`
-              : `Delete course "${deleteConfirm.courseName}" from ${deleteConfirm.trackEntry.shortName} on device?`}
+              ? t("deviceTracks.deleteTrackTitle", { name: deleteConfirm.trackEntry.shortName })
+              : t("deviceTracks.deleteCourseTitle", { course: deleteConfirm.courseName, track: deleteConfirm.trackEntry.shortName })}
             description={deleteConfirm.type === 'course'
-              ? "The track will be re-uploaded without this course. If no courses remain, the entire track file will be deleted."
-              : "This will remove the track file from the device's SD card."}
+              ? t("deviceTracks.deleteCourseDesc")
+              : t("deviceTracks.deleteTrackDesc")}
             loading={uploading === deleteConfirm.trackEntry.shortName}
             onConfirm={() => {
               if (deleteConfirm.type === 'track') {
@@ -443,14 +445,14 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
         <span className="text-xs text-muted-foreground">
-          {mergedTracks.length} track{mergedTracks.length !== 1 ? 's' : ''}
+          {t("deviceTracks.trackCount", { count: mergedTracks.length })}
         </span>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setResyncConfirm(true)}>
-            <RotateCcw className="w-3.5 h-3.5" /> Resync All
+            <RotateCcw className="w-3.5 h-3.5" /> {t("deviceTracks.resyncAll")}
           </Button>
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={syncAll}>
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5" /> {t("deviceTracks.refresh")}
           </Button>
         </div>
       </div>
@@ -459,7 +461,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       <div className="flex-1 overflow-y-auto">
         {mergedTracks.length === 0 ? (
           <div className="p-4 text-center text-sm text-muted-foreground">
-            No tracks found on device or in app.
+            {t("deviceTracks.noTracksFound")}
           </div>
         ) : (
           mergedTracks.map((entry) => (
@@ -499,7 +501,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
                     className="h-7 px-2 text-xs gap-1 shrink-0"
                     onClick={(e) => { e.stopPropagation(); handleDownloadToApp(entry); }}
                   >
-                    <Download className="w-3.5 h-3.5" /> Get
+                    <Download className="w-3.5 h-3.5" /> {t("deviceTracks.get")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -528,7 +530,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
                   className="h-7 px-2 text-xs gap-1 shrink-0"
                   onClick={(e) => { e.stopPropagation(); setSelectedTrack(entry); setView("courses"); }}
                 >
-                  <GitCompare className="w-3.5 h-3.5" /> Courses
+                  <GitCompare className="w-3.5 h-3.5" /> {t("deviceTracks.courses")}
                 </Button>
               )}
             </div>
@@ -539,8 +541,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       {/* Delete confirmation */}
       {deleteConfirm && (
         <ConfirmDeleteDialog
-          title={`Delete ${deleteConfirm.trackEntry.shortName} from device?`}
-          description="This will remove the track file from the device's SD card."
+          title={t("deviceTracks.deleteTrackTitle", { name: deleteConfirm.trackEntry.shortName })}
+          description={t("deviceTracks.deleteTrackDesc")}
           loading={uploading === deleteConfirm.trackEntry.shortName}
           onConfirm={() => handleDeleteTrackFromDevice(deleteConfirm.trackEntry)}
           onClose={() => setDeleteConfirm(null)}
@@ -550,9 +552,9 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       {/* Resync confirmation */}
       {resyncConfirm && (
         <ConfirmDeleteDialog
-          title="Resync All Tracks to Device?"
-          description="This will delete all known tracks from the device and re-upload them from the app. Device-only tracks will be left untouched."
-          confirmLabel="Resync"
+          title={t("deviceTracks.resyncTitle")}
+          description={t("deviceTracks.resyncDesc")}
+          confirmLabel={t("deviceTracks.resyncLabel")}
           loading={false}
           onConfirm={handleResyncAll}
           onClose={() => setResyncConfirm(false)}
@@ -573,7 +575,8 @@ interface ConfirmDeleteDialogProps {
   onClose: () => void;
 }
 
-function ConfirmDeleteDialog({ title, description, confirmLabel = "Delete", loading, onConfirm, onClose }: ConfirmDeleteDialogProps) {
+function ConfirmDeleteDialog({ title, description, confirmLabel, loading, onConfirm, onClose }: ConfirmDeleteDialogProps) {
+  const { t } = useTranslation("drawer");
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-sm">
@@ -586,11 +589,11 @@ function ConfirmDeleteDialog({ title, description, confirmLabel = "Delete", load
         </DialogHeader>
         <DialogFooter className="flex gap-2 sm:gap-2">
           <Button variant="outline" size="sm" onClick={onClose} disabled={loading}>
-            Cancel
+            {t("deviceTracks.cancel")}
           </Button>
           <Button variant="destructive" size="sm" onClick={onConfirm} disabled={loading} className="gap-1">
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            {confirmLabel}
+            {confirmLabel ?? t("deviceTracks.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -619,6 +622,7 @@ function CourseDiffDialog({
   onDownloadToApp,
   onClose,
 }: CourseDiffDialogProps) {
+  const { t } = useTranslation("drawer");
   const appSectors = countAppSectors(appCourse);
   const deviceSectors = countDeviceSectors(deviceCourse);
   const distance = startADistance(appCourse, deviceCourse);
@@ -631,36 +635,36 @@ function CourseDiffDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-yellow-500" />
-            Course Mismatch — {courseName}
+            {t("deviceTracks.diffTitle", { name: courseName })}
           </DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3 text-xs">
           {/* Column headers */}
-          <div className="font-semibold text-foreground text-center border-b border-border pb-1">In App</div>
-          <div className="font-semibold text-foreground text-center border-b border-border pb-1">On Device</div>
+          <div className="font-semibold text-foreground text-center border-b border-border pb-1">{t("deviceTracks.inApp")}</div>
+          <div className="font-semibold text-foreground text-center border-b border-border pb-1">{t("deviceTracks.onDevice")}</div>
 
           {/* Start A */}
-          <DiffRow label="Start A Lat" left={formatCoord(appCourse.startFinishA.lat)} right={formatCoord(deviceCourse.start_a_lat)} />
-          <DiffRow label="Start A Lng" left={formatCoord(appCourse.startFinishA.lon)} right={formatCoord(deviceCourse.start_a_lng)} />
+          <DiffRow label={t("deviceTracks.startALat")} left={formatCoord(appCourse.startFinishA.lat)} right={formatCoord(deviceCourse.start_a_lat)} />
+          <DiffRow label={t("deviceTracks.startALng")} left={formatCoord(appCourse.startFinishA.lon)} right={formatCoord(deviceCourse.start_a_lng)} />
 
           {/* Start B */}
-          <DiffRow label="Start B Lat" left={formatCoord(appCourse.startFinishB.lat)} right={formatCoord(deviceCourse.start_b_lat)} />
-          <DiffRow label="Start B Lng" left={formatCoord(appCourse.startFinishB.lon)} right={formatCoord(deviceCourse.start_b_lng)} />
+          <DiffRow label={t("deviceTracks.startBLat")} left={formatCoord(appCourse.startFinishB.lat)} right={formatCoord(deviceCourse.start_b_lat)} />
+          <DiffRow label={t("deviceTracks.startBLng")} left={formatCoord(appCourse.startFinishB.lon)} right={formatCoord(deviceCourse.start_b_lng)} />
 
           {/* Sectors */}
           <div className="col-span-2 grid grid-cols-2 gap-3 border-t border-border pt-2 mt-1">
             <div className="text-center text-muted-foreground">
-              Sectors: <span className="text-foreground font-medium">{appSectors || "None"}</span>
+              {t("deviceTracks.sectors")} <span className="text-foreground font-medium">{appSectors || t("deviceTracks.none")}</span>
             </div>
             <div className="text-center text-muted-foreground">
-              Sectors: <span className="text-foreground font-medium">{deviceSectors || "None"}</span>
+              {t("deviceTracks.sectors")} <span className="text-foreground font-medium">{deviceSectors || t("deviceTracks.none")}</span>
             </div>
           </div>
 
           {/* Distance */}
           <div className="col-span-2 text-center border-t border-border pt-2 mt-1 text-muted-foreground">
-            Start line distance: <span className="text-foreground font-medium">{distance.toFixed(2)}m</span>
+            {t("deviceTracks.startLineDistance")} <span className="text-foreground font-medium">{distance.toFixed(2)}m</span>
           </div>
         </div>
 
@@ -673,7 +677,7 @@ function CourseDiffDialog({
             onClick={onSendToDevice}
           >
             {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            Send to Device
+            {t("deviceTracks.sendToDevice")}
           </Button>
           <Button
             variant="outline"
@@ -682,7 +686,7 @@ function CourseDiffDialog({
             onClick={onDownloadToApp}
           >
             <Download className="w-3.5 h-3.5" />
-            Download to App
+            {t("deviceTracks.downloadToApp")}
           </Button>
         </DialogFooter>
       </DialogContent>

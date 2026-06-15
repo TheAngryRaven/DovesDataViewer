@@ -1,0 +1,218 @@
+{
+  "_machine": true,
+  "tagline": "Visualizador de dados de telemetria",
+  "hero": {
+    "title": "Visualizador de telemetria VBO, MoTeC, AiM e NMEA grátis online",
+    "subtitle": "Carregue um datalog e explore suas voltas: mapas, gráficos, setores e sincronização de vídeo. Tudo funciona localmente no seu navegador. Sem upload, sem necessidade de conta."
+  },
+  "tiles": {
+    "sample": {
+      "title": "Carregar dados de exemplo",
+      "description": "Experimente agora com uma sessão real do Orlando Kart Center"
+    },
+    "browse": {
+      "title": "Procurar arquivos salvos",
+      "description": "Reabra registros que você já importou neste dispositivo"
+    },
+    "logger": {
+      "title": "Baixar do registrador",
+      "description": "Baixe registros via Bluetooth do seu DovesDataLogger",
+      "unsupportedDescription": "Requer Chrome, Edge ou Opera no computador",
+      "unsupportedHint": "Web Bluetooth não é compatível com este navegador"
+    },
+    "tracks": {
+      "title": "Gerenciar pistas",
+      "description": "Crie, desenhe e edite traçados de pistas e percursos"
+    },
+    "build": {
+      "title": "Monte seu próprio registrador",
+      "description": "Hardware e firmware GPS de código aberto: o DovesDataLogger"
+    }
+  },
+  "links": {
+    "privacy": "Política de privacidade",
+    "terms": "Termos de serviço",
+    "trackManagement": "Gerenciamento de pistas"
+  },
+  "footer": {
+    "operatedBy": "Operado por",
+    "previewWarning": "Este branch está rodando em um banco de dados de prévia: as contas podem ser apagadas a qualquer momento. Não confie que os dados sejam salvos em outro lugar que não seja localmente. Se os pagamentos forem ativados, <strong>não insira informações de pagamento reais.</strong>"
+  },
+  "about": {
+    "trigger": "Sobre",
+    "title": "Sobre o HackTheTrack",
+    "featuresHeading": "Recursos",
+    "sections": {
+      "offline": {
+        "heading": "Funciona offline e pode ser instalado",
+        "body": "O HackTheTrack é um aplicativo web totalmente capaz de funcionar offline. Depois de carregado, ele funciona sem conexão com a internet — perfeito para a pista. Você pode <strong>instalá-lo como um app nativo</strong> no celular, tablet ou computador usando a opção \"Instalar\" no menu do navegador (ou o aviso que aparece na parte de baixo da página)."
+      },
+      "data": {
+        "heading": "Seus dados ficam no seu dispositivo",
+        "body": "Todo o processamento de dados acontece inteiramente no seu navegador, e tudo é salvo localmente no seu dispositivo por padrão. O armazenamento na nuvem é totalmente opcional — nada sai do seu dispositivo a menos que você crie uma conta e ative a sincronização."
+      },
+      "community": {
+        "heading": "Banco de dados de pistas da comunidade",
+        "body": "Não encontrou sua pista? Você pode definir layouts personalizados de pistas e circuitos no editor e depois enviá-los ao banco de dados do site para todos usarem. Os envios são revisados antes de serem adicionados."
+      },
+      "oss": {
+        "heading": "Gratuito e de código aberto",
+        "body": "Todos os recursos locais do HackTheTrack são totalmente gratuitos, e o código-fonte é aberto e está disponível no GitHub. O armazenamento em nuvem opcional tem um nível gratuito; mais armazenamento e o coaching com IA são complementos pagos que cobrem os custos de servidor e modelos — mas todos os recursos locais sempre permanecerão gratuitos."
+      }
+    },
+    "features": [
+      "Suporte a vários formatos (NMEA, UBX, VBO, MoTeC, AiM CSV + XRK/XRZ, Alfano, Dove, Dovex)",
+      "Detecção automática de pista e circuito num raio de 5 milhas",
+      "Detecção automática do sentido de condução (normal/inverso)",
+      "Modo waypoint — cronometragem de voltas em qualquer lugar, sem pista",
+      "Mapa interativo do traçado com mapa de calor de velocidade",
+      "Detecção e visualização de zonas de frenagem",
+      "Detecção automática de voltas pela linha de chegada",
+      "Cronometragem em 3 setores com volta ótima",
+      "Visão de gráficos pro com gráficos de telemetria de múltiplas séries",
+      "Diagrama G-G (círculo de atrito) para analisar o uso de aderência",
+      "Eixo do gráfico por distância ou tempo — as voltas se alinham pela posição na pista",
+      "Sobreposição da volta de referência e comparação de delta de ritmo",
+      "Sobreposição de várias voltas — compare voltas no mapa e nos gráficos ao mesmo tempo",
+      "Sobreponha voltas de sessões anteriores e outros loggers (alinhadas automaticamente)",
+      "Snapshots de volta — volta mais rápida salva por motor e circuito para comparação",
+      "Sincronização de vídeo com reprodução de telemetria",
+      "9 tipos de medidores sobrepostos (digital, analógico, gráfico, barra, bolha, mapa, ritmo, setor, tempo de volta)",
+      "Exportação de vídeo MP4 com sobreposições e áudio (H.264 + AAC)",
+      "Perfis de veículo e gerenciamento de fichas de acerto",
+      "Histórico de acertos congelado — cada sessão mantém o acerto que rodou",
+      "Notas de sessão por arquivo",
+      "Integração de dispositivos BLE (DovesDataLogger)",
+      "Sincronização de pistas do dispositivo via Bluetooth",
+      "Atualizações de firmware pelo ar — atualize seu logger direto do app",
+      "Editor de pistas e circuitos personalizados com envios da comunidade",
+      "Consulta de clima local",
+      "Modo escuro e claro",
+      "PWA — instalável e totalmente offline"
+    ]
+  },
+  "supportedFiles": {
+    "trigger": "Arquivos suportados",
+    "title": "Formatos de arquivo suportados",
+    "description": "Toda a análise é feita localmente no seu navegador — nada é enviado.",
+    "experimental": "Experimental",
+    "primary": {
+      "dove": {
+        "name": "Dove CSV",
+        "body": "CSV simples com timestamps Unix em milissegundos, dados de GPS, RPM e leituras do acelerômetro de hardware. O formato nativo do <logger>DovesDataLogger</logger>. Extensão: <code>.dove</code>"
+      },
+      "dovex": {
+        "name": "Dovex (Dove estendido)",
+        "body": "Formato Dove estendido com um cabeçalho de metadados de 4096 bytes contendo informações da sessão (piloto, circuito, tempos de volta) seguido de dados de GPS em CSV Dove padrão. Extensão: <code>.dovex</code>"
+      },
+      "xrk": {
+        "name": "AiM XRK / XRZ (binário)",
+        "body": "Telemetria binária nativa da AiM dos loggers MyChron / SoloDL, incluindo a variante <code>.xrz</code> compactada com zlib. Analisada inteiramente no seu navegador pelo <libxrk>libxrk</libxrk> compilado para WebAssembly — rápido e totalmente offline, como todos os outros formatos. Extensões: <code>.xrk</code>, <code>.xrz</code>"
+      },
+      "iracing": {
+        "name": "Telemetria do iRacing (binário)",
+        "body": "Exportação de telemetria binária nativa do iRacing — os mesmos dados que a API irsdk ao vivo do simulador fornece, sem conversão CSV/MoTeC de terceiros. Lida diretamente no seu navegador (totalmente offline): posição GPS, velocidade e altitude alimentam o mapa e as voltas, junto com acelerador, freio, marcha, direção, RPM, temperatura de água/óleo e g lateral/longitudinal nativo. Extensão: <code>.ibt</code>"
+      },
+      "nmea": {
+        "name": "NMEA / CSV (delimitado por tabulação)",
+        "body": "CSV delimitado por tabulação com sentenças NMEA — o formato legado usado pelos nossos dataloggers personalizados anteriores. Extensões: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
+      }
+    },
+    "secondary": {
+      "ubx": {
+        "name": "u-blox UBX binário",
+        "body": "Mensagens binárias NAV-PVT de receptores GPS u-blox. Extensão: <code>.ubx</code>"
+      },
+      "vbo": {
+        "name": "Racelogic VBO",
+        "body": "Formato de exportação Racelogic VBOX e RaceBox. Extensão: <code>.vbo</code>"
+      },
+      "motecLd": {
+        "name": "MoTeC LD binário",
+        "body": "Dados binários de loggers MoTeC e exportações de sim racing (ACC, iRacing, etc.). Extensão: <code>.ld</code>"
+      },
+      "motecCsv": {
+        "name": "MoTeC CSV",
+        "body": "Exportações CSV do software de análise MoTeC i2 Pro. Extensão: <code>.csv</code>"
+      },
+      "alfano": {
+        "name": "Alfano CSV",
+        "body": "Exportações CSV do app Alfano ADA. Extensão: <code>.csv</code>"
+      },
+      "aimCsv": {
+        "name": "AiM MyChron CSV",
+        "body": "Exportações CSV do Race Studio 3 (estilo RS2Analysis) para MyChron 5/6. Extensão: <code>.csv</code>"
+      }
+    }
+  },
+  "credits": {
+    "trigger": "Créditos",
+    "title": "Créditos",
+    "intro": "Construído sobre os ombros destes incríveis projetos de código aberto e serviços gratuitos."
+  },
+  "contact": {
+    "trigger": "Contato",
+    "title": "Fale conosco",
+    "description": "Envie-nos uma mensagem — lemos todas.",
+    "categoryLabel": "Categoria *",
+    "categoryPlaceholder": "Selecione uma categoria",
+    "categories": {
+      "comment": "Comentário",
+      "featureRequest": "Solicitação de recurso",
+      "complaint": "Reclamação",
+      "bugReport": "Relatório de bug"
+    },
+    "emailLabel": "E-mail",
+    "emailOptional": "(opcional, para resposta)",
+    "emailPlaceholder": "seu@email.com",
+    "messageLabel": "Mensagem *",
+    "messagePlaceholder": "O que você está pensando?",
+    "sending": "Enviando…",
+    "send": "Enviar mensagem",
+    "missingFields": "Campos faltando",
+    "missingFieldsDesc": "Selecione uma categoria e digite uma mensagem.",
+    "tooLong": "Mensagem muito longa",
+    "tooLongDesc": "Máximo de 2000 caracteres.",
+    "error": "Erro",
+    "errorGeneric": "Algo deu errado.",
+    "errorNetwork": "Não foi possível enviar a mensagem. Tente novamente.",
+    "sent": "Mensagem enviada!",
+    "sentDesc": "Obrigado pelo seu feedback."
+  },
+  "browserCompat": {
+    "trigger": "Compatibilidade do navegador",
+    "title": "Compatibilidade do navegador",
+    "description": "Suporte de recursos para o seu navegador atual.",
+    "note": "Todos os recursos principais funcionam nos navegadores modernos. Alguns recursos avançados funcionam melhor no Chrome ou Edge.",
+    "features": {
+      "gpsFileParsing": "Análise de arquivos GPS",
+      "videoSync": "Sincronização de vídeo",
+      "videoExport": "Exportação de vídeo (MP4)",
+      "audioInExport": "Áudio na exportação",
+      "bleDatalogger": "Datalogger BLE",
+      "filePicker": "Seletor de arquivos",
+      "pwaOffline": "PWA / Offline"
+    },
+    "statuses": {
+      "supported": "Compatível",
+      "notAvailable": "Não disponível",
+      "frameAccurate": "Precisão de quadro",
+      "approximateSync": "Sincronização aproximada",
+      "mp4H264": "MP4 (H.264)",
+      "webmFallback": "Alternativa WebM",
+      "silentExports": "Exportações sem áudio",
+      "native": "Nativo",
+      "fileInputFallback": "Alternativa de entrada de arquivo"
+    }
+  },
+  "fileImport": {
+    "title": "Abrir um datalog",
+    "processing": "Processando...",
+    "dragDrop": "Arraste e solte um arquivo aqui, ou clique para procurar",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD e mais — <i>tudo processado localmente no seu dispositivo.</i>",
+    "parseFailed": "Falha ao analisar o arquivo",
+    "parseErrorSaved": "{{message}} — o arquivo foi salvo e pode ser encontrado em Procurar arquivos.",
+    "loaded": "Carregado: {{name}}",
+    "errorLine": "Erro: {{error}}"
+  }
+}

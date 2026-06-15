@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Cloud, CloudOff, CloudUpload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,13 +8,14 @@ import type { FileRowContext } from "@/plugins/mounts";
 import { fileSyncStatus, getFileRecord, selectFile, unselectFile, type FileSyncState } from "./fileSync";
 import { pushFile } from "./syncEngine";
 
-const TITLES: Record<FileSyncState, string> = {
-  off: "Sync this file to the cloud",
-  pending: "Selected — uploads once you're signed in and online",
-  synced: "Synced — click to stop syncing (cloud copy is kept)",
-};
+const TITLE_KEYS = {
+  off: "fileSync.off",
+  pending: "fileSync.pending",
+  synced: "fileSync.synced",
+} as const satisfies Record<FileSyncState, string>;
 
 export default function FileSyncToggle({ ctx }: { ctx: FileRowContext }) {
+  const { t } = useTranslation("plugins");
   const { user } = useAuth();
   const online = useOnlineStatus();
   const name = ctx.file.name;
@@ -61,7 +63,7 @@ export default function FileSyncToggle({ ctx }: { ctx: FileRowContext }) {
       className={`h-7 w-7 shrink-0 opacity-70 hover:opacity-100 ${color}`}
       onClick={toggle}
       disabled={busy}
-      title={TITLES[state]}
+      title={t(TITLE_KEYS[state])}
       aria-pressed={state !== "off"}
     >
       <Icon className={`w-3.5 h-3.5 ${busy ? "animate-spin" : ""}`} />

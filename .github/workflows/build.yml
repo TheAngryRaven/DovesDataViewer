@@ -15,15 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - run: npm ci
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
       # The build needs VITE_* env vars resolved at build time, including
       # VITE_SUPABASE_URL which the auth context reads at app startup. The real
       # .env isn't checked in (per the .env.example convention); a stub built
       # from .env.example is enough for the build to succeed.
       - name: Stub .env for build
         run: cp .env.example .env
-      - run: npm run build
+      - run: bun run build

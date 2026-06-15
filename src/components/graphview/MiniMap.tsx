@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import { GpsSample, Course } from '@/types/racing';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
@@ -54,6 +55,7 @@ interface MiniMapProps {
 }
 
 export function MiniMap({ samples, allSamples, referenceSamples = [], course, bounds, isAllLaps, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays, showOverlayLegend = true, onToggleOverlayLegend }: MiniMapProps) {
+  const { t } = useTranslation('session');
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const { currentIndex } = usePlaybackContext();
 
@@ -249,7 +251,7 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], course, bo
       <button
         onClick={cycleMapStyle}
         className="absolute top-2 left-2 z-[1000] p-1.5 rounded bg-card/90 backdrop-blur-sm border border-border hover:bg-muted/50 text-muted-foreground"
-        title={`Map: ${mapStyle}`}
+        title={`${t('map.mapPrefix')}: ${mapStyle === 'dark' ? t('map.styleDark') : mapStyle === 'satellite' ? t('map.styleSatellite') : t('map.styleNone')}`}
       >
         {mapStyleIcon[mapStyle]}
       </button>
@@ -259,14 +261,14 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], course, bo
         <button
           onClick={() => setShowBrakingZones(!showBrakingZones)}
           className={`p-1.5 rounded bg-card/90 backdrop-blur-sm border border-border hover:bg-muted/50 transition-colors ${showBrakingZones ? 'text-primary' : 'text-muted-foreground'}`}
-          title="Braking zones"
+          title={t('map.brakingZones')}
         >
           <Octagon className="w-3 h-3" />
         </button>
         <button
           onClick={() => setShowSpeedEvents(!showSpeedEvents)}
           className={`p-1.5 rounded bg-card/90 backdrop-blur-sm border border-border hover:bg-muted/50 transition-colors ${showSpeedEvents ? 'text-primary' : 'text-muted-foreground'}`}
-          title="Speed events"
+          title={t('map.speedEvents')}
         >
           <Zap className="w-3 h-3" />
         </button>
@@ -279,10 +281,10 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], course, bo
             <button
               onClick={onToggleOverlayLegend}
               className={`flex w-full items-center gap-1.5 text-[11px] font-mono ${showOverlayLegend ? 'text-primary' : 'text-muted-foreground'}`}
-              title={showOverlayLegend ? 'Collapse overlay list' : `Show overlay list (${overlayLines.length})`}
+              title={showOverlayLegend ? t('map.overlaysCollapseTitle') : t('map.overlaysShowTitle', { count: overlayLines.length })}
             >
               <List className="w-3 h-3 shrink-0" />
-              <span>{showOverlayLegend ? 'Overlays' : `${overlayLines.length} overlay${overlayLines.length === 1 ? '' : 's'}`}</span>
+              <span>{showOverlayLegend ? t('map.overlays') : t('map.overlayCount', { count: overlayLines.length })}</span>
               {showOverlayLegend ? <ChevronDown className="w-3 h-3 shrink-0 ml-auto" /> : <ChevronUp className="w-3 h-3 shrink-0 ml-auto" />}
             </button>
           )}
@@ -290,10 +292,10 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], course, bo
             <button
               onClick={onToggleAlignOverlays}
               className={`flex w-full items-center gap-1.5 text-[11px] font-mono ${alignOverlays ? 'text-primary' : 'text-muted-foreground'}`}
-              title="Drift-align cross-session overlays onto the current lap"
+              title={t('map.alignTitle')}
             >
               <Crosshair className="w-3 h-3 shrink-0" />
-              <span>Align lines: {alignOverlays ? 'on' : 'off'}</span>
+              <span>{t('map.alignLines')}: {alignOverlays ? t('map.on') : t('map.off')}</span>
             </button>
           )}
           {showOverlayLegend && overlayLines.map(line => (
@@ -304,7 +306,7 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], course, bo
                 <button
                   onClick={() => onRemoveOverlay(line.id)}
                   className="ml-auto shrink-0 text-muted-foreground hover:text-destructive"
-                  title="Remove overlay"
+                  title={t('overlays.remove')}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -316,7 +318,7 @@ export function MiniMap({ samples, allSamples, referenceSamples = [], course, bo
 
       {!isOnline && (
         <div className="absolute bottom-2 left-2 z-[1000] flex items-center gap-1 text-xs text-amber-500">
-          <WifiOff className="w-3 h-3" /> offline
+          <WifiOff className="w-3 h-3" /> {t('map.offline')}
         </div>
       )}
     </div>

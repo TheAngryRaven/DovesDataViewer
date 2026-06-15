@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GpsSample, FieldMapping } from '@/types/racing';
 import { G_FORCE_FIELDS, G_FORCE_FIELDS_GPS, G_FORCE_FIELDS_HW, applySmoothingToValues, buildSeriesPoints, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed, numericExtent } from '@/lib/chartUtils';
 import { prepare2dCanvas, strokeSeriesPath } from '@/lib/canvas2d';
@@ -52,6 +53,7 @@ export function TelemetryChart({
   rangeStart,
   overlayLines = [],
 }: TelemetryChartProps) {
+  const { t } = useTranslation('session');
   const { useKph, useMetricDistance, gForceSmoothing, gForceSmoothingStrength, darkMode, gForceSource, chartXAxis } = useSettingsContext();
   const { currentIndex } = usePlaybackContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
@@ -485,7 +487,7 @@ export function TelemetryChart({
       <div className="flex items-center gap-4 px-4 py-2 border-b border-border flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[0] }} />
-          <span className="text-xs font-mono">Speed ({speedUnit})</span>
+          <span className="text-xs font-mono">{t('graphs.speed', { unit: speedUnit })}</span>
         </div>
         
         {/* Reference speed toggle - only show when reference is selected */}
@@ -498,7 +500,7 @@ export function TelemetryChart({
               className="w-3 h-3 rounded-full border-2 border-dashed" 
               style={{ borderColor: REFERENCE_COLOR, backgroundColor: showReferenceSpeed ? REFERENCE_COLOR : 'transparent' }} 
             />
-            <span className="text-xs font-mono">Ref Speed</span>
+            <span className="text-xs font-mono">{t('graphs.refSpeed')}</span>
           </button>
         )}
         
@@ -512,7 +514,7 @@ export function TelemetryChart({
               className="w-3 h-3 rounded-full" 
               style={{ backgroundColor: showPace ? PACE_COLOR : 'transparent', border: `2px solid ${PACE_COLOR}` }} 
             />
-            <span className="text-xs font-mono">Pace (Δt)</span>
+            <span className="text-xs font-mono">{t('graphs.paceDt')}</span>
           </button>
         )}
         

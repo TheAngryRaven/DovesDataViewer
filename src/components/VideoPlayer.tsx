@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw, Sliders, Move, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -231,6 +232,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   course = null, referenceSamples = [], paceData = [],
   sessionFileName = null,
 }: VideoPlayerProps) {
+  const { t } = useTranslation("video");
   const { useKph, useMetricDistance, brakingZoneSettings } = useSettingsContext();
   // Cursor comes from its own context (not props) so only this component —
   // not the whole InfoBox/GraphViewPanel chain — re-renders per playback tick.
@@ -520,14 +522,14 @@ export const VideoPlayer = memo(function VideoPlayer({
     return (
       <div className="h-full flex flex-col items-center justify-center bg-muted/20 gap-4">
         <Video className="w-12 h-12 text-muted-foreground/50" />
-        <p className="text-muted-foreground text-sm">No video loaded</p>
+        <p className="text-muted-foreground text-sm">{t("player.noVideo")}</p>
         {state.videoFileName && (
-          <p className="text-xs text-muted-foreground">Last used: {state.videoFileName}</p>
+          <p className="text-xs text-muted-foreground">{t("player.lastUsed", { name: state.videoFileName })}</p>
         )}
         <Button variant="outline" size="sm" onClick={actions.loadVideo} className="gap-2">
-          <Video className="w-4 h-4" /> Load Video
+          <Video className="w-4 h-4" /> {t("player.loadVideo")}
         </Button>
-        <p className="text-xs text-muted-foreground/70">Segmented videos are not yet supported.</p>
+        <p className="text-xs text-muted-foreground/70">{t("player.segmentedUnsupported")}</p>
       </div>
     );
   }
@@ -549,7 +551,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         {/* Out of range overlay */}
         {state.isOutOfRange && (
           <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-            <p className="text-white/70 text-sm font-medium">No video for this portion</p>
+            <p className="text-white/70 text-sm font-medium">{t("player.noVideoForPortion")}</p>
           </div>
         )}
 
@@ -589,7 +591,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Sliders className="w-5 h-5" />
-              Overlay Settings
+              {t("player.overlaySettingsTitle")}
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-y-auto pr-3 scrollbar-thin">
@@ -631,7 +633,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25" onClick={actions.togglePlay}>
             {state.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25" onClick={() => setIsMuted(m => !m)} title={isMuted ? "Unmute" : "Mute"}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 active:bg-white/25" onClick={() => setIsMuted(m => !m)} title={isMuted ? t("player.unmute") : t("player.mute")}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </Button>
 
@@ -641,20 +643,20 @@ export const VideoPlayer = memo(function VideoPlayer({
             variant="ghost" size="icon"
             className={`h-7 w-7 backdrop-blur-sm text-white ${state.isLocked ? "bg-primary/70 hover:bg-primary/50" : "bg-white/15 hover:bg-white/30"}`}
             onClick={actions.toggleLock}
-            title={state.isLocked ? "Unlock sync" : "Lock sync"}
+            title={state.isLocked ? t("player.unlockSync") : t("player.lockSync")}
           >
             {state.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
           </Button>
           {!state.isLocked && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={() => actions.stepFrame(-1)} title="Previous frame">
+              <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={() => actions.stepFrame(-1)} title={t("player.previousFrame")}>
                 <Minus className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={() => actions.stepFrame(1)} title="Next frame">
+              <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={() => actions.stepFrame(1)} title={t("player.nextFrame")}>
                 <Plus className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 text-xs gap-1.5" onClick={actions.setSyncPoint} title="Set sync point">
-                <Crosshair className="w-3.5 h-3.5" /> Sync
+              <Button variant="ghost" size="sm" className="h-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 text-xs gap-1.5" onClick={actions.setSyncPoint} title={t("player.setSyncPoint")}>
+                <Crosshair className="w-3.5 h-3.5" /> {t("player.sync")}
               </Button>
             </>
           )}
@@ -666,7 +668,7 @@ export const VideoPlayer = memo(function VideoPlayer({
             variant="ghost" size="icon"
             className={`h-7 w-7 backdrop-blur-sm text-white ${!overlaysLocked ? "bg-amber-500/60 hover:bg-amber-500/40" : "bg-white/15 hover:bg-white/30"}`}
             onClick={() => actions.updateOverlaySettings({ ...state.overlaySettings, overlaysLocked: !overlaysLocked })}
-            title={overlaysLocked ? "Unlock overlays" : "Lock overlays"}
+            title={overlaysLocked ? t("player.unlockOverlays") : t("player.lockOverlays")}
           >
             {overlaysLocked ? <Lock className="w-3.5 h-3.5" /> : <Move className="w-3.5 h-3.5" />}
           </Button>
@@ -676,7 +678,7 @@ export const VideoPlayer = memo(function VideoPlayer({
             variant="ghost" size="icon"
             className={`h-7 w-7 backdrop-blur-sm text-white ${showOverlayDialog ? "bg-white/30" : "bg-white/15"} hover:bg-white/30`}
             onClick={() => setShowOverlayDialog(v => !v)}
-            title="Overlay settings"
+            title={t("player.overlaySettings")}
           >
             <Sliders className="w-3.5 h-3.5" />
           </Button>
@@ -687,7 +689,7 @@ export const VideoPlayer = memo(function VideoPlayer({
               variant="ghost" size="icon"
               className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30"
               onClick={() => setShowExportDialog(true)}
-              title="Export video"
+              title={t("player.exportVideo")}
             >
               <Download className="w-3.5 h-3.5" />
             </Button>
@@ -712,7 +714,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           <span className="text-white/60 text-xs font-mono min-w-[80px] text-right">
             {formatTime(state.videoCurrentTime)} / {formatTime(state.videoDuration)}
           </span>
-          <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={actions.loadVideo} title="Replace video">
+          <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={actions.loadVideo} title={t("player.replaceVideo")}>
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
         </div>

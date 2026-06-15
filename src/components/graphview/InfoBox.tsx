@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,6 +62,7 @@ export function InfoBox({
   visibleSamples, allSamples, fieldMappings, laps, selectedLapNumber,
   referenceSamples, paceData, sessionFileName,
 }: InfoBoxProps) {
+  const { t } = useTranslation('session');
   const { useKph } = useSettingsContext();
   const [tab, setTab] = useState<InfoTab>('data');
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(sessionKartId);
@@ -106,9 +108,9 @@ export function InfoBox({
   return (
     <div className="flex flex-col h-full min-h-0 bg-card border-b border-border">
       <div className="flex shrink-0 border-b border-border">
-        <button onClick={() => setTab('data')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'data' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>Data</button>
-        <button onClick={() => setTab('vehicle')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'vehicle' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>Vehicle</button>
-        <button onClick={() => setTab('video')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>Video</button>
+        <button onClick={() => setTab('data')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'data' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabData')}</button>
+        <button onClick={() => setTab('vehicle')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'vehicle' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVehicle')}</button>
+        <button onClick={() => setTab('video')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVideo')}</button>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -135,28 +137,28 @@ export function InfoBox({
           <>
             {lapTimeMs !== null && (
               <div className="flex justify-between text-xs pb-2 border-b border-border">
-                <span className="text-muted-foreground">Lap Time</span>
+                <span className="text-muted-foreground">{t('stats.lapTime')}</span>
                 <span className="font-mono text-foreground font-semibold">{formatLapTime(lapTimeMs)}</span>
               </div>
             )}
             {course && speedEvents.length > 0 && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Avg Top Speed</span>
+                  <span className="text-muted-foreground">{t('stats.avgTopSpeed')}</span>
                   <span className="font-mono" style={{ color: 'hsl(142, 76%, 45%)' }}>{avgTop !== null ? `${convertSpeed(avgTop).toFixed(1)} ${unit}` : '—'}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Avg Min Speed</span>
+                  <span className="text-muted-foreground">{t('stats.avgMinSpeed')}</span>
                   <span className="font-mono" style={{ color: 'hsl(0, 84%, 55%)' }}>{avgMin !== null ? `${convertSpeed(avgMin).toFixed(1)} ${unit}` : '—'}</span>
                 </div>
               </div>
             )}
             {(referenceLapNumber !== null || lapToFastestDelta !== null || deltaTopSpeed !== null || deltaMinSpeed !== null) && (
               <div className="pt-2 border-t border-border space-y-1">
-                <div className="text-xs text-muted-foreground text-center mb-1">Δ {paceDiffLabel}</div>
+                <div className="text-xs text-muted-foreground text-center mb-1">Δ {paceDiffLabel === 'best' ? t('stats.best') : t('stats.ref')}</div>
                 {lapToFastestDelta !== null && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Δ Time</span>
+                    <span className="text-muted-foreground">Δ {t('stats.time')}</span>
                     <span className="font-mono" style={{ color: lapToFastestDelta < 0 ? 'hsl(142, 76%, 45%)' : lapToFastestDelta > 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}>
                       {lapToFastestDelta > 0 ? '+' : ''}{(lapToFastestDelta / 1000).toFixed(3)}s
                     </span>
@@ -164,7 +166,7 @@ export function InfoBox({
                 )}
                 {deltaTopSpeed !== null && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Δ Top Speed</span>
+                    <span className="text-muted-foreground">Δ {t('stats.topSpeed')}</span>
                     <span className="font-mono" style={{ color: deltaTopSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaTopSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}>
                       {deltaTopSpeed > 0 ? '+' : ''}{convertSpeed(deltaTopSpeed).toFixed(1)} {unit}
                     </span>
@@ -172,7 +174,7 @@ export function InfoBox({
                 )}
                 {deltaMinSpeed !== null && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Δ Min Speed</span>
+                    <span className="text-muted-foreground">Δ {t('stats.minSpeed')}</span>
                     <span className="font-mono" style={{ color: deltaMinSpeed > 0 ? 'hsl(142, 76%, 45%)' : deltaMinSpeed < 0 ? 'hsl(0, 84%, 55%)' : 'hsl(var(--muted-foreground))' }}>
                       {deltaMinSpeed > 0 ? '+' : ''}{convertSpeed(deltaMinSpeed).toFixed(1)} {unit}
                     </span>
@@ -191,24 +193,24 @@ export function InfoBox({
               <div className="space-y-3">
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Vehicle</span>
+                    <span className="text-muted-foreground">{t('infoBox.vehicle')}</span>
                     <span className="font-mono text-foreground">{selectedVehicle.name}</span>
                   </div>
                   {selectedVehicle.number > 0 && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Number</span>
+                      <span className="text-muted-foreground">{t('infoBox.number')}</span>
                       <span className="font-mono text-foreground">#{selectedVehicle.number}</span>
                     </div>
                   )}
                   {selectedVehicle.engine && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Engine</span>
+                      <span className="text-muted-foreground">{t('infoBox.engine')}</span>
                       <span className="font-mono text-foreground">{selectedVehicle.engine}</span>
                     </div>
                   )}
                   {selectedVehicle.weight > 0 && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Weight</span>
+                      <span className="text-muted-foreground">{t('infoBox.weight')}</span>
                       <span className="font-mono text-foreground">{selectedVehicle.weight} {selectedVehicle.weightUnit}</span>
                     </div>
                   )}
@@ -226,29 +228,29 @@ export function InfoBox({
                     <SetupDetails setup={selectedSetup} templates={templates} />
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground pt-2 border-t border-border">No setup linked to session</p>
+                  <p className="text-xs text-muted-foreground pt-2 border-t border-border">{t('infoBox.noSetupLinked')}</p>
                 )}
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Link a vehicle and setup to this session:</p>
+                <p className="text-xs text-muted-foreground">{t('infoBox.linkPrompt')}</p>
                 <Select value={selectedVehicleId ?? 'none'} onValueChange={handleVehicleChange}>
-                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select vehicle…" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder={t('infoBox.selectVehicle')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No vehicle</SelectItem>
+                    <SelectItem value="none">{t('infoBox.noVehicle')}</SelectItem>
                     {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Select value={selectedSetupId ?? 'none'} onValueChange={handleSetupChange} disabled={!selectedVehicleId || filteredSetups.length === 0}>
                   <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder={!selectedVehicleId ? 'Select vehicle first' : filteredSetups.length === 0 ? 'No setups' : 'Select setup…'} />
+                    <SelectValue placeholder={!selectedVehicleId ? t('infoBox.selectVehicleFirst') : filteredSetups.length === 0 ? t('infoBox.noSetups') : t('infoBox.selectSetup')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No setup</SelectItem>
+                    <SelectItem value="none">{t('infoBox.noSetup')}</SelectItem>
                     {filteredSetups.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button className="w-full" size="sm" onClick={handleSave} disabled={isSaved}>Save Selection</Button>
+                <Button className="w-full" size="sm" onClick={handleSave} disabled={isSaved}>{t('infoBox.saveSelection')}</Button>
                 {onOpenGarage && (
                   <Button
                     variant="outline"
@@ -256,7 +258,7 @@ export function InfoBox({
                     size="sm"
                     onClick={() => onOpenGarage(vehicles.length > 0 ? 'setups' : 'vehicles')}
                   >
-                    Open Garage
+                    {t('infoBox.openGarage')}
                   </Button>
                 )}
               </div>
@@ -272,7 +274,8 @@ export function InfoBox({
 
 /** Read-only display of setup fields — now dynamic from template */
 function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: SetupTemplate[] }) {
-  const template = templates.find(t => t.id === setup.templateId);
+  const { t } = useTranslation("drawer");
+  const template = templates.find(tpl => tpl.id === setup.templateId);
   const rows: { label: string; value: string }[] = [];
 
   const add = (label: string, value: string | number | null | undefined, suffix = '') => {
@@ -292,49 +295,49 @@ function SetupDetails({ setup, templates }: { setup: VehicleSetup; templates: Se
     const frontSprocket = setup.customFields["f-front-sprocket"];
     const rearSprocket = setup.customFields["f-rear-sprocket"];
     if (typeof frontSprocket === "number" && typeof rearSprocket === "number" && frontSprocket > 0) {
-      rows.push({ label: "Ratio", value: (rearSprocket / frontSprocket).toFixed(3) });
+      rows.push({ label: t("setupDetails.ratio"), value: (rearSprocket / frontSprocket).toFixed(3) });
     }
   }
 
-  add('Tire Brand', setup.tireBrand);
+  add(t("setupDetails.tireBrand"), setup.tireBrand);
   if (setup.psiFrontLeft !== null) {
     if (setup.psiFrontLeft === setup.psiFrontRight && setup.psiRearLeft === setup.psiRearRight && setup.psiFrontLeft === setup.psiRearLeft) {
-      add('PSI (all)', setup.psiFrontLeft?.toFixed(2));
+      add(t("setupDetails.psiAll"), setup.psiFrontLeft?.toFixed(2));
     } else if (setup.psiFrontLeft === setup.psiFrontRight && setup.psiRearLeft === setup.psiRearRight) {
-      add('PSI Front', setup.psiFrontLeft?.toFixed(2));
-      add('PSI Rear', setup.psiRearLeft?.toFixed(2));
+      add(t("setupDetails.psiFront"), setup.psiFrontLeft?.toFixed(2));
+      add(t("setupDetails.psiRear"), setup.psiRearLeft?.toFixed(2));
     } else {
-      add('PSI FL', setup.psiFrontLeft?.toFixed(2));
-      add('PSI FR', setup.psiFrontRight?.toFixed(2));
-      add('PSI RL', setup.psiRearLeft?.toFixed(2));
-      add('PSI RR', setup.psiRearRight?.toFixed(2));
+      add(t("setupDetails.psiFL"), setup.psiFrontLeft?.toFixed(2));
+      add(t("setupDetails.psiFR"), setup.psiFrontRight?.toFixed(2));
+      add(t("setupDetails.psiRL"), setup.psiRearLeft?.toFixed(2));
+      add(t("setupDetails.psiRR"), setup.psiRearRight?.toFixed(2));
     }
   }
   const wu = setup.unitSystem || "mm";
   if (setup.tireWidthFrontLeft !== null) {
     if (setup.tireWidthFrontLeft === setup.tireWidthFrontRight && setup.tireWidthRearLeft === setup.tireWidthRearRight) {
-      add('Tire Width Front', setup.tireWidthFrontLeft?.toFixed(2), ` ${wu}`);
-      add('Tire Width Rear', setup.tireWidthRearLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireWidthFront"), setup.tireWidthFrontLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireWidthRear"), setup.tireWidthRearLeft?.toFixed(2), ` ${wu}`);
     } else {
-      add('Tire Width FL', setup.tireWidthFrontLeft?.toFixed(2), ` ${wu}`);
-      add('Tire Width FR', setup.tireWidthFrontRight?.toFixed(2), ` ${wu}`);
-      add('Tire Width RL', setup.tireWidthRearLeft?.toFixed(2), ` ${wu}`);
-      add('Tire Width RR', setup.tireWidthRearRight?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireWidthFL"), setup.tireWidthFrontLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireWidthFR"), setup.tireWidthFrontRight?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireWidthRL"), setup.tireWidthRearLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireWidthRR"), setup.tireWidthRearRight?.toFixed(2), ` ${wu}`);
     }
   }
   if (setup.tireDiameterFrontLeft !== null) {
     if (setup.tireDiameterFrontLeft === setup.tireDiameterFrontRight && setup.tireDiameterRearLeft === setup.tireDiameterRearRight) {
-      add('Tire Diameter Front', setup.tireDiameterFrontLeft?.toFixed(2), ` ${wu}`);
-      add('Tire Diameter Rear', setup.tireDiameterRearLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireDiameterFront"), setup.tireDiameterFrontLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireDiameterRear"), setup.tireDiameterRearLeft?.toFixed(2), ` ${wu}`);
     } else {
-      add('Tire Diameter FL', setup.tireDiameterFrontLeft?.toFixed(2), ` ${wu}`);
-      add('Tire Diameter FR', setup.tireDiameterFrontRight?.toFixed(2), ` ${wu}`);
-      add('Tire Diameter RL', setup.tireDiameterRearLeft?.toFixed(2), ` ${wu}`);
-      add('Tire Diameter RR', setup.tireDiameterRearRight?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireDiameterFL"), setup.tireDiameterFrontLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireDiameterFR"), setup.tireDiameterFrontRight?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireDiameterRL"), setup.tireDiameterRearLeft?.toFixed(2), ` ${wu}`);
+      add(t("setupDetails.tireDiameterRR"), setup.tireDiameterRearRight?.toFixed(2), ` ${wu}`);
     }
   }
 
-  if (rows.length === 0) return <p className="text-xs text-muted-foreground">No setup data</p>;
+  if (rows.length === 0) return <p className="text-xs text-muted-foreground">{t("setupDetails.noSetupData")}</p>;
 
   return (
     <div className="space-y-0.5">

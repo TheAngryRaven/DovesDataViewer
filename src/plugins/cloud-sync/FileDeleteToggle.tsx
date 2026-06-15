@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +18,7 @@ import { FILE_STORE } from "./syncStores";
  * backup, so the box defaults off — local deletion alone never touches it.
  */
 export default function FileDeleteToggle({ ctx }: { ctx: FileDeleteConfirmContext }) {
+  const { t } = useTranslation("plugins");
   const { user } = useAuth();
   const online = useOnlineStatus();
   const { fileName, registerOnConfirm } = ctx;
@@ -68,7 +70,7 @@ export default function FileDeleteToggle({ ctx }: { ctx: FileDeleteConfirmContex
         className="scale-90"
       />
       <Label htmlFor={`cloud-del-${fileName}`} className="text-xs text-muted-foreground">
-        Also delete the synced copy from the cloud backup
+        {t("fileDelete.alsoCloud")}
       </Label>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +39,9 @@ export function EngineCombobox({
   onCreate,
   onDelete,
   usedNames = [],
-  label = "Engine",
+  label,
 }: EngineComboboxProps) {
+  const { t } = useTranslation("drawer");
   const [open, setOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -74,13 +76,13 @@ export function EngineCombobox({
   return (
     <div className="space-y-1" ref={wrapRef}>
       <div className="flex items-center justify-between">
-        <Label className="text-xs">{label}</Label>
+        <Label className="text-xs">{label ?? t("engine.label")}</Label>
         <button
           type="button"
           className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setManageOpen(true)}
         >
-          manage
+          {t("engine.manage")}
         </button>
       </div>
 
@@ -99,7 +101,7 @@ export function EngineCombobox({
               create();
             }
           }}
-          placeholder="Engine type"
+          placeholder={t("engine.placeholder")}
           className="h-8 text-sm"
         />
 
@@ -122,7 +124,7 @@ export function EngineCombobox({
                 onClick={create}
               >
                 <Plus className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">Create "{normalizeEngineName(value)}"</span>
+                <span className="truncate">{t("engine.create", { name: normalizeEngineName(value) })}</span>
               </button>
             )}
           </div>
@@ -133,15 +135,15 @@ export function EngineCombobox({
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <Settings className="w-4 h-4" /> Manage engines
+              <Settings className="w-4 h-4" /> {t("engine.manageTitle")}
             </DialogTitle>
             <DialogDescription>
-              Remove saved engine types. Engines in use by a vehicle can't be deleted.
+              {t("engine.manageDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-72 overflow-y-auto space-y-1">
             {engines.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No saved engines yet</p>
+              <p className="text-sm text-muted-foreground py-4 text-center">{t("engine.empty")}</p>
             ) : (
               filterEngines(engines, "").map((engine) => {
                 const inUse = usedKeys.has(engineNameKey(engine.name));
@@ -151,13 +153,13 @@ export function EngineCombobox({
                     className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors"
                   >
                     <span className="flex-1 min-w-0 truncate text-sm text-foreground">{engine.name}</span>
-                    {inUse && <span className="text-[11px] text-muted-foreground shrink-0">in use</span>}
+                    {inUse && <span className="text-[11px] text-muted-foreground shrink-0">{t("engine.inUse")}</span>}
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100 hover:text-destructive disabled:opacity-25 disabled:hover:text-current"
                       disabled={inUse}
-                      title={inUse ? "In use by a vehicle" : "Delete"}
+                      title={inUse ? t("engine.inUseTitle") : t("engine.delete")}
                       onClick={() => onDelete(engine.id)}
                     >
                       <Trash2 className="w-3.5 h-3.5" />

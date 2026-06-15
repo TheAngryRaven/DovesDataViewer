@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { AlertTriangle, Download, Loader2, ShieldX, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
@@ -20,6 +21,7 @@ type DeleteStep = "idle" | "code" | "working";
 // Profile-tab panel for GDPR self-service: export everything as a ZIP, and a
 // scheduled (7-day, reversible) account deletion gated by an emailed code.
 export default function DataPrivacyPanel(_props: PluginPanelProps) {
+  const { t } = useTranslation("plugins");
   const { user } = useAuth();
   const online = useOnlineStatus();
   const email = user?.email ?? "";
@@ -45,9 +47,9 @@ export default function DataPrivacyPanel(_props: PluginPanelProps) {
     setExporting(true);
     try {
       await downloadAccountExport((p) => setExportPhase(p.phase));
-      toast.success("Your data export has been downloaded.");
+      toast.success(t("dataPrivacy.exportDownloaded"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed.");
+      toast.error(e instanceof Error ? e.message : t("dataPrivacy.exportFailed"));
     } finally {
       setExporting(false);
       setExportPhase("");
@@ -57,20 +59,19 @@ export default function DataPrivacyPanel(_props: PluginPanelProps) {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your data</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dataPrivacy.yourData")}</p>
         <p className="text-xs text-muted-foreground">
-          Download a copy of everything we hold about you — {user ? "your account data plus " : ""}
-          the data stored in this browser — as a ZIP. This is your right to access and portability.
+          {user ? t("dataPrivacy.exportBlurbSignedIn") : t("dataPrivacy.exportBlurbSignedOut")}
         </p>
         <Button onClick={() => void runExport()} disabled={exporting} variant="outline">
           {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
-          {exporting ? (exportPhase || "Preparing…") : "Download my data"}
+          {exporting ? (exportPhase || t("dataPrivacy.preparing")) : t("dataPrivacy.downloadMyData")}
         </Button>
       </section>
 
       {user && (
         <section className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Delete account</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dataPrivacy.deleteAccount")}</p>
           {pending ? (
             <PendingNotice pending={pending} userId={user.id} online={online} onChange={refreshPending} />
           ) : (
@@ -93,6 +94,7 @@ function PendingNotice({
   online: boolean;
   onChange: () => Promise<void>;
 }) {
+  const { t } = useTranslation("plugins");
   const [busy, setBusy] = useState(false);
   const when = new Date(pending.scheduled_for).toLocaleString();
 
@@ -100,10 +102,10 @@ function PendingNotice({
     setBusy(true);
     try {
       await cancelAccountDeletion(userId);
-      toast.success("Account deletion cancelled.");
+      toast.success(t("dataPrivacy.cancelled"));
       await onChange();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't cancel deletion.");
+      toast.error(e instanceof Error ? e.message : t("dataPrivacy.cancelFailed"));
     } finally {
       setBusy(false);
     }
@@ -114,13 +116,12 @@ function PendingNotice({
       <div className="flex items-start gap-2 text-sm text-destructive">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>
-          Your account and all its data are scheduled for permanent deletion on{" "}
-          <strong>{when}</strong>. You can cancel any time before then.
+          <Trans ns="plugins" i18nKey="dataPrivacy.scheduledNotice" values={{ when }} components={{ b: <strong /> }} />
         </span>
       </div>
       <Button variant="outline" size="sm" disabled={busy || !online} onClick={() => void cancel()}>
         {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-        Cancel deletion
+        {t("dataPrivacy.cancelDeletion")}
       </Button>
     </div>
   );
@@ -135,6 +136,7 @@ function DeleteFlow({
   online: boolean;
   onScheduled: () => Promise<void>;
 }) {
+  const { t } = useTranslation("plugins");
   const [step, setStep] = useState<DeleteStep>("idle");
   const [code, setCode] = useState("");
 
@@ -142,10 +144,10 @@ function DeleteFlow({
     setStep("working");
     try {
       await sendDeletionCode(email);
-      toast.success(`We emailed a confirmation code to ${email}.`);
+      toast.success(t("dataPrivacy.emailedCode", { email }));
       setStep("code");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't send the code.");
+      toast.error(e instanceof Error ? e.message : t("dataPrivacy.sendCodeFailed"));
       setStep("idle");
     }
   };
@@ -156,12 +158,12 @@ function DeleteFlow({
       // The edge function verifies the code server-side, so we pass it straight
       // through rather than consuming it with a client-side verify first.
       const result = await scheduleAccountDeletion(code);
-      toast.success(`Deletion scheduled for ${new Date(result.scheduled_for).toLocaleDateString()}.`);
+      toast.success(t("dataPrivacy.scheduledFor", { date: new Date(result.scheduled_for).toLocaleDateString() }));
       setCode("");
       setStep("idle");
       await onScheduled();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "That code didn't work — try again.");
+      toast.error(e instanceof Error ? e.message : t("dataPrivacy.codeFailed"));
       setStep("code");
     }
   };
@@ -169,21 +171,18 @@ function DeleteFlow({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Deletes your account and everything stored under it (profile, synced files, garage data,
-        subscription record). To protect against a hijacked session, we email you a code first and
-        then wait <strong>7 days</strong> before erasing anything — you can cancel during that time.
-        Data stored only in this browser is not removed by this; clear it from your browser settings.
+        <Trans ns="plugins" i18nKey="dataPrivacy.deleteBlurb" components={{ b: <strong /> }} />
       </p>
 
       {step === "idle" && (
         <Button variant="destructive" size="sm" disabled={!online} onClick={() => void startCode()}>
-          <Trash2 className="mr-1.5 h-4 w-4" /> Delete my account
+          <Trash2 className="mr-1.5 h-4 w-4" /> {t("dataPrivacy.deleteMyAccount")}
         </Button>
       )}
 
       {step === "working" && (
         <Button variant="destructive" size="sm" disabled>
-          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Working…
+          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> {t("dataPrivacy.working")}
         </Button>
       )}
 
@@ -192,7 +191,7 @@ function DeleteFlow({
           <Input
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="6-digit code"
+            placeholder={t("dataPrivacy.codePlaceholder")}
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={10}
@@ -200,17 +199,17 @@ function DeleteFlow({
           />
           <div className="flex gap-2">
             <Button variant="destructive" size="sm" disabled={!code.trim() || !online} onClick={() => void confirm()}>
-              <ShieldX className="mr-1.5 h-4 w-4" /> Confirm deletion
+              <ShieldX className="mr-1.5 h-4 w-4" /> {t("dataPrivacy.confirmDeletion")}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => { setCode(""); setStep("idle"); }}>
-              Cancel
+              {t("dataPrivacy.cancel")}
             </Button>
           </div>
         </div>
       )}
 
       {!online && (
-        <p className="text-xs text-muted-foreground">You're offline — account deletion needs a connection.</p>
+        <p className="text-xs text-muted-foreground">{t("dataPrivacy.offlineDelete")}</p>
       )}
     </div>
   );

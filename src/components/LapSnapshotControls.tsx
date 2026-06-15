@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Camera, Check, Plus, Spline, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,29 +37,31 @@ interface LapSnapshotControlsProps {
  */
 export function LapSnapshotControls({
   snapshotsForCourse, activeSnapshotId, canSnapshot, hasCourse,
-  onLoad, onClear, onSave, triggerLabel = "Snapshots", showSave = true,
+  onLoad, onClear, onSave, triggerLabel, showSave = true,
   overlayLines = [], onToggleOverlay,
 }: LapSnapshotControlsProps) {
+  const { t } = useTranslation("session");
   const [open, setOpen] = useState(false);
   if (!hasCourse) return null;
 
   const count = snapshotsForCourse.length;
+  const label = triggerLabel ?? t("snapshots.trigger");
 
   const handleSave = async (force = false) => {
     const result = await onSave(force);
     if (result.saved) {
-      toast.success(result.replaced ? "Course fastest lap updated." : "Lap snapshot saved.");
+      toast.success(result.replaced ? t("snapshots.toastUpdated") : t("snapshots.toastSaved"));
       setOpen(false);
     } else if (result.reason === "slower") {
       // Don't silently destroy a faster personal-best baseline — confirm first.
       const ok = window.confirm(
-        `Your saved snapshot (${formatLapTime(result.existingLapMs ?? 0)}) is faster than this lap. Overwrite it anyway?`,
+        t("snapshots.confirmOverwrite", { time: formatLapTime(result.existingLapMs ?? 0) }),
       );
       if (ok) await handleSave(true);
     } else if (result.reason === "no-engine") {
-      toast.error("Assign an engine (vehicle) to this session first.");
+      toast.error(t("snapshots.errNoEngine"));
     } else if (result.reason === "no-lap") {
-      toast.error("No lap to snapshot yet.");
+      toast.error(t("snapshots.errNoLap"));
     }
   };
 
@@ -67,7 +70,7 @@ export function LapSnapshotControls({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-sm">
           <Camera className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">{triggerLabel}</span>
+          <span className="hidden lg:inline">{label}</span>
           {count > 0 && (
             <span className="ml-0.5 rounded bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
               {count}
@@ -77,11 +80,11 @@ export function LapSnapshotControls({
       </DialogTrigger>
       <DialogContent className="max-w-md max-h-[70vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Lap Snapshots</DialogTitle>
+          <DialogTitle>{t("snapshots.title")}</DialogTitle>
         </DialogHeader>
 
         <p className="text-xs text-muted-foreground">
-          You can only save one snapshot per engine per course. It records the full lap data, along with the setup information from the recorded session.
+          {t("snapshots.info")}
         </p>
 
         {showSave && (
@@ -94,11 +97,11 @@ export function LapSnapshotControls({
               onClick={() => void handleSave()}
             >
               <Plus className="h-4 w-4" />
-              Save current lap as snapshot
+              {t("snapshots.save")}
             </Button>
             {!canSnapshot && (
               <p className="-mt-1 text-[11px] text-muted-foreground">
-                Assign an engine to this session to capture its fastest lap.
+                {t("snapshots.saveHint")}
               </p>
             )}
           </>
@@ -106,12 +109,12 @@ export function LapSnapshotControls({
 
         <div className="mt-1 flex items-center justify-between">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Load as reference lap (this course)
+            {t("snapshots.loadAsReference")}
           </p>
           {activeSnapshotId && (
             <Button variant="ghost" size="sm" className="h-6 gap-1 px-2 text-xs" onClick={onClear}>
               <X className="h-3 w-3" />
-              Clear
+              {t("snapshots.clear")}
             </Button>
           )}
         </div>
@@ -119,7 +122,7 @@ export function LapSnapshotControls({
         <div className="-mx-1 flex-1 overflow-y-auto">
           {count === 0 ? (
             <p className="px-1 py-2 text-xs text-muted-foreground">
-              No snapshots saved for this course yet.
+              {t("snapshots.empty")}
             </p>
           ) : (
             <ul className="space-y-0.5">
@@ -148,21 +151,21 @@ export function LapSnapshotControls({
                       )}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm text-foreground">
-                          {snap.engine || "Unknown engine"}
+                          {snap.engine || t("snapshots.unknownEngine")}
                         </span>
                         <span className="block text-[11px] tabular-nums text-muted-foreground">
                           {formatLapTime(snap.lapTimeMs)}
                           {snap.vehicle?.name ? ` · ${snap.vehicle.name}` : ""}
                         </span>
                       </span>
-                      {isActive && <span className="shrink-0 text-[11px] text-primary">Showing</span>}
+                      {isActive && <span className="shrink-0 text-[11px] text-primary">{t("snapshots.showing")}</span>}
                     </button>
                     {onToggleOverlay && (
                       <button
                         type="button"
                         className="ml-1 mr-1 shrink-0 rounded p-1.5 transition-colors hover:bg-muted/50"
                         style={{ color: overlay ? overlay.color : undefined }}
-                        title={overlay ? "Hide line on map" : "Show line on map"}
+                        title={overlay ? t("snapshots.hideOnMap") : t("snapshots.showOnMap")}
                         aria-pressed={!!overlay}
                         onClick={() => onToggleOverlay(ovId)}
                       >

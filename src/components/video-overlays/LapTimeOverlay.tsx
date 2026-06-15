@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { OverlayInstance, OverlayRenderContext } from "./types";
 import { getTheme } from "./themes";
 import { formatOverlayLapTime, getOverlayLapStartTime } from "./overlayUtils";
@@ -10,6 +11,7 @@ interface LapTimeOverlayProps {
 }
 
 export const LapTimeOverlay = memo(function LapTimeOverlay({ instance, ctx, fontSize }: LapTimeOverlayProps) {
+  const { t } = useTranslation("video");
   const theme = getTheme(instance.theme);
   const showPace = instance.showPaceMode ?? false;
 
@@ -68,7 +70,7 @@ export const LapTimeOverlay = memo(function LapTimeOverlay({ instance, ctx, font
         letterSpacing: "0.05em",
         marginTop: fontSize * 0.05,
       }}>
-        LAP TIME
+        {t("widgets.lapTime")}
       </div>
 
       {/* Pace mode: delta + best time */}
@@ -95,7 +97,7 @@ export const LapTimeOverlay = memo(function LapTimeOverlay({ instance, ctx, font
               color: theme.textSecondary(instance.colorMode),
               letterSpacing: "0.05em",
             }}>
-              DELTA
+              {t("widgets.delta")}
             </div>
           </div>
 
@@ -112,7 +114,7 @@ export const LapTimeOverlay = memo(function LapTimeOverlay({ instance, ctx, font
               color: theme.textSecondary(instance.colorMode),
               letterSpacing: "0.05em",
             }}>
-              BEST {bestLap ? `L${bestLap.lapNumber}` : ""}
+              {t("widgets.best", { lap: bestLap ? `L${bestLap.lapNumber}` : "" })}
             </div>
           </div>
         </div>

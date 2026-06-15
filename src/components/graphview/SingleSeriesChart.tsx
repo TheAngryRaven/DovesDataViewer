@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { GpsSample } from '@/types/racing';
 import { G_FORCE_FIELDS, applySmoothingToValues, buildSeriesPoints, computeSmoothingWindowSize, detectSpeedGlitchIndices, interpolateGlitchSpeed, numericExtent } from '@/lib/chartUtils';
@@ -44,6 +45,7 @@ export function SingleSeriesChart({
   allSamples, rangeStart, overlayLines = [],
   height, onHeightChange,
 }: SingleSeriesChartProps) {
+  const { t } = useTranslation('session');
   const { useKph, useMetricDistance, gForceSmoothing, gForceSmoothingStrength, darkMode, chartXAxis, brakingZoneSettings } = useSettingsContext();
   const { currentIndex } = usePlaybackContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
@@ -415,7 +417,7 @@ export function SingleSeriesChart({
       <button
         onClick={onDelete}
         className="absolute top-1 right-1 z-10 p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-        title="Remove graph"
+        title={t('graphs.removeGraph')}
       >
         <X className="w-3.5 h-3.5" />
       </button>

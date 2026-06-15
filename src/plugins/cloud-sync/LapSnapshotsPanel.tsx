@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Camera, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
@@ -27,6 +28,7 @@ function formatDate(ms?: number): string {
 // Signed out: manage the snapshots saved on THIS device — the only thing you can
 // do with them until you sign in to sync.
 export default function LapSnapshotsPanel(_props: PluginPanelProps) {
+  const { t } = useTranslation("plugins");
   const { user, loading } = useAuth();
   const [items, setItems] = useState<LapSnapshot[] | null>(null);
   const [localIds, setLocalIds] = useState<Set<string>>(new Set());
@@ -48,9 +50,9 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
       }
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load snapshots");
+      setError(e instanceof Error ? e.message : t("snapshots.loadFailed"));
     }
-  }, [user]);
+  }, [user, t]);
 
   // Auto-detect local-only snapshots and upload them when signed in (the same
   // reconcile autoSync runs on sign-in, re-triggered here so opening the panel
@@ -77,7 +79,7 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
     });
   }, [syncAndRefresh]);
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (loading) return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
 
   const startConfirm = (id: string) => {
     setConfirming(id);
@@ -92,17 +94,17 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
         if (alsoLocal && localIds.has(snap.id)) await deleteSnapshot(snap.id);
         toast.success(
           alsoLocal && localIds.has(snap.id)
-            ? "Deleted snapshot from the cloud and this device."
-            : "Deleted snapshot from the cloud.",
+            ? t("snapshots.deletedBoth")
+            : t("snapshots.deletedCloud"),
         );
       } else {
         await deleteSnapshot(snap.id);
-        toast.success("Deleted snapshot from this device.");
+        toast.success(t("snapshots.deletedLocal"));
       }
       setConfirming(null);
       await refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
+      toast.error(e instanceof Error ? e.message : t("snapshots.deleteFailed"));
     } finally {
       setBusy(null);
     }
@@ -113,19 +115,19 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
     setSyncing(true);
     try {
       const { pushed, skipped } = await reconcileSnapshots(user.id);
-      if (skipped > 0) toast.error(`${skipped} snapshot${skipped === 1 ? "" : "s"} didn't fit your cloud storage.`);
-      else if (pushed > 0) toast.success(`Synced ${pushed} snapshot${pushed === 1 ? "" : "s"}.`);
-      else toast("Everything is already synced.");
+      if (skipped > 0) toast.error(t("snapshots.skipped", { count: skipped }));
+      else if (pushed > 0) toast.success(t("snapshots.synced", { count: pushed }));
+      else toast(t("snapshots.allSynced"));
       await refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Sync failed");
+      toast.error(e instanceof Error ? e.message : t("snapshots.syncFailed"));
     } finally {
       setSyncing(false);
     }
   };
 
   if (error) return <p className="text-xs text-destructive">{error}</p>;
-  if (!items) return <p className="text-xs text-muted-foreground">Loading snapshots…</p>;
+  if (!items) return <p className="text-xs text-muted-foreground">{t("snapshots.loading")}</p>;
 
   const unsyncedLocal = user ? localIds.size > items.length : false;
 
@@ -134,23 +136,23 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
       {user ? (
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            {items.length} synced
+            {t("snapshots.syncedCount", { count: items.length })}
           </p>
           {unsyncedLocal && (
             <Button size="sm" variant="outline" className="h-7 text-xs" disabled={syncing} onClick={() => void handleSyncLocal()}>
-              {syncing ? "Syncing…" : "Sync local snapshots"}
+              {syncing ? t("snapshots.syncing") : t("snapshots.syncLocal")}
             </Button>
           )}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          On this device. Sign in to sync snapshots across devices.
+          {t("snapshots.onThisDeviceHint")}
         </p>
       )}
 
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          {user ? "No snapshots in your cloud yet." : "No snapshots saved on this device yet."}
+          {user ? t("snapshots.noneCloud") : t("snapshots.noneLocal")}
         </p>
       ) : (
         <div className="space-y-1.5">
@@ -163,7 +165,7 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
                   <Camera className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-foreground">
-                      {snap.engine || "Unknown engine"}
+                      {snap.engine || t("snapshots.unknownEngine")}
                       <span className="ml-1.5 font-mono text-xs text-muted-foreground">
                         {formatLapTime(snap.lapTimeMs)}
                       </span>
@@ -172,7 +174,7 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
                       {snap.trackName} — {snap.courseName}
                       {` · ${formatBytes(snapshotBytes(snap))}`}
                       {formatDate(snap.recordedAt ?? snap.createdAt) && ` · ${formatDate(snap.recordedAt ?? snap.createdAt)}`}
-                      {user && onDevice && " · on this device"}
+                      {user && onDevice && ` · ${t("snapshots.onThisDeviceTag")}`}
                     </p>
                   </div>
                   <Button
@@ -181,7 +183,7 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
                     className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
                     disabled={busy === snap.id}
                     onClick={() => startConfirm(snap.id)}
-                    aria-label="Delete snapshot"
+                    aria-label={t("snapshots.deleteAria")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -193,24 +195,24 @@ export default function LapSnapshotsPanel(_props: PluginPanelProps) {
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       <span>
                         {user
-                          ? "Permanently delete the cloud copy? This can't be undone."
-                          : "Delete this snapshot from this device? This can't be undone."}
+                          ? t("snapshots.confirmCloud")
+                          : t("snapshots.confirmLocal")}
                       </span>
                     </p>
                     {user && onDevice && (
                       <div className="flex items-center gap-2">
                         <Switch id={`local-${snap.id}`} checked={alsoLocal} onCheckedChange={setAlsoLocal} disabled={busy === snap.id} />
                         <Label htmlFor={`local-${snap.id}`} className="text-xs text-muted-foreground">
-                          Also delete the local copy on this device
+                          {t("snapshots.alsoLocal")}
                         </Label>
                       </div>
                     )}
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={busy === snap.id} onClick={() => setConfirming(null)}>
-                        Cancel
+                        {t("snapshots.cancel")}
                       </Button>
                       <Button size="sm" variant="destructive" className="h-7 text-xs" disabled={busy === snap.id} onClick={() => void handleDelete(snap)}>
-                        {busy === snap.id ? "Deleting…" : "Delete"}
+                        {busy === snap.id ? t("snapshots.deleting") : t("snapshots.delete")}
                       </Button>
                     </div>
                   </div>

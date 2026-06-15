@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { GpsSample } from '@/types/racing';
 import { computeSmoothingWindowSize } from '@/lib/chartUtils';
@@ -34,6 +35,7 @@ const SESSION_COLOR = 'hsl(180, 70%, 55%)'; // cyan cloud (matches speed series)
 const CURRENT_COLOR = 'hsl(0, 75%, 55%)';   // red current point
 
 export function GGDiagram({ samples, referenceSamples, overlayLines = [], label, onDelete, height, onHeightChange }: GGDiagramProps) {
+  const { t } = useTranslation('session');
   const { gForceSmoothing, gForceSmoothingStrength, gForceSource, darkMode } = useSettingsContext();
   const { currentIndex } = usePlaybackContext();
   const chartColors = useMemo(() => getChartColors(darkMode), [darkMode]);
@@ -107,7 +109,7 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], label,
     const rows: { color: string; label: string; lat: (number | null)[]; lon: (number | null)[] }[] = [
       {
         color: SESSION_COLOR,
-        label: 'Session',
+        label: t('gg.session'),
         lat: sessionPoints.map((p) => (p ? p.x : null)),
         lon: sessionPoints.map((p) => (p ? p.y : null)),
       },
@@ -125,13 +127,13 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], label,
     } else if (hasReference) {
       rows.push({
         color: chartColors.refLine,
-        label: 'Reference',
+        label: t('gg.reference'),
         lat: alignValuesByDistance(samples, referenceSamples!, refPoints.map((p) => (p ? p.x : null))),
         lon: alignValuesByDistance(samples, referenceSamples!, refPoints.map((p) => (p ? p.y : null))),
       });
     }
     return rows;
-  }, [pair, sessionPoints, activeMode, overlayLines, overlayClouds, hasReference, referenceSamples, refPoints, samples, chartColors.refLine]);
+  }, [pair, sessionPoints, activeMode, overlayLines, overlayClouds, hasReference, referenceSamples, refPoints, samples, chartColors.refLine, t]);
 
   // Resize observer
   useEffect(() => {
@@ -181,7 +183,7 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], label,
       ctx.fillStyle = chartColors.axisText;
       ctx.font = '12px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('No G-force data', cx, cy);
+      ctx.fillText(t('gg.noData'), cx, cy);
       return;
     }
 
@@ -211,13 +213,13 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], label,
     ctx.fillStyle = chartColors.axisText;
     ctx.font = '9px JetBrains Mono, monospace';
     ctx.textBaseline = 'top';
-    ctx.fillText('ACCEL', cx, cy - R - margin + 2);
+    ctx.fillText(t('gg.accel'), cx, cy - R - margin + 2);
     ctx.textBaseline = 'bottom';
-    ctx.fillText('BRAKE', cx, cy + R + margin - 2);
+    ctx.fillText(t('gg.brake'), cx, cy + R + margin - 2);
     // Lateral hint, anchored just inside the right end of the x-axis.
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
-    ctx.fillText('LAT', cx + R - 2, cy - 2);
+    ctx.fillText(t('gg.lat'), cx + R - 2, cy - 2);
 
     // Helper: draw a cloud as cheap 1.5px squares.
     const drawCloud = (points: typeof sessionPoints, color: string, alpha: number) => {
@@ -243,7 +245,7 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], label,
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
     ctx.fillText(pair.source, 4, dimensions.height - 4);
-  }, [dimensions, geometry, sessionPoints, refPoints, overlayClouds, activeMode, axisMax, pair, chartColors]);
+  }, [dimensions, geometry, sessionPoints, refPoints, overlayClouds, activeMode, axisMax, pair, chartColors, t]);
 
   // Current point on the cursor overlay canvas (its numeric readout lives in
   // the HTML info box below) — a tick costs a clearRect + one dot.
@@ -274,7 +276,7 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], label,
       <button
         onClick={onDelete}
         className="absolute top-1 right-1 z-10 p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-        title="Remove graph"
+        title={t('graphs.removeGraph')}
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -291,17 +293,17 @@ export function GGDiagram({ samples, referenceSamples, overlayLines = [], label,
               <button
                 onClick={() => setCompareMode(activeMode === 'overlays' ? 'ref' : 'overlays')}
                 className="px-1.5 py-0.5 rounded border border-border bg-background/80 text-[10px] font-mono text-muted-foreground hover:bg-muted/50 transition-colors"
-                title="Toggle the comparison cloud between the reference lap and the selected overlays"
+                title={t('gg.cloudToggleTitle')}
               >
-                {activeMode === 'overlays' ? 'Overlays' : 'Ref'}
+                {activeMode === 'overlays' ? t('gg.overlays') : t('gg.ref')}
               </button>
             )}
             <button
               onClick={() => setBoxAxis((a) => (a === 'lat' ? 'lon' : 'lat'))}
               className="px-1.5 py-0.5 rounded border border-border bg-background/80 text-[10px] font-mono text-muted-foreground hover:bg-muted/50 transition-colors"
-              title="Toggle the readout between lateral and longitudinal G"
+              title={t('gg.axisToggleTitle')}
             >
-              {boxAxis === 'lat' ? 'Lat G' : 'Lon G'}
+              {boxAxis === 'lat' ? t('gg.latG') : t('gg.lonG')}
             </button>
           </div>
           <div className="rounded border border-border bg-background/80 px-1.5 py-1 font-mono text-[10px] leading-tight">

@@ -1,0 +1,124 @@
+/**
+ * i18next bootstrap. Imported once from `main.tsx` before render so the chosen
+ * language is set before first paint (no English flash).
+ *
+ * Strategy (see docs/plans/i18n-translation-system.md):
+ *   - English is bundled eagerly as in-memory `resources` — it's the fallback
+ *     language and must always be present with zero network/flash.
+ *   - Every other language loads lazily through `importBackend` below, which
+ *     dynamic-imports `src/locales/<lng>/<ns>.json`. Vite code-splits each into
+ *     its own chunk; the service worker precaches those JS chunks (the worker's
+ *     JS glob), so switching language works fully offline after the first
+ *     install — no runtime fetch, no eager bundle cost.
+ */
+import i18n from "i18next";
+import type { BackendModule, ReadCallback } from "i18next";
+import { initReactI18next } from "react-i18next";
+import {
+  DEFAULT_LANGUAGE,
+  DEFAULT_NAMESPACE,
+  NAMESPACES,
+  resolveInitialLanguage,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from "./config";
+
+import enCommon from "@/locales/en/common.json";
+import enLanding from "@/locales/en/landing.json";
+import enSettings from "@/locales/en/settings.json";
+import enSession from "@/locales/en/session.json";
+import enVideo from "@/locales/en/video.json";
+import enDrawer from "@/locales/en/drawer.json";
+import enWeather from "@/locales/en/weather.json";
+import enTracks from "@/locales/en/tracks.json";
+import enPlugins from "@/locales/en/plugins.json";
+import enAuth from "@/locales/en/auth.json";
+import enAdmin from "@/locales/en/admin.json";
+
+const SETTINGS_KEY = "dove-dataviewer-settings";
+
+/** Read the persisted language preference straight from the settings blob,
+ * synchronously, so we can pick it before React mounts (mirrors the darkMode
+ * bootstrap in App.tsx). Returns undefined if unset/malformed. */
+function readSavedLanguage(): string | undefined {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { language?: unknown };
+    return typeof parsed.language === "string" ? parsed.language : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const bundledEnglish = {
+  common: enCommon,
+  landing: enLanding,
+  settings: enSettings,
+  session: enSession,
+  video: enVideo,
+  drawer: enDrawer,
+  weather: enWeather,
+  tracks: enTracks,
+  plugins: enPlugins,
+  auth: enAuth,
+  admin: enAdmin,
+} as const;
+
+const importBackend: BackendModule = {
+  type: "backend",
+  init: () => undefined,
+  read: (language: string, namespace: string, callback: ReadCallback) => {
+    // Plugin-owned namespaces resolve from the plugin's own folder (English is
+    // already bundled via addResourceBundle; this loads the other languages).
+    // Imported lazily to avoid an import cycle at module-eval time.
+    void import("./pluginLocales").then(({ getPluginLocaleLoader }) => {
+      const loader = getPluginLocaleLoader(namespace, language);
+      if (loader) {
+        loader()
+          .then((mod) => callback(null, mod.default))
+          .catch((err: unknown) => callback(err as Error, false));
+        return;
+      }
+      import(`../../locales/${language}/${namespace}.json`)
+        .then((mod) => callback(null, mod.default))
+        .catch((err: unknown) => callback(err as Error, false));
+    });
+  },
+};
+
+export const initialLanguage: SupportedLanguage = resolveInitialLanguage(
+  readSavedLanguage(),
+  typeof navigator !== "undefined"
+    ? (navigator.languages ?? (navigator.language ? [navigator.language] : []))
+    : [],
+);
+
+void i18n
+  .use(importBackend)
+  .use(initReactI18next)
+  .init({
+    lng: initialLanguage,
+    fallbackLng: DEFAULT_LANGUAGE,
+    supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
+    // Don't expand pt-BR → pt; our codes are explicit.
+    load: "currentOnly",
+    nonExplicitSupportedLngs: false,
+    ns: NAMESPACES,
+    defaultNS: DEFAULT_NAMESPACE,
+    resources: { en: bundledEnglish },
+    // English is bundled; every other language is filled in by the backend.
+    partialBundledLanguages: true,
+    interpolation: { escapeValue: false },
+    returnEmptyString: false,
+    react: { useSuspense: false },
+  });
+
+// Keep <html lang> in sync for accessibility / SEO.
+const applyHtmlLang = (lng: string) => {
+  if (typeof document !== "undefined") document.documentElement.setAttribute("lang", lng);
+};
+applyHtmlLang(initialLanguage);
+i18n.on("languageChanged", applyHtmlLang);
+
+export default i18n;

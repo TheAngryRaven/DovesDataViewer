@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RangeSlider } from '@/components/RangeSlider';
@@ -41,6 +42,7 @@ export function GraphPanel({
   visibleRange, onRangeChange, minRange, formatRangeLabel, sessionFileName, overlayLines = [],
   course = null, laps = [], selectedLapNumber = null,
 }: GraphPanelProps) {
+  const { t } = useTranslation('session');
   const { useKph, useMetricDistance, brakingZoneSettings } = useSettingsContext();
   const [activeGraphs, setActiveGraphs] = useState<string[]>([]);
   const [graphHeights, setGraphHeights] = useState<Record<string, number>>({});
@@ -163,14 +165,14 @@ export function GraphPanel({
   // Available data sources
   const availableSources = useMemo(() => {
     const sources: { key: string; label: string }[] = [
-      { key: 'speed', label: `Speed (${useKph ? 'KPH' : 'MPH'})` },
+      { key: 'speed', label: t('graphs.speed', { unit: useKph ? 'KPH' : 'MPH' }) },
     ];
     if (hasReference) {
-      sources.push({ key: '__pace__', label: 'Pace (Δs)' });
+      sources.push({ key: '__pace__', label: t('graphs.pace') });
     }
-    sources.push({ key: '__braking_g__', label: hasBothSources ? 'Brake % (GPS)' : 'Brake % (computed)' });
+    sources.push({ key: '__braking_g__', label: hasBothSources ? t('graphs.brakeGps') : t('graphs.brakeComputed') });
     if (hasGForce) {
-      sources.push({ key: '__gg__', label: 'G-G Diagram' });
+      sources.push({ key: '__gg__', label: t('graphs.ggDiagram') });
     }
     fieldMappings.forEach(f => {
       const display = f.label ?? f.name;
@@ -188,7 +190,7 @@ export function GraphPanel({
       sources.push({ key: f.name, label });
     });
     return sources;
-  }, [fieldMappings, useKph, useMetricDistance, hasReference, hasBothSources, hasGForce]);
+  }, [fieldMappings, useKph, useMetricDistance, hasReference, hasBothSources, hasGForce, t]);
 
   const unusedSources = useMemo(() => {
     return availableSources.filter(s => !activeGraphs.includes(s.key));
@@ -227,13 +229,13 @@ export function GraphPanel({
       <div className="flex-1 min-h-0 overflow-y-auto">
         {activeGraphs.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
-            <p className="text-sm">Add a data source to begin</p>
+            <p className="text-sm">{t('graphs.addSourcePrompt')}</p>
             {unusedSources.length > 0 && (
               <Select onValueChange={addGraph}>
                 <SelectTrigger className="w-[200px] h-9">
                   <div className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
-                    <SelectValue placeholder="Add Graph" />
+                    <SelectValue placeholder={t('graphs.addGraph')} />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +286,7 @@ export function GraphPanel({
                   <SelectTrigger className="w-[180px] h-8 text-sm">
                     <div className="flex items-center gap-2">
                       <Plus className="w-3.5 h-3.5" />
-                      <SelectValue placeholder="Add Graph" />
+                      <SelectValue placeholder={t('graphs.addGraph')} />
                     </div>
                   </SelectTrigger>
                   <SelectContent>

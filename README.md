@@ -76,6 +76,7 @@ All formats are auto-detected on import:
 | VBO | Racelogic VBOX, RaceBox | `.vbo` |
 | Dove CSV | DovesDataLogger | `.dove` |
 | Dovex | DovesDataLogger (extended with metadata) | `.dovex` |
+| Dovep | Phone Datalogger tool (Dove-phone; `.dovex`-compatible) | `.dovep` |
 | Alfano CSV | Alfano ADA app, Off Camber Data | `.csv` |
 | AiM CSV | MyChron 5/6, Race Studio 3 | `.csv` |
 | AiM XRK/XRZ | MyChron / SoloDL native binary | `.xrk`, `.xrz` |
@@ -98,6 +99,22 @@ All formats are auto-detected on import:
 > parse the `.ibt` directly. GPS `Lat`/`Lon`/`Speed`/`Alt` make it a first-class
 > GPS source; driver inputs (throttle, brake, gear, steering), engine channels
 > (RPM, water/oil temp) and native lateral/longitudinal g ride along.
+
+---
+
+## Languages
+
+The interface is available in **English, Spanish, French, German, Italian,
+Brazilian Portuguese and Japanese**, switchable in Settings (auto-detected from
+your browser on first run). Translations load on demand and are cached for full
+offline use. English is the source of truth; the other languages start as
+machine translations (built on [i18next](https://www.i18next.com)) and are
+hand-tuned over time — contributions welcome via `src/locales/`. Translation
+coverage is being rolled out screen by screen.
+
+Maintainers seed/refresh non-English locales from the English source with
+`bun run i18n:seed` (needs `ANTHROPIC_API_KEY`; see the translation plan in
+`docs/plans/i18n-translation-system.md`). Legal pages remain English by design.
 
 ---
 
@@ -150,6 +167,8 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 | `STRIPE_WEBHOOK_SECRET` | No (required for paid tiers) | Signing secret for the `stripe-webhook` endpoint, from the Stripe dashboard webhook config (edge function secret — `???`) |
 | `DELETION_CRON_SECRET` | No (required for scheduled account deletion) | Shared secret the `process-account-deletions` edge function requires in the `x-cron-secret` header. Must match the Vault secret `deletion_cron_secret` that the daily pg_cron job sends (edge function secret — `???`) |
 | `DOVE_PLUGIN_PACKAGES` | No | Build-time: comma-separated external plugin npm packages to load. Overrides the default (`@perchwerks/eye-in-the-sky`, the public AI coach) when set |
+| `ANTHROPIC_API_KEY` | No (translation tooling) | Required by `bun run i18n:seed` to machine-translate locale files (`scripts/seed-translations.mjs`). Maintainer tool only — never read by the app or the standard CI build (`???`). |
+| `I18N_SEED_MODEL` | No | Optional model override for `bun run i18n:seed` (default `claude-sonnet-4-6`). |
 
 > **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
 
@@ -302,27 +321,30 @@ git clone https://github.com/your-username/doves-dataviewer.git
 cd doves-dataviewer
 
 # Install dependencies
-npm install
-# or: bun install
+bun install
 
 # Start development server
-npm run dev
-# or: bun dev
+bun run dev
 ```
 
 Open [http://localhost:8080](http://localhost:8080) in your browser.
+
+> **Package manager:** this project standardizes on **[Bun](https://bun.sh)**.
+> `bun.lock` is the **only** committed lockfile — CI and the Cloudflare deploy
+> both run `bun install --frozen-lockfile`, so don't add an npm/yarn/pnpm
+> lockfile (a second lockfile drifts and breaks the frozen install).
 
 ### Available Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start dev server on port 8080 |
-| `npm run build` | Production build to `dist/` |
-| `npm run preview` | Preview production build locally |
-| `npm run lint` | Run ESLint |
-| `npm run typecheck` | Type-check via `tsc -b` (build mode — follows project references) |
-| `npm test` | Run Vitest in watch mode |
-| `npm run test:run` | Run Vitest once (CI-style) |
+| `bun run dev` | Start dev server on port 8080 |
+| `bun run build` | Production build to `dist/` |
+| `bun run preview` | Preview production build locally |
+| `bun run lint` | Run ESLint |
+| `bun run typecheck` | Type-check via `tsc -b` (build mode — follows project references) |
+| `bun run test` | Run Vitest in watch mode (use `bun run test`, **not** `bun test`, which is Bun's own runner) |
+| `bun run test:run` | Run Vitest once (CI-style) |
 
 ### On-screen debug console (`?dbg=true`)
 
@@ -340,7 +362,7 @@ buffer + capture) and `src/components/DebugConsole.tsx` (overlay).
 The live coverage badge is a [shields.io endpoint](https://shields.io/badges/endpoint-badge)
 backed by a **GitHub Gist** (not a Git branch — that kept Cloudflare Workers
 Builds trying to deploy a badge-only branch). The `coverage.yml` workflow runs
-`npm run coverage:badge` (which computes the `%` + color from the Vitest summary)
+`bun run coverage:badge` (which computes the `%` + color from the Vitest summary)
 and pushes those fields to the gist on every push to `main`. To wire it up on a
 fork:
 
@@ -357,7 +379,7 @@ fork:
 
 ## Deployment
 
-The app is a **static single-page app** — `npm run build` emits a self-contained
+The app is a **static single-page app** — `bun run build` emits a self-contained
 `dist/` folder (HTML + hashed JS/CSS + assets) with no server runtime to host.
 It runs on any static host. The optional admin backend (Supabase) is independent
 and unaffected by where the frontend is served — the browser just calls it over
@@ -371,7 +393,7 @@ integration / Workers Builds:
 1. In the Cloudflare dashboard, create a **Worker** and connect this repo
    (Workers Builds).
 2. Build settings:
-   - **Build command:** `npm run build`
+   - **Build command:** `bun run build`
    - **Deploy command:** `npx wrangler deploy` (Workers Builds default).
    - **Node version:** pinned to `20` via `.nvmrc` (matches CI).
 3. **`wrangler.jsonc`** (repo root) configures the deploy — there's no Worker
@@ -532,6 +554,7 @@ Built on the shoulders of these incredible open-source projects and free service
 - [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
 - [Leaflet](https://leafletjs.com) · [CARTO basemaps](https://carto.com) · [Esri World Imagery & Wayback](https://livingatlas.arcgis.com/wayback/) (satellite + historical imagery dates)
 - [TanStack Query](https://tanstack.com/query) · [Sonner](https://sonner.emilkowal.dev) · [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) · [dnd kit](https://dndkit.com) (sector list drag-to-reorder)
+- [i18next](https://www.i18next.com) · [react-i18next](https://react.i18next.com) (internationalization)
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) · [Savitzky-Golay (ml.js)](https://github.com/mljs/savitzky-golay) · [JSZip](https://stuk.github.io/jszip) · [fix-webm-duration](https://github.com/yusitnikov/fix-webm-duration)
 - [IEM ASOS (Iowa State)](https://mesonet.agron.iastate.edu) · [NWS API](https://www.weather.gov/documentation/services-web-api) · [Open-Meteo](https://open-meteo.com) (global weather fallback, CC-BY 4.0)
 - [MoTeC i2](https://www.motec.com.au) (file format reference)

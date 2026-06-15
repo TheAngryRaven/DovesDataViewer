@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,9 +21,10 @@ import { setPendingCheckout } from '@/lib/pendingCheckout';
 const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
 
 export default function Register() {
+  const { t } = useTranslation('auth');
   useDocumentHead({
-    title: 'Create account — HackTheTrack',
-    description: 'Create a HackTheTrack account to sync your telemetry, garage and notes across devices.',
+    title: t('register.metaTitle'),
+    description: t('register.metaDescription'),
     canonical: 'https://hackthetrack.net/register',
   });
   const [email, setEmail] = useState('');
@@ -39,27 +41,27 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!looksLikeEmail(email)) {
-      toast({ title: 'Enter a valid email address', variant: 'destructive' });
+      toast({ title: t('register.invalidEmail'), variant: 'destructive' });
       return;
     }
     if (isDisposableEmail(email)) {
-      toast({ title: 'Please use a permanent email address', description: 'Disposable / temporary mailboxes are not allowed.', variant: 'destructive' });
+      toast({ title: t('register.disposableEmail'), description: t('register.disposableEmailDesc'), variant: 'destructive' });
       return;
     }
     if (password !== confirmPassword) {
-      toast({ title: 'Passwords do not match', variant: 'destructive' });
+      toast({ title: t('register.passwordsNoMatch'), variant: 'destructive' });
       return;
     }
     if (password.length < 6) {
-      toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
+      toast({ title: t('register.passwordTooShort'), variant: 'destructive' });
       return;
     }
     if (turnstileEnabled && !captchaToken) {
-      toast({ title: 'Please complete the captcha', variant: 'destructive' });
+      toast({ title: t('register.completeCaptcha'), variant: 'destructive' });
       return;
     }
     if (!confirmAge) {
-      toast({ title: 'Please confirm you are 16 or older', variant: 'destructive' });
+      toast({ title: t('register.confirmAgeRequired'), variant: 'destructive' });
       return;
     }
     setIsLoading(true);
@@ -68,18 +70,18 @@ export default function Register() {
     const { error } = await signUp(email, password, undefined, captchaToken ?? undefined);
     setIsLoading(false);
     if (error) {
-      toast({ title: 'Registration failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('register.failed'), description: error.message, variant: 'destructive' });
     } else {
       // Account-first paid flow: stash the chosen plan so checkout resumes on
       // the user's first sign-in after confirming their email.
       if (isPaidTier(plan.tier)) {
         setPendingCheckout(plan.tier, plan.interval);
         toast({
-          title: 'Account created',
-          description: 'Confirm your email, then sign in to finish checkout for your plan.',
+          title: t('register.accountCreated'),
+          description: t('register.accountCreatedCheckout'),
         });
       } else {
-        toast({ title: 'Account created', description: 'Check your email to confirm your account.' });
+        toast({ title: t('register.accountCreated'), description: t('register.accountCreatedConfirm') });
       }
       navigate('/login');
     }
@@ -87,14 +89,14 @@ export default function Register() {
 
   const handleGoogle = async () => {
     if (!confirmAge) {
-      toast({ title: 'Please confirm you are 16 or older', variant: 'destructive' });
+      toast({ title: t('register.confirmAgeRequired'), variant: 'destructive' });
       return;
     }
     setIsLoading(true);
     const { error } = await signInWithGoogle();
     if (error) {
       setIsLoading(false);
-      toast({ title: 'Google sign-in failed', description: error.message, variant: 'destructive' });
+      toast({ title: t('googleFailed'), description: error.message, variant: 'destructive' });
     }
   };
 
@@ -109,19 +111,19 @@ export default function Register() {
 
       <div className="w-full max-w-sm space-y-6">
         <div className="racing-card p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Create account</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('register.heading')}</h2>
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>
               <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
             </div>
             <PlanCheckout value={plan} onChange={setPlan} config={config} />
@@ -135,16 +137,20 @@ export default function Register() {
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-primary"
               />
               <span>
-                I confirm I am 16 or older, and I agree to the{' '}
-                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                <Trans
+                  t={t}
+                  i18nKey="register.ageConfirm"
+                  components={{
+                    terms: <Link to="/terms" className="text-primary hover:underline" />,
+                    privacy: <Link to="/privacy" className="text-primary hover:underline" />,
+                  }}
+                />
               </span>
             </label>
             <div className="flex items-center gap-3">
               <PlanCheckoutSummary value={plan} config={config} />
               <Button type="submit" className="flex-1" disabled={isLoading || !confirmAge}>
-                {isLoading ? 'Please wait...' : 'Create Account'}
+                {isLoading ? t('pleaseWait') : t('register.submit')}
               </Button>
             </div>
           </form>
@@ -153,23 +159,23 @@ export default function Register() {
             <>
               <div className="relative flex items-center">
                 <div className="flex-grow border-t border-border" />
-                <span className="mx-3 text-xs text-muted-foreground">or</span>
+                <span className="mx-3 text-xs text-muted-foreground">{t('or')}</span>
                 <div className="flex-grow border-t border-border" />
               </div>
               <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
-                Continue with Google
+                {t('continueWithGoogle')}
               </Button>
             </>
           )}
 
           <p className="text-sm text-muted-foreground text-center">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline">Sign in</Link>
+            {t('register.alreadyHaveAccount')}{' '}
+            <Link to="/login" className="text-primary hover:underline">{t('register.signIn')}</Link>
           </p>
         </div>
 
         <Button variant="ghost" className="w-full gap-2" onClick={() => navigate('/')}>
-          <ArrowLeft className="w-4 h-4" /> Back to Home
+          <ArrowLeft className="w-4 h-4" /> {t('backToHome')}
         </Button>
       </div>
     </div>

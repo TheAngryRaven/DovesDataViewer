@@ -7,6 +7,7 @@
 const EXTENSION_LABELS: Record<string, string> = {
   dove: "Dove",
   dovex: "Dovex",
+  dovep: "Dovep",
   xrk: "XRK",
   xrz: "XRZ",
   ibt: "iRacing",

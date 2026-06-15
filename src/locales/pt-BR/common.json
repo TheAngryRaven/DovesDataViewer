@@ -1,0 +1,23 @@
+{
+  "_machine": true,
+  "appName": "HackTheTrack.net",
+  "actions": {
+    "signIn": "Entrar",
+    "signOut": "Sair",
+    "sponsor": "Apoiar",
+    "loading": "Carregando…",
+    "reset": "Restaurar padrões",
+    "update": "Atualizar",
+    "updating": "Atualizando…"
+  },
+  "language": {
+    "heading": "Idioma",
+    "label": "Idioma de exibição"
+  },
+  "updateToast": {
+    "title": "Atualização disponível",
+    "description": "Atualize para limpar arquivos em cache desatualizados e carregar a versão mais recente do aplicativo.",
+    "refresh": "Atualizar",
+    "later": "Mais tarde"
+  }
+}

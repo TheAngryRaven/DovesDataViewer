@@ -5,6 +5,9 @@ import { toast } from "@/components/ui/sonner";
 import { registerSW } from "virtual:pwa-register";
 import { initPlugins } from "@/plugins";
 import { initDebugConsole } from "@/lib/debugConsole";
+// Initialize i18next before render so the chosen language is active on first
+// paint (no English flash). The default export is the configured instance.
+import i18n from "@/lib/i18n";
 
 /**
  * "Never auto-dismiss" duration for sonner toasts. Sonner doesn't export a
@@ -56,17 +59,17 @@ if (isInIframe || isPreviewHost) {
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
-      toast("Update ready", {
-        description: "Refresh to clear stale cached files and load the latest app version.",
+      toast(i18n.t("common:updateToast.title"), {
+        description: i18n.t("common:updateToast.description"),
         duration: PERSISTENT_TOAST_DURATION_MS,
         action: {
-          label: "Refresh",
+          label: i18n.t("common:updateToast.refresh"),
           onClick: async () => {
             await updateSW(true);
           },
         },
         cancel: {
-          label: "Later",
+          label: i18n.t("common:updateToast.later"),
           onClick: () => undefined,
         },
       });

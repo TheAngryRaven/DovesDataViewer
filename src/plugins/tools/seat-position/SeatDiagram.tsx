@@ -4,6 +4,7 @@
 // renders as a gray ghost behind the current position.
 
 import { useMemo } from "react";
+import { useToolsT } from "../i18n";
 import {
   ZERO_ADJUSTMENTS,
   computeMassElements,
@@ -91,6 +92,7 @@ function ComCrosshair({ p, ghost }: { p: Point; ghost?: boolean }) {
 }
 
 export function SeatDiagram({ params, adjustments }: { params: SeatModelParams; adjustments: SeatAdjustments }) {
+  const t = useToolsT();
   const current = useMemo(() => buildFigure(params, adjustments), [params, adjustments]);
   const baseline = useMemo(() => buildFigure(params, ZERO_ADJUSTMENTS), [params]);
   const isAtZero = adjustments.slideMm === 0 && adjustments.tiltDeg === 0;
@@ -107,7 +109,7 @@ export function SeatDiagram({ params, adjustments }: { params: SeatModelParams; 
       viewBox={`${minX} ${-topZ} ${width} ${topZ + 70}`}
       className="w-full h-auto"
       role="img"
-      aria-label="Side view of the kart showing seat position and centre of mass"
+      aria-label={t("seat.diagramAria")}
     >
       {/* ground */}
       <line x1={minX} y1={0} x2={minX + width} y2={0} className="text-border" stroke="currentColor" strokeWidth={6} />

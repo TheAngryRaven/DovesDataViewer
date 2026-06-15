@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,7 @@ export function SetupsTab({
   onAdd, onUpdate, onRemove, onGetLatestForVehicle,
   onAddVehicleType, onRemoveVehicleType,
 }: SetupsTabProps) {
+  const { t } = useTranslation("drawer");
   const [mode, setMode] = useState<FormMode>("list");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
@@ -75,7 +77,7 @@ export function SetupsTab({
     (async () => {
       const next: Record<string, string> = {};
       for (const s of setups) {
-        const tpl = templates.find(t => t.id === s.templateId) ?? null;
+        const tpl = templates.find(tt => tt.id === s.templateId) ?? null;
         next[s.id] = shortRevHash(await computeSetupHash(s, tpl));
       }
       if (!cancelled) setSetupHashes(next);
@@ -286,14 +288,14 @@ export function SetupsTab({
           {setups.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3 py-16">
               <Wrench className="w-12 h-12 opacity-30" />
-              <p className="text-sm font-medium text-destructive">No setups yet</p>
-              <p className="text-xs">Use the buttons below to get started.</p>
+              <p className="text-sm font-medium text-destructive">{t("setups.empty")}</p>
+              <p className="text-xs">{t("setups.emptyHint")}</p>
             </div>
           ) : (
             <div className="space-y-1">
               {setups.map(setup => {
                 const vehicle = vehicles.find(v => v.id === setup.vehicleId);
-                const vt = vehicle ? vehicleTypes.find(t => t.id === vehicle.vehicleTypeId) : null;
+                const vt = vehicle ? vehicleTypes.find(vtt => vtt.id === vehicle.vehicleTypeId) : null;
                 const isDeleting = deleteConfirmId === setup.id;
                 return (
                   <div key={setup.id}>
@@ -304,14 +306,14 @@ export function SetupsTab({
                           {setupHashes[setup.id] && (
                             <span
                               className="shrink-0 font-mono text-[10px] text-muted-foreground"
-                              title={`Setup revision #${setupHashes[setup.id]} — changes when any field changes`}
+                              title={t("setups.revisionTitle", { hash: setupHashes[setup.id] })}
                             >
                               #{setupHashes[setup.id]}
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">
-                          {vehicle?.name ?? "Unknown vehicle"}{vt ? ` (${vt.name})` : ""} · {new Date(setup.updatedAt).toLocaleDateString()}
+                          {vehicle?.name ?? t("setups.unknownVehicle")}{vt ? ` (${vt.name})` : ""} · {new Date(setup.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(setup)}>
@@ -324,10 +326,10 @@ export function SetupsTab({
                     {isDeleting && (
                       <div className="mx-3 mb-1 p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
                         <span className="text-xs text-destructive flex-1">
-                          {user ? "Delete everywhere — removes this setup from every device and the cloud." : "Delete this setup?"}
+                          {user ? t("setups.deleteConfirmCloud") : t("setups.deleteConfirm")}
                         </span>
-                        <Button size="sm" variant="destructive" className="h-6 text-xs px-2" onClick={async () => { await onRemove(setup.id); setDeleteConfirmId(null); }}>Confirm</Button>
-                        <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+                        <Button size="sm" variant="destructive" className="h-6 text-xs px-2" onClick={async () => { await onRemove(setup.id); setDeleteConfirmId(null); }}>{t("setups.confirm")}</Button>
+                        <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setDeleteConfirmId(null)}>{t("setups.cancel")}</Button>
                       </div>
                     )}
                   </div>
@@ -338,10 +340,10 @@ export function SetupsTab({
         </div>
         <div className="shrink-0 px-3 py-3 border-t border-border space-y-2">
           <Button variant="secondary" className="w-full gap-2" onClick={() => setMode("new-type")}>
-            <Car className="w-4 h-4" /> New Vehicle Type
+            <Car className="w-4 h-4" /> {t("setups.newVehicleType")}
           </Button>
           <Button className="w-full gap-2" onClick={openNew}>
-            <Plus className="w-4 h-4" /> Add New Setup
+            <Plus className="w-4 h-4" /> {t("setups.addNewSetup")}
           </Button>
         </div>
       </div>
@@ -351,7 +353,7 @@ export function SetupsTab({
   // ── Form View ──
   const wheelCount = currentTemplate?.wheelCount ?? 4;
   const psiOptions = wheelCount === 2 ? (["single", "halves"] as const) : (["single", "halves", "quarters"] as const);
-  const psiLabels = wheelCount === 2 ? ["Single", "Halves"] : ["Single", "Halves", "Quarters"];
+  const psiLabels = wheelCount === 2 ? [t("setups.single"), t("setups.halves")] : [t("setups.single"), t("setups.halves"), t("setups.quarters")];
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -361,11 +363,11 @@ export function SetupsTab({
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <h3 className="text-sm font-semibold text-foreground flex-1">
-          {mode === "edit" ? "Edit Setup" : "New Setup"}
+          {mode === "edit" ? t("setups.editSetup") : t("setups.newSetup")}
         </h3>
         {preloaded && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Info className="w-3 h-3" /> Pre-loaded
+            <Info className="w-3 h-3" /> {t("setups.preloaded")}
           </span>
         )}
       </div>
@@ -375,9 +377,9 @@ export function SetupsTab({
         {/* Vehicle Type & Vehicle Selection */}
         <Section>
           {mode === "new" && (
-            <Field label="Vehicle Type">
+            <Field label={t("setups.vehicleType")}>
               <Select value={selectedTypeId} onValueChange={handleTypeChange}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Select type…" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectType")} /></SelectTrigger>
                 <SelectContent>
                   {vehicleTypes.map(vt => (
                     <SelectItem key={vt.id} value={vt.id}>{vt.name}</SelectItem>
@@ -386,9 +388,9 @@ export function SetupsTab({
               </Select>
             </Field>
           )}
-          <Field label="Vehicle">
+          <Field label={t("setups.vehicle")}>
             <Select value={form.vehicleId} onValueChange={handleVehicleChange}>
-              <SelectTrigger className="h-9"><SelectValue placeholder="Select vehicle…" /></SelectTrigger>
+              <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectVehicle")} /></SelectTrigger>
               <SelectContent>
                 {filteredVehicles.map(v => (
                   <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
@@ -396,15 +398,15 @@ export function SetupsTab({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Setup Name">
-            <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Race Day Dry" className="h-9" />
+          <Field label={t("setups.setupName")}>
+            <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t("setups.setupNamePlaceholder")} className="h-9" />
           </Field>
         </Section>
 
         {/* Global Unit Toggle — only if template has measurement fields */}
         {currentTemplate && currentTemplate.sections.some(s => s.fields.some(f => f.unit === "mm" || f.unit === "in")) && (
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs text-muted-foreground">Measurement units</span>
+            <span className="text-xs text-muted-foreground">{t("setups.measurementUnits")}</span>
             <div className="flex gap-0.5 bg-muted/50 rounded-md p-0.5">
               <button
                 type="button"
@@ -459,83 +461,83 @@ export function SetupsTab({
         {/* Built-in Tire Section */}
         {currentTemplate?.includeTires && (
           <>
-            <Section title="Tires">
-              <Field label="Tire Brand" changed={isChanged("tireBrand", form.tireBrand)}>
+            <Section title={t("setups.tires")}>
+              <Field label={t("setups.tireBrand")} changed={isChanged("tireBrand", form.tireBrand)}>
                 <Input className="h-9" value={form.tireBrand} onChange={e => setForm(p => ({ ...p, tireBrand: e.target.value }))} />
               </Field>
             </Section>
 
-            <Section title="Tire PSI">
+            <Section title={t("setups.tirePsi")}>
               <ModeToggle options={psiOptions} labels={psiLabels} value={form.psiMode} onChange={v => setForm(p => ({ ...p, psiMode: v }))} />
               {form.psiMode === "single" && (
-                <Field label="All Tires" changed={isChanged("psiSingle", psiSingle)}>
+                <Field label={t("setups.allTires")} changed={isChanged("psiSingle", psiSingle)}>
                   <NumberInput step="0.01" className="h-9" value={psiSingle ?? ""} onChange={e => setPsiSingle(e.target.value === "" ? null : parseFloat(e.target.value))} />
                 </Field>
               )}
               {form.psiMode === "halves" && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="Front" changed={isChanged("psiFront", psiFront)}>
+                  <Field label={t("setups.front")} changed={isChanged("psiFront", psiFront)}>
                     <NumberInput step="0.01" className="h-9" value={psiFront ?? ""} onChange={e => setPsiFront(e.target.value === "" ? null : parseFloat(e.target.value))} />
                   </Field>
-                  <Field label="Rear" changed={isChanged("psiRear", psiRear)}>
+                  <Field label={t("setups.rear")} changed={isChanged("psiRear", psiRear)}>
                     <NumberInput step="0.01" className="h-9" value={psiRear ?? ""} onChange={e => setPsiRear(e.target.value === "" ? null : parseFloat(e.target.value))} />
                   </Field>
                 </div>
               )}
               {form.psiMode === "quarters" && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="FL"><NumberInput step="0.01" className="h-9" value={form.psiFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, psiFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="FR"><NumberInput step="0.01" className="h-9" value={form.psiFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, psiFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="RL"><NumberInput step="0.01" className="h-9" value={form.psiRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, psiRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="RR"><NumberInput step="0.01" className="h-9" value={form.psiRearRight ?? ""} onChange={e => setForm(p => ({ ...p, psiRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.fl")}><NumberInput step="0.01" className="h-9" value={form.psiFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, psiFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.fr")}><NumberInput step="0.01" className="h-9" value={form.psiFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, psiFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.rl")}><NumberInput step="0.01" className="h-9" value={form.psiRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, psiRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.rr")}><NumberInput step="0.01" className="h-9" value={form.psiRearRight ?? ""} onChange={e => setForm(p => ({ ...p, psiRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
                 </div>
               )}
             </Section>
 
             {/* Tire Widths */}
-            <Section title={`Tire Widths (${form.unitSystem})`}>
+            <Section title={t("setups.tireWidths", { unit: form.unitSystem })}>
               <ModeToggle
                 options={wheelCount === 2 ? (["halves"] as const) : (["halves", "quarters"] as const)}
-                labels={wheelCount === 2 ? ["Halves"] : ["Halves", "Quarters"]}
+                labels={wheelCount === 2 ? [t("setups.halves")] : [t("setups.halves"), t("setups.quarters")]}
                 value={form.tireWidthMode}
                 onChange={v => setForm(p => ({ ...p, tireWidthMode: v }))}
               />
               {form.tireWidthMode === "halves" && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="Front"><NumberInput step="0.01" className="h-9" value={widthFront ?? ""} onChange={e => setWidthFront(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
-                  <Field label="Rear"><NumberInput step="0.01" className="h-9" value={widthRear ?? ""} onChange={e => setWidthRear(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                  <Field label={t("setups.front")}><NumberInput step="0.01" className="h-9" value={widthFront ?? ""} onChange={e => setWidthFront(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                  <Field label={t("setups.rear")}><NumberInput step="0.01" className="h-9" value={widthRear ?? ""} onChange={e => setWidthRear(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
                 </div>
               )}
               {form.tireWidthMode === "quarters" && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="FL"><NumberInput step="0.01" className="h-9" value={form.tireWidthFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="FR"><NumberInput step="0.01" className="h-9" value={form.tireWidthFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="RL"><NumberInput step="0.01" className="h-9" value={form.tireWidthRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="RR"><NumberInput step="0.01" className="h-9" value={form.tireWidthRearRight ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.fl")}><NumberInput step="0.01" className="h-9" value={form.tireWidthFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.fr")}><NumberInput step="0.01" className="h-9" value={form.tireWidthFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.rl")}><NumberInput step="0.01" className="h-9" value={form.tireWidthRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.rr")}><NumberInput step="0.01" className="h-9" value={form.tireWidthRearRight ?? ""} onChange={e => setForm(p => ({ ...p, tireWidthRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
                 </div>
               )}
             </Section>
 
             {/* Tire Diameter */}
-            <Section title={`Tire Diameter (${form.unitSystem})`}>
+            <Section title={t("setups.tireDiameter", { unit: form.unitSystem })}>
               <ModeToggle
                 options={wheelCount === 2 ? (["halves"] as const) : (["halves", "quarters"] as const)}
-                labels={wheelCount === 2 ? ["Halves"] : ["Halves", "Quarters"]}
+                labels={wheelCount === 2 ? [t("setups.halves")] : [t("setups.halves"), t("setups.quarters")]}
                 value={form.tireDiameterMode}
                 onChange={v => setForm(p => ({ ...p, tireDiameterMode: v }))}
               />
               {form.tireDiameterMode === "halves" && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="Front"><NumberInput step="0.01" className="h-9" value={diamFront ?? ""} onChange={e => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
-                  <Field label="Rear"><NumberInput step="0.01" className="h-9" value={diamRear ?? ""} onChange={e => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                  <Field label={t("setups.front")}><NumberInput step="0.01" className="h-9" value={diamFront ?? ""} onChange={e => setDiamFront(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
+                  <Field label={t("setups.rear")}><NumberInput step="0.01" className="h-9" value={diamRear ?? ""} onChange={e => setDiamRear(e.target.value === "" ? null : parseFloat(e.target.value))} /></Field>
                 </div>
               )}
               {form.tireDiameterMode === "quarters" && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Field label="FL"><NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="FR"><NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="RL"><NumberInput step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
-                  <Field label="RR"><NumberInput step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.fl")}><NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterFrontLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.fr")}><NumberInput step="0.01" className="h-9" value={form.tireDiameterFrontRight ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterFrontRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.rl")}><NumberInput step="0.01" className="h-9" value={form.tireDiameterRearLeft ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterRearLeft: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
+                  <Field label={t("setups.rr")}><NumberInput step="0.01" className="h-9" value={form.tireDiameterRearRight ?? ""} onChange={e => setForm(p => ({ ...p, tireDiameterRearRight: e.target.value === "" ? null : parseFloat(e.target.value) }))} /></Field>
                 </div>
               )}
             </Section>
@@ -545,9 +547,9 @@ export function SetupsTab({
 
       {/* Bottom actions */}
       <div className="shrink-0 px-3 py-3 border-t border-border flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={() => { resetForm(); setMode("list"); }}>Cancel</Button>
+        <Button variant="outline" className="flex-1" onClick={() => { resetForm(); setMode("list"); }}>{t("setups.cancel")}</Button>
         <Button className="flex-1" disabled={!canSave} onClick={handleSave}>
-          {mode === "edit" ? "Update" : "Save"}
+          {mode === "edit" ? t("setups.update") : t("setups.save")}
         </Button>
       </div>
     </div>

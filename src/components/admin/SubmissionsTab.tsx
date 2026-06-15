@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -57,6 +58,7 @@ function groupSubmissions(submissions: DbSubmission[]): SubmissionGroup[] {
 }
 
 export function SubmissionsTab() {
+  const { t } = useTranslation('admin');
   const [submissions, setSubmissions] = useState<DbSubmission[]>([]);
   const [filter, setFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
@@ -70,10 +72,10 @@ export function SubmissionsTab() {
       const data = await db.getSubmissions(filter === 'all' ? undefined : filter);
       setSubmissions(data);
     } catch (e: unknown) {
-      toast({ title: 'Error loading submissions', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('submissions.loadError'), description: (e as Error).message, variant: 'destructive' });
     }
     setLoading(false);
-  }, [filter, db]);
+  }, [filter, db, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -82,10 +84,10 @@ export function SubmissionsTab() {
   const handleAction = async (id: string, status: 'approved' | 'denied') => {
     try {
       await db.updateSubmission(id, status, reviewNotes[id]);
-      toast({ title: `Submission ${status}` });
+      toast({ title: status === 'approved' ? t('submissions.toastApproved') : t('submissions.toastDenied') });
       load();
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
   };
 
@@ -93,10 +95,10 @@ export function SubmissionsTab() {
     const pending = items.filter(s => s.status === 'pending');
     try {
       await Promise.all(pending.map(s => db.updateSubmission(s.id, status, reviewNotes[s.id])));
-      toast({ title: `${pending.length} submission${pending.length !== 1 ? 's' : ''} ${status}` });
+      toast({ title: t(status === 'approved' ? 'submissions.batchApproved' : 'submissions.batchDenied', { count: pending.length }) });
       load();
     } catch (e: unknown) {
-      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: (e as Error).message, variant: 'destructive' });
     }
   };
 
@@ -113,16 +115,16 @@ export function SubmissionsTab() {
       const course = track && courses.find(c => c.track_id === track.id && c.name === sub.course_name);
       if (!course) {
         toast({
-          title: 'No matching course',
-          description: 'Create the course in the DB first, then apply its drawing.',
+          title: t('submissions.noMatchingCourse'),
+          description: t('submissions.noMatchingCourseDesc'),
           variant: 'destructive',
         });
         return;
       }
       await db.saveLayout(course.id, layout);
-      toast({ title: 'Drawing applied', description: `${sub.track_name} → ${sub.course_name}` });
+      toast({ title: t('submissions.drawingApplied'), description: `${sub.track_name} → ${sub.course_name}` });
     } catch (e: unknown) {
-      toast({ title: 'Error applying drawing', description: (e as Error).message, variant: 'destructive' });
+      toast({ title: t('submissions.applyError'), description: (e as Error).message, variant: 'destructive' });
     }
   };
 
@@ -139,11 +141,11 @@ export function SubmissionsTab() {
             <span className="text-muted-foreground">→</span>
             <span className="text-sm text-foreground">{sub.course_name}</span>
             {hasLayout && (
-              <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">Drawing included</span>
+              <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">{t('submissions.drawingIncluded')}</span>
             )}
           </div>
           <span className={`text-xs px-2 py-0.5 rounded ${sub.status === 'pending' ? 'bg-accent text-accent-foreground' : sub.status === 'approved' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
-            {sub.status}
+            {t(`submissions.status.${sub.status}` as 'submissions.status.pending')}
           </span>
         </div>
         <pre className="text-xs font-mono bg-muted p-2 rounded overflow-x-auto max-h-32">
@@ -153,29 +155,29 @@ export function SubmissionsTab() {
           <div className="flex items-center gap-3">
             <DrawingPreview points={layout} />
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">{layout.length} point outline submitted</p>
+              <p className="text-xs text-muted-foreground">{t('submissions.pointOutline', { count: layout.length })}</p>
               <Button size="sm" variant="outline" onClick={() => handleApplyDrawing(sub)} className="gap-1">
-                <Route className="w-3 h-3" /> Apply to course layout
+                <Route className="w-3 h-3" /> {t('submissions.applyToLayout')}
               </Button>
             </div>
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          IP: {sub.submitted_by_ip || 'unknown'} • {new Date(sub.created_at).toLocaleString()}
+          {t('submissions.ipLine', { ip: sub.submitted_by_ip || t('submissions.unknownIp'), date: new Date(sub.created_at).toLocaleString() })}
         </p>
         {sub.status === 'pending' && (
           <div className="flex items-center gap-2 pt-2">
             <Input
-              placeholder="Review notes (optional)"
+              placeholder={t('submissions.reviewNotes')}
               value={reviewNotes[sub.id] || ''}
               onChange={e => setReviewNotes(prev => ({ ...prev, [sub.id]: e.target.value }))}
               className="flex-1 text-sm"
             />
             <Button size="sm" onClick={() => handleAction(sub.id, 'approved')} className="gap-1">
-              <Check className="w-3 h-3" /> Approve
+              <Check className="w-3 h-3" /> {t('submissions.approve')}
             </Button>
             <Button size="sm" variant="destructive" onClick={() => handleAction(sub.id, 'denied')} className="gap-1">
-              <X className="w-3 h-3" /> Deny
+              <X className="w-3 h-3" /> {t('submissions.deny')}
             </Button>
           </div>
         )}
@@ -189,19 +191,19 @@ export function SubmissionsTab() {
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="denied">Denied</SelectItem>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="pending">{t('submissions.filterPending')}</SelectItem>
+            <SelectItem value="approved">{t('submissions.filterApproved')}</SelectItem>
+            <SelectItem value="denied">{t('submissions.filterDenied')}</SelectItem>
+            <SelectItem value="all">{t('submissions.filterAll')}</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={load}>Refresh</Button>
+        <Button variant="outline" size="sm" onClick={load}>{t('submissions.refresh')}</Button>
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t('common.loading')}</p>
       ) : submissions.length === 0 ? (
-        <p className="text-muted-foreground">No submissions found.</p>
+        <p className="text-muted-foreground">{t('submissions.none')}</p>
       ) : (
         <div className="space-y-4">
           {groups.map(group => {
@@ -216,19 +218,22 @@ export function SubmissionsTab() {
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2 text-sm">
                     <Layers className="w-4 h-4 text-primary" />
-                    <span className="font-medium text-foreground">Bulk upload</span>
+                    <span className="font-medium text-foreground">{t('submissions.bulkUpload')}</span>
                     <span className="text-muted-foreground">
-                      {group.items.length} course{group.items.length !== 1 ? 's' : ''} across {tracks.length} track{tracks.length !== 1 ? 's' : ''}
-                      {' • '}{new Date(group.items[0].created_at).toLocaleString()}
+                      {t('submissions.bulkSummary', {
+                        courses: t('submissions.courseCount', { count: group.items.length }),
+                        tracks: t('submissions.trackCount', { count: tracks.length }),
+                        date: new Date(group.items[0].created_at).toLocaleString(),
+                      })}
                     </span>
                   </div>
                   {pendingCount > 0 && (
                     <div className="flex items-center gap-2">
                       <Button size="sm" onClick={() => handleBatchAction(group.items, 'approved')} className="gap-1">
-                        <Check className="w-3 h-3" /> Approve all ({pendingCount})
+                        <Check className="w-3 h-3" /> {t('submissions.approveAll', { count: pendingCount })}
                       </Button>
                       <Button size="sm" variant="destructive" onClick={() => handleBatchAction(group.items, 'denied')} className="gap-1">
-                        <X className="w-3 h-3" /> Deny all
+                        <X className="w-3 h-3" /> {t('submissions.denyAll')}
                       </Button>
                     </div>
                   )}
