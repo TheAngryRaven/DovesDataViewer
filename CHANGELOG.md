@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [2.5.1] - unreleased
+## [2.6.0] - unreleased
 
 ### Added
 - **Tools on the home screen.** A new **Tools** tile on the landing page opens the
