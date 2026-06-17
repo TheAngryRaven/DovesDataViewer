@@ -61,6 +61,7 @@ import { LapSnapshotPromptDialog } from "@/components/LapSnapshotPromptDialog";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
 import { useDataLoader } from "@/hooks/useDataLoader";
+import { ensureSampleFile } from "@/lib/sampleData";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
@@ -83,15 +84,26 @@ export default function Index() {
   const templateManager = useTemplateManager();
   const useKph = settings.useKph;
   const useMetricDistance = settings.useMetricDistance;
+  // The sample stays visible when it's the user's only file, so hiding it can
+  // never lock them out of the only file (and the only way back to Settings).
+  const effectiveShowSampleFiles = fileManager.hasOtherFiles ? settings.showSampleFiles : true;
 
   // Sync dark mode class when settings change (global init is in App.tsx)
   useEffect(() => {
     document.documentElement.classList.toggle('dark', settings.darkMode);
   }, [settings.darkMode]);
 
+  // Seed the bundled sample log into IndexedDB as a real file so it's always
+  // available in the browser and opens through the normal path. Idempotent;
+  // refresh the file list afterwards so an open drawer reflects it immediately.
+  const refreshFiles = fileManager.refresh;
+  useEffect(() => {
+    void ensureSampleFile().then(() => refreshFiles());
+  }, [refreshFiles]);
+
   // Core session data
   const sessionData = useSessionData(isFieldHiddenByDefault, settings.defaultHiddenFields);
-  const { data, currentFileName, fieldMappings, isLoadingSample, sessionGpsPoint } = sessionData;
+  const { data, currentFileName, fieldMappings, sessionGpsPoint } = sessionData;
 
   const noteManager = useNoteManager(currentFileName);
 
@@ -178,7 +190,7 @@ export default function Index() {
   // sample-loader. Returns the three callbacks Index.tsx wires up to imports.
   const dataLoader = useDataLoader({ sessionData, lapMgmt, sessionMeta });
   const {
-    handleDataLoaded, handleLoadSample, handleTrackPromptSelect,
+    handleDataLoaded, handleLoadSample, isLoadingSample, handleTrackPromptSelect,
     trackPromptOpen, setTrackPromptOpen, detectedTrack, detectionResult,
     allTracks, gpsCenter,
   } = dataLoader;
@@ -476,6 +488,7 @@ export default function Index() {
     onSaveFile: fileManager.saveFile,
     onDataLoaded: handleDataLoaded,
     autoSave: settings.autoSaveFiles,
+    showSampleFiles: effectiveShowSampleFiles,
     initialGarageTab: fileManager.initialGarageTab,
     showProfile,
     vehicles: vehicleManager.vehicles,
@@ -506,7 +519,7 @@ export default function Index() {
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
     fileManager.initialGarageTab,
-    handleDataLoaded, settings.autoSaveFiles, showProfile,
+    handleDataLoaded, settings.autoSaveFiles, effectiveShowSampleFiles, showProfile,
     vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,
     templateManager.vehicleTypes, templateManager.templates, templateManager.addVehicleType, templateManager.removeVehicleType,
     currentFileName,
@@ -528,6 +541,7 @@ export default function Index() {
             autoSaveFile={fileManager.saveFile}
             onLoadSample={handleLoadSample}
             isLoadingSample={isLoadingSample}
+            showSampleFiles={effectiveShowSampleFiles}
             enableAdmin={enableAdmin}
             enableCloud={enableCloud}
           />
@@ -612,7 +626,7 @@ export default function Index() {
             onSetOverlayReference={handleSetOverlayReference}
           />
 
-          <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} />
+          <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} canHideSampleFiles={fileManager.hasOtherFiles} />
           <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3" onClick={() => fileManager.open()}>
             <FolderOpen className="w-4 h-4" />
             <span className="hidden lg:inline">{t("header.garage")}</span>

@@ -8,7 +8,10 @@
   "fileStorage": {
     "heading": "Archiviazione file",
     "autoSave": "Salva automaticamente sul dispositivo i file importati/caricati",
-    "autoSaveHint": "Memorizza automaticamente i file sul dispositivo per accedervi in seguito"
+    "autoSaveHint": "Memorizza automaticamente i file sul dispositivo per accedervi in seguito",
+    "showSamples": "Mostra file di esempio",
+    "showSamplesHint": "Mantieni il log di esempio incluso nel browser dei file",
+    "showSamplesLocked": "Aggiungi un tuo file per poter nascondere l'esempio"
   },
   "speedUnit": {
     "heading": "Unità di velocità",

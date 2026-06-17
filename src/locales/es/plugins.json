@@ -137,7 +137,8 @@
   "fileSync": {
     "off": "Sincronizar este archivo a la nube",
     "pending": "Seleccionado: se sube una vez que inicies sesión y estés en línea",
-    "synced": "Sincronizado: haz clic para dejar de sincronizar (la copia en la nube se conserva)"
+    "synced": "Sincronizado: haz clic para dejar de sincronizar (la copia en la nube se conserva)",
+    "sample": "Registro de muestra: presente en todos los dispositivos, no requiere subida"
   },
   "fileDelete": {
     "alsoCloud": "Eliminar también la copia sincronizada de la copia de seguridad en la nube"

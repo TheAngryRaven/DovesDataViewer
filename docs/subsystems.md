@@ -357,7 +357,10 @@ Profile **Cloud logs** panel reuses `SessionBrowser` with its own rows.
 
 - **Display name = the session's date/time**, derived from `sessionStartTime` (the
   first valid sample), e.g. "2/12/2026 11:15 AM" — *not* the upload time or raw
-  filename (filename is the row's `title`/tooltip + the stable IndexedDB key).
+  filename (filename is the row's `title`/tooltip + the stable IndexedDB key). A
+  `FileMetadata.displayName` override wins over the date (the bundled sample shows
+  "SAMPLE - Tillotson 225rs"). Sample rows (`isSample`) are filtered out when the
+  `showSampleFiles` setting is off.
 - **Log type bubble:** each row shows a `FileTypeBadge` with the format derived
   from the file extension (`lib/logFileType.ts`, pure + unit-tested) — the format
   isn't persisted, so the extension is the source of truth.
@@ -378,6 +381,38 @@ Profile **Cloud logs** panel reuses `SessionBrowser` with its own rows.
   rows (deduped against local — local wins), and their metadata is read from the
   locally-synced `metadata` store. A cloud row is a one-tap **download → save →
   open**.
+
+---
+
+## Bundled Sample Log (`src/lib/sampleData.ts`)
+
+The bundled sample session is **not** a special case — it's an ordinary file
+seeded into IndexedDB so it loads through the normal path with no bespoke loader
+(the old approach was a one-off fetch + manual course/lap selection, which carried
+its own edge cases).
+
+- **Seeding.** `ensureSampleFile()` is idempotent: it fetches the bundled
+  `public/samples/okc-tillotson-data.dovex` into the `files` store only when
+  missing, and (re)tags its metadata with the sample track/course, the
+  `displayName` override **"SAMPLE - Tillotson 225rs"**, and `isSample: true`. The
+  metadata write is a **merge**, so a later auto-detect on open (start time,
+  fastest lap) isn't clobbered and re-seeding never undoes it. Called once on
+  mount from `Index.tsx` (then `fileManager.refresh()`).
+- **Home button.** `useDataLoader.handleLoadSample` just ensures the file is
+  seeded, parses it, and opens it through `handleDataLoaded` — identical to
+  clicking the row in the browser. `isLoadingSample` lives in `useDataLoader`.
+- **Visibility.** The `showSampleFiles` setting (default true) hides sample rows
+  from the browser **and** the landing-page sample tile. But the effective value
+  is `hasOtherFiles ? showSampleFiles : true` (`useFileManager.hasOtherFiles` =
+  any non-sample file, local blob ∪ all known metadata so cloud-synced files
+  count) — so when the sample is the user's *only* file it stays visible and the
+  Settings toggle is **locked on** (Settings is only reachable from a loaded
+  session, so hiding the only file would be a lockout). This also self-heals an
+  already-stuck "hidden, no files" state.
+- **Cloud sync.** cloud-sync's `FileSyncToggle` renders the sample's per-file
+  control as a static, disabled "synced" cloud (`isSampleFileName`) — it's seeded
+  on every device, so it never needs (and can't be) uploaded into the user's
+  cloud quota.
 
 ---
 

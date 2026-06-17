@@ -73,6 +73,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cloud rows and in the Profile → Cloud logs list.
 
 ### Changed
+- **Sample data is now just a normal log.** The bundled sample session lives in
+  your file browser as an ordinary file named **"SAMPLE - Tillotson 225rs"**, and
+  the home-screen **Load sample data** button simply opens it like any other log —
+  no more special-case sample handling and its rough edges. A new **Show sample
+  files** toggle in Settings (on by default) hides it from the browser — and the
+  home-screen sample tile — if you'd rather not see it. The sample always shows as
+  cloud-synced and can't be uploaded, so it never eats into your cloud storage.
+  When the sample is your *only* file, the toggle stays locked on so you can never
+  hide your only way back into the app.
 - **Weather is cached per session.** Once a session's weather has been looked up,
   it's saved on your device — a session's date never changes, so its weather is
   fixed. Reopening that session shows the saved conditions instantly and no longer

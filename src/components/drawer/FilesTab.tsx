@@ -56,6 +56,8 @@ interface FilesTabProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
   onClose: () => void;
   autoSave: boolean;
+  /** When false, bundled sample logs are hidden from the browser. */
+  showSampleFiles: boolean;
 }
 
 export function FilesTab({
@@ -74,6 +76,7 @@ export function FilesTab({
   onDataLoaded,
   onClose,
   autoSave,
+  showSampleFiles,
 }: FilesTabProps) {
   const { t } = useTranslation("drawer");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,10 +146,10 @@ export function FilesTab({
     return m;
   }, [fileMetadataMap, remoteMeta]);
 
-  const sessions = useMemo(
-    () => buildBrowserSessions(files, mergedMeta, vehicles, remoteFiles),
-    [files, mergedMeta, vehicles, remoteFiles],
-  );
+  const sessions = useMemo(() => {
+    const all = buildBrowserSessions(files, mergedMeta, vehicles, remoteFiles);
+    return showSampleFiles ? all : all.filter((s) => !s.isSample);
+  }, [files, mergedMeta, vehicles, remoteFiles, showSampleFiles]);
   const view = useMemo(
     () => computeBrowserView(sessions, nav, { allSessions: t("browser.allSessions"), untagged: t("browser.untagged") }),
     [sessions, nav, t],
@@ -375,7 +378,7 @@ export function FilesTab({
 
       {/* File List */}
       <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-1">
-        {files.length === 0 && remoteFiles.length === 0 ? (
+        {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
             <FolderOpen className="w-12 h-12 opacity-30" />
             <p className="text-sm">{t("files.emptyTitle")}</p>

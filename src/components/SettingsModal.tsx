@@ -29,12 +29,15 @@ interface SettingsModalProps {
   settings: AppSettings;
   onSettingsChange: (updates: Partial<AppSettings>) => void;
   onToggleFieldDefault: (canonicalId: CanonicalFieldId) => void;
+  /** False when the sample is the user's only file — the toggle is then locked on. */
+  canHideSampleFiles: boolean;
 }
 
 export function SettingsModal({
   settings,
   onSettingsChange,
   onToggleFieldDefault,
+  canHideSampleFiles,
 }: SettingsModalProps) {
   const { t } = useTranslation(["settings", "common"]);
   return (
@@ -125,6 +128,26 @@ export function SettingsModal({
                 id="settings-auto-save"
                 checked={settings.autoSaveFiles}
                 onCheckedChange={(checked) => onSettingsChange({ autoSaveFiles: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between pl-6">
+              <div>
+                <Label htmlFor="settings-show-samples" className="text-sm text-muted-foreground">
+                  {t("settings:fileStorage.showSamples")}
+                </Label>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  {canHideSampleFiles
+                    ? t("settings:fileStorage.showSamplesHint")
+                    : t("settings:fileStorage.showSamplesLocked")}
+                </p>
+              </div>
+              <Switch
+                id="settings-show-samples"
+                // Locked on when the sample is the only file, so it can't be
+                // hidden away leaving the user with nothing to open.
+                checked={canHideSampleFiles ? settings.showSampleFiles : true}
+                disabled={!canHideSampleFiles}
+                onCheckedChange={(checked) => onSettingsChange({ showSampleFiles: checked })}
               />
             </div>
           </div>

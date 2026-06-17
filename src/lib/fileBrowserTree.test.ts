@@ -77,6 +77,28 @@ describe("buildBrowserSessions", () => {
     expect(a.size).toBe(1);
   });
 
+  it("uses the metadata display-name override and carries the sample flag", () => {
+    const metaMap = new Map<string, FileMetadata>([
+      ["a.dove", {
+        fileName: "a.dove", trackName: "OKC", courseName: "CW",
+        sessionStartTime: new Date(2026, 1, 12, 11, 15).getTime(),
+        displayName: "SAMPLE - Tillotson 225rs", isSample: true,
+      }],
+    ]);
+    const [a] = buildBrowserSessions([files[0]], metaMap, vehicles);
+    // Override wins over the date-derived name.
+    expect(a.displayName).toBe("SAMPLE - Tillotson 225rs");
+    expect(a.isSample).toBe(true);
+  });
+
+  it("defaults isSample to false for ordinary logs", () => {
+    const metaMap = new Map<string, FileMetadata>([
+      ["a.dove", { fileName: "a.dove", trackName: "OKC", courseName: "CW", sessionStartTime: 1 }],
+    ]);
+    const [a] = buildBrowserSessions([files[0]], metaMap, vehicles);
+    expect(a.isSample).toBe(false);
+  });
+
   it("merges remote (cloud) files as cloud sessions, deduped against local", () => {
     const metaMap = new Map<string, FileMetadata>([
       ["a.dove", { fileName: "a.dove", trackName: "OKC", courseName: "CW", sessionStartTime: 1 }],

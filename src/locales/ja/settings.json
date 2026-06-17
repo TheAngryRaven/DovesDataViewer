@@ -8,7 +8,10 @@
   "fileStorage": {
     "heading": "ファイルの保存",
     "autoSave": "取り込み・アップロードしたファイルを自動的にデバイスに保存",
-    "autoSaveHint": "後でアクセスできるよう、ファイルを自動的にデバイス内に保存します"
+    "autoSaveHint": "後でアクセスできるよう、ファイルを自動的にデバイス内に保存します",
+    "showSamples": "サンプルファイルを表示",
+    "showSamplesHint": "付属のサンプルログをファイルブラウザに表示し続けます",
+    "showSamplesLocked": "サンプルを非表示にするには、自分のファイルを追加してください"
   },
   "speedUnit": {
     "heading": "速度の単位",

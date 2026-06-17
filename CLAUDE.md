@@ -104,6 +104,7 @@ src/
 │   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[]
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy (→ docs/subsystems.md)
+│   ├── sampleData.ts      # ★ Bundled sample log seeded as an ordinary file (→ docs/subsystems.md)
 │   ├── lapOverlays.ts / lapAlignment.ts  # ★ Multi-lap overlay logic + Kabsch drift-align (→ docs/subsystems.md)
 │   ├── lapSnapshot*.ts    # ★ Snapshot types/buffer + IndexedDB CRUD (→ docs/subsystems.md)
 │   ├── setupRevision*.ts  # ★ Content-addressed setup history + IndexedDB CRUD (→ docs/subsystems.md)
@@ -176,7 +177,7 @@ File Import (drag-drop / BLE download / file manager)
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug), `label?`, `unit?`, `enabled` |
-| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`. Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — the bundled sample), `isSample?` (marks the sample so the browser can hide it). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
 
 ---
 
@@ -294,8 +295,9 @@ unless noted.
 - **Community submission** (`trackSubmission.ts`): bulk diff of local vs built-in
   tracks → one `submit-track` call per batch; content-hash dedupe.
 - **File browser** (`fileBrowserTree.ts` + `SessionBrowser`): Track→Course→logs
-  hierarchy; display name = the session's date/time; smart collapse; cloud rows
-  merged inline.
+  hierarchy; display name = the session's date/time (or `FileMetadata.displayName`
+  override); smart collapse; cloud rows merged inline. The bundled **sample log**
+  (`sampleData.ts`) is an ordinary row, hidden when `showSampleFiles` is off.
 - **BLE / device + firmware OTA**: → `docs/ble.md`.
 - **Cloud sync, subscriptions, GDPR**: Supabase-backed, touch nothing in the core
   app per Rule 1 → `docs/backend.md`. Documents, logs, and lap snapshots draw from
@@ -315,6 +317,9 @@ swaps units — that's a separate axis.
 - `useMetricDistance` (distance) — ft/mi ⇄ m/km. Chart distance axis, range-crop
   labels, course lengths, distance-family channels (`distance`, `altitude`).
 - `useMetricWeather` (weather) — °F/mph/inHg/ft ⇄ °C/(km/h)/hPa/m. Weather UI.
+
+`showSampleFiles` (default true) shows/hides the bundled sample log — see the
+sample-data note in `docs/subsystems.md`.
 
 Other key settings: `gForceSmoothing(+Strength)`, `gForceSource`,
 `brakingZoneSettings`, `enableLabs` (hidden when no labs features), `darkMode`,

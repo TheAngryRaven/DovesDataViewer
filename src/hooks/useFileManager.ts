@@ -8,7 +8,9 @@ import {
   deleteFile as dbDelete,
   getStorageEstimate,
   getFileMetadata,
+  listAllMetadata,
 } from "@/lib/fileStorage";
+import { isSampleFileName } from "@/lib/sampleData";
 
 /** Garage sub-tabs the drawer can be opened directly to. */
 export type GarageTabKey = "files" | "vehicles" | "setups" | "notes";
@@ -20,14 +22,32 @@ export function useFileManager() {
   const [storageUsed, setStorageUsed] = useState(0);
   const [storageQuota, setStorageQuota] = useState(0);
   const [initialGarageTab, setInitialGarageTab] = useState<GarageTabKey>("files");
+  // Whether any non-sample file exists — locally or as cloud-synced metadata.
+  // Used to lock the "show sample files" setting on when the sample is the user's
+  // only file, so they can never hide their only way back into the app.
+  const [hasOtherFiles, setHasOtherFiles] = useState(false);
 
   const refresh = useCallback(async () => {
-    const [fileList, estimate] = await Promise.all([listFiles(), getStorageEstimate()]);
+    const [fileList, estimate, allMeta] = await Promise.all([
+      listFiles(),
+      getStorageEstimate(),
+      listAllMetadata(),
+    ]);
     setFiles(fileList);
     if (estimate) {
       setStorageUsed(estimate.used);
       setStorageQuota(estimate.quota);
     }
+    // Non-sample files = local blobs ∪ all known metadata (the latter includes
+    // cloud-only files synced down by the cloud-sync plugin), minus samples.
+    const names = new Set<string>();
+    for (const f of fileList) names.add(f.name);
+    for (const m of allMeta) names.add(m.fileName);
+    let other = false;
+    for (const n of names) {
+      if (!isSampleFileName(n)) { other = true; break; }
+    }
+    setHasOtherFiles(other);
     // Load metadata for all files
     const metaEntries = await Promise.all(
       fileList.map(async (f) => {
@@ -90,6 +110,7 @@ export function useFileManager() {
     isOpen,
     files,
     fileMetadataMap,
+    hasOtherFiles,
     storageUsed,
     storageQuota,
     initialGarageTab,

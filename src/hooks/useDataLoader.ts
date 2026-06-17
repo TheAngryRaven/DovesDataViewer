@@ -9,6 +9,8 @@ import { getFileMetadata, updateFileMetadata, type FileMetadata } from "@/lib/fi
 import { loadTracks } from "@/lib/trackStorage";
 import { findNearestTrack } from "@/lib/trackUtils";
 import { autoDetectCourse } from "@/lib/courseDetection";
+import { parseDatalogFile } from "@/lib/datalogParser";
+import { ensureSampleFile, SAMPLE_FILE_NAME } from "@/lib/sampleData";
 import type { useSessionData } from "@/hooks/useSessionData";
 import type { useLapManagement } from "@/hooks/useLapManagement";
 import type { useSessionMetadata } from "@/hooks/useSessionMetadata";
@@ -17,15 +19,15 @@ interface UseDataLoaderOptions {
   sessionData: ReturnType<typeof useSessionData>;
   lapMgmt: ReturnType<typeof useLapManagement>;
   sessionMeta: ReturnType<typeof useSessionMetadata>;
-  /** The sample-loader expects to restore metadata for this specific fixture file. */
-  sampleFileName?: string;
 }
 
 export interface UseDataLoaderReturn {
   /** Main file-load orchestrator. Invoked from drag-drop, file manager, and sample loader. */
   handleDataLoaded: (parsedData: ParsedData, fileName?: string) => Promise<void>;
-  /** Load the bundled sample fixture and restore its metadata. */
+  /** Seed (if needed) and open the bundled sample log, exactly like any saved file. */
   handleLoadSample: () => Promise<void>;
+  /** True while the sample log is being seeded/opened (drives the button spinner). */
+  isLoadingSample: boolean;
   /** User picked a track/course in the prompt dialog — apply selection and recompute laps. */
   handleTrackPromptSelect: (sel: TrackCourseSelection) => void;
 
@@ -37,8 +39,6 @@ export interface UseDataLoaderReturn {
   allTracks: Track[];
   gpsCenter: { lat: number; lon: number } | null;
 }
-
-const DEFAULT_SAMPLE_FILE_NAME = "okc-tillotson-data.dovex";
 
 /** Pick the lap with the lowest lapTimeMs (linear, no Math.min spread). */
 function pickFastestLap<T extends { lapTimeMs: number }>(laps: T[]): T | null {
@@ -88,13 +88,13 @@ export function useDataLoader({
   sessionData,
   lapMgmt,
   sessionMeta,
-  sampleFileName = DEFAULT_SAMPLE_FILE_NAME,
 }: UseDataLoaderOptions): UseDataLoaderReturn {
   const [trackPromptOpen, setTrackPromptOpen] = useState(false);
   const [detectedTrack, setDetectedTrack] = useState<Track | null>(null);
   const [allTracks, setAllTracks] = useState<Track[]>([]);
   const [gpsCenter, setGpsCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [detectionResult, setDetectionResult] = useState<CourseDetectionResult | null>(null);
+  const [isLoadingSample, setIsLoadingSample] = useState(false);
 
   const handleDataLoaded = useCallback(
     async (parsedData: ParsedData, fileName?: string) => {
@@ -204,19 +204,22 @@ export function useDataLoader({
     [sessionData, lapMgmt, sessionMeta],
   );
 
+  // The sample log is an ordinary seeded file now: ensure it exists, parse it,
+  // and open it through the normal load path (which auto-detects its course and
+  // selects the fastest lap) — no bespoke sample handling.
   const handleLoadSample = useCallback(async () => {
-    await sessionData.handleLoadSample(
-      lapMgmt.handleSelectionChange,
-      (computedLaps, autoSelectLap, autoSelectRef) => {
-        lapMgmt.setLaps(computedLaps);
-        if (autoSelectLap !== undefined) lapMgmt.setSelectedLapNumber(autoSelectLap);
-        if (autoSelectRef !== undefined) lapMgmt.setReferenceLapNumber(autoSelectRef);
-      },
-    );
-    // Restore session metadata (kart/setup link) for the sample file
-    const meta = await getFileMetadata(sampleFileName);
-    sessionMeta.restoreFromMetadata(meta);
-  }, [sessionData, lapMgmt, sessionMeta, sampleFileName]);
+    setIsLoadingSample(true);
+    try {
+      const blob = await ensureSampleFile();
+      if (!blob) return;
+      const parsed = await parseDatalogFile(new File([blob], SAMPLE_FILE_NAME));
+      await handleDataLoaded(parsed, SAMPLE_FILE_NAME);
+    } catch (e) {
+      console.error("Failed to load sample data:", e);
+    } finally {
+      setIsLoadingSample(false);
+    }
+  }, [handleDataLoaded]);
 
   const handleTrackPromptSelect = useCallback(
     (sel: TrackCourseSelection) => {
@@ -232,6 +235,7 @@ export function useDataLoader({
   return {
     handleDataLoaded,
     handleLoadSample,
+    isLoadingSample,
     handleTrackPromptSelect,
     trackPromptOpen,
     setTrackPromptOpen,

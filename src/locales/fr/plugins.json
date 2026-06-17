@@ -137,7 +137,8 @@
   "fileSync": {
     "off": "Synchroniser ce fichier vers le cloud",
     "pending": "Sélectionné — sera envoyé une fois connecté et en ligne",
-    "synced": "Synchronisé — cliquez pour arrêter la synchronisation (la copie dans le cloud est conservée)"
+    "synced": "Synchronisé — cliquez pour arrêter la synchronisation (la copie dans le cloud est conservée)",
+    "sample": "Journal d'exemple — présent sur chaque appareil, aucun téléversement nécessaire"
   },
   "fileDelete": {
     "alsoCloud": "Supprimer aussi la copie synchronisée de la sauvegarde dans le cloud"
