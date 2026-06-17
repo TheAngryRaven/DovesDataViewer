@@ -33,14 +33,16 @@
     "title": "Tarif",
     "renews": "Verlängert sich am {{date}}",
     "cancels": "Endet am {{date}}",
-    "grace": "Abonnement beendet. Cloud-Logs werden am {{date}} auf das kostenlose Kontingent reduziert — abonniere erneut, um sie zu behalten.",
     "upgrade": "Upgrade über die Tarif- und Preiskarten.",
     "changePlan": "Tarif ändern",
     "manageSubscription": "Abonnement verwalten",
     "portalFailed": "Das Abrechnungsportal konnte nicht geöffnet werden.",
     "compBadge": "Gratis",
     "comp": "Gratis-Plan — mit freundlicher Empfehlung des Teams.",
-    "compUntil": "Gratis-Plan — kostenlos bis {{date}}."
+    "compUntil": "Gratis-Plan — kostenlos bis {{date}}.",
+    "trimWarning_one": "Kostenloser Zugang beendet – Cloud-Logs werden in {{count}} Tag (am {{date}}) auf den Gratis-Tarif gekürzt. Abonniere, um sie zu behalten.",
+    "trimWarning_other": "Kostenloser Zugang beendet – Cloud-Logs werden in {{count}} Tagen (am {{date}}) auf den Gratis-Tarif gekürzt. Abonniere, um sie zu behalten.",
+    "trimmed": "Cloud-Logs über dem Gratis-Tarif wurden gekürzt. Abonniere, um das höhere Limit wiederherzustellen."
   },
   "storage": {
     "title": "Speicher",

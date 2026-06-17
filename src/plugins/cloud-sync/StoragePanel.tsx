@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSubscription } from "@/hooks/useSubscription";
-import { isPaidTier, isComped } from "@/lib/billing";
+import { isPaidTier, isComped, hasCompGrant, daysUntilTrim } from "@/lib/billing";
 import { createPortal } from "@/lib/billingClient";
 import { onGarageChange } from "@/lib/garageEvents";
 import { getStorageUsage } from "./syncEngine";
@@ -265,14 +265,15 @@ function PlanSection() {
     ? new Date(subscription.current_period_end).toLocaleDateString()
     : null;
   const cancelsAtPeriodEnd = !!subscription?.cancel_at_period_end;
-  // A cancelled subscription drops to free but keeps a grace window before logs
-  // are trimmed; the row persists (with a Stripe customer) so they can resubscribe.
+  // A lapsed plan (cancelled Stripe sub OR expired comp) drops to free limits but
+  // keeps a grace window before its over-limit logs are trimmed. Warn during it.
   const graceUntil = subscription?.grace_until
     ? new Date(subscription.grace_until).toLocaleDateString()
     : null;
   const inGrace = !subscribed && !!graceUntil;
-  // Comps have no Stripe customer, so the portal can't open for them.
-  const canManage = !comped && (!!subscription?.current_period_end || subscribed || inGrace);
+  const trimDays = daysUntilTrim(subscription?.grace_until);
+  // A comp (active or lapsed) has no Stripe customer, so the portal can't open.
+  const canManage = !hasCompGrant(subscription) && (!!subscription?.current_period_end || subscribed || inGrace);
 
   // Open the Stripe portal — generic (cancel / payment methods) or, with
   // flow "update", deep-linked into the change-plan screen.
@@ -311,7 +312,9 @@ function PlanSection() {
           )}
           {!comped && inGrace && (
             <p className="text-[11px] text-amber-600 dark:text-amber-500">
-              {t("plan.grace", { date: graceUntil })}
+              {trimDays && trimDays > 0
+                ? t("plan.trimWarning", { count: trimDays, date: graceUntil })
+                : t("plan.trimmed")}
             </p>
           )}
           {!subscribed && !inGrace && (

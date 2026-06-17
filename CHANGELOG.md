@@ -24,7 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   account with its email/display name, plan, storage used, and number of track
   contributions. Click a user to see details and **grant them free months of
   premium** (or remove the grant). Comped premium expires automatically when the
-  granted months run out.
+  granted months run out, then follows the same 60-day grace as a cancelled
+  subscription before any over-limit cloud logs are trimmed.
+- **Storage trim warning.** When a paid plan or a comped one lapses, your Profile
+  now shows a clear countdown — "cloud logs trim to the free tier in N days" — so
+  you have time to subscribe or download them first.
 - **Admin: see who submitted a track.** The Submissions tab now shows the
   contributor's account name (or "Anonymous") alongside the existing IP/date.
 - **Complimentary plan badge.** If you've been granted free premium, your Profile

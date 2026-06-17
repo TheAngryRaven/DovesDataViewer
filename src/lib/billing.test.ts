@@ -4,6 +4,8 @@ import {
   effectiveTier,
   isPaidTier,
   isComped,
+  hasCompGrant,
+  daysUntilTrim,
   pricingCta,
   lookupKey,
   tiersWithPrices,
@@ -82,6 +84,31 @@ describe("isComped", () => {
     expect(isComped({ tier: "premium", status: "canceled", stripe_subscription_id: null, current_period_end: future }, NOW)).toBe(false);
     expect(isComped(null, NOW)).toBe(false);
     expect(isComped(undefined, NOW)).toBe(false);
+  });
+});
+
+describe("hasCompGrant", () => {
+  it("is true for a paid-tier row with no Stripe id — active or lapsed", () => {
+    expect(hasCompGrant({ tier: "premium", stripe_subscription_id: null })).toBe(true);
+  });
+  it("is false for a Stripe-backed row or a free/empty row", () => {
+    expect(hasCompGrant({ tier: "premium", stripe_subscription_id: "sub_1" })).toBe(false);
+    expect(hasCompGrant({ tier: "free", stripe_subscription_id: null })).toBe(false);
+    expect(hasCompGrant(null)).toBe(false);
+    expect(hasCompGrant(undefined)).toBe(false);
+  });
+});
+
+describe("daysUntilTrim", () => {
+  const NOW = Date.UTC(2026, 5, 17);
+  it("rounds up whole days remaining", () => {
+    expect(daysUntilTrim(new Date(NOW + 5 * 86_400_000 + 1000).toISOString(), NOW)).toBe(6);
+    expect(daysUntilTrim(new Date(NOW + 86_400_000).toISOString(), NOW)).toBe(1);
+  });
+  it("clamps to 0 once the date has passed, and is null without a date", () => {
+    expect(daysUntilTrim(new Date(NOW - 86_400_000).toISOString(), NOW)).toBe(0);
+    expect(daysUntilTrim(null, NOW)).toBeNull();
+    expect(daysUntilTrim(undefined, NOW)).toBeNull();
   });
 });
 

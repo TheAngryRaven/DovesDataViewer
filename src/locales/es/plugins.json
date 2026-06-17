@@ -33,14 +33,16 @@
     "title": "Plan",
     "renews": "Se renueva el {{date}}",
     "cancels": "Se cancela el {{date}}",
-    "grace": "La suscripción finalizó. Los registros en la nube se reducirán al nivel gratuito el {{date}}: vuelve a suscribirte para conservarlos.",
     "upgrade": "Mejora desde las tarjetas de Planes y precios.",
     "changePlan": "Cambiar de plan",
     "manageSubscription": "Gestionar suscripción",
     "portalFailed": "No se pudo abrir el portal de facturación.",
     "compBadge": "Cortesía",
     "comp": "Plan de cortesía — un obsequio del equipo.",
-    "compUntil": "Plan de cortesía — gratis hasta el {{date}}."
+    "compUntil": "Plan de cortesía — gratis hasta el {{date}}.",
+    "trimWarning_one": "El acceso gratuito terminó: los registros en la nube se recortarán al plan gratis en {{count}} día (el {{date}}). Suscríbete para conservarlos.",
+    "trimWarning_other": "El acceso gratuito terminó: los registros en la nube se recortarán al plan gratis en {{count}} días (el {{date}}). Suscríbete para conservarlos.",
+    "trimmed": "Los registros en la nube por encima del plan gratis se han recortado. Suscríbete para recuperar el límite mayor."
   },
   "storage": {
     "title": "Almacenamiento",

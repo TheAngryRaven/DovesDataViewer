@@ -126,6 +126,31 @@ export function isComped(
   return new Date(sub.current_period_end).getTime() > now;
 }
 
+/**
+ * Whether a subscription row is an admin comp grant at all — active *or* lapsed
+ * (a paid tier with no `stripe_subscription_id`). Unlike `isComped` this ignores
+ * the date window, so it stays true after a comp expires. Used to keep the Stripe
+ * billing-portal actions hidden (a comp has no Stripe customer to manage).
+ */
+export function hasCompGrant(
+  sub: Pick<UserSubscriptionRow, "tier" | "stripe_subscription_id"> | null | undefined,
+): boolean {
+  return !!sub && !sub.stripe_subscription_id && isPaidTier(sub.tier);
+}
+
+/**
+ * Whole days from now until `graceUntil` (when cloud logs get trimmed to the free
+ * tier). `null` when there's no grace date; clamped at 0 once it has passed.
+ */
+export function daysUntilTrim(
+  graceUntil: string | null | undefined,
+  now: number = Date.now(),
+): number | null {
+  if (!graceUntil) return null;
+  const ms = new Date(graceUntil).getTime() - now;
+  return Math.max(0, Math.ceil(ms / 86_400_000));
+}
+
 // Tiers that exist but aren't yet self-service purchasable — shown as
 // "Coming soon" and never selectable for checkout (the create-checkout-session
 // edge function rejects them too). They're hidden from the pricing UI entirely

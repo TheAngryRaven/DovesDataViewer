@@ -8,6 +8,9 @@ const corsHeaders = {
 // Comp grants are bounded so a fat-fingered admin can't hand out a decade.
 const MAX_GRANT_MONTHS = 36;
 const COMP_TIER = 'premium';
+// Days a comp's logs are kept after it expires before trim_expired_logs() reclaims
+// them — mirrors the Stripe-cancellation grace (GRACE_DAYS in stripe-webhook).
+const GRACE_DAYS = 60;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -152,12 +155,15 @@ Deno.serve(async (req) => {
       const base = cur?.current_period_end && new Date(cur.current_period_end) > now
         ? new Date(cur.current_period_end) : now;
       const end = addMonths(base, months);
+      // Logs survive GRACE_DAYS past the comp's end, then trim_expired_logs() runs.
+      const graceUntil = new Date(end.getTime() + GRACE_DAYS * 86_400_000);
 
       const { error: upErr } = await admin.from('user_subscriptions').upsert({
         user_id: userId,
         tier: COMP_TIER,
         status: 'active',
         current_period_end: end.toISOString(),
+        grace_until: graceUntil.toISOString(),
         cancel_at_period_end: true,
         updated_at: now.toISOString(),
       }, { onConflict: 'user_id' });

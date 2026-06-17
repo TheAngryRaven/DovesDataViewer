@@ -32,14 +32,16 @@
     "title": "Plan",
     "renews": "Renews {{date}}",
     "cancels": "Cancels {{date}}",
-    "grace": "Subscription ended. Cloud logs trim to the free tier on {{date}} — resubscribe to keep them.",
     "upgrade": "Upgrade from the Plans & pricing cards.",
     "changePlan": "Change plan",
     "manageSubscription": "Manage subscription",
     "portalFailed": "Couldn't open the billing portal.",
     "compBadge": "Complimentary",
     "comp": "Complimentary plan — courtesy of the team.",
-    "compUntil": "Complimentary plan — free until {{date}}."
+    "compUntil": "Complimentary plan — free until {{date}}.",
+    "trimWarning_one": "Free access ended — cloud logs trim to the free tier in {{count}} day (on {{date}}). Subscribe to keep them.",
+    "trimWarning_other": "Free access ended — cloud logs trim to the free tier in {{count}} days (on {{date}}). Subscribe to keep them.",
+    "trimmed": "Cloud logs over the free tier have been trimmed. Subscribe to restore the higher limit."
   },
   "storage": {
     "title": "Storage",

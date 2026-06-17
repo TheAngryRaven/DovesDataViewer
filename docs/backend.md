@@ -150,12 +150,22 @@ webhook grants whatever tier the price's lookup_key maps to.
 **Admin comps (in-app, no Stripe):** the admin **Users** tab grants free months of
 a paid tier via the `admin-users` edge function, which writes a `user_subscriptions`
 row directly (tier `premium`, `status = active`, `current_period_end = now + N
-months`, `cancel_at_period_end = true`, **no `stripe_subscription_id`**). Because
-`user_tier()` is comp-aware, a row with no Stripe id only grants its tier until
-`current_period_end` passes — so comps **auto-expire** with no cron. Stripe-backed
-rows keep status-only semantics (unchanged). The function refuses to touch a user
-who already has a `stripe_subscription_id` (manage those in Stripe). See *User
-management* below.
+months`, `grace_until = current_period_end + 60 days`, `cancel_at_period_end =
+true`, **no `stripe_subscription_id`**). Because `user_tier()` is comp-aware, a row
+with no Stripe id only grants its tier until `current_period_end` passes — so comps
+**auto-expire** with no cron. Stripe-backed rows keep status-only semantics
+(unchanged). The function refuses to touch a user who already has a
+`stripe_subscription_id` (manage those in Stripe). See *User management* below.
+
+**Comp expiry mirrors cancellation grace** (migration
+`20260618000000_comp_expiry_grace_trim.sql`): a comp sets `grace_until =
+current_period_end + 60 days`, and `trim_expired_logs()` now selects users by
+**effective tier** (`user_tier(user_id) = 'free'`) instead of raw status — so a
+**lapsed comp** (still `status = 'active'` but past its window) is trimmed just like
+a cancelled Stripe sub, while every Stripe case is unchanged (active → paid →
+excluded; cancelled → free → included). The Profile **StoragePanel** shows the user
+a live "logs trim in N days" countdown during the grace window (`daysUntilTrim`),
+and hides the Stripe portal buttons for any comp row (`hasCompGrant`).
 
 **Cancellation grace:** a cancelled sub ends at the period boundary (Stripe
 `customer.subscription.deleted`), dropping to free limits immediately (via
