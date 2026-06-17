@@ -161,6 +161,7 @@
     "apply": "Apply",
     "manage": "Manage",
     "selectTrackShort": "Select track",
-    "applySelection": "Apply Selection"
+    "applySelection": "Apply Selection",
+    "submitGift": "Signed-in contributions earn free cloud storage"
   }
 }

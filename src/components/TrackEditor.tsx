@@ -54,6 +54,9 @@ import { Send } from 'lucide-react';
 
 import type { Lap, GpsSample } from '@/types/racing';
 
+// The free-cloud-storage nudge only applies on builds where accounts exist.
+const CLOUD_ENABLED = import.meta.env.VITE_ENABLE_CLOUD === 'true';
+
 interface TrackCourseEditorProps {
   selection?: TrackCourseSelection | null;
   onSelectionChange?: (selection: TrackCourseSelection | null) => void;
@@ -588,6 +591,12 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
           <Button variant="outline" onClick={() => setIsManageMode(false)}>{t('trackEditor.back')}</Button>
         )}
       </div>
+      {CLOUD_ENABLED && (
+        <p className="flex items-center gap-1.5 pt-2 text-xs text-primary">
+          <span aria-hidden>🎁</span>
+          {t('trackEditor.submitGift')}
+        </p>
+      )}
     </Tabs>
   );
 

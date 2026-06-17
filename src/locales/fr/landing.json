@@ -22,7 +22,8 @@
     },
     "tracks": {
       "title": "Gérer les circuits",
-      "description": "Créez, dessinez et modifiez les tracés de circuits et de parcours"
+      "description": "Créez, dessinez et modifiez les tracés de circuits et de parcours",
+      "badge": "🎁 Partagez des circuits connecté pour gagner un stockage cloud gratuit"
     },
     "build": {
       "title": "Construisez votre propre enregistreur",

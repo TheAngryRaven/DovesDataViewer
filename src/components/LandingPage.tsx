@@ -201,6 +201,7 @@ export function LandingPage({
                   icon={Map}
                   title={t("landing:tiles.tracks.title")}
                   description={t("landing:tiles.tracks.description")}
+                  badge={enableCloud ? t("landing:tiles.tracks.badge") : undefined}
                 />
               }
             />

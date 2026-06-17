@@ -22,7 +22,8 @@
     },
     "tracks": {
       "title": "Gestionar circuitos",
-      "description": "Crea, dibuja y edita trazados de circuitos y recorridos"
+      "description": "Crea, dibuja y edita trazados de circuitos y recorridos",
+      "badge": "🎁 Aporta pistas con tu cuenta y gana almacenamiento en la nube gratis"
     },
     "build": {
       "title": "Construye tu propio registrador",
