@@ -10,7 +10,7 @@
 
 **Dove's DataViewer / HackTheTrack** — Open-source, offline-first motorsport
 telemetry viewer.
-- Live: [hackthetrack.net](https://hackthetrack.net) | Published: [dovesdataviewer.lovable.app](https://dovesdataviewer.lovable.app)
+- Live: [hackthetrack.net](https://hackthetrack.net) | Beta: [beta.perchwerks.com](https://beta.perchwerks.com)
 - Companion hardware: [DovesDataLogger](https://github.com/TheAngryRaven/DovesDataLogger) (nRF52840 GPS logger with BLE — Seeed XIAO nRF52840, `sense`/`nonsense` IMU variants)
 - PWA with full offline support via service worker + IndexedDB
 
@@ -39,7 +39,7 @@ telemetry viewer.
 6. **Green before merge.** `bun run lint`, `bun run typecheck`, `bun run test:run`,
    and `bun run build` all pass — CI runs them as separate workflows on every PR.
 7. **Keep it professional.** Public, released OSS (v1.5.0+). No dead code (delete,
-   don't comment out), no leftover `console.log`, no Lovable scaffolding. Comments
+   don't comment out), no leftover `console.log`, no scaffolding cruft. Comments
    explain *why*, not *what*, only where non-obvious. Small, focused PRs with clear
    commit messages explaining the *why* — prefer a topic branch + PR over committing
    to `main`. Respect the bundle budget and the conventions below.
@@ -59,7 +59,7 @@ telemetry viewer.
 | State | React hooks + React Query (admin only) |
 | Drag/Reorder | [dnd kit](https://dndkit.com) — sector-list reorder; lazy with the track editor |
 | Local Storage | IndexedDB (`dbUtils.ts`) for files/metadata/karts/notes/setups/etc.; localStorage for tracks & settings |
-| Backend | None for core features. Optional admin/cloud via Supabase (Lovable Cloud) — see `docs/backend.md` |
+| Backend | None for core features. Optional admin/cloud via Supabase — see `docs/backend.md` |
 | BLE | Web Bluetooth API for DovesDataLogger — see `docs/ble.md` |
 
 ---

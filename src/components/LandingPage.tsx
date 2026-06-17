@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Fragment, lazy, Suspense } from "react";
 import {
   Gauge,
   Github,
@@ -87,6 +87,14 @@ export function LandingPage({
   const { t } = useTranslation(["landing", "common"]);
 
   const roadmapItems = t("landing:roadmap.items", { returnObjects: true }) as string[];
+
+  // Group roadmap items by their trailing month/quarter parenthetical (works
+  // across locales — handles both ASCII "()" and full-width "（）") so we can
+  // draw a divider whenever the timeframe changes.
+  const roadmapTimeframe = (item: string): string => {
+    const match = item.match(/[（(]([^（()）]*)[）)]\s*$/);
+    return match ? match[1].trim() : "";
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -236,12 +244,21 @@ export function LandingPage({
               {t("landing:roadmap.blurb")}
             </p>
             <ul className="mt-3 space-y-2">
-              {roadmapItems.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-                  <span>{item}</span>
-                </li>
-              ))}
+              {roadmapItems.map((item, i) => {
+                const showDivider =
+                  i > 0 && roadmapTimeframe(item) !== roadmapTimeframe(roadmapItems[i - 1]);
+                return (
+                  <Fragment key={item}>
+                    {showDivider && (
+                      <li aria-hidden="true" className="my-1 border-t border-border/60" />
+                    )}
+                    <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                      <span>{item}</span>
+                    </li>
+                  </Fragment>
+                );
+              })}
             </ul>
             <p className="mt-3 text-sm font-medium text-foreground">
               {t("landing:roadmap.contact")}
