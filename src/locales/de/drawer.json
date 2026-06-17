@@ -110,6 +110,24 @@
     "update": "Aktualisieren",
     "save": "Speichern"
   },
+  "setupHistory": {
+    "title": "Setup-Verlauf",
+    "openTitle": "Setup-Verlauf anzeigen",
+    "loading": "Verlauf wird geladen…",
+    "empty": "Noch kein Verlauf",
+    "emptyHint": "Weise dieses Setup einer Sitzung zu, um den Verlauf aufzubauen.",
+    "allKarts": "Alle Karts",
+    "allCourses": "Alle Strecken",
+    "original": "Original",
+    "revision": "Revision",
+    "fastestTag": "Schnellste Runde",
+    "noLap": "—",
+    "noChanges": "Keine Änderungen gegenüber der vorherigen Revision",
+    "noSetupData": "Keine Setup-Daten",
+    "showFull": "Vollständiges Setup anzeigen",
+    "showChanges": "Nur Änderungen anzeigen",
+    "lapsHeader": "Schnellste Runden"
+  },
   "notes": {
     "loadSession": "Lade eine Session, um Notizen hinzuzufügen",
     "sessionSetup": "Session-Setup",

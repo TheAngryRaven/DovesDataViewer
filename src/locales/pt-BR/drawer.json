@@ -110,6 +110,24 @@
     "update": "Atualizar",
     "save": "Salvar"
   },
+  "setupHistory": {
+    "title": "Histórico de configuração",
+    "openTitle": "Ver histórico de configuração",
+    "loading": "Carregando histórico…",
+    "empty": "Ainda não há histórico",
+    "emptyHint": "Atribua esta configuração a uma sessão para começar a criar o histórico.",
+    "allKarts": "Todos os karts",
+    "allCourses": "Todas as pistas",
+    "original": "Original",
+    "revision": "Revisão",
+    "fastestTag": "Volta mais rápida",
+    "noLap": "—",
+    "noChanges": "Sem alterações em relação à revisão anterior",
+    "noSetupData": "Sem dados de configuração",
+    "showFull": "Mostrar configuração completa",
+    "showChanges": "Mostrar apenas alterações",
+    "lapsHeader": "Voltas mais rápidas"
+  },
   "notes": {
     "loadSession": "Carregue uma sessão para adicionar notas",
     "sessionSetup": "Acerto da sessão",

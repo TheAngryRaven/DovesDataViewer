@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.6.0] - unreleased
 
 ### Added
+- **Setup history.** Each setup in the Garage now has a **history** (book) icon
+  that opens a full-panel timeline of every saved revision. It starts with the
+  original setup shown in full, then lists each later revision as a **diff** —
+  only the values that changed, coloured **green when a number went up** and
+  **red when it went down** vs the previous revision (with a per-revision toggle
+  to show the full setup instead). Every revision shows the **fastest lap** run
+  on it, the revision holding the overall fastest lap is **highlighted**, and the
+  history is **filterable by kart and course** — when unfiltered, each revision
+  shows a bubble for the kart/course where its fastest lap was set.
 - **Tools on the home screen.** A new **Tools** tile on the landing page opens the
   trackside tools (the seat-position visualizer and more) in a full-screen panel —
   no datalog needed.

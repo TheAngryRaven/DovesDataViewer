@@ -121,6 +121,24 @@
     "update": "Update",
     "save": "Save"
   },
+  "setupHistory": {
+    "title": "Setup History",
+    "openTitle": "View setup history",
+    "loading": "Loading history…",
+    "empty": "No history yet",
+    "emptyHint": "Assign this setup to a session to start building its history.",
+    "allKarts": "All karts",
+    "allCourses": "All courses",
+    "original": "Original",
+    "revision": "Revision",
+    "fastestTag": "Fastest lap",
+    "noLap": "—",
+    "noChanges": "No changes from previous revision",
+    "noSetupData": "No setup data",
+    "showFull": "Show full setup",
+    "showChanges": "Show changes only",
+    "lapsHeader": "Fastest laps"
+  },
   "notes": {
     "loadSession": "Load a session to add notes",
     "sessionSetup": "Session Setup",

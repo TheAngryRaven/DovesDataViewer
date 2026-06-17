@@ -107,6 +107,7 @@ src/
 │   ├── lapOverlays.ts / lapAlignment.ts  # ★ Multi-lap overlay logic + Kabsch drift-align (→ docs/subsystems.md)
 │   ├── lapSnapshot*.ts    # ★ Snapshot types/buffer + IndexedDB CRUD (→ docs/subsystems.md)
 │   ├── setupRevision*.ts  # ★ Content-addressed setup history + IndexedDB CRUD (→ docs/subsystems.md)
+│   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
 │   ├── trackSubmission.ts # ★ Community-DB upload plan (→ docs/subsystems.md)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
 │   ├── garageEvents.ts    # ★ Host pub/sub: storage emits {store,key,put|delete}; cloud-sync syncs off it
