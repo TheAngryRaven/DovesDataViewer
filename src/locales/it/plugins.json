@@ -37,7 +37,10 @@
     "upgrade": "Esegui l'upgrade dalle schede Piani e prezzi.",
     "changePlan": "Cambia piano",
     "manageSubscription": "Gestisci abbonamento",
-    "portalFailed": "Impossibile aprire il portale di fatturazione."
+    "portalFailed": "Impossibile aprire il portale di fatturazione.",
+    "compBadge": "Omaggio",
+    "comp": "Piano omaggio — offerto dal team.",
+    "compUntil": "Piano omaggio — gratis fino al {{date}}."
   },
   "storage": {
     "title": "Spazio",

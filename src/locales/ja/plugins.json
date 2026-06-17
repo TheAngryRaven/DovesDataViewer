@@ -37,7 +37,10 @@
     "upgrade": "プランと料金のカードからアップグレードしてください。",
     "changePlan": "プランを変更",
     "manageSubscription": "サブスクリプションを管理",
-    "portalFailed": "請求ポータルを開けませんでした。"
+    "portalFailed": "請求ポータルを開けませんでした。",
+    "compBadge": "無償提供",
+    "comp": "無償提供プラン — チームからの提供です。",
+    "compUntil": "無償提供プラン — {{date}} まで無料です。"
   },
   "storage": {
     "title": "ストレージ",

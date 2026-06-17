@@ -37,7 +37,10 @@
     "upgrade": "Mettez à niveau depuis les cartes Forfaits et tarifs.",
     "changePlan": "Changer de forfait",
     "manageSubscription": "Gérer l'abonnement",
-    "portalFailed": "Impossible d'ouvrir le portail de facturation."
+    "portalFailed": "Impossible d'ouvrir le portail de facturation.",
+    "compBadge": "Offert",
+    "comp": "Plan offert — gracieusement par l'équipe.",
+    "compUntil": "Plan offert — gratuit jusqu'au {{date}}."
   },
   "storage": {
     "title": "Stockage",

@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   granted months run out.
 - **Admin: see who submitted a track.** The Submissions tab now shows the
   contributor's account name (or "Anonymous") alongside the existing IP/date.
+- **Complimentary plan badge.** If you've been granted free premium, your Profile
+  now shows a "Complimentary" badge and how long it lasts — and hides the Stripe
+  billing buttons (there's no paid subscription to manage).
 - **Tools on the home screen.** A new **Tools** tile on the landing page opens the
   trackside tools (the seat-position visualizer and more) in a full-screen panel —
   no datalog needed.

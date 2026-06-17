@@ -21,6 +21,8 @@ export interface UserSubscriptionRow {
   cancel_at_period_end?: boolean;
   billing_interval?: string | null;
   grace_until?: string | null;
+  /** Set for Stripe-managed subscriptions; NULL for admin comps. */
+  stripe_subscription_id?: string | null;
 }
 
 // Paid plans bill either monthly or annually. The slug encodes both halves of a
@@ -105,6 +107,23 @@ export function effectiveTier(
 
 export function isPaidTier(tier: string): boolean {
   return tier !== "free";
+}
+
+/**
+ * Whether the user is on an admin **comp** (complimentary) rather than a paid
+ * Stripe subscription. Mirrors the server `user_tier()` comp branch: an active
+ * paid tier with no `stripe_subscription_id`, still within its granted window
+ * (an open-ended comp has no `current_period_end`). A comp has no Stripe
+ * customer, so the billing-portal actions must be hidden for it.
+ */
+export function isComped(
+  sub: Pick<UserSubscriptionRow, "tier" | "status" | "stripe_subscription_id" | "current_period_end"> | null | undefined,
+  now: number = Date.now(),
+): boolean {
+  if (!sub || !isActiveStatus(sub.status) || !isPaidTier(sub.tier)) return false;
+  if (sub.stripe_subscription_id) return false; // Stripe-managed — not a comp
+  if (!sub.current_period_end) return true; // open-ended comp
+  return new Date(sub.current_period_end).getTime() > now;
 }
 
 // Tiers that exist but aren't yet self-service purchasable — shown as

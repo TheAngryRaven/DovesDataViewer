@@ -37,7 +37,10 @@
     "upgrade": "Faça upgrade pelos cartões de Planos e preços.",
     "changePlan": "Mudar de plano",
     "manageSubscription": "Gerenciar assinatura",
-    "portalFailed": "Não foi possível abrir o portal de cobrança."
+    "portalFailed": "Não foi possível abrir o portal de cobrança.",
+    "compBadge": "Cortesia",
+    "comp": "Plano cortesia — um presente da equipe.",
+    "compUntil": "Plano cortesia — grátis até {{date}}."
   },
   "storage": {
     "title": "Armazenamento",
