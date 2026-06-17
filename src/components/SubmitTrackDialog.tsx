@@ -203,6 +203,14 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
                   <li>{t('submit.li4')}</li>
                 </ul>
               </div>
+              {CLOUD_ENABLED && (
+                <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <Gift className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span className="text-muted-foreground">
+                    {user ? t('submit.accountNoticeSignedIn') : t('submit.accountNotice')}
+                  </span>
+                </div>
+              )}
               <Button onClick={() => setStep('review')} className="w-full" disabled={planLoading}>
                 {planLoading
                   ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('submit.checking')}</>)
