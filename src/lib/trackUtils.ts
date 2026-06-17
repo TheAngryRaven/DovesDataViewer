@@ -134,6 +134,29 @@ export function generatedDrawingSpacing(lengthMeters: number): number {
 }
 
 /**
+ * Build an evenly-resampled course outline (polyline) from raw GPS samples,
+ * ready to drop straight onto `Course.layout`. Drops null-island samples
+ * (lat/lon 0) and resamples to the length-scaled spacing. Returns `[]` when
+ * there isn't enough usable GPS to draw a line — callers can treat that as
+ * "no outline".
+ *
+ * Used to pre-fill a new course's drawing from the loaded session (its fastest
+ * lap, or the whole trace when no laps are detected) so the user doesn't have
+ * to open the Generate picker by hand.
+ */
+export function buildCourseOutline(
+  samples: Array<{ lat: number; lon: number }>,
+): Array<{ lat: number; lon: number }> {
+  const raw = samples
+    .filter((s) => s.lat !== 0 && s.lon !== 0)
+    .map((s) => ({ lat: s.lat, lon: s.lon }));
+  if (raw.length < 2) return [];
+  const spacing = generatedDrawingSpacing(calculatePolylineLength(raw));
+  const points = resamplePolyline(raw, spacing);
+  return points.length >= 2 ? points : [];
+}
+
+/**
  * Resample a polyline to evenly spaced points.
  * Walks the path by cumulative arc length, emitting a new interpolated point
  * every `spacingMeters` meters. Always includes the first point.

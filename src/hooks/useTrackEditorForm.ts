@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Course, CourseSector, SectorLine } from '@/types/racing';
 import { deriveShortName, MAX_SHORT_NAME_LENGTH } from '@/lib/trackUtils';
-import { normalizeCourseSectors, isAtSectorLimit, centeredSectorLine } from '@/lib/courseSectors';
+import { normalizeCourseSectors, isAtSectorLimit, centeredSectorLine, MAX_MAJOR_SECTORS } from '@/lib/courseSectors';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 
 /** Selection in the visual editor: 'sf' = start/finish, a number = sectors[index]. */
@@ -100,7 +100,14 @@ export function useTrackEditorForm() {
       ? centeredSectorLine(center)
       : defaultSectorLine(formLatA, formLonA, formLatB, formLonB, formSectors.length);
     const at = insertIndex === undefined ? formSectors.length : Math.max(0, Math.min(insertIndex, formSectors.length));
-    setFormSectors([...formSectors.slice(0, at), { line, major: false }, ...formSectors.slice(at)]);
+    // Default a new line to "major" while there's still room under the cap
+    // (start/finish is the implicit first major, so MAX_MAJOR_SECTORS - 1 more
+    // are allowed). This makes the common 3-sector course valid after just two
+    // adds with no Major toggling; further lines default to sub-sectors, which
+    // the user can promote if needed.
+    const flaggedMajors = formSectors.filter((s) => s.major).length;
+    const major = flaggedMajors < MAX_MAJOR_SECTORS - 1;
+    setFormSectors([...formSectors.slice(0, at), { line, major }, ...formSectors.slice(at)]);
     setSelectedLine(at);
   }, [formCourseName, formLatA, formLonA, formLatB, formLonB, formSectors]);
 

@@ -10,6 +10,7 @@ import {
   formatTrackLength,
   resamplePolyline,
   generatedDrawingSpacing,
+  buildCourseOutline,
 } from "./trackUtils";
 import { haversineDistance } from "./parserUtils";
 
@@ -335,5 +336,45 @@ describe("generatedDrawingSpacing", () => {
   it("falls back to the minimum for NaN / negative lengths", () => {
     expect(generatedDrawingSpacing(NaN)).toBe(5);
     expect(generatedDrawingSpacing(-100)).toBe(5);
+  });
+});
+
+// ─── buildCourseOutline ─────────────────────────────────────────────────────────
+
+describe("buildCourseOutline", () => {
+  it("returns [] when fewer than 2 usable samples remain", () => {
+    expect(buildCourseOutline([])).toEqual([]);
+    expect(buildCourseOutline([{ lat: 28.4, lon: -81.3 }])).toEqual([]);
+  });
+
+  it("drops null-island (0,0) samples before resampling", () => {
+    const samples = [
+      { lat: 0, lon: 0 },
+      { lat: 28.4, lon: -81.3 },
+      { lat: 28.4001, lon: -81.3 },
+      { lat: 0, lon: 0 },
+    ];
+    const out = buildCourseOutline(samples);
+    expect(out.length).toBeGreaterThanOrEqual(2);
+    expect(out.some((p) => p.lat === 0 && p.lon === 0)).toBe(false);
+  });
+
+  it("returns [] when all samples are null-island", () => {
+    expect(buildCourseOutline([
+      { lat: 0, lon: 0 },
+      { lat: 0, lon: 0 },
+    ])).toEqual([]);
+  });
+
+  it("produces an evenly-resampled outline from a dense trace", () => {
+    // A ~110m north-south leg sampled densely (~1m apart).
+    const samples = Array.from({ length: 100 }, (_, i) => ({
+      lat: 28.4 + i * 0.00001,
+      lon: -81.3,
+    }));
+    const out = buildCourseOutline(samples);
+    // Starts at the first point and emits intermediate points by arc length.
+    expect(out[0]).toEqual({ lat: 28.4, lon: -81.3 });
+    expect(out.length).toBeGreaterThan(2);
   });
 });
