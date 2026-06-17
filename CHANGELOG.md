@@ -17,8 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Feature roadmap on the home screen.** The landing page now shows a short
   "Remaining feature roadmap" panel under the action tiles, listing what's still
   coming (cheaper DIY logger, leaderboards & public profiles, 3rd-party logger
-  downloads, race-day organization, team management, coaching updates, and the
-  "Vulture" logger) with rough timing estimates.
+  downloads, native app, race-day organization, team management, coaching
+  updates, video editor updates, and the "Vulture" logger) with rough timing
+  estimates.
 - **Earn free cloud storage by contributing tracks.** When you submit tracks to
   the community database while signed in, your contribution is now linked to your
   account — and the submit screen shows a note that signed-in contributions earn
