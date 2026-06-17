@@ -4,12 +4,15 @@ import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { Send, ShieldCheck, ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
+import { Send, ShieldCheck, ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Check, Gift } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { loadTracks, loadDefaultTracks } from '@/lib/trackStorage';
 import { buildSubmissionPlan, type SubmissionPlan, type SubmissionCourse } from '@/lib/trackSubmission';
 import { loadSubmittedRecords, markCoursesSubmitted } from '@/lib/submittedTracksStorage';
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+// The free-cloud-storage incentive only makes sense when accounts exist.
+const CLOUD_ENABLED = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
 interface SubmitTrackDialogProps {
   trigger: React.ReactNode;
@@ -40,6 +43,7 @@ const CHANGE_STYLE: Record<SubmissionCourse['change'], string> = {
 
 export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogProps) {
   const { t } = useTranslation('tracks');
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>('confirm');
   const [plan, setPlan] = useState<SubmissionPlan | null>(null);
@@ -274,6 +278,15 @@ export function SubmitTrackDialog({ trigger, onSubmitted }: SubmitTrackDialogPro
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {CLOUD_ENABLED && hasAnything && (
+                <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <Gift className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span className="text-muted-foreground">
+                    {user ? t('submit.accountNoticeSignedIn') : t('submit.accountNotice')}
+                  </span>
                 </div>
               )}
 

@@ -149,6 +149,26 @@ Deno.serve(async (req) => {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                req.headers.get('cf-connecting-ip') || 'unknown';
 
+    // Attribute the submission to a signed-in user when the request carries a
+    // real user JWT. supabase-js attaches the session token (or, when signed
+    // out, the anon key) as the Authorization bearer — only a genuine user
+    // token resolves to a user here, so we never trust a client-supplied id.
+    let submittedByUserId: string | null = null;
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace(/^Bearer\s+/i, '');
+    if (token) {
+      try {
+        const authClient = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_ANON_KEY')!,
+        );
+        const { data: userData } = await authClient.auth.getUser(token);
+        submittedByUserId = userData.user?.id ?? null;
+      } catch {
+        // Anonymous (anon key or expired token) — leave attribution null.
+      }
+    }
+
     // Verify Turnstile token (once for the whole batch)
     if (Deno.env.get('TURNSTILE_SECRET_KEY')) {
       if (!turnstile_token || typeof turnstile_token !== 'string') {
@@ -207,6 +227,7 @@ Deno.serve(async (req) => {
         course_data: s.course_data,
         status: 'pending',
         submitted_by_ip: ip,
+        submitted_by_user_id: submittedByUserId,
         batch_id: batchId,
         has_layout: hasLayout,
         layout_data: hasLayout ? s.layout_data : null,

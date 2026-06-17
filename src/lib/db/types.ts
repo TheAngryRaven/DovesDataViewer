@@ -48,6 +48,8 @@ export interface DbSubmission {
   course_data: Record<string, unknown>;
   status: 'pending' | 'approved' | 'denied';
   submitted_by_ip: string | null;
+  /** The signed-in user who submitted, when they were logged in. NULL = anonymous. */
+  submitted_by_user_id: string | null;
   /** True when the submitter included a drawn track outline. */
   has_layout?: boolean;
   /** The drawn outline polyline, when `has_layout`. */
@@ -78,6 +80,11 @@ export interface DbCourseLayout {
   updated_at: string;
 }
 
+export interface DbProfile {
+  user_id: string;
+  display_name: string;
+}
+
 export interface ITrackDatabase {
   // Tracks
   getTracks(): Promise<DbTrack[]>;
@@ -102,6 +109,9 @@ export interface ITrackDatabase {
   // Submissions
   getSubmissions(status?: string): Promise<DbSubmission[]>;
   updateSubmission(id: string, status: string, reviewNotes?: string): Promise<void>;
+
+  // Profiles (display-name lookup, e.g. to show who submitted a track)
+  getProfiles(userIds: string[]): Promise<DbProfile[]>;
 
   // Banned IPs
   getBannedIps(): Promise<DbBannedIp[]>;

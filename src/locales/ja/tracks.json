@@ -119,7 +119,9 @@
     "back": "戻る",
     "submitting": "送信中…",
     "submitBtn_one": "{{count}}件のコースを送信",
-    "submitBtn_other": "{{count}}件のコースを送信"
+    "submitBtn_other": "{{count}}件のコースを送信",
+    "accountNotice": "アカウントなしで送信しています。先にサインインすると、提供したトラックに対して無料のクラウドストレージを獲得できます。",
+    "accountNoticeSignedIn": "サインイン済みです。これらのトラックを提供すると無料のクラウドストレージを獲得できます。"
   },
   "trackEditor": {
     "toastCopied": "コピーしました！",

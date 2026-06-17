@@ -147,6 +147,16 @@ the set there). Only **Free** + **Plus** are shown at launch. They can still be
 subscription's `metadata.user_id`, or change an existing customer's price); the
 webhook grants whatever tier the price's lookup_key maps to.
 
+**Admin comps (in-app, no Stripe):** the admin **Users** tab grants free months of
+a paid tier via the `admin-users` edge function, which writes a `user_subscriptions`
+row directly (tier `premium`, `status = active`, `current_period_end = now + N
+months`, `cancel_at_period_end = true`, **no `stripe_subscription_id`**). Because
+`user_tier()` is comp-aware, a row with no Stripe id only grants its tier until
+`current_period_end` passes — so comps **auto-expire** with no cron. Stripe-backed
+rows keep status-only semantics (unchanged). The function refuses to touch a user
+who already has a `stripe_subscription_id` (manage those in Stripe). See *User
+management* below.
+
 **Cancellation grace:** a cancelled sub ends at the period boundary (Stripe
 `customer.subscription.deleted`), dropping to free limits immediately (via
 `user_tier`), but `grace_until = period_end + 60 days` keeps the user's logs so
@@ -174,6 +184,26 @@ manually like the rest of the repo, the webhook verifies the Stripe signature):
   subscription to update.
 
 Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+
+### User management — `admin-users` edge function
+
+A single admin-only function (`verify_jwt = false`; verifies the caller's JWT then
+checks `user_roles` for `admin`, like `admin-build-zip`) backing the admin **Users**
+tab (`src/components/admin/UsersTab.tsx`). Service-role actions:
+
+- `list` (`{ page?, perPage? }`) → one row per account: email + `created_at` (from
+  `auth.admin.listUsers`), `display_name` (`profiles`), effective tier/status/
+  period-end (`user_subscriptions`, comp-aware), pooled storage used
+  (`total_storage_used(uuid)` RPC per listed user) + limit (tier `total_bytes`), and
+  a **track-contribution count** (`submissions.submitted_by_user_id`). Paginated.
+- `grant_premium` (`{ user_id, months }`, 1–36) → upserts the comp row described
+  above, **extending** an unexpired comp's end date. Refuses a Stripe-managed user.
+- `clear_grant` (`{ user_id }`) → deletes a comp row (refuses Stripe-managed).
+
+Submissions are attributed to a signed-in contributor via
+`submissions.submitted_by_user_id`, which the `submit-track` edge function derives
+from the caller's **verified JWT** (never a client-supplied id; anonymous stays
+`NULL`). The admin Submissions tab resolves it to a `profiles.display_name`.
 
 **Client wiring** (core, not the cloud-sync plugin — billing is account-level and
 PricingCards renders even with cloud disabled): `lib/billing.ts` is the pure,

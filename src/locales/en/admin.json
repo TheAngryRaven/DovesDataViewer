@@ -9,7 +9,8 @@
     "tracks": "Tracks",
     "courses": "Courses",
     "tools": "Tools",
-    "banned": "Banned IPs"
+    "banned": "Banned IPs",
+    "users": "Users"
   },
   "common": {
     "error": "Error",
@@ -133,7 +134,9 @@
     "trackCount_other": "{{count}} tracks",
     "bulkSummary": "{{courses}} across {{tracks}} • {{date}}",
     "approveAll": "Approve all ({{count}})",
-    "denyAll": "Deny all"
+    "denyAll": "Deny all",
+    "byUser": "by {{name}}",
+    "anonymous": "Anonymous"
   },
   "courses": {
     "created": "Course created",
@@ -168,5 +171,33 @@
     "overridePlaceholder": "auto",
     "noLayouts": "No layouts drawn yet. Edit a course and use the Draw tool to trace the track outline.",
     "unknownCourse": "Unknown"
+  },
+  "users": {
+    "title": "User Management",
+    "refresh": "Refresh",
+    "none": "No users found.",
+    "loadError": "Failed to load users",
+    "comp": "comped",
+    "submissions_one": "{{count}} submission",
+    "submissions_other": "{{count}} submissions",
+    "ofLimit": "of {{limit}}",
+    "noEmail": "No email",
+    "userId": "User ID",
+    "created": "Created",
+    "statusLabel": "Status",
+    "statusFree": "free",
+    "renewsOrEnds": "Premium until",
+    "usage": "Storage used",
+    "stripeManaged": "This user has a Stripe subscription — manage it in Stripe.",
+    "grantLabel": "Grant free premium:",
+    "months": "months",
+    "grantPremium": "Grant premium",
+    "removeGrant": "Remove grant",
+    "loadMore": "Load more",
+    "invalidMonths": "Enter a valid number of months",
+    "granted_one": "Granted {{count}} month of premium",
+    "granted_other": "Granted {{count}} months of premium",
+    "grantFailed": "Action failed",
+    "grantRemoved": "Premium grant removed"
   }
 }

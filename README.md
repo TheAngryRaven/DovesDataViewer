@@ -278,8 +278,9 @@ src/lib/db/
 
 | Function | Purpose |
 |----------|---------|
-| `submit-track` | Public endpoint for track submissions (with IP ban check) |
+| `submit-track` | Public endpoint for track submissions (with IP ban check); attributes the submission to the signed-in user when a valid JWT is present |
 | `admin-build-zip` | Admin-only: generates per-track JSON files |
+| `admin-users` | Admin-only: lists users with plan/storage/contribution count; grants or clears comped premium months |
 | `check-login-rate` | Rate limiting for login attempts |
 | `submit-message` | Public contact-form endpoint (with IP ban + rate limit) |
 | `stripe-prices` | Public: reports whether Stripe is configured + live monthly/annual prices (resolved by lookup_key) for the pricing UI |

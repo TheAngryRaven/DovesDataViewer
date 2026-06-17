@@ -10,7 +10,8 @@
     "tracks": "Piste",
     "courses": "Circuiti",
     "tools": "Strumenti",
-    "banned": "IP bloccati"
+    "banned": "IP bloccati",
+    "users": "Utenti"
   },
   "common": {
     "error": "Errore",
@@ -134,7 +135,9 @@
     "trackCount_other": "{{count}} piste",
     "bulkSummary": "{{courses}} su {{tracks}} • {{date}}",
     "approveAll": "Approva tutto ({{count}})",
-    "denyAll": "Rifiuta tutto"
+    "denyAll": "Rifiuta tutto",
+    "byUser": "da {{name}}",
+    "anonymous": "Anonimo"
   },
   "courses": {
     "created": "Circuito creato",
@@ -169,5 +172,33 @@
     "overridePlaceholder": "auto",
     "noLayouts": "Nessun tracciato disegnato ancora. Modifica un circuito e usa lo strumento Disegna per tracciare il contorno della pista.",
     "unknownCourse": "Sconosciuto"
+  },
+  "users": {
+    "title": "Gestione utenti",
+    "refresh": "Aggiorna",
+    "none": "Nessun utente trovato.",
+    "loadError": "Impossibile caricare gli utenti",
+    "comp": "omaggio",
+    "submissions_one": "{{count}} invio",
+    "submissions_other": "{{count}} invii",
+    "ofLimit": "di {{limit}}",
+    "noEmail": "Nessuna email",
+    "userId": "ID utente",
+    "created": "Creato",
+    "statusLabel": "Stato",
+    "statusFree": "gratis",
+    "renewsOrEnds": "Premium fino al",
+    "usage": "Spazio utilizzato",
+    "stripeManaged": "Questo utente ha un abbonamento Stripe — gestiscilo in Stripe.",
+    "grantLabel": "Concedi premium gratis:",
+    "months": "mesi",
+    "grantPremium": "Concedi premium",
+    "removeGrant": "Rimuovi concessione",
+    "loadMore": "Carica altro",
+    "invalidMonths": "Inserisci un numero di mesi valido",
+    "granted_one": "Concesso {{count}} mese di premium",
+    "granted_other": "Concessi {{count}} mesi di premium",
+    "grantFailed": "Azione non riuscita",
+    "grantRemoved": "Concessione premium rimossa"
   }
 }

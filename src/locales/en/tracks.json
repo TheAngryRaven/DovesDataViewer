@@ -118,7 +118,9 @@
     "back": "Back",
     "submitting": "Submitting…",
     "submitBtn_one": "Submit {{count}} course",
-    "submitBtn_other": "Submit {{count}} courses"
+    "submitBtn_other": "Submit {{count}} courses",
+    "accountNotice": "Submitting without an account. Sign in first to earn free cloud storage for the tracks you contribute.",
+    "accountNoticeSignedIn": "You're signed in — contributing these tracks earns you free cloud storage."
   },
   "trackEditor": {
     "toastCopied": "Copied!",

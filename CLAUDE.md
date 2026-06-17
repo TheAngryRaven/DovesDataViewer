@@ -79,7 +79,7 @@ src/
 │   └── …                  # Login / Register / Privacy / Terms / NotFound
 ├── components/
 │   ├── ui/                # shadcn/ui primitives
-│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, BannedIps, Tools, Messages)
+│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages)
 │   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Labs, Coach, Tools; Profile is mounted in the drawer)
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Notes, Setups, Device*)
@@ -726,6 +726,19 @@ approved individually (approval is still manual — it flips status; the admin t
 builds/imports `tracks.json` as before). The single-submission body shape stays
 supported for back-compat. `DbSubmission.batch_id` carries the group id client-
 side (the generated Supabase types are untouched — `getSubmissions` casts).
+
+**Submitter attribution + the cloud-storage incentive.** Submitting works signed
+out *and* signed in. When signed in, `submit-track` records
+`submissions.submitted_by_user_id` (migration
+`20260617000000_submissions_user_id_comp_tier.sql`) derived from the caller's
+**verified JWT** (never a client-supplied id — anonymous stays `NULL`). The submit
+screen shows a "signed-in contributions earn free cloud storage" note (only on
+cloud builds — `VITE_ENABLE_CLOUD`; `useAuth()` decides signed-in vs -out copy).
+The admin **Submissions** tab shows the contributor's `profiles.display_name`
+(`db.getProfiles`). The admin **Users** tab (`admin-users` edge function) then
+lists accounts with plan + storage + contribution count and can **comp free months
+of premium** — see `docs/backend.md` → *User management* (incl. the comp-aware
+`user_tier()` so comps auto-expire).
 
 ---
 
