@@ -3,6 +3,7 @@
  */
 
 import { openDB, STORE_NAMES } from './dbUtils';
+import { deleteCachedWeather } from './weatherCacheStorage';
 
 export interface FileEntry {
   name: string;
@@ -114,6 +115,9 @@ export async function deleteFile(name: string): Promise<void> {
       tx.onerror = () => reject(tx.error);
     });
     db.close();
+    // Drop the session's locally-cached weather so a future file reusing this
+    // name doesn't inherit stale conditions (best-effort).
+    await deleteCachedWeather(name);
   } catch (e) {
     console.warn("Failed to delete file from IndexedDB:", e);
     throw e;

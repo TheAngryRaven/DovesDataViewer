@@ -110,6 +110,24 @@
     "update": "Aggiorna",
     "save": "Salva"
   },
+  "setupHistory": {
+    "title": "Cronologia assetto",
+    "openTitle": "Visualizza cronologia assetto",
+    "loading": "Caricamento cronologia…",
+    "empty": "Nessuna cronologia",
+    "emptyHint": "Assegna questo assetto a una sessione per iniziare a creare la sua cronologia.",
+    "allKarts": "Tutti i kart",
+    "allCourses": "Tutti i circuiti",
+    "original": "Originale",
+    "revision": "Revisione",
+    "fastestTag": "Giro più veloce",
+    "noLap": "—",
+    "noChanges": "Nessuna modifica rispetto alla revisione precedente",
+    "noSetupData": "Nessun dato dell'assetto",
+    "showFull": "Mostra assetto completo",
+    "showChanges": "Mostra solo le modifiche",
+    "lapsHeader": "Giri più veloci"
+  },
   "notes": {
     "loadSession": "Carica una sessione per aggiungere note",
     "sessionSetup": "Assetto della sessione",

@@ -34,6 +34,7 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
           refAvgMinSpeed={s.refAvgMinSpeed}
           sessionGpsPoint={s.sessionGpsPoint}
           sessionStartDate={s.sessionStartDate}
+          sessionFileName={s.sessionFileName}
           cachedWeatherStation={s.cachedWeatherStation}
           onWeatherStationResolved={s.onWeatherStationResolved}
           isAllLaps={s.isAllLaps}

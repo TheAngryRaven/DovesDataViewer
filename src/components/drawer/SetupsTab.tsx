@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info, Car } from "lucide-react";
+import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info, Car, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
@@ -12,6 +12,7 @@ import { VehicleSetup } from "@/lib/setupStorage";
 import { VehicleType, SetupTemplate, TemplateSection, TemplateFieldDef } from "@/lib/templateStorage";
 import { TemplateCreator } from "@/components/drawer/TemplateCreator";
 import { computeSetupHash, shortRevHash } from "@/lib/setupRevision";
+import { SetupHistoryPanel } from "@/components/drawer/SetupHistoryPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface SetupsTabProps {
@@ -27,7 +28,7 @@ interface SetupsTabProps {
   onRemoveVehicleType: (vehicleTypeId: string, templateId: string) => Promise<void>;
 }
 
-type FormMode = "list" | "new" | "edit" | "new-type";
+type FormMode = "list" | "new" | "edit" | "new-type" | "history";
 
 const emptyForm = (): Omit<VehicleSetup, "id" | "createdAt" | "updatedAt"> => ({
   vehicleId: "",
@@ -66,6 +67,7 @@ export function SetupsTab({
   const [preloaded, setPreloaded] = useState(false);
   const preloadSnapshot = useRef<Record<string, unknown> | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [historySetup, setHistorySetup] = useState<VehicleSetup | null>(null);
   const { user } = useAuth();
 
   // The content hash each setup would freeze to right now (git-style short id).
@@ -265,6 +267,17 @@ export function SetupsTab({
 
   const canSave = form.vehicleId && form.name.trim();
 
+  // ── Setup History ──
+  if (mode === "history" && historySetup) {
+    return (
+      <SetupHistoryPanel
+        setup={historySetup}
+        vehicles={vehicles}
+        onBack={() => { setHistorySetup(null); setMode("list"); }}
+      />
+    );
+  }
+
   // ── Template Creator ──
   if (mode === "new-type") {
     return (
@@ -316,6 +329,9 @@ export function SetupsTab({
                           {vehicle?.name ?? t("setups.unknownVehicle")}{vt ? ` (${vt.name})` : ""} · {new Date(setup.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title={t("setupHistory.openTitle")} onClick={() => { setHistorySetup(setup); setMode("history"); }}>
+                        <History className="w-3.5 h-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(setup)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
