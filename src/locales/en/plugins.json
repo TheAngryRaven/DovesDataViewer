@@ -136,7 +136,8 @@
   "fileSync": {
     "off": "Sync this file to the cloud",
     "pending": "Selected — uploads once you're signed in and online",
-    "synced": "Synced — click to stop syncing (cloud copy is kept)"
+    "synced": "Synced — click to stop syncing (cloud copy is kept)",
+    "sample": "Sample log — kept on every device, no upload needed"
   },
   "fileDelete": {
     "alsoCloud": "Also delete the synced copy from the cloud backup"

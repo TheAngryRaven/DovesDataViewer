@@ -68,8 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   your file browser as an ordinary file named **"SAMPLE - Tillotson 225rs"**, and
   the home-screen **Load sample data** button simply opens it like any other log —
   no more special-case sample handling and its rough edges. A new **Show sample
-  files** toggle in Settings (on by default) hides it from the browser if you'd
-  rather not see it.
+  files** toggle in Settings (on by default) hides it from the browser — and the
+  home-screen sample tile — if you'd rather not see it. The sample always shows as
+  cloud-synced and can't be uploaded, so it never eats into your cloud storage.
 - **Landing page UX overhaul** — the home screen is simpler and friendlier. The
   cluster of small buttons that used to live inside the file dropzone is gone;
   importing a file is now a single large drag-and-drop / click-to-browse zone,

@@ -45,6 +45,8 @@ interface LandingPageProps {
   autoSaveFile: (name: string, blob: Blob) => Promise<void>;
   onLoadSample: () => void;
   isLoadingSample: boolean;
+  /** When false, the sample log is hidden everywhere — including this tile. */
+  showSampleFiles: boolean;
   enableAdmin: boolean;
   enableCloud: boolean;
 }
@@ -75,6 +77,7 @@ export function LandingPage({
   autoSaveFile,
   onLoadSample,
   isLoadingSample,
+  showSampleFiles,
   enableAdmin,
   enableCloud,
 }: LandingPageProps) {
@@ -140,15 +143,17 @@ export function LandingPage({
 
           {/* Secondary actions — big, single-purpose tiles */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <ActionTile
-              icon={Play}
-              title={t("landing:tiles.sample.title")}
-              description={isLoadingSample ? t("common:actions.loading") : t("landing:tiles.sample.description")}
-              onClick={onLoadSample}
-              disabled={isLoadingSample}
-              spinning={isLoadingSample}
-              featured
-            />
+            {showSampleFiles && (
+              <ActionTile
+                icon={Play}
+                title={t("landing:tiles.sample.title")}
+                description={isLoadingSample ? t("common:actions.loading") : t("landing:tiles.sample.description")}
+                onClick={onLoadSample}
+                disabled={isLoadingSample}
+                spinning={isLoadingSample}
+                featured
+              />
+            )}
 
             <ActionTile
               icon={FolderOpen}

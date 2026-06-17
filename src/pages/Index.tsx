@@ -538,6 +538,7 @@ export default function Index() {
             autoSaveFile={fileManager.saveFile}
             onLoadSample={handleLoadSample}
             isLoadingSample={isLoadingSample}
+            showSampleFiles={settings.showSampleFiles}
             enableAdmin={enableAdmin}
             enableCloud={enableCloud}
           />

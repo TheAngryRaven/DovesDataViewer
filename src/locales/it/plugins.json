@@ -137,7 +137,8 @@
   "fileSync": {
     "off": "Sincronizza questo file nel cloud",
     "pending": "Selezionato: verrà caricato una volta effettuato l'accesso e online",
-    "synced": "Sincronizzato: fai clic per interrompere la sincronizzazione (la copia nel cloud viene conservata)"
+    "synced": "Sincronizzato: fai clic per interrompere la sincronizzazione (la copia nel cloud viene conservata)",
+    "sample": "Log di esempio — presente su ogni dispositivo, nessun caricamento necessario"
   },
   "fileDelete": {
     "alsoCloud": "Elimina anche la copia sincronizzata dal backup nel cloud"

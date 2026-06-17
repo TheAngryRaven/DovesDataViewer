@@ -114,7 +114,7 @@ src/
 │   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[] (sectorTimes[] + sectorBoundaries[] + major rollup); calculateOptimalLap sums best of EVERY segment
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy: Track→Course→logs, engine/kart filter, breadcrumbs, smart collapse
-│   ├── sampleData.ts      # ★ Bundled sample log = an ordinary seeded file: ensureSampleFile() (idempotent fetch→IndexedDB + tag track/course + displayName "SAMPLE - Tillotson 225rs" + isSample); the home button + "show sample files" setting use it. No special-case loader.
+│   ├── sampleData.ts      # ★ Bundled sample log = an ordinary seeded file: ensureSampleFile() (idempotent fetch→IndexedDB + tag track/course + displayName "SAMPLE - Tillotson 225rs" + isSample); the home button + "show sample files" setting (hides browser rows AND the landing tile) use it. cloud-sync's FileSyncToggle shows samples as always-synced + disabled (seeded everywhere, never uploaded). No special-case loader.
 │   ├── lapOverlays.ts     # ★ Pure multi-lap overlay logic: id format (lap/snap/file), palette, resolve selections → OverlayLine[], unionBounds
 │   ├── lapAlignment.ts    # ★ Pure rigid registration (2D Kabsch) to drift-align cross-session overlays onto the current lap (map-only)
 │   ├── lapSnapshot.ts     # ★ Pure snapshot types/keying/buffer (course+engine identity)

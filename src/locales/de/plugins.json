@@ -137,7 +137,8 @@
   "fileSync": {
     "off": "Diese Datei in die Cloud synchronisieren",
     "pending": "Ausgewählt — wird hochgeladen, sobald du angemeldet und online bist",
-    "synced": "Synchronisiert — klicken, um die Synchronisierung zu beenden (die Cloud-Kopie bleibt erhalten)"
+    "synced": "Synchronisiert — klicken, um die Synchronisierung zu beenden (die Cloud-Kopie bleibt erhalten)",
+    "sample": "Beispiel-Log — auf jedem Gerät vorhanden, kein Upload nötig"
   },
   "fileDelete": {
     "alsoCloud": "Auch die synchronisierte Kopie aus dem Cloud-Backup löschen"

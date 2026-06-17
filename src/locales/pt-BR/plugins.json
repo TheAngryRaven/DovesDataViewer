@@ -137,7 +137,8 @@
   "fileSync": {
     "off": "Sincronizar este arquivo com a nuvem",
     "pending": "Selecionado — será enviado assim que você entrar e estiver online",
-    "synced": "Sincronizado — clique para parar de sincronizar (a cópia na nuvem é mantida)"
+    "synced": "Sincronizado — clique para parar de sincronizar (a cópia na nuvem é mantida)",
+    "sample": "Registro de exemplo — presente em todos os dispositivos, sem necessidade de envio"
   },
   "fileDelete": {
     "alsoCloud": "Excluir também a cópia sincronizada do backup na nuvem"
