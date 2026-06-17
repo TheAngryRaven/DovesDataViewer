@@ -462,10 +462,13 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     </div>
   );
 
-  // Manage mode content (Courses + Tracks tabs)
+  // Manage mode content (Tracks + Courses tabs). Tracks sits on the left and is
+  // the default when opened from the landing-page manager (no session loaded),
+  // since "pick a track first" is the less confusing entry point there. In a
+  // loaded session we still open on Courses — the user already has a track.
   const manageModeContent = (
-    <Tabs defaultValue="courses" className="w-full">
-      <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="courses">{t('trackEditor.coursesTab')}</TabsTrigger><TabsTrigger value="tracks">{t('trackEditor.tracksTab')}</TabsTrigger></TabsList>
+    <Tabs defaultValue={onSelectionChange ? 'courses' : 'tracks'} className="w-full">
+      <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="tracks">{t('trackEditor.tracksTab')}</TabsTrigger><TabsTrigger value="courses">{t('trackEditor.coursesTab')}</TabsTrigger></TabsList>
       <TabsContent value="courses" className="space-y-4">
         {form.editingCourse ? (
           <div className="space-y-4">

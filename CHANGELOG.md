@@ -89,6 +89,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cloud rows and in the Profile → Cloud logs list.
 
 ### Changed
+- **Track manager tabs reordered.** In the track/course manager, the **Tracks**
+  tab now sits on the left and **Courses** on the right, and opening **Manage
+  tracks** from the home screen now starts on the **Tracks** tab — so you pick a
+  track before drilling into its courses, which is a clearer starting point. (In a
+  loaded session it still opens on Courses, since you already have a track.)
 - **Sample data is now just a normal log.** The bundled sample session lives in
   your file browser as an ordinary file named **"SAMPLE - Tillotson 225rs"**, and
   the home-screen **Load sample data** button simply opens it like any other log —
