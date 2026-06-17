@@ -73,6 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cloud-synced and can't be uploaded, so it never eats into your cloud storage.
   When the sample is your *only* file, the toggle stays locked on so you can never
   hide your only way back into the app.
+- **Weather is cached per session.** Once a session's weather has been looked up,
+  it's saved on your device — a session's date never changes, so its weather is
+  fixed. Reopening that session shows the saved conditions instantly and no longer
+  re-queries the weather station / service every time. The cache stays on your
+  device (it isn't cloud-synced — there's no point re-uploading data the next
+  device can look up for free), and the home-screen **Local Weather** check still
+  fetches live, current conditions as before.
 - **Landing page UX overhaul** — the home screen is simpler and friendlier. The
   cluster of small buttons that used to live inside the file dropzone is gone;
   importing a file is now a single large drag-and-drop / click-to-browse zone,

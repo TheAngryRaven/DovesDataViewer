@@ -5,7 +5,7 @@
  */
 
 export const DB_NAME = "dove-file-manager";
-export const DB_VERSION = 12;
+export const DB_VERSION = 13;
 
 export const STORE_NAMES = {
   FILES: "files",
@@ -21,6 +21,7 @@ export const STORE_NAMES = {
   ENGINES: "engines",       // reusable engine-type list for vehicle profiles
   LAP_SNAPSHOTS: "lap-snapshots", // frozen "course fastest lap" captures per engine
   SETUP_REVISIONS: "setup-revisions", // immutable, content-addressed frozen setups (session history)
+  WEATHER_CACHE: "weather-cache", // per-session historical weather (local-only, never cloud-synced)
 } as const;
 
 /**
@@ -90,6 +91,14 @@ export function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NAMES.SETUP_REVISIONS)) {
         const revStore = db.createObjectStore(STORE_NAMES.SETUP_REVISIONS, { keyPath: "id" });
         revStore.createIndex("setupId", "setupId", { unique: false });
+      }
+
+      // v13: Per-session historical weather cache. A session's date never
+      // changes, so its looked-up weather is immutable — cache it locally and
+      // stop re-pinging the weather station/API on every reopen. Keyed by the
+      // file name; deliberately NOT in the cloud-sync store list (local-only).
+      if (!db.objectStoreNames.contains(STORE_NAMES.WEATHER_CACHE)) {
+        db.createObjectStore(STORE_NAMES.WEATHER_CACHE, { keyPath: "fileName" });
       }
 
       // v8 migration: add vehicleId index to setups if upgrading from v7

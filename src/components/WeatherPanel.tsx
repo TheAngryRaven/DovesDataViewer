@@ -8,6 +8,7 @@ import {
   WeatherData,
   WeatherStation,
 } from "@/lib/weatherService";
+import { getCachedWeather, saveCachedWeather } from "@/lib/weatherCacheStorage";
 import { useOptionalSettingsContext } from "@/contexts/SettingsContext";
 import {
   formatTemperature,
@@ -26,6 +27,12 @@ interface WeatherPanelProps {
   lon?: number;
   sessionDate?: Date;
   cachedStation?: WeatherStation | null;
+  /**
+   * Session file name. When set, the resolved weather is read from / written to
+   * the local per-session weather cache, so reopening a session never re-pings
+   * the weather station/API (a session's date — and thus its weather — is fixed).
+   */
+  sessionFileName?: string | null;
   onStationResolved?: (station: WeatherStation) => void;
   onWeatherLoaded?: (data: WeatherData) => void;
   /** Show full detailed weather (wind, dew point, pressure alt, tuning note) */
@@ -37,6 +44,7 @@ export function WeatherPanel({
   lon,
   sessionDate,
   cachedStation,
+  sessionFileName,
   onStationResolved,
   onWeatherLoaded,
   detailed = false,
@@ -71,6 +79,20 @@ export function WeatherPanel({
     const doFetch = async () => {
       setLoading(true);
       try {
+        // A session's date never changes, so its weather is immutable: serve a
+        // previously-cached result and skip the network entirely (don't keep
+        // pinging the station/API on every reopen).
+        if (sessionFileName) {
+          const cached = await getCachedWeather(sessionFileName);
+          if (cancelled) return;
+          if (cached) {
+            setWeather(cached);
+            onWeatherLoadedRef.current?.(cached);
+            setError(false);
+            return;
+          }
+        }
+
         // One call: cached/US-ASOS path with an automatic global (Open-Meteo)
         // fallback, so non-US sessions still resolve.
         const data = await fetchSessionWeather(lat, lon, sessionDate, cachedStation);
@@ -81,6 +103,9 @@ export function WeatherPanel({
           // Cache the resolved source (real station or the Open-Meteo marker) so
           // the next open skips re-resolving it.
           if (!cachedStation) onStationResolvedRef.current?.(data.station);
+          // Persist the full result locally so we never hit the network for this
+          // session again (best-effort; the station-cache fallback still works).
+          if (sessionFileName) void saveCachedWeather(sessionFileName, data);
           setError(false);
         } else {
           setError(true);
@@ -101,7 +126,7 @@ export function WeatherPanel({
     return () => {
       cancelled = true;
     };
-  }, [lat, lon, sessionDate, cachedStation]);
+  }, [lat, lon, sessionDate, cachedStation, sessionFileName]);
 
   // Don't render if no valid GPS
   if (

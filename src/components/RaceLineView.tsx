@@ -62,6 +62,7 @@ interface RaceLineViewProps {
   refAvgMinSpeed?: number | null;
   sessionGpsPoint?: { lat: number; lon: number };
   sessionStartDate?: Date;
+  sessionFileName?: string | null;
   cachedWeatherStation?: WeatherStation | null;
   onWeatherStationResolved?: (station: WeatherStation) => void;
   isAllLaps?: boolean;
@@ -110,7 +111,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays, showOverlayLegend = true, onToggleOverlayLegend }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, sessionFileName, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays, showOverlayLegend = true, onToggleOverlayLegend }: RaceLineViewProps) {
   const { t } = useTranslation('session');
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const { currentIndex } = usePlaybackContext();
@@ -807,6 +808,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
                 lat={sessionGpsPoint?.lat}
                 lon={sessionGpsPoint?.lon}
                 sessionDate={sessionStartDate}
+                sessionFileName={sessionFileName}
                 cachedStation={cachedWeatherStation}
                 onStationResolved={onWeatherStationResolved}
                 onWeatherLoaded={setSessionWeatherData}
