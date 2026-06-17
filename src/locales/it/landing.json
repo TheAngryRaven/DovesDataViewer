@@ -22,7 +22,8 @@
     },
     "tracks": {
       "title": "Gestisci le piste",
-      "description": "Crea, disegna e modifica i layout di piste e percorsi"
+      "description": "Crea, disegna e modifica i layout di piste e percorsi",
+      "badge": "🎁 Condividi circuiti con l'account e ottieni spazio cloud gratuito"
     },
     "build": {
       "title": "Costruisci il tuo logger",

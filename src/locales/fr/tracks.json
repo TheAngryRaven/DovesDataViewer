@@ -162,6 +162,7 @@
     "apply": "Appliquer",
     "manage": "Gérer",
     "selectTrackShort": "Sélectionner un circuit",
-    "applySelection": "Appliquer la sélection"
+    "applySelection": "Appliquer la sélection",
+    "submitGift": "Les contributions connecté donnent un stockage cloud gratuit"
   }
 }

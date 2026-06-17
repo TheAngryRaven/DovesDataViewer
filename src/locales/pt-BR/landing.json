@@ -22,7 +22,8 @@
     },
     "tracks": {
       "title": "Gerenciar pistas",
-      "description": "Crie, desenhe e edite traçados de pistas e percursos"
+      "description": "Crie, desenhe e edite traçados de pistas e percursos",
+      "badge": "🎁 Contribua com pistas conectado e ganhe armazenamento na nuvem grátis"
     },
     "build": {
       "title": "Monte seu próprio registrador",

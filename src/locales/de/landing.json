@@ -22,7 +22,8 @@
     },
     "tracks": {
       "title": "Strecken verwalten",
-      "description": "Strecken- und Kurslayouts erstellen, zeichnen und bearbeiten"
+      "description": "Strecken- und Kurslayouts erstellen, zeichnen und bearbeiten",
+      "badge": "🎁 Strecken angemeldet beitragen und kostenlosen Cloud-Speicher erhalten"
     },
     "build": {
       "title": "Bau deinen eigenen Logger",

@@ -5,6 +5,8 @@ interface ActionTileProps {
   icon: LucideIcon;
   title: string;
   description: string;
+  /** Optional accent line under the description (e.g. an incentive nudge). */
+  badge?: string;
   /** Click handler — rendered as a <button> unless `href` is set. */
   onClick?: () => void;
   /** When set, the tile renders as an external link instead of a button. */
@@ -34,6 +36,7 @@ export function ActionTile({
   icon: Icon,
   title,
   description,
+  badge,
   onClick,
   href,
   disabled,
@@ -61,6 +64,7 @@ export function ActionTile({
       <span className="space-y-1">
         <span className="block font-semibold text-foreground">{title}</span>
         <span className="block text-sm text-muted-foreground">{description}</span>
+        {badge && <span className="block text-xs font-medium text-primary">{badge}</span>}
       </span>
     </>
   );

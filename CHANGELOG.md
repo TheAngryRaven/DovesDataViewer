@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the community database while signed in, your contribution is now linked to your
   account — and the submit screen shows a note that signed-in contributions earn
   free cloud storage. Submitting without an account still works exactly as before.
+  The home-screen **Manage tracks** card and the **Submit to DB** button now show
+  a 🎁 reminder of the perk too.
 - **Admin: user management.** A new **Users** tab in the admin panel lists every
   account with its email/display name, plan, storage used, and number of track
   contributions. Click a user to see details and **grant them free months of

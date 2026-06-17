@@ -21,7 +21,8 @@
     },
     "tracks": {
       "title": "Manage tracks",
-      "description": "Create, draw and edit track & course layouts"
+      "description": "Create, draw and edit track & course layouts",
+      "badge": "🎁 Contribute tracks signed in to earn free cloud storage"
     },
     "build": {
       "title": "Build your own logger",
