@@ -77,7 +77,7 @@ src/
 │   └── …                  # Login / Register / Privacy / Terms / NotFound
 ├── components/
 │   ├── ui/                # shadcn/ui primitives
-│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, BannedIps, Tools, Messages)
+│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages)
 │   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Labs, Coach, Tools)
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Notes, Setups, Device*)
@@ -293,7 +293,11 @@ unless noted.
   `Course.layout`; built-ins come from `public/drawings.json`. Draw/Generate tools
   in `VisualEditor`, available to all users.
 - **Community submission** (`trackSubmission.ts`): bulk diff of local vs built-in
-  tracks → one `submit-track` call per batch; content-hash dedupe.
+  tracks → one `submit-track` call per batch; content-hash dedupe. Signed-in
+  submits are attributed (`submissions.submitted_by_user_id`, from the verified
+  JWT) and the dialog shows a "contributions earn free cloud storage" note. The
+  admin **Users** tab (`admin-users` edge fn) lists accounts + can **comp** free
+  premium months (auto-expiring) → `docs/backend.md` → *User management*.
 - **File browser** (`fileBrowserTree.ts` + `SessionBrowser`): Track→Course→logs
   hierarchy; display name = the session's date/time (or `FileMetadata.displayName`
   override); smart collapse; cloud rows merged inline. The bundled **sample log**

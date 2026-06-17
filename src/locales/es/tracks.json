@@ -119,7 +119,9 @@
     "back": "Atrás",
     "submitting": "Enviando…",
     "submitBtn_one": "Enviar {{count}} trazado",
-    "submitBtn_other": "Enviar {{count}} trazados"
+    "submitBtn_other": "Enviar {{count}} trazados",
+    "accountNotice": "Enviando sin una cuenta. Inicia sesión primero para obtener almacenamiento en la nube gratis por las pistas que aportes.",
+    "accountNoticeSignedIn": "Has iniciado sesión: aportar estas pistas te da almacenamiento en la nube gratis."
   },
   "trackEditor": {
     "toastCopied": "¡Copiado!",

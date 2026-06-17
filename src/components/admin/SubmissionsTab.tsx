@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { getDatabase } from '@/lib/db';
 import type { DbSubmission } from '@/lib/db/types';
-import { Check, X, Layers, Route } from 'lucide-react';
+import { Check, X, Layers, Route, User } from 'lucide-react';
 
 /** Mini SVG preview of a submitted track outline. */
 function DrawingPreview({ points, size = 64 }: { points: Array<{ lat: number; lon: number }>; size?: number }) {
@@ -63,6 +63,8 @@ export function SubmissionsTab() {
   const [filter, setFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  // Resolve submitter user ids → display names so the admin sees who contributed.
+  const [namesByUserId, setNamesByUserId] = useState<Record<string, string>>({});
 
   const db = getDatabase();
 
@@ -71,6 +73,13 @@ export function SubmissionsTab() {
     try {
       const data = await db.getSubmissions(filter === 'all' ? undefined : filter);
       setSubmissions(data);
+      const userIds = data.map(s => s.submitted_by_user_id).filter((id): id is string => !!id);
+      if (userIds.length > 0) {
+        try {
+          const profiles = await db.getProfiles(userIds);
+          setNamesByUserId(Object.fromEntries(profiles.map(p => [p.user_id, p.display_name])));
+        } catch { /* names are a nicety; fall back to the raw id */ }
+      }
     } catch (e: unknown) {
       toast({ title: t('submissions.loadError'), description: (e as Error).message, variant: 'destructive' });
     }
@@ -162,9 +171,17 @@ export function SubmissionsTab() {
             </div>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">
-          {t('submissions.ipLine', { ip: sub.submitted_by_ip || t('submissions.unknownIp'), date: new Date(sub.created_at).toLocaleString() })}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+          {sub.submitted_by_user_id ? (
+            <span className="flex items-center gap-1 rounded bg-primary/15 text-primary px-2 py-0.5">
+              <User className="w-3 h-3" />
+              {t('submissions.byUser', { name: namesByUserId[sub.submitted_by_user_id] || `${sub.submitted_by_user_id.slice(0, 8)}…` })}
+            </span>
+          ) : (
+            <span className="rounded bg-muted px-2 py-0.5">{t('submissions.anonymous')}</span>
+          )}
+          <span>{t('submissions.ipLine', { ip: sub.submitted_by_ip || t('submissions.unknownIp'), date: new Date(sub.created_at).toLocaleString() })}</span>
+        </div>
         {sub.status === 'pending' && (
           <div className="flex items-center gap-2 pt-2">
             <Input

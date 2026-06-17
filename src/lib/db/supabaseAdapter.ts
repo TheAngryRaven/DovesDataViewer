@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp, DbCourseLayout } from './types';
+import type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp, DbCourseLayout, DbProfile } from './types';
 import { calculatePolylineLength } from '@/lib/trackUtils';
 import { METERS_TO_FEET } from '@/lib/parserUtils';
 
@@ -115,6 +115,16 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
       reviewed_by: user?.id ?? null,
     }).eq('id', id);
     if (error) throw error;
+  }
+
+  // Profiles — resolve user ids to display names (e.g. submission attribution).
+  // profiles is readable by any authenticated user (admins included).
+  async getProfiles(userIds: string[]): Promise<DbProfile[]> {
+    const ids = Array.from(new Set(userIds.filter(Boolean)));
+    if (ids.length === 0) return [];
+    const { data, error } = await supabase.from('profiles').select('user_id, display_name').in('user_id', ids);
+    if (error) throw error;
+    return (data ?? []) as DbProfile[];
   }
 
   // Banned IPs

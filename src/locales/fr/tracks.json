@@ -119,7 +119,9 @@
     "back": "Retour",
     "submitting": "Envoi…",
     "submitBtn_one": "Envoyer {{count}} tracé",
-    "submitBtn_other": "Envoyer {{count}} tracés"
+    "submitBtn_other": "Envoyer {{count}} tracés",
+    "accountNotice": "Envoi sans compte. Connectez-vous d'abord pour obtenir un stockage cloud gratuit pour les circuits que vous partagez.",
+    "accountNoticeSignedIn": "Vous êtes connecté — partager ces circuits vous offre un stockage cloud gratuit."
   },
   "trackEditor": {
     "toastCopied": "Copié !",

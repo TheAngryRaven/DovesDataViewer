@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.admin-build-zip]
 verify_jwt = false
 
+[functions.admin-users]
+verify_jwt = false
+
 [functions.check-login-rate]
 verify_jwt = false
 

@@ -36,7 +36,10 @@
     "upgrade": "Upgrade from the Plans & pricing cards.",
     "changePlan": "Change plan",
     "manageSubscription": "Manage subscription",
-    "portalFailed": "Couldn't open the billing portal."
+    "portalFailed": "Couldn't open the billing portal.",
+    "compBadge": "Complimentary",
+    "comp": "Complimentary plan — courtesy of the team.",
+    "compUntil": "Complimentary plan — free until {{date}}."
   },
   "storage": {
     "title": "Storage",

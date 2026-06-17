@@ -10,7 +10,8 @@
     "tracks": "Strecken",
     "courses": "Kurse",
     "tools": "Werkzeuge",
-    "banned": "Gesperrte IPs"
+    "banned": "Gesperrte IPs",
+    "users": "Benutzer"
   },
   "common": {
     "error": "Fehler",
@@ -134,7 +135,9 @@
     "trackCount_other": "{{count}} Strecken",
     "bulkSummary": "{{courses}} auf {{tracks}} • {{date}}",
     "approveAll": "Alle genehmigen ({{count}})",
-    "denyAll": "Alle ablehnen"
+    "denyAll": "Alle ablehnen",
+    "byUser": "von {{name}}",
+    "anonymous": "Anonym"
   },
   "courses": {
     "created": "Kurs erstellt",
@@ -169,5 +172,33 @@
     "overridePlaceholder": "auto",
     "noLayouts": "Noch keine Layouts gezeichnet. Bearbeite einen Kurs und nutze das Zeichnen-Werkzeug, um den Streckenumriss nachzuzeichnen.",
     "unknownCourse": "Unbekannt"
+  },
+  "users": {
+    "title": "Benutzerverwaltung",
+    "refresh": "Aktualisieren",
+    "none": "Keine Benutzer gefunden.",
+    "loadError": "Benutzer konnten nicht geladen werden",
+    "comp": "gratis",
+    "submissions_one": "{{count}} Einreichung",
+    "submissions_other": "{{count}} Einreichungen",
+    "ofLimit": "von {{limit}}",
+    "noEmail": "Keine E-Mail",
+    "userId": "Benutzer-ID",
+    "created": "Erstellt",
+    "statusLabel": "Status",
+    "statusFree": "kostenlos",
+    "renewsOrEnds": "Premium bis",
+    "usage": "Belegter Speicher",
+    "stripeManaged": "Dieser Benutzer hat ein Stripe-Abo – verwalte es in Stripe.",
+    "grantLabel": "Gratis-Premium gewähren:",
+    "months": "Monate",
+    "grantPremium": "Premium gewähren",
+    "removeGrant": "Gewährung entfernen",
+    "loadMore": "Mehr laden",
+    "invalidMonths": "Gib eine gültige Anzahl von Monaten ein",
+    "granted_one": "{{count}} Monat Premium gewährt",
+    "granted_other": "{{count}} Monate Premium gewährt",
+    "grantFailed": "Aktion fehlgeschlagen",
+    "grantRemoved": "Premium-Gewährung entfernt"
   }
 }

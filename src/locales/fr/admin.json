@@ -10,7 +10,8 @@
     "tracks": "Circuits",
     "courses": "Parcours",
     "tools": "Outils",
-    "banned": "IP bannies"
+    "banned": "IP bannies",
+    "users": "Utilisateurs"
   },
   "common": {
     "error": "Erreur",
@@ -134,7 +135,9 @@
     "trackCount_other": "{{count}} circuits",
     "bulkSummary": "{{courses}} sur {{tracks}} • {{date}}",
     "approveAll": "Tout approuver ({{count}})",
-    "denyAll": "Tout refuser"
+    "denyAll": "Tout refuser",
+    "byUser": "par {{name}}",
+    "anonymous": "Anonyme"
   },
   "courses": {
     "created": "Parcours créé",
@@ -169,5 +172,33 @@
     "overridePlaceholder": "auto",
     "noLayouts": "Aucun tracé dessiné pour l'instant. Modifiez un parcours et utilisez l'outil Dessiner pour tracer le contour du circuit.",
     "unknownCourse": "Inconnu"
+  },
+  "users": {
+    "title": "Gestion des utilisateurs",
+    "refresh": "Actualiser",
+    "none": "Aucun utilisateur trouvé.",
+    "loadError": "Échec du chargement des utilisateurs",
+    "comp": "offert",
+    "submissions_one": "{{count}} contribution",
+    "submissions_other": "{{count}} contributions",
+    "ofLimit": "sur {{limit}}",
+    "noEmail": "Aucun e-mail",
+    "userId": "ID utilisateur",
+    "created": "Créé",
+    "statusLabel": "Statut",
+    "statusFree": "gratuit",
+    "renewsOrEnds": "Premium jusqu'au",
+    "usage": "Stockage utilisé",
+    "stripeManaged": "Cet utilisateur a un abonnement Stripe — gérez-le dans Stripe.",
+    "grantLabel": "Offrir premium gratuit :",
+    "months": "mois",
+    "grantPremium": "Offrir premium",
+    "removeGrant": "Retirer l'offre",
+    "loadMore": "Charger plus",
+    "invalidMonths": "Saisissez un nombre de mois valide",
+    "granted_one": "{{count}} mois de premium offert",
+    "granted_other": "{{count}} mois de premium offerts",
+    "grantFailed": "L'action a échoué",
+    "grantRemoved": "Offre premium retirée"
   }
 }

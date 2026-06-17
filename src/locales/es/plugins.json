@@ -37,7 +37,10 @@
     "upgrade": "Mejora desde las tarjetas de Planes y precios.",
     "changePlan": "Cambiar de plan",
     "manageSubscription": "Gestionar suscripción",
-    "portalFailed": "No se pudo abrir el portal de facturación."
+    "portalFailed": "No se pudo abrir el portal de facturación.",
+    "compBadge": "Cortesía",
+    "comp": "Plan de cortesía — un obsequio del equipo.",
+    "compUntil": "Plan de cortesía — gratis hasta el {{date}}."
   },
   "storage": {
     "title": "Almacenamiento",

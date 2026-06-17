@@ -344,6 +344,18 @@ carry drawing data through the workflow. The client sends a course's `layout` as
 **Submissions** tab previews the polyline (`DrawingPreview`) with an **Apply to
 course layout** action that matches the DB course and calls `db.saveLayout`.
 
+**Submitter attribution + the cloud-storage incentive.** Submitting works signed
+out *and* signed in. When signed in, `submit-track` records
+`submissions.submitted_by_user_id` (migration
+`20260617000000_submissions_user_id_comp_tier.sql`) derived from the caller's
+**verified JWT** (never a client-supplied id — anonymous stays `NULL`). The submit
+dialog shows a "signed-in contributions earn free cloud storage" note (cloud
+builds only — `VITE_ENABLE_CLOUD`; `useAuth()` picks the signed-in vs -out copy).
+The admin **Submissions** tab resolves the id to a `profiles.display_name`
+(`db.getProfiles`); the admin **Users** tab then comps contributors free premium
+months. See `docs/backend.md` → *User management* (the `admin-users` edge fn + the
+comp-aware `user_tier()`).
+
 ---
 
 ## File Browser (`FilesTab.tsx` + `lib/fileBrowserTree.ts` + `components/SessionBrowser.tsx`)

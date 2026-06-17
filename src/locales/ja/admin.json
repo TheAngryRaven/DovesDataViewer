@@ -10,7 +10,8 @@
     "tracks": "トラック",
     "courses": "コース",
     "tools": "ツール",
-    "banned": "禁止 IP"
+    "banned": "禁止 IP",
+    "users": "ユーザー"
   },
   "common": {
     "error": "エラー",
@@ -134,7 +135,9 @@
     "trackCount_other": "{{count}} トラック",
     "bulkSummary": "{{tracks}}の{{courses}} • {{date}}",
     "approveAll": "すべて承認 ({{count}})",
-    "denyAll": "すべて却下"
+    "denyAll": "すべて却下",
+    "byUser": "{{name}} さん",
+    "anonymous": "匿名"
   },
   "courses": {
     "created": "コースを作成しました",
@@ -169,5 +172,33 @@
     "overridePlaceholder": "自動",
     "noLayouts": "まだレイアウトが描画されていません。コースを編集し、描画ツールでトラックの輪郭をなぞってください。",
     "unknownCourse": "不明"
+  },
+  "users": {
+    "title": "ユーザー管理",
+    "refresh": "更新",
+    "none": "ユーザーが見つかりません。",
+    "loadError": "ユーザーの読み込みに失敗しました",
+    "comp": "無償提供",
+    "submissions_one": "{{count}}件の投稿",
+    "submissions_other": "{{count}}件の投稿",
+    "ofLimit": "/ {{limit}}",
+    "noEmail": "メールなし",
+    "userId": "ユーザーID",
+    "created": "作成日",
+    "statusLabel": "ステータス",
+    "statusFree": "無料",
+    "renewsOrEnds": "プレミアム有効期限",
+    "usage": "使用ストレージ",
+    "stripeManaged": "このユーザーには Stripe のサブスクリプションがあります。Stripe で管理してください。",
+    "grantLabel": "無料プレミアムを付与:",
+    "months": "か月",
+    "grantPremium": "プレミアムを付与",
+    "removeGrant": "付与を取り消す",
+    "loadMore": "もっと読み込む",
+    "invalidMonths": "有効な月数を入力してください",
+    "granted_one": "{{count}}か月のプレミアムを付与しました",
+    "granted_other": "{{count}}か月のプレミアムを付与しました",
+    "grantFailed": "操作に失敗しました",
+    "grantRemoved": "プレミアム付与を取り消しました"
   }
 }

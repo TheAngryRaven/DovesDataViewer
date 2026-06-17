@@ -3,6 +3,7 @@ import {
   isActiveStatus,
   effectiveTier,
   isPaidTier,
+  isComped,
   pricingCta,
   lookupKey,
   tiersWithPrices,
@@ -56,6 +57,31 @@ describe("isPaidTier", () => {
     expect(isPaidTier("free")).toBe(false);
     expect(isPaidTier("plus")).toBe(true);
     expect(isPaidTier("pro")).toBe(true);
+  });
+});
+
+describe("isComped", () => {
+  const NOW = Date.UTC(2026, 5, 17); // fixed clock for the date-window checks
+  const future = new Date(NOW + 86_400_000).toISOString();
+  const past = new Date(NOW - 86_400_000).toISOString();
+
+  it("is true for an active paid tier with no Stripe id, still in window", () => {
+    expect(isComped({ tier: "premium", status: "active", stripe_subscription_id: null, current_period_end: future }, NOW)).toBe(true);
+  });
+  it("treats a no-end-date comp as open-ended", () => {
+    expect(isComped({ tier: "premium", status: "active", stripe_subscription_id: null, current_period_end: null }, NOW)).toBe(true);
+  });
+  it("is false once the comp window has passed", () => {
+    expect(isComped({ tier: "premium", status: "active", stripe_subscription_id: null, current_period_end: past }, NOW)).toBe(false);
+  });
+  it("is false for a Stripe-managed subscription (not a comp)", () => {
+    expect(isComped({ tier: "premium", status: "active", stripe_subscription_id: "sub_123", current_period_end: future }, NOW)).toBe(false);
+  });
+  it("is false for free, inactive, or missing rows", () => {
+    expect(isComped({ tier: "free", status: "active", stripe_subscription_id: null, current_period_end: future }, NOW)).toBe(false);
+    expect(isComped({ tier: "premium", status: "canceled", stripe_subscription_id: null, current_period_end: future }, NOW)).toBe(false);
+    expect(isComped(null, NOW)).toBe(false);
+    expect(isComped(undefined, NOW)).toBe(false);
   });
 });
 

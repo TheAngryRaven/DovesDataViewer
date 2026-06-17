@@ -14,6 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.6.0] - unreleased
 
 ### Added
+- **Earn free cloud storage by contributing tracks.** When you submit tracks to
+  the community database while signed in, your contribution is now linked to your
+  account — and the submit screen shows a note that signed-in contributions earn
+  free cloud storage. Submitting without an account still works exactly as before.
+- **Admin: user management.** A new **Users** tab in the admin panel lists every
+  account with its email/display name, plan, storage used, and number of track
+  contributions. Click a user to see details and **grant them free months of
+  premium** (or remove the grant). Comped premium expires automatically when the
+  granted months run out.
+- **Admin: see who submitted a track.** The Submissions tab now shows the
+  contributor's account name (or "Anonymous") alongside the existing IP/date.
+- **Complimentary plan badge.** If you've been granted free premium, your Profile
+  now shows a "Complimentary" badge and how long it lasts — and hides the Stripe
+  billing buttons (there's no paid subscription to manage).
 - **Setup history.** Each setup in the Garage now has a **history** (book) icon
   that opens a full-panel timeline of every saved revision. It starts with the
   original setup shown in full, then lists each later revision as a **diff** —

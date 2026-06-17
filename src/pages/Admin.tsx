@@ -11,6 +11,7 @@ import { CoursesTab } from '@/components/admin/CoursesTab';
 import { ToolsTab } from '@/components/admin/ToolsTab';
 import { BannedIpsTab } from '@/components/admin/BannedIpsTab';
 import { MessagesTab } from '@/components/admin/MessagesTab';
+import { UsersTab } from '@/components/admin/UsersTab';
 
 export default function Admin() {
   const { t } = useTranslation('admin');
@@ -56,7 +57,7 @@ export default function Admin() {
 
       <main className="flex-1 p-6 max-w-6xl mx-auto w-full">
         <Tabs defaultValue="messages" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="messages" className="relative">
               {t('tabs.messages')}
               {unreadCount > 0 && (
@@ -66,6 +67,7 @@ export default function Admin() {
               )}
             </TabsTrigger>
             <TabsTrigger value="submissions">{t('tabs.submissions')}</TabsTrigger>
+            <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
             <TabsTrigger value="tracks">{t('tabs.tracks')}</TabsTrigger>
             <TabsTrigger value="courses">{t('tabs.courses')}</TabsTrigger>
             <TabsTrigger value="tools">{t('tabs.tools')}</TabsTrigger>
@@ -73,6 +75,7 @@ export default function Admin() {
           </TabsList>
           <TabsContent value="messages"><MessagesTab onUnreadCount={setUnreadCount} /></TabsContent>
           <TabsContent value="submissions"><SubmissionsTab /></TabsContent>
+          <TabsContent value="users"><UsersTab /></TabsContent>
           <TabsContent value="tracks"><TracksTab /></TabsContent>
           <TabsContent value="courses"><CoursesTab /></TabsContent>
           <TabsContent value="tools"><ToolsTab /></TabsContent>

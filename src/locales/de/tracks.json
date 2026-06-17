@@ -119,7 +119,9 @@
     "back": "Zurück",
     "submitting": "Wird gesendet…",
     "submitBtn_one": "{{count}} Kurs senden",
-    "submitBtn_other": "{{count}} Kurse senden"
+    "submitBtn_other": "{{count}} Kurse senden",
+    "accountNotice": "Einreichung ohne Konto. Melde dich zuerst an, um kostenlosen Cloud-Speicher für die von dir beigetragenen Strecken zu erhalten.",
+    "accountNoticeSignedIn": "Du bist angemeldet – das Beitragen dieser Strecken bringt dir kostenlosen Cloud-Speicher."
   },
   "trackEditor": {
     "toastCopied": "Kopiert!",

@@ -30,7 +30,7 @@ export async function fetchTiers(): Promise<SubscriptionTierRow[]> {
 export async function fetchMySubscription(userId: string): Promise<UserSubscriptionRow | null> {
   const { data, error } = await untyped
     .from("user_subscriptions")
-    .select("user_id, tier, status, current_period_end, cancel_at_period_end, billing_interval, grace_until")
+    .select("user_id, tier, status, current_period_end, cancel_at_period_end, billing_interval, grace_until, stripe_subscription_id")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new Error(`Failed to load subscription: ${error.message}`);

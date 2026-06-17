@@ -119,7 +119,9 @@
     "back": "Indietro",
     "submitting": "Invio in corso…",
     "submitBtn_one": "Invia {{count}} tracciato",
-    "submitBtn_other": "Invia {{count}} tracciati"
+    "submitBtn_other": "Invia {{count}} tracciati",
+    "accountNotice": "Invio senza un account. Accedi prima per ottenere spazio cloud gratuito per i circuiti che condividi.",
+    "accountNoticeSignedIn": "Hai effettuato l'accesso: contribuire con questi circuiti ti dà spazio cloud gratuito."
   },
   "trackEditor": {
     "toastCopied": "Copiato!",
