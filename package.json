@@ -90,6 +90,6 @@
     "vitest": "^4.1.6"
   },
   "optionalDependencies": {
-    "@perchwerks/eye-in-the-sky": "0.5.0"
+    "@theangryraven/eye-in-the-sky": "github:TheAngryRaven/DataViewer_coach#BETA"
   }
 }
