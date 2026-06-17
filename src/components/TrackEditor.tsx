@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useContext, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, Edit2, Check, Settings, Code, Copy, HelpCircle, Route } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Code, Copy, HelpCircle, Route, ArrowLeft, ChevronRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Track, TrackCourseSelection, courseHasSectors } from '@/types/racing';
+import { cn } from '@/lib/utils';
+import { Track, Course, TrackCourseSelection, courseHasSectors } from '@/types/racing';
 import { legacyMirror, normalizeCourseSectors, validateCourseSectors } from '@/lib/courseSectors';
 import {
   loadTracks,
@@ -37,7 +39,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
 import { useOptionalSettingsContext } from '@/contexts/SettingsContext';
 import { formatTrackLength } from '@/lib/units';
@@ -57,6 +58,11 @@ import type { Lap, GpsSample } from '@/types/racing';
 // The free-cloud-storage nudge only applies on builds where accounts exist.
 const CLOUD_ENABLED = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
+// List ergonomics: scroll a list once it gets past a handful of rows, and add a
+// filter box for the tracks list once it's genuinely long.
+const SCROLLABLE_LIST_THRESHOLD = 5;
+const TRACK_SEARCH_THRESHOLD = 10;
+
 interface TrackCourseEditorProps {
   selection?: TrackCourseSelection | null;
   onSelectionChange?: (selection: TrackCourseSelection | null) => void;
@@ -69,8 +75,6 @@ interface TrackCourseEditorProps {
    * instead of the compact selection label.
    */
   triggerButton?: React.ReactNode;
-  /** Open straight into the manage (track/course CRUD) view. */
-  startInManage?: boolean;
 }
 
 export function TrackEditor({
@@ -80,13 +84,11 @@ export function TrackEditor({
   laps,
   samples,
   triggerButton,
-  startInManage = false,
 }: TrackCourseEditorProps) {
   const { t } = useTranslation('tracks');
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSelectDialogOpen, setIsSelectDialogOpen] = useState(false);
-  const [isManageMode, setIsManageMode] = useState(false);
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false);
   const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
   const [tempTrackName, setTempTrackName] = useState<string>('');
@@ -96,6 +98,10 @@ export function TrackEditor({
   // Courses that still differ from the community DB (drives the always-visible
   // "Submit to DB" button: greyed out when there's nothing new to send).
   const [pendingSubmissionCount, setPendingSubmissionCount] = useState(0);
+  // Manage mode is a drill-down: the Tracks list ('tracks') → a single track's
+  // Course manager ('courses'). `tempTrackName` holds the track being drilled into.
+  const [managePage, setManagePage] = useState<'tracks' | 'courses'>('tracks');
+  const [trackSearch, setTrackSearch] = useState('');
   // Track length follows the distance unit setting; falls back to imperial when
   // rendered outside the provider (e.g. the landing-page "Manage Tracks" entry).
   const useMetricDistance = useOptionalSettingsContext()?.useMetricDistance ?? false;
@@ -174,6 +180,14 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
 
   const selectedTrack = tracks.find(t => t.name === tempTrackName);
   const availableCourses = selectedTrack?.courses ?? [];
+
+  // %any% substring filter for the tracks list (matches name or short name).
+  const normalizedTrackSearch = trackSearch.trim().toLowerCase();
+  const filteredTracks = normalizedTrackSearch
+    ? tracks.filter(tk =>
+        tk.name.toLowerCase().includes(normalizedTrackSearch) ||
+        (tk.shortName?.toLowerCase().includes(normalizedTrackSearch) ?? false))
+    : tracks;
 
   const resolveCourseDrawing = useCallback((track: Track | undefined, courseName?: string) => {
     if (!track || !courseName) return undefined;
@@ -268,17 +282,6 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
 
   const handleCourseChange = (courseName: string) => setTempCourseName(courseName);
 
-  const handleApplySelection = () => {
-    if (!tempTrackName || !tempCourseName) { onSelectionChange?.(null); }
-    else {
-      const track = tracks.find(t => t.name === tempTrackName);
-      const course = track?.courses.find(c => c.name === tempCourseName);
-      if (track && course) onSelectionChange?.({ trackName: tempTrackName, courseName: tempCourseName, course });
-    }
-    setIsSelectDialogOpen(false);
-    setIsManageMode(false);
-  };
-
   const openAddCourse = () => {
     form.setFormTrackName(tempTrackName || '');
     form.resetForm();
@@ -298,6 +301,34 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
   };
 
   const openAddTrack = () => { form.resetForm(); setIsAddTrackOpen(true); };
+
+  // ── Manage-mode drill-down navigation ──────────────────────────────────────
+  // Tap a track in the list → open its Course manager.
+  const openTrackCourses = (trackName: string) => {
+    handleTrackChange(trackName);
+    form.setEditingCourse(null);
+    form.resetForm();
+    setManagePage('courses');
+  };
+
+  // Back from the Course manager to the Tracks list.
+  const backToTrackList = () => {
+    form.setEditingCourse(null);
+    form.resetForm();
+    setManagePage('tracks');
+  };
+
+  // Primary tap on a course row. In a loaded session this applies the course to
+  // the session and closes (the fast path — no separate selection screen); on
+  // the landing-page manager there's nothing to apply to, so it opens the editor.
+  const handleCourseRowOpen = (track: Track, course: Course) => {
+    if (onSelectionChange) {
+      onSelectionChange({ trackName: track.name, courseName: course.name, course });
+      setIsSelectDialogOpen(false);
+    } else {
+      form.openEditCourse(track.name, course);
+    }
+  };
 
   const handleAddCourse = async () => {
     const course = form.buildCourse();
@@ -319,7 +350,6 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
       const stored = loaded.find((t) => t.name === trackName)?.courses.find((c) => c.name === course.name) ?? course;
       onSelectionChange({ trackName, courseName: course.name, course: stored });
       setIsSelectDialogOpen(false);
-      setIsManageMode(false);
     }
   };
 
@@ -473,55 +503,140 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     </div>
   );
 
-  // Manage mode content (Tracks + Courses tabs). Tracks sits on the left and is
-  // the default when opened from the landing-page manager (no session loaded),
-  // since "pick a track first" is the less confusing entry point there. In a
-  // loaded session we still open on Courses — the user already has a track.
-  const manageModeContent = (
-    <Tabs defaultValue={onSelectionChange ? 'courses' : 'tracks'} className="w-full">
-      <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="tracks">{t('trackEditor.tracksTab')}</TabsTrigger><TabsTrigger value="courses">{t('trackEditor.coursesTab')}</TabsTrigger></TabsList>
-      <TabsContent value="courses" className="space-y-4">
-        {form.editingCourse ? (
-          <div className="space-y-4">
-            <h4 className="font-medium">{t('trackEditor.editCourse')}</h4>
-            <Suspense fallback={null}>
-              <CourseSectorEditor
-                {...sectorEditorProps}
-                showDrawTool={true}
-                laps={laps}
-                samples={samples}
-                layoutPoints={form.formLayout.length >= 2 ? form.formLayout : resolveCourseDrawing(selectedTrack, form.editingCourse?.courseName)}
-                onLayoutChange={form.handleVisualLayoutChange}
-                showKnownDrawingToggle={true}
-              />
-            </Suspense>
-            <div className="flex gap-2">
-              <Button onClick={handleUpdateCourse} className="flex-1" disabled={!sectorsValid}>
-                <Check className="w-4 h-4 mr-2" />
-                {t('trackEditor.update')}
-              </Button>
-              <Button variant="outline" onClick={() => { form.setEditingCourse(null); form.resetForm(); }}>
-                {t('trackEditor.back')}
-              </Button>
+  // Submit-to-DB control (button + "why?" tooltip), shared by the tracks list.
+  const submitToDbControls = (
+    <div className="flex items-center gap-1">
+      <SubmitTrackDialog
+        onSubmitted={refreshPendingSubmissionCount}
+        trigger={
+          <Button
+            className={pendingSubmissionCount > 0 ? 'animate-attention-glow' : ''}
+            disabled={pendingSubmissionCount === 0}
+          >
+            <Send className="w-4 h-4 mr-2" />
+            {pendingSubmissionCount > 0 ? t('trackEditor.submitToDbCount', { count: pendingSubmissionCount }) : t('trackEditor.submitToDb')}
+          </Button>
+        }
+      />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={t('trackEditor.whySubmit')}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <p>{pendingSubmissionCount === 0
+            ? t('trackEditor.submitTooltipEmpty')
+            : t('trackEditor.submitTooltip')}</p>
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+
+  // ── Manage mode: Tracks list (drill-down root) ─────────────────────────────
+  const tracksListPage = (
+    <div className="space-y-3">
+      {tracks.length > TRACK_SEARCH_THRESHOLD && (
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={trackSearch}
+            onChange={(e) => setTrackSearch(e.target.value)}
+            onKeyDownCapture={(e) => e.stopPropagation()}
+            placeholder={t('trackEditor.searchTracks')}
+            className="pl-8 h-9"
+          />
+        </div>
+      )}
+      {tracks.length === 0 ? (
+        <p className="text-muted-foreground text-sm">{t('trackEditor.noTracksDefined')}</p>
+      ) : filteredTracks.length === 0 ? (
+        <p className="text-muted-foreground text-sm">{t('trackEditor.noTracksMatch')}</p>
+      ) : (
+        <div className={cn('space-y-2', filteredTracks.length > SCROLLABLE_LIST_THRESHOLD && 'max-h-80 overflow-y-auto pr-1')}>
+          {filteredTracks.map(track => (
+            <div key={track.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30 hover:bg-accent/40 transition-colors">
+              <button type="button" onClick={() => openTrackCourses(track.name)} className="flex flex-1 items-center gap-2 min-w-0 text-left">
+                <div className="flex-1 min-w-0">
+                  <span className="font-mono text-sm">{track.name}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">{t('trackEditor.courseCount', { count: track.courses.length })}</span>
+                  {!track.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">{t('trackEditor.defaultTag')}</span>}
+                </div>
+                <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+              </button>
+              {track.isUserDefined && (
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => handleDeleteTrack(track.name)}><Trash2 className="w-3 h-3" /></Button>
+              )}
             </div>
+          ))}
+        </div>
+      )}
+      <Button variant="outline" size="sm" onClick={openAddTrack} className="w-full"><Plus className="w-4 h-4 mr-2" />{t('trackEditor.addTrack')}</Button>
+      <div className="flex justify-start pt-2">{submitToDbControls}</div>
+      {CLOUD_ENABLED && (
+        <p className="flex items-center gap-1.5 text-xs text-primary">
+          <span aria-hidden>🎁</span>
+          {t('trackEditor.submitGift')}
+        </p>
+      )}
+    </div>
+  );
+
+  // ── Manage mode: Course manager for the drilled-into track ─────────────────
+  const courseManagerPage = (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2" onClick={backToTrackList}>
+          <ArrowLeft className="w-4 h-4" />{t('trackEditor.tracksTab')}
+        </Button>
+        <span className="font-mono text-sm font-medium truncate">{tempTrackName}</span>
+      </div>
+
+      {form.editingCourse ? (
+        <div className="space-y-4">
+          <h4 className="font-medium">{t('trackEditor.editCourse')}</h4>
+          <Suspense fallback={null}>
+            <CourseSectorEditor
+              {...sectorEditorProps}
+              showDrawTool={true}
+              laps={laps}
+              samples={samples}
+              layoutPoints={form.formLayout.length >= 2 ? form.formLayout : resolveCourseDrawing(selectedTrack, form.editingCourse?.courseName)}
+              onLayoutChange={form.handleVisualLayoutChange}
+              showKnownDrawingToggle={true}
+            />
+          </Suspense>
+          <div className="flex gap-2">
+            <Button onClick={handleUpdateCourse} className="flex-1" disabled={!sectorsValid}>
+              <Check className="w-4 h-4 mr-2" />
+              {t('trackEditor.update')}
+            </Button>
+            <Button variant="outline" onClick={() => { form.setEditingCourse(null); form.resetForm(); }}>
+              {t('trackEditor.back')}
+            </Button>
           </div>
-        ) : (
-          <div className="space-y-2">
-            <Label>{t('trackEditor.selectTrackToView')}</Label>
-            <Select value={tempTrackName} onValueChange={handleTrackChange}>
-              <SelectTrigger><SelectValue placeholder={t('trackEditor.selectTrack')} /></SelectTrigger>
-              <SelectContent>{tracks.map(track => <SelectItem key={track.name} value={track.name}>{track.name}</SelectItem>)}</SelectContent>
-            </Select>
-            {selectedTrack && (
-              <div className="mt-4 space-y-2">
-                {selectedTrack.courses.length === 0 ? <p className="text-muted-foreground text-sm">{t('trackEditor.noCoursesDefined')}</p> : selectedTrack.courses.map(course => {
-                  // Prefer the course's own drawn/generated outline; fall back to
-                  // a matching public (community-DB) drawing for built-in courses.
-                  const drawing = (course.layout && course.layout.length >= 2)
-                    ? course.layout
-                    : resolveCourseDrawing(selectedTrack, course.name);
-                  return (
-                  <div key={course.name} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {!selectedTrack || selectedTrack.courses.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{t('trackEditor.noCoursesDefined')}</p>
+          ) : (
+            <div className={cn('space-y-2', selectedTrack.courses.length > SCROLLABLE_LIST_THRESHOLD && 'max-h-80 overflow-y-auto pr-1')}>
+              {selectedTrack.courses.map(course => {
+                // Prefer the course's own drawn/generated outline; fall back to
+                // a matching public (community-DB) drawing for built-in courses.
+                const drawing = (course.layout && course.layout.length >= 2)
+                  ? course.layout
+                  : resolveCourseDrawing(selectedTrack, course.name);
+                // Highlight the course currently driving the loaded session.
+                const isActive = !!onSelectionChange && selection?.trackName === selectedTrack.name && selection?.courseName === course.name;
+                return (
+                <div key={course.name} className={cn('flex items-center gap-2 p-2 border rounded transition-colors', isActive ? 'border-primary bg-primary/10' : 'bg-muted/30 hover:bg-accent/40')}>
+                  <button type="button" onClick={() => handleCourseRowOpen(selectedTrack, course)} className="flex flex-1 items-center gap-2 min-w-0 text-left">
                     {drawing && drawing.length >= 2 && (
                       <CourseDrawingMini points={drawing} />
                     )}
@@ -535,84 +650,28 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => form.openEditCourse(selectedTrack.name, course)}><Edit2 className="w-3 h-3" /></Button>
-                      {course.isUserDefined && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteCourse(selectedTrack.name, course.name)}><Trash2 className="w-3 h-3" /></Button>}
-                    </div>
+                  </button>
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => form.openEditCourse(selectedTrack.name, course)}><Edit2 className="w-3 h-3" /></Button>
+                    {course.isUserDefined && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteCourse(selectedTrack.name, course.name)}><Trash2 className="w-3 h-3" /></Button>}
                   </div>
-                  );
-                })}
-                <Button variant="outline" size="sm" onClick={openAddCourse} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />{t('trackEditor.addCourse')}</Button>
-              </div>
-            )}
-          </div>
-        )}
-      </TabsContent>
-      <TabsContent value="tracks" className="space-y-2">
-        {tracks.length === 0 ? <p className="text-muted-foreground text-sm">{t('trackEditor.noTracksDefined')}</p> : tracks.map(track => (
-          <div key={track.name} className="flex items-center justify-between p-2 border rounded bg-muted/30">
-            <div>
-              <span className="font-mono text-sm">{track.name}</span>
-              <span className="ml-2 text-xs text-muted-foreground">{t('trackEditor.courseCount', { count: track.courses.length })}</span>
-              {!track.isUserDefined && <span className="ml-2 text-xs text-muted-foreground">{t('trackEditor.defaultTag')}</span>}
+                </div>
+                );
+              })}
             </div>
-            <div className="flex gap-1">{track.isUserDefined && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTrack(track.name)}><Trash2 className="w-3 h-3" /></Button>}</div>
-          </div>
-        ))}
-        <Button variant="outline" size="sm" onClick={openAddTrack} className="w-full mt-2"><Plus className="w-4 h-4 mr-2" />{t('trackEditor.addTrack')}</Button>
-      </TabsContent>
-      <div className="flex justify-between pt-4">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsJsonViewOpen(true)} disabled={!selectedTrack}>
-            <Code className="w-4 h-4 mr-2" />{t('trackEditor.viewJson')}
-          </Button>
-          <div className="flex items-center gap-1">
-            <SubmitTrackDialog
-              onSubmitted={refreshPendingSubmissionCount}
-              trigger={
-                <Button
-                  className={pendingSubmissionCount > 0 ? 'animate-attention-glow' : ''}
-                  disabled={pendingSubmissionCount === 0}
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {pendingSubmissionCount > 0 ? t('trackEditor.submitToDbCount', { count: pendingSubmissionCount }) : t('trackEditor.submitToDb')}
-                </Button>
-              }
-            />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={t('trackEditor.whySubmit')}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <HelpCircle className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>{pendingSubmissionCount === 0
-                  ? t('trackEditor.submitTooltipEmpty')
-                  : t('trackEditor.submitTooltip')}</p>
-              </TooltipContent>
-            </Tooltip>
+          )}
+          <Button variant="outline" size="sm" onClick={openAddCourse} className="w-full"><Plus className="w-4 h-4 mr-2" />{t('trackEditor.addCourse')}</Button>
+          <div className="flex justify-start pt-2">
+            <Button variant="outline" onClick={() => setIsJsonViewOpen(true)} disabled={!selectedTrack}>
+              <Code className="w-4 h-4 mr-2" />{t('trackEditor.viewJson')}
+            </Button>
           </div>
         </div>
-        {/* Back to the track/course selection. Only meaningful when a session is
-            loaded — there's no selection to return to from the home-screen track
-            manager (no onSelectionChange) — and hidden while editing a course,
-            which has its own Back to the course list. */}
-        {onSelectionChange && !form.editingCourse && (
-          <Button variant="outline" onClick={() => setIsManageMode(false)}>{t('trackEditor.back')}</Button>
-        )}
-      </div>
-      {CLOUD_ENABLED && (
-        <p className="flex items-center gap-1.5 pt-2 text-xs text-primary">
-          <span aria-hidden>🎁</span>
-          {t('trackEditor.submitGift')}
-        </p>
       )}
-    </Tabs>
+    </div>
   );
+
+  const manageModeContent = managePage === 'courses' ? courseManagerPage : tracksListPage;
 
   // JSON View Dialog (shared)
   const jsonViewDialog = (
@@ -641,26 +700,42 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     </Dialog>
   );
 
-  // Open the editor dialog, optionally jumping straight into manage mode.
+  // Landing-page entry ("Manage tracks"): open straight onto the Tracks list —
+  // no session, so there's nothing to pre-select.
   const openEditor = () => {
-    if (startInManage) setIsManageMode(true);
+    setManagePage('tracks');
+    setTrackSearch('');
     setIsSelectDialogOpen(true);
   };
 
+  // In-session entry (compact header button): skip the old selection screen and
+  // open the manager directly. When a track is already assigned to the session,
+  // drill straight into its Course manager so picking a course is one tap.
+  const openInSessionManager = () => {
+    setTrackSearch('');
+    form.setEditingCourse(null);
+    form.resetForm();
+    if (selection?.trackName) {
+      setTempTrackName(selection.trackName);
+      setTempCourseName(selection.courseName);
+      setManagePage('courses');
+    } else {
+      setManagePage('tracks');
+    }
+    setIsSelectDialogOpen(true);
+  };
+
+  // Dialog title reflects the current drill-down level.
+  const dialogTitle = managePage === 'courses' && tempTrackName
+    ? tempTrackName
+    : t('trackEditor.manageTitle');
+
   const selectDialog = (
-    <Dialog open={isSelectDialogOpen} onOpenChange={(open) => { setIsSelectDialogOpen(open); if (!open) { setIsManageMode(false); form.setEditingCourse(null); form.resetForm(); } }}>
+    <Dialog open={isSelectDialogOpen} onOpenChange={(open) => { setIsSelectDialogOpen(open); if (!open) { setManagePage('tracks'); setTrackSearch(''); form.setEditingCourse(null); form.resetForm(); } }}>
       <DialogTrigger asChild><span className="sr-only">{t('trackEditor.openSelector')}</span></DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{isManageMode ? t('trackEditor.manageTitle') : t('trackEditor.selectTitle')}</DialogTitle></DialogHeader>
-        {!isManageMode ? (
-          <>
-            {selectionUI}
-            <div className="flex gap-2 pt-4">
-              <Button onClick={handleApplySelection} className="flex-1">{t('trackEditor.apply')}</Button>
-              <Button variant="outline" onClick={() => setIsManageMode(true)}><Settings className="w-4 h-4 mr-2" />{t('trackEditor.manage')}</Button>
-            </div>
-          </>
-        ) : manageModeContent}
+        <DialogHeader><DialogTitle>{dialogTitle}</DialogTitle></DialogHeader>
+        {manageModeContent}
       </DialogContent>
     </Dialog>
   );
@@ -691,7 +766,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
           variant="ghost"
           size="sm"
           className="h-7 max-w-[220px] gap-1.5 px-2 md:px-3"
-          onClick={() => setIsSelectDialogOpen(true)}
+          onClick={openInSessionManager}
           title={displayLabel}
         >
           <Route className="w-4 h-4 shrink-0" />

@@ -135,6 +135,8 @@
     "selectCourse": "Kurs auswählen...",
     "coursesTab": "Kurse",
     "tracksTab": "Strecken",
+    "searchTracks": "Strecken suchen…",
+    "noTracksMatch": "Keine Strecken entsprechen deiner Suche",
     "editCourse": "Kurs bearbeiten",
     "update": "Aktualisieren",
     "selectTrackToView": "Wähle eine Strecke, um die Kurse anzuzeigen",

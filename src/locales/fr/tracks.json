@@ -135,6 +135,8 @@
     "selectCourse": "Sélectionner un tracé...",
     "coursesTab": "Tracés",
     "tracksTab": "Circuits",
+    "searchTracks": "Rechercher des circuits…",
+    "noTracksMatch": "Aucun circuit ne correspond à votre recherche",
     "editCourse": "Modifier le tracé",
     "update": "Mettre à jour",
     "selectTrackToView": "Sélectionnez un circuit pour voir les tracés",

@@ -135,6 +135,8 @@
     "selectCourse": "Selecionar traçado...",
     "coursesTab": "Traçados",
     "tracksTab": "Pistas",
+    "searchTracks": "Buscar pistas…",
+    "noTracksMatch": "Nenhuma pista corresponde à sua busca",
     "editCourse": "Editar traçado",
     "update": "Atualizar",
     "selectTrackToView": "Selecione uma pista para ver os traçados",

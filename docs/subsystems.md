@@ -278,11 +278,21 @@ submission. Built-in courses still get their outline from `public/drawings.json`
 (see `loadCourseDrawings`); when editing, the user's own `course.layout` takes
 precedence over the built-in drawing.
 
-**Manage Tracks (home screen)**: `LandingPage` renders a **Manage Tracks** action
-tile that opens `TrackEditor` via its `triggerButton` + `startInManage` props — the
-track manager is reachable with no datalog loaded. The create-flow dialogs
-(`AddTrackDialog`/`AddCourseDialog`) pass `isNewTrack`/`showDrawTool` so location
-search + manual drawing are available there.
+**Track manager (drill-down)**: `TrackEditor`'s manage UI is a two-level
+drill-down — a **Tracks list** (`managePage === 'tracks'`) where tapping a track
+opens its **Course manager** (`managePage === 'courses'`); the course page has a
+back arrow to the list and no track dropdown. The tracks list scrolls past
+`SCROLLABLE_LIST_THRESHOLD` (5) rows and grows a `%any%` filter box past
+`TRACK_SEARCH_THRESHOLD` (10) tracks (course lists scroll on the same threshold).
+The two entry points both open the manager directly (no separate selection
+screen): the landing-page **Manage Tracks** action tile passes only
+`triggerButton` and opens on the Tracks list (`openEditor`); the in-session
+compact header button auto-selects the session's track and drills straight to its
+Course manager (`openInSessionManager`), where tapping a course **applies it to
+the loaded session** (the active course is highlighted). On the landing page —
+where there's no session to apply to — tapping a course opens its editor instead.
+The create-flow dialogs (`AddTrackDialog`/`AddCourseDialog`) pass
+`isNewTrack`/`showDrawTool` so location search + manual drawing are available there.
 
 **Generate Drawing**: A "Generate" button (visible when `showDrawTool` is true and
 either laps *or* GPS samples are available) auto-populates the drawing from GPS

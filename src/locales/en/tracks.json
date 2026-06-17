@@ -134,6 +134,8 @@
     "selectCourse": "Select course...",
     "coursesTab": "Courses",
     "tracksTab": "Tracks",
+    "searchTracks": "Search tracks…",
+    "noTracksMatch": "No tracks match your search",
     "editCourse": "Edit Course",
     "update": "Update",
     "selectTrackToView": "Select track to view courses",

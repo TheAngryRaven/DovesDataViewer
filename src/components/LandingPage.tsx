@@ -195,7 +195,6 @@ export function LandingPage({
 
             {/* Track manager — create/draw tracks & courses without a datalog. */}
             <TrackEditor
-              startInManage
               triggerButton={
                 <ActionTile
                   icon={Map}

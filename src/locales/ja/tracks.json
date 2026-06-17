@@ -135,6 +135,8 @@
     "selectCourse": "コースを選択...",
     "coursesTab": "コース",
     "tracksTab": "トラック",
+    "searchTracks": "トラックを検索…",
+    "noTracksMatch": "検索に一致するトラックがありません",
     "editCourse": "コースを編集",
     "update": "更新",
     "selectTrackToView": "コースを表示するトラックを選択",
