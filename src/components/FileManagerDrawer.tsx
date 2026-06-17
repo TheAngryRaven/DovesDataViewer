@@ -35,6 +35,8 @@ interface FileManagerDrawerProps {
   onSaveFile: (name: string, blob: Blob) => Promise<void>;
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
   autoSave: boolean;
+  // Show the bundled sample log in the file browser (the "show sample files" setting).
+  showSampleFiles: boolean;
   // Garage sub-tab to open straight to (defaults to "files").
   initialGarageTab?: GarageTab;
   // Profile tab is gated on a plugin (cloud-sync) contributing a Profile panel.
@@ -73,6 +75,7 @@ interface FileManagerDrawerProps {
 export function FileManagerDrawer({
   isOpen, files, fileMetadataMap, storageUsed, storageQuota,
   onClose, onLoadFile, onDeleteFile, onExportFile, onSaveFile, onDataLoaded, autoSave,
+  showSampleFiles,
   initialGarageTab = "files",
   showProfile,
   vehicles, vehicleTypes, templates,
@@ -196,7 +199,7 @@ export function FileManagerDrawer({
             </div>
 
             {garageTab === "files" && (
-              <FilesTab files={files} fileMetadataMap={fileMetadataMap} vehicles={vehicles} currentTrackName={currentTrackName} currentCourseName={currentCourseName} isOpen={isOpen} storageUsed={storageUsed} storageQuota={storageQuota} onLoadFile={onLoadFile} onDeleteFile={onDeleteFile} onExportFile={onExportFile} onSaveFile={onSaveFile} onDataLoaded={onDataLoaded} onClose={onClose} autoSave={autoSave} />
+              <FilesTab files={files} fileMetadataMap={fileMetadataMap} vehicles={vehicles} currentTrackName={currentTrackName} currentCourseName={currentCourseName} isOpen={isOpen} storageUsed={storageUsed} storageQuota={storageQuota} onLoadFile={onLoadFile} onDeleteFile={onDeleteFile} onExportFile={onExportFile} onSaveFile={onSaveFile} onDataLoaded={onDataLoaded} onClose={onClose} autoSave={autoSave} showSampleFiles={showSampleFiles} />
             )}
             {garageTab === "vehicles" && (
               <VehiclesTab vehicles={vehicles} vehicleTypes={vehicleTypes} onAdd={onAddVehicle} onUpdate={onUpdateVehicle} onRemove={onRemoveVehicle} />

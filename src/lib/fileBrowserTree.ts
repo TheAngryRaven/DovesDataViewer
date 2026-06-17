@@ -33,6 +33,8 @@ export interface BrowserSession {
   kartId?: string;
   kartName?: string;
   fastestLapMs?: number;
+  /** Bundled sample log — hidden from the browser unless "show sample files" is on. */
+  isSample?: boolean;
 }
 
 /** Where the browser is currently pointing. */
@@ -164,7 +166,8 @@ export function buildBrowserSessions(
     const engineRaw = meta?.sessionEngine ?? vehicle?.engine;
     return {
       fileName,
-      displayName: formatSessionDisplayName(meta?.sessionStartTime, fileName),
+      // An explicit metadata override (the sample log) wins over the date name.
+      displayName: meta?.displayName?.trim() || formatSessionDisplayName(meta?.sessionStartTime, fileName),
       savedAt,
       startTime: meta?.sessionStartTime,
       location,
@@ -175,6 +178,7 @@ export function buildBrowserSessions(
       kartId: meta?.sessionKartId || undefined,
       kartName: vehicle?.name,
       fastestLapMs: meta?.fastestLapMs,
+      isSample: meta?.isSample ?? false,
     };
   };
 

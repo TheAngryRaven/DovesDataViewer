@@ -114,6 +114,7 @@ src/
 │   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[] (sectorTimes[] + sectorBoundaries[] + major rollup); calculateOptimalLap sums best of EVERY segment
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy: Track→Course→logs, engine/kart filter, breadcrumbs, smart collapse
+│   ├── sampleData.ts      # ★ Bundled sample log = an ordinary seeded file: ensureSampleFile() (idempotent fetch→IndexedDB + tag track/course + displayName "SAMPLE - Tillotson 225rs" + isSample); the home button + "show sample files" setting use it. No special-case loader.
 │   ├── lapOverlays.ts     # ★ Pure multi-lap overlay logic: id format (lap/snap/file), palette, resolve selections → OverlayLine[], unionBounds
 │   ├── lapAlignment.ts    # ★ Pure rigid registration (2D Kabsch) to drift-align cross-session overlays onto the current lap (map-only)
 │   ├── lapSnapshot.ts     # ★ Pure snapshot types/keying/buffer (course+engine identity)
@@ -449,7 +450,7 @@ and **native** lateral/longitudinal g (`LatAccel`/`LongAccel` → `lat_g_native`
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `CourseDirection` | `'forward' \| 'reverse'` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug — the extraFields key), `label?` (display), `unit?`, `enabled` |
-| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?` (live setup), `sessionSetupRev?` (frozen setup-revision content hash), `sessionEngine?` (engine snapshot for browser grouping), `sessionStartTime?` (first-sample epoch ms → browser display name), `fastestLapMs?`, `fastestLapNumber?`. Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?` (live setup), `sessionSetupRev?` (frozen setup-revision content hash), `sessionEngine?` (engine snapshot for browser grouping), `sessionStartTime?` (first-sample epoch ms → browser display name), `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — used by the bundled sample log), `isSample?` (marks the bundled sample so the browser can hide it). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
 
 ---
 
@@ -840,6 +841,9 @@ Profile **Cloud logs** panel reuses `SessionBrowser` with its own rows.
 - **Display name = the session's date/time**, derived from `sessionStartTime` (the
   first valid sample), e.g. "2/12/2026 11:15 AM" — *not* the upload time or raw
   filename (filename is the row's `title`/tooltip + the stable IndexedDB key).
+  A `FileMetadata.displayName` override wins over the date (the bundled sample log
+  shows "SAMPLE - Tillotson 225rs"). Sample rows (`isSample`) are filtered out
+  when the `showSampleFiles` setting is off.
 - **Log type bubble:** each row shows a `FileTypeBadge` (`components/FileTypeBadge.tsx`)
   with the format derived from the file extension (`lib/logFileType.ts`, pure +
   unit-tested) — the format isn't persisted, so the extension is the source of
@@ -893,7 +897,7 @@ Global BLE connection state is managed by `DeviceContext.tsx`, wrapping the app 
 
 `useSettings` hook (persists to localStorage) → `SettingsContext` for tree-wide access.
 
-Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZoneSettings` (thresholds, duration, smoothing, color, width), `enableLabs` (hidden when no labs features), `darkMode`, `deltaMethod` (`'position'` default | `'distance'` legacy), `deltaSampleMeters` (arc-length resample spacing for position delta, default 2), `chartXAxis` (`'distance'` default | `'time'`) — the analysis-chart X-axis scale.
+Key settings: `useKph`, `gForceSmoothing`, `gForceSmoothingStrength`, `brakingZoneSettings` (thresholds, duration, smoothing, color, width), `enableLabs` (hidden when no labs features), `darkMode`, `deltaMethod` (`'position'` default | `'distance'` legacy), `deltaSampleMeters` (arc-length resample spacing for position delta, default 2), `chartXAxis` (`'distance'` default | `'time'`) — the analysis-chart X-axis scale, `showSampleFiles` (default true — show/hide the bundled sample log in the file browser).
 
 **Units are three independent imperial/metric toggles** (all default imperial), one per measurement family, each a Switch in `SettingsModal`:
 - `useKph` (speed) — MPH ⇄ KPH. Picks `speedMph`/`speedKph` on every sample + speed axis labels.

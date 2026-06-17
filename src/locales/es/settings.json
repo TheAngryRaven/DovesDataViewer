@@ -8,7 +8,9 @@
   "fileStorage": {
     "heading": "Almacenamiento de archivos",
     "autoSave": "Guardar automáticamente los archivos importados/subidos en el dispositivo",
-    "autoSaveHint": "Almacena automáticamente los archivos en el dispositivo para acceder a ellos más tarde"
+    "autoSaveHint": "Almacena automáticamente los archivos en el dispositivo para acceder a ellos más tarde",
+    "showSamples": "Mostrar archivos de muestra",
+    "showSamplesHint": "Mantén el registro de muestra incluido en tu explorador de archivos"
   },
   "speedUnit": {
     "heading": "Unidad de velocidad",

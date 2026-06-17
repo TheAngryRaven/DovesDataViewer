@@ -1,12 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
-import { ParsedData, FieldMapping, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
-import { parseDatalogContent } from "@/lib/datalogParser";
-import { loadTracks } from "@/lib/trackStorage";
-import { calculateLaps } from "@/lib/lapCalculation";
+import { ParsedData, FieldMapping } from "@/types/racing";
 
 /**
- * Manages the core session data: parsed GPS data, current file name,
- * field mappings, and the sample data loading flow.
+ * Manages the core session data: parsed GPS data, current file name, and
+ * field mappings. The sample log is now an ordinary seeded file (see
+ * `lib/sampleData.ts`), loaded through the normal file-load path.
  */
 export function useSessionData(
   isFieldHiddenByDefault: (fieldName: string) => boolean,
@@ -15,7 +13,6 @@ export function useSessionData(
   const [data, setData] = useState<ParsedData | null>(null);
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
-  const [isLoadingSample, setIsLoadingSample] = useState(false);
 
   // Sync field visibility when settings change (real-time toggle)
   useEffect(() => {
@@ -56,41 +53,6 @@ export function useSessionData(
     );
   }, []);
 
-  const handleLoadSample = useCallback(async (
-    onSelectionChange: (sel: TrackCourseSelection | null) => void,
-    onLapsCalculated: (laps: ReturnType<typeof calculateLaps>, autoSelectLap?: number, autoSelectRef?: number) => void
-  ) => {
-    setIsLoadingSample(true);
-    try {
-      const tracks = await loadTracks();
-      const okcTrack = tracks.find((t) => t.name === "Orlando Kart Center");
-      const okcCourse = okcTrack?.courses[0] ?? null;
-
-      const response = await fetch("/samples/okc-tillotson-data.dovex");
-      const buffer = await response.arrayBuffer();
-      const parsedData = parseDatalogContent(buffer);
-      loadParsedData(parsedData, "okc-tillotson-data.dovex");
-
-      if (okcTrack && okcCourse) {
-        onSelectionChange({
-          trackName: okcTrack.name,
-          courseName: okcCourse.name,
-          course: okcCourse,
-        });
-        const computedLaps = calculateLaps(parsedData.samples, okcCourse);
-        onLapsCalculated(
-          computedLaps,
-          computedLaps.length >= 8 ? 8 : undefined,
-          computedLaps.length >= 11 ? 11 : undefined
-        );
-      }
-    } catch (e) {
-      console.error("Failed to load sample data:", e);
-    } finally {
-      setIsLoadingSample(false);
-    }
-  }, [loadParsedData]);
-
   // Find first valid GPS sample for weather lookup
   const sessionGpsPoint = (() => {
     if (!data?.samples?.length) return undefined;
@@ -104,10 +66,8 @@ export function useSessionData(
     data,
     currentFileName,
     fieldMappings,
-    isLoadingSample,
     loadParsedData,
     handleFieldToggle,
-    handleLoadSample,
     sessionGpsPoint,
   };
 }

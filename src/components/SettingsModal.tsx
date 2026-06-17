@@ -127,6 +127,21 @@ export function SettingsModal({
                 onCheckedChange={(checked) => onSettingsChange({ autoSaveFiles: checked })}
               />
             </div>
+            <div className="flex items-center justify-between pl-6">
+              <div>
+                <Label htmlFor="settings-show-samples" className="text-sm text-muted-foreground">
+                  {t("settings:fileStorage.showSamples")}
+                </Label>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  {t("settings:fileStorage.showSamplesHint")}
+                </p>
+              </div>
+              <Switch
+                id="settings-show-samples"
+                checked={settings.showSampleFiles}
+                onCheckedChange={(checked) => onSettingsChange({ showSampleFiles: checked })}
+              />
+            </div>
           </div>
 
           {/* Speed Unit */}

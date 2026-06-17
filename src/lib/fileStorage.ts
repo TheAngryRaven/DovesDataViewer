@@ -35,6 +35,12 @@ export interface FileMetadata {
   // Fastest lap cache
   fastestLapMs?: number;
   fastestLapNumber?: number;
+  // Browser display-name override. When set, the file browser shows this instead
+  // of the date/time derived name (used by the bundled sample log).
+  displayName?: string;
+  // Marks the bundled sample log so the browser can hide it behind the
+  // "show sample files" setting. Sample files are otherwise ordinary logs.
+  isSample?: boolean;
 }
 
 interface StoredFile {

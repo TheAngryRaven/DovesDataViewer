@@ -8,7 +8,9 @@
   "fileStorage": {
     "heading": "Stockage des fichiers",
     "autoSave": "Enregistrer automatiquement les fichiers importés/téléversés sur l'appareil",
-    "autoSaveHint": "Stocke automatiquement les fichiers sur l'appareil pour y accéder plus tard"
+    "autoSaveHint": "Stocke automatiquement les fichiers sur l'appareil pour y accéder plus tard",
+    "showSamples": "Afficher les fichiers d'exemple",
+    "showSamplesHint": "Conserver le journal d'exemple fourni dans votre explorateur de fichiers"
   },
   "speedUnit": {
     "heading": "Unité de vitesse",

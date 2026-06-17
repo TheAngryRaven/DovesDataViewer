@@ -61,6 +61,7 @@ import { LapSnapshotPromptDialog } from "@/components/LapSnapshotPromptDialog";
 import { useSessionMetadata } from "@/hooks/useSessionMetadata";
 import { useVideoSync } from "@/hooks/useVideoSync";
 import { useDataLoader } from "@/hooks/useDataLoader";
+import { ensureSampleFile } from "@/lib/sampleData";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
@@ -89,9 +90,17 @@ export default function Index() {
     document.documentElement.classList.toggle('dark', settings.darkMode);
   }, [settings.darkMode]);
 
+  // Seed the bundled sample log into IndexedDB as a real file so it's always
+  // available in the browser and opens through the normal path. Idempotent;
+  // refresh the file list afterwards so an open drawer reflects it immediately.
+  const refreshFiles = fileManager.refresh;
+  useEffect(() => {
+    void ensureSampleFile().then(() => refreshFiles());
+  }, [refreshFiles]);
+
   // Core session data
   const sessionData = useSessionData(isFieldHiddenByDefault, settings.defaultHiddenFields);
-  const { data, currentFileName, fieldMappings, isLoadingSample, sessionGpsPoint } = sessionData;
+  const { data, currentFileName, fieldMappings, sessionGpsPoint } = sessionData;
 
   const noteManager = useNoteManager(currentFileName);
 
@@ -178,7 +187,7 @@ export default function Index() {
   // sample-loader. Returns the three callbacks Index.tsx wires up to imports.
   const dataLoader = useDataLoader({ sessionData, lapMgmt, sessionMeta });
   const {
-    handleDataLoaded, handleLoadSample, handleTrackPromptSelect,
+    handleDataLoaded, handleLoadSample, isLoadingSample, handleTrackPromptSelect,
     trackPromptOpen, setTrackPromptOpen, detectedTrack, detectionResult,
     allTracks, gpsCenter,
   } = dataLoader;
@@ -476,6 +485,7 @@ export default function Index() {
     onSaveFile: fileManager.saveFile,
     onDataLoaded: handleDataLoaded,
     autoSave: settings.autoSaveFiles,
+    showSampleFiles: settings.showSampleFiles,
     initialGarageTab: fileManager.initialGarageTab,
     showProfile,
     vehicles: vehicleManager.vehicles,
@@ -506,7 +516,7 @@ export default function Index() {
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
     fileManager.initialGarageTab,
-    handleDataLoaded, settings.autoSaveFiles, showProfile,
+    handleDataLoaded, settings.autoSaveFiles, settings.showSampleFiles, showProfile,
     vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,
     templateManager.vehicleTypes, templateManager.templates, templateManager.addVehicleType, templateManager.removeVehicleType,
     currentFileName,

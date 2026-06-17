@@ -7,7 +7,9 @@
   "fileStorage": {
     "heading": "File Storage",
     "autoSave": "Auto-save imported/uploaded files to device",
-    "autoSaveHint": "Automatically store files in on-device storage for later access"
+    "autoSaveHint": "Automatically store files in on-device storage for later access",
+    "showSamples": "Show sample files",
+    "showSamplesHint": "Keep the bundled sample log in your file browser"
   },
   "speedUnit": {
     "heading": "Speed Unit",

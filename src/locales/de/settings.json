@@ -8,7 +8,9 @@
   "fileStorage": {
     "heading": "Dateispeicher",
     "autoSave": "Importierte/hochgeladene Dateien automatisch auf dem Gerät speichern",
-    "autoSaveHint": "Speichert Dateien automatisch im Gerätespeicher für späteren Zugriff"
+    "autoSaveHint": "Speichert Dateien automatisch im Gerätespeicher für späteren Zugriff",
+    "showSamples": "Beispieldateien anzeigen",
+    "showSamplesHint": "Das mitgelieferte Beispiel-Log im Dateibrowser behalten"
   },
   "speedUnit": {
     "heading": "Geschwindigkeitseinheit",
