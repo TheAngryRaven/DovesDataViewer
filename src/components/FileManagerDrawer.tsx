@@ -2,16 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Gauge, Cpu, User, Bluetooth, BluetoothOff, Loader2, Settings, MapPin, Battery, BatteryLow, BatteryMedium, BatteryFull, BatteryWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileEntry, FileMetadata, PostSessionData } from "@/lib/fileStorage";
+import { FileEntry, FileMetadata } from "@/lib/fileStorage";
 import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
 import { VehicleType, SetupTemplate, TemplateSection } from "@/lib/templateStorage";
-import { Note } from "@/lib/noteStorage";
 import { ParsedData } from "@/types/racing";
 import { FilesTab } from "./drawer/FilesTab";
 import { VehiclesTab } from "./drawer/VehiclesTab";
 import { SetupsTab } from "./drawer/SetupsTab";
-import { NotesTab } from "./drawer/NotesTab";
 import { DeviceSettingsTab } from "./drawer/DeviceSettingsTab";
 import { DeviceTracksTab } from "./drawer/DeviceTracksTab";
 import { ProfileTab } from "./tabs/ProfileTab";
@@ -19,7 +17,7 @@ import { useDeviceContext } from "@/contexts/DeviceContext";
 import { isBleSupported, requestBatteryLevel, type BatteryInfo } from "@/lib/bleDatalogger";
 
 type TopTab = "garage" | "profile" | "device";
-type GarageTab = "files" | "vehicles" | "setups" | "notes";
+type GarageTab = "files" | "vehicles" | "setups";
 type DeviceTab = "settings" | "tracks";
 
 interface FileManagerDrawerProps {
@@ -51,20 +49,6 @@ interface FileManagerDrawerProps {
   // Current session context (the browser opens at this track/course)
   currentTrackName: string | null;
   currentCourseName: string | null;
-  // Note props
-  currentFileName: string | null;
-  notes: Note[];
-  onAddNote: (text: string) => Promise<void>;
-  onUpdateNote: (id: string, text: string) => Promise<void>;
-  onRemoveNote: (id: string) => Promise<void>;
-  // Session setup link
-  sessionKartId: string | null;
-  sessionSetupId: string | null;
-  sessionSetupRev: string | null;
-  onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
-  // Post-session measurements (tire pressure, weight)
-  postSession: PostSessionData | null;
-  onSavePostSession: (data: PostSessionData) => Promise<void>;
   // Setup props
   setups: VehicleSetup[];
   onAddSetup: (setup: Omit<VehicleSetup, "id" | "createdAt" | "updatedAt">) => Promise<void>;
@@ -84,9 +68,6 @@ export function FileManagerDrawer({
   vehicles, vehicleTypes, templates,
   onAddVehicle, onUpdateVehicle, onRemoveVehicle,
   currentTrackName, currentCourseName,
-  currentFileName, notes, onAddNote, onUpdateNote, onRemoveNote,
-  sessionKartId, sessionSetupId, sessionSetupRev, onSaveSessionSetup,
-  postSession, onSavePostSession,
   setups, onAddSetup, onUpdateSetup, onRemoveSetup, onGetLatestSetupForVehicle,
   onAddVehicleType, onRemoveVehicleType,
 }: FileManagerDrawerProps) {
@@ -99,7 +80,6 @@ export function FileManagerDrawer({
     { key: "files", label: t("shell.garageTabs.files") },
     { key: "vehicles", label: t("shell.garageTabs.vehicles") },
     { key: "setups", label: t("shell.garageTabs.setups") },
-    { key: "notes", label: t("shell.garageTabs.notes") },
   ];
 
   const deviceTabs: { key: DeviceTab; label: string; icon: React.ReactNode }[] = [
@@ -220,23 +200,6 @@ export function FileManagerDrawer({
                 onGetLatestForVehicle={onGetLatestSetupForVehicle}
                 onAddVehicleType={onAddVehicleType}
                 onRemoveVehicleType={onRemoveVehicleType}
-              />
-            )}
-            {garageTab === "notes" && (
-              <NotesTab
-                fileName={currentFileName}
-                notes={notes}
-                onAdd={onAddNote}
-                onUpdate={onUpdateNote}
-                onRemove={onRemoveNote}
-                vehicles={vehicles}
-                setups={setups}
-                sessionKartId={sessionKartId}
-                sessionSetupId={sessionSetupId}
-                sessionSetupRev={sessionSetupRev}
-                onSaveSessionSetup={onSaveSessionSetup}
-                postSession={postSession}
-                onSavePostSession={onSavePostSession}
               />
             )}
           </>

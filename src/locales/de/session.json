@@ -4,9 +4,9 @@
     "simple": "Einfach",
     "pro": "Pro",
     "lapTimes": "Rundenzeiten",
-    "labs": "Labs",
     "coach": "Coach",
-    "tools": "Werkzeuge"
+    "tools": "Werkzeuge",
+    "notes": "Notizen"
   },
   "header": {
     "play": "Abspielen",

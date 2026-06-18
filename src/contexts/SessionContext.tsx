@@ -124,7 +124,7 @@ export interface SessionContextValue {
   onWeatherStationResolved: (station: WeatherStation) => void;
   onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
   /** Open the file-manager drawer, optionally straight to a Garage sub-tab. */
-  onOpenGarage: (garageTab?: 'files' | 'vehicles' | 'setups' | 'notes') => void;
+  onOpenGarage: (garageTab?: 'files' | 'vehicles' | 'setups') => void;
   formatRangeLabel: (idx: number) => string;
 }
 

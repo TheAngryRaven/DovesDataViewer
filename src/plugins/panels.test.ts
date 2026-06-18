@@ -36,12 +36,12 @@ describe("getPanelsForSlot", () => {
     expect(getPanelsForSlot("slot-empty")).toEqual([]);
   });
 
-  it("keeps the Coach and Labs slots separate", () => {
+  it("keeps the Coach and Tools slots separate", () => {
     pluginRegistry.contribute(PANELS_POINT, panel("coach-panel", PanelSlot.Coach));
-    pluginRegistry.contribute(PANELS_POINT, panel("labs-panel", PanelSlot.Labs));
+    pluginRegistry.contribute(PANELS_POINT, panel("tools-panel", PanelSlot.Tools));
 
     expect(getPanelsForSlot(PanelSlot.Coach).map((p) => p.id)).toEqual(["coach-panel"]);
-    expect(getPanelsForSlot(PanelSlot.Labs).map((p) => p.id)).toEqual(["labs-panel"]);
+    expect(getPanelsForSlot(PanelSlot.Tools).map((p) => p.id)).toEqual(["tools-panel"]);
   });
 });
 

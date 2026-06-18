@@ -18,7 +18,6 @@ export interface SettingsContextValue {
   gForceSmoothing: boolean;
   gForceSmoothingStrength: number;
   brakingZoneSettings: BrakingZoneSettings;
-  enableLabs: boolean;
   darkMode: boolean;
   gForceSource: 'gps' | 'hw';
   chartXAxis: 'time' | 'distance';

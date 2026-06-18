@@ -21,7 +21,6 @@ export interface AppSettings {
   brakeMaxG: number;                // 50-300, represents 0.5-3.0G, the G value that = 100% brake (default: 150 = 1.5G)
   autoSaveFiles: boolean;           // Auto-save imported/uploaded files to device (default: true)
   showSampleFiles: boolean;         // Show the bundled sample log in the file browser (default: true)
-  enableLabs: boolean;              // Enable experimental Labs tab (default: false)
   darkMode: boolean;                // Dark mode enabled (default: true)
   gForceSource: 'gps' | 'hw';      // Which G-force source to show in simple mode (default: 'hw')
   deltaMethod: 'position' | 'distance'; // Lap delta algorithm (default: 'position')
@@ -50,7 +49,6 @@ const defaultSettings: AppSettings = {
   brakeMaxG: 150,                 // 1.5G = 100% brake
   autoSaveFiles: true,
   showSampleFiles: true,
-  enableLabs: false,
   darkMode: false,
   gForceSource: 'hw',
   deltaMethod: 'position',

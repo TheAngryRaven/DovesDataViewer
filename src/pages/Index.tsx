@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, FlaskConical, AlertCircle, Wrench } from "lucide-react";
+import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, Eye, EyeOff, AlertCircle, Wrench, NotebookPen } from "lucide-react";
 import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { LapTimesTab } from "@/components/tabs/LapTimesTab";
+import { NotesTab } from "@/components/drawer/NotesTab";
 // Heavy tabs lazy-loaded so the initial bundle doesn't carry their deps.
 // RaceLine pulls in Leaflet (vendor-leaflet, ~150 kB) + the telemetry chart —
 // lazy keeps the whole mapping stack off the landing page; it loads the moment
 // a session is opened (the default tab). GraphView pulls in the multi-series
-// canvas chart + InfoBox + MiniMap; Labs is behind a settings flag and almost
-// never opened. All load on first render of their respective tab.
+// canvas chart + InfoBox + MiniMap. All load on first render of their tab.
 const RaceLineTab = lazy(() =>
   import("@/components/tabs/RaceLineTab").then((m) => ({ default: m.RaceLineTab })),
 );
 const GraphViewTab = lazy(() =>
   import("@/components/tabs/GraphViewTab").then((m) => ({ default: m.GraphViewTab })),
-);
-const LabsTab = lazy(() =>
-  import("@/components/tabs/LabsTab").then((m) => ({ default: m.LabsTab })),
 );
 const CoachTab = lazy(() =>
   import("@/components/tabs/CoachTab").then((m) => ({ default: m.CoachTab })),
@@ -70,7 +67,7 @@ import { snapshotLapSamples } from "@/lib/lapSnapshot";
 import type { PluginSnapshot } from "@/plugins/panels";
 
 
-type TopPanelView = "raceline" | "laptable" | "graphview" | "labs" | "coach" | "tools";
+type TopPanelView = "raceline" | "laptable" | "graphview" | "coach" | "tools" | "notes";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === 'true';
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
@@ -153,8 +150,6 @@ export default function Index() {
   // asynchronously (after this first render), so we read them through the
   // reactive hook — a plain useMemo([]) would freeze the snapshot and the tabs
   // would never appear that session.
-  const hasLabsPanels = usePanelsForSlot(PanelSlot.Labs).length > 0;
-  const showLabs = settings.enableLabs || hasLabsPanels;
   // The Coach tab is self-gating: it appears only when a plugin contributes a
   // panel to the Coach slot (i.e. the coach package is installed).
   const showCoach = usePanelsForSlot(PanelSlot.Coach).length > 0;
@@ -176,7 +171,7 @@ export default function Index() {
     [sessionSetupId, setupManager.setups.length, vehicleManager.vehicles.length],
   );
 
-  // Video sync for Labs tab
+  // Video sync for the video player
   const videoSync = useVideoSync({
     samples: visibleSamples,
     allSamples: data?.samples ?? [],
@@ -323,11 +318,10 @@ export default function Index() {
     gForceSmoothing: settings.gForceSmoothing,
     gForceSmoothingStrength: settings.gForceSmoothingStrength,
     brakingZoneSettings,
-    enableLabs: settings.enableLabs,
     darkMode: settings.darkMode,
     gForceSource: settings.gForceSource,
     chartXAxis: settings.chartXAxis,
-  }), [useKph, useMetricDistance, settings.useMetricWeather, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.enableLabs, settings.darkMode, settings.gForceSource, settings.chartXAxis]);
+  }), [useKph, useMetricDistance, settings.useMetricWeather, settings.gForceSmoothing, settings.gForceSmoothingStrength, brakingZoneSettings, settings.darkMode, settings.gForceSource, settings.chartXAxis]);
 
   // Memoize sliced data arrays to avoid recreating on every render
   const slicedPaceData = useMemo(
@@ -497,11 +491,6 @@ export default function Index() {
     onAddVehicle: vehicleManager.addVehicle,
     onUpdateVehicle: vehicleManager.updateVehicle,
     onRemoveVehicle: vehicleManager.removeVehicle,
-    currentFileName,
-    notes: noteManager.notes,
-    onAddNote: noteManager.addNote,
-    onUpdateNote: noteManager.updateNote,
-    onRemoveNote: noteManager.removeNote,
     setups: setupManager.setups,
     onAddSetup: setupManager.addSetup,
     onUpdateSetup: setupManager.updateSetup,
@@ -511,12 +500,6 @@ export default function Index() {
     onRemoveVehicleType: templateManager.removeVehicleType,
     currentTrackName: lapMgmt.selection?.trackName ?? null,
     currentCourseName: lapMgmt.selection?.courseName ?? null,
-    sessionKartId,
-    sessionSetupId,
-    sessionSetupRev,
-    onSaveSessionSetup: handleSaveSessionSetupWithSnapshot,
-    postSession,
-    onSavePostSession: sessionMeta.handleSavePostSession,
   }), [
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
@@ -524,11 +507,8 @@ export default function Index() {
     handleDataLoaded, settings.autoSaveFiles, effectiveShowSampleFiles, showProfile,
     vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,
     templateManager.vehicleTypes, templateManager.templates, templateManager.addVehicleType, templateManager.removeVehicleType,
-    currentFileName,
-    noteManager.notes, noteManager.addNote, noteManager.updateNote, noteManager.removeNote,
     setupManager.setups, setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
-    lapMgmt.selection, sessionKartId, sessionSetupId, sessionSetupRev, handleSaveSessionSetupWithSnapshot,
-    postSession, sessionMeta.handleSavePostSession,
+    lapMgmt.selection,
   ]);
 
   // No data loaded - show import UI
@@ -638,15 +618,39 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showLabs={showLabs} showCoach={showCoach} showTools={showTools} setupIndicator={setupIndicator} onSetupIndicatorClick={() => setupIndicator && fileManager.open(setupIndicator.target)} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showCoach={showCoach} showTools={showTools} setupIndicator={setupIndicator} onSetupIndicatorClick={() => {
+          if (!setupIndicator) return;
+          // The session-setup selector lives in the Notes view; vehicles/setups
+          // are garage drawer tabs.
+          if (setupIndicator.target === "notes") setTopPanelView("notes");
+          else fileManager.open(setupIndicator.target);
+        }} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
           {topPanelView === "laptable" && <LapTimesTab />}
+          {topPanelView === "notes" && (
+            <div className="h-full flex flex-col max-w-2xl mx-auto w-full">
+              <NotesTab
+                fileName={currentFileName}
+                notes={noteManager.notes}
+                onAdd={noteManager.addNote}
+                onUpdate={noteManager.updateNote}
+                onRemove={noteManager.removeNote}
+                vehicles={vehicleManager.vehicles}
+                setups={setupManager.setups}
+                sessionKartId={sessionKartId}
+                sessionSetupId={sessionSetupId}
+                sessionSetupRev={sessionSetupRev}
+                onSaveSessionSetup={handleSaveSessionSetupWithSnapshot}
+                postSession={postSession}
+                onSavePostSession={sessionMeta.handleSavePostSession}
+              />
+            </div>
+          )}
           <Suspense fallback={null}>
             {topPanelView === "raceline" && <RaceLineTab showOverlays={showOverlays} />}
             {topPanelView === "graphview" && <GraphViewTab />}
-            {topPanelView === "labs" && showLabs && <LabsTab />}
             {topPanelView === "coach" && showCoach && <CoachTab />}
             {topPanelView === "tools" && showTools && <ToolsTab />}
           </Suspense>
@@ -681,13 +685,12 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showLabs, showCoach, showTools, setupIndicator, onSetupIndicatorClick }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showCoach, showTools, setupIndicator, onSetupIndicatorClick }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
   showOverlays: boolean;
   onToggleOverlays: () => void;
-  showLabs: boolean;
   showCoach: boolean;
   showTools: boolean;
   setupIndicator: SetupIndicator | null;
@@ -715,11 +718,6 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
           <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded">{laps.length}</span>
         )}
       </button>
-      {showLabs && (
-        <button onClick={() => setTopPanelView("labs")} className={tabClass("labs")}>
-          <FlaskConical className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.labs")}</span>
-        </button>
-      )}
       {showCoach && (
         <button onClick={() => setTopPanelView("coach")} className={tabClass("coach")}>
           <Gauge className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.coach")}</span>
@@ -730,6 +728,9 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
           <Wrench className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.tools")}</span>
         </button>
       )}
+      <button onClick={() => setTopPanelView("notes")} className={tabClass("notes")}>
+        <NotebookPen className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.notes")}</span>
+      </button>
       {setupIndicator && (
         <TooltipProvider>
           <Tooltip>

@@ -123,6 +123,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cloud rows and in the Profile → Cloud logs list.
 
 ### Changed
+- **Notes moved to the main toolbar.** Session notes (and the session-setup +
+  post-session measurement panel) are now their own tab in the main view bar —
+  to the right of Tools — instead of living inside the Garage drawer. The
+  setup-status nag now jumps straight there.
 - **Admin link tidied up.** The home-screen "Track Management" link is now
   labelled **Admin** and only appears when an admin is actually signed in (it was
   previously shown to anyone on an admin-enabled build).
@@ -174,6 +178,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and edit button are consolidated into a single course control — now using a
   route icon (at every screen size) with the current track : course as its label
   from tablet up.
+
+### Removed
+- **Labs tab removed.** The experimental Labs tab (and its hidden settings
+  toggle) has been retired — it carried no active features.
 
 ### Fixed
 - **Datalogger looked like it didn't recognise the track while parked.** Sitting

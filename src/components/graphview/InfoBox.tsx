@@ -36,7 +36,7 @@ interface InfoBoxProps {
   sessionSetupId: string | null;
   onSaveSessionSetup: (kartId: string | null, setupId: string | null) => Promise<void>;
   onOpenSetupEditor?: (setupId: string) => void;
-  onOpenGarage?: (garageTab?: 'files' | 'vehicles' | 'setups' | 'notes') => void;
+  onOpenGarage?: (garageTab?: 'files' | 'vehicles' | 'setups') => void;
   videoState?: VideoSyncState;
   videoActions?: VideoSyncActions;
   onVideoLoadedMetadata?: () => void;

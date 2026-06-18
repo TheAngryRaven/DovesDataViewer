@@ -1,7 +1,7 @@
 // Inline UI mount points.
 //
 // Where `panels.ts` lets a plugin contribute a standalone titled card to a slot
-// (the Labs tab), a *mount* lets a plugin inject a raw component into a fixed
+// (the Coach tab), a *mount* lets a plugin inject a raw component into a fixed
 // spot in core UI — e.g. a control on every file row, or a section under the
 // file list. Each mount targets a named slot and receives a typed context.
 //

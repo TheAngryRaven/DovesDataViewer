@@ -13,7 +13,7 @@
 ## Cloud Sync (`src/plugins/cloud-sync/`)
 
 Optional per-user backup/sync of the IndexedDB stores (see CLAUDE.md → IndexedDB
-Storage) to Supabase. Built as a first-party plugin (Labs + Profile panels),
+Storage) to Supabase. Built as a first-party plugin (Profile panels),
 online-only (accepted offline-first exception). There are **no manual push/pull
 buttons** — the **document tier auto-syncs**, and is
 **offline-aware + conflict-safe**: storage modules emit `garageEvents` on

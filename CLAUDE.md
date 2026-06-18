@@ -78,9 +78,9 @@ src/
 ├── components/
 │   ├── ui/                # shadcn/ui primitives
 │   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages)
-│   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Labs, Coach, Tools)
+│   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Coach, Tools; Notes lives in drawer/ but is a main-view tab)
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox
-│   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Notes, Setups, Device*)
+│   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Setups, Device*); NotesTab also here but mounted as a main-view tab
 │   ├── track-editor/      # Track editor: VisualEditor, SectorListEditor, CourseSectorEditor, Add*Dialog
 │   ├── video-overlays/    # Video-export overlay system: registry + themes + per-widget *Overlay
 │   ├── RaceLineView.tsx   # Leaflet map: race line, speed heatmap, braking zones
@@ -241,7 +241,7 @@ A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 `getContributions(point)`. Same-`id` plugins resolve by highest `priority`.
 `ctx.storage` is a per-plugin KV store. Extension points today:
 
-- **Panels** (`panels.ts`, `PANELS_POINT`): a panel targets a *slot* — `Labs`,
+- **Panels** (`panels.ts`, `PANELS_POINT`): a panel targets a *slot* —
   `Coach`, `Tools`, `Profile` — rendered by the matching tab via `PluginPanelHost`
   (per-panel error + Suspense boundaries, so panels can be `React.lazy`). Tabs are
   **self-gating**: `Index.tsx` computes visibility from `getPanelsForSlot`, so a tab
@@ -327,7 +327,7 @@ swaps units — that's a separate axis.
 sample-data note in `docs/subsystems.md`.
 
 Other key settings: `gForceSmoothing(+Strength)`, `gForceSource`,
-`brakingZoneSettings`, `enableLabs` (hidden when no labs features), `darkMode`,
+`brakingZoneSettings`, `darkMode`,
 `deltaMethod` (`'position'` default | `'distance'`), `deltaSampleMeters`,
 `chartXAxis` (`'distance'` default | `'time'`).
 
@@ -419,7 +419,7 @@ splitting in `vite.config.ts`. Pulling a lazy module into an eagerly-imported fi
 re-merges it into the main chunk — watch for this.
 
 **Lazy (off the initial path):** routes (`Login`, `Admin`, `Register`, `Privacy`);
-view tabs (`RaceLineTab`, `GraphViewTab`, `LabsTab`); `FileManagerDrawer`;
+view tabs (`RaceLineTab`, `GraphViewTab`, `CoachTab`, `ToolsTab`); `FileManagerDrawer`;
 `DataloggerDownload` (keeps `lib/ble/*` out); `CourseSectorEditor` (carries
 `@dnd-kit/*`). Lazy components must render inside `<Suspense>`; use
 `lazy(() => import('…').then((m) => ({ default: m.Named })))` for named exports.

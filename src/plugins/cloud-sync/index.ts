@@ -32,7 +32,7 @@ const plugin: DataViewerPlugin = {
   version: "0.1.0",
   setup(ctx) {
     // Offline-first guard: when the cloud flag is off, contribute nothing.
-    // No panels/mounts register, their chunks never load, and the Labs tab
+    // No panels/mounts register, their chunks never load, and the Profile tab
     // stays hidden unless another plugin contributes there.
     if (!enableCloud) return;
 

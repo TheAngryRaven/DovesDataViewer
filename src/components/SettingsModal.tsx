@@ -649,9 +649,6 @@ export function SettingsModal({
 
           <Separator />
 
-          {/* Super Experimental Features */}
-          {/* Labs toggle hidden — no active labs features */}
-
           {/* Force Update */}
           <ForceUpdateSection />
         </div>

@@ -1,7 +1,7 @@
 // UI panel framework for plugins.
 //
 // A plugin contributes self-contained React panels to a named *slot* (a host
-// surface, e.g. the Labs tab). The host mounts every panel registered for a
+// surface, e.g. the Coach tab). The host mounts every panel registered for a
 // slot and hands each one a curated, stable `PluginPanelProps` snapshot of the
 // active session — plugins never see the host's internal session context, so
 // the contract here is the entire surface a plugin can rely on.
@@ -19,8 +19,6 @@ export const PANELS_POINT = "ui:panels";
 
 /** Known host surfaces a panel can mount into. */
 export const PanelSlot = {
-  /** The Labs tab in the main view. */
-  Labs: "labs",
   /** The dedicated AI Coach tab in the main view. */
   Coach: "coach",
   /** The Tools tab in the main view (utility tools, e.g. the seat-position visualizer). */

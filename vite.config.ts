@@ -96,8 +96,8 @@ const PUBLIC_BACKEND_FALLBACKS = {
   // a backend they don't control. Anyone who hosts that build would otherwise
   // expose admin surfaces and account features for an upstream backend.
   VITE_ENABLE_ADMIN: "false",
-  // Cloud auth + sync (public user accounts, Google sign-in, Cloud Sync Labs
-  // panel). Defaulted OFF for the same reason — a fresh build is offline-only
+  // Cloud auth + sync (public user accounts, Google sign-in, Cloud Sync
+  // panels). Defaulted OFF for the same reason — a fresh build is offline-only
   // until the operator explicitly opts in via VITE_*/HTT_* env. The production
   // deploy sets this to "true".
   VITE_ENABLE_CLOUD: "false",

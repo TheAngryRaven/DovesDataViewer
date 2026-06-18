@@ -13,7 +13,7 @@ import {
 import { isSampleFileName } from "@/lib/sampleData";
 
 /** Garage sub-tabs the drawer can be opened directly to. */
-export type GarageTabKey = "files" | "vehicles" | "setups" | "notes";
+export type GarageTabKey = "files" | "vehicles" | "setups";
 
 export function useFileManager() {
   const [isOpen, setIsOpen] = useState(false);
