@@ -21,7 +21,10 @@
     "unlockOverlays": "Déverrouiller les superpositions",
     "overlaySettings": "Réglages des superpositions",
     "exportVideo": "Exporter la vidéo",
-    "replaceVideo": "Remplacer la vidéo"
+    "replaceVideo": "Remplacer la vidéo",
+    "pickRecordingTitle": "Quelle vidéo ?",
+    "pickRecordingDesc": "Vous avez sélectionné plusieurs enregistrements. Choisissez celui à charger — les autres sont ignorés.",
+    "pickRecordingCount": "{{count}} chapitres"
   },
   "export": {
     "title": "Exporter la vidéo",

@@ -105,6 +105,73 @@ export function orderVideoFiles<T extends { name: string }>(files: T[]): T[] {
   return [...gopro.map((g) => g.file), ...other.map((o) => o.file)];
 }
 
+/** Video container extensions the player can actually open. */
+const VIDEO_EXTENSIONS = [".mp4", ".m4v", ".mov", ".webm", ".mkv", ".avi"];
+
+/** True when a filename ends in a playable video extension (case-insensitive). */
+export function isVideoFile(name: string): boolean {
+  const lower = name.toLowerCase();
+  return VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+/**
+ * Stable key uniting one GoPro recording's chapters. A recording's chapters
+ * share the encoding family and recording number; the legacy first file (GOPR)
+ * and its GP continuations belong to the same recording, so both fold into one
+ * `legacy-<number>` key.
+ */
+function recordingKey(parts: GoProNameParts): string {
+  if (parts.encoding === "GOPR" || parts.encoding === "GP") return `legacy-${parts.fileNumber}`;
+  return `${parts.encoding}-${parts.fileNumber}`;
+}
+
+/** Strip any directory prefix, keeping the original case + extension for display. */
+function displayName(name: string): string {
+  return name.split(/[\\/]/).pop() ?? name;
+}
+
+/** One distinct recording from a selection: its ordered file(s) + a display label. */
+export interface VideoRecording<T> {
+  /** Stable identity for this recording within the selection. */
+  key: string;
+  /** Human label — the first file's name (e.g. "GH010042.MP4"). */
+  label: string;
+  /** The recording's files in playback order (chapters for a GoPro recording). */
+  files: T[];
+}
+
+/**
+ * Group a (possibly messy) multi-selection into distinct recordings.
+ *
+ * On mobile there's no way to filter a file picker, so a user is likely to just
+ * "select all" — pulling in GoPro `.LRV`/`.THM` sidecars, photos, and *several*
+ * unrelated recordings alongside the chapters they want. We can't ask the camera
+ * which clips belong together, so instead we: drop anything that isn't a playable
+ * video, fold each GoPro recording's chapters into one ordered group, and treat
+ * every standalone (non-GoPro) clip as its own group. The caller loads the group
+ * directly when there's only one, or prompts the user to pick when there are
+ * several — and discards the rest.
+ */
+export function groupVideoRecordings<T extends { name: string }>(files: T[]): VideoRecording<T>[] {
+  const videos = orderVideoFiles(files.filter((f) => isVideoFile(f.name)));
+
+  const groups = new Map<string, VideoRecording<T>>();
+  let standaloneCount = 0;
+  for (const file of videos) {
+    const parts = parseGoProName(file.name);
+    // Each standalone clip is its own recording (a unique key per file); GoPro
+    // chapters collapse onto their shared recording key.
+    const key = parts ? recordingKey(parts) : `single-${standaloneCount++}`;
+    const existing = groups.get(key);
+    if (existing) existing.files.push(file);
+    else groups.set(key, { key, label: displayName(file.name), files: [file] });
+  }
+
+  // Map preserves insertion order, which follows `orderVideoFiles` (GoPro
+  // recordings first by number, standalone clips after in selection order).
+  return [...groups.values()];
+}
+
 /** Build a playlist with cumulative start offsets from ordered chunks. */
 export function buildPlaylist(
   chunks: { name: string; durationSec: number }[],

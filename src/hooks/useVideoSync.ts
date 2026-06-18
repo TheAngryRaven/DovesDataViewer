@@ -5,7 +5,7 @@ import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoM
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
-import { buildPlaylist, orderVideoFiles, virtualToLocal, localToVirtual, type Playlist } from "@/lib/videoPlaylist";
+import { buildPlaylist, groupVideoRecordings, virtualToLocal, localToVirtual, type Playlist, type VideoRecording } from "@/lib/videoPlaylist";
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
@@ -38,10 +38,20 @@ export interface VideoSyncState {
   overlaySettings: OverlaySettings;
   hasStoredVideo: boolean;
   storedVideoMeta: StoredVideoMeta | null;
+  /**
+   * When a selection holds several distinct recordings, the choices to prompt
+   * the user with (null = no prompt pending). Each is one recording's display
+   * label + chapter count; only the chosen one is ever loaded into memory.
+   */
+  pendingRecordings: { key: string; label: string; count: number }[] | null;
 }
 
 export interface VideoSyncActions {
   loadVideo: () => void;
+  /** Load one of the prompted recordings; the others are dropped from memory. */
+  chooseRecording: (key: string) => void;
+  /** Dismiss the recording prompt without loading anything. */
+  cancelRecordingChoice: () => void;
   toggleLock: () => void;
   togglePlay: () => void;
   stepFrame: (direction: 1 | -1) => void;
@@ -53,6 +63,13 @@ export interface VideoSyncActions {
     videoRef: React.RefObject<HTMLVideoElement>;
     preloadVideoRef: React.RefObject<HTMLVideoElement>;
   }
+
+/** A picked video file held in memory while a recording prompt is pending. */
+interface SelectedVideoFile {
+  name: string;
+  file: File;
+  handle?: FileSystemFileHandle;
+}
 
 /** Entry describing one chunk before it's turned into a playlist. */
 interface ChunkEntry {
@@ -115,6 +132,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
   const [storedVideoMeta, setStoredVideoMeta] = useState<StoredVideoMeta | null>(null);
+  // Recording-picker state: when a selection holds >1 recording we hold the
+  // grouped File objects in a ref (heavy) and mirror just the labels to state
+  // (for rendering). Choosing one drops the ref so the rest are GC'd.
+  const pendingGroupsRef = useRef<VideoRecording<SelectedVideoFile>[] | null>(null);
+  const [pendingRecordings, setPendingRecordings] =
+    useState<{ key: string; label: string; count: number }[] | null>(null);
 
   // Playlist model + per-chunk resources (refs so the sync loops read them
   // without re-subscribing every render).
@@ -288,7 +311,50 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     saveVideoSync(record);
   }, [sessionFileName, videoFileName, fileHandle, isLocked, overlaySettings]);
 
-  // Load video file(s) — supports selecting multiple GoPro chunks at once.
+  // Build the playlist from one chosen recording's files (creates the object
+  // URLs only for these — the other recordings in a selection never get one).
+  const loadRecording = useCallback(async (recording: VideoRecording<SelectedVideoFile>) => {
+    revokeAllUrls();
+    await applyPlaylist(recording.files.map((e) => ({
+      name: e.name,
+      url: URL.createObjectURL(e.file),
+      handle: e.handle,
+    })));
+    persistSync(syncOffsetMsRef.current);
+  }, [revokeAllUrls, applyPlaylist, persistSync]);
+
+  // Group a fresh selection into recordings: load straight away when there's
+  // exactly one, otherwise stash them and prompt the user to pick.
+  const handleSelectedFiles = useCallback(async (selected: SelectedVideoFile[]) => {
+    const groups = groupVideoRecordings(selected);
+    if (groups.length === 0) return;
+    if (groups.length === 1) {
+      pendingGroupsRef.current = null;
+      setPendingRecordings(null);
+      await loadRecording(groups[0]);
+      return;
+    }
+    pendingGroupsRef.current = groups;
+    setPendingRecordings(groups.map((g) => ({ key: g.key, label: g.label, count: g.files.length })));
+  }, [loadRecording]);
+
+  // Load the picked recording; clearing the ref drops every other recording's
+  // File objects so they're freed from memory.
+  const chooseRecording = useCallback((key: string) => {
+    const group = pendingGroupsRef.current?.find((g) => g.key === key);
+    pendingGroupsRef.current = null;
+    setPendingRecordings(null);
+    if (group) void loadRecording(group);
+  }, [loadRecording]);
+
+  // Dismiss the prompt and drop all the held selections from memory.
+  const cancelRecordingChoice = useCallback(() => {
+    pendingGroupsRef.current = null;
+    setPendingRecordings(null);
+  }, []);
+
+  // Load video file(s) — supports selecting multiple GoPro chunks at once. A
+  // selection spanning several recordings prompts the user to choose one.
   const loadVideo = useCallback(async () => {
     if ("showOpenFilePicker" in window) {
       try {
@@ -307,10 +373,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
           }],
         });
         const files = await Promise.all(handles.map((h) => h.getFile()));
-        const ordered = orderVideoFiles(files.map((f, i) => ({ name: f.name, file: f, handle: handles[i] })));
-        revokeAllUrls();
-        await applyPlaylist(ordered.map((e) => ({ name: e.name, url: URL.createObjectURL(e.file), handle: e.handle })));
-        persistSync(syncOffsetMsRef.current);
+        await handleSelectedFiles(files.map((f, i) => ({ name: f.name, file: f, handle: handles[i] })));
         return;
       } catch (e) {
         // User cancelled the file picker — DOMException("AbortError"). Swallow.
@@ -329,15 +392,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     const input = fileInputRef.current;
     input.onchange = async () => {
       const files = input.files ? Array.from(input.files) : [];
-      if (files.length === 0) return;
-      const ordered = orderVideoFiles(files.map((f) => ({ name: f.name, file: f })));
-      revokeAllUrls();
-      await applyPlaylist(ordered.map((e) => ({ name: e.name, url: URL.createObjectURL(e.file) })));
-      persistSync(syncOffsetMsRef.current);
       input.value = "";
+      if (files.length === 0) return;
+      await handleSelectedFiles(files.map((f) => ({ name: f.name, file: f })));
     };
     input.click();
-  }, [revokeAllUrls, applyPlaylist, persistSync]);
+  }, [handleSelectedFiles]);
 
   // After a chunk's metadata loads, apply any pending seek/play and refresh time.
   const handleLoadedMetadata = useCallback(() => {
@@ -635,17 +695,18 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
     storedVideoMeta,
+    pendingRecordings,
   }), [
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
     videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, overlaySettings,
-    storedVideoAvailable, storedVideoMeta,
+    storedVideoAvailable, storedVideoMeta, pendingRecordings,
   ]);
 
   const actions: VideoSyncActions = useMemo(() => ({
-    loadVideo, toggleLock, togglePlay, stepFrame, setSyncPoint,
+    loadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
     seekVideo, updateOverlaySettings, deleteStoredVideo: handleDeleteStoredVideo, refreshStoredMeta, videoRef, preloadVideoRef,
   }), [
-    loadVideo, toggleLock, togglePlay, stepFrame, setSyncPoint,
+    loadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
     seekVideo, updateOverlaySettings, handleDeleteStoredVideo, refreshStoredMeta,
   ]);
 

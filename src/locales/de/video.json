@@ -21,7 +21,10 @@
     "unlockOverlays": "Overlays entsperren",
     "overlaySettings": "Overlay-Einstellungen",
     "exportVideo": "Video exportieren",
-    "replaceVideo": "Video ersetzen"
+    "replaceVideo": "Video ersetzen",
+    "pickRecordingTitle": "Welches Video?",
+    "pickRecordingDesc": "Du hast mehr als eine Aufnahme ausgewählt. Wähle die zu ladende aus – die anderen werden verworfen.",
+    "pickRecordingCount": "{{count}} Kapitel"
   },
   "export": {
     "title": "Video exportieren",

@@ -20,7 +20,10 @@
     "unlockOverlays": "Unlock overlays",
     "overlaySettings": "Overlay settings",
     "exportVideo": "Export video",
-    "replaceVideo": "Replace video"
+    "replaceVideo": "Replace video",
+    "pickRecordingTitle": "Which video?",
+    "pickRecordingDesc": "You selected more than one recording. Pick the one to load — the rest are discarded.",
+    "pickRecordingCount": "{{count}} chapters"
   },
   "export": {
     "title": "Export Video",

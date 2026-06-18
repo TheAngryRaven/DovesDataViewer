@@ -225,6 +225,46 @@ function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstanc
   }
 }
 
+/**
+ * Prompt shown when a single file selection spans several distinct recordings
+ * (e.g. a mobile "select all" of a whole GoPro card). The user picks the one
+ * recording to load; every other selected file is dropped from memory.
+ */
+function RecordingPicker({ state, actions }: { state: VideoSyncState; actions: VideoSyncActions }) {
+  const { t } = useTranslation("video");
+  const pending = state.pendingRecordings;
+  return (
+    <Dialog open={!!pending && pending.length > 0} onOpenChange={(open) => { if (!open) actions.cancelRecordingChoice(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Video className="w-5 h-5" />
+            {t("player.pickRecordingTitle")}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">{t("player.pickRecordingDesc")}</p>
+        <div className="flex flex-col gap-2 mt-1">
+          {pending?.map((r) => (
+            <Button
+              key={r.key}
+              variant="outline"
+              className="justify-between h-auto py-2.5"
+              onClick={() => actions.chooseRecording(r.key)}
+            >
+              <span className="font-mono text-sm truncate">{r.label}</span>
+              {r.count > 1 && (
+                <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                  {t("player.pickRecordingCount", { count: r.count })}
+                </span>
+              )}
+            </Button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export const VideoPlayer = memo(function VideoPlayer({
   state, actions, onLoadedMetadata,
   samples = [], allSamples = [],
@@ -540,6 +580,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           <Video className="w-4 h-4" /> {t("player.loadVideo")}
         </Button>
         <p className="text-xs text-muted-foreground/70">{t("player.goproHint")}</p>
+        <RecordingPicker state={state} actions={actions} />
       </div>
     );
   }
@@ -640,6 +681,9 @@ export const VideoPlayer = memo(function VideoPlayer({
         onSaveExisting={handleSaveExisting}
         onDeleteStored={handleDeleteStored}
       />
+
+      {/* Recording picker (multi-recording selection) */}
+      <RecordingPicker state={state} actions={actions} />
 
       {/* Unified bottom toolbar + progress bar */}
       <div

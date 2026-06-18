@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   parseGoProName,
   orderVideoFiles,
+  isVideoFile,
+  groupVideoRecordings,
   buildPlaylist,
   virtualToLocal,
   localToVirtual,
@@ -64,6 +66,80 @@ describe("orderVideoFiles", () => {
 
   it("leaves a single non-GoPro file untouched", () => {
     expect(orderVideoFiles([f("race.mp4")]).map((x) => x.name)).toEqual(["race.mp4"]);
+  });
+});
+
+describe("isVideoFile", () => {
+  it("accepts playable video extensions, case-insensitively", () => {
+    for (const name of ["a.mp4", "b.M4V", "c.mov", "d.webm", "e.mkv", "f.AVI"]) {
+      expect(isVideoFile(name)).toBe(true);
+    }
+  });
+
+  it("rejects GoPro sidecars and photos", () => {
+    for (const name of ["GX010042.LRV", "GX010042.THM", "GOPR0042.JPG", "notes.txt", "GX010042.GPR"]) {
+      expect(isVideoFile(name)).toBe(false);
+    }
+  });
+});
+
+describe("groupVideoRecordings", () => {
+  const f = (name: string) => ({ name });
+  const shape = (groups: ReturnType<typeof groupVideoRecordings>) =>
+    groups.map((g) => ({ label: g.label, files: g.files.map((x) => x.name) }));
+
+  it("collapses one recording's chapters into a single group", () => {
+    const groups = groupVideoRecordings([f("GH030042.MP4"), f("GH010042.MP4"), f("GH020042.MP4")]);
+    expect(shape(groups)).toEqual([
+      { label: "GH010042.MP4", files: ["GH010042.MP4", "GH020042.MP4", "GH030042.MP4"] },
+    ]);
+  });
+
+  it("separates distinct recordings, each ordered by chapter", () => {
+    const groups = groupVideoRecordings([
+      f("GH020099.MP4"), f("GH010042.MP4"), f("GH010099.MP4"), f("GH020042.MP4"),
+    ]);
+    expect(shape(groups)).toEqual([
+      { label: "GH010042.MP4", files: ["GH010042.MP4", "GH020042.MP4"] },
+      { label: "GH010099.MP4", files: ["GH010099.MP4", "GH020099.MP4"] },
+    ]);
+  });
+
+  it("unites the legacy GOPR first file with its GP continuations", () => {
+    const groups = groupVideoRecordings([f("GP020042.MP4"), f("GOPR0042.MP4"), f("GP010042.MP4")]);
+    expect(shape(groups)).toEqual([
+      { label: "GOPR0042.MP4", files: ["GOPR0042.MP4", "GP010042.MP4", "GP020042.MP4"] },
+    ]);
+  });
+
+  it("drops non-video sidecars from a blind mobile 'select all'", () => {
+    const groups = groupVideoRecordings([
+      f("GX010042.LRV"), f("GX010042.THM"), f("GX010042.MP4"),
+      f("GX020042.LRV"), f("GX020042.MP4"), f("IMG_0001.JPG"),
+    ]);
+    expect(shape(groups)).toEqual([
+      { label: "GX010042.MP4", files: ["GX010042.MP4", "GX020042.MP4"] },
+    ]);
+  });
+
+  it("treats each standalone clip as its own recording", () => {
+    const groups = groupVideoRecordings([f("my-race.mp4"), f("another.mov")]);
+    expect(shape(groups)).toEqual([
+      { label: "my-race.mp4", files: ["my-race.mp4"] },
+      { label: "another.mov", files: ["another.mov"] },
+    ]);
+  });
+
+  it("lists GoPro recordings before standalone clips", () => {
+    const groups = groupVideoRecordings([f("random.mp4"), f("GH010042.MP4"), f("GH020042.MP4")]);
+    expect(shape(groups)).toEqual([
+      { label: "GH010042.MP4", files: ["GH010042.MP4", "GH020042.MP4"] },
+      { label: "random.mp4", files: ["random.mp4"] },
+    ]);
+  });
+
+  it("returns nothing when the selection has no playable video", () => {
+    expect(groupVideoRecordings([f("a.txt"), f("b.lrv"), f("c.jpg")])).toEqual([]);
   });
 });
 

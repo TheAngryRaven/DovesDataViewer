@@ -21,7 +21,10 @@
     "unlockOverlays": "オーバーレイのロックを解除",
     "overlaySettings": "オーバーレイ設定",
     "exportVideo": "動画を書き出す",
-    "replaceVideo": "動画を差し替える"
+    "replaceVideo": "動画を差し替える",
+    "pickRecordingTitle": "どの動画ですか？",
+    "pickRecordingDesc": "複数の録画が選択されました。読み込むものを選んでください（ほかは破棄されます）。",
+    "pickRecordingCount": "{{count}} チャプター"
   },
   "export": {
     "title": "動画を書き出す",

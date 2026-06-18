@@ -21,7 +21,10 @@
     "unlockOverlays": "Desbloquear sobreposições",
     "overlaySettings": "Configurações de sobreposição",
     "exportVideo": "Exportar vídeo",
-    "replaceVideo": "Substituir vídeo"
+    "replaceVideo": "Substituir vídeo",
+    "pickRecordingTitle": "Qual vídeo?",
+    "pickRecordingDesc": "Você selecionou mais de uma gravação. Escolha qual carregar — as outras são descartadas.",
+    "pickRecordingCount": "{{count}} capítulos"
   },
   "export": {
     "title": "Exportar vídeo",
