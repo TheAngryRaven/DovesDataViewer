@@ -286,7 +286,17 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       try {
         const handles = await window.showOpenFilePicker({
           multiple: true,
-          types: [{ description: "Video files", accept: { "video/*": [".mp4", ".webm", ".mov", ".mkv", ".avi"] } }],
+          excludeAcceptAllOption: true,
+          types: [{
+            description: "Video files",
+            accept: {
+              "video/mp4": [".mp4", ".m4v"],
+              "video/quicktime": [".mov"],
+              "video/webm": [".webm"],
+              "video/x-matroska": [".mkv"],
+              "video/x-msvideo": [".avi"],
+            },
+          }],
         });
         const files = await Promise.all(handles.map((h) => h.getFile()));
         const ordered = orderVideoFiles(files.map((f, i) => ({ name: f.name, file: f, handle: handles[i] })));
@@ -302,7 +312,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     if (!fileInputRef.current) {
       const input = document.createElement("input");
       input.type = "file";
-      input.accept = "video/*";
+      input.accept = "video/*,.mp4,.m4v,.mov,.webm,.mkv,.avi";
       input.multiple = true;
       input.style.display = "none";
       document.body.appendChild(input);
