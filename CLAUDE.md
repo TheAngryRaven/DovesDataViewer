@@ -85,7 +85,7 @@ src/
 │   ├── video-overlays/    # Video-export overlay system: registry + themes + per-widget *Overlay
 │   ├── RaceLineView.tsx   # Leaflet map: race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas speed/telemetry chart (simple mode)
-│   ├── VideoPlayer.tsx    # Synced video playback + overlay system
+│   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist)
 │   └── …                  # FileImport, DataloggerDownload (BLE entry, lazy), LapSnapshot*, …
 ├── hooks/                 # One concern each; Index.tsx orchestrates.
 │   ├── useSessionData     # Parses imported file → ParsedData
@@ -117,6 +117,7 @@ src/
 │   ├── gps/               # ★ Phone-as-datalogger layer: gpsFix, customGps, sessionGate, realtimeTimer, dovepWriter
 │   ├── speedHeatmap.ts / mapMarker.ts / brakingZones / gforceCalculation / …  # racing math
 │   ├── chartUtils / canvas2d / chartAxis / chartColors / videoExport / overlayCanvasRenderer  # charts/video
+│   ├── videoPlaylist.ts   # ★ Pure GoPro chunked-video model: parse/order GH/GX/GP/GOPR chunk names, build a virtual timeline (cumulative offsets) + virtual↔local time mapping. useVideoSync swaps the <video> src per chunk; a single file is a 1-chunk playlist
 │   ├── satelliteImagery.ts # ★ Esri Wayback parsing (online-only satellite imagery-date picker)
 │   ├── ble/               # Web Bluetooth DovesLapTimer protocol + firmware OTA (→ docs/ble.md)
 │   ├── db/                # Admin DB layer: ITrackDatabase + supabaseAdapter + getDatabase()

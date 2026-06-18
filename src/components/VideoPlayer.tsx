@@ -529,7 +529,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         <Button variant="outline" size="sm" onClick={actions.loadVideo} className="gap-2">
           <Video className="w-4 h-4" /> {t("player.loadVideo")}
         </Button>
-        <p className="text-xs text-muted-foreground/70">{t("player.segmentedUnsupported")}</p>
+        <p className="text-xs text-muted-foreground/70">{t("player.goproHint")}</p>
       </div>
     );
   }
@@ -547,6 +547,17 @@ export const VideoPlayer = memo(function VideoPlayer({
           preload="auto"
           muted={isMuted}
         />
+
+        {/* Hidden element that buffers the next chunk so the boundary swap is near-seamless. */}
+        {state.preloadUrl && (
+          <video
+            ref={actions.preloadVideoRef}
+            src={state.preloadUrl}
+            className="hidden"
+            preload="auto"
+            muted
+          />
+        )}
 
         {/* Out of range overlay */}
         {state.isOutOfRange && (
@@ -711,6 +722,11 @@ export const VideoPlayer = memo(function VideoPlayer({
               style={{ width: `${progressFraction * 100}%` }}
             />
           </div>
+          {state.chunkCount > 1 && (
+            <span className="text-white/50 text-xs font-mono whitespace-nowrap" title={t("player.chapterOf", { current: state.currentChunkIndex + 1, total: state.chunkCount })}>
+              {t("player.chapterShort", { current: state.currentChunkIndex + 1, total: state.chunkCount })}
+            </span>
+          )}
           <span className="text-white/60 text-xs font-mono min-w-[80px] text-right">
             {formatTime(state.videoCurrentTime)} / {formatTime(state.videoDuration)}
           </span>

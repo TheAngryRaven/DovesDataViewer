@@ -12,13 +12,27 @@ import { generateOverlayId } from "@/components/video-overlays/registry";
 export type { OverlayPosition, OverlaySettings };
 export { DEFAULT_OVERLAY_SETTINGS };
 
+/**
+ * One chunk of a multi-file recording (e.g. a GoPro chapter). The file handle
+ * lets the playlist be restored after reload; durationSec is cached so the
+ * virtual timeline rebuilds without re-reading each file's metadata.
+ */
+export interface VideoSyncChunk {
+  fileName: string;
+  fileHandle?: FileSystemFileHandle;
+  durationSec: number;
+}
+
 export interface VideoSyncRecord {
   sessionFileName: string;
+  /** First chunk's handle — kept for single-file back-compat. */
   fileHandle?: FileSystemFileHandle;
   syncOffsetMs: number;
   videoFileName: string;
   isLocked?: boolean;
   overlaySettings?: OverlaySettings;
+  /** Ordered chunks of a chunked recording. Absent for legacy single-file records. */
+  chunks?: VideoSyncChunk[];
 }
 
 /** Migrate old overlay settings format to new */

@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.6.0] - unreleased
 
 ### Added
+- **GoPro chunked-video support.** GoPro cameras split one recording into
+  sequential 3–5 minute files (`GH010042.MP4`, `GH020042.MP4`, … or legacy
+  `GOPR0042.MP4` + `GP010042.MP4`). You can now select **all** the chapter files
+  at once in the video player and they play back — and sync to your telemetry —
+  as one continuous video. Chapters are auto-detected and ordered (you can also
+  multi-select any set of files manually), the next chapter is preloaded so the
+  boundary is near-seamless, and a small chapter indicator shows where you are.
+  Fully client-side and offline, no stitching tool needed. Saved playlists
+  reload automatically next session. (Exporting a stitched overlay video across
+  chapters is a follow-up.)
 - **Post-session tire pressure & weight on the Notes tab.** A new collapsible
   **Post-Session** panel sits under the session-setup selector on the Notes page,
   letting you record the tire pressures you measured after a run (single / halves
