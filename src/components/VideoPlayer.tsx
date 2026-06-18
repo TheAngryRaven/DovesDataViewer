@@ -25,7 +25,7 @@ import { MapOverlay } from "@/components/video-overlays/MapOverlay";
 import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
 import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
 import { LapTimeOverlay } from "@/components/video-overlays/LapTimeOverlay";
-import { startVideoExport, downloadBlob, ExportContext } from "@/lib/videoExport";
+import { startVideoExport, downloadBlob, ExportContext, ExportSource } from "@/lib/videoExport";
 import { computeBrakingGSeriesSG, gToBrakePercent } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
@@ -397,12 +397,12 @@ export const VideoPlayer = memo(function VideoPlayer({
     : 0;
 
   // Build export context that resolves overlay data from video time
-  const buildExportRenderCtx = useCallback((_videoTime: number): OverlayRenderContext | null => {
-    // During export, the video element's currentTime is the source of truth.
-    // We map that to the telemetry timeline using the sync offset.
-    const video = actions.videoRef.current;
-    if (!video) return null;
-    const videoMs = video.currentTime * 1000;
+  const buildExportRenderCtx = useCallback((videoTime: number): OverlayRenderContext | null => {
+    // `videoTime` is the virtual (whole-recording) time of the frame being
+    // exported; map it to the telemetry timeline using the sync offset. (Reading
+    // the live element's currentTime would be wrong for multi-chunk exports,
+    // which seek a separate offscreen element.)
+    const videoMs = videoTime * 1000;
     const telemetryMs = videoMs + state.syncOffsetMs;
     const all = allSamplesRef.current;
     const vis = samplesRef.current;
@@ -430,7 +430,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       containerWidth: 0,
       containerHeight: 0,
     };
-  }, [actions.videoRef, state.syncOffsetMs, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, useKph]);
+  }, [state.syncOffsetMs, dataSources, fieldMappings, laps, selectedLapNumber, course, referenceSamples, useKph]);
 
   // Export
   const handleExport = useCallback((options: ExportOptions) => {
@@ -439,7 +439,11 @@ export const VideoPlayer = memo(function VideoPlayer({
     setIsExporting(true);
     setExportProgress(0);
 
-    // Compute time range for lap export
+    // Whole-recording (virtual) duration; falls back to the element's own
+    // duration when no playlist is present.
+    const totalDuration = state.videoDuration || video.duration;
+
+    // Compute time range for lap export (in virtual time across all chunks)
     let startTime: number | undefined;
     let endTime: number | undefined;
     if (options.range === "lap" && selectedLapNumber !== null) {
@@ -447,7 +451,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       if (lap) {
         // Convert telemetry time to video time using sync offset
         startTime = Math.max(0, (lap.startTime - state.syncOffsetMs) / 1000);
-        endTime = Math.min(video.duration, (lap.endTime - state.syncOffsetMs) / 1000);
+        endTime = Math.min(totalDuration, (lap.endTime - state.syncOffsetMs) / 1000);
       }
     }
 
@@ -464,7 +468,13 @@ export const VideoPlayer = memo(function VideoPlayer({
 
     const destination = options.destination;
 
-    startVideoExport(video, exportContext, exportOptions, {
+    // Single file → 1-chunk playlist so the exporter has one code path.
+    const chunks = state.exportChunks.length > 0
+      ? state.exportChunks
+      : [{ url: video.currentSrc || video.src, startOffsetSec: 0, durationSec: totalDuration }];
+    const exportSource: ExportSource = { liveVideo: video, chunks, totalDuration };
+
+    startVideoExport(exportSource, exportContext, exportOptions, {
       onProgress: (p) => setExportProgress(p),
       onComplete: (blob) => {
         setIsExporting(false);
@@ -498,7 +508,7 @@ export const VideoPlayer = memo(function VideoPlayer({
     // the whole `actions` object would invalidate handleExport on every parent
     // render, defeating the memoization.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps]);
+  }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, state.videoDuration, state.exportChunks, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps]);
 
   // Download existing stored video
   const handleSaveExisting = useCallback(async () => {

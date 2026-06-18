@@ -22,8 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   multi-select any set of files manually), the next chapter is preloaded so the
   boundary is near-seamless, and a small chapter indicator shows where you are.
   Fully client-side and offline, no stitching tool needed. Saved playlists
-  reload automatically next session. (Exporting a stitched overlay video across
-  chapters is a follow-up.)
+  reload automatically next session.
+- **Video export across GoPro chapters.** Exporting a full session (or a single
+  lap) with overlays now stitches across all chapters into one MP4 — the frame
+  encoder seeks through the whole virtual timeline and the audio from each
+  chapter is concatenated in sync. Multi-chapter export requires a browser with
+  WebCodecs (Chrome/Edge); single-file export is unchanged everywhere.
 - **Post-session tire pressure & weight on the Notes tab.** A new collapsible
   **Post-Session** panel sits under the session-setup selector on the Notes page,
   letting you record the tire pressures you measured after a run (single / halves

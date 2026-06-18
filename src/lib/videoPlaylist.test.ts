@@ -5,6 +5,7 @@ import {
   buildPlaylist,
   virtualToLocal,
   localToVirtual,
+  planAudioSegments,
   type Playlist,
 } from "./videoPlaylist";
 
@@ -131,5 +132,44 @@ describe("virtualToLocal / localToVirtual", () => {
   it("localToVirtual clamps the chunk index", () => {
     expect(localToVirtual(pl, 5, 10)).toBe(580 + 10);
     expect(localToVirtual(pl, -1, 10)).toBe(10);
+  });
+});
+
+describe("planAudioSegments", () => {
+  const chunks = [
+    { startOffsetSec: 0, durationSec: 300 },
+    { startOffsetSec: 300, durationSec: 280 },
+    { startOffsetSec: 580, durationSec: 120 },
+  ];
+  const sr = 48000;
+
+  it("maps a full-range export to one segment per chunk, end-to-end", () => {
+    const segs = planAudioSegments(chunks, 0, 700, sr);
+    expect(segs).toEqual([
+      { index: 0, srcStartSample: 0, lenSamples: 300 * sr, outStartSample: 0 },
+      { index: 1, srcStartSample: 0, lenSamples: 280 * sr, outStartSample: 300 * sr },
+      { index: 2, srcStartSample: 0, lenSamples: 120 * sr, outStartSample: 580 * sr },
+    ]);
+  });
+
+  it("handles a range spanning a single boundary (lap export)", () => {
+    // 250s..400s crosses the 300s boundary between chunk 0 and chunk 1.
+    const segs = planAudioSegments(chunks, 250, 400, sr);
+    expect(segs).toEqual([
+      { index: 0, srcStartSample: 250 * sr, lenSamples: 50 * sr, outStartSample: 0 },
+      { index: 1, srcStartSample: 0, lenSamples: 100 * sr, outStartSample: 50 * sr },
+    ]);
+  });
+
+  it("omits chunks outside the range", () => {
+    const segs = planAudioSegments(chunks, 610, 700, sr);
+    expect(segs).toHaveLength(1);
+    expect(segs[0]).toEqual({ index: 2, srcStartSample: 30 * sr, lenSamples: 90 * sr, outStartSample: 0 });
+  });
+
+  it("returns nothing for an empty or inverted range", () => {
+    expect(planAudioSegments(chunks, 100, 100, sr)).toEqual([]);
+    expect(planAudioSegments(chunks, 400, 200, sr)).toEqual([]);
+    expect(planAudioSegments(chunks, 0, 700, 0)).toEqual([]);
   });
 });

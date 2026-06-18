@@ -160,3 +160,47 @@ export function localToVirtual(
   const i = Math.max(0, Math.min(index, chunks.length - 1));
   return chunks[i].startOffsetSec + Math.max(0, localSec);
 }
+
+/** Where one chunk's audio lands when concatenating a [startSec, endSec) export range. */
+export interface AudioSegmentPlan {
+  /** Index into the input chunk list. */
+  index: number;
+  /** First sample to copy from the chunk's own audio. */
+  srcStartSample: number;
+  /** Number of samples to copy. */
+  lenSamples: number;
+  /** Sample position in the output buffer to copy them to. */
+  outStartSample: number;
+}
+
+/**
+ * Plan how each chunk's audio maps into one concatenated output buffer covering
+ * the virtual range [startSec, endSec). Pure sample-domain math so the
+ * audio-stitching in the exporter is unit-testable; chunks that don't overlap
+ * the range are omitted.
+ */
+export function planAudioSegments(
+  chunks: { startOffsetSec: number; durationSec: number }[],
+  startSec: number,
+  endSec: number,
+  sampleRate: number,
+): AudioSegmentPlan[] {
+  const plans: AudioSegmentPlan[] = [];
+  if (endSec <= startSec || sampleRate <= 0) return plans;
+
+  chunks.forEach((c, index) => {
+    const chunkEnd = c.startOffsetSec + c.durationSec;
+    const segStart = Math.max(startSec, c.startOffsetSec);
+    const segEnd = Math.min(endSec, chunkEnd);
+    if (segEnd <= segStart) return;
+
+    plans.push({
+      index,
+      srcStartSample: Math.round((segStart - c.startOffsetSec) * sampleRate),
+      lenSamples: Math.round((segEnd - segStart) * sampleRate),
+      outStartSample: Math.round((segStart - startSec) * sampleRate),
+    });
+  });
+
+  return plans;
+}

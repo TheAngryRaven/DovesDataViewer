@@ -22,6 +22,7 @@ import type { ExportOptions } from "@/components/video-overlays/VideoExportDialo
 import type { OverlayInstance, OverlayRenderContext } from "@/components/video-overlays/types";
 import { renderOverlaysToCanvas } from "@/lib/overlayCanvasRenderer";
 import { shouldStreamExport, writeStreamChunk, type StreamedPart } from "@/lib/videoExportTarget";
+import { virtualToLocal, planAudioSegments, type Playlist } from "@/lib/videoPlaylist";
 
 /** A muxer over either export target (in-memory buffer or chunked stream). */
 type ExportMuxer = Muxer<ArrayBufferTarget | StreamTarget>;
@@ -56,12 +57,31 @@ export interface ExportContext {
   buildRenderCtx: (videoCurrentTime: number) => OverlayRenderContext | null;
 }
 
+/** One chunk of the source recording on the virtual timeline. */
+export interface ExportChunk {
+  url: string;
+  startOffsetSec: number;
+  durationSec: number;
+}
+
+/**
+ * What the exporter reads from. `chunks` describes the whole recording on the
+ * virtual timeline (a single file is a 1-chunk list); `liveVideo` is the
+ * player's element, reused for dimensions and the single-chunk MediaRecorder
+ * fallback.
+ */
+export interface ExportSource {
+  liveVideo: HTMLVideoElement;
+  chunks: ExportChunk[];
+  totalDuration: number;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Public entry point                                                 */
 /* ------------------------------------------------------------------ */
 
 export function startVideoExport(
-  videoElement: HTMLVideoElement,
+  source: ExportSource,
   exportCtx: ExportContext | null,
   options: ExportOptions,
   callbacks: ExportCallbacks,
@@ -73,12 +93,81 @@ export function startVideoExport(
   };
 
   if (supportsWebCodecs()) {
-    runWebCodecsExport(videoElement, exportCtx, options, callbacks, () => cancelled);
+    runWebCodecsExport(source, exportCtx, options, callbacks, () => cancelled);
+  } else if (source.chunks.length > 1) {
+    // The MediaRecorder fallback plays a single element through; it can't span
+    // chunk boundaries. Multi-chapter recordings need WebCodecs.
+    callbacks.onError("Exporting a multi-chapter (GoPro) recording requires a browser with WebCodecs support.");
   } else {
-    runFallbackExport(videoElement, exportCtx, options, callbacks, () => cancelled);
+    runFallbackExport(source.liveVideo, exportCtx, options, callbacks, () => cancelled);
   }
 
   return controller;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Frame source: a dedicated offscreen <video> that seeks across chunks */
+/* ------------------------------------------------------------------ */
+
+interface FrameSource {
+  element: HTMLVideoElement;
+  /** Seek to a virtual (whole-recording) time, switching chunks as needed. */
+  seek: (virtualSec: number) => Promise<void>;
+  dispose: () => void;
+}
+
+/**
+ * Build an offscreen <video> that the frame loop seeks through in virtual time.
+ * Keeping it separate from the player element means the export never disturbs
+ * on-screen playback and the single-chunk case is just a 1-element playlist.
+ */
+async function createFrameSource(chunks: ExportChunk[]): Promise<FrameSource> {
+  const playlist: Playlist = {
+    chunks: chunks.map((c) => ({ name: "", durationSec: c.durationSec, startOffsetSec: c.startOffsetSec })),
+    totalDuration: chunks.reduce((sum, c) => sum + c.durationSec, 0),
+  };
+
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  // Kept on-screen (but invisible & offscreen) so browsers don't throttle
+  // media loading/seeking the way they can for a fully-detached element.
+  video.style.cssText = "position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;";
+  document.body.appendChild(video);
+
+  let currentIndex = -1;
+
+  const loadChunk = (index: number) => new Promise<void>((resolve, reject) => {
+    currentIndex = index;
+    const cleanup = () => {
+      video.removeEventListener("loadeddata", onReady);
+      video.removeEventListener("error", onErr);
+    };
+    const onReady = () => { cleanup(); resolve(); };
+    const onErr = () => { cleanup(); reject(new Error("Failed to load video chunk")); };
+    video.addEventListener("loadeddata", onReady);
+    video.addEventListener("error", onErr);
+    video.src = chunks[index].url;
+    video.load();
+  });
+
+  await loadChunk(0);
+
+  return {
+    element: video,
+    async seek(virtualSec: number) {
+      const { index, localSec } = virtualToLocal(playlist, virtualSec);
+      if (index !== currentIndex) await loadChunk(index);
+      video.currentTime = Math.max(0, localSec);
+      await waitForFrameReady(video);
+    },
+    dispose() {
+      video.removeAttribute("src");
+      video.load();
+      video.remove();
+    },
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,52 +182,63 @@ function supportsWebCodecs(): boolean {
 /*  Audio extraction + encoding                                        */
 /* ------------------------------------------------------------------ */
 
+/** Decode a single chunk's full audio track, or null if it has none. */
+async function decodeChunkAudio(url: string): Promise<AudioBuffer | null> {
+  try {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioCtx = new OfflineAudioContext(2, 1, 44100); // temp context for decoding
+    return await audioCtx.decodeAudioData(arrayBuffer);
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Extract the audio from a video element's source as an AudioBuffer.
- * Returns null if the video has no audio or decoding fails.
+ * Extract and concatenate audio across the chunks overlapping [startTime, endTime)
+ * into one AudioBuffer aligned to the export range. Chunks are decoded and copied
+ * one at a time so a long multi-chunk recording never holds every track in memory
+ * at once. Returns null if no chunk in range has audio.
  */
-async function extractAudioBuffer(
-  video: HTMLVideoElement,
+async function extractPlaylistAudio(
+  chunks: ExportChunk[],
   startTime: number,
   endTime: number,
 ): Promise<AudioBuffer | null> {
-  try {
-    // Fetch the raw video data from the blob URL
-    const response = await fetch(video.src);
-    const arrayBuffer = await response.arrayBuffer();
+  const overlapping = chunks.filter(
+    (c) => c.startOffsetSec < endTime && c.startOffsetSec + c.durationSec > startTime,
+  );
+  if (overlapping.length === 0) return null;
 
-    // Decode audio from the video file
-    const audioCtx = new OfflineAudioContext(2, 1, 44100); // temp context for decoding
-    let fullBuffer: AudioBuffer;
-    try {
-      fullBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    } catch {
-      console.log("Video has no audio track or audio decode failed");
-      return null;
+  let out: AudioBuffer | null = null;
+  let sampleRate = 0;
+  let channels = 0;
+
+  for (const chunk of overlapping) {
+    const buf = await decodeChunkAudio(chunk.url);
+    if (!buf) continue;
+
+    // The first decoded chunk fixes the output format + length.
+    if (!out) {
+      sampleRate = buf.sampleRate;
+      channels = buf.numberOfChannels;
+      const totalLen = Math.max(1, Math.round((endTime - startTime) * sampleRate));
+      out = new OfflineAudioContext(channels, totalLen, sampleRate).createBuffer(channels, totalLen, sampleRate);
     }
 
-    // If we need a sub-range, slice the buffer
-    const sampleRate = fullBuffer.sampleRate;
-    const channels = fullBuffer.numberOfChannels;
-    const startSample = Math.floor(startTime * sampleRate);
-    const endSample = Math.min(Math.ceil(endTime * sampleRate), fullBuffer.length);
-    const length = endSample - startSample;
+    const [seg] = planAudioSegments([chunk], startTime, endTime, sampleRate);
+    if (!seg) continue;
 
-    if (length <= 0) return null;
-
-    const sliced = new OfflineAudioContext(channels, length, sampleRate);
-    const slicedBuffer = sliced.createBuffer(channels, length, sampleRate);
     for (let ch = 0; ch < channels; ch++) {
-      const src = fullBuffer.getChannelData(ch);
-      const dst = slicedBuffer.getChannelData(ch);
-      dst.set(src.subarray(startSample, endSample));
+      const src = buf.getChannelData(Math.min(ch, buf.numberOfChannels - 1));
+      const dst = out.getChannelData(ch);
+      const slice = src.subarray(seg.srcStartSample, seg.srcStartSample + seg.lenSamples);
+      const writable = Math.min(slice.length, dst.length - seg.outStartSample);
+      if (writable > 0) dst.set(slice.subarray(0, writable), seg.outStartSample);
     }
-
-    return slicedBuffer;
-  } catch (e) {
-    console.warn("Audio extraction failed:", e);
-    return null;
   }
+
+  return out;
 }
 
 /**
@@ -236,15 +336,20 @@ function buildPlanarBuffer(
 /* ------------------------------------------------------------------ */
 
 async function runWebCodecsExport(
-  video: HTMLVideoElement,
+  source: ExportSource,
   exportCtx: ExportContext | null,
   options: ExportOptions,
   callbacks: ExportCallbacks,
   isCancelled: () => boolean,
 ) {
+  const liveVideo = source.liveVideo;
+  let frameSource: FrameSource | null = null;
+  let restorePlay = false;
   try {
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
+    // All chunks of one recording share a resolution, so the player element's
+    // dimensions describe every chunk.
+    const vw = liveVideo.videoWidth;
+    const vh = liveVideo.videoHeight;
     if (!vw || !vh) { callbacks.onError("Video has no dimensions"); return; }
 
     // Target resolution
@@ -263,14 +368,11 @@ async function runWebCodecsExport(
 
     const fps = 30;
     const startTime = options.startTime ?? 0;
-    const endTime = options.endTime ?? video.duration;
+    const endTime = options.endTime ?? source.totalDuration;
     const duration = endTime - startTime;
     const totalFrames = Math.ceil(duration * fps);
     const frameInterval = 1 / fps;
     const keyFrameInterval = fps; // keyframe every 1 second
-
-    // Extract audio in parallel with video setup
-    const audioPromise = extractAudioBuffer(video, startTime, endTime);
 
     // Canvas for compositing
     const canvas = document.createElement("canvas");
@@ -279,6 +381,17 @@ async function runWebCodecsExport(
     const ctx = canvas.getContext("2d");
     if (!ctx) { callbacks.onError("Failed to get canvas context"); return; }
 
+    // Don't let the player keep advancing behind the export dialog. The export
+    // reads a separate offscreen element, so the live element is only paused.
+    restorePlay = !liveVideo.paused;
+    liveVideo.pause();
+
+    // Offscreen source seeked in virtual time + audio stitched across chunks,
+    // both kicked off in parallel with encoder setup.
+    const sourcePromise = createFrameSource(source.chunks);
+    const audioPromise = extractPlaylistAudio(source.chunks, startTime, endTime);
+
+    frameSource = await sourcePromise;
     // Wait for audio extraction
     const audioBuffer = await audioPromise;
     if (isCancelled()) return;
@@ -336,12 +449,6 @@ async function runWebCodecsExport(
       framerate: fps,
     });
 
-    // Pause video for seeking
-    const wasMuted = video.muted;
-    const wasPlaying = !video.paused;
-    video.pause();
-    video.muted = true;
-
     const graphHistories = new Map<string, number[]>();
 
     // Frame-stepping loop
@@ -351,14 +458,13 @@ async function runWebCodecsExport(
 
       const t = startTime + i * frameInterval;
 
-      // Seek to frame time and wait for frame to be fully ready
-      video.currentTime = t;
-      await waitForFrameReady(video);
+      // Seek the offscreen source to this virtual time (crossing chunks as needed).
+      await frameSource.seek(t);
 
       if (isCancelled()) break;
 
       // Draw video frame to canvas
-      ctx.drawImage(video, 0, 0, targetW, targetH);
+      ctx.drawImage(frameSource.element, 0, 0, targetW, targetH);
 
       // Draw overlays
       if (options.includeOverlays && exportCtx) {
@@ -385,7 +491,6 @@ async function runWebCodecsExport(
 
     if (isCancelled()) {
       encoder.close();
-      video.muted = wasMuted;
       return;
     }
 
@@ -407,12 +512,14 @@ async function runWebCodecsExport(
       : new Blob([(target as ArrayBufferTarget).buffer], { type: "video/mp4" });
     streamedParts.length = 0;
 
-    video.muted = wasMuted;
-    if (wasPlaying) video.play();
-
     callbacks.onComplete(blob);
   } catch (e) {
     callbacks.onError(e instanceof Error ? e.message : "Export failed");
+  } finally {
+    // Tear down the offscreen source and resume the player on every exit path
+    // (success, cancel, encoder error, or throw).
+    frameSource?.dispose();
+    if (restorePlay) liveVideo.play();
   }
 }
 

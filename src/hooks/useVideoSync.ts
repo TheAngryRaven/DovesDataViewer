@@ -32,6 +32,8 @@ export interface VideoSyncState {
   chunkCount: number;
   /** Index of the currently-playing chunk. */
   currentChunkIndex: number;
+  /** Chunk descriptors (url + virtual offsets) for video export across chunks. */
+  exportChunks: { url: string; startOffsetSec: number; durationSec: number }[];
   isOutOfRange: boolean;
   overlaySettings: OverlaySettings;
   hasStoredVideo: boolean;
@@ -107,6 +109,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [chunkCount, setChunkCount] = useState(1);
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
+  const [exportChunks, setExportChunks] = useState<{ url: string; startOffsetSec: number; durationSec: number }[]>([]);
   const [isOutOfRange, setIsOutOfRange] = useState(false);
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
@@ -164,6 +167,11 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     pendingActionRef.current = null;
     setChunkCount(entries.length);
     setCurrentChunkIndex(0);
+    setExportChunks(entries.map((e, i) => ({
+      url: e.url,
+      startOffsetSec: playlist.chunks[i].startOffsetSec,
+      durationSec: playlist.chunks[i].durationSec,
+    })));
     setVideoDuration(playlist.totalDuration);
     setVideoCurrentTime(0);
     setVideoUrl(entries[0].url);
@@ -586,6 +594,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     if (!fileHandle) {
       revokeAllUrls();
       setVideoFileName(null);
+      setExportChunks([]);
       playlistRef.current = null;
       chunkHandlesRef.current = [];
       chunkNamesRef.current = [];
@@ -623,12 +632,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   // playback rate.
   const state: VideoSyncState = useMemo(() => ({
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
-    videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, isOutOfRange, overlaySettings,
+    videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
     storedVideoMeta,
   }), [
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
-    videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, isOutOfRange, overlaySettings,
+    videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, overlaySettings,
     storedVideoAvailable, storedVideoMeta,
   ]);
 
