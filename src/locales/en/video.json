@@ -4,6 +4,7 @@
     "lastUsed": "Last used: {{name}}",
     "loadVideo": "Load Video",
     "goproHint": "Recorded on a GoPro? Select all the chapter files at once — they'll play as one continuous video.",
+    "bulkSelectHint": "Tip: you can select all your files at once — logs and videos together — and we'll sort out which videos go where.",
     "chapterShort": "{{current}}/{{total}}",
     "chapterOf": "Chapter {{current}} of {{total}}",
     "noVideoForPortion": "No video for this portion",

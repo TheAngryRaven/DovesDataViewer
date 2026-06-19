@@ -5,6 +5,7 @@
     "lastUsed": "前回使用：{{name}}",
     "loadVideo": "動画を読み込む",
     "goproHint": "GoProで撮影しましたか？すべてのチャプターファイルをまとめて選択すると、1本の連続した動画として再生されます。",
+    "bulkSelectHint": "ヒント：すべてのファイルを一度にまとめて選択できます。ログと動画を一緒に選べば、どの動画をどこに割り当てるかは自動で処理します。",
     "chapterShort": "{{current}}/{{total}}",
     "chapterOf": "チャプター {{current}} / {{total}}",
     "noVideoForPortion": "この区間の動画はありません",

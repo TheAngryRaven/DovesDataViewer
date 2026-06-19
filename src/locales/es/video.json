@@ -5,6 +5,7 @@
     "lastUsed": "Último usado: {{name}}",
     "loadVideo": "Cargar vídeo",
     "goproHint": "¿Grabaste con una GoPro? Selecciona todos los archivos de capítulos a la vez: se reproducirán como un único vídeo continuo.",
+    "bulkSelectHint": "Consejo: puedes seleccionar todos tus archivos a la vez —registros y vídeos juntos— y nosotros nos encargamos de asignar cada vídeo.",
     "chapterShort": "{{current}}/{{total}}",
     "chapterOf": "Capítulo {{current}} de {{total}}",
     "noVideoForPortion": "No hay vídeo para esta parte",

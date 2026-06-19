@@ -132,6 +132,17 @@ export function isAtSectorLimit(course: Course): boolean {
 }
 
 /**
+ * True once all `MAX_MAJOR_SECTORS` majors are spoken for (start/finish + the
+ * flagged sub-sectors). The logger only ever sees three majors, so the editor
+ * hides the "major" toggle on non-major rows at this point; un-flagging an
+ * existing major drops back below the cap and the toggles return.
+ */
+export function isAtMajorLimit(course: Course): boolean {
+  const flaggedMajors = (course.sectors ?? []).filter((s) => s.major).length;
+  return flaggedMajors + 1 >= MAX_MAJOR_SECTORS; // + start/finish
+}
+
+/**
  * Roll the fine-grained per-segment times up into the classic S1/S2/S3, where
  * each major sector spans from its major line to the next major line. A major
  * sector is `undefined` if any of its constituent segments is missing.

@@ -5,6 +5,7 @@
     "lastUsed": "Zuletzt verwendet: {{name}}",
     "loadVideo": "Video laden",
     "goproHint": "Mit einer GoPro aufgenommen? Wählen Sie alle Kapiteldateien auf einmal aus – sie werden als ein durchgehendes Video abgespielt.",
+    "bulkSelectHint": "Tipp: Sie können alle Ihre Dateien auf einmal auswählen – Logs und Videos zusammen – und wir ordnen die Videos automatisch zu.",
     "chapterShort": "{{current}}/{{total}}",
     "chapterOf": "Kapitel {{current}} von {{total}}",
     "noVideoForPortion": "Kein Video für diesen Abschnitt",

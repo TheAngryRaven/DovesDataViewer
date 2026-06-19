@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [2.7.1] - 2026-06-19
+
+### Changed
+- **Course editor sector toggles.** Once all three major sectors are assigned
+  (start/finish counts as one), the **Major** toggle is hidden on the remaining
+  sub-sector rows — the datalogger only ever uses three majors, so there's
+  nothing to promote them to. Un-flag an existing major and the toggles
+  immediately reappear.
+- **Video panel hints.** The "no video loaded" panel now pads its hint text so
+  the GoPro tip no longer clips against the panel edges on narrow screens, and
+  adds a second tip: you can drop in **all** your files at once — logs and
+  videos together — and the app sorts out which videos go where.
+
 ## [2.7.0] - 2026-06-19
 
 ### Added

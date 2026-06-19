@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Course, SectorLine } from '@/types/racing';
 import {
   normalizeCourseSectors, majorSectorLines, legacyMirror, sectorLabels,
-  validateCourseSectors, isAtSectorLimit, rollupMajorSectors, centeredSectorLine,
+  validateCourseSectors, isAtSectorLimit, isAtMajorLimit, rollupMajorSectors, centeredSectorLine,
   MAX_SECTOR_LINES, MAX_MAJOR_SECTORS, DEFAULT_SECTOR_HALF_LENGTH_DEG,
 } from './courseSectors';
 
@@ -117,6 +117,30 @@ describe('isAtSectorLimit', () => {
     const sectors = Array.from({ length: MAX_SECTOR_LINES - 1 }, (_, i) => ({ line: line(i), major: false }));
     expect(isAtSectorLimit(baseCourse({ sectors }))).toBe(true);
     expect(isAtSectorLimit(baseCourse({ sectors: sectors.slice(0, -1) }))).toBe(false);
+  });
+});
+
+describe('isAtMajorLimit', () => {
+  it('counts start/finish toward the major cap', () => {
+    // No sub-sectors: start/finish alone is 1 of 3 majors — not at the cap.
+    expect(isAtMajorLimit(baseCourse())).toBe(false);
+    expect(isAtMajorLimit(baseCourse({ sectors: [] }))).toBe(false);
+  });
+
+  it('is false while fewer than MAX_MAJOR_SECTORS majors are flagged', () => {
+    // One flagged major + start/finish = 2 of 3.
+    const sectors = [{ line: line(0), major: true }, { line: line(1), major: false }];
+    expect(isAtMajorLimit(baseCourse({ sectors }))).toBe(false);
+  });
+
+  it('is true once start/finish + flagged majors reach the cap', () => {
+    // Two flagged majors + start/finish = 3 of 3.
+    const sectors = [
+      { line: line(0), major: true },
+      { line: line(1), major: false },
+      { line: line(2), major: true },
+    ];
+    expect(isAtMajorLimit(baseCourse({ sectors }))).toBe(true);
   });
 });
 

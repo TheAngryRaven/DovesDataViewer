@@ -5,6 +5,7 @@
     "lastUsed": "Dernière utilisée : {{name}}",
     "loadVideo": "Charger une vidéo",
     "goproHint": "Filmé avec une GoPro ? Sélectionnez tous les fichiers de chapitres à la fois : ils seront lus comme une seule vidéo continue.",
+    "bulkSelectHint": "Astuce : vous pouvez sélectionner tous vos fichiers d'un coup — journaux et vidéos ensemble — et nous nous occupons d'attribuer chaque vidéo.",
     "chapterShort": "{{current}}/{{total}}",
     "chapterOf": "Chapitre {{current}} sur {{total}}",
     "noVideoForPortion": "Aucune vidéo pour cette portion",

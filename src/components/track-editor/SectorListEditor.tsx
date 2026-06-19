@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { CourseSector, Course } from '@/types/racing';
 import {
-  sectorLabels, validateCourseSectors, isAtSectorLimit, MAX_SECTOR_LINES,
+  sectorLabels, validateCourseSectors, isAtSectorLimit, isAtMajorLimit, MAX_SECTOR_LINES,
 } from '@/lib/courseSectors';
 import type { SelectedLine } from '@/hooks/useTrackEditorForm';
 
@@ -49,6 +49,9 @@ export function SectorListEditor({
   const labels = useMemo(() => sectorLabels(course), [course]);
   const validation = useMemo(() => validateCourseSectors(course), [course]);
   const atLimit = isAtSectorLimit(course);
+  // Once all three majors are taken, only existing majors keep their toggle (so
+  // they can be un-flagged); non-major rows hide it since none can be promoted.
+  const atMajorLimit = isAtMajorLimit(course);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -124,6 +127,9 @@ export function SectorListEditor({
                   label={labels[i + 1] ?? ''}
                   sector={sec}
                   selected={selectedLine === i}
+                  // Hide the major toggle on non-major rows once the 3-major cap
+                  // is hit; major rows always keep it so they can be un-flagged.
+                  showMajorToggle={sec.major || !atMajorLimit}
                   onSelect={() => onSelectLine(i)}
                   onToggleMajor={() => onToggleMajor(i)}
                   onRemove={() => onRemoveSector(i)}
@@ -158,12 +164,15 @@ interface SectorRowProps {
   label: string;
   sector: CourseSector;
   selected: boolean;
+  /** Whether the "major" toggle is shown — hidden on non-major rows once the
+   *  3-major cap is reached (the logger only ever uses three). */
+  showMajorToggle: boolean;
   onSelect: () => void;
   onToggleMajor: () => void;
   onRemove: () => void;
 }
 
-function SectorRow({ index, label, sector, selected, onSelect, onToggleMajor, onRemove }: SectorRowProps) {
+function SectorRow({ index, label, sector, selected, showMajorToggle, onSelect, onToggleMajor, onRemove }: SectorRowProps) {
   const { t } = useTranslation('tracks');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sortableId(index) });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -193,10 +202,12 @@ function SectorRow({ index, label, sector, selected, onSelect, onToggleMajor, on
       <button type="button" onClick={onSelect} className="flex-1 text-left text-sm">
         {t('sectors.sectorRow', { label })}
       </button>
-      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-        {t('sectors.major')}
-        <Switch checked={sector.major} onCheckedChange={onToggleMajor} aria-label={t('sectors.markMajor')} />
-      </label>
+      {showMajorToggle && (
+        <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+          {t('sectors.major')}
+          <Switch checked={sector.major} onCheckedChange={onToggleMajor} aria-label={t('sectors.markMajor')} />
+        </label>
+      )}
       <Button
         variant="ghost"
         size="icon"
