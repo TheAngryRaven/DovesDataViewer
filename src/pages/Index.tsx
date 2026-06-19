@@ -186,6 +186,8 @@ export default function Index() {
     if (target === "setups" || target === "notes") setTopPanelView(target);
     else fileManager.open(target);
   }, [fileManager]);
+  // Open the garage on the Vehicles tab — setups need a vehicle to attach to.
+  const openVehiclesGarage = useCallback(() => fileManager.open("vehicles"), [fileManager]);
 
   // "New type" shortcut on the Vehicles tab: close the garage, jump to the Setups
   // tab, and ask it to open the vehicle-type creator (one-shot, cleared once the
@@ -546,10 +548,11 @@ export default function Index() {
     onGetLatestForVehicle: setupManager.getLatestForVehicle,
     onAddVehicleType: templateManager.addVehicleType,
     onRemoveVehicleType: templateManager.removeVehicleType,
+    onCreateVehicle: openVehiclesGarage,
   }), [
     vehicleManager.vehicles, setupManager.setups, templateManager.vehicleTypes, templateManager.templates,
     setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
-    templateManager.addVehicleType, templateManager.removeVehicleType,
+    templateManager.addVehicleType, templateManager.removeVehicleType, openVehiclesGarage,
   ]);
 
   // No data loaded - show import UI

@@ -148,6 +148,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   come from. On the landing page (no session loaded) the Setups tab is hosted
   inside the Garage so vehicles, setups and types stay reachable before you open a
   log.
+- **Setups guide you to a vehicle first.** With no vehicles yet, the **Add setup**
+  button is disabled and a **First create a vehicle** button takes you to the
+  Vehicles tab — no more dead-end where a setup has nothing to attach to.
+- **Copy setup from another vehicle.** When a same-type vehicle already has a
+  setup, the new-setup form shows a **Copy setup from…** button: pick a vehicle
+  (filtered to the current type) and one of its setups, and the form is pre-filled
+  so you can tweak and save — a big time-saver across similar karts/cars.
 - **Tighter lap selector.** The lap dropdown in the session header now sizes to
   its label instead of a fixed width, freeing up room so the toolbar controls
   (snapshots, overlays) don't get squeezed off-screen on mobile.

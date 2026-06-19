@@ -121,7 +121,12 @@
     "halves": "前後",
     "quarters": "4輪別",
     "update": "更新",
-    "save": "保存"
+    "save": "保存",
+    "copyFrom": "セットアップをコピー…",
+    "setup": "セットアップ",
+    "selectSetup": "セットアップを選択…",
+    "copy": "コピー",
+    "firstCreateVehicle": "まず車両を作成"
   },
   "setupHistory": {
     "title": "セットアップ履歴",

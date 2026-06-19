@@ -121,7 +121,12 @@
     "halves": "Mitades",
     "quarters": "Cuartos",
     "update": "Actualizar",
-    "save": "Guardar"
+    "save": "Guardar",
+    "copyFrom": "Copiar reglaje de…",
+    "setup": "Reglaje",
+    "selectSetup": "Seleccionar reglaje…",
+    "copy": "Copiar",
+    "firstCreateVehicle": "Primero crea un vehículo"
   },
   "setupHistory": {
     "title": "Historial de configuración",

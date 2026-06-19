@@ -1,12 +1,13 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info, Car, History } from "lucide-react";
+import { Wrench, Plus, ArrowLeft, Pencil, Trash2, Info, Car, History, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
 import { VehicleType, SetupTemplate, TemplateSection, TemplateFieldDef } from "@/lib/templateStorage";
@@ -31,6 +32,8 @@ interface SetupsTabProps {
    *  the Vehicles tab's "New type" shortcut). Cleared via onRequestNewTypeHandled. */
   requestNewType?: boolean;
   onRequestNewTypeHandled?: () => void;
+  /** Open the garage to the Vehicles tab (setups require a vehicle to attach to). */
+  onCreateVehicle?: () => void;
 }
 
 type FormMode = "list" | "new" | "edit" | "new-type" | "history";
@@ -64,12 +67,17 @@ export function SetupsTab({
   onAdd, onUpdate, onRemove, onGetLatestForVehicle,
   onAddVehicleType, onRemoveVehicleType,
   requestNewType, onRequestNewTypeHandled,
+  onCreateVehicle,
 }: SetupsTabProps) {
   const { t } = useTranslation("drawer");
   const [mode, setMode] = useState<FormMode>("list");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [selectedTypeId, setSelectedTypeId] = useState<string>("");
+  // "Copy setup from…" dialog state (copy another same-type vehicle's setup).
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyVehicleId, setCopyVehicleId] = useState("");
+  const [copySetupId, setCopySetupId] = useState("");
   const [preloaded, setPreloaded] = useState(false);
   const preloadSnapshot = useRef<Record<string, unknown> | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -177,63 +185,66 @@ export function SetupsTab({
     setMode("edit");
   }, [vehicles]);
 
+  // Copy a source setup's values into the current form, keeping the form's own
+  // target vehicle and name. Shared by the per-vehicle preload and the explicit
+  // "Copy setup from…" dialog. Also seeds the change-highlight snapshot.
+  const applySourceSetup = useCallback((source: VehicleSetup) => {
+    const psiMode = detectPsiMode(source);
+    const widthMode = detectWidthMode(source);
+    const diamMode = detectDiameterMode(source);
+    setForm(prev => ({
+      ...prev,
+      templateId: source.templateId,
+      unitSystem: source.unitSystem || "mm",
+      tireBrand: source.tireBrand,
+      psiMode,
+      psiFrontLeft: source.psiFrontLeft,
+      psiFrontRight: source.psiFrontRight,
+      psiRearLeft: source.psiRearLeft,
+      psiRearRight: source.psiRearRight,
+      tireWidthMode: widthMode,
+      tireWidthFrontLeft: source.tireWidthFrontLeft,
+      tireWidthFrontRight: source.tireWidthFrontRight,
+      tireWidthRearLeft: source.tireWidthRearLeft,
+      tireWidthRearRight: source.tireWidthRearRight,
+      tireDiameterMode: diamMode,
+      tireDiameterFrontLeft: source.tireDiameterFrontLeft,
+      tireDiameterFrontRight: source.tireDiameterFrontRight,
+      tireDiameterRearLeft: source.tireDiameterRearLeft,
+      tireDiameterRearRight: source.tireDiameterRearRight,
+      customFields: { ...source.customFields },
+    }));
+    if (psiMode === "single") setPsiSingle(source.psiFrontLeft);
+    if (psiMode === "halves") { setPsiFront(source.psiFrontLeft); setPsiRear(source.psiRearLeft); }
+    if (widthMode === "halves") { setWidthFront(source.tireWidthFrontLeft); setWidthRear(source.tireWidthRearLeft); }
+    if (diamMode === "halves") { setDiamFront(source.tireDiameterFrontLeft); setDiamRear(source.tireDiameterRearLeft); }
+    // Snapshot for change highlighting
+    preloadSnapshot.current = {
+      ...source.customFields,
+      tireBrand: source.tireBrand,
+      psiSingle: psiMode === "single" ? source.psiFrontLeft : null,
+      psiFront: psiMode === "halves" ? source.psiFrontLeft : null,
+      psiRear: psiMode === "halves" ? source.psiRearLeft : null,
+      psiFrontLeft: source.psiFrontLeft, psiFrontRight: source.psiFrontRight,
+      psiRearLeft: source.psiRearLeft, psiRearRight: source.psiRearRight,
+      widthFront: widthMode === "halves" ? source.tireWidthFrontLeft : null,
+      widthRear: widthMode === "halves" ? source.tireWidthRearLeft : null,
+      tireWidthFrontLeft: source.tireWidthFrontLeft, tireWidthFrontRight: source.tireWidthFrontRight,
+      tireWidthRearLeft: source.tireWidthRearLeft, tireWidthRearRight: source.tireWidthRearRight,
+      diamFront: diamMode === "halves" ? source.tireDiameterFrontLeft : null,
+      diamRear: diamMode === "halves" ? source.tireDiameterRearLeft : null,
+      tireDiameterFrontLeft: source.tireDiameterFrontLeft, tireDiameterFrontRight: source.tireDiameterFrontRight,
+      tireDiameterRearLeft: source.tireDiameterRearLeft, tireDiameterRearRight: source.tireDiameterRearRight,
+    };
+    setPreloaded(true);
+  }, []);
+
   const handleVehicleChange = useCallback(async (vehicleId: string) => {
     setForm(prev => ({ ...prev, vehicleId }));
     if (mode !== "new") return;
     const latest = await onGetLatestForVehicle(vehicleId);
-    if (latest) {
-      const psiMode = detectPsiMode(latest);
-      const widthMode = detectWidthMode(latest);
-      const diamMode = detectDiameterMode(latest);
-      setForm(prev => ({
-        ...prev,
-        vehicleId,
-        name: prev.name,
-        templateId: latest.templateId,
-        unitSystem: latest.unitSystem || "mm",
-        tireBrand: latest.tireBrand,
-        psiMode,
-        psiFrontLeft: latest.psiFrontLeft,
-        psiFrontRight: latest.psiFrontRight,
-        psiRearLeft: latest.psiRearLeft,
-        psiRearRight: latest.psiRearRight,
-        tireWidthMode: widthMode,
-        tireWidthFrontLeft: latest.tireWidthFrontLeft,
-        tireWidthFrontRight: latest.tireWidthFrontRight,
-        tireWidthRearLeft: latest.tireWidthRearLeft,
-        tireWidthRearRight: latest.tireWidthRearRight,
-        tireDiameterMode: diamMode,
-        tireDiameterFrontLeft: latest.tireDiameterFrontLeft,
-        tireDiameterFrontRight: latest.tireDiameterFrontRight,
-        tireDiameterRearLeft: latest.tireDiameterRearLeft,
-        tireDiameterRearRight: latest.tireDiameterRearRight,
-        customFields: { ...latest.customFields },
-      }));
-      if (psiMode === "single") setPsiSingle(latest.psiFrontLeft);
-      if (psiMode === "halves") { setPsiFront(latest.psiFrontLeft); setPsiRear(latest.psiRearLeft); }
-      if (widthMode === "halves") { setWidthFront(latest.tireWidthFrontLeft); setWidthRear(latest.tireWidthRearLeft); }
-      if (diamMode === "halves") { setDiamFront(latest.tireDiameterFrontLeft); setDiamRear(latest.tireDiameterRearLeft); }
-      // Snapshot for change highlighting
-      preloadSnapshot.current = {
-        ...latest.customFields,
-        tireBrand: latest.tireBrand,
-        psiSingle: psiMode === "single" ? latest.psiFrontLeft : null,
-        psiFront: psiMode === "halves" ? latest.psiFrontLeft : null,
-        psiRear: psiMode === "halves" ? latest.psiRearLeft : null,
-        psiFrontLeft: latest.psiFrontLeft, psiFrontRight: latest.psiFrontRight,
-        psiRearLeft: latest.psiRearLeft, psiRearRight: latest.psiRearRight,
-        widthFront: widthMode === "halves" ? latest.tireWidthFrontLeft : null,
-        widthRear: widthMode === "halves" ? latest.tireWidthRearLeft : null,
-        tireWidthFrontLeft: latest.tireWidthFrontLeft, tireWidthFrontRight: latest.tireWidthFrontRight,
-        tireWidthRearLeft: latest.tireWidthRearLeft, tireWidthRearRight: latest.tireWidthRearRight,
-        diamFront: diamMode === "halves" ? latest.tireDiameterFrontLeft : null,
-        diamRear: diamMode === "halves" ? latest.tireDiameterRearLeft : null,
-        tireDiameterFrontLeft: latest.tireDiameterFrontLeft, tireDiameterFrontRight: latest.tireDiameterFrontRight,
-        tireDiameterRearLeft: latest.tireDiameterRearLeft, tireDiameterRearRight: latest.tireDiameterRearRight,
-      };
-      setPreloaded(true);
-    }
-  }, [mode, onGetLatestForVehicle]);
+    if (latest) applySourceSetup(latest);
+  }, [mode, onGetLatestForVehicle, applySourceSetup]);
 
   const handleTypeChange = useCallback((typeId: string) => {
     setSelectedTypeId(typeId);
@@ -266,6 +277,34 @@ export function SetupsTab({
     setMode("new-type");
     onRequestNewTypeHandled?.();
   }, [requestNewType, onRequestNewTypeHandled]);
+
+  // "Copy setup from…": same-type vehicles that already have a setup to copy.
+  const copyableVehicles = useMemo(
+    () => filteredVehicles.filter(v => setups.some(s => s.vehicleId === v.id)),
+    [filteredVehicles, setups],
+  );
+  const copyVehicleSetups = useMemo(
+    () => setups.filter(s => s.vehicleId === copyVehicleId),
+    [setups, copyVehicleId],
+  );
+
+  const openCopy = useCallback(() => {
+    const firstVehicle = copyableVehicles[0]?.id ?? "";
+    setCopyVehicleId(firstVehicle);
+    setCopySetupId(setups.find(s => s.vehicleId === firstVehicle)?.id ?? "");
+    setCopyOpen(true);
+  }, [copyableVehicles, setups]);
+
+  const handleCopyVehicleChange = useCallback((vehicleId: string) => {
+    setCopyVehicleId(vehicleId);
+    setCopySetupId(setups.find(s => s.vehicleId === vehicleId)?.id ?? "");
+  }, [setups]);
+
+  const handleCopyConfirm = useCallback(() => {
+    const source = setups.find(s => s.id === copySetupId);
+    if (source) applySourceSetup(source);
+    setCopyOpen(false);
+  }, [copySetupId, setups, applySourceSetup]);
 
   const handleSave = useCallback(async () => {
     let finalForm = { ...form };
@@ -387,9 +426,16 @@ export function SetupsTab({
           <Button variant="secondary" className="w-full gap-2" onClick={() => setMode("new-type")}>
             <Car className="w-4 h-4" /> {t("setups.newVehicleType")}
           </Button>
-          <Button className="w-full gap-2" onClick={openNew}>
+          {/* A setup must attach to a vehicle — block new setups until one exists
+              and point the user at the Vehicles tab. */}
+          <Button className="w-full gap-2" onClick={openNew} disabled={vehicles.length === 0}>
             <Plus className="w-4 h-4" /> {t("setups.addNewSetup")}
           </Button>
+          {vehicles.length === 0 && onCreateVehicle && (
+            <Button className="w-full gap-2" onClick={onCreateVehicle}>
+              <Car className="w-4 h-4" /> {t("setups.firstCreateVehicle")}
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -434,6 +480,12 @@ export function SetupsTab({
                 </SelectContent>
               </Select>
             </Field>
+          )}
+          {/* Bootstrap a new setup from a same-type vehicle that already has one. */}
+          {mode === "new" && selectedTypeId && copyableVehicles.length > 0 && (
+            <Button variant="outline" size="sm" className="w-full gap-2" onClick={openCopy}>
+              <Copy className="w-4 h-4" /> {t("setups.copyFrom")}
+            </Button>
           )}
           <Field label={t("setups.vehicle")}>
             <Select value={form.vehicleId} onValueChange={handleVehicleChange} disabled={filteredVehicles.length <= 1}>
@@ -599,6 +651,39 @@ export function SetupsTab({
           {mode === "edit" ? t("setups.update") : t("setups.save")}
         </Button>
       </div>
+
+      {/* Copy-setup-from dialog */}
+      <Dialog open={copyOpen} onOpenChange={setCopyOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("setups.copyFrom")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">{t("setups.vehicle")}</Label>
+              <Select value={copyVehicleId} onValueChange={handleCopyVehicleChange}>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectVehicle")} /></SelectTrigger>
+                <SelectContent>
+                  {copyableVehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{t("setups.setup")}</Label>
+              <Select value={copySetupId} onValueChange={setCopySetupId} disabled={copyVehicleSetups.length === 0}>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectSetup")} /></SelectTrigger>
+                <SelectContent>
+                  {copyVehicleSetups.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCopyOpen(false)}>{t("setups.cancel")}</Button>
+            <Button onClick={handleCopyConfirm} disabled={!copySetupId}>{t("setups.copy")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

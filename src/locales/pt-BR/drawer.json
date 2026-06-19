@@ -121,7 +121,12 @@
     "halves": "Metades",
     "quarters": "Quartos",
     "update": "Atualizar",
-    "save": "Salvar"
+    "save": "Salvar",
+    "copyFrom": "Copiar acerto de…",
+    "setup": "Acerto",
+    "selectSetup": "Selecionar acerto…",
+    "copy": "Copiar",
+    "firstCreateVehicle": "Crie um veículo primeiro"
   },
   "setupHistory": {
     "title": "Histórico de configuração",

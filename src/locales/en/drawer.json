@@ -120,7 +120,12 @@
     "halves": "Halves",
     "quarters": "Quarters",
     "update": "Update",
-    "save": "Save"
+    "save": "Save",
+    "copyFrom": "Copy setup from…",
+    "setup": "Setup",
+    "selectSetup": "Select setup…",
+    "copy": "Copy",
+    "firstCreateVehicle": "First create a vehicle"
   },
   "setupHistory": {
     "title": "Setup History",

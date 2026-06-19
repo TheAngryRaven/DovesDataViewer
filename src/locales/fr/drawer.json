@@ -121,7 +121,12 @@
     "halves": "Moitiés",
     "quarters": "Quarts",
     "update": "Mettre à jour",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "copyFrom": "Copier le réglage de…",
+    "setup": "Réglage",
+    "selectSetup": "Sélectionner un réglage…",
+    "copy": "Copier",
+    "firstCreateVehicle": "Créez d'abord un véhicule"
   },
   "setupHistory": {
     "title": "Historique des réglages",

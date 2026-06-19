@@ -121,7 +121,12 @@
     "halves": "Metà",
     "quarters": "Quarti",
     "update": "Aggiorna",
-    "save": "Salva"
+    "save": "Salva",
+    "copyFrom": "Copia assetto da…",
+    "setup": "Assetto",
+    "selectSetup": "Seleziona assetto…",
+    "copy": "Copia",
+    "firstCreateVehicle": "Crea prima un veicolo"
   },
   "setupHistory": {
     "title": "Cronologia assetto",

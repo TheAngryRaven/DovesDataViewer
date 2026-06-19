@@ -121,7 +121,12 @@
     "halves": "Hälften",
     "quarters": "Viertel",
     "update": "Aktualisieren",
-    "save": "Speichern"
+    "save": "Speichern",
+    "copyFrom": "Setup kopieren von…",
+    "setup": "Setup",
+    "selectSetup": "Setup auswählen…",
+    "copy": "Kopieren",
+    "firstCreateVehicle": "Zuerst ein Fahrzeug erstellen"
   },
   "setupHistory": {
     "title": "Setup-Verlauf",
