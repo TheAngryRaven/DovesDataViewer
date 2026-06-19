@@ -140,6 +140,20 @@
     "showChanges": "変更のみ表示",
     "lapsHeader": "最速ラップ"
   },
+  "vehicleHistory": {
+    "title": "車両履歴",
+    "openTitle": "車両履歴を表示",
+    "loading": "履歴を読み込み中…",
+    "empty": "まだ履歴がありません",
+    "emptyHint": "この車両でセッションを実行しセットアップを割り当てると履歴の作成が始まります。",
+    "allCourses": "すべてのコース",
+    "fastestTag": "最速ラップ",
+    "noLap": "—",
+    "noSetupData": "セットアップデータなし",
+    "showFull": "セットアップを表示",
+    "hideFull": "セットアップを非表示",
+    "lapsHeader": "最速ラップ"
+  },
   "notes": {
     "loadSession": "メモを追加するにはセッションを読み込んでください",
     "sessionSetup": "セッションのセットアップ",

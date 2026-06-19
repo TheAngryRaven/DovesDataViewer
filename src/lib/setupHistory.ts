@@ -14,7 +14,7 @@ import type { FileMetadata } from "./fileStorage";
 import type { Vehicle } from "./vehicleStorage";
 
 /** Separator for the composite course key (never appears in track/course names). */
-const COURSE_KEY_SEP = "\x1f";
+export const COURSE_KEY_SEP = "\x1f";
 
 /** A single flattened setup value, ready to render or diff. */
 export interface SetupField {
@@ -291,7 +291,8 @@ export function diffRevisionFields(prev: SetupField[], next: SetupField[]): Setu
   return diffs;
 }
 
-function buildUsage(meta: FileMetadata, vehicles: Vehicle[]): SetupUsage {
+/** Convert one session's metadata into a `SetupUsage` (kart/course resolved). */
+export function buildUsage(meta: FileMetadata, vehicles: Vehicle[]): SetupUsage {
   const vehicle = meta.sessionKartId ? vehicles.find((v) => v.id === meta.sessionKartId) : undefined;
   const trackName = meta.trackName || undefined;
   const courseName = meta.courseName || undefined;
@@ -316,14 +317,14 @@ function buildUsage(meta: FileMetadata, vehicles: Vehicle[]): SetupUsage {
 }
 
 /** Sort usages fastest lap first; sessions without a lap time sink to the bottom. */
-function byFastestLap(a: SetupUsage, b: SetupUsage): number {
+export function byFastestLap(a: SetupUsage, b: SetupUsage): number {
   const av = a.fastestLapMs ?? Infinity;
   const bv = b.fastestLapMs ?? Infinity;
   if (av !== bv) return av - bv;
   return (a.sessionStartTime ?? 0) - (b.sessionStartTime ?? 0);
 }
 
-function distinct<T>(values: (T | undefined)[]): T[] {
+export function distinct<T>(values: (T | undefined)[]): T[] {
   return Array.from(new Set(values.filter((v): v is T => v !== undefined && v !== "")));
 }
 

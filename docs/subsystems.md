@@ -237,6 +237,19 @@ exactly as it was the day it ran, even after the live setup is later edited.
   **kart + course filter** (drops non-matching revisions). Field flattening
   (`flattenRevisionFields`) reads each revision's *frozen* template so old history
   renders with the labels it had that day.
+- **Vehicle history panel.** Each **VehiclesTab** row has the same history icon
+  opening `drawer/VehicleHistoryPanel.tsx`, built by the pure `lib/vehicleHistory.ts`
+  (`buildVehicleHistory`). Where setup history fixes one setup and walks its
+  revisions, vehicle history fixes one *vehicle* and gathers **every setup revision
+  run on it** (one card per revision, joined via `sessionKartId` + `sessionSetupRev`),
+  ordered **fastest lap first** so the quickest setup is on top (overall fastest
+  highlighted). Each card shows the setup **name + #hash**, is **collapsed by
+  default** (expand for the full frozen setup — **no diff**), and a **course filter**
+  narrows the view. It reuses setupHistory's `buildUsage`/`byFastestLap`/
+  `flattenRevisionFields` primitives, and both panels render through the shared
+  **`drawer/HistoryCard.tsx`** card chrome (`HistoryCard` + `FullSetup`/`DiffList`:
+  fastest-lap highlight, hash/date header, kart/course bubbles, collapsible body,
+  fastest-laps footer).
 - **Orphan prune (GC).** A revision is an orphan once no
   `FileMetadata.sessionSetupRev` points at it. `pruneSetupRevisions()` deletes
   orphans (pure split: `findOrphanRevisionIds`); `maybePruneSetupRevisions()`

@@ -109,6 +109,7 @@ src/
 │   ├── lapSnapshot*.ts    # ★ Snapshot types/buffer + IndexedDB CRUD (→ docs/subsystems.md)
 │   ├── setupRevision*.ts  # ★ Content-addressed setup history + IndexedDB CRUD (→ docs/subsystems.md)
 │   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
+│   ├── vehicleHistory.ts  # ★ Pure vehicle-history view-model (per-vehicle setup revisions, fastest-lap first, course filter) → drawer/VehicleHistoryPanel; reuses setupHistory primitives; shared card chrome in drawer/HistoryCard.tsx
 │   ├── trackSubmission.ts # ★ Community-DB upload plan (→ docs/subsystems.md)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
 │   ├── garageEvents.ts    # ★ Host pub/sub: storage emits {store,key,put|delete}; cloud-sync syncs off it

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Pencil, Trash2, Car } from "lucide-react";
+import { Pencil, Trash2, Car, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleType } from "@/lib/templateStorage";
 import { useEngineManager } from "@/hooks/useEngineManager";
 import { EngineCombobox } from "./EngineCombobox";
+import { VehicleHistoryPanel } from "./VehicleHistoryPanel";
 
 interface VehiclesTabProps {
   vehicles: Vehicle[];
@@ -34,6 +35,7 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm(defaultTypeId));
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [historyVehicle, setHistoryVehicle] = useState<Vehicle | null>(null);
 
   const { engines, addEngine, importEngines, removeEngine } = useEngineManager();
 
@@ -87,6 +89,16 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
     if (editingId === confirmDelete) resetForm();
   }, [confirmDelete, onRemove, editingId, resetForm]);
 
+  if (historyVehicle) {
+    return (
+      <VehicleHistoryPanel
+        vehicle={historyVehicle}
+        vehicles={vehicles}
+        onBack={() => setHistoryVehicle(null)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {confirmDelete && (
@@ -122,6 +134,9 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove 
                     {vt?.name ?? t("vehicles.unknownType")} · {vehicle.engine} · {vehicle.weight} {vehicle.weightUnit}
                   </div>
                 </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100" onClick={() => setHistoryVehicle(vehicle)} title={t("vehicleHistory.openTitle")}>
+                  <History className="w-3.5 h-3.5" />
+                </Button>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100" onClick={() => handleEdit(vehicle)} title={t("vehicles.edit")}>
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>

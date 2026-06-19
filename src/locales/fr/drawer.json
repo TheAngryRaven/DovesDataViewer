@@ -140,6 +140,20 @@
     "showChanges": "Afficher uniquement les changements",
     "lapsHeader": "Meilleurs tours"
   },
+  "vehicleHistory": {
+    "title": "Historique du véhicule",
+    "openTitle": "Voir l'historique du véhicule",
+    "loading": "Chargement de l'historique…",
+    "empty": "Pas encore d'historique",
+    "emptyHint": "Effectuez une session avec ce véhicule et associez-lui un réglage pour commencer à construire son historique.",
+    "allCourses": "Tous les circuits",
+    "fastestTag": "Meilleur tour",
+    "noLap": "—",
+    "noSetupData": "Aucune donnée de réglage",
+    "showFull": "Afficher le réglage",
+    "hideFull": "Masquer le réglage",
+    "lapsHeader": "Meilleurs tours"
+  },
   "notes": {
     "loadSession": "Chargez une session pour ajouter des notes",
     "sessionSetup": "Réglage de la session",

@@ -139,6 +139,20 @@
     "showChanges": "Show changes only",
     "lapsHeader": "Fastest laps"
   },
+  "vehicleHistory": {
+    "title": "Vehicle History",
+    "openTitle": "View vehicle history",
+    "loading": "Loading history…",
+    "empty": "No history yet",
+    "emptyHint": "Run a session with this vehicle and assign a setup to start building its history.",
+    "allCourses": "All courses",
+    "fastestTag": "Fastest lap",
+    "noLap": "—",
+    "noSetupData": "No setup data",
+    "showFull": "Show setup",
+    "hideFull": "Hide setup",
+    "lapsHeader": "Fastest laps"
+  },
   "notes": {
     "loadSession": "Load a session to add notes",
     "sessionSetup": "Session Setup",

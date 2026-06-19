@@ -140,6 +140,20 @@
     "showChanges": "Nur Änderungen anzeigen",
     "lapsHeader": "Schnellste Runden"
   },
+  "vehicleHistory": {
+    "title": "Fahrzeugverlauf",
+    "openTitle": "Fahrzeugverlauf anzeigen",
+    "loading": "Verlauf wird geladen…",
+    "empty": "Noch kein Verlauf",
+    "emptyHint": "Fahre eine Sitzung mit diesem Fahrzeug und weise ein Setup zu, um den Verlauf aufzubauen.",
+    "allCourses": "Alle Strecken",
+    "fastestTag": "Schnellste Runde",
+    "noLap": "—",
+    "noSetupData": "Keine Setup-Daten",
+    "showFull": "Setup anzeigen",
+    "hideFull": "Setup ausblenden",
+    "lapsHeader": "Schnellste Runden"
+  },
   "notes": {
     "loadSession": "Lade eine Session, um Notizen hinzuzufügen",
     "sessionSetup": "Session-Setup",
