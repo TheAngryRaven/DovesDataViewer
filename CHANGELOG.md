@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [2.7.0] - unreleased
+
+### Added
+- **Collapsible Pro panel + relocatable Video/Mini-Map on mobile.** The Pro
+  view's left column (info/vehicle/video + mini-map) is roomy on tablet and
+  desktop but cramped on a phone. On mobile a small flag tab now sits at the top
+  of the divider between the two columns — tap it to collapse the left column so
+  the graphs get the full screen width, tap again to bring it back. So you don't
+  lose the video or the map when collapsed, the graph picker (the "Add Graph"
+  dropdown) gains two extra options at the top on mobile — **Video** and **Mini
+  Map** — that drop the video player or the track map into the regular,
+  resizable graph stack alongside your data channels. Tablet/desktop are
+  unchanged.
+
 ## [2.6.0] - unreleased
 
 ### Added

@@ -157,7 +157,10 @@
     "brakeGps": "Brake % (GPS)",
     "brakeComputed": "Brake % (computed)",
     "ggDiagram": "G-G Diagram",
-    "removeGraph": "Remove graph"
+    "removeGraph": "Remove graph",
+    "miniMap": "Mini Map",
+    "collapsePanel": "Collapse panel",
+    "expandPanel": "Expand panel"
   },
   "gg": {
     "noData": "No G-force data",

@@ -158,7 +158,10 @@
     "brakeGps": "ブレーキ % (GPS)",
     "brakeComputed": "ブレーキ % (計算値)",
     "ggDiagram": "G-G ダイアグラム",
-    "removeGraph": "グラフを削除"
+    "removeGraph": "グラフを削除",
+    "miniMap": "ミニマップ",
+    "collapsePanel": "パネルを折りたたむ",
+    "expandPanel": "パネルを展開"
   },
   "gg": {
     "noData": "G フォースのデータなし",

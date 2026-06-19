@@ -6,6 +6,7 @@ import { RangeSlider } from '@/components/RangeSlider';
 import { SectorCropSelect } from '@/components/SectorCropSelect';
 import { SingleSeriesChart } from './SingleSeriesChart';
 import { GGDiagram } from './GGDiagram';
+import { PanelCard } from './PanelCard';
 import { GpsSample, FieldMapping, Course, Lap } from '@/types/racing';
 import type { OverlayLine } from '@/lib/lapOverlays';
 import { calculatePace, calculateReferenceSpeed, calculateDistanceArray } from '@/lib/referenceUtils';
@@ -19,6 +20,12 @@ const SERIES_COLORS = [
   'hsl(280, 60%, 60%)', 'hsl(120, 60%, 50%)', 'hsl(30, 80%, 55%)',
   'hsl(200, 80%, 60%)', 'hsl(340, 80%, 55%)',
 ];
+
+/** Synthetic source keys for panels relocated into the graph stack (mobile). */
+const VIDEO_KEY = '__video__';
+const MINIMAP_KEY = '__minimap__';
+const VIDEO_DEFAULT_HEIGHT = 300;
+const MINIMAP_DEFAULT_HEIGHT = 280;
 
 interface GraphPanelProps {
   samples: GpsSample[];
@@ -35,12 +42,21 @@ interface GraphPanelProps {
   course?: Course | null;
   laps?: Lap[];
   selectedLapNumber?: number | null;
+  /** When set, the video/mini-map can be relocated here as resizable panels
+   *  (mobile: lets the user collapse the left panel and still reach them). */
+  enableMobilePanels?: boolean;
+  renderVideo?: () => React.ReactNode;
+  renderMiniMap?: () => React.ReactNode;
+  /** Reports which relocated panels are active, so the host can avoid mounting
+   *  a duplicate (the video player binds a single shared element ref). */
+  onMobilePanelsChange?: (active: { video: boolean; miniMap: boolean }) => void;
 }
 
 export function GraphPanel({
   samples, filteredSamples, referenceSamples, fieldMappings, onScrub,
   visibleRange, onRangeChange, minRange, formatRangeLabel, sessionFileName, overlayLines = [],
   course = null, laps = [], selectedLapNumber = null,
+  enableMobilePanels = false, renderVideo, renderMiniMap, onMobilePanelsChange,
 }: GraphPanelProps) {
   const { t } = useTranslation('session');
   const { useKph, useMetricDistance, brakingZoneSettings } = useSettingsContext();
@@ -162,11 +178,18 @@ export function GraphPanel({
 
   const hasBothSources = hasHwAccel && hasGpsG;
 
+  const hasVideoPanel = enableMobilePanels && !!renderVideo;
+  const hasMiniMapPanel = enableMobilePanels && !!renderMiniMap;
+
   // Available data sources
   const availableSources = useMemo(() => {
-    const sources: { key: string; label: string }[] = [
+    const sources: { key: string; label: string }[] = [];
+    // Relocated panels sit at the top of the picker on mobile.
+    if (hasVideoPanel) sources.push({ key: VIDEO_KEY, label: t('infoBox.tabVideo') });
+    if (hasMiniMapPanel) sources.push({ key: MINIMAP_KEY, label: t('graphs.miniMap') });
+    sources.push(
       { key: 'speed', label: t('graphs.speed', { unit: useKph ? 'KPH' : 'MPH' }) },
-    ];
+    );
     if (hasReference) {
       sources.push({ key: '__pace__', label: t('graphs.pace') });
     }
@@ -190,11 +213,20 @@ export function GraphPanel({
       sources.push({ key: f.name, label });
     });
     return sources;
-  }, [fieldMappings, useKph, useMetricDistance, hasReference, hasBothSources, hasGForce, t]);
+  }, [fieldMappings, useKph, useMetricDistance, hasReference, hasBothSources, hasGForce, hasVideoPanel, hasMiniMapPanel, t]);
 
   const unusedSources = useMemo(() => {
     return availableSources.filter(s => !activeGraphs.includes(s.key));
   }, [availableSources, activeGraphs]);
+
+  // Report which relocated panels are live so the host can drop its own copy
+  // (the video player binds a single shared element ref — two would collide).
+  useEffect(() => {
+    onMobilePanelsChange?.({
+      video: hasVideoPanel && activeGraphs.includes(VIDEO_KEY),
+      miniMap: hasMiniMapPanel && activeGraphs.includes(MINIMAP_KEY),
+    });
+  }, [activeGraphs, hasVideoPanel, hasMiniMapPanel, onMobilePanelsChange]);
 
   const addGraph = useCallback((key: string) => {
     if (key && !activeGraphs.includes(key)) {
@@ -249,7 +281,33 @@ export function GraphPanel({
         ) : (
           <>
             {activeGraphs.map(key => (
-              key === '__gg__' ? (
+              key === VIDEO_KEY ? (
+                hasVideoPanel ? (
+                  <PanelCard
+                    key={key}
+                    label={t('infoBox.tabVideo')}
+                    onDelete={() => removeGraph(key)}
+                    height={graphHeights[key]}
+                    defaultHeight={VIDEO_DEFAULT_HEIGHT}
+                    onHeightChange={(h) => setGraphHeight(key, h)}
+                  >
+                    <div className="h-full">{renderVideo!()}</div>
+                  </PanelCard>
+                ) : null
+              ) : key === MINIMAP_KEY ? (
+                hasMiniMapPanel ? (
+                  <PanelCard
+                    key={key}
+                    label={t('graphs.miniMap')}
+                    onDelete={() => removeGraph(key)}
+                    height={graphHeights[key]}
+                    defaultHeight={MINIMAP_DEFAULT_HEIGHT}
+                    onHeightChange={(h) => setGraphHeight(key, h)}
+                  >
+                    <div className="h-full">{renderMiniMap!()}</div>
+                  </PanelCard>
+                ) : null
+              ) : key === '__gg__' ? (
                 <GGDiagram
                   key={key}
                   samples={samples}

@@ -158,7 +158,10 @@
     "brakeGps": "Frein % (GPS)",
     "brakeComputed": "Frein % (calculé)",
     "ggDiagram": "Diagramme G-G",
-    "removeGraph": "Supprimer le graphique"
+    "removeGraph": "Supprimer le graphique",
+    "miniMap": "Mini-carte",
+    "collapsePanel": "Réduire le panneau",
+    "expandPanel": "Agrandir le panneau"
   },
   "gg": {
     "noData": "Aucune donnée de force G",

@@ -49,6 +49,9 @@ interface InfoBoxProps {
   referenceSamples?: GpsSample[];
   paceData?: (number | null)[];
   sessionFileName?: string | null;
+  /** Hide the Video tab — the player was relocated into the graph stack (mobile),
+   *  and two players can't share the single video element ref. */
+  hideVideoTab?: boolean;
 }
 
 type InfoTab = 'data' | 'vehicle' | 'video';
@@ -60,7 +63,7 @@ export function InfoBox({
   vehicles, setups, templates, sessionKartId, sessionSetupId, onSaveSessionSetup, onOpenSetupEditor, onOpenGarage,
   videoState, videoActions, onVideoLoadedMetadata,
   visibleSamples, allSamples, fieldMappings, laps, selectedLapNumber,
-  referenceSamples, paceData, sessionFileName,
+  referenceSamples, paceData, sessionFileName, hideVideoTab,
 }: InfoBoxProps) {
   const { t } = useTranslation('session');
   const { useKph } = useSettingsContext();
@@ -69,6 +72,9 @@ export function InfoBox({
   const [selectedSetupId, setSelectedSetupId] = useState<string | null>(sessionSetupId);
 
   useEffect(() => { setSelectedVehicleId(sessionKartId); setSelectedSetupId(sessionSetupId); }, [sessionKartId, sessionSetupId]);
+
+  // If the video panel was relocated while this tab was open, fall back to data.
+  useEffect(() => { if (hideVideoTab && tab === 'video') setTab('data'); }, [hideVideoTab, tab]);
 
   const unit = useKph ? 'kph' : 'mph';
   const convertSpeed = (speed: number) => useKph ? speed * 1.60934 : speed;
@@ -110,7 +116,9 @@ export function InfoBox({
       <div className="flex shrink-0 border-b border-border">
         <button onClick={() => setTab('data')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'data' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabData')}</button>
         <button onClick={() => setTab('vehicle')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'vehicle' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVehicle')}</button>
-        <button onClick={() => setTab('video')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVideo')}</button>
+        {!hideVideoTab && (
+          <button onClick={() => setTab('video')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVideo')}</button>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">

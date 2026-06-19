@@ -79,7 +79,7 @@ src/
 │   ├── ui/                # shadcn/ui primitives
 │   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages)
 │   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Coach, Tools; SetupsNotesPanel = Setups+Notes 50/50 split on md+, separate tabs on phones — bodies live in drawer/)
-│   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox
+│   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox, PanelCard (resizable card chrome for relocated Video/Mini-Map panels). On mobile the left column collapses via a divider flag tab, and Video/Mini-Map can be relocated into the resizable graph stack from the top of the "Add Graph" picker (GraphPanel reports which are active so the host drops its duplicate VideoPlayer — single shared video ref).
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Device*); SetupsTab + NotesTab also here but mounted as main-view tabs
 │   ├── track-editor/      # Track editor: VisualEditor, SectorListEditor, CourseSectorEditor, Add*Dialog
 │   ├── video-overlays/    # Video-export overlay system: registry + themes + per-widget *Overlay
