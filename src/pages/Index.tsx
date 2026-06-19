@@ -533,6 +533,25 @@ export default function Index() {
     lapMgmt.selection,
   ]);
 
+  // Shared SetupsTab wiring — used by the main-view Setups tab and (off-session)
+  // by the Setups garage sub-tab on the landing page.
+  const setupsTabProps = useMemo(() => ({
+    vehicles: vehicleManager.vehicles,
+    setups: setupManager.setups,
+    vehicleTypes: templateManager.vehicleTypes,
+    templates: templateManager.templates,
+    onAdd: setupManager.addSetup,
+    onUpdate: setupManager.updateSetup,
+    onRemove: setupManager.removeSetup,
+    onGetLatestForVehicle: setupManager.getLatestForVehicle,
+    onAddVehicleType: templateManager.addVehicleType,
+    onRemoveVehicleType: templateManager.removeVehicleType,
+  }), [
+    vehicleManager.vehicles, setupManager.setups, templateManager.vehicleTypes, templateManager.templates,
+    setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
+    templateManager.addVehicleType, templateManager.removeVehicleType,
+  ]);
+
   // No data loaded - show import UI
   if (!data) {
     return (
@@ -551,7 +570,10 @@ export default function Index() {
             enableCloud={enableCloud}
           />
           <Suspense fallback={null}>
-            <FileManagerDrawer {...fileManagerProps} />
+            {/* Off-session stopgap: Setups normally lives in the main toolbar
+                (session-only), so host it inside the garage here on the landing
+                page. A planned UI overhaul will revisit this relocation. */}
+            <FileManagerDrawer {...fileManagerProps} setupsTab={<SetupsTab {...setupsTabProps} />} />
           </Suspense>
         </>
       </DeviceProvider>
@@ -660,16 +682,7 @@ export default function Index() {
                   // out the (eager) Notes half rendered beside it in the split.
                   <Suspense fallback={null}>
                     <SetupsTab
-                      vehicles={vehicleManager.vehicles}
-                      setups={setupManager.setups}
-                      vehicleTypes={templateManager.vehicleTypes}
-                      templates={templateManager.templates}
-                      onAdd={setupManager.addSetup}
-                      onUpdate={setupManager.updateSetup}
-                      onRemove={setupManager.removeSetup}
-                      onGetLatestForVehicle={setupManager.getLatestForVehicle}
-                      onAddVehicleType={templateManager.addVehicleType}
-                      onRemoveVehicleType={templateManager.removeVehicleType}
+                      {...setupsTabProps}
                       requestNewType={requestNewVehicleType}
                       onRequestNewTypeHandled={handleNewVehicleTypeHandled}
                     />

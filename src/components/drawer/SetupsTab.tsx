@@ -421,9 +421,11 @@ export function SetupsTab({
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {/* Vehicle Type & Vehicle Selection */}
         <Section>
+          {/* A single option leaves nothing to choose — populate (via the effect
+              above) and lock the picker. */}
           {mode === "new" && (
             <Field label={t("setups.vehicleType")}>
-              <Select value={selectedTypeId} onValueChange={handleTypeChange}>
+              <Select value={selectedTypeId} onValueChange={handleTypeChange} disabled={vehicleTypes.length <= 1}>
                 <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectType")} /></SelectTrigger>
                 <SelectContent>
                   {vehicleTypes.map(vt => (
@@ -434,7 +436,7 @@ export function SetupsTab({
             </Field>
           )}
           <Field label={t("setups.vehicle")}>
-            <Select value={form.vehicleId} onValueChange={handleVehicleChange}>
+            <Select value={form.vehicleId} onValueChange={handleVehicleChange} disabled={filteredVehicles.length <= 1}>
               <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectVehicle")} /></SelectTrigger>
               <SelectContent>
                 {filteredVehicles.map(v => (

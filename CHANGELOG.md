@@ -135,17 +135,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   once). The setup-status nag jumps straight to the right place. On **tablets and
   desktop** the two share one **Setups & Notes** tab shown as a 50/50 split, so
   the extra width isn't wasted; phones keep them as separate full-width tabs.
-- **Fewer taps for single-vehicle garages.** The new-setup form now pre-fills the
-  vehicle type when you only have one, and the vehicle when only one fits — both
-  pickers stay visible, they're just filled in for you. The session-setup selector
-  on Notes likewise pre-fills your only vehicle (and its only setup). Nothing is
-  auto-saved — you still tap Save. And if you linked the wrong setup to a session,
-  a **Clear session data** button (with an "are you sure" confirm) unlinks it so
-  you can re-assign; your notes and measurements are kept.
+- **Fewer taps for single-vehicle garages.** The new-setup form now pre-fills
+  (and locks) the vehicle type when you only have one, and the vehicle when only
+  one fits — the pickers stay visible, just filled in for you. The session-setup
+  selector on Notes likewise pre-fills your only vehicle (and its only setup).
+  Nothing is auto-saved — you still tap Save. And if you linked the wrong setup to
+  a session, a **Clear session data** button (with an "are you sure" confirm)
+  unlinks it so you can re-assign; your notes and measurements are kept.
 - **Easier vehicle types.** Adding a vehicle now locks the type when there's only
   one (nothing to choose), and a **New type** button on the Vehicles tab jumps you
   straight to the vehicle-type creator on the Setups tab so it's clear where types
-  come from.
+  come from. On the landing page (no session loaded) the Setups tab is hosted
+  inside the Garage so vehicles, setups and types stay reachable before you open a
+  log.
 - **Tighter lap selector.** The lap dropdown in the session header now sizes to
   its label instead of a fixed width, freeing up room so the toolbar controls
   (snapshots, overlays) don't get squeezed off-screen on mobile.
