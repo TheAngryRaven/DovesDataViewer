@@ -1,4 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+/* Self-hosted fonts (latin subset, weights 400-700) so they ship in the SW
+   precache and render offline from first paint — no fonts.googleapis.com
+   round-trip. Family names match the Google Fonts originals, so the Tailwind
+   `font-sans`/`font-mono` tokens stay unchanged. */
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+@import '@fontsource/jetbrains-mono/latin-600.css';
+@import '@fontsource/jetbrains-mono/latin-700.css';
 
 @tailwind base;
 @tailwind components;

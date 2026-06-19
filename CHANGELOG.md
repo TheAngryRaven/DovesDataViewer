@@ -180,6 +180,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from tablet up.
 
 ### Fixed
+- **Fonts now work fully offline.** The Inter and JetBrains Mono typefaces were
+  loaded from Google's font CDN at runtime, which had no offline cache rule — so a
+  fresh load with no signal (e.g. at the track) fell back to system fonts. The
+  fonts are now self-hosted (via Fontsource) and bundled into the offline
+  precache like the rest of the app, so they render correctly from the first paint
+  with no network. This also removes a third-party request on every page load.
 - **Datalogger looked like it didn't recognise the track while parked.** Sitting
   still at a known venue, the tool shows a plain speedometer (lap timing only arms
   once you're moving above 5 mph) — but it gave no sign the track had been

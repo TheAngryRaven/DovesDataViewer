@@ -225,7 +225,9 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,json,nmea,wasm}"],
+          // woff2 only: every SW-capable browser supports it, so the legacy
+          // .woff fallbacks @fontsource emits would just be dead precache weight.
+          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,json,nmea,wasm}"],
           globIgnores: ["**/tracks.zip"],
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [

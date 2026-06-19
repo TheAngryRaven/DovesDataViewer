@@ -553,6 +553,7 @@ Built on the shoulders of these incredible open-source projects and free service
 
 - [React](https://react.dev) · [Vite](https://vite.dev) · [TypeScript](https://www.typescriptlang.org)
 - [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
+- [Inter](https://rsms.me/inter/) · [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (OFL fonts) · [Fontsource](https://fontsource.org) (self-hosted, offline-ready)
 - [Leaflet](https://leafletjs.com) · [CARTO basemaps](https://carto.com) · [Esri World Imagery & Wayback](https://livingatlas.arcgis.com/wayback/) (satellite + historical imagery dates)
 - [TanStack Query](https://tanstack.com/query) · [Sonner](https://sonner.emilkowal.dev) · [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) · [dnd kit](https://dndkit.com) (sector list drag-to-reorder)
 - [i18next](https://www.i18next.com) · [react-i18next](https://react.i18next.com) (internationalization)
