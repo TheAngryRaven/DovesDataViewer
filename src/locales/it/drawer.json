@@ -163,7 +163,10 @@
     "edit": "Modifica",
     "writeNote": "Scrivi una nota…",
     "updateNote": "Aggiorna nota",
-    "addNote": "Aggiungi nota"
+    "addNote": "Aggiungi nota",
+    "clearSession": "Cancella dati sessione",
+    "clearConfirm": "Questo cancella il veicolo e l'assetto salvati per questa sessione. Operazione irreversibile.",
+    "clearConfirmAction": "Cancella"
   },
   "postSession": {
     "title": "Post-sessione",

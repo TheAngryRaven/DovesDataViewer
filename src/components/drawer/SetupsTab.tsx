@@ -239,6 +239,17 @@ export function SetupsTab({
     }
   }, [vehicleTypes, templates]);
 
+  // When the chosen type leaves exactly one candidate vehicle there's nothing to
+  // pick — auto-select it (which also preloads its latest setup) so the redundant
+  // vehicle dropdown can be hidden.
+  useEffect(() => {
+    if (mode !== "new" || !selectedTypeId) return;
+    if (filteredVehicles.length !== 1) return;
+    const only = filteredVehicles[0];
+    if (form.vehicleId === only.id) return;
+    handleVehicleChange(only.id);
+  }, [mode, selectedTypeId, filteredVehicles, form.vehicleId, handleVehicleChange]);
+
   const handleSave = useCallback(async () => {
     let finalForm = { ...form };
     if (form.psiMode === "single" && psiSingle !== null) {
@@ -405,16 +416,20 @@ export function SetupsTab({
               </Select>
             </Field>
           )}
-          <Field label={t("setups.vehicle")}>
-            <Select value={form.vehicleId} onValueChange={handleVehicleChange}>
-              <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectVehicle")} /></SelectTrigger>
-              <SelectContent>
-                {filteredVehicles.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+          {/* One candidate vehicle is auto-selected (see effect above), so only
+              surface the picker when there's an actual choice to make. */}
+          {filteredVehicles.length !== 1 && (
+            <Field label={t("setups.vehicle")}>
+              <Select value={form.vehicleId} onValueChange={handleVehicleChange}>
+                <SelectTrigger className="h-9"><SelectValue placeholder={t("setups.selectVehicle")} /></SelectTrigger>
+                <SelectContent>
+                  {filteredVehicles.map(v => (
+                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
           <Field label={t("setups.setupName")}>
             <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t("setups.setupNamePlaceholder")} className="h-9" />
           </Field>

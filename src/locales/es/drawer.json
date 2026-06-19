@@ -163,7 +163,10 @@
     "edit": "Editar",
     "writeNote": "Escribe una nota…",
     "updateNote": "Actualizar nota",
-    "addNote": "Añadir nota"
+    "addNote": "Añadir nota",
+    "clearSession": "Borrar datos de sesión",
+    "clearConfirm": "Esto borra el vehículo y el reglaje guardados en esta sesión. No se puede deshacer.",
+    "clearConfirmAction": "Borrar"
   },
   "postSession": {
     "title": "Post-sesión",

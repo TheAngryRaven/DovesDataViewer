@@ -163,7 +163,10 @@
     "edit": "Modifier",
     "writeNote": "Écrire une note…",
     "updateNote": "Mettre à jour la note",
-    "addNote": "Ajouter une note"
+    "addNote": "Ajouter une note",
+    "clearSession": "Effacer les données de session",
+    "clearConfirm": "Ceci efface le véhicule et le réglage enregistrés pour cette session. Cette action est irréversible.",
+    "clearConfirmAction": "Effacer"
   },
   "postSession": {
     "title": "Après-session",

@@ -163,7 +163,10 @@
     "edit": "Bearbeiten",
     "writeNote": "Notiz schreiben…",
     "updateNote": "Notiz aktualisieren",
-    "addNote": "Notiz hinzufügen"
+    "addNote": "Notiz hinzufügen",
+    "clearSession": "Sitzungsdaten löschen",
+    "clearConfirm": "Dies löscht das für diese Sitzung gespeicherte Fahrzeug und Setup. Dies kann nicht rückgängig gemacht werden.",
+    "clearConfirmAction": "Löschen"
   },
   "postSession": {
     "title": "Nach der Session",

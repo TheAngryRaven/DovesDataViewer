@@ -162,7 +162,10 @@
     "edit": "Edit",
     "writeNote": "Write a note…",
     "updateNote": "Update Note",
-    "addNote": "Add Note"
+    "addNote": "Add Note",
+    "clearSession": "Clear session data",
+    "clearConfirm": "This clears the vehicle and setup saved to this session. This cannot be undone.",
+    "clearConfirmAction": "Clear"
   },
   "postSession": {
     "title": "Post-Session",

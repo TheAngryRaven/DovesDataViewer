@@ -163,7 +163,10 @@
     "edit": "編集",
     "writeNote": "メモを入力…",
     "updateNote": "メモを更新",
-    "addNote": "メモを追加"
+    "addNote": "メモを追加",
+    "clearSession": "セッションデータを消去",
+    "clearConfirm": "このセッションに保存された車両とセットアップを消去します。この操作は元に戻せません。",
+    "clearConfirmAction": "消去"
   },
   "postSession": {
     "title": "走行後",

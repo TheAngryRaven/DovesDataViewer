@@ -163,7 +163,10 @@
     "edit": "Editar",
     "writeNote": "Escreva uma nota…",
     "updateNote": "Atualizar nota",
-    "addNote": "Adicionar nota"
+    "addNote": "Adicionar nota",
+    "clearSession": "Limpar dados da sessão",
+    "clearConfirm": "Isso limpa o veículo e o acerto salvos nesta sessão. Não pode ser desfeito.",
+    "clearConfirmAction": "Limpar"
   },
   "postSession": {
     "title": "Pós-sessão",

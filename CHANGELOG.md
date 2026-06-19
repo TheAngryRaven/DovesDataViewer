@@ -135,6 +135,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   once). The setup-status nag jumps straight to the right place. On **tablets and
   desktop** the two share one **Setups & Notes** tab shown as a 50/50 split, so
   the extra width isn't wasted; phones keep them as separate full-width tabs.
+- **Fewer taps for single-vehicle setups.** When you only have one vehicle, the
+  new-setup form hides the redundant vehicle picker and selects it for you, and
+  the session-setup selector on Notes pre-fills your only vehicle (and its only
+  setup) — you still tap Save, nothing is auto-saved. And if you linked the wrong
+  setup to a session, a **Clear session data** button (with an "are you sure"
+  confirm) unlinks it so you can re-assign; your notes and measurements are kept.
 - **Tighter lap selector.** The lap dropdown in the session header now sizes to
   its label instead of a fixed width, freeing up room so the toolbar controls
   (snapshots, overlays) don't get squeezed off-screen on mobile.
