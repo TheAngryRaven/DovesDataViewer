@@ -548,11 +548,12 @@ export default function Index() {
     onGetLatestForVehicle: setupManager.getLatestForVehicle,
     onAddVehicleType: templateManager.addVehicleType,
     onRemoveVehicleType: templateManager.removeVehicleType,
+    onUpdateVehicleType: templateManager.updateVehicleType,
     onCreateVehicle: openVehiclesGarage,
   }), [
     vehicleManager.vehicles, setupManager.setups, templateManager.vehicleTypes, templateManager.templates,
     setupManager.addSetup, setupManager.updateSetup, setupManager.removeSetup, setupManager.getLatestForVehicle,
-    templateManager.addVehicleType, templateManager.removeVehicleType, openVehiclesGarage,
+    templateManager.addVehicleType, templateManager.removeVehicleType, templateManager.updateVehicleType, openVehiclesGarage,
   ]);
 
   // No data loaded - show import UI

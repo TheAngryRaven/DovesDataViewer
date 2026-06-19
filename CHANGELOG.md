@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.7.0] - unreleased
 
 ### Added
+- **Edit your vehicle types.** The Setups tab gains a **Manage Vehicle Types**
+  button (below *New Vehicle Type*) that opens the type editor: pick an existing
+  type from the dropdown — it starts empty so editing is a deliberate choice —
+  tweak its sections, fields, wheel count or tires, then **Update**. Renaming a
+  field is always safe (your saved setups stay attached to it); but if an edit
+  *removes* a field or flips its data type (number ↔ text) and existing setups
+  already hold values there, a warning lists exactly which fields are affected.
+  Cancel that warning and the risky changes are rolled back and highlighted in
+  orange so you can see what was restored. Edits sync to the cloud like the rest
+  of your garage (newest edit wins).
 - **Collapsible Pro panel + relocatable Video/Mini-Map on mobile.** The Pro
   view's left column (info/vehicle/video + mini-map) is roomy on tablet and
   desktop but cramped on a phone. On mobile a small flag tab now sits at the top

@@ -17,6 +17,7 @@ import {
   saveTemplate,
   createVehicleTypeWithTemplate,
   deleteVehicleTypeWithTemplate,
+  updateVehicleTypeWithTemplate,
   DEFAULT_KART_VEHICLE_TYPE_ID,
   DEFAULT_KART_TEMPLATE_ID,
   type TemplateSection,
@@ -100,6 +101,41 @@ describe("createVehicleTypeWithTemplate / deleteVehicleTypeWithTemplate", () => 
     const seen = vi.fn();
     const off = onGarageChange(seen);
     const { vehicleType, template } = await createVehicleTypeWithTemplate("S", 2, false, sections);
+    off();
+    expect(seen).toHaveBeenCalledWith({ store: "vehicle-types", key: vehicleType.id, type: "put" });
+    expect(seen).toHaveBeenCalledWith({ store: "setup-templates", key: template.id, type: "put" });
+  });
+});
+
+describe("updateVehicleTypeWithTemplate", () => {
+  it("rewrites both halves in place, keeping ids and bumping updatedAt", async () => {
+    const { vehicleType, template } = await createVehicleTypeWithTemplate("Shifter", 4, true, sections);
+    const before = (await getTemplate(template.id))!.updatedAt;
+    await new Promise(r => setTimeout(r, 2));
+
+    const renamedSections: TemplateSection[] = [
+      { id: "sec1", name: "Geometry", fields: [{ id: "f-toe", name: "Toe Angle", type: "number" }] },
+    ];
+    await updateVehicleTypeWithTemplate(
+      { ...vehicleType, name: "Shifter 125" },
+      { ...template, name: "Shifter 125", sections: renamedSections },
+    );
+
+    const vt = (await getVehicleType(vehicleType.id))!;
+    const tpl = (await getTemplate(template.id))!;
+    expect(vt.id).toBe(vehicleType.id);
+    expect(tpl.id).toBe(template.id);
+    expect(vt.name).toBe("Shifter 125");
+    expect(tpl.sections[0].fields[0].id).toBe("f-toe"); // field id preserved
+    expect(tpl.sections[0].fields[0].name).toBe("Toe Angle");
+    expect(tpl.updatedAt).toBeGreaterThan(before);
+  });
+
+  it("emits a put for both stores", async () => {
+    const { vehicleType, template } = await createVehicleTypeWithTemplate("S", 2, false, sections);
+    const seen = vi.fn();
+    const off = onGarageChange(seen);
+    await updateVehicleTypeWithTemplate(vehicleType, template);
     off();
     expect(seen).toHaveBeenCalledWith({ store: "vehicle-types", key: vehicleType.id, type: "put" });
     expect(seen).toHaveBeenCalledWith({ store: "setup-templates", key: template.id, type: "put" });

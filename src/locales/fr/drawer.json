@@ -94,6 +94,7 @@
     "confirm": "Confirmer",
     "cancel": "Annuler",
     "newVehicleType": "Nouveau type de véhicule",
+    "manageVehicleTypes": "Gérer les types de véhicule",
     "addNewSetup": "Ajouter un réglage",
     "editSetup": "Modifier le réglage",
     "newSetup": "Nouveau réglage",
@@ -339,5 +340,18 @@
     "startLineDistance": "Distance de la ligne de départ :",
     "sendToDevice": "Envoyer à l'appareil",
     "downloadToApp": "Télécharger dans l'app"
+  },
+  "vehicleTypeEditor": {
+    "title": "Gérer les types de véhicule",
+    "selectType": "Type de véhicule",
+    "selectTypePlaceholder": "Sélectionnez un type de véhicule…",
+    "pickPrompt": "Sélectionnez un type de véhicule ci-dessus pour commencer la modification.",
+    "update": "Mettre à jour",
+    "warningTitle": "Affecte les configurations existantes",
+    "warningBody": "Ces champs contiennent des données dans des configurations existantes. Les appliquer les supprimera :",
+    "warningRemoved": "supprimé — valeurs enregistrées masquées",
+    "warningTypeChanged": "type modifié — valeurs enregistrées effacées",
+    "warningConfirm": "Appliquer quand même",
+    "warningCancel": "Annuler"
   }
 }

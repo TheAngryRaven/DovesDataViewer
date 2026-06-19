@@ -291,6 +291,33 @@ export async function createVehicleTypeWithTemplate(
 }
 
 /**
+ * Update an existing vehicle type and its template atomically. Both records
+ * keep their ids (and the template keeps its `field.id`s, so existing setups
+ * stay mapped). Stamps `updatedAt` on both so the cloud's last-write-wins
+ * reconcile pushes the edit up.
+ */
+export async function updateVehicleTypeWithTemplate(
+  vehicleType: VehicleType,
+  template: SetupTemplate,
+): Promise<void> {
+  const now = Date.now();
+  const vt: VehicleType = { ...vehicleType, updatedAt: now };
+  const tpl: SetupTemplate = { ...template, updatedAt: now };
+
+  const db = await openDB();
+  const tx = db.transaction([STORE_NAMES.VEHICLE_TYPES, STORE_NAMES.SETUP_TEMPLATES], "readwrite");
+  tx.objectStore(STORE_NAMES.VEHICLE_TYPES).put(vt);
+  tx.objectStore(STORE_NAMES.SETUP_TEMPLATES).put(tpl);
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  emitGarageChange({ store: STORE_NAMES.VEHICLE_TYPES, key: vt.id, type: "put" });
+  emitGarageChange({ store: STORE_NAMES.SETUP_TEMPLATES, key: tpl.id, type: "put" });
+}
+
+/**
  * Delete a vehicle type and its template atomically.
  */
 export async function deleteVehicleTypeWithTemplate(vehicleTypeId: string, templateId: string): Promise<void> {

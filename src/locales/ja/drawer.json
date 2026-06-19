@@ -94,6 +94,7 @@
     "confirm": "確定",
     "cancel": "キャンセル",
     "newVehicleType": "新しい車両の種類",
+    "manageVehicleTypes": "車両タイプを管理",
     "addNewSetup": "セットアップを追加",
     "editSetup": "セットアップを編集",
     "newSetup": "新しいセットアップ",
@@ -339,5 +340,18 @@
     "startLineDistance": "スタートライン距離：",
     "sendToDevice": "デバイスに送信",
     "downloadToApp": "アプリにダウンロード"
+  },
+  "vehicleTypeEditor": {
+    "title": "車両タイプを管理",
+    "selectType": "車両タイプ",
+    "selectTypePlaceholder": "車両タイプを選択…",
+    "pickPrompt": "編集を始めるには、上で車両タイプを選択してください。",
+    "update": "更新",
+    "warningTitle": "既存のセットアップに影響します",
+    "warningBody": "これらのフィールドには既存のセットアップのデータが含まれています。適用すると失われます:",
+    "warningRemoved": "削除 — 保存された値は非表示になります",
+    "warningTypeChanged": "タイプ変更 — 保存された値は消去されます",
+    "warningConfirm": "それでも適用",
+    "warningCancel": "キャンセル"
   }
 }

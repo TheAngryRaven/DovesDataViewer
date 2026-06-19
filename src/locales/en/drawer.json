@@ -93,6 +93,7 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "newVehicleType": "New Vehicle Type",
+    "manageVehicleTypes": "Manage Vehicle Types",
     "addNewSetup": "Add New Setup",
     "editSetup": "Edit Setup",
     "newSetup": "New Setup",
@@ -338,5 +339,18 @@
     "startLineDistance": "Start line distance:",
     "sendToDevice": "Send to Device",
     "downloadToApp": "Download to App"
+  },
+  "vehicleTypeEditor": {
+    "title": "Manage Vehicle Types",
+    "selectType": "Vehicle Type",
+    "selectTypePlaceholder": "Select a vehicle type…",
+    "pickPrompt": "Select a vehicle type above to start editing.",
+    "update": "Update",
+    "warningTitle": "Affects existing setups",
+    "warningBody": "These fields hold data in existing setups. Applying will discard it:",
+    "warningRemoved": "removed — saved values hidden",
+    "warningTypeChanged": "type changed — saved values cleared",
+    "warningConfirm": "Apply anyway",
+    "warningCancel": "Cancel"
   }
 }

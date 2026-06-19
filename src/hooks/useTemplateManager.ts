@@ -3,7 +3,7 @@ import {
   VehicleType, SetupTemplate, TemplateSection,
   listVehicleTypes, listTemplates, getTemplate,
   createVehicleTypeWithTemplate, deleteVehicleTypeWithTemplate,
-  saveTemplate, ensureDefaults,
+  updateVehicleTypeWithTemplate, saveTemplate, ensureDefaults,
 } from "@/lib/templateStorage";
 
 export function useTemplateManager() {
@@ -42,6 +42,11 @@ export function useTemplateManager() {
     await refresh();
   }, [refresh]);
 
+  const updateVehicleType = useCallback(async (vehicleType: VehicleType, template: SetupTemplate) => {
+    await updateVehicleTypeWithTemplate(vehicleType, template);
+    await refresh();
+  }, [refresh]);
+
   const getTemplateForType = useCallback((vehicleTypeId: string): SetupTemplate | null => {
     const vt = vehicleTypes.find(v => v.id === vehicleTypeId);
     if (!vt) return null;
@@ -50,7 +55,7 @@ export function useTemplateManager() {
 
   return {
     vehicleTypes, templates, ready,
-    addVehicleType, removeVehicleType, updateTemplate,
+    addVehicleType, removeVehicleType, updateTemplate, updateVehicleType,
     getTemplateForType, refresh,
   };
 }

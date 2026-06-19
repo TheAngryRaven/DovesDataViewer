@@ -94,6 +94,7 @@
     "confirm": "Confirmar",
     "cancel": "Cancelar",
     "newVehicleType": "Novo tipo de veículo",
+    "manageVehicleTypes": "Gerenciar tipos de veículo",
     "addNewSetup": "Adicionar novo acerto",
     "editSetup": "Editar acerto",
     "newSetup": "Novo acerto",
@@ -339,5 +340,18 @@
     "startLineDistance": "Distância da linha de largada:",
     "sendToDevice": "Enviar ao dispositivo",
     "downloadToApp": "Baixar para o app"
+  },
+  "vehicleTypeEditor": {
+    "title": "Gerenciar tipos de veículo",
+    "selectType": "Tipo de veículo",
+    "selectTypePlaceholder": "Selecione um tipo de veículo…",
+    "pickPrompt": "Selecione um tipo de veículo acima para começar a editar.",
+    "update": "Atualizar",
+    "warningTitle": "Afeta configurações existentes",
+    "warningBody": "Estes campos têm dados em configurações existentes. Aplicar irá descartá-los:",
+    "warningRemoved": "removido — valores salvos ocultados",
+    "warningTypeChanged": "tipo alterado — valores salvos apagados",
+    "warningConfirm": "Aplicar mesmo assim",
+    "warningCancel": "Cancelar"
   }
 }
