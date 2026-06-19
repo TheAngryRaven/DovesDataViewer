@@ -129,6 +129,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Tools — instead of living inside the Garage drawer. They update often, so this
   keeps them a single tap away. **Vehicles** stay in the Garage (you set those up
   once). The setup-status nag jumps straight to the right place.
+- **Tighter lap selector.** The lap dropdown in the session header now sizes to
+  its label instead of a fixed width, freeing up room so the toolbar controls
+  (snapshots, overlays) don't get squeezed off-screen on mobile.
 - **Admin link tidied up.** The home-screen "Track Management" link is now
   labelled **Admin** and only appears when an admin is actually signed in (it was
   previously shown to anyone on an admin-enabled build).

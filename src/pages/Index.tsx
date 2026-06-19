@@ -573,7 +573,7 @@ export default function Index() {
 
           {laps.length > 0 && (
             <Select value={selectedLapNumber?.toString() ?? "all"} onValueChange={handleLapDropdownChange}>
-              <SelectTrigger className="w-[140px] h-8 text-sm">
+              <SelectTrigger className="w-auto gap-1 h-8 px-2 text-sm">
                 <SelectValue placeholder={t("header.allLaps")} />
               </SelectTrigger>
               <SelectContent>
