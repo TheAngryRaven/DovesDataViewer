@@ -150,7 +150,7 @@ export default defineConfig(({ mode }) => {
   const branch = gitBranch();
   const commitDate = gitCommitDate();
 
-  const DEFAULT_PLUGIN_PACKAGES = "@theangryraven/eye-in-the-sky";
+  const DEFAULT_PLUGIN_PACKAGES = "@perchwerks/eye-in-the-sky";
   const pluginPackages = (env.DOVE_PLUGIN_PACKAGES || DEFAULT_PLUGIN_PACKAGES)
     .split(",")
     .map((s) => s.trim())

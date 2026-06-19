@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [2.7.0] - unreleased
+## [2.7.0] - 2026-06-19
 
 ### Added
 - **Setup history.** Each setup in the Garage now has a **history** (book) icon
