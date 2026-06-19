@@ -32,11 +32,11 @@ export const TOOLS: ToolDef[] = [
     component: lazy(() => import("./seat-position/SeatPositionTool")),
   },
   {
-    id: "datalogger",
-    nameKey: "datalogger.name",
-    descriptionKey: "datalogger.description",
-    badgeKey: "datalogger.badge",
+    id: "laptimer",
+    nameKey: "laptimer.name",
+    descriptionKey: "laptimer.description",
+    badgeKey: "laptimer.badge",
     icon: Satellite,
-    component: lazy(() => import("./datalogger/DataloggerTool")),
+    component: lazy(() => import("./laptimer/LapTimerTool")),
   },
 ];

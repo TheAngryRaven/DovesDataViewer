@@ -83,11 +83,11 @@
     "tileDescription": "Calcolatori e strumenti per la pista, senza bisogno di un registro.",
     "noTools": "Nessuno strumento disponibile in questa build."
   },
-  "datalogger": {
-    "name": "Datalogger",
+  "laptimer": {
+    "name": "Cronometro giri",
     "description": "Trasforma il GPS del telefono in un cronometro giri dal vivo: delta, tempi sul giro e intermedi di settore, salvati come registro da rivedere.",
     "badge": "Sperimentale",
-    "tabLive": "Datalogger",
+    "tabLive": "Dal vivo",
     "tabLaps": "Tempi sul giro",
     "end": "Termina",
     "endDialogTitle": "Terminare la sessione?",

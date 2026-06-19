@@ -1,5 +1,5 @@
 /**
- * DataloggerSession — the framework-free orchestration for the Datalogger tool.
+ * LapTimerSession — the framework-free orchestration for the Lap Timer tool.
  *
  * Holds the session lifecycle that used to live inside the React hook: it drives
  * the GPS source through the session gate (arm above 5 mph / auto-idle), feeds
@@ -28,7 +28,7 @@ import type { Lap } from "@/types/racing";
 import type { FileMetadata } from "@/lib/fileStorage";
 import { MPS_TO_MPH } from "@/lib/parserUtils";
 
-export interface DataloggerSnapshot {
+export interface LapTimerSnapshot {
   phase: SessionPhase;
   timing: TimingState;
   /** Completed laps with major-sector rollup. */
@@ -42,7 +42,7 @@ export interface DataloggerSnapshot {
   error: string | null;
 }
 
-export const INITIAL_SNAPSHOT: DataloggerSnapshot = {
+export const INITIAL_SNAPSHOT: LapTimerSnapshot = {
   phase: "waiting",
   timing: EMPTY_TIMING_STATE,
   laps: [],
@@ -52,7 +52,7 @@ export const INITIAL_SNAPSHOT: DataloggerSnapshot = {
   error: null,
 };
 
-export interface DataloggerSessionDeps {
+export interface LapTimerSessionDeps {
   gps: CustomGps;
   timer: RealtimeLapTimer;
   /** Persist the raw log blob (e.g. fileStorage.saveFile). */
@@ -61,19 +61,19 @@ export interface DataloggerSessionDeps {
   saveMeta: (meta: FileMetadata) => Promise<void>;
 }
 
-type Listener = (snapshot: DataloggerSnapshot) => void;
+type Listener = (snapshot: LapTimerSnapshot) => void;
 
-export class DataloggerSession {
+export class LapTimerSession {
   private gate: SessionGateState = initSessionGate();
   private recorded: GpsObservation[] = [];
-  private snapshot: DataloggerSnapshot = INITIAL_SNAPSHOT;
+  private snapshot: LapTimerSnapshot = INITIAL_SNAPSHOT;
   private readonly listeners = new Set<Listener>();
   private offFix: (() => void) | null = null;
   private offErr: (() => void) | null = null;
 
-  constructor(private readonly deps: DataloggerSessionDeps) {}
+  constructor(private readonly deps: LapTimerSessionDeps) {}
 
-  getSnapshot(): DataloggerSnapshot {
+  getSnapshot(): LapTimerSnapshot {
     return this.snapshot;
   }
 
@@ -125,7 +125,7 @@ export class DataloggerSession {
     const step = stepSessionGate(this.gate, speedMps * MPS_TO_MPH, obs.fix.timestamp);
     this.gate = step.state;
 
-    const patch: Partial<DataloggerSnapshot> = { latest: obs };
+    const patch: Partial<LapTimerSnapshot> = { latest: obs };
     if (step.justArmed) patch.phase = "recording";
 
     if (this.gate.phase === "recording") {
@@ -185,7 +185,7 @@ export class DataloggerSession {
     }
   }
 
-  private patch(partial: Partial<DataloggerSnapshot>): void {
+  private patch(partial: Partial<LapTimerSnapshot>): void {
     this.snapshot = { ...this.snapshot, ...partial };
     this.emit();
   }

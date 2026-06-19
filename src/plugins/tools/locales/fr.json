@@ -83,11 +83,11 @@
     "tileDescription": "Calculatrices et utilitaires pour la piste, sans relevé nécessaire.",
     "noTools": "Aucun outil disponible dans cette version."
   },
-  "datalogger": {
-    "name": "Datalogger",
+  "laptimer": {
+    "name": "Chrono de tours",
     "description": "Transformez le GPS de votre téléphone en chrono de tours en direct : delta, temps au tour et intermédiaires par secteur, enregistrés dans un relevé consultable.",
     "badge": "Expérimental",
-    "tabLive": "Datalogger",
+    "tabLive": "En direct",
     "tabLaps": "Temps au tour",
     "end": "Terminer",
     "endDialogTitle": "Terminer la session ?",

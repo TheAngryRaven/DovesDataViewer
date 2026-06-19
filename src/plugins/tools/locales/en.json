@@ -82,11 +82,11 @@
     "tileDescription": "Trackside calculators and utilities — no datalog needed.",
     "noTools": "No tools are available in this build."
   },
-  "datalogger": {
-    "name": "Datalogger",
+  "laptimer": {
+    "name": "Lap Timer",
     "description": "Turn your phone's GPS into a live lap timer — delta, lap times and sector splits, saved as a log you can review.",
     "badge": "Experimental",
-    "tabLive": "Datalogger",
+    "tabLive": "Live",
     "tabLaps": "Lap Times",
     "end": "End",
     "endDialogTitle": "End session?",

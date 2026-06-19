@@ -1,5 +1,5 @@
 /**
- * Thin React adapter over `DataloggerSession`. The lifecycle/persistence logic
+ * Thin React adapter over `LapTimerSession`. The lifecycle/persistence logic
  * lives in the (unit-tested) controller; this hook just instantiates it with the
  * real browser dependencies (geolocation source, lap timer, IndexedDB save fns),
  * loads tracks, and re-renders on snapshot changes.
@@ -9,21 +9,21 @@ import { CustomGps, RealtimeLapTimer } from "@/lib/gps";
 import { loadTracks } from "@/lib/trackStorage";
 import { saveFile, saveFileMetadata } from "@/lib/fileStorage";
 import {
-  DataloggerSession,
+  LapTimerSession,
   INITIAL_SNAPSHOT,
-  type DataloggerSnapshot,
-} from "./dataloggerSession";
+  type LapTimerSnapshot,
+} from "./lapTimerSession";
 
-export interface DataloggerController extends DataloggerSnapshot {
+export interface LapTimerController extends LapTimerSnapshot {
   /** Manually end + save the session (red "End" action). */
   endSession: () => Promise<void>;
   /** Discard the ended session and start a fresh capture. */
   reset: () => void;
 }
 
-export function useDatalogger(): DataloggerController {
-  const [snapshot, setSnapshot] = useState<DataloggerSnapshot>(INITIAL_SNAPSHOT);
-  const sessionRef = useRef<DataloggerSession | null>(null);
+export function useLapTimer(): LapTimerController {
+  const [snapshot, setSnapshot] = useState<LapTimerSnapshot>(INITIAL_SNAPSHOT);
+  const sessionRef = useRef<LapTimerSession | null>(null);
 
   useEffect(() => {
     const timer = new RealtimeLapTimer();
@@ -32,7 +32,7 @@ export function useDatalogger(): DataloggerController {
 
     // The session keeps its own recorded buffer; don't double-retain in the source.
     const gps = new CustomGps({ retainBuffer: false });
-    const session = new DataloggerSession({ gps, timer, saveLog: saveFile, saveMeta: saveFileMetadata });
+    const session = new LapTimerSession({ gps, timer, saveLog: saveFile, saveMeta: saveFileMetadata });
     sessionRef.current = session;
 
     const off = session.subscribe(setSnapshot);

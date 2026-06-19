@@ -83,11 +83,11 @@
     "tileDescription": "Rechner und Werkzeuge für die Strecke – kein Datenlog nötig.",
     "noTools": "In diesem Build sind keine Werkzeuge verfügbar."
   },
-  "datalogger": {
-    "name": "Datalogger",
+  "laptimer": {
+    "name": "Rundenzeitnehmer",
     "description": "Mach aus dem GPS deines Handys einen Live-Rundenzeitnehmer – Delta, Rundenzeiten und Sektor-Splits, gespeichert als auswertbares Log.",
     "badge": "Experimentell",
-    "tabLive": "Datalogger",
+    "tabLive": "Live",
     "tabLaps": "Rundenzeiten",
     "end": "Beenden",
     "endDialogTitle": "Sitzung beenden?",

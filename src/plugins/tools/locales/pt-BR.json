@@ -83,11 +83,11 @@
     "tileDescription": "Calculadoras e utilitários para a pista, sem precisar de um registro.",
     "noTools": "Nenhuma ferramenta disponível nesta versão."
   },
-  "datalogger": {
-    "name": "Datalogger",
+  "laptimer": {
+    "name": "Cronômetro de voltas",
     "description": "Transforme o GPS do seu telefone em um cronômetro de voltas ao vivo: delta, tempos de volta e parciais por setor, salvos como um registro que você pode revisar.",
     "badge": "Experimental",
-    "tabLive": "Datalogger",
+    "tabLive": "Ao vivo",
     "tabLaps": "Tempos de volta",
     "end": "Encerrar",
     "endDialogTitle": "Encerrar a sessão?",

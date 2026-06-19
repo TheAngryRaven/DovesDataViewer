@@ -109,14 +109,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tools on the home screen.** A new **Tools** tile on the landing page opens the
   trackside tools (the seat-position visualizer and more) in a full-screen panel —
   no datalog needed.
-- **Datalogger (early/experimental).** A new tool that turns your phone's GPS into
+- **Lap Timer (early/experimental).** A new tool that turns your phone's GPS into
   a live lap timer: a big delta to your best lap (red when you're slower, green
   when faster), current/best/last/optimal lap times, speed, and a **Lap Times**
-  list with major-sector splits. It starts recording once you're moving above
-  5 mph and saves the session as a `.dovep` log to your files when you end it
-  (auto-ends after 5 minutes stopped, or tap **End**) — then opens and reviews
-  exactly like any other log. Early days: the timing and UI will be refined in
-  upcoming updates.
+  list with major-sector splits. It keeps your screen awake for the whole
+  session, starts recording once you're moving above 5 mph, and saves the session
+  as a `.dovep` log to your files when you end it (auto-ends after 5 minutes
+  stopped, or tap **End**) — then opens and reviews exactly like any other log.
+  Early days: the timing and UI will be refined in upcoming updates.
 - **Translations / multi-language support (foundation).** The app now has an
   internationalization system (built on i18next) with a **Language** picker in
   Settings. It auto-detects your browser language on first run and ships
@@ -250,7 +250,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fonts are now self-hosted (via Fontsource) and bundled into the offline
   precache like the rest of the app, so they render correctly from the first paint
   with no network. This also removes a third-party request on every page load.
-- **Datalogger looked like it didn't recognise the track while parked.** Sitting
+- **Lap Timer looked like it didn't recognise the track while parked.** Sitting
   still at a known venue, the tool shows a plain speedometer (lap timing only arms
   once you're moving above 5 mph) — but it gave no sign the track had been
   detected, so it was indistinguishable from the genuine "no tracks found nearby"

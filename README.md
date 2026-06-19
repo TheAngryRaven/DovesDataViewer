@@ -76,7 +76,7 @@ All formats are auto-detected on import:
 | VBO | Racelogic VBOX, RaceBox | `.vbo` |
 | Dove CSV | DovesDataLogger | `.dove` |
 | Dovex | DovesDataLogger (extended with metadata) | `.dovex` |
-| Dovep | Phone Datalogger tool (Dove-phone; `.dovex`-compatible) | `.dovep` |
+| Dovep | Phone Lap Timer tool (Dove-phone; `.dovex`-compatible) | `.dovep` |
 | Alfano CSV | Alfano ADA app, Off Camber Data | `.csv` |
 | AiM CSV | MyChron 5/6, Race Studio 3 | `.csv` |
 | AiM XRK/XRZ | MyChron / SoloDL native binary | `.xrk`, `.xrz` |

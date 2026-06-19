@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { DataloggerSession, type DataloggerSnapshot } from "./dataloggerSession";
+import { LapTimerSession, type LapTimerSnapshot } from "./lapTimerSession";
 import { CustomGps, RealtimeLapTimer, AUTO_END_STOPPED_MS } from "@/lib/gps";
 import type { Track } from "@/types/racing";
 
@@ -58,8 +58,8 @@ function setup(saveLog = vi.fn().mockResolvedValue(undefined)) {
   const gps = new CustomGps({ geolocation: geo as unknown as Geolocation, retainBuffer: false });
   const timer = new RealtimeLapTimer();
   const saveMeta = vi.fn().mockResolvedValue(undefined);
-  const session = new DataloggerSession({ gps, timer, saveLog, saveMeta });
-  const snapshots: DataloggerSnapshot[] = [];
+  const session = new LapTimerSession({ gps, timer, saveLog, saveMeta });
+  const snapshots: LapTimerSnapshot[] = [];
   session.subscribe((s) => snapshots.push(s));
   return { geo, gps, timer, saveLog, saveMeta, session, snapshots };
 }
@@ -69,7 +69,7 @@ function drive(geo: FakeGeo, n: number, speed = 10, startTs = BASE_TS): void {
   for (let i = 0; i < n; i++) geo.emit({ latitude: 45 + i * 0.0001, speed }, startTs + i * 1_000);
 }
 
-describe("DataloggerSession", () => {
+describe("LapTimerSession", () => {
   it("stays in waiting below the arm speed", () => {
     const { geo, session } = setup();
     session.start();

@@ -83,11 +83,11 @@
     "tileDescription": "コース脇で使える計算ツール。データログは不要です。",
     "noTools": "このビルドで利用できるツールはありません。"
   },
-  "datalogger": {
-    "name": "Datalogger",
+  "laptimer": {
+    "name": "ラップタイマー",
     "description": "スマホのGPSをリアルタイムのラップタイマーに。デルタ、ラップタイム、セクター区間を、あとで見返せるログとして保存します。",
     "badge": "実験的",
-    "tabLive": "Datalogger",
+    "tabLive": "ライブ",
     "tabLaps": "ラップタイム",
     "end": "終了",
     "endDialogTitle": "セッションを終了しますか？",
