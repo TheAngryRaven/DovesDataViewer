@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,10 +20,11 @@ interface VehicleTypeEditorProps {
   templates: SetupTemplate[];
   setups: VehicleSetup[];
   onUpdate: (vehicleType: VehicleType, template: SetupTemplate) => Promise<void>;
+  onRemove: (vehicleTypeId: string, templateId: string) => Promise<void>;
   onDone: () => void;
 }
 
-export function VehicleTypeEditor({ vehicleTypes, templates, setups, onUpdate, onDone }: VehicleTypeEditorProps) {
+export function VehicleTypeEditor({ vehicleTypes, templates, setups, onUpdate, onRemove, onDone }: VehicleTypeEditorProps) {
   const { t } = useTranslation("drawer");
   const fields = useTemplateFields();
   const { name, setName, wheelCount, includeTires, sections } = fields;
@@ -33,6 +34,7 @@ export function VehicleTypeEditor({ vehicleTypes, templates, setups, onUpdate, o
   const [highlightedFieldIds, setHighlightedFieldIds] = useState<Set<string>>(new Set());
   const [nameError, setNameError] = useState("");
   const [pending, setPending] = useState<{ cleaned: ReturnType<typeof cleanSections>; changes: DestructiveChange[] } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const selectedType = useMemo(
     () => vehicleTypes.find(vt => vt.id === selectedTypeId) ?? null,
@@ -46,10 +48,19 @@ export function VehicleTypeEditor({ vehicleTypes, templates, setups, onUpdate, o
     [setups, originalTemplate],
   );
 
+  // A type with saved setups isn't safe to delete yet (the setups would dangle);
+  // the built-in default would just re-seed on next load.
+  const hasSetups = useMemo(
+    () => !!originalTemplate && setups.some(s => s.templateId === originalTemplate.id),
+    [setups, originalTemplate],
+  );
+  const canDelete = !!selectedType && !selectedType.isDefault && !hasSetups;
+
   const handleSelectType = useCallback((typeId: string) => {
     setSelectedTypeId(typeId);
     setNameError("");
     setHighlightedFieldIds(new Set());
+    setConfirmDelete(false);
     const vt = vehicleTypes.find(v => v.id === typeId);
     const tpl = vt ? templates.find(tt => tt.id === vt.templateId) : null;
     if (tpl) {
@@ -104,6 +115,12 @@ export function VehicleTypeEditor({ vehicleTypes, templates, setups, onUpdate, o
     setPending(null);
   }, [pending, originalTemplate, sections, fields]);
 
+  const handleDelete = useCallback(async () => {
+    if (!selectedType || !canDelete) return;
+    await onRemove(selectedType.id, selectedType.templateId);
+    onDone();
+  }, [selectedType, canDelete, onRemove, onDone]);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border">
@@ -144,6 +161,27 @@ export function VehicleTypeEditor({ vehicleTypes, templates, setups, onUpdate, o
             </div>
 
             <TemplateFieldsEditor {...fields} highlightedFieldIds={highlightedFieldIds} />
+
+            {/* Danger zone — delete the type, but only when nothing depends on it. */}
+            <div className="pt-2 mt-2 border-t border-border">
+              {canDelete ? (
+                confirmDelete ? (
+                  <div className="p-2 rounded-md bg-destructive/10 border border-destructive/30 flex items-center gap-2">
+                    <span className="text-xs text-destructive flex-1">{t("vehicleTypeEditor.deleteConfirm")}</span>
+                    <Button size="sm" variant="destructive" className="h-7 text-xs px-2" onClick={handleDelete}>{t("vehicleTypeEditor.deleteConfirmBtn")}</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => setConfirmDelete(false)}>{t("templateCreator.cancel")}</Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" size="sm" className="w-full gap-2 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(true)}>
+                    <Trash2 className="w-4 h-4" /> {t("vehicleTypeEditor.delete")}
+                  </Button>
+                )
+              ) : (
+                <p className="text-xs text-muted-foreground text-center px-2">
+                  {selectedType?.isDefault ? t("vehicleTypeEditor.deleteDefault") : t("vehicleTypeEditor.deleteHasSetups")}
+                </p>
+              )}
+            </div>
           </>
         )}
       </div>

@@ -351,6 +351,11 @@
     "warningRemoved": "removed — saved values hidden",
     "warningTypeChanged": "type changed — saved values cleared",
     "warningConfirm": "Apply anyway",
-    "warningCancel": "Cancel"
+    "warningCancel": "Cancel",
+    "delete": "Delete this vehicle type",
+    "deleteConfirm": "Delete this vehicle type? This can't be undone.",
+    "deleteConfirmBtn": "Delete",
+    "deleteHasSetups": "This type has saved setups — delete those first.",
+    "deleteDefault": "The built-in default type can't be deleted."
   }
 }

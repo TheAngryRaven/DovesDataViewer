@@ -352,6 +352,11 @@
     "warningRemoved": "削除 — 保存された値は非表示になります",
     "warningTypeChanged": "タイプ変更 — 保存された値は消去されます",
     "warningConfirm": "それでも適用",
-    "warningCancel": "キャンセル"
+    "warningCancel": "キャンセル",
+    "delete": "この車両タイプを削除",
+    "deleteConfirm": "この車両タイプを削除しますか？元に戻せません。",
+    "deleteConfirmBtn": "削除",
+    "deleteHasSetups": "このタイプには保存されたセットアップがあります。先に削除してください。",
+    "deleteDefault": "組み込みの既定タイプは削除できません。"
   }
 }

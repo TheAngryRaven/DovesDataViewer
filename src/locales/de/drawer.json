@@ -352,6 +352,11 @@
     "warningRemoved": "entfernt – gespeicherte Werte ausgeblendet",
     "warningTypeChanged": "Typ geändert – gespeicherte Werte gelöscht",
     "warningConfirm": "Trotzdem anwenden",
-    "warningCancel": "Abbrechen"
+    "warningCancel": "Abbrechen",
+    "delete": "Diesen Fahrzeugtyp löschen",
+    "deleteConfirm": "Diesen Fahrzeugtyp löschen? Das kann nicht rückgängig gemacht werden.",
+    "deleteConfirmBtn": "Löschen",
+    "deleteHasSetups": "Dieser Typ hat gespeicherte Setups – lösche diese zuerst.",
+    "deleteDefault": "Der integrierte Standardtyp kann nicht gelöscht werden."
   }
 }

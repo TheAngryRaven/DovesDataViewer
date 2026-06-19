@@ -22,8 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   *removes* a field or flips its data type (number ↔ text) and existing setups
   already hold values there, a warning lists exactly which fields are affected.
   Cancel that warning and the risky changes are rolled back and highlighted in
-  orange so you can see what was restored. Edits sync to the cloud like the rest
-  of your garage (newest edit wins).
+  orange so you can see what was restored. The editor can also **delete** a
+  vehicle type — but only when nothing depends on it (no saved setups, and not
+  the built-in default). Edits sync to the cloud like the rest of your garage
+  (newest edit wins).
 - **Collapsible Pro panel + relocatable Video/Mini-Map on mobile.** The Pro
   view's left column (info/vehicle/video + mini-map) is roomy on tablet and
   desktop but cramped on a phone. On mobile a small flag tab now sits at the top

@@ -352,6 +352,11 @@
     "warningRemoved": "removido — valores salvos ocultados",
     "warningTypeChanged": "tipo alterado — valores salvos apagados",
     "warningConfirm": "Aplicar mesmo assim",
-    "warningCancel": "Cancelar"
+    "warningCancel": "Cancelar",
+    "delete": "Excluir este tipo de veículo",
+    "deleteConfirm": "Excluir este tipo de veículo? Isso não pode ser desfeito.",
+    "deleteConfirmBtn": "Excluir",
+    "deleteHasSetups": "Este tipo tem configurações salvas — exclua-as primeiro.",
+    "deleteDefault": "O tipo padrão integrado não pode ser excluído."
   }
 }

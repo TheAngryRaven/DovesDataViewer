@@ -352,6 +352,11 @@
     "warningRemoved": "rimosso — valori salvati nascosti",
     "warningTypeChanged": "tipo modificato — valori salvati cancellati",
     "warningConfirm": "Applica comunque",
-    "warningCancel": "Annulla"
+    "warningCancel": "Annulla",
+    "delete": "Elimina questo tipo di veicolo",
+    "deleteConfirm": "Eliminare questo tipo di veicolo? L'azione è irreversibile.",
+    "deleteConfirmBtn": "Elimina",
+    "deleteHasSetups": "Questo tipo ha configurazioni salvate: eliminale prima.",
+    "deleteDefault": "Il tipo predefinito integrato non può essere eliminato."
   }
 }

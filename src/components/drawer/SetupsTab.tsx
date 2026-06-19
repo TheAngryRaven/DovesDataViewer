@@ -371,6 +371,7 @@ export function SetupsTab({
         templates={templates}
         setups={setups}
         onUpdate={onUpdateVehicleType}
+        onRemove={onRemoveVehicleType}
         onDone={() => setMode("list")}
       />
     );
