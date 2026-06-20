@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [2.8.0] - unreleased
+## [2.8.0] - 2026-06-20
 
 ### Added
 - **Android app groundwork.** The same frontend can now also serve a native
@@ -42,6 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **beta.lapwingdata.com** is served by the `beta-proxy/` reverse-proxy Worker.
 - **Privacy Policy & Terms** now describe the Android app's web-only billing, the
   public deletion URL, and the app's foreground-only location use.
+
+## [2.7.2] - 2026-06-20
+
+### Added
+- **Migration notice (hackthetrack.net).** The site is moving to **LapWing** at
+  **lapwingdata.com**. Because files are stored only in your browser per-domain,
+  they don't carry to the new address — so a banner on hackthetrack.net warns of
+  the **July 20, 2026** shutdown and offers a one-click data export and (where
+  accounts are enabled) a "create a free account" path so your data follows you
+  via cloud sync. The banner only appears on the old domain.
 
 ## [2.7.1] - 2026-06-19
 
