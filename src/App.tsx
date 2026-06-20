@@ -9,6 +9,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/lib/i18n";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { MigrationBanner } from "@/components/MigrationBanner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -59,6 +60,9 @@ const App = () => {
         <FileLoadingOverlay />
         <DebugConsole />
         <BrowserRouter>
+          {/* Old-domain-only migration notice (hackthetrack.net → lapwingdata.com).
+              Renders nothing on the new site. Inside the router so it can navigate. */}
+          <MigrationBanner />
           <Suspense fallback={null}>
             {enableCloud && <PendingCheckoutRedirect />}
             <Routes>
