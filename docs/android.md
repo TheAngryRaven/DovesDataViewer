@@ -62,7 +62,7 @@ flow. This repo serves `/delete-account` (`src/pages/DeleteAccount.tsx`), mounte
 **un-gated** in `App.tsx` so the URL resolves on every build. It signs the user in
 (the deletion edge function derives the account from the session), then reuses the
 emailed-code flow in `src/plugins/cloud-sync/accountDeletion.ts`. List
-`https://hackthetrack.net/delete-account` in the Play Console as the deletion URL.
+`https://lapwingdata.com/delete-account` in the Play Console as the deletion URL.
 
 The in-app path remains **Profile → Data & privacy** (`DataPrivacyPanel.tsx`).
 

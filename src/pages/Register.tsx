@@ -26,7 +26,7 @@ export default function Register() {
   useDocumentHead({
     title: t('register.metaTitle'),
     description: t('register.metaDescription'),
-    canonical: 'https://hackthetrack.net/register',
+    canonical: 'https://lapwingdata.com/register',
   });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

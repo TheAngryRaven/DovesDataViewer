@@ -20,7 +20,7 @@ export default function Login() {
   useDocumentHead({
     title: t('login.metaTitle'),
     description: t('login.metaDescription'),
-    canonical: 'https://hackthetrack.net/login',
+    canonical: 'https://lapwingdata.com/login',
   });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

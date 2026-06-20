@@ -4,7 +4,7 @@
 
 Dove's DataViewer is a continuously deployed web app. Security fixes are applied
 to the latest release on the `main` branch, which is what powers
-[hackthetrack.net](https://hackthetrack.net). Older tagged releases are not
+[lapwingdata.com](https://lapwingdata.com). Older tagged releases are not
 separately patched.
 
 | Version | Supported |

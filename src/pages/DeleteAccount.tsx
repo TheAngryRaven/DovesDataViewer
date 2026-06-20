@@ -30,7 +30,7 @@ export default function DeleteAccount() {
   useDocumentHead({
     title: "Delete your account — LapWing",
     description: "Request permanent deletion of your LapWing cloud account and all associated data.",
-    canonical: "https://hackthetrack.net/delete-account",
+    canonical: "https://lapwingdata.com/delete-account",
   });
 
   return (
@@ -77,7 +77,7 @@ function CloudDisabledNote() {
       <p>
         This build of the app doesn’t include cloud accounts, so there is nothing
         to delete here. Account deletion applies to the hosted service at{" "}
-        <strong className="text-foreground">hackthetrack.net</strong>. Data created
+        <strong className="text-foreground">lapwingdata.com</strong>. Data created
         in this app lives only in your browser and can be removed by clearing this
         site’s data.
       </p>

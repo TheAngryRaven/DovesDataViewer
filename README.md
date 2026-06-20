@@ -9,7 +9,7 @@
 [![Build](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/build.yml/badge.svg)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/build.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/TheAngryRaven/9c0c31f9c333c565804b26643a2e3aec/raw/coverage-badge.json)](https://github.com/TheAngryRaven/DovesDataViewer/actions/workflows/coverage.yml)
 
-🌐 **Live Demo:** [LapWing](https://hackthetrack.net)  
+🌐 **Live Demo:** [LapWing](https://lapwingdata.com)  
 🔧 **Hardware Project:** [DovesDataLogger on GitHub](https://github.com/TheAngryRaven/DovesDataLogger)
 
 **Now officially in BETA status**
@@ -455,6 +455,20 @@ whenever that branch isn't `main`, and ignores them on `main` and in local dev.
    Any key works the same way (e.g. `HTT_ENABLE_CLOUD_PREVIEW`). `VITE_*_PREVIEW`
    is also accepted. Add the Cloudflare preview URL to the preview branch's
    **Auth → Redirect URLs** so cloud sign-in works there.
+
+#### Custom domains (production + beta)
+
+- **Production — `lapwingdata.com`:** `wrangler.jsonc` declares a
+  `custom_domain` route, so `wrangler deploy` provisions the DNS record and TLS
+  certificate automatically. The zone `lapwingdata.com` must be in the same
+  Cloudflare account; **do not also attach the domain by hand** in the dashboard
+  or the bindings conflict.
+- **Beta — `beta.lapwingdata.com`:** custom domains can't attach to a Branch
+  Preview URL, so a separate thin reverse-proxy Worker owns the beta hostname and
+  forwards to the stable `beta` preview (`beta-dovesdataviewer.perchwerks.workers.dev`).
+  It lives in [`beta-proxy/`](beta-proxy/README.md) and is deployed on its own
+  (`cd beta-proxy && npm install && npm run deploy`). Keep Cloudflare Access
+  **off** on the upstream preview URL — see that README.
 
 ### Android app (Tauri)
 

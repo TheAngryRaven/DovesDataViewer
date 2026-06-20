@@ -29,8 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Renamed to LapWing.** The app's display name is now **LapWing** everywhere
-  (the previous "HackTheTrack" / "HackTheTrack.net" branding). The hosted domain
-  is unchanged for now.
+  (the previous "HackTheTrack" / "HackTheTrack.net" branding).
+- **New domain — lapwingdata.com.** The site now lives at **lapwingdata.com**
+  (canonical URLs, sitemap, social tags, in-app links). Production attaches the
+  domain via a `custom_domain` route in `wrangler.jsonc`; the beta domain
+  **beta.lapwingdata.com** is served by the `beta-proxy/` reverse-proxy Worker.
 - **Privacy Policy & Terms** now describe the Android app's web-only billing, the
   public deletion URL, and the app's foreground-only location use.
 

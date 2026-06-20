@@ -10,7 +10,7 @@
 
 **Dove's DataViewer / LapWing** — Open-source, offline-first motorsport
 telemetry viewer.
-- Live: [hackthetrack.net](https://hackthetrack.net) | Beta: [beta.perchwerks.com](https://beta.perchwerks.com)
+- Live: [lapwingdata.com](https://lapwingdata.com) | Beta: [beta.lapwingdata.com](https://beta.lapwingdata.com)
 - Companion hardware: [DovesDataLogger](https://github.com/TheAngryRaven/DovesDataLogger) (nRF52840 GPS logger with BLE — Seeed XIAO nRF52840, `sense`/`nonsense` IMU variants)
 - PWA with full offline support via service worker + IndexedDB
 
@@ -377,8 +377,13 @@ and the seeder: **→ `docs/i18n.md`**.
 **PWA/deploy detail:** the active offline worker is `/service-worker.js` (registered
 outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. Static
 hosting is Cloudflare Workers (static-assets-only, `wrangler.jsonc`,
-`bun run build` then `wrangler deploy`). Per-branch preview backend: `vite.config.ts`
-`pick()` prefers `*_PREVIEW` Supabase creds on any non-`main` branch
+`bun run build` then `wrangler deploy`). Production `lapwingdata.com` attaches via
+a `custom_domain` route in `wrangler.jsonc` (auto DNS+TLS — don't also attach it in
+the dashboard). The beta domain `beta.lapwingdata.com` can't bind to a Branch
+Preview URL, so a separate thin reverse-proxy Worker in `beta-proxy/` owns it and
+forwards to `beta-dovesdataviewer.perchwerks.workers.dev` (deployed on its own; see
+`beta-proxy/README.md`). Per-branch preview backend: `vite.config.ts` `pick()`
+prefers `*_PREVIEW` Supabase creds on any non-`main` branch
 (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`), so beta deployments bake in a preview DB.
 `main` and local dev never read `_PREVIEW`. See README "Deployment".
 

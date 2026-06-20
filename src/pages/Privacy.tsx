@@ -18,7 +18,7 @@ const Privacy = () => {
     title: "Privacy Policy — LapWing",
     description:
       "How LapWing handles your data: offline-first telemetry stored in your browser, with optional cloud sync and AI features when you create an account.",
-    canonical: "https://hackthetrack.net/privacy",
+    canonical: "https://lapwingdata.com/privacy",
   });
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto">
@@ -144,7 +144,7 @@ const Privacy = () => {
                 <strong className="text-foreground">On the Android app</strong>,
                 paid plans are not sold or managed in-app: subscriptions are
                 purchased and managed on the web at{" "}
-                <strong className="text-foreground">hackthetrack.net</strong>. The
+                <strong className="text-foreground">lapwingdata.com</strong>. The
                 Android app simply uses cloud sync on whatever plan your account
                 already has.
               </p>
@@ -289,7 +289,7 @@ const Privacy = () => {
                 permanently erased. You can also request account deletion from a
                 public page without opening the app, at{" "}
                 <Link to="/delete-account" className="text-foreground underline hover:no-underline">
-                  hackthetrack.net/delete-account
+                  lapwingdata.com/delete-account
                 </Link>
                 .
               </li>

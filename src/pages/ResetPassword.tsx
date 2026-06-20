@@ -22,7 +22,7 @@ export default function ResetPassword() {
   useDocumentHead({
     title: t('reset.metaTitle'),
     description: t('reset.metaDescription'),
-    canonical: 'https://hackthetrack.net/reset-password',
+    canonical: 'https://lapwingdata.com/reset-password',
   });
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');

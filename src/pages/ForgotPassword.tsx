@@ -14,7 +14,7 @@ export default function ForgotPassword() {
   useDocumentHead({
     title: t('forgot.metaTitle'),
     description: t('forgot.metaDescription'),
-    canonical: 'https://hackthetrack.net/forgot-password',
+    canonical: 'https://lapwingdata.com/forgot-password',
   });
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);

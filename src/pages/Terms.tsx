@@ -14,7 +14,7 @@ const Terms = () => {
     title: "Terms of Service — LapWing",
     description:
       "The terms for using LapWing: offline-first telemetry app with optional cloud sync, paid storage plans, and AI coaching.",
-    canonical: "https://hackthetrack.net/terms",
+    canonical: "https://lapwingdata.com/terms",
   });
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto">
@@ -125,7 +125,7 @@ const Terms = () => {
               </li>
               <li>
                 The Android app does not sell or manage subscriptions in-app: paid
-                plans are purchased and managed on the web at hackthetrack.net. The
+                plans are purchased and managed on the web at lapwingdata.com. The
                 app uses cloud sync on whatever plan your account already has.
               </li>
             </ul>
