@@ -1,15 +1,15 @@
 # beta-proxy
 
 A minimal Cloudflare Worker that reverse-proxies **https://beta.lapwingdata.com**
-to the stable `beta` branch preview of the `dovesdataviewer` Worker.
+to the stable `beta` branch preview of the `lapwing` Worker.
 
 ## Why this exists
 
-The `dovesdataviewer` Worker has non-production branch builds enabled. Pushes to
+The `lapwing` Worker has non-production branch builds enabled. Pushes to
 the `beta` branch publish a **stable Branch Preview URL**:
 
 ```
-https://beta-dovesdataviewer.perchwerks.workers.dev
+https://beta-lapwing.perchwerks.workers.dev
 ```
 
 that always serves the latest `beta` push. Cloudflare **custom domains cannot be
@@ -45,7 +45,7 @@ npm run dry-run
 npm run deploy
 ```
 
-> **Note:** this project lives inside the `dovesdataviewer` repo, which has its
+> **Note:** this project lives inside the `DovesDataViewer` repo, which has its
 > own root `wrangler.jsonc`. Wrangler's config discovery walks *up* the tree and
 > would otherwise pick up that parent config, so the npm scripts (and any direct
 > invocation) must pass `--config ./wrangler.toml`. The `npm run deploy` /
@@ -60,7 +60,7 @@ doing so will conflict with the custom-domain binding.
 ## ⚠️ Cloudflare Access must be OFF on the upstream preview URL
 
 This proxy makes a server-side `fetch()` to
-`beta-dovesdataviewer.perchwerks.workers.dev`. If **Cloudflare Access** (Zero
+`beta-lapwing.perchwerks.workers.dev`. If **Cloudflare Access** (Zero
 Trust) is enabled on that preview hostname (or on the `*.workers.dev` route),
 the proxy's `fetch` will be redirected to an Access login wall and your users
 will see a Cloudflare login page instead of the app.

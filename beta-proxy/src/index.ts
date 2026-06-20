@@ -3,15 +3,15 @@
  *
  * Cloudflare custom domains cannot attach to a *Branch Preview* URL, so this
  * Worker owns beta.lapwingdata.com and transparently forwards every request to
- * the stable `beta` branch preview of the `dovesdataviewer` Worker.
+ * the stable `beta` branch preview of the `lapwing` Worker.
  *
  * Change the deployment target by editing UPSTREAM_HOST below.
  */
 
-// The stable Branch Preview hostname for the `beta` branch of `dovesdataviewer`.
+// The stable Branch Preview hostname for the `beta` branch of `lapwing`.
 // It's derived from the Worker name + account workers.dev subdomain, which are
 // unchanged by the new public domain — so this stays on perchwerks.workers.dev.
-const UPSTREAM_HOST = "beta-dovesdataviewer.perchwerks.workers.dev";
+const UPSTREAM_HOST = "beta-lapwing.perchwerks.workers.dev";
 
 // The public hostname this proxy serves on (used to rewrite redirect targets so
 // the preview host never leaks back to the client).

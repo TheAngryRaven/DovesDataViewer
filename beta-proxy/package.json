@@ -2,7 +2,7 @@
   "name": "beta-proxy",
   "version": "1.0.0",
   "private": true,
-  "description": "Reverse-proxy Worker serving the dovesdataviewer beta branch preview at beta.lapwingdata.com",
+  "description": "Reverse-proxy Worker serving the lapwing beta branch preview at beta.lapwingdata.com",
   "scripts": {
     "deploy": "wrangler deploy --config ./wrangler.toml",
     "dry-run": "wrangler deploy --dry-run --config ./wrangler.toml"

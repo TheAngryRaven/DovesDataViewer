@@ -381,7 +381,7 @@ hosting is Cloudflare Workers (static-assets-only, `wrangler.jsonc`,
 a `custom_domain` route in `wrangler.jsonc` (auto DNS+TLS — don't also attach it in
 the dashboard). The beta domain `beta.lapwingdata.com` can't bind to a Branch
 Preview URL, so a separate thin reverse-proxy Worker in `beta-proxy/` owns it and
-forwards to `beta-dovesdataviewer.perchwerks.workers.dev` (deployed on its own; see
+forwards to `beta-lapwing.perchwerks.workers.dev` (deployed on its own; see
 `beta-proxy/README.md`). Per-branch preview backend: `vite.config.ts` `pick()`
 prefers `*_PREVIEW` Supabase creds on any non-`main` branch
 (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`), so beta deployments bake in a preview DB.

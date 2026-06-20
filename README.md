@@ -465,7 +465,7 @@ whenever that branch isn't `main`, and ignores them on `main` and in local dev.
   or the bindings conflict.
 - **Beta — `beta.lapwingdata.com`:** custom domains can't attach to a Branch
   Preview URL, so a separate thin reverse-proxy Worker owns the beta hostname and
-  forwards to the stable `beta` preview (`beta-dovesdataviewer.perchwerks.workers.dev`).
+  forwards to the stable `beta` preview (`beta-lapwing.perchwerks.workers.dev`).
   It lives in [`beta-proxy/`](beta-proxy/README.md) and is deployed on its own
   (`cd beta-proxy && npm install && npm run deploy`). Keep Cloudflare Access
   **off** on the upstream preview URL — see that README.

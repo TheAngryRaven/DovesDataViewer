@@ -3,7 +3,7 @@
   // The app is a pure static site — no Worker script (`main`) is needed; the
   // assets binding serves ./dist directly. Workers Builds runs the build
   // command (npm run build) and then `wrangler deploy`, which uploads ./dist.
-  "name": "dovesdataviewer",
+  "name": "lapwing",
   "compatibility_date": "2026-05-30",
   // Attaching a custom_domain route makes Cloudflare provision the DNS record and
   // TLS certificate for lapwingdata.com automatically on deploy. The zone
