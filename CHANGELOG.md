@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   you request permanent deletion of your cloud account from the web (Google Play
   requires a public deletion URL), in addition to the existing in-app flow under
   Profile → Data & privacy.
+- **Import your data.** Profile → Data & privacy gains an **Import data** option
+  that restores files and garage data from a previously downloaded data-export
+  ZIP. This is the migration path when moving between origins (e.g. the old
+  hackthetrack.net site → lapwingdata.com), where per-browser storage doesn't
+  carry over. Existing files are kept; matching names are skipped. Works signed
+  in or out (it's a local restore).
 
 ### Changed
 - **Renamed to LapWing.** The app's display name is now **LapWing** everywhere

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
-import { AlertTriangle, Download, Loader2, ShieldX, Trash2 } from "lucide-react";
+import { AlertTriangle, Download, Loader2, ShieldX, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { downloadAccountExport } from "./accountExport";
+import { importAccountArchive, type ImportSummary } from "./accountImport";
 import {
   cancelAccountDeletion,
   getPendingDeletion,
@@ -69,6 +70,9 @@ export default function DataPrivacyPanel(_props: PluginPanelProps) {
         </Button>
       </section>
 
+      <ImportData />
+
+
       {user && (
         <section className="space-y-3">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dataPrivacy.deleteAccount")}</p>
@@ -80,6 +84,52 @@ export default function DataPrivacyPanel(_props: PluginPanelProps) {
         </section>
       )}
     </div>
+  );
+}
+
+// Restore a previously exported ZIP into this browser — the migration path for
+// users moving between origins (per-origin local storage doesn't carry over).
+// Works signed in or out (it's a local restore); existing files are never
+// clobbered. A reload surfaces the restored files/garage (read on mount).
+function ImportData() {
+  const { t } = useTranslation("plugins");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<ImportSummary | null>(null);
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked later
+    if (!file) return;
+    setImporting(true);
+    setResult(null);
+    try {
+      setResult(await importAccountArchive(file));
+    } catch {
+      toast.error(t("dataPrivacy.importFailed"));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <section className="space-y-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dataPrivacy.importTitle")}</p>
+      <p className="text-xs text-muted-foreground">{t("dataPrivacy.importBlurb")}</p>
+      <input ref={inputRef} type="file" accept=".zip,application/zip" className="hidden" onChange={(e) => void onFile(e)} />
+      <Button variant="outline" disabled={importing} onClick={() => inputRef.current?.click()}>
+        {importing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
+        {importing ? t("dataPrivacy.importing") : t("dataPrivacy.importButton")}
+      </Button>
+      {result && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>{t("dataPrivacy.importDone", { files: result.files, records: result.records })}</span>
+          <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
+            {t("dataPrivacy.importReload")}
+          </Button>
+        </div>
+      )}
+    </section>
   );
 }
 

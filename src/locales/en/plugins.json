@@ -81,7 +81,14 @@
     "emailedCode": "We emailed a confirmation code to {{email}}.",
     "sendCodeFailed": "Couldn't send the code.",
     "scheduledFor": "Deletion scheduled for {{date}}.",
-    "codeFailed": "That code didn't work — try again."
+    "codeFailed": "That code didn't work — try again.",
+    "importTitle": "Import data",
+    "importBlurb": "Restore files and garage data from a data-export ZIP — handy when moving to a new device or to lapwingdata.com. Existing items are kept; files that already exist are skipped.",
+    "importButton": "Choose export ZIP",
+    "importing": "Importing…",
+    "importDone": "Imported {{files}} file(s) and {{records}} record(s). Reload to see them.",
+    "importReload": "Reload",
+    "importFailed": "Import failed — is this a LapWing data-export ZIP?"
   },
   "snapshots": {
     "loadFailed": "Failed to load snapshots",

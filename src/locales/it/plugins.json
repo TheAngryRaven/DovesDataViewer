@@ -82,7 +82,14 @@
     "emailedCode": "Abbiamo inviato un codice di conferma a {{email}}.",
     "sendCodeFailed": "Impossibile inviare il codice.",
     "scheduledFor": "Eliminazione programmata per il {{date}}.",
-    "codeFailed": "Quel codice non ha funzionato: riprova."
+    "codeFailed": "Quel codice non ha funzionato: riprova.",
+    "importTitle": "Importa dati",
+    "importBlurb": "Ripristina file e dati del garage da uno ZIP di esportazione — utile quando passi a un nuovo dispositivo o a lapwingdata.com. Gli elementi esistenti vengono mantenuti; i file già presenti vengono saltati.",
+    "importButton": "Scegli lo ZIP di esportazione",
+    "importing": "Importazione…",
+    "importDone": "Importati {{files}} file e {{records}} record. Ricarica per vederli.",
+    "importReload": "Ricarica",
+    "importFailed": "Importazione non riuscita — è uno ZIP di esportazione LapWing?"
   },
   "snapshots": {
     "loadFailed": "Impossibile caricare le istantanee",
