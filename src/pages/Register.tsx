@@ -15,6 +15,7 @@ import { useStripePrices } from '@/hooks/useStripePrices';
 import { isDisposableEmail, looksLikeEmail } from '@/lib/emailValidation';
 import { isPaidTier } from '@/lib/billing';
 import { setPendingCheckout } from '@/lib/pendingCheckout';
+import { isNativeApp } from '@/lib/platform';
 
 // Google sign-in is gated separately: it currently routes through Lovable's OAuth
 // broker, so it stays off until native Supabase Google OAuth is configured.
@@ -25,7 +26,7 @@ export default function Register() {
   useDocumentHead({
     title: t('register.metaTitle'),
     description: t('register.metaDescription'),
-    canonical: 'https://hackthetrack.net/register',
+    canonical: 'https://lapwingdata.com/register',
   });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +38,9 @@ export default function Register() {
   const { signUp, signInWithGoogle } = useAuth();
   const { config } = useStripePrices();
   const navigate = useNavigate();
+  // The native (Android) app signs up on the free tier only — paid plans are
+  // bought on the web (Google Play billing policy), so the plan picker is hidden.
+  const native = isNativeApp();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,8 +77,9 @@ export default function Register() {
       toast({ title: t('register.failed'), description: error.message, variant: 'destructive' });
     } else {
       // Account-first paid flow: stash the chosen plan so checkout resumes on
-      // the user's first sign-in after confirming their email.
-      if (isPaidTier(plan.tier)) {
+      // the user's first sign-in after confirming their email. Never on native —
+      // there's no in-app checkout to resume.
+      if (!native && isPaidTier(plan.tier)) {
         setPendingCheckout(plan.tier, plan.interval);
         toast({
           title: t('register.accountCreated'),
@@ -104,7 +109,7 @@ export default function Register() {
     <div className="min-h-screen bg-background flex flex-col items-center p-8 gap-12">
       <div className="flex items-center gap-3 justify-center mt-4">
         <Gauge className="w-8 h-8 text-primary" />
-        <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
+        <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
       </div>
 
       <PricingCards className="w-full max-w-3xl" variant="register" />
@@ -126,7 +131,7 @@ export default function Register() {
               <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>
               <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
             </div>
-            <PlanCheckout value={plan} onChange={setPlan} config={config} />
+            {!native && <PlanCheckout value={plan} onChange={setPlan} config={config} />}
             <Turnstile onToken={setCaptchaToken} className="flex justify-center" />
             <label htmlFor="confirmAge" className="flex items-start gap-2 text-xs text-muted-foreground">
               <input
@@ -148,7 +153,7 @@ export default function Register() {
               </span>
             </label>
             <div className="flex items-center gap-3">
-              <PlanCheckoutSummary value={plan} config={config} />
+              {!native && <PlanCheckoutSummary value={plan} config={config} />}
               <Button type="submit" className="flex-1" disabled={isLoading || !confirmAge}>
                 {isLoading ? t('pleaseWait') : t('register.submit')}
               </Button>

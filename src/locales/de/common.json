@@ -1,6 +1,6 @@
 {
   "_machine": true,
-  "appName": "HackTheTrack.net",
+  "appName": "LapWing",
   "actions": {
     "signIn": "Anmelden",
     "signOut": "Abmelden",

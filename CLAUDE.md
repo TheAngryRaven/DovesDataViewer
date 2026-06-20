@@ -8,9 +8,9 @@
 
 ## Project Identity
 
-**Dove's DataViewer / HackTheTrack** — Open-source, offline-first motorsport
+**Dove's DataViewer / LapWing** — Open-source, offline-first motorsport
 telemetry viewer.
-- Live: [hackthetrack.net](https://hackthetrack.net) | Beta: [beta.perchwerks.com](https://beta.perchwerks.com)
+- Live: [lapwingdata.com](https://lapwingdata.com) | Beta: [beta.lapwingdata.com](https://beta.lapwingdata.com)
 - Companion hardware: [DovesDataLogger](https://github.com/TheAngryRaven/DovesDataLogger) (nRF52840 GPS logger with BLE — Seeed XIAO nRF52840, `sense`/`nonsense` IMU variants)
 - PWA with full offline support via service worker + IndexedDB
 
@@ -308,6 +308,12 @@ unless noted.
 - **Cloud sync, subscriptions, GDPR**: Supabase-backed, touch nothing in the core
   app per Rule 1 → `docs/backend.md`. Documents, logs, and lap snapshots draw from
   **one pooled per-tier byte budget** (`subscription_tiers.total_bytes`).
+- **Android / Tauri shell** (`lib/platform.ts`): the same bundle serves the web app
+  and a native Android app (separate Tauri repo). `isNativeApp()` is the single
+  gate — on native: **no service worker** (`main.tsx`), **no in-app purchases**
+  (paid plans are web-only per Google Play policy; cloud sync still works), and
+  external links open in the system browser (`openExternal`/`interceptExternal`).
+  Public deletion URL at `/delete-account`. → `docs/android.md`.
 
 ---
 
@@ -360,6 +366,7 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_ENABLE_ADMIN` | Client | `"true"` enables admin UI + `/admin`. `/login` is mounted when this OR `VITE_ENABLE_CLOUD` is on. |
 | `VITE_ENABLE_CLOUD` | Client | `"true"` enables public accounts (Cloud Sync + email sign-in + `/register` etc.). Default `"false"`. |
 | `VITE_ENABLE_GOOGLE_AUTH` | Client | `"true"` shows "Continue with Google". Requires `VITE_ENABLE_CLOUD`. Default `"false"`. |
+| `VITE_IS_NATIVE` | Client/Build | `"true"` ONLY for the native (Tauri/Android) shell build. Gates `isNativeApp()` (`lib/platform.ts`): no service worker, no in-app purchases (web-only billing — Google Play policy), external links via the system browser. Default `"false"`. → `docs/android.md`. |
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `VITE_FIRMWARE_MANIFEST_URL` | Client | Override the logger firmware OTA manifest URL. Unset: `main` → production manifest, non-`main`/preview → beta channel (same `isPreviewBuild()` switch). |
@@ -370,8 +377,13 @@ and the seeder: **→ `docs/i18n.md`**.
 **PWA/deploy detail:** the active offline worker is `/service-worker.js` (registered
 outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. Static
 hosting is Cloudflare Workers (static-assets-only, `wrangler.jsonc`,
-`bun run build` then `wrangler deploy`). Per-branch preview backend: `vite.config.ts`
-`pick()` prefers `*_PREVIEW` Supabase creds on any non-`main` branch
+`bun run build` then `wrangler deploy`). Production `lapwingdata.com` attaches via
+a `custom_domain` route in `wrangler.jsonc` (auto DNS+TLS — don't also attach it in
+the dashboard). The beta domain `beta.lapwingdata.com` can't bind to a Branch
+Preview URL, so a separate thin reverse-proxy Worker in `beta-proxy/` owns it and
+forwards to `beta-dovesdataviewer.perchwerks.workers.dev` (deployed on its own; see
+`beta-proxy/README.md`). Per-branch preview backend: `vite.config.ts` `pick()`
+prefers `*_PREVIEW` Supabase creds on any non-`main` branch
 (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`), so beta deployments bake in a preview DB.
 `main` and local dev never read `_PREVIEW`. See README "Deployment".
 

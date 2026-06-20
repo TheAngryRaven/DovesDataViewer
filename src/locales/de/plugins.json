@@ -82,7 +82,14 @@
     "emailedCode": "Wir haben einen Bestätigungscode an {{email}} gesendet.",
     "sendCodeFailed": "Der Code konnte nicht gesendet werden.",
     "scheduledFor": "Löschung geplant für {{date}}.",
-    "codeFailed": "Dieser Code hat nicht funktioniert — versuche es erneut."
+    "codeFailed": "Dieser Code hat nicht funktioniert — versuche es erneut.",
+    "importTitle": "Daten importieren",
+    "importBlurb": "Stelle Dateien und Garagendaten aus einer Export-ZIP wieder her — praktisch beim Wechsel auf ein neues Gerät oder zu lapwingdata.com. Vorhandene Einträge bleiben erhalten; bereits vorhandene Dateien werden übersprungen.",
+    "importButton": "Export-ZIP auswählen",
+    "importing": "Importieren…",
+    "importDone": "{{files}} Datei(en) und {{records}} Datensätze importiert. Zum Anzeigen neu laden.",
+    "importReload": "Neu laden",
+    "importFailed": "Import fehlgeschlagen — ist das eine LapWing-Export-ZIP?"
   },
   "snapshots": {
     "loadFailed": "Snapshots konnten nicht geladen werden",

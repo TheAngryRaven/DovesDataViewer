@@ -150,6 +150,12 @@ describe("pricingCta", () => {
   it("still keeps an unconfigured paid tier non-actionable even when on a paid tier", () => {
     expect(pricingCta({ ...base, slug: "pro", currentTier: "plus", purchasable: false })).toBe("none");
   });
+
+  it("shows no CTA on native (Android) — purchases are web-only, even for would-be upgrades/current", () => {
+    expect(pricingCta({ ...base, slug: "plus", currentTier: "free", purchasable: true, native: true })).toBe("none");
+    expect(pricingCta({ ...base, slug: "plus", currentTier: "plus", purchasable: true, native: true })).toBe("none");
+    expect(pricingCta({ ...base, slug: "premium", currentTier: "plus", purchasable: true, native: true })).toBe("none");
+  });
 });
 
 describe("lookupKey", () => {

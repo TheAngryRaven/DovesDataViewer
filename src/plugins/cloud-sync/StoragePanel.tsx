@@ -14,6 +14,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSubscription } from "@/hooks/useSubscription";
 import { isPaidTier, isComped, hasCompGrant, daysUntilTrim } from "@/lib/billing";
 import { createPortal } from "@/lib/billingClient";
+import { isNativeApp } from "@/lib/platform";
 import { onGarageChange } from "@/lib/garageEvents";
 import { getStorageUsage } from "./syncEngine";
 import { getLocalStorageUsage } from "./localUsage";
@@ -273,7 +274,10 @@ function PlanSection() {
   const inGrace = !subscribed && !!graceUntil;
   const trimDays = daysUntilTrim(subscription?.grace_until);
   // A comp (active or lapsed) has no Stripe customer, so the portal can't open.
-  const canManage = !hasCompGrant(subscription) && (!!subscription?.current_period_end || subscribed || inGrace);
+  // The native (Android) app never manages billing in-app (Google Play policy) —
+  // the plan still shows (read-only), but the Stripe portal buttons are hidden;
+  // subscriptions are managed on the web.
+  const canManage = !isNativeApp() && !hasCompGrant(subscription) && (!!subscription?.current_period_end || subscribed || inGrace);
 
   // Open the Stripe portal — generic (cancel / payment methods) or, with
   // flow "update", deep-linked into the change-plan screen.
@@ -317,7 +321,7 @@ function PlanSection() {
                 : t("plan.trimmed")}
             </p>
           )}
-          {!subscribed && !inGrace && (
+          {!subscribed && !inGrace && !isNativeApp() && (
             <p className="text-[11px] text-muted-foreground">{t("plan.upgrade")}</p>
           )}
         </div>

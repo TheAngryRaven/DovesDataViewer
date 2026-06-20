@@ -101,6 +101,11 @@ const PUBLIC_BACKEND_FALLBACKS = {
   // until the operator explicitly opts in via VITE_*/HTT_* env. The production
   // deploy sets this to "true".
   VITE_ENABLE_CLOUD: "false",
+  // The web app is the default target; the Tauri/Android build sets this to
+  // "true" (VITE_IS_NATIVE / HTT_IS_NATIVE) so the bundle skips the service
+  // worker, hides in-app purchases (web-only billing for Google Play), and
+  // routes external links through the system browser. See lib/platform.ts.
+  VITE_IS_NATIVE: "false",
 } as const;
 
 // https://vitejs.dev/config/
@@ -177,6 +182,9 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_ENABLE_CLOUD": JSON.stringify(
         pick("VITE_ENABLE_CLOUD", "HTT_ENABLE_CLOUD", PUBLIC_BACKEND_FALLBACKS.VITE_ENABLE_CLOUD),
       ),
+      "import.meta.env.VITE_IS_NATIVE": JSON.stringify(
+        pick("VITE_IS_NATIVE", "HTT_IS_NATIVE", PUBLIC_BACKEND_FALLBACKS.VITE_IS_NATIVE),
+      ),
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
       "import.meta.env.VITE_GIT_HASH": JSON.stringify(gitHash),
       "import.meta.env.VITE_BUILD_DATE": JSON.stringify(buildDate),
@@ -195,8 +203,8 @@ export default defineConfig(({ mode }) => {
         },
         includeAssets: ["favicon.png", "favicon.ico", "robots.txt", "tracks.json", "samples/**/*"],
         manifest: {
-          name: "HackTheTrack - Motorsport Data Viewer",
-          short_name: "HackTheTrack",
+          name: "LapWing - Motorsport Data Viewer",
+          short_name: "LapWing",
           description: "Open source motorsport data acquisition and analytics",
           theme_color: "#1a1a2e",
           background_color: "#0f0f1a",

@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { interceptExternal } from "@/lib/platform";
 
 interface ActionTileProps {
   icon: LucideIcon;
@@ -77,6 +78,7 @@ export function ActionTile({
         rel="noopener noreferrer"
         className={classes}
         title={hint}
+        onClick={(e) => interceptExternal(e, href)}
       >
         {content}
       </a>

@@ -19,7 +19,7 @@ describe("isDisposableEmail", () => {
   });
   it("allows normal providers", () => {
     expect(isDisposableEmail("a@gmail.com")).toBe(false);
-    expect(isDisposableEmail("racer@hackthetrack.net")).toBe(false);
+    expect(isDisposableEmail("racer@lapwingdata.com")).toBe(false);
   });
   it("is false for malformed input", () => {
     expect(isDisposableEmail("not-an-email")).toBe(false);

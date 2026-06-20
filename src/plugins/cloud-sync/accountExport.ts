@@ -90,7 +90,7 @@ export async function downloadAccountExport(onProgress?: (p: ExportProgress) => 
   const a = document.createElement("a");
   a.href = url;
   const date = new Date().toISOString().slice(0, 10);
-  a.download = `hackthetrack-data-export-${date}.zip`;
+  a.download = `lapwing-data-export-${date}.zip`;
   a.click();
   URL.revokeObjectURL(url);
 }

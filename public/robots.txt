@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://hackthetrack.net/sitemap.xml
+Sitemap: https://lapwingdata.com/sitemap.xml

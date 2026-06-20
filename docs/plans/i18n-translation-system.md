@@ -49,7 +49,7 @@ Status: **COMPLETE** — every user-facing surface is translated. · last branch
 > English in `index.ts`, and the typed resources in `types/i18next.d.ts`). Covers
 > every visible string + toast/validation message + `useDocumentHead` titles; the
 > age-confirmation line with its Terms/Privacy links uses `<Trans>`. Brand
-> ("HackTheTrack") stays literal. **Remaining:** the **admin** panel (env-gated,
+> ("LapWing") stays literal. **Remaining:** the **admin** panel (env-gated,
 > `VITE_ENABLE_ADMIN`). (Legal pages stay English by design.)
 
 > **Phase 6, slice 2 (merged):** the **Tools plugin**, translated
@@ -382,7 +382,7 @@ Mechanical and incremental — **per surface, not per repo**:
    English. Error chains keep the device/API detail verbatim (untranslatable),
    wrapped in a translated frame: `t('common:syncFailed', { name, detail })`.
 6. **Excluded from translation** (intentionally literal): canonical channel ids,
-   unit symbols, brand/product names ("DovesDataLogger", "HackTheTrack"), file
+   unit symbols, brand/product names ("DovesDataLogger", "LapWing"), file
    formats, console/debug logs, code-level errors not shown to users.
 
 A lightweight lint guard (follow-up): an ESLint rule / CI grep to flag new

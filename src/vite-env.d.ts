@@ -12,6 +12,12 @@ interface ImportMetaEnv {
   readonly VITE_GIT_BRANCH?: string;
   /** ISO commit (committer) date of the build's commit. */
   readonly VITE_GIT_COMMIT_DATE?: string;
+  /**
+   * "true" for a bundle built for the native (Tauri/Android) shell. Gates
+   * native-only behaviour (no service worker, no in-app purchases, external
+   * links via the system browser). Defaults to "false" — see lib/platform.ts.
+   */
+  readonly VITE_IS_NATIVE?: string;
 }
 
 interface ImportMeta {

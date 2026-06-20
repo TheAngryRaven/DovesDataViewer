@@ -280,8 +280,11 @@ otherwise the migration raises a NOTICE and it's a documented operator step.
 
 **Client** (cloud-sync plugin): `exportManifest.ts` (pure, unit-tested — assembles
 the zip's text entries), `accountExport.ts` (I/O orchestrator: edge fn + local
-stores + blob download → JSZip), `accountDeletion.ts` (email-OTP gate via
+stores + blob download → JSZip), `accountImport.ts` (the reverse — restores a
+data-export ZIP's local stores + file blobs into this browser via the sync
+accessors; the cross-origin migration path, e.g. old domain → new domain;
+pure entry-classifier unit-tested), `accountDeletion.ts` (email-OTP gate via
 `signInWithOtp`/`verifyOtp` + schedule/cancel), and `DataPrivacyPanel.tsx` (the
-Profile-tab "Data & privacy" panel). Admin `BannedIpsTab` exposes a ban TTL
+Profile-tab "Data & privacy" panel — export, import, and delete). Admin `BannedIpsTab` exposes a ban TTL
 (defaults to 90 days). Privacy policy "Your Rights" / "Data Retention" describe
 all of the above.

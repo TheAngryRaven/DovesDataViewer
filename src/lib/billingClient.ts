@@ -9,6 +9,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { isNativeApp } from "@/lib/platform";
 import type {
   BillingInterval,
   StripeConfig,
@@ -57,6 +58,10 @@ export async function createCheckout(
   interval: BillingInterval,
   returnUrl: string,
 ): Promise<string> {
+  // Belt-and-suspenders: the native (Android) app hides every purchase surface,
+  // so this should never be reached there — but never start a web checkout from
+  // inside the app (Google Play billing policy). Plans are bought on the web.
+  if (isNativeApp()) throw new Error("Purchases are managed on the web.");
   const { data, error } = await supabase.functions.invoke("create-checkout-session", {
     body: { tier, interval, returnUrl },
   });
@@ -76,6 +81,9 @@ export async function createPortal(
   returnUrl: string,
   flow?: "update",
 ): Promise<string> {
+  // As with checkout: the billing portal is a web-only surface (subscriptions
+  // are managed on the web), never opened from inside the native app.
+  if (isNativeApp()) throw new Error("Subscriptions are managed on the web.");
   const { data, error } = await supabase.functions.invoke("create-portal-session", {
     body: { returnUrl, ...(flow ? { flow } : {}) },
   });

@@ -61,7 +61,7 @@ export function buildReadme(cloud: CloudExport | null, local: LocalExport): stri
   const localFileCount = local.fileNames.length;
   const cloudFileCount = cloud?.cloud_files?.length ?? 0;
   const lines = [
-    'HackTheTrack / Dove\'s DataViewer — your data export',
+    'LapWing / Dove\'s DataViewer — your data export',
     `Generated: ${new Date().toISOString()}`,
     '',
     'This archive contains everything we hold about you, for your records and for',

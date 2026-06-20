@@ -14,7 +14,7 @@ export default function ForgotPassword() {
   useDocumentHead({
     title: t('forgot.metaTitle'),
     description: t('forgot.metaDescription'),
-    canonical: 'https://hackthetrack.net/forgot-password',
+    canonical: 'https://lapwingdata.com/forgot-password',
   });
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-sm space-y-6">
         <div className="flex items-center gap-3 justify-center">
           <Gauge className="w-8 h-8 text-primary" />
-          <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
+          <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
         </div>
         <div className="racing-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">{t('forgot.heading')}</h2>

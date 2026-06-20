@@ -30,6 +30,7 @@ import { PluginMount } from "@/plugins/PluginMount";
 import { MountSlot } from "@/plugins/mounts";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildInfo, formatBuildLabel, commitUrl, isPreviewBuild } from "@/lib/buildInfo";
+import { interceptExternal } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import type { ParsedData } from "@/types/racing";
 
@@ -103,7 +104,7 @@ export function LandingPage({
           <div className="flex items-center gap-3">
             <Gauge className="w-8 h-8 text-primary" />
             <div>
-              <h1 className="text-xl font-semibold text-foreground">HackTheTrack.net</h1>
+              <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
               <p className="text-sm text-muted-foreground">{t("landing:tagline")}</p>
             </div>
           </div>
@@ -127,6 +128,7 @@ export function LandingPage({
               href="https://github.com/sponsors/TheAngryRaven"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => interceptExternal(e, "https://github.com/sponsors/TheAngryRaven")}
             >
               <Button variant="outline" size="sm" className="gap-2">
                 <Heart className="w-4 h-4 text-pink-500" />
@@ -282,6 +284,7 @@ export function LandingPage({
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => interceptExternal(e, link.href)}
                 className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Github className="w-4 h-4" />
@@ -325,6 +328,7 @@ export function LandingPage({
             href="https://PerchWerks.com"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => interceptExternal(e, "https://PerchWerks.com")}
             className="font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
             PerchWerks LLC
@@ -342,6 +346,7 @@ export function LandingPage({
               href={commitUrl()!}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => interceptExternal(e, commitUrl()!)}
               className={cn(
                 "underline-offset-4 transition-colors hover:underline",
                 isPreviewBuild() ? "hover:text-warning/80" : "hover:text-muted-foreground",

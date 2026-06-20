@@ -60,12 +60,12 @@
   },
   "about": {
     "trigger": "Acerca de",
-    "title": "Acerca de HackTheTrack",
+    "title": "Acerca de LapWing",
     "featuresHeading": "Funciones",
     "sections": {
       "offline": {
         "heading": "Funciona sin conexión y se puede instalar",
-        "body": "HackTheTrack es una aplicación web totalmente capaz de funcionar sin conexión. Una vez cargada, funciona sin conexión a internet, perfecta para la pista. Puedes <strong>instalarla como una app nativa</strong> en tu teléfono, tablet u ordenador usando la opción «Instalar» del menú de tu navegador (o el aviso que aparece al final de la página)."
+        "body": "LapWing es una aplicación web totalmente capaz de funcionar sin conexión. Una vez cargada, funciona sin conexión a internet, perfecta para la pista. Puedes <strong>instalarla como una app nativa</strong> en tu teléfono, tablet u ordenador usando la opción «Instalar» del menú de tu navegador (o el aviso que aparece al final de la página)."
       },
       "data": {
         "heading": "Tus datos permanecen en tu dispositivo",
@@ -77,7 +77,7 @@
       },
       "oss": {
         "heading": "Gratis y de código abierto",
-        "body": "Todas las funciones locales de HackTheTrack son completamente gratuitas, y el código fuente es abierto y está disponible en GitHub. El almacenamiento en la nube opcional tiene un nivel gratuito; más almacenamiento y el coaching con IA son complementos de pago que cubren los costes de servidor y modelos, pero todas las funciones locales siempre serán gratuitas."
+        "body": "Todas las funciones locales de LapWing son completamente gratuitas, y el código fuente es abierto y está disponible en GitHub. El almacenamiento en la nube opcional tiene un nivel gratuito; más almacenamiento y el coaching con IA son complementos de pago que cubren los costes de servidor y modelos, pero todas las funciones locales siempre serán gratuitas."
       }
     },
     "features": [

@@ -1,23 +1,24 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
+import { interceptExternal } from "@/lib/platform";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === "true";
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 
 // NOTE FOR THE OPERATOR: this policy adapts to the build flags. With cloud
 // features off it describes the offline-only app; with VITE_ENABLE_CLOUD on it
-// also covers accounts, payments and AI. Placeholders to confirm before relying
-// on this for the hosted service: the operating entity's legal name, a contact
-// email, and the specific AI provider used by the coaching plugin. This is a
-// drafted policy, not legal advice — have it reviewed for your jurisdiction.
+// also covers accounts, payments and AI. The official hosted service is operated
+// by PERCHWERKS LLC (Windermere, Florida, USA); AI coaching uses Anthropic;
+// interim contact champagne@perchwerks.com. This is a drafted policy, not legal
+// advice — have it reviewed for your jurisdiction.
 
 const Privacy = () => {
   useDocumentHead({
-    title: "Privacy Policy — HackTheTrack",
+    title: "Privacy Policy — LapWing",
     description:
-      "How HackTheTrack handles your data: offline-first telemetry stored in your browser, with optional cloud sync and AI features when you create an account.",
-    canonical: "https://hackthetrack.net/privacy",
+      "How LapWing handles your data: offline-first telemetry stored in your browser, with optional cloud sync and AI features when you create an account.",
+    canonical: "https://lapwingdata.com/privacy",
   });
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto">
@@ -37,7 +38,7 @@ const Privacy = () => {
             The short version
           </h2>
           <p>
-            HackTheTrack is offline-first. By default, everything you do —
+            LapWing is offline-first. By default, everything you do —
             importing telemetry, taking notes, building kart profiles and setup
             sheets — stays in your browser and{" "}
             <strong className="text-foreground">never leaves your device</strong>.
@@ -132,11 +133,20 @@ const Privacy = () => {
                   href="https://stripe.com/privacy"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => interceptExternal(e, "https://stripe.com/privacy")}
                   className="text-foreground underline hover:no-underline"
                 >
                   Stripe’s Privacy Policy
                 </a>
                 .
+              </p>
+              <p className="mt-2">
+                <strong className="text-foreground">On the Android app</strong>,
+                paid plans are not sold or managed in-app: subscriptions are
+                purchased and managed on the web at{" "}
+                <strong className="text-foreground">lapwingdata.com</strong>. The
+                Android app simply uses cloud sync on whatever plan your account
+                already has.
               </p>
             </section>
 
@@ -147,11 +157,9 @@ const Privacy = () => {
               <p>
                 If you use the optional AI coaching feature, the telemetry needed
                 to generate feedback (such as GPS traces and lap data, and any
-                driver name attached to the session) is sent to a{" "}
-                <strong className="text-foreground">
-                  third-party AI provider
-                </strong>{" "}
-                to be processed. We send this only when you choose to run the
+                driver name attached to the session) is sent to{" "}
+                <strong className="text-foreground">Anthropic</strong>, our
+                third-party AI provider, to be processed. We send this only when you choose to run the
                 coach. AI output is generated automatically and may be inaccurate
                 — it is informational only and must not be relied on for safety
                 decisions (see our{" "}
@@ -220,10 +228,8 @@ const Privacy = () => {
                 — bot/abuse protection on sign-up.
               </li>
               <li>
-                <strong className="text-foreground">
-                  The AI coaching provider
-                </strong>{" "}
-                — only if you use AI coaching.
+                <strong className="text-foreground">Anthropic</strong> — powers AI
+                coaching, only if you use it.
               </li>
             </ul>
             <p className="mt-2">
@@ -280,7 +286,12 @@ const Privacy = () => {
                 deletion is confirmed by an emailed code and then scheduled{" "}
                 <strong className="text-foreground">7 days</strong> out — you can
                 cancel any time before then, after which all your data is
-                permanently erased.
+                permanently erased. You can also request account deletion from a
+                public page without opening the app, at{" "}
+                <Link to="/delete-account" className="text-foreground underline hover:no-underline">
+                  lapwingdata.com/delete-account
+                </Link>
+                .
               </li>
               <li>
                 <strong className="text-foreground">Objection / restriction:</strong>{" "}
@@ -349,10 +360,29 @@ const Privacy = () => {
 
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">
+            Mobile App Permissions
+          </h2>
+          <p>
+            The Android app may ask for a few device permissions, each only for a
+            specific feature:{" "}
+            <strong className="text-foreground">Location</strong> is used to record
+            GPS while you are actively timing or logging a session — it is{" "}
+            <strong className="text-foreground">foreground-only</strong> (we do not
+            collect location in the background or while the app is closed);{" "}
+            <strong className="text-foreground">Bluetooth</strong> is used to
+            connect to a Dove’s Data Logger device to download laps and update its
+            firmware; and network access is used only for the optional online
+            features described above. GPS traces stay on your device unless you
+            choose to sync a session to your account.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-foreground mb-2">
             Self-Hosting
           </h2>
           <p>
-            HackTheTrack is open source. If someone else runs their own instance,
+            LapWing is open source. If someone else runs their own instance,
             they — not us — control any data collected by that instance, and this
             policy describes only the official hosted service.
           </p>
@@ -378,15 +408,18 @@ const Privacy = () => {
             Changes &amp; Contact
           </h2>
           <p>
-            We may update this policy as the app evolves; material changes will be
-            reflected by the “Last updated” date below. Questions or requests can
-            be sent through the in-app contact form.
+            The official hosted service is operated by{" "}
+            <strong className="text-foreground">PERCHWERKS LLC</strong> (Windermere,
+            Florida, USA). We may update this policy as the app evolves; material
+            changes will be reflected by the “Last updated” date below. Questions
+            or requests can be sent through the in-app contact form or to
+            champagne@perchwerks.com.
           </p>
         </section>
       </div>
 
       <p className="mt-10 text-xs text-muted-foreground/60">
-        Last updated: May 2026
+        Last updated: June 2026
       </p>
     </div>
   );

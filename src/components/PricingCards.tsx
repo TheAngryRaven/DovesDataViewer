@@ -15,6 +15,7 @@ import {
   pricingCta,
   tiersWithPrices,
 } from "@/lib/billing";
+import { isNativeApp } from "@/lib/platform";
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 
@@ -169,7 +170,10 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
   const [busy, setBusy] = useState<string | null>(null);
 
   const signedIn = !!user;
-  const showPaid = paidTiersVisible(config);
+  // The native (Android) app sells nothing in-app (Google Play billing policy):
+  // hide the paid cards and every CTA — the offline/free cards stay informational.
+  const native = isNativeApp();
+  const showPaid = paidTiersVisible(config) && !native;
   const purchasable = tiersWithPrices(config.prices);
   // The cards' interval: the toggle on home, fixed monthly on sign-up.
   const cardInterval: BillingInterval = variant === "register" ? "monthly" : interval;
@@ -239,6 +243,7 @@ export function PricingCards({ className, variant = "home" }: { className?: stri
       cloudEnabled: enableCloud,
       currentTier,
       purchasable: purchasable.has(slug),
+      native,
     });
     if (kind === "current") {
       return (

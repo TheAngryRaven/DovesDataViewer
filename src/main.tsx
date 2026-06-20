@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/sonner";
 import { registerSW } from "virtual:pwa-register";
 import { initPlugins } from "@/plugins";
 import { initDebugConsole } from "@/lib/debugConsole";
+import { isNativeApp } from "@/lib/platform";
 // Initialize i18next before render so the chosen language is active on first
 // paint (no English flash). The default export is the configured instance.
 import i18n from "@/lib/i18n";
@@ -53,7 +54,11 @@ const cleanupPreviewServiceWorkers = async () => {
   await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
 };
 
-if (isInIframe || isPreviewHost) {
+// The native (Tauri/Android) shell is a top-level window — not an iframe — so it
+// slips past the checks above. It serves its own packaged assets, so a service
+// worker has nothing useful to do and would only fight the shell's caching;
+// route native through the same cleanup path as preview hosts.
+if (isInIframe || isPreviewHost || isNativeApp()) {
   void cleanupPreviewServiceWorkers();
 } else {
   const updateSW = registerSW({

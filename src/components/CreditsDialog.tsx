@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { interceptExternal } from "@/lib/platform";
 
 const CREDITS: ReadonlyArray<readonly [name: string, url: string]> = [
   ["React", "https://react.dev"],
@@ -59,6 +60,7 @@ export function CreditsDialog() {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => interceptExternal(e, url)}
               className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-accent transition-colors text-sm"
             >
               <span className="font-medium text-foreground">{name}</span>

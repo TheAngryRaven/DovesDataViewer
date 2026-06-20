@@ -82,7 +82,14 @@
     "emailedCode": "{{email}} に確認コードを送信しました。",
     "sendCodeFailed": "コードを送信できませんでした。",
     "scheduledFor": "削除を{{date}}に予定しました。",
-    "codeFailed": "そのコードは無効でした。もう一度お試しください。"
+    "codeFailed": "そのコードは無効でした。もう一度お試しください。",
+    "importTitle": "データをインポート",
+    "importBlurb": "エクスポートした ZIP からファイルとガレージのデータを復元します。新しいデバイスや lapwingdata.com への移行に便利です。既存の項目は保持され、すでに存在するファイルはスキップされます。",
+    "importButton": "エクスポート ZIP を選択",
+    "importing": "インポート中…",
+    "importDone": "{{files}} 個のファイルと {{records}} 件のレコードをインポートしました。再読み込みして表示してください。",
+    "importReload": "再読み込み",
+    "importFailed": "インポートに失敗しました — これは LapWing のエクスポート ZIP ですか？"
   },
   "snapshots": {
     "loadFailed": "スナップショットを読み込めませんでした",

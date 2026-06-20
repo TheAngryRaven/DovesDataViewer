@@ -618,7 +618,7 @@ export default function Index() {
       <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Gauge className="w-6 h-6 text-primary" />
-          <span className="font-semibold text-foreground hidden sm:inline">HackTheTrack.net</span>
+          <span className="font-semibold text-foreground hidden sm:inline">LapWing</span>
         </div>
 
         <div className="flex items-center gap-2">

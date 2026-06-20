@@ -20,6 +20,7 @@ import {
   TIER_DISPLAY_LABEL,
   TIER_STORAGE_LABEL,
 } from "@/lib/billing";
+import { isNativeApp } from "@/lib/platform";
 
 export interface PlanSelection {
   tier: string;
@@ -51,6 +52,8 @@ export function PlanCheckout({
   config: StripeConfig;
 }) {
   const { t } = useTranslation("auth");
+  // No in-app plan picker on native — paid plans are bought on the web.
+  if (isNativeApp()) return null;
   if (!paidTiersVisible(config)) return null;
   const tiers = selectableTiers(config);
   if (tiers.length <= 1) return null; // only "free" — nothing to choose
@@ -117,6 +120,7 @@ export function PlanCheckoutSummary({
   config: StripeConfig;
 }) {
   const { t } = useTranslation("auth");
+  if (isNativeApp()) return null;
   if (!paidTiersVisible(config)) return null;
 
   if (value.tier === "free") {

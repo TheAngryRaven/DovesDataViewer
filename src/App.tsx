@@ -9,6 +9,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import i18n from "@/lib/i18n";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { isNativeApp } from "@/lib/platform";
 import { MigrationBanner } from "@/components/MigrationBanner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,9 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Register = lazy(() => import("./pages/Register"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+// Public, no-login account-deletion request page. Mounted un-gated (below) so the
+// URL Google Play requires resolves on every build, even offline-only ones.
+const DeleteAccount = lazy(() => import("./pages/DeleteAccount"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
@@ -64,11 +68,14 @@ const App = () => {
               Renders nothing on the new site. Inside the router so it can navigate. */}
           <MigrationBanner />
           <Suspense fallback={null}>
-            {enableCloud && <PendingCheckoutRedirect />}
+            {enableCloud && !isNativeApp() && <PendingCheckoutRedirect />}
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              {/* Un-gated: Google Play requires a publicly reachable account-deletion
+                  URL. The page itself adapts when cloud accounts are disabled. */}
+              <Route path="/delete-account" element={<DeleteAccount />} />
               {(enableAdmin || enableCloud) && <Route path="/login" element={<Login />} />}
               {enableAdmin && <Route path="/admin" element={<Admin />} />}
               {enableCloud && <Route path="/register" element={<Register />} />}

@@ -1,0 +1,10 @@
+name = "beta-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+# Attaching a custom_domain route makes Cloudflare provision the DNS record and
+# TLS certificate for beta.lapwingdata.com automatically — do NOT create any DNS
+# records by hand. The zone lapwingdata.com must already be in this account.
+routes = [
+  { pattern = "beta.lapwingdata.com", custom_domain = true }
+]

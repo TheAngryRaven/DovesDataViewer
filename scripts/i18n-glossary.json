@@ -1,7 +1,7 @@
 {
   "_comment": "Glossary fed to the LLM by scripts/seed-translations.mjs. doNotTranslate terms must appear verbatim in every language (brand names, file formats, units, third-party names). notes give per-domain guidance so motorsport jargon is rendered idiomatically rather than literally.",
   "doNotTranslate": [
-    "HackTheTrack.net",
+    "LapWing",
     "DovesDataLogger",
     "DovesDataViewer",
     "PerchWerks LLC",

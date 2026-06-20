@@ -60,12 +60,12 @@
   },
   "about": {
     "trigger": "À propos",
-    "title": "À propos de HackTheTrack",
+    "title": "À propos de LapWing",
     "featuresHeading": "Fonctionnalités",
     "sections": {
       "offline": {
         "heading": "Fonctionne hors ligne et peut être installé",
-        "body": "HackTheTrack est une application web entièrement capable de fonctionner hors ligne. Une fois chargée, elle fonctionne sans connexion internet — parfaite pour la piste. Vous pouvez <strong>l'installer comme une application native</strong> sur votre téléphone, tablette ou ordinateur via l'option « Installer » du menu de votre navigateur (ou l'invite qui apparaît en bas de la page)."
+        "body": "LapWing est une application web entièrement capable de fonctionner hors ligne. Une fois chargée, elle fonctionne sans connexion internet — parfaite pour la piste. Vous pouvez <strong>l'installer comme une application native</strong> sur votre téléphone, tablette ou ordinateur via l'option « Installer » du menu de votre navigateur (ou l'invite qui apparaît en bas de la page)."
       },
       "data": {
         "heading": "Vos données restent sur votre appareil",
@@ -77,7 +77,7 @@
       },
       "oss": {
         "heading": "Gratuit et open source",
-        "body": "Toutes les fonctionnalités locales de HackTheTrack sont entièrement gratuites, et le code source est ouvert et disponible sur GitHub. Le stockage cloud facultatif propose un niveau gratuit ; davantage de stockage et le coaching par IA sont des options payantes qui couvrent les coûts de serveur et de modèles — mais toutes les fonctionnalités locales resteront toujours gratuites."
+        "body": "Toutes les fonctionnalités locales de LapWing sont entièrement gratuites, et le code source est ouvert et disponible sur GitHub. Le stockage cloud facultatif propose un niveau gratuit ; davantage de stockage et le coaching par IA sont des options payantes qui couvrent les coûts de serveur et de modèles — mais toutes les fonctionnalités locales resteront toujours gratuites."
       }
     },
     "features": [

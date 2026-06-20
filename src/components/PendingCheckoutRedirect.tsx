@@ -6,6 +6,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { isPaidTier } from "@/lib/billing";
 import { createCheckout } from "@/lib/billingClient";
 import { clearPendingCheckout, getPendingCheckout } from "@/lib/pendingCheckout";
+import { isNativeApp } from "@/lib/platform";
 
 /**
  * Resumes a paid plan chosen at sign-up. Sign-up creates the account first
@@ -22,6 +23,9 @@ export function PendingCheckoutRedirect() {
 
   useEffect(() => {
     if (started.current) return;
+    // Never resume a web checkout inside the native app (Google Play billing
+    // policy). A plan stashed on the web stays dormant here.
+    if (isNativeApp()) return;
     if (authLoading || subLoading || !user || !online) return;
     if (currentTier !== "free") {
       // Already on a paid tier — the intent (if any) is satisfied; drop it.

@@ -5,6 +5,14 @@
   // command (npm run build) and then `wrangler deploy`, which uploads ./dist.
   "name": "dovesdataviewer",
   "compatibility_date": "2026-05-30",
+  // Attaching a custom_domain route makes Cloudflare provision the DNS record and
+  // TLS certificate for lapwingdata.com automatically on deploy. The zone
+  // lapwingdata.com must be in this Cloudflare account; do NOT also attach the
+  // domain by hand in the dashboard, or the bindings conflict. The beta domain
+  // (beta.lapwingdata.com) is served by the separate beta-proxy/ Worker.
+  "routes": [
+    { "pattern": "lapwingdata.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist",
     // React Router runs client-side, so unmatched paths must return the app

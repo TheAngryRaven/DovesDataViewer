@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [2.8.0] - 2026-06-20
+
+### Added
+- **Android app groundwork.** The same frontend can now also serve a native
+  Android app (built with Tauri in a separate repo) while the web app is
+  unchanged. A new platform layer (`isNativeApp()`) gates native-only behaviour:
+  the service worker is skipped inside the native WebView, external links open in
+  the system browser, and — to comply with Google Play's billing policy — paid
+  plans are not sold or managed in-app (cloud **sync still works**; subscriptions
+  are purchased and managed on the web). Set `VITE_IS_NATIVE=true` for the native
+  build. See `docs/android.md`.
+- **Public account-deletion page.** A no-login page at **/delete-account** lets
+  you request permanent deletion of your cloud account from the web (Google Play
+  requires a public deletion URL), in addition to the existing in-app flow under
+  Profile → Data & privacy.
+- **Import your data.** Profile → Data & privacy gains an **Import data** option
+  that restores files and garage data from a previously downloaded data-export
+  ZIP. This is the migration path when moving between origins (e.g. the old
+  hackthetrack.net site → lapwingdata.com), where per-browser storage doesn't
+  carry over. Existing files are kept; matching names are skipped. Works signed
+  in or out (it's a local restore).
+
+### Changed
+- **Renamed to LapWing.** The app's display name is now **LapWing** everywhere
+  (the previous "HackTheTrack" / "HackTheTrack.net" branding).
+- **New domain — lapwingdata.com.** The site now lives at **lapwingdata.com**
+  (canonical URLs, sitemap, social tags, in-app links). Production attaches the
+  domain via a `custom_domain` route in `wrangler.jsonc`; the beta domain
+  **beta.lapwingdata.com** is served by the `beta-proxy/` reverse-proxy Worker.
+- **Privacy Policy & Terms** now describe the Android app's web-only billing, the
+  public deletion URL, and the app's foreground-only location use.
+
 ## [2.7.2] - 2026-06-20
 
 ### Added

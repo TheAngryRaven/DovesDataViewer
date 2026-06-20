@@ -1,11 +1,11 @@
 {
   "name": "doves-dataviewer",
   "private": true,
-  "version": "2.7.2",
-  "description": "Open-source, offline-first motorsport telemetry viewer (Dove's DataViewer / HackTheTrack).",
+  "version": "2.8.0",
+  "description": "Open-source, offline-first motorsport telemetry viewer (Dove's DataViewer / LapWing).",
   "license": "GPL-3.0-or-later",
   "author": "TheAngryRaven",
-  "homepage": "https://hackthetrack.net",
+  "homepage": "https://lapwingdata.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TheAngryRaven/DovesDataViewer.git"

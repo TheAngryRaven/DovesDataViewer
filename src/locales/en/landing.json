@@ -59,12 +59,12 @@
   },
   "about": {
     "trigger": "About",
-    "title": "About HackTheTrack",
+    "title": "About LapWing",
     "featuresHeading": "Features",
     "sections": {
       "offline": {
         "heading": "Works Offline & Can Be Installed",
-        "body": "HackTheTrack is a fully offline-capable web application. Once loaded, it works without an internet connection — perfect for the track. You can <strong>install it like a native app</strong> on your phone, tablet, or computer by using the \"Install\" option in your browser menu (or the prompt that appears at the bottom of the page)."
+        "body": "LapWing is a fully offline-capable web application. Once loaded, it works without an internet connection — perfect for the track. You can <strong>install it like a native app</strong> on your phone, tablet, or computer by using the \"Install\" option in your browser menu (or the prompt that appears at the bottom of the page)."
       },
       "data": {
         "heading": "Your Data Stays on Your Device",
@@ -76,7 +76,7 @@
       },
       "oss": {
         "heading": "Free & Open Source",
-        "body": "Every local feature in HackTheTrack is completely free, and the source code is open and available on GitHub. Optional cloud storage has a free tier; larger storage and AI coaching are paid add-ons that cover server and model costs — but all local features will always remain free."
+        "body": "Every local feature in LapWing is completely free, and the source code is open and available on GitHub. Optional cloud storage has a free tier; larger storage and AI coaching are paid add-ons that cover server and model costs — but all local features will always remain free."
       }
     },
     "features": [

@@ -215,6 +215,11 @@ export interface PricingCtaInput {
   currentTier: string;
   /** Whether this tier has a Stripe Price configured (purchasable). */
   purchasable: boolean;
+  /**
+   * True on the native (Android) app, where nothing is sold in-app — billing is
+   * web-only to stay within Google Play's policy. Suppresses every CTA.
+   */
+  native?: boolean;
 }
 
 /**
@@ -225,6 +230,9 @@ export interface PricingCtaInput {
  * new Checkout Session.
  */
 export function pricingCta(i: PricingCtaInput): PricingCtaKind {
+  // The native (Android) app sells nothing in-app — paid plans are purchased and
+  // managed on the web (Google Play billing policy). Render no CTA at all.
+  if (i.native) return "none";
   if (!i.slug || !i.cloudEnabled || !i.signedIn) return "none";
   if (i.slug === i.currentTier) return "current";
   if (i.slug === "free") return "none";

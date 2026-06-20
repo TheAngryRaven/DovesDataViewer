@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { interceptExternal } from "@/lib/platform";
+
+const LOGGER_URL = "https://github.com/TheAngryRaven/DovesDataLogger";
+const LIBXRK_URL = "https://github.com/m3rlin45/libxrk";
 
 // Format ids in display order; their name/body text lives in the `landing`
 // locale (supportedFiles.primary.<id> / .secondary.<id>). Format names,
@@ -17,10 +21,10 @@ const EXPERIMENTAL = new Set(["motecLd", "motecCsv", "alfano", "aimCsv"]);
 const FORMAT_COMPONENTS = {
   code: <code className="text-primary" />,
   logger: (
-    <a href="https://github.com/TheAngryRaven/DovesDataLogger" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" />
+    <a href={LOGGER_URL} target="_blank" rel="noopener noreferrer" onClick={(e) => interceptExternal(e, LOGGER_URL)} className="text-primary hover:underline" />
   ),
   libxrk: (
-    <a href="https://github.com/m3rlin45/libxrk" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" />
+    <a href={LIBXRK_URL} target="_blank" rel="noopener noreferrer" onClick={(e) => interceptExternal(e, LIBXRK_URL)} className="text-primary hover:underline" />
   ),
 };
 
