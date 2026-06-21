@@ -195,6 +195,24 @@ export default defineConfig(({ mode }) => {
       react(),
       externalPluginsLoader(pluginPackages),
       mode === "development" && componentTagger(),
+      // Emit a tiny version.json next to the bundle so a running tab can detect a
+      // newer deploy without depending on the service worker's own diff-detection
+      // (see src/lib/versionCheck.ts). It carries the same build constants baked
+      // into buildInfo, so the deployed copy is by definition "latest".
+      {
+        name: "emit-version-json",
+        generateBundle() {
+          this.emitFile({
+            type: "asset",
+            fileName: "version.json",
+            source: JSON.stringify(
+              { version: appVersion, commit: gitHash, buildDate, branch, commitDate },
+              null,
+              2,
+            ),
+          });
+        },
+      } satisfies Plugin,
       VitePWA({
         filename: "service-worker.js",
         registerType: "autoUpdate",
@@ -236,7 +254,9 @@ export default defineConfig(({ mode }) => {
           // woff2 only: every SW-capable browser supports it, so the legacy
           // .woff fallbacks @fontsource emits would just be dead precache weight.
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,json,nmea,wasm}"],
-          globIgnores: ["**/tracks.zip"],
+          // version.json must never be precached — it's the freshness signal the
+          // running tab fetches uncached to detect a newer deploy (see versionCheck.ts).
+          globIgnores: ["**/tracks.zip", "version.json"],
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [
             {

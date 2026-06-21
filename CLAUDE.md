@@ -127,6 +127,7 @@ src/
 │   ├── weatherService.ts  # Historical weather (online-only): NWS/IEM METAR → Open-Meteo fallback
 │   ├── weatherCacheStorage.ts # Per-session historical-weather cache (IndexedDB, local-only/never cloud-synced): a session's date is fixed so its weather is immutable — cache it once, stop re-pinging the station/API on reopen
 │   ├── buildInfo.ts       # Build version/hash/branch stamp + isPreviewBuild()
+│   ├── versionCheck.ts    # ★ "Update available" signal: compares buildInfo vs the build-emitted, uncached /version.json (independent of the SW's own update detection) → main.tsx update toast
 │   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`) — mobile/PWA has no dev tools
 │   ├── units.ts           # ★ Pure unit conversions for the 3 imperial/metric toggles
 │   ├── i18n/              # ★ i18next config/init/format (→ docs/i18n.md)
@@ -381,7 +382,9 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**; baked from `package.json` + git in `vite.config.ts`. |
 
 **PWA/deploy detail:** the active offline worker is `/service-worker.js` (registered
-outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. Static
+outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. `vite.config.ts`
+also emits `/version.json` per build (the freshness signal for `versionCheck.ts`); it's
+excluded from the Workbox precache (`globIgnores`) and fetched uncached. Static
 hosting is Cloudflare Workers (static-assets-only, `wrangler.jsonc`,
 `bun run build` then `wrangler deploy`). Production `lapwingdata.com` attaches via
 a `custom_domain` route in `wrangler.jsonc` (auto DNS+TLS — don't also attach it in

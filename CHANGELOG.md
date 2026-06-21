@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.8.1] - unreleased
 
 ### Added
+- **"Update available" check that doesn't rely on the service worker.** The app
+  now also compares the running build against a build-emitted `version.json`
+  fetched fresh from the server, so a stale tab reliably surfaces the "Update
+  ready" prompt even when the service worker's own update detection stalls behind
+  HTTP/CDN caching. The Refresh button hard-reboots onto the new build.
 - **Separate cloud + local storage bars in the profile.** When signed in, the
   profile now shows two storage meters — one for cloud quota and one for on-device
   (local) storage — instead of just the cloud one. The local bar carries an (i)
