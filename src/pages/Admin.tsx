@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Gauge, LogOut, ArrowLeft } from 'lucide-react';
+import { LogOut, ArrowLeft } from 'lucide-react';
+import { BrandLogo } from "@/components/BrandLogo";
 import { SubmissionsTab } from '@/components/admin/SubmissionsTab';
 import { TracksTab } from '@/components/admin/TracksTab';
 import { CoursesTab } from '@/components/admin/CoursesTab';
@@ -38,7 +39,7 @@ export default function Admin() {
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Gauge className="w-8 h-8 text-primary" />
+            <BrandLogo className="w-8 h-8" />
             <div>
               <h1 className="text-xl font-semibold text-foreground">{t('panelTitle')}</h1>
               <p className="text-sm text-muted-foreground">{user.email}</p>

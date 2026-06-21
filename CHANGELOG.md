@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [2.8.1] - unreleased
+
+### Changed
+- **Purple theme + new logo.** The brand accent moved from teal to **purple**
+  (`--primary` and its mirrors `--ring`/`--sidebar-primary`/`--sidebar-ring`, in
+  both light and dark), and the gauge glyph in the app/page headers is replaced
+  with the new **LapWing logo** (`web-logo.png`, via a shared `BrandLogo`
+  component). Pairs with the refreshed app icons and favicon. Data-viz colors
+  (speed/telemetry scales) are unchanged.
+
 ## [2.8.0] - 2026-06-20
 
 ### Added

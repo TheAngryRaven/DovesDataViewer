@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Gauge, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { BrandLogo } from "@/components/BrandLogo";
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
@@ -67,7 +68,7 @@ export default function Login() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex items-center gap-3 justify-center">
-          <Gauge className="w-8 h-8 text-primary" />
+          <BrandLogo className="w-8 h-8" />
           <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
         </div>
 

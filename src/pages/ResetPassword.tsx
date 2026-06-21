@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Gauge, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { BrandLogo } from "@/components/BrandLogo";
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 /** True when the current page load arrived via a Supabase password-recovery link. */
@@ -78,7 +79,7 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex items-center gap-3 justify-center">
-          <Gauge className="w-8 h-8 text-primary" />
+          <BrandLogo className="w-8 h-8" />
           <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
         </div>
         <div className="racing-card p-6 space-y-4">

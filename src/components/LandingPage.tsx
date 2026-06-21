@@ -1,6 +1,5 @@
 import { Fragment, lazy, Suspense } from "react";
 import {
-  Gauge,
   Github,
   Heart,
   Shield,
@@ -14,6 +13,7 @@ import {
   Bluetooth,
   Route,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,7 @@ export function LandingPage({
       <header className="border-b border-border px-6 py-4">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Gauge className="w-8 h-8 text-primary" />
+            <BrandLogo className="w-8 h-8" />
             <div>
               <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
               <p className="text-sm text-muted-foreground">{t("landing:tagline")}</p>

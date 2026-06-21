@@ -26,7 +26,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 12%;
 
-    --primary: 180 70% 35%;
+    --primary: 276 44% 49%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 92%;
@@ -51,7 +51,7 @@
 
     --border: 220 15% 85%;
     --input: 220 15% 88%;
-    --ring: 180 70% 35%;
+    --ring: 276 44% 49%;
 
     --radius: 0.5rem;
 
@@ -73,12 +73,12 @@
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 20% 12%;
-    --sidebar-primary: 180 70% 35%;
+    --sidebar-primary: 276 44% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 15% 92%;
     --sidebar-accent-foreground: 220 15% 25%;
     --sidebar-border: 220 15% 85%;
-    --sidebar-ring: 180 70% 35%;
+    --sidebar-ring: 276 44% 49%;
   }
 
   .dark {
@@ -91,7 +91,7 @@
     --popover: 220 18% 8%;
     --popover-foreground: 210 20% 92%;
 
-    --primary: 180 70% 45%;
+    --primary: 276 44% 59%;
     --primary-foreground: 220 20% 6%;
 
     --secondary: 220 15% 18%;
@@ -116,7 +116,7 @@
 
     --border: 220 15% 20%;
     --input: 220 15% 18%;
-    --ring: 180 70% 45%;
+    --ring: 276 44% 59%;
 
     /* Racing-specific colors */
     --speed-slow: 120 60% 45%;
@@ -136,12 +136,12 @@
 
     --sidebar-background: 220 18% 10%;
     --sidebar-foreground: 210 20% 92%;
-    --sidebar-primary: 180 70% 45%;
+    --sidebar-primary: 276 44% 59%;
     --sidebar-primary-foreground: 220 20% 6%;
     --sidebar-accent: 220 15% 18%;
     --sidebar-accent-foreground: 210 20% 85%;
     --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 180 70% 45%;
+    --sidebar-ring: 276 44% 59%;
   }
 }
 
