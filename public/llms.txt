@@ -11,5 +11,5 @@ LapWing (aka Dove's DataViewer) is a privacy-first Progressive Web App for motor
 
 ## Optional
 
-- [GitHub — LapWing](https://github.com/TheAngryRaven/dove-datalog-viewer): Source code for the web viewer.
+- [GitHub — LapWing](https://github.com/TheAngryRaven/DovesDataViewer): Source code for the web viewer.
 - [GitHub — DovesDataLogger](https://github.com/TheAngryRaven/DovesDataLogger): Companion ESP32 GPS datalogger firmware.
