@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.8.1] - unreleased
 
 ### Added
+- **Separate cloud + local storage bars in the profile.** When signed in, the
+  profile now shows two storage meters — one for cloud quota and one for on-device
+  (local) storage — instead of just the cloud one. The local bar carries an (i)
+  bubble explaining that the device's real free space isn't visible to the app, so
+  the bar is marked against an arbitrary 10 GB and can be safely ignored (local
+  storage has no limit).
 - **Generic logger-connection layer.** Downloads now go through one
   `LoggerConnection` interface (`listLogs` / `downloadLog` / `disconnect`) in
   `src/lib/loggers/`, with `createFledglingConnection()` adapting the Web Bluetooth

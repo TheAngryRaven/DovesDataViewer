@@ -6,6 +6,7 @@ import { putSnapshotRaw } from "@/lib/lapSnapshotStorage";
 import type { LapSnapshot } from "@/lib/lapSnapshot";
 import { getAccessor } from "./storeAccessors";
 import { getLocalStorageUsage } from "./localUsage";
+import { LOCAL_ADVISORY_LIMIT } from "./storageTypes";
 
 beforeEach(() => freshIndexedDB());
 
@@ -26,6 +27,14 @@ describe("getLocalStorageUsage", () => {
     expect(usage.logs).toBe(0);
     expect(usage.snapshots).toBe(0);
     expect(usage.totalLimit).toBeGreaterThan(0);
+  });
+
+  it("draws the bar against the fixed local advisory limit", async () => {
+    // The device's real free space isn't exposed, so the local meter always uses
+    // the advisory marker as its denominator regardless of what's stored.
+    expect((await getLocalStorageUsage()).totalLimit).toBe(LOCAL_ADVISORY_LIMIT);
+    await saveFile("run1.dove", new Blob(["abcde"]));
+    expect((await getLocalStorageUsage()).totalLimit).toBe(LOCAL_ADVISORY_LIMIT);
   });
 
   it("sums log blob sizes exactly", async () => {

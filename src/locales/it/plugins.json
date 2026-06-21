@@ -45,7 +45,10 @@
     "trimmed": "I log cloud oltre il piano gratuito sono stati ridotti. Abbonati per ripristinare il limite superiore."
   },
   "storage": {
-    "title": "Spazio",
+    "cloudTitle": "Spazio nel cloud",
+    "localTitle": "Spazio locale",
+    "localInfoLabel": "Informazioni sullo spazio locale",
+    "localLimitInfo": "Non possiamo vedere quanto spazio libero ha il tuo dispositivo, quindi questa barra è misurata rispetto a un limite arbitrario di 10 GB. Dato che è molto, puoi ignorarla: lo spazio locale non ha limiti.",
     "onThisDevice": "Memorizzato su questo dispositivo.",
     "alwaysFree": "Lo spazio locale è sempre gratuito.",
     "loadingUsage": "Caricamento utilizzo…",

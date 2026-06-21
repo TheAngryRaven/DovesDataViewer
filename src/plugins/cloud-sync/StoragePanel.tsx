@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
-  Check, CloudOff, CreditCard, Loader2, LogOut, Pencil, RefreshCw,
+  Check, CloudOff, CreditCard, Info, Loader2, LogOut, Pencil, RefreshCw,
   User as UserIcon, WifiOff, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -38,41 +39,55 @@ const SEGMENTS = [
 const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
 
 // Merged account + profile panel: your display name + (when signed in) sign-out,
-// plan, and cloud storage usage; signed out it offers sign-in and still shows the
-// storage bar measured against this device's local storage. Everything here works
-// offline — the cloud is an optional backup, not a requirement.
+// plan, and storage usage. Signed in shows TWO bars — cloud quota and on-device
+// local — so you can see both at a glance; signed out it offers sign-in and shows
+// just the local bar. Everything here works offline — the cloud is an optional
+// backup, not a requirement.
 export default function StoragePanel(_props: PluginPanelProps) {
   const { t } = useTranslation("plugins");
   const { user, loading, logout } = useAuth();
   const online = useOnlineStatus();
-  const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const [cloudUsage, setCloudUsage] = useState<StorageUsage | null>(null);
+  const [localUsage, setLocalUsage] = useState<StorageUsage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(0);
 
-  const refresh = useCallback(async () => {
+  // The local meter never needs the network, so read it on its own — it stays
+  // accurate even when the cloud read fails (offline) and refreshes cheaply on
+  // every on-device change.
+  const refreshLocal = useCallback(async () => {
     try {
-      if (user) {
-        setPending(await pendingCount());
-        setUsage(await getStorageUsage());
-      } else {
-        setPending(0);
-        setUsage(await getLocalStorageUsage());
-      }
+      setLocalUsage(await getLocalStorageUsage());
+    } catch {
+      // A local read failing is not worth surfacing; leave the last value.
+    }
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await refreshLocal();
+    if (!user) {
+      setPending(0);
+      setCloudUsage(null);
+      setError(null);
+      return;
+    }
+    try {
+      setPending(await pendingCount());
+      setCloudUsage(await getStorageUsage());
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("account.loadUsageFailed"));
     }
-  }, [user, t]);
+  }, [user, t, refreshLocal]);
 
   // Re-read on mount and whenever connectivity flips (pending changes flush on
-  // reconnect). Signed out, also track on-device garage changes live, so the
-  // local meter reflects imports/deletes immediately; signed in, the server
-  // usage updates post-sync, so the extra reads aren't worth the network cost.
+  // reconnect). On-device garage changes update the local meter live (signed in
+  // or out); signed in, the cloud meter follows post-sync server reads rather
+  // than re-fetching over the network on every local edit.
   useEffect(() => {
     void refresh();
-    if (user) return;
-    return onGarageChange(() => void refresh());
-  }, [refresh, online, user]);
+    return onGarageChange(() => void (user ? refreshLocal() : refresh()));
+  }, [refresh, refreshLocal, online, user]);
 
   if (loading) return <p className="text-sm text-muted-foreground">{t("loading")}</p>;
 
@@ -80,7 +95,7 @@ export default function StoragePanel(_props: PluginPanelProps) {
     return (
       <div className="space-y-5">
         <SignInPrompt />
-        <StorageSection usage={usage} error={error} local />
+        <StorageSection usage={localUsage} error={error} local signedIn={false} />
       </div>
     );
   }
@@ -116,7 +131,8 @@ export default function StoragePanel(_props: PluginPanelProps) {
         </p>
       )}
 
-      <StorageSection usage={usage} error={error} local={false} />
+      <StorageSection usage={cloudUsage} error={error} local={false} signedIn />
+      <StorageSection usage={localUsage} error={null} local signedIn />
     </div>
   );
 }
@@ -359,24 +375,56 @@ function PlanSection() {
   );
 }
 
-// The storage heading + bar, shared between the signed-in (cloud) and signed-out
-// (local) views. `local` swaps the cloud-quota framing for an on-device one.
+// The storage heading + bar, shared between the cloud and local views. `local`
+// swaps the cloud-quota framing for an on-device one, and adds the (i) bubble
+// explaining the advisory local limit.
 function StorageSection({
-  usage, error, local,
-}: { usage: StorageUsage | null; error: string | null; local: boolean }) {
+  usage, error, local, signedIn,
+}: { usage: StorageUsage | null; error: string | null; local: boolean; signedIn: boolean }) {
   const { t } = useTranslation("plugins");
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("storage.title")}</p>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span className="flex items-center gap-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {local ? t("storage.localTitle") : t("storage.cloudTitle")}
+          </p>
+          {local && <LocalStorageInfo />}
+        </span>
         <p className="text-[11px] text-muted-foreground">
           {local ? t("storage.onThisDevice") : t("storage.alwaysFree")}
         </p>
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
       {!usage && !error && <p className="text-xs text-muted-foreground">{t("storage.loadingUsage")}</p>}
-      {usage && <StorageBar usage={usage} local={local} />}
+      {usage && <StorageBar usage={usage} local={local} signedIn={signedIn} />}
     </div>
+  );
+}
+
+// The (i) bubble next to the local-storage heading. Click (or hover/focus) opens
+// a tooltip explaining that the device's real free space isn't visible, so the
+// bar is marked against an arbitrary limit and can be safely ignored. Controlled
+// so a tap toggles it — hover-only tooltips don't work on touch.
+function LocalStorageInfo() {
+  const { t } = useTranslation("plugins");
+  const [open, setOpen] = useState(false);
+  return (
+    <Tooltip open={open} onOpenChange={setOpen} delayDuration={0}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={t("storage.localInfoLabel")}
+          onClick={() => setOpen((o) => !o)}
+          className="text-muted-foreground/70 transition-colors hover:text-foreground"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[16rem] text-xs font-normal normal-case leading-relaxed">
+        {t("storage.localLimitInfo")}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -384,7 +432,7 @@ function StorageSection({
 // data share the limit (like a phone's storage screen). Segments are coloured; the
 // empty remainder is muted. Over the limit, segments fill the whole bar and the
 // readout turns destructive. `local` measures this device against the browser quota.
-function StorageBar({ usage, local }: { usage: StorageUsage; local: boolean }) {
+function StorageBar({ usage, local, signedIn }: { usage: StorageUsage; local: boolean; signedIn: boolean }) {
   const { t } = useTranslation("plugins");
   const used = totalUsed(usage);
   const over = used > usage.totalLimit;
@@ -419,9 +467,13 @@ function StorageBar({ usage, local }: { usage: StorageUsage; local: boolean }) {
       </div>
 
       {local ? (
-        <p className="text-[11px] text-muted-foreground">
-          {t("storage.localNote")}
-        </p>
+        // Signed in, the (i) tooltip already explains the advisory local limit,
+        // so the sign-in-to-back-up note would be both redundant and wrong.
+        !signedIn && (
+          <p className="text-[11px] text-muted-foreground">
+            {t("storage.localNote")}
+          </p>
+        )
       ) : (
         <p className="text-[11px] text-muted-foreground">
           {t("storage.cloudNote")}

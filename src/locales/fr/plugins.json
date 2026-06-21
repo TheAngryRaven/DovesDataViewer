@@ -45,7 +45,10 @@
     "trimmed": "Les logs cloud au-delà du niveau gratuit ont été réduits. Abonnez-vous pour rétablir la limite supérieure."
   },
   "storage": {
-    "title": "Stockage",
+    "cloudTitle": "Stockage cloud",
+    "localTitle": "Stockage local",
+    "localInfoLabel": "À propos du stockage local",
+    "localLimitInfo": "Nous ne pouvons pas voir l'espace libre de votre appareil, donc cette barre est mesurée par rapport à une limite arbitraire de 10 Go. Comme c'est beaucoup, vous pouvez l'ignorer : le stockage local n'a aucune limite.",
     "onThisDevice": "Stocké sur cet appareil.",
     "alwaysFree": "Le stockage local est toujours gratuit.",
     "loadingUsage": "Chargement de l'utilisation…",

@@ -4,16 +4,16 @@
 // localStorage, so the storage bar works without an account: it just measures
 // what's stored locally rather than what's synced.
 //
-// The pooled "limit" here is the browser's own storage quota (navigator.storage),
-// not a plan cap — local storage is always free; the bar simply shows how much of
-// the device budget the app is using.
+// The "limit" here is purely advisory: the browser won't reveal the device's
+// real free space, so the bar is drawn against a fixed, generous marker
+// (LOCAL_ADVISORY_LIMIT) just to have a scale. Local storage has no real cap.
 
-import { getStorageEstimate, listFiles } from "@/lib/fileStorage";
+import { listFiles } from "@/lib/fileStorage";
 import { listSnapshots } from "@/lib/lapSnapshotStorage";
 import { DOC_STORES } from "./syncStores";
 import { getAccessor } from "./storeAccessors";
 import {
-  DEFAULT_TOTAL_LIMIT, jsonBytes, snapshotBytes, type StorageUsage,
+  LOCAL_ADVISORY_LIMIT, jsonBytes, snapshotBytes, type StorageUsage,
 } from "./storageTypes";
 
 /** Bytes used by garage documents stored on this device (all DOC_STORES). */
@@ -36,20 +36,19 @@ async function sumSnapshots(): Promise<number> {
 }
 
 /**
- * Local storage usage across the three segments, against the browser's storage
- * quota (falling back to the advisory free budget when the estimate is unavailable).
+ * Local storage usage across the three segments, drawn against the fixed advisory
+ * limit (the device's real free space is not exposed to the browser).
  */
 export async function getLocalStorageUsage(): Promise<StorageUsage> {
-  const [documents, logs, snapshots, estimate] = await Promise.all([
+  const [documents, logs, snapshots] = await Promise.all([
     sumDocuments(),
     sumLogs(),
     sumSnapshots(),
-    getStorageEstimate(),
   ]);
   return {
     documents,
     logs,
     snapshots,
-    totalLimit: estimate?.quota || DEFAULT_TOTAL_LIMIT,
+    totalLimit: LOCAL_ADVISORY_LIMIT,
   };
 }

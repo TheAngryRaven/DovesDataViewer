@@ -45,7 +45,10 @@
     "trimmed": "Os logs na nuvem acima do plano grátis foram reduzidos. Assine para restaurar o limite maior."
   },
   "storage": {
-    "title": "Armazenamento",
+    "cloudTitle": "Armazenamento na nuvem",
+    "localTitle": "Armazenamento local",
+    "localInfoLabel": "Sobre o armazenamento local",
+    "localLimitInfo": "Não conseguimos ver quanto espaço livre o seu dispositivo tem, então esta barra é medida em relação a um limite arbitrário de 10 GB. Como é bastante, fique à vontade para ignorá-la — o armazenamento local não tem limite.",
     "onThisDevice": "Armazenado neste dispositivo.",
     "alwaysFree": "O armazenamento local é sempre gratuito.",
     "loadingUsage": "Carregando uso…",

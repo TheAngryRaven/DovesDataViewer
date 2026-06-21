@@ -44,7 +44,10 @@
     "trimmed": "Cloud logs over the free tier have been trimmed. Subscribe to restore the higher limit."
   },
   "storage": {
-    "title": "Storage",
+    "cloudTitle": "Cloud storage",
+    "localTitle": "Local storage",
+    "localInfoLabel": "About local storage",
+    "localLimitInfo": "We can't see how much free space your device has, so this bar is marked against an arbitrary 10 GB. Since that's a lot of data, feel free to ignore it — local storage has no limit.",
     "onThisDevice": "Stored on this device.",
     "alwaysFree": "Local storage is always free.",
     "loadingUsage": "Loading usage…",

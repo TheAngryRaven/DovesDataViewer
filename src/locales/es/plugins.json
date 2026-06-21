@@ -45,7 +45,10 @@
     "trimmed": "Los registros en la nube por encima del plan gratis se han recortado. Suscríbete para recuperar el límite mayor."
   },
   "storage": {
-    "title": "Almacenamiento",
+    "cloudTitle": "Almacenamiento en la nube",
+    "localTitle": "Almacenamiento local",
+    "localInfoLabel": "Acerca del almacenamiento local",
+    "localLimitInfo": "No podemos ver cuánto espacio libre tiene tu dispositivo, así que esta barra se mide contra un límite arbitrario de 10 GB. Como es mucho espacio, puedes ignorarla: el almacenamiento local no tiene límite.",
     "onThisDevice": "Almacenado en este dispositivo.",
     "alwaysFree": "El almacenamiento local siempre es gratis.",
     "loadingUsage": "Cargando uso…",

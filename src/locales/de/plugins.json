@@ -45,7 +45,10 @@
     "trimmed": "Cloud-Logs über dem Gratis-Tarif wurden gekürzt. Abonniere, um das höhere Limit wiederherzustellen."
   },
   "storage": {
-    "title": "Speicher",
+    "cloudTitle": "Cloud-Speicher",
+    "localTitle": "Lokaler Speicher",
+    "localInfoLabel": "Über lokalen Speicher",
+    "localLimitInfo": "Wir können nicht sehen, wie viel freien Speicher dein Gerät hat, daher wird dieser Balken an willkürlichen 10 GB gemessen. Da das viel ist, kannst du ihn ignorieren – lokaler Speicher hat kein Limit.",
     "onThisDevice": "Auf diesem Gerät gespeichert.",
     "alwaysFree": "Lokaler Speicher ist immer kostenlos.",
     "loadingUsage": "Nutzung wird geladen…",

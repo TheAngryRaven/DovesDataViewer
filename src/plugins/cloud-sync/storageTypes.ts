@@ -20,6 +20,14 @@ export type StorageType = "documents" | "logs" | "snapshots";
 /** Advisory fallback for the pooled limit (bytes) — the free tier's 50 MB budget. */
 export const DEFAULT_TOTAL_LIMIT = 50 * 1024 * 1024;
 
+/**
+ * Advisory denominator for the *local* (on-device) storage bar. The browser
+ * won't tell us how much free space the device actually has, so the local meter
+ * is drawn against this arbitrary, generous 10 GB marker purely to give the bar
+ * a scale — local storage has no real limit (the info tooltip says as much).
+ */
+export const LOCAL_ADVISORY_LIMIT = 10 * 1024 * 1024 * 1024;
+
 /** Which sync_records segment a store belongs to (snapshots have their own table). */
 export function storageTypeForStore(store: string): "documents" | "logs" {
   return store === FILE_STORE ? "logs" : "documents";
