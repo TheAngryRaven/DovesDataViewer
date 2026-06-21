@@ -71,7 +71,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 safe-area-inset">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex items-center gap-3 justify-center">
           <BrandLogo className="w-8 h-8" />

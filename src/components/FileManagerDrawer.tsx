@@ -122,7 +122,7 @@ export function FileManagerDrawer({
   return (
     <>
       <div className="fixed inset-0 z-[10000] bg-black/40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-[10001] w-full sm:w-1/2 min-w-[320px] bg-background border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+      <div className="fixed inset-y-0 right-0 z-[10001] w-full sm:w-1/2 min-w-[320px] bg-background border-l border-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200 safe-area-inset">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">

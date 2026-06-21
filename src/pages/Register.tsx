@@ -109,7 +109,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center p-8 gap-12">
+    <div className="min-h-screen bg-background flex flex-col items-center p-8 gap-12 safe-area-inset">
       <div className="flex items-center gap-3 justify-center mt-4">
         <BrandLogo className="w-8 h-8" />
         <h1 className="text-xl font-semibold text-foreground">LapWing</h1>

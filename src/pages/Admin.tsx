@@ -29,13 +29,13 @@ export default function Admin() {
   }, [user, isAdmin, loading, navigate]);
 
   if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">{t('loading')}</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground safe-area-inset">{t('loading')}</div>;
   }
 
   if (!user || !isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col safe-area-inset">
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

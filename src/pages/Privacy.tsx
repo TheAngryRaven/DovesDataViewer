@@ -23,7 +23,7 @@ const Privacy = () => {
     canonical: "https://lapwingdata.com/privacy",
   });
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto">
+    <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto safe-area-inset">
       <button
         type="button"
         onClick={() => goBackOrHome(navigate)}

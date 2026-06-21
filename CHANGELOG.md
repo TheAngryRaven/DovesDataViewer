@@ -52,10 +52,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   new `createMychronConnection()` adapter behind the existing `LoggerConnection`
   interface; the native Tauri IPC (`@tauri-apps/api`) is lazy-loaded so it never
   enters the web bundle.
-- **Safe-area padding on native / installed PWA.** The app shell now respects the
-  device's safe-area insets (status bar / notch) via `env(safe-area-inset-*)` and
-  `viewport-fit=cover`, so header content no longer sits under the phone's status
-  bar. A no-op on browsers and desktops without a safe area.
+- **Safe-area padding on native / installed PWA.** Every full-screen surface now
+  respects the device's safe-area insets (status bar / notch) via
+  `env(safe-area-inset-*)` and `viewport-fit=cover`, so chrome no longer sits under
+  the phone's status bar — the app shell + landing, the full-page routes
+  (login/register/admin/legal), and the file-manager drawer (its garage/profile/
+  device header). A no-op on browsers and desktops without a safe area.
 - **Privacy / Terms links on the sign-in page.** The login screen now links to the
   Privacy Policy and Terms of Service.
 - **"Back to app" returns you where you were.** The back button on the Privacy and

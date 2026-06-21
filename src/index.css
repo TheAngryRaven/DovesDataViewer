@@ -220,9 +220,11 @@
      WebView / iOS) and installed PWAs, which draw edge-to-edge. Requires
      `viewport-fit=cover` (set in index.html). Insets resolve to 0 on browsers
      and desktops without a safe area, so this is a no-op everywhere else.
-     Applied to the app-shell containers, whose `border-box` sizing keeps the
-     padding inside `h-screen`/`min-h-screen` (no overflow) while the shell's
-     background fills the inset region behind the status bar. */
+     Applied to every full-screen surface — the app shell + landing, full-page
+     routes (login/register/admin/legal), and portal overlays like the file-
+     manager drawer — whose `border-box` sizing keeps the padding inside
+     `h-screen`/`min-h-screen` (no overflow) while the surface's background
+     fills the inset region behind the status bar. */
   .safe-area-inset {
     padding-top: env(safe-area-inset-top);
     padding-left: env(safe-area-inset-left);

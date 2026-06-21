@@ -34,7 +34,7 @@ export default function DeleteAccount() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-2xl mx-auto safe-area-inset">
       <Link
         to="/"
         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
