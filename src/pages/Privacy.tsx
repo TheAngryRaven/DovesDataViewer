@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
 import { interceptExternal } from "@/lib/platform";
+import { goBackOrHome } from "@/lib/navBack";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === "true";
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
@@ -14,6 +15,7 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 // advice — have it reviewed for your jurisdiction.
 
 const Privacy = () => {
+  const navigate = useNavigate();
   useDocumentHead({
     title: "Privacy Policy — LapWing",
     description:
@@ -22,13 +24,14 @@ const Privacy = () => {
   });
   return (
     <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto">
-      <Link
-        to="/"
+      <button
+        type="button"
+        onClick={() => goBackOrHome(navigate)}
         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
       >
         <ArrowLeft className="w-4 h-4" />
         <span className="text-sm">Back to app</span>
-      </Link>
+      </button>
 
       <h1 className="text-2xl font-bold mb-6">Privacy Policy</h1>
 

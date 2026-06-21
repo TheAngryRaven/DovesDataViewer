@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bar. A no-op on browsers and desktops without a safe area.
 - **Privacy / Terms links on the sign-in page.** The login screen now links to the
   Privacy Policy and Terms of Service.
+- **"Back to app" returns you where you were.** The back button on the Privacy and
+  Terms pages now steps back to the page you came from (e.g. the sign-in or register
+  screen) instead of always jumping to the home screen.
 
 ### Changed
 - **"Download from logger" relabel.** The file-manager button previously labelled
