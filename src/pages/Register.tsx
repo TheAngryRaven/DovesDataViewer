@@ -14,6 +14,8 @@ import { PricingCards } from '@/components/PricingCards';
 import { PlanCheckout, PlanCheckoutSummary, type PlanSelection } from '@/components/PlanCheckout';
 import { useStripePrices } from '@/hooks/useStripePrices';
 import { isDisposableEmail, looksLikeEmail } from '@/lib/emailValidation';
+import { evaluatePassword } from '@/lib/passwordStrength';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 import { isPaidTier } from '@/lib/billing';
 import { setPendingCheckout } from '@/lib/pendingCheckout';
 import { isNativeApp } from '@/lib/platform';
@@ -57,8 +59,8 @@ export default function Register() {
       toast({ title: t('register.passwordsNoMatch'), variant: 'destructive' });
       return;
     }
-    if (password.length < 6) {
-      toast({ title: t('register.passwordTooShort'), variant: 'destructive' });
+    if (!evaluatePassword(password).meetsRequirements) {
+      toast({ title: t('register.passwordTooWeak'), description: t('register.passwordTooWeakDesc'), variant: 'destructive' });
       return;
     }
     if (turnstileEnabled && !captchaToken) {
@@ -127,6 +129,7 @@ export default function Register() {
             <div className="space-y-2">
               <Label htmlFor="password">{t('password')}</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <PasswordStrengthMeter password={password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>

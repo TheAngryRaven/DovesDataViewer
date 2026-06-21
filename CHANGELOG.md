@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.8.1] - unreleased
 
 ### Added
+- **Password strength rules + a realtime checker on sign-up.** The registration
+  form now enforces stronger passwords (at least 8 characters, with a lowercase
+  letter, an uppercase letter, a number, and a symbol) and shows a live strength
+  meter with a per-rule checklist that updates as you type. The check is fully
+  offline (`lib/passwordStrength.ts`).
 - **"Update available" check that doesn't rely on the service worker.** The app
   now also compares the running build against a build-emitted `version.json`
   fetched fresh from the server, so a stale tab reliably surfaces the "Update
