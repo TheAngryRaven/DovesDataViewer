@@ -13,7 +13,21 @@
     "nativeTitle": "MyChron のダウンロード",
     "nativeBody": "未定",
     "webTitle": "ネイティブアプリが必要です",
-    "webBody": "MyChron ロガーは Wi-Fi で転送するため、Web ブラウザーから直接アクセスできません。MyChron からダウンロードするための専用ネイティブアプリを開発中で、2026年7月頃のリリースを予定しています。"
+    "webBody": "MyChron ロガーは Wi-Fi で転送するため、Web ブラウザーから直接アクセスできません。MyChron からダウンロードするための専用ネイティブアプリを開発中で、2026年7月頃のリリースを予定しています。",
+    "flow": {
+      "connecting": "Connecting to your MyChron…",
+      "wifiSelecting": "Waiting for you to pick your MyChron in the Wi-Fi list…",
+      "wifiHint": "Approve the connection in the system dialog to continue.",
+      "fetching": "Fetching sessions…",
+      "selectFile": "Select a session to download",
+      "downloading": "Downloading…",
+      "errorTitle": "Connection error",
+      "instructions": "Tap a session to download and load it:",
+      "empty": "No sessions on this device",
+      "savedHint": " — the file was saved and can be found in Browse Files.",
+      "retry": "Try again",
+      "cancel": "Cancel"
+    }
   },
   "alfano": {
     "title": "Alfano のダウンロード",

@@ -576,7 +576,7 @@ License notices for libxrk + TrackDataAnalysis ship at
 
 Built on the shoulders of these incredible open-source projects and free services:
 
-- [React](https://react.dev) · [Vite](https://vite.dev) · [TypeScript](https://www.typescriptlang.org)
+- [React](https://react.dev) · [Vite](https://vite.dev) · [TypeScript](https://www.typescriptlang.org) · [Tauri](https://tauri.app) (native shell IPC, native-only)
 - [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
 - [Inter](https://rsms.me/inter/) · [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (OFL fonts) · [Fontsource](https://fontsource.org) (self-hosted, offline-ready)
 - [Leaflet](https://leafletjs.com) · [CARTO basemaps](https://carto.com) · [Esri World Imagery & Wayback](https://livingatlas.arcgis.com/wayback/) (satellite + historical imagery dates)

@@ -16,16 +16,23 @@ state lives in `DeviceContext.tsx` (wraps the app tree in `Index.tsx`). Source:
 The user reaches the BLE flow through `LoggerDownload` → `LoggerPicker` (an eager,
 lightweight image chooser of supported loggers). Picking the PerchWerks Fledgling
 tile mounts `DataloggerDownload` — the lazy BLE flow — on demand, so `lib/ble/*`
-stays out of the initial bundle while the menu still opens instantly. The other
-loggers (MyChron, Alfano) open explanatory dialogs and don't touch `lib/ble/*` yet.
+stays out of the initial bundle while the menu still opens instantly. On the native
+(Tauri) shell the MyChron tile mounts the lazy `MyChronDownload` flow (Wi-Fi over
+native IPC — see `docs/android.md`); on the web it (and Alfano) still open
+explanatory dialogs.
 
 `DataloggerDownload` talks to the device only through the generic
 `LoggerConnection` interface (`src/lib/loggers/`): `listLogs` / `downloadLog` /
-`disconnect`, with `createFledglingConnection()` adapting a `BleConnection`. New
-transports (MyChron over the native shell, Alfano over BLE) add sibling adapters
-that satisfy the same interface, and `DeviceContext.loggerKind` records which
-logger is connected so Fledgling-only surfaces (settings / tracks / firmware) can
-gate themselves.
+`disconnect`, with `createFledglingConnection()` adapting a `BleConnection`. MyChron
+is the second adapter — `createMychronConnection()` (`src/lib/loggers/mychron/`),
+native-only, over the Tauri shell — and Alfano (BLE) will be a third. All satisfy
+the same interface, and `DeviceContext.loggerKind` records which logger is connected
+so Fledgling-only surfaces (settings / tracks / firmware) can gate themselves
+(`supportsDeviceDetails` is `false` for MyChron). The pure progress formatters
+(`formatBytes` / `formatSpeed` / `formatTime`) and the `computeProgress()` helper now
+live transport-neutrally in `src/lib/loggers/progress.ts` (re-exported from
+`src/lib/ble/format.ts` for existing BLE callers) so both flows share them without
+either pulling the other's protocol bundle.
 
 ---
 

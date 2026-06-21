@@ -43,6 +43,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existing Bluetooth download flow; MyChron and Alfano open explanatory dialogs for
   now (MyChron's copy differs between the native app and the web). Placeholder
   artwork lives in `public/loggers/` for easy swap-out. New `logger` i18n namespace.
+- **Download from a MyChron over Wi-Fi (native app).** In the native (Tauri) app,
+  the MyChron tile in the logger picker now runs a real download: it connects to the
+  logger over Wi-Fi (on Android it prompts you to pick the MyChron in the system
+  Wi-Fi dialog), lists the sessions on the device, and downloads + opens the one you
+  choose — mirroring the existing Bluetooth flow. The web app is unchanged (browsers
+  can't reach the logger's Wi-Fi) and still shows the explanatory dialog. Built on a
+  new `createMychronConnection()` adapter behind the existing `LoggerConnection`
+  interface; the native Tauri IPC (`@tauri-apps/api`) is lazy-loaded so it never
+  enters the web bundle.
 - **Safe-area padding on native / installed PWA.** The app shell now respects the
   device's safe-area insets (status bar / notch) via `env(safe-area-inset-*)` and
   `viewport-fit=cover`, so header content no longer sits under the phone's status

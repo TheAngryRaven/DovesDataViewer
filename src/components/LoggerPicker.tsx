@@ -28,6 +28,11 @@ interface LoggerPickerProps {
   bleSupported: boolean;
   /** Begin the standard Bluetooth download flow (PerchWerks Fledgling). */
   onSelectFledgling: () => void;
+  /**
+   * Begin the native MyChron Wi-Fi flow. Only supplied (and only fired) on the
+   * native shell; on web the MyChron card keeps its explanatory dialog.
+   */
+  onSelectMychron?: () => void;
 }
 
 interface LoggerCardProps {
@@ -72,7 +77,7 @@ function LoggerCard({ image, name, tag, onClick, disabled, badge, hint }: Logger
  * downloadable and open an explanatory dialog instead (MyChron's copy differs
  * between the native shell and the web app — see `isNativeApp`).
  */
-export function LoggerPicker({ open, onOpenChange, bleSupported, onSelectFledgling }: LoggerPickerProps) {
+export function LoggerPicker({ open, onOpenChange, bleSupported, onSelectFledgling, onSelectMychron }: LoggerPickerProps) {
   const { t } = useTranslation("logger");
   const [info, setInfo] = useState<"mychron" | "alfano" | null>(null);
   const native = isNativeApp();
@@ -99,7 +104,7 @@ export function LoggerPicker({ open, onOpenChange, bleSupported, onSelectFledgli
               image={MYCHRON_IMAGE}
               name={MYCHRON_NAME}
               tag={t("tags.mychron")}
-              onClick={() => setInfo("mychron")}
+              onClick={() => (native && onSelectMychron ? onSelectMychron() : setInfo("mychron"))}
             />
             <LoggerCard
               image={ALFANO_IMAGE}

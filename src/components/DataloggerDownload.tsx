@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Bluetooth, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatBytes } from "@/lib/bleDatalogger";
 import { createFledglingConnection, type LoggerConnection, type LoggerFile, type LoggerDownloadProgress } from "@/lib/loggers";
+import { FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { parseDatalogContent } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
@@ -201,64 +201,12 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
 
         {/* File List State */}
         {state === "file-list" && (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-muted-foreground mb-2">
-              Click a file to download and load it:
-            </p>
-            <div className="max-h-80 overflow-y-auto space-y-1">
-              {files.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">
-                  No files found on device
-                </p>
-              ) : (
-                files.map((file) => (
-                  <button
-                    key={file.name}
-                    onClick={() => handleFileSelect(file)}
-                    className="w-full text-left px-3 py-2 rounded-md bg-muted/50 hover:bg-muted transition-colors flex justify-between items-center"
-                  >
-                    <span className="font-mono text-sm">{file.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatBytes(file.size)}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
+          <FileListPanel files={files} onSelect={handleFileSelect} />
         )}
 
         {/* Downloading State */}
         {state === "downloading" && progress && (
-          <div className="flex flex-col gap-4 py-4">
-            <p className="font-mono text-sm text-center">{currentFile}</p>
-
-            {/* Progress Bar */}
-            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-150"
-                style={{ width: `${progress.percent}%` }}
-              />
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="text-muted-foreground">Received:</div>
-              <div className="text-right font-mono">
-                {formatBytes(progress.received)} / {formatBytes(progress.total)}
-              </div>
-
-              <div className="text-muted-foreground">Speed:</div>
-              <div className="text-right font-mono">{progress.speed}</div>
-
-              <div className="text-muted-foreground">ETA:</div>
-              <div className="text-right font-mono">{progress.eta}</div>
-            </div>
-
-            <p className="text-xs text-center text-muted-foreground">
-              {progress.percent.toFixed(1)}% complete
-            </p>
-          </div>
+          <ProgressPanel currentFile={currentFile} progress={progress} />
         )}
 
         {/* Error State */}

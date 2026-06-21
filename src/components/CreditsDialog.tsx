@@ -9,6 +9,7 @@ import { interceptExternal } from "@/lib/platform";
 const CREDITS: ReadonlyArray<readonly [name: string, url: string]> = [
   ["React", "https://react.dev"],
   ["Vite", "https://vite.dev"],
+  ["Tauri", "https://tauri.app"],
   ["TypeScript", "https://www.typescriptlang.org"],
   ["Tailwind CSS", "https://tailwindcss.com"],
   ["shadcn/ui", "https://ui.shadcn.com"],

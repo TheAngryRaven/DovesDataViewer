@@ -116,7 +116,7 @@ src/
 │   ├── fileLoadingState.ts # ★ Host pub/sub for the global file-load overlay
 │   ├── *Storage.ts        # IDB/localStorage store modules (file, vehicle, engine, template, note, setup, …)
 │   ├── gps/               # ★ Phone-as-datalogger layer: gpsFix, customGps, sessionGate, realtimeTimer, dovepWriter
-│   ├── loggers/           # ★ Generic LoggerConnection (listLogs/downloadLog/disconnect) + per-logger adapters — Fledgling=BLE today; MyChron (Tauri)/Alfano later satisfy the same interface
+│   ├── loggers/           # ★ Generic LoggerConnection (listLogs/downloadLog/disconnect) + per-logger adapters — Fledgling=BLE, mychron/=MyChron over native (Tauri) Wi-Fi IPC (lazy; @tauri-apps/api dynamic-imported, native-only); Alfano later. progress.ts = transport-neutral formatters + computeProgress (→ docs/ble.md)
 │   ├── speedHeatmap.ts / mapMarker.ts / brakingZones / gforceCalculation / …  # racing math
 │   ├── chartUtils / canvas2d / chartAxis / chartColors / videoExport / overlayCanvasRenderer  # charts/video
 │   ├── videoPlaylist.ts   # ★ Pure GoPro chunked-video model: parse/order GH/GX/GP/GOPR chunk names, build a virtual timeline (cumulative offsets) + virtual↔local time mapping + planAudioSegments (export audio stitch). useVideoSync swaps the <video> src per chunk; a single file is a 1-chunk playlist

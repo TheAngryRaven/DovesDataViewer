@@ -55,6 +55,41 @@ window.__HTT_NATIVE__ = {
 If the bridge is absent, `openExternal` falls back to `window.open(..., "_blank")`.
 The TypeScript contract is `NativeBridge` in `src/lib/platform.ts`.
 
+## MyChron Wi-Fi download (native-only)
+
+Browsers can't open raw TCP sockets, so pulling a session off an **AiM MyChron**
+over Wi-Fi is native-only. The MyChron tile in the logger picker
+(`LoggerPicker.tsx`) starts the real flow only when `isNativeApp()`; on the web it
+keeps its explanatory dialog. The flow lives in `MyChronDownload.tsx` (lazy) and
+drives the Tauri backend through app-defined IPC commands (no capabilities to
+configure — allowed by `core:default`). The client is
+`src/lib/loggers/mychron/ipc.ts`, which reaches Tauri via a **dynamic**
+`import("@tauri-apps/api/core")` so `@tauri-apps/api` code-splits into the lazy
+MyChron chunk and never enters the web/eager bundle.
+
+IPC contract (args camelCase; all reject with a plain string whose prefix encodes
+the category — `device unreachable:`, `device hung:`, `protocol error:`,
+`unsupported:`, `Wi-Fi join was declined…`, `no logger connected …`):
+
+| Command | Args | Resolves to |
+|---------|------|-------------|
+| `logger_connect` | `{ kind:"mychron", host?, wifi? }` | device info |
+| `logger_list_files` | – | file entries |
+| `logger_download_file` | `{ name, onProgress: Channel }` | `ArrayBuffer` (already-inflated XRK) |
+| `logger_disconnect` | – | `void` |
+
+On **Android** the flow passes `wifi: { ssidPrefix: MYCHRON_SSID_PREFIX }`; the OS
+shows a system Wi-Fi picker (the backend joins + binds the process to the AP via
+`WifiNetworkSpecifier`), and the UI shows a "waiting for you to pick your MyChron…"
+state while it's up. On **desktop** the `wifi` hint is omitted (the user joins the
+AP via the OS). `MYCHRON_SSID_PREFIX` (in `ipc.ts`) and whether the AP is open or
+WPA2 are **open hardware items** — confirm from a real device. The download returns
+decompressed XRK bytes, which go straight into the existing async importer
+(`parseDatalogFile`, wasm worker) named `<name>.xrk`. The flow **owns its
+connection** and calls `logger_disconnect` on every exit (close/cancel/error/
+unmount). MyChron's `LoggerConnection.supportsDeviceDetails` is `false` — no in-app
+settings/tracks/firmware tab.
+
 ## Account deletion (Google Play requirement)
 
 Play requires a publicly reachable account-deletion URL in addition to the in-app
