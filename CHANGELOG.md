@@ -78,6 +78,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   component). Pairs with the refreshed app icons and favicon. Data-viz colors
   (speed/telemetry scales) are unchanged.
 
+### Fixed
+- **Login rate limiter locked out valid sign-ins.** The limiter counted *every*
+  sign-in attempt — successes included — as a failure on a pre-login check, so
+  after five tries an IP was locked for an hour even with the correct password.
+  It now only counts genuine failures, clears the counter on a successful login,
+  and ages failures out over a 15-minute sliding window.
+
 ## [2.8.0] - 2026-06-20
 
 ### Added

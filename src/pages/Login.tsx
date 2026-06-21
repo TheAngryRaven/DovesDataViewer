@@ -35,7 +35,9 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', { body: {} });
+      // Pre-check only reports whether this IP is locked — it never counts an
+      // attempt. The failure/success is recorded after the login resolves below.
+      const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', { body: { action: 'check' } });
       if (rateCheck && !rateCheck.allowed) {
         toast({ title: t('login.tooManyAttempts'), description: rateCheck.message || t('login.tooManyAttemptsDesc'), variant: 'destructive' });
         setIsLoading(false);
@@ -43,8 +45,12 @@ export default function Login() {
       }
       const { error } = await login(email, password);
       if (error) {
+        // Record the failed attempt (best-effort) so brute force still trips the lock.
+        void supabase.functions.invoke('check-login-rate', { body: { action: 'fail' } });
         toast({ title: t('login.failed'), description: error.message, variant: 'destructive' });
       } else {
+        // Success clears this IP's failure counter.
+        void supabase.functions.invoke('check-login-rate', { body: { action: 'reset' } });
         toast({ title: t('login.signedIn') });
         navigate(next);
       }
