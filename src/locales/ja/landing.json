@@ -16,9 +16,7 @@
     },
     "logger": {
       "title": "ロガーからダウンロード",
-      "description": "DovesDataLogger から Bluetooth でログを取得",
-      "unsupportedDescription": "デスクトップ版の Chrome、Edge、Opera が必要です",
-      "unsupportedHint": "このブラウザーは Web Bluetooth に対応していません"
+      "description": "データロガーから直接ログをダウンロード"
     },
     "tracks": {
       "title": "コースを管理",

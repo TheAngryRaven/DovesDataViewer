@@ -16,9 +16,7 @@
     },
     "logger": {
       "title": "Descargar del registrador",
-      "description": "Descarga registros por Bluetooth desde tu DovesDataLogger",
-      "unsupportedDescription": "Requiere Chrome, Edge u Opera en ordenador",
-      "unsupportedHint": "Web Bluetooth no es compatible con este navegador"
+      "description": "Descarga registros directamente desde tu registrador de datos"
     },
     "tracks": {
       "title": "Gestionar circuitos",

@@ -189,18 +189,12 @@ export function LandingPage({
                 onDataLoaded={onDataLoaded}
                 autoSave={autoSave}
                 autoSaveFile={autoSaveFile}
-                renderTrigger={({ onConnect, bleSupported }) => (
+                renderTrigger={({ onOpen }) => (
                   <ActionTile
                     icon={Bluetooth}
                     title={t("landing:tiles.logger.title")}
-                    description={
-                      bleSupported
-                        ? t("landing:tiles.logger.description")
-                        : t("landing:tiles.logger.unsupportedDescription")
-                    }
-                    onClick={onConnect}
-                    disabled={!bleSupported}
-                    hint={bleSupported ? undefined : t("landing:tiles.logger.unsupportedHint")}
+                    description={t("landing:tiles.logger.description")}
+                    onClick={onOpen}
                   />
                 )}
               />

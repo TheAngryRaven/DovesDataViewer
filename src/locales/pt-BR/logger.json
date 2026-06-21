@@ -1,0 +1,22 @@
+{
+  "_machine": true,
+  "title": "Baixar do registrador",
+  "subtitle": "Escolha seu registrador para iniciar um download.",
+  "comingSoon": "Em breve",
+  "tags": {
+    "fledgling": "Registrador DIY · Bluetooth",
+    "mychron": "Wi-Fi · app nativo necessário",
+    "alfano": "Bluetooth · em breve"
+  },
+  "fledglingUnsupported": "Web Bluetooth não é compatível aqui — use Chrome, Edge ou Opera no computador.",
+  "mychron": {
+    "nativeTitle": "Download do MyChron",
+    "nativeBody": "A definir",
+    "webTitle": "App nativo necessário",
+    "webBody": "Os registradores MyChron transferem por Wi-Fi, que os navegadores web não conseguem acessar diretamente. Um app nativo dedicado para baixar do MyChron está em desenvolvimento e tem lançamento previsto para cerca de julho de 2026."
+  },
+  "alfano": {
+    "title": "Downloads do Alfano",
+    "body": "Os downloads do Alfano estarão disponíveis sem um app nativo graças à conectividade Bluetooth do registrador. Estamos progredindo — fique de olho nas novidades (estimado para início de julho de 2026)."
+  }
+}

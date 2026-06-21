@@ -15,9 +15,7 @@
     },
     "logger": {
       "title": "Download from logger",
-      "description": "Pull logs over Bluetooth from your DovesDataLogger",
-      "unsupportedDescription": "Requires Chrome, Edge or Opera on desktop",
-      "unsupportedHint": "Web Bluetooth is not supported in this browser"
+      "description": "Download logs directly from your data logger"
     },
     "tracks": {
       "title": "Manage tracks",

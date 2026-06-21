@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Bluetooth, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { LoggerPicker } from "@/components/LoggerPicker";
 import {
   FileInfo,
   DownloadProgress,
@@ -29,16 +30,17 @@ interface DataloggerDownloadProps {
   autoSaveFile?: (name: string, blob: Blob) => Promise<void>;
   /**
    * Optional custom trigger (e.g. a big landing-page ActionTile). Receives the
-   * connect handler and whether Web Bluetooth is supported so the caller can
-   * render its own disabled/hint state. When omitted, the default outline
+   * handler that opens the logger picker. When omitted, the default outline
    * button is rendered.
    */
-  renderTrigger?: (args: { onConnect: () => void; bleSupported: boolean }) => ReactNode;
+  renderTrigger?: (args: { onOpen: () => void }) => ReactNode;
 }
 
 export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, renderTrigger }: DataloggerDownloadProps) {
+  const { t } = useTranslation("logger");
   const device = useDeviceContext();
   const connection = device.connection;
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [state, setState] = useState<DownloadState>("idle");
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [progress, setProgress] = useState<DownloadProgress | null>(null);
@@ -272,48 +274,43 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, rende
     </Dialog>
   );
 
+  // The logger chooser — shown for every trigger variant before any download
+  // starts. Selecting the Fledgling kicks off the Bluetooth flow; the other
+  // loggers open their own explanatory dialogs from inside the picker.
+  const loggerPicker = (
+    <LoggerPicker
+      open={pickerOpen}
+      onOpenChange={setPickerOpen}
+      bleSupported={bleSupported}
+      onSelectFledgling={() => {
+        setPickerOpen(false);
+        void handleConnect();
+      }}
+    />
+  );
+
+  const openPicker = useCallback(() => setPickerOpen(true), []);
+
   // Custom-trigger mode (e.g. the landing-page ActionTile): caller owns the
-  // disabled/hint presentation; we just wire up the connect handler.
+  // presentation; we just wire up the handler that opens the picker.
   if (renderTrigger) {
     return (
       <>
-        {renderTrigger({ onConnect: handleConnect, bleSupported })}
+        {renderTrigger({ onOpen: openPicker })}
+        {loggerPicker}
         {downloadDialog}
       </>
     );
   }
 
-  // Button disabled if BLE not supported
-  if (!bleSupported) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Button variant="outline" disabled className="opacity-50">
-                <Bluetooth className="w-4 h-4 mr-2" />
-                Download from DovesDataLogger
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Web Bluetooth not supported in this browser</p>
-            <p className="text-xs text-muted-foreground">
-              Use Chrome, Edge, or Opera on desktop
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
   return (
     <>
-      <Button variant="outline" onClick={handleConnect}>
+      <Button variant="outline" onClick={openPicker}>
         <Bluetooth className="w-4 h-4 mr-2" />
-        Download from DovesDataLogger
+        {t("title")}
       </Button>
 
+      {loggerPicker}
       {downloadDialog}
     </>
   );

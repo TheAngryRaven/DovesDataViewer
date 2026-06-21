@@ -1,0 +1,22 @@
+{
+  "_machine": true,
+  "title": "Scarica dal logger",
+  "subtitle": "Scegli il tuo logger per avviare un download.",
+  "comingSoon": "Prossimamente",
+  "tags": {
+    "fledgling": "Logger DIY · Bluetooth",
+    "mychron": "Wi-Fi · richiede app nativa",
+    "alfano": "Bluetooth · prossimamente"
+  },
+  "fledglingUnsupported": "Web Bluetooth non è supportato qui: usa Chrome, Edge o Opera su computer.",
+  "mychron": {
+    "nativeTitle": "Download MyChron",
+    "nativeBody": "Da definire",
+    "webTitle": "App nativa richiesta",
+    "webBody": "I logger MyChron trasferiscono via Wi-Fi, a cui i browser web non possono accedere direttamente. Un'app nativa dedicata al download da MyChron è in fase di sviluppo e il lancio è previsto intorno a luglio 2026."
+  },
+  "alfano": {
+    "title": "Download Alfano",
+    "body": "I download Alfano saranno disponibili senza un'app nativa grazie alla connettività Bluetooth del logger. Stiamo facendo progressi: resta sintonizzato per gli aggiornamenti (stimato inizio luglio 2026)."
+  }
+}
