@@ -16,9 +16,7 @@
     },
     "logger": {
       "title": "Baixar do registrador",
-      "description": "Baixe registros via Bluetooth do seu DovesDataLogger",
-      "unsupportedDescription": "Requer Chrome, Edge ou Opera no computador",
-      "unsupportedHint": "Web Bluetooth não é compatível com este navegador"
+      "description": "Baixe registros diretamente do seu registrador de dados"
     },
     "tracks": {
       "title": "Gerenciar pistas",

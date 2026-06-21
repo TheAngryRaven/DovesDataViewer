@@ -1,0 +1,22 @@
+{
+  "_machine": true,
+  "title": "ロガーからダウンロード",
+  "subtitle": "ダウンロードを開始するロガーを選択してください。",
+  "comingSoon": "近日公開",
+  "tags": {
+    "fledgling": "DIYロガー · Bluetooth",
+    "mychron": "Wi-Fi · ネイティブアプリが必要",
+    "alfano": "Bluetooth · 近日公開"
+  },
+  "fledglingUnsupported": "Web Bluetooth はこの環境では非対応です。デスクトップの Chrome、Edge、または Opera をご利用ください。",
+  "mychron": {
+    "nativeTitle": "MyChron のダウンロード",
+    "nativeBody": "未定",
+    "webTitle": "ネイティブアプリが必要です",
+    "webBody": "MyChron ロガーは Wi-Fi で転送するため、Web ブラウザーから直接アクセスできません。MyChron からダウンロードするための専用ネイティブアプリを開発中で、2026年7月頃のリリースを予定しています。"
+  },
+  "alfano": {
+    "title": "Alfano のダウンロード",
+    "body": "Alfano のダウンロードは、ロガーの Bluetooth 接続によりネイティブアプリなしで利用できるようになります。開発は進行中です。最新情報にご注目ください（2026年7月初旬予定）。"
+  }
+}

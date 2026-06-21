@@ -16,9 +16,7 @@
     },
     "logger": {
       "title": "Vom Logger herunterladen",
-      "description": "Logs per Bluetooth von deinem DovesDataLogger abrufen",
-      "unsupportedDescription": "Erfordert Chrome, Edge oder Opera auf dem Desktop",
-      "unsupportedHint": "Web Bluetooth wird von diesem Browser nicht unterstützt"
+      "description": "Logs direkt von deinem Datenlogger herunterladen"
     },
     "tracks": {
       "title": "Strecken verwalten",

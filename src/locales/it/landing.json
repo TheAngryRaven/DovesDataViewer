@@ -16,9 +16,7 @@
     },
     "logger": {
       "title": "Scarica dal logger",
-      "description": "Scarica i log via Bluetooth dal tuo DovesDataLogger",
-      "unsupportedDescription": "Richiede Chrome, Edge o Opera su desktop",
-      "unsupportedHint": "Web Bluetooth non è supportato in questo browser"
+      "description": "Scarica i log direttamente dal tuo logger di dati"
     },
     "tracks": {
       "title": "Gestisci le piste",

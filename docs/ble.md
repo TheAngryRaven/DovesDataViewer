@@ -6,7 +6,10 @@ of `CLAUDE.md` so it loads only when working on device code. Global BLE connecti
 state lives in `DeviceContext.tsx` (wraps the app tree in `Index.tsx`). Source:
 `src/lib/ble/` (split per-concern; `bleDatalogger.ts` is the legacy barrel).
 Everything here is lazy-loaded — `DataloggerDownload` is the BLE entry point so
-`lib/ble/*` stays out of the initial bundle.
+`lib/ble/*` stays out of the initial bundle. The user reaches it through
+`LoggerPicker` (an image-based chooser of supported loggers); selecting the
+PerchWerks Fledgling tile starts this Bluetooth flow, while the other loggers
+(MyChron, Alfano) open explanatory dialogs and don't touch `lib/ble/*` yet.
 
 ---
 

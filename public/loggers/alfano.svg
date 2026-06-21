@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Alfano placeholder">
+  <rect width="400" height="300" fill="#1f242a"/>
+  <circle cx="200" cy="140" r="58" fill="#2f3d4a" stroke="#5aa6e0" stroke-width="3"/>
+  <circle cx="200" cy="140" r="6" fill="#5aa6e0"/>
+  <line x1="200" y1="140" x2="200" y2="98" stroke="#5aa6e0" stroke-width="4" stroke-linecap="round"/>
+  <line x1="200" y1="140" x2="232" y2="158" stroke="#9fd0f0" stroke-width="4" stroke-linecap="round"/>
+  <text x="200" y="240" fill="#9fd0f0" font-family="sans-serif" font-size="22" font-weight="700" text-anchor="middle">Alfano</text>
+  <text x="200" y="266" fill="#60788f" font-family="sans-serif" font-size="13" text-anchor="middle">placeholder image</text>
+</svg>

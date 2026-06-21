@@ -14,12 +14,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.8.1] - unreleased
 
 ### Added
+- **Logger picker.** "Download from logger" now opens an image-based chooser of
+  supported loggers instead of jumping straight to Bluetooth: **PerchWerks
+  Fledgling** (DIY, Bluetooth), **AiM MyChron 5 / 5S / 2T** (Wi-Fi, native app
+  required), and **Alfano 6 / 7** (Bluetooth, coming soon). The Fledgling runs the
+  existing Bluetooth download flow; MyChron and Alfano open explanatory dialogs for
+  now (MyChron's copy differs between the native app and the web). Placeholder
+  artwork lives in `public/loggers/` for easy swap-out. New `logger` i18n namespace.
 - **Safe-area padding on native / installed PWA.** The app shell now respects the
   device's safe-area insets (status bar / notch) via `env(safe-area-inset-*)` and
   `viewport-fit=cover`, so header content no longer sits under the phone's status
   bar. A no-op on browsers and desktops without a safe area.
 
 ### Changed
+- **"Download from logger" relabel.** The file-manager button previously labelled
+  "Download from DovesDataLogger" is now "Download from logger" and opens the new
+  logger picker.
 - **Header logo returns to the home screen.** Tapping the LapWing logo (top-left)
   in an open session now closes the session and returns to the landing page.
 - **Purple theme + new logo.** The brand accent moved from teal to **purple**

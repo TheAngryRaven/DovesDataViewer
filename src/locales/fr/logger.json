@@ -1,0 +1,22 @@
+{
+  "_machine": true,
+  "title": "Télécharger depuis l'enregistreur",
+  "subtitle": "Choisissez votre enregistreur pour lancer un téléchargement.",
+  "comingSoon": "Bientôt disponible",
+  "tags": {
+    "fledgling": "Enregistreur DIY · Bluetooth",
+    "mychron": "Wi-Fi · app native requise",
+    "alfano": "Bluetooth · bientôt disponible"
+  },
+  "fledglingUnsupported": "Web Bluetooth n'est pas pris en charge ici — utilisez Chrome, Edge ou Opera sur ordinateur.",
+  "mychron": {
+    "nativeTitle": "Téléchargement MyChron",
+    "nativeBody": "À définir",
+    "webTitle": "App native requise",
+    "webBody": "Les enregistreurs MyChron transfèrent en Wi-Fi, auquel les navigateurs web ne peuvent pas accéder directement. Une app native dédiée au téléchargement depuis MyChron est en cours de développement et son lancement est prévu vers juillet 2026."
+  },
+  "alfano": {
+    "title": "Téléchargements Alfano",
+    "body": "Les téléchargements Alfano seront disponibles sans app native grâce à la connectivité Bluetooth de l'enregistreur. Des progrès sont en cours — restez à l'écoute (estimé début juillet 2026)."
+  }
+}

@@ -86,7 +86,7 @@ src/
 │   ├── RaceLineView.tsx   # Leaflet map: race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas speed/telemetry chart (simple mode)
 │   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist)
-│   └── …                  # FileImport, DataloggerDownload (BLE entry, lazy), LapSnapshot*, …
+│   └── …                  # FileImport, LoggerPicker (image-based logger chooser), DataloggerDownload (BLE entry, lazy), LapSnapshot*, …
 ├── hooks/                 # One concern each; Index.tsx orchestrates.
 │   ├── useSessionData     # Parses imported file → ParsedData
 │   ├── useLapManagement   # Lap calc, selection, visible range
