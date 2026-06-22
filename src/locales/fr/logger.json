@@ -31,6 +31,25 @@
       "cancel": "Annuler"
     }
   },
+  "doveslogger": {
+    "flow": {
+      "scanning": "Recherche d'enregistreurs…",
+      "selectDevice": "Sélectionnez votre enregistreur",
+      "deviceInstructions": "Touchez votre enregistreur pour vous connecter :",
+      "noDevices": "Aucun enregistreur trouvé. Assurez-vous que le vôtre est allumé et que le Bluetooth est activé, puis relancez la recherche.",
+      "rescan": "Relancer la recherche",
+      "connecting": "Connexion…",
+      "fetching": "Récupération des sessions…",
+      "selectFile": "Sélectionnez une session à télécharger",
+      "downloading": "Téléchargement…",
+      "errorTitle": "Erreur de connexion",
+      "instructions": "Touchez une session pour la télécharger et la charger :",
+      "empty": "Aucune session sur cet appareil",
+      "savedHint": " — le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
+      "retry": "Réessayer",
+      "cancel": "Annuler"
+    }
+  },
   "alfano": {
     "title": "Téléchargements Alfano",
     "body": "Les téléchargements Alfano seront disponibles sans app native grâce à la connectivité Bluetooth de l'enregistreur. Des progrès sont en cours — restez à l'écoute (estimé début juillet 2026)."

@@ -30,6 +30,25 @@
       "cancel": "Cancel"
     }
   },
+  "doveslogger": {
+    "flow": {
+      "scanning": "Scanning for loggers…",
+      "selectDevice": "Select your logger",
+      "deviceInstructions": "Tap your logger to connect:",
+      "noDevices": "No loggers found. Make sure yours is powered on, Bluetooth is enabled, then rescan.",
+      "rescan": "Rescan",
+      "connecting": "Connecting…",
+      "fetching": "Fetching sessions…",
+      "selectFile": "Select a session to download",
+      "downloading": "Downloading…",
+      "errorTitle": "Connection error",
+      "instructions": "Tap a session to download and load it:",
+      "empty": "No sessions on this device",
+      "savedHint": " — the file was saved and can be found in Browse Files.",
+      "retry": "Try again",
+      "cancel": "Cancel"
+    }
+  },
   "alfano": {
     "title": "Alfano downloads",
     "body": "Alfano downloads will be available without a native app thanks to the logger's Bluetooth connectivity. Progress is being made — stay tuned for updates (estimated early July '26)."

@@ -5,8 +5,10 @@
  * Wi-Fi selecting, errors) stay in each flow's component.
  */
 
+import { Button } from "@/components/ui/button";
 import { formatBytes } from "@/lib/loggers/progress";
 import type { LoggerFile, LoggerDownloadProgress } from "@/lib/loggers";
+import type { ScannedDevice } from "@/lib/loggers/doveslogger/ipc";
 
 interface FileListPanelProps {
   files: LoggerFile[];
@@ -43,6 +45,59 @@ export function FileListPanel({
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+interface DeviceListPanelProps {
+  devices: ScannedDevice[];
+  onSelect: (device: ScannedDevice) => void;
+  onRescan: () => void;
+  /** Instruction line above the list. */
+  instructions: string;
+  /** Shown when the scan turns up no devices. */
+  emptyText: string;
+  /** Label for the rescan button (both states). */
+  rescanLabel: string;
+}
+
+/**
+ * Tappable list of nearby loggers found by a BLE scan. BLE has no OS picker, so
+ * the native DovesLogger flow renders this; selection is by `id` (the `name`/
+ * `rssi` are display-only). An empty scan still shows the Rescan affordance.
+ */
+export function DeviceListPanel({
+  devices,
+  onSelect,
+  onRescan,
+  instructions,
+  emptyText,
+  rescanLabel,
+}: DeviceListPanelProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm text-muted-foreground mb-2">{instructions}</p>
+      <div className="max-h-80 overflow-y-auto space-y-1">
+        {devices.length === 0 ? (
+          <p className="text-center text-muted-foreground py-4">{emptyText}</p>
+        ) : (
+          devices.map((device) => (
+            <button
+              key={device.id}
+              onClick={() => onSelect(device)}
+              className="w-full text-left px-3 py-2 rounded-md bg-muted/50 hover:bg-muted transition-colors flex justify-between items-center"
+            >
+              <span className="font-medium text-sm">{device.name ?? device.id}</span>
+              {typeof device.rssi === "number" && (
+                <span className="text-xs text-muted-foreground">{device.rssi} dBm</span>
+              )}
+            </button>
+          ))
+        )}
+      </div>
+      <Button variant="outline" className="w-full mt-1" onClick={onRescan}>
+        {rescanLabel}
+      </Button>
     </div>
   );
 }

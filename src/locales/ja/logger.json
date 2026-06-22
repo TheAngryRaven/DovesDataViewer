@@ -31,6 +31,25 @@
       "cancel": "キャンセル"
     }
   },
+  "doveslogger": {
+    "flow": {
+      "scanning": "ロガーを検索中…",
+      "selectDevice": "ロガーを選択",
+      "deviceInstructions": "接続するロガーをタップしてください：",
+      "noDevices": "ロガーが見つかりません。電源が入っていて Bluetooth が有効になっていることを確認し、再検索してください。",
+      "rescan": "再検索",
+      "connecting": "接続中…",
+      "fetching": "セッションを取得中…",
+      "selectFile": "ダウンロードするセッションを選択",
+      "downloading": "ダウンロード中…",
+      "errorTitle": "接続エラー",
+      "instructions": "セッションをタップしてダウンロードして読み込みます：",
+      "empty": "このデバイスにセッションはありません",
+      "savedHint": " — ファイルは保存され、「ファイルを参照」で見つけられます。",
+      "retry": "再試行",
+      "cancel": "キャンセル"
+    }
+  },
   "alfano": {
     "title": "Alfano のダウンロード",
     "body": "Alfano のダウンロードは、ロガーの Bluetooth 接続によりネイティブアプリなしで利用できるようになります。開発は進行中です。最新情報にご注目ください（2026年7月初旬予定）。"
