@@ -67,6 +67,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   screen) instead of always jumping to the home screen.
 
 ### Changed
+- **Open-source links moved into About.** The GitHub repository links left the
+  landing page and now live in the About dialog under "Free & Open Source", above
+  the feature list. The About feature list was also refreshed with the headline
+  additions from the last month (7 languages, native Android app + MyChron Wi-Fi
+  download, phone-as-logger GPS timing, optional cloud sync, AI driving coach).
 - **Logger picker polish.** Real product photos replace the placeholder art, and
   the picker is now mobile-friendly: compact horizontal cards on phones (instead of
   full-height ones that filled the screen), a height cap so it scrolls within the
