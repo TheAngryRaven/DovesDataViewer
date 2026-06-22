@@ -5,6 +5,16 @@
   // command (npm run build) and then `wrangler deploy`, which uploads ./dist.
   "name": "lapwing",
   "compatibility_date": "2026-05-30",
+  // Pin the workers.dev surface ON so it can't drift off. `wrangler deploy` treats
+  // this config as the source of truth, so any value toggled only in the dashboard
+  // gets reset on the next production deploy. Renaming the Worker (dovesdataviewer
+  // → lapwing) created a fresh Worker, and leaving these unset let each deploy
+  // disable the branch + per-version preview URLs (*-lapwing.perchwerks.workers.dev)
+  // that the beta-proxy and ad-hoc checks rely on. `preview_urls` governs those
+  // preview hostnames; `workers_dev` keeps the *.workers.dev subdomain they live on
+  // enabled. Production traffic still uses the custom_domain route below.
+  "workers_dev": true,
+  "preview_urls": true,
   // Attaching a custom_domain route makes Cloudflare provision the DNS record and
   // TLS certificate for lapwingdata.com automatically on deploy. The zone
   // lapwingdata.com must be in this Cloudflare account; do NOT also attach the
