@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   screen) instead of always jumping to the home screen.
 
 ### Changed
+- **Picker/landing polish.** Logger names shortened to "AiM MyChron 5+" and
+  "Alfano 6+" (single-line, and future-proof for newer models); the account-
+  deletion page picked up the shared sticky brand header; and the landing
+  "Telemetry Data Viewer" tagline was removed for now.
 - **Open-source links moved into About.** The GitHub repository links left the
   landing page and now live in the About dialog under "Free & Open Source", above
   the feature list. The About feature list was also refreshed with the headline

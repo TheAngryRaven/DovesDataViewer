@@ -19,8 +19,8 @@ const ALFANO_IMAGE = "/loggers/alfano.png";
 
 // Brand display names are proper nouns — intentionally not translated.
 const FLEDGLING_NAME = "PerchWerks Fledgling";
-const MYCHRON_NAME = "AiM MyChron 5 / 5S / 2T";
-const ALFANO_NAME = "Alfano 6 / 7";
+const MYCHRON_NAME = "AiM MyChron 5+";
+const ALFANO_NAME = "Alfano 6+";
 
 interface LoggerPickerProps {
   open: boolean;

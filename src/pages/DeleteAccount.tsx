@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
+import { BrandHeader } from "@/components/BrandHeader";
 import {
   cancelAccountDeletion,
   getPendingDeletion,
@@ -34,7 +35,9 @@ export default function DeleteAccount() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-2xl mx-auto safe-area-inset">
+    <div className="min-h-screen bg-background text-foreground flex flex-col safe-area-x">
+      <BrandHeader />
+      <div className="w-full max-w-2xl mx-auto p-6 md:p-12">
       <Link
         to="/"
         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
@@ -66,6 +69,7 @@ export default function DeleteAccount() {
         </p>
 
         {enableCloud ? <DeletionFlow /> : <CloudDisabledNote />}
+      </div>
       </div>
     </div>
   );

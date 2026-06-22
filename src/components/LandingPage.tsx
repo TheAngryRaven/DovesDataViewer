@@ -99,10 +99,7 @@ export function LandingPage({
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-6 py-4">
           <div className="flex items-center gap-3">
             <BrandLogo className="w-8 h-8" />
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
-              <p className="text-sm text-muted-foreground">{t("landing:tagline")}</p>
-            </div>
+            <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
           </div>
           <div className="flex items-center gap-2">
             <SupportedFilesDialog />
