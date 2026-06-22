@@ -88,5 +88,10 @@
     "heading": "Aggiornamento app",
     "label": "Forza l'aggiornamento e svuota la cache",
     "hint": "Svuota i file dell'app memorizzati nella cache e ricarica l'ultima versione. Le sessioni e i dati salvati nel Garage non vengono modificati."
+  },
+  "mychron": {
+    "heading": "MyChron",
+    "ssidPrefix": "Prefisso del nome Wi-Fi",
+    "ssidPrefixHint": "L'inizio del nome Wi-Fi del tuo MyChron. Durante il download, il selettore Wi-Fi di sistema elenca solo le reti che iniziano con questo. Distingue maiuscole e minuscole: modificalo solo se il tuo logger trasmette un nome diverso."
   }
 }

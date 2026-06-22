@@ -88,5 +88,10 @@
     "heading": "Actualización de la app",
     "label": "Forzar actualización y borrar caché",
     "hint": "Borra los archivos en caché de la app y recarga la última versión. Tus sesiones y datos guardados en el Garaje no se ven afectados."
+  },
+  "mychron": {
+    "heading": "MyChron",
+    "ssidPrefix": "Prefijo del nombre Wi-Fi",
+    "ssidPrefixHint": "El inicio del nombre Wi-Fi de tu MyChron. Al descargar, el selector de Wi-Fi del sistema solo muestra las redes que empiezan por esto. Distingue mayúsculas de minúsculas: cámbialo solo si tu registrador emite un nombre distinto."
   }
 }

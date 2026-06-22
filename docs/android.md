@@ -78,12 +78,16 @@ the category — `device unreachable:`, `device hung:`, `protocol error:`,
 | `logger_download_file` | `{ name, onProgress: Channel }` | `ArrayBuffer` (already-inflated XRK) |
 | `logger_disconnect` | – | `void` |
 
-On **Android** the flow passes `wifi: { ssidPrefix: MYCHRON_SSID_PREFIX }`; the OS
-shows a system Wi-Fi picker (the backend joins + binds the process to the AP via
-`WifiNetworkSpecifier`), and the UI shows a "waiting for you to pick your MyChron…"
-state while it's up. On **desktop** the `wifi` hint is omitted (the user joins the
-AP via the OS). `MYCHRON_SSID_PREFIX` (in `ipc.ts`) and whether the AP is open or
-WPA2 are **open hardware items** — confirm from a real device. The download returns
+On **Android** the flow passes `wifi: { ssidPrefix }`; the OS shows a system Wi-Fi
+picker that **only lists networks whose SSID starts with that prefix** (the backend
+joins + binds the process to the AP via `WifiNetworkSpecifier`, a case-sensitive
+`PatternMatcher` prefix), and the UI shows a "waiting for you to pick your MyChron…"
+state while it's up. The prefix is **user-configurable** — Settings → MyChron
+(`AppSettings.mychronSsidPrefix`, read in `MyChronDownload.tsx`), defaulting to
+`MYCHRON_SSID_PREFIX` (`ipc.ts`); the field is native-gated in `SettingsModal.tsx`.
+On **desktop** the `wifi` hint is omitted (the user joins the AP via the OS). The
+default prefix value and whether the AP is open or WPA2 are **open hardware items**
+— confirm from a real device. The download returns
 decompressed XRK bytes, which go straight into the existing async importer
 (`parseDatalogFile`, wasm worker) named `<name>.xrk`. The flow **owns its
 connection** and calls `logger_disconnect` on every exit (close/cancel/error/

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, Languages, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, Languages, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun, Wifi } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "@/hooks/useSettings";
+import { isNativeApp } from "@/lib/platform";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n/config";
 import { FIELD_CATEGORIES, CanonicalFieldId } from "@/lib/fieldResolver";
 import { cn } from "@/lib/utils";
@@ -369,6 +371,34 @@ export function SettingsModal({
           </div>
 
           </div>
+
+          {/* MyChron Wi-Fi — native-only; the prefix the OS Wi-Fi picker filters on */}
+          {isNativeApp() && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Wifi className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-medium">{t("settings:mychron.heading")}</h3>
+              </div>
+              <div className="pl-6 space-y-1.5">
+                <Label htmlFor="settings-mychron-ssid" className="text-sm text-muted-foreground">
+                  {t("settings:mychron.ssidPrefix")}
+                </Label>
+                <p className="text-xs text-muted-foreground/70">
+                  {t("settings:mychron.ssidPrefixHint")}
+                </p>
+                <Input
+                  id="settings-mychron-ssid"
+                  value={settings.mychronSsidPrefix}
+                  onChange={(e) => onSettingsChange({ mychronSsidPrefix: e.target.value })}
+                  placeholder="MYCHRON5"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="h-8 max-w-xs font-mono"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Braking Zone Detection — collapsible, full width */}
           <CollapsibleSection

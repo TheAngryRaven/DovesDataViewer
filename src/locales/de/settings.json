@@ -88,5 +88,10 @@
     "heading": "App-Update",
     "label": "Update erzwingen & Cache leeren",
     "hint": "Leert die zwischengespeicherten App-Dateien und lädt die neueste Version neu. Deine gespeicherten Sessions und Daten in der Garage sind nicht betroffen."
+  },
+  "mychron": {
+    "heading": "MyChron",
+    "ssidPrefix": "WLAN-Namenspräfix",
+    "ssidPrefixHint": "Der Anfang des WLAN-Namens deines MyChron. Beim Herunterladen zeigt die WLAN-Auswahl des Systems nur Netzwerke an, die damit beginnen. Groß-/Kleinschreibung wird beachtet — ändere es nur, wenn dein Logger einen anderen Namen sendet."
   }
 }

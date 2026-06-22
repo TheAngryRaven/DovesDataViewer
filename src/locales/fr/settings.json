@@ -88,5 +88,10 @@
     "heading": "Mise à jour de l'application",
     "label": "Forcer la mise à jour et vider le cache",
     "hint": "Vide les fichiers de l'application en cache et recharge la dernière version. Vos sessions et données enregistrées dans le Garage ne sont pas affectées."
+  },
+  "mychron": {
+    "heading": "MyChron",
+    "ssidPrefix": "Préfixe du nom Wi-Fi",
+    "ssidPrefixHint": "Le début du nom Wi-Fi de votre MyChron. Lors du téléchargement, le sélecteur Wi-Fi du système ne liste que les réseaux qui commencent par ce préfixe. Sensible à la casse — ne le modifiez que si votre enregistreur diffuse un nom différent."
   }
 }

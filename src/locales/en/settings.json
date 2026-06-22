@@ -87,5 +87,10 @@
     "heading": "App Update",
     "label": "Force update & clear cache",
     "hint": "Clears cached app files and reloads the latest version. Your saved sessions and data in the Garage are not affected."
+  },
+  "mychron": {
+    "heading": "MyChron",
+    "ssidPrefix": "Wi-Fi name prefix",
+    "ssidPrefixHint": "The start of your MyChron's Wi-Fi name. When you download, the system Wi-Fi picker only lists networks that begin with this. It is case-sensitive — change it only if your logger broadcasts a different name."
   }
 }

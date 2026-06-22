@@ -88,5 +88,10 @@
     "heading": "Atualização do app",
     "label": "Forçar atualização e limpar cache",
     "hint": "Limpa os arquivos do app em cache e recarrega a versão mais recente. Suas sessões e dados salvos na Garagem não são afetados."
+  },
+  "mychron": {
+    "heading": "MyChron",
+    "ssidPrefix": "Prefixo do nome Wi-Fi",
+    "ssidPrefixHint": "O início do nome Wi-Fi do seu MyChron. Ao baixar, o seletor de Wi-Fi do sistema lista apenas as redes que começam com isto. Diferencia maiúsculas de minúsculas — altere somente se o seu logger transmitir um nome diferente."
   }
 }

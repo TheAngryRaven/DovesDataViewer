@@ -51,7 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   can't reach the logger's Wi-Fi) and still shows the explanatory dialog. Built on a
   new `createMychronConnection()` adapter behind the existing `LoggerConnection`
   interface; the native Tauri IPC (`@tauri-apps/api`) is lazy-loaded so it never
-  enters the web bundle.
+  enters the web bundle. A native-only **Settings → MyChron** field lets you set the
+  Wi-Fi name prefix the system picker filters on, in case your logger broadcasts a
+  different name.
 - **Safe-area padding on native / installed PWA.** Every full-screen surface now
   respects the device's safe-area insets (status bar / notch) via
   `env(safe-area-inset-*)` and `viewport-fit=cover`, so chrome no longer sits under

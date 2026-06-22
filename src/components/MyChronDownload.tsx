@@ -8,6 +8,7 @@ import { createMychronConnection } from "@/lib/loggers/mychron/mychronConnection
 import { MYCHRON_SSID_PREFIX, loggerConnect } from "@/lib/loggers/mychron/ipc";
 import type { LoggerConnection, LoggerFile, LoggerDownloadProgress } from "@/lib/loggers";
 import { parseDatalogFile } from "@/lib/datalogParser";
+import { useSettings } from "@/hooks/useSettings";
 import { ParsedData } from "@/types/racing";
 
 type DownloadState =
@@ -44,6 +45,7 @@ const isAndroid = () =>
  */
 export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart, onClose }: MyChronDownloadProps) {
   const { t } = useTranslation("logger");
+  const { settings } = useSettings();
   const [state, setState] = useState<DownloadState>("idle");
   const [files, setFiles] = useState<LoggerFile[]>([]);
   const [progress, setProgress] = useState<LoggerDownloadProgress | null>(null);
@@ -65,11 +67,14 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
   const handleConnect = useCallback(async () => {
     setError("");
     try {
-      // Connect — on Android this drives the OS Wi-Fi picker (join + bind).
+      // Connect — on Android this drives the OS Wi-Fi picker (join + bind). The
+      // picker only lists networks whose SSID starts with this prefix, so it's
+      // user-configurable (Settings → MyChron) with the constant as the fallback.
       const android = isAndroid();
+      const ssidPrefix = settings.mychronSsidPrefix?.trim() || MYCHRON_SSID_PREFIX;
       setState(android ? "wifi-selecting" : "connecting");
       const info = await (android
-        ? loggerConnect({ wifi: { ssidPrefix: MYCHRON_SSID_PREFIX } })
+        ? loggerConnect({ wifi: { ssidPrefix } })
         : loggerConnect());
 
       const logger = createMychronConnection(info);
@@ -84,7 +89,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
       setError(err instanceof Error ? err.message : String(err));
       setState("error");
     }
-  }, []);
+  }, [settings.mychronSsidPrefix]);
 
   // Kick off the connection as soon as the flow is mounted (once).
   const startedRef = useRef(false);

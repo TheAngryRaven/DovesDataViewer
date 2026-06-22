@@ -27,6 +27,7 @@ export interface AppSettings {
   deltaSampleMeters: number;        // Arc-length resample spacing for position delta (default: 2)
   chartXAxis: 'time' | 'distance';  // Analysis chart X-axis scale (default: 'distance')
   language: SupportedLanguage;      // Display language (default: browser-detected, else 'en')
+  mychronSsidPrefix: string;        // SSID prefix the Android Wi-Fi picker filters on for MyChron (default: 'MYCHRON5')
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -57,6 +58,9 @@ const defaultSettings: AppSettings = {
   // Default to the language i18n resolved at boot (saved pref → browser → 'en'),
   // so a first-run user sees their browser language without an explicit choice.
   language: initialLanguage,
+  // Mirrors MYCHRON_SSID_PREFIX in lib/loggers/mychron/ipc.ts — kept as a literal
+  // here so the eager settings bundle doesn't pull the (lazy) MyChron IPC module.
+  mychronSsidPrefix: 'MYCHRON5',
 };
 
 export function useSettings() {
