@@ -31,6 +31,25 @@
       "cancel": "Annulla"
     }
   },
+  "doveslogger": {
+    "flow": {
+      "scanning": "Ricerca dei logger…",
+      "selectDevice": "Seleziona il tuo logger",
+      "deviceInstructions": "Tocca il tuo logger per connetterti:",
+      "noDevices": "Nessun logger trovato. Assicurati che il tuo sia acceso e che il Bluetooth sia attivo, poi riavvia la ricerca.",
+      "rescan": "Cerca di nuovo",
+      "connecting": "Connessione…",
+      "fetching": "Recupero delle sessioni…",
+      "selectFile": "Seleziona una sessione da scaricare",
+      "downloading": "Download in corso…",
+      "errorTitle": "Errore di connessione",
+      "instructions": "Tocca una sessione per scaricarla e caricarla:",
+      "empty": "Nessuna sessione su questo dispositivo",
+      "savedHint": " — il file è stato salvato e si trova in Sfoglia file.",
+      "retry": "Riprova",
+      "cancel": "Annulla"
+    }
+  },
   "alfano": {
     "title": "Download Alfano",
     "body": "I download Alfano saranno disponibili senza un'app nativa grazie alla connettività Bluetooth del logger. Stiamo facendo progressi: resta sintonizzato per gli aggiornamenti (stimato inizio luglio 2026)."

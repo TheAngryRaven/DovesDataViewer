@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [2.9.2] - unreleased
+
+### Added
+- **Download from a Fledgling over Bluetooth in the native app.** On the native
+  (Tauri) app the PerchWerks Fledgling tile in the logger picker now runs a real
+  Bluetooth download through the native shell (the native webview has no Web
+  Bluetooth). The flow scans for nearby loggers, lets you pick yours from an in-app
+  list, then connects, lists sessions and downloads + imports the chosen one — the
+  same device files (`.dove`/`.dovex`/`.csv`) and parser as the browser path. Built
+  on a new `createDovesloggerConnection()` adapter behind the existing
+  `LoggerConnection` interface, sharing the native IPC client with MyChron. Settings,
+  track sync and firmware update stay on the Web Bluetooth path for now. Web
+  downloads are unchanged.
+
 ## [2.9.1] - unreleased
 
 ### Changed

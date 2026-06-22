@@ -31,6 +31,25 @@
       "cancel": "Abbrechen"
     }
   },
+  "doveslogger": {
+    "flow": {
+      "scanning": "Suche nach Loggern…",
+      "selectDevice": "Wähle deinen Logger",
+      "deviceInstructions": "Tippe auf deinen Logger, um zu verbinden:",
+      "noDevices": "Keine Logger gefunden. Stelle sicher, dass deiner eingeschaltet und Bluetooth aktiviert ist, und suche dann erneut.",
+      "rescan": "Erneut suchen",
+      "connecting": "Verbindung…",
+      "fetching": "Sitzungen werden abgerufen…",
+      "selectFile": "Wähle eine Sitzung zum Herunterladen",
+      "downloading": "Wird heruntergeladen…",
+      "errorTitle": "Verbindungsfehler",
+      "instructions": "Tippe auf eine Sitzung, um sie herunterzuladen und zu laden:",
+      "empty": "Keine Sitzungen auf diesem Gerät",
+      "savedHint": " — die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
+      "retry": "Erneut versuchen",
+      "cancel": "Abbrechen"
+    }
+  },
   "alfano": {
     "title": "Alfano-Downloads",
     "body": "Alfano-Downloads werden dank der Bluetooth-Konnektivität des Loggers ohne native App verfügbar sein. Es geht voran – bleib dran (voraussichtlich Anfang Juli 2026)."

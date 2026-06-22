@@ -31,6 +31,25 @@
       "cancel": "Cancelar"
     }
   },
+  "doveslogger": {
+    "flow": {
+      "scanning": "Procurando registradores…",
+      "selectDevice": "Selecione seu registrador",
+      "deviceInstructions": "Toque no seu registrador para conectar:",
+      "noDevices": "Nenhum registrador encontrado. Verifique se o seu está ligado e o Bluetooth ativado e procure novamente.",
+      "rescan": "Procurar novamente",
+      "connecting": "Conectando…",
+      "fetching": "Buscando sessões…",
+      "selectFile": "Selecione uma sessão para baixar",
+      "downloading": "Baixando…",
+      "errorTitle": "Erro de conexão",
+      "instructions": "Toque em uma sessão para baixá-la e carregá-la:",
+      "empty": "Nenhuma sessão neste dispositivo",
+      "savedHint": " — o arquivo foi salvo e pode ser encontrado em Procurar arquivos.",
+      "retry": "Tentar novamente",
+      "cancel": "Cancelar"
+    }
+  },
   "alfano": {
     "title": "Downloads do Alfano",
     "body": "Os downloads do Alfano estarão disponíveis sem um app nativo graças à conectividade Bluetooth do registrador. Estamos progredindo — fique de olho nas novidades (estimado para início de julho de 2026)."

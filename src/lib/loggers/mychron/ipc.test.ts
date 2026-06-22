@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Hoisted mock of the Tauri core API (dynamically imported by ipc.ts).
+// Hoisted mock of the Tauri core API (dynamically imported by ../native/ipc).
 const { invoke, ChannelMock } = vi.hoisted(() => {
   const invoke = vi.fn();
   class ChannelMock<T> {
@@ -11,8 +11,10 @@ const { invoke, ChannelMock } = vi.hoisted(() => {
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke, Channel: ChannelMock }));
 
-import { loggerConnect, loggerListFiles, loggerDownloadFile, loggerDisconnect } from "./ipc";
+import { loggerConnect } from "./ipc";
 
+// The kind-agnostic commands (list / download / disconnect) are covered by
+// ../native/ipc.test.ts; this suite only asserts the MyChron-specific connect.
 describe("mychron ipc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,29 +32,6 @@ describe("mychron ipc", () => {
 
   it("passes backend error strings through unwrapped (prefix preserved)", async () => {
     invoke.mockRejectedValueOnce("device unreachable: not joined");
-    await expect(loggerListFiles()).rejects.toBe("device unreachable: not joined");
-  });
-
-  it("wires a progress Channel and returns the bytes as a Uint8Array", async () => {
-    invoke.mockImplementation(async (cmd: string, args: { onProgress: { onmessage?: (m: unknown) => void } }) => {
-      if (cmd === "logger_download_file") {
-        args.onProgress.onmessage?.({ received: 1, total: 2 });
-        return new Uint8Array([9, 8, 7]).buffer;
-      }
-      return undefined;
-    });
-
-    const onProgress = vi.fn();
-    const result = await loggerDownloadFile("a_0217.xrz", onProgress);
-
-    expect(result).toBeInstanceOf(Uint8Array);
-    expect(Array.from(result)).toEqual([9, 8, 7]);
-    expect(onProgress).toHaveBeenCalledWith({ received: 1, total: 2 });
-  });
-
-  it("swallows errors on disconnect (safe when already gone)", async () => {
-    invoke.mockRejectedValueOnce("boom");
-    await expect(loggerDisconnect()).resolves.toBeUndefined();
-    expect(invoke).toHaveBeenCalledWith("logger_disconnect");
+    await expect(loggerConnect()).rejects.toBe("device unreachable: not joined");
   });
 });

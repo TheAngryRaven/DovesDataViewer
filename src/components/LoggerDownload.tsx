@@ -4,6 +4,7 @@ import { Bluetooth } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoggerPicker } from "@/components/LoggerPicker";
 import { useDeviceContext } from "@/contexts/DeviceContext";
+import { isNativeApp } from "@/lib/platform";
 import type { ParsedData } from "@/types/racing";
 
 // The Fledgling BLE flow is the only heavy part — lazy-load it so the protocol
@@ -12,6 +13,13 @@ import type { ParsedData } from "@/types/racing";
 // never depends on a chunk finishing to load.
 const DataloggerDownload = lazy(() =>
   import("@/components/DataloggerDownload").then((m) => ({ default: m.DataloggerDownload })),
+);
+
+// The native Fledgling BLE flow downloads over the Tauri shell instead of Web
+// Bluetooth (which the native webview lacks). Lazy so `@tauri-apps/api` (dynamic
+// import inside it) never enters the web/eager bundle.
+const DovesloggerDownload = lazy(() =>
+  import("@/components/DovesloggerDownload").then((m) => ({ default: m.DovesloggerDownload })),
 );
 
 // The native MyChron Wi-Fi flow is likewise lazy so `@tauri-apps/api` (dynamic
@@ -41,6 +49,9 @@ interface LoggerDownloadProps {
 export function LoggerDownload({ onDataLoaded, autoSave, autoSaveFile, renderTrigger }: LoggerDownloadProps) {
   const { t } = useTranslation("logger");
   const { bleSupported } = useDeviceContext();
+  // On the native app the webview has no Web Bluetooth, so we route the Fledgling
+  // through native BLE IPC instead — which means the tile must be enabled there.
+  const native = isNativeApp();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [fledglingActive, setFledglingActive] = useState(false);
   const [mychronActive, setMychronActive] = useState(false);
@@ -61,7 +72,9 @@ export function LoggerDownload({ onDataLoaded, autoSave, autoSaveFile, renderTri
       <LoggerPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
-        bleSupported={bleSupported}
+        // Native downloads the Fledgling over BLE IPC, so the tile works there
+        // even though the native webview lacks Web Bluetooth.
+        bleSupported={bleSupported || native}
         onSelectFledgling={() => {
           setPickerOpen(false);
           setFledglingActive(true);
@@ -74,13 +87,23 @@ export function LoggerDownload({ onDataLoaded, autoSave, autoSaveFile, renderTri
 
       {fledglingActive && (
         <Suspense fallback={null}>
-          <DataloggerDownload
-            autoStart
-            onDataLoaded={onDataLoaded}
-            autoSave={autoSave}
-            autoSaveFile={autoSaveFile}
-            onClose={() => setFledglingActive(false)}
-          />
+          {native ? (
+            <DovesloggerDownload
+              autoStart
+              onDataLoaded={onDataLoaded}
+              autoSave={autoSave}
+              autoSaveFile={autoSaveFile}
+              onClose={() => setFledglingActive(false)}
+            />
+          ) : (
+            <DataloggerDownload
+              autoStart
+              onDataLoaded={onDataLoaded}
+              autoSave={autoSave}
+              autoSaveFile={autoSaveFile}
+              onClose={() => setFledglingActive(false)}
+            />
+          )}
         </Suspense>
       )}
 
