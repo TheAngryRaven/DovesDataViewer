@@ -1,6 +1,5 @@
 import { Fragment } from "react";
 import {
-  Github,
   Heart,
   Shield,
   Play,
@@ -51,13 +50,6 @@ interface LandingPageProps {
   enableAdmin: boolean;
   enableCloud: boolean;
 }
-
-const GITHUB_LINKS: Array<{ href: string; label: string }> = [
-  { href: "https://github.com/TheAngryRaven/DovesDataViewer", label: "DataViewer" },
-  { href: "https://github.com/TheAngryRaven/DovesDataLogger", label: "Datalogger" },
-  { href: "https://github.com/TheAngryRaven/DovesLapTimer", label: "Timer Library" },
-  { href: "https://github.com/TheAngryRaven/DataViewer_coach", label: "Coach Plugin" },
-];
 
 /**
  * The pre-data-load home screen shown by Index.tsx when no telemetry file is
@@ -282,25 +274,6 @@ export function LandingPage({
             </span>
             <ContactDialog variant="header" />
           </div>
-
-          {/* Open-source repos — web only; the native shell drops outbound GitHub links. */}
-          {!native && (
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-              {GITHUB_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => interceptExternal(e, link.href)}
-                  className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Github className="w-4 h-4" />
-                  <span className="text-sm">{link.label}</span>
-                </a>
-              ))}
-            </div>
-          )}
 
           {enableAdmin && isAdmin && (
             <div className="flex items-center justify-center gap-6 flex-wrap">

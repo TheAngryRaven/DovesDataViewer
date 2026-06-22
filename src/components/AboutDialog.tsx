@@ -1,13 +1,23 @@
-import { Info } from "lucide-react";
+import { Info, Github } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { interceptExternal } from "@/lib/platform";
 
 // Section ids — order is the display order; the heading/body text lives in the
 // `landing` locale (about.sections.<id>).
 const SECTION_IDS = ["offline", "data", "community", "oss"] as const;
+
+// Open-source repositories — shown under the "Free & Open Source" section. Repo
+// names are proper nouns, intentionally not translated.
+const GITHUB_LINKS: Array<{ href: string; label: string }> = [
+  { href: "https://github.com/TheAngryRaven/DovesDataViewer", label: "DataViewer" },
+  { href: "https://github.com/TheAngryRaven/DovesDataLogger", label: "Datalogger" },
+  { href: "https://github.com/TheAngryRaven/DovesLapTimer", label: "Timer Library" },
+  { href: "https://github.com/TheAngryRaven/DataViewer_coach", label: "Coach Plugin" },
+];
 
 export function AboutDialog() {
   const { t } = useTranslation("landing");
@@ -38,6 +48,23 @@ export function AboutDialog() {
               </p>
             </div>
           ))}
+
+          {/* Source repos — sits with the open-source section, above the feature list. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {GITHUB_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => interceptExternal(e, link.href)}
+                className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Github className="w-4 h-4" />
+                <span className="text-xs">{link.label}</span>
+              </a>
+            ))}
+          </div>
 
           <div className="border-t border-border pt-4 mt-4">
             <h3 className="font-semibold text-foreground mb-2">{t("about.featuresHeading")}</h3>

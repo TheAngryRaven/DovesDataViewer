@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [2.8.1] - unreleased
+## [2.9.0] - 2026-06-22
 
 ### Added
 - **Password strength rules + a realtime checker on sign-up.** The registration
