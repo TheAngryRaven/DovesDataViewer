@@ -9,7 +9,7 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 // NOTE FOR THE OPERATOR: drafted Terms, not legal advice — have them reviewed by
 // a lawyer for your jurisdiction. The official hosted service is operated by
 // PERCHWERKS LLC, based in Windermere, Florida, USA; contact
-// champagne@perchwerks.com (interim) until dedicated support addresses exist.
+// support@perchwerks.com.
 
 const Terms = () => {
   const navigate = useNavigate();
@@ -248,7 +248,7 @@ const Terms = () => {
             Windermere, Florida, USA. These Terms are governed by the laws of the
             State of Florida, United States, without regard to conflict-of-laws
             rules. Questions about these Terms can be sent through the in-app
-            contact form or to champagne@perchwerks.com.
+            contact form or to support@perchwerks.com.
           </p>
         </section>
       </div>

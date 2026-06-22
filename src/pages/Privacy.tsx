@@ -12,7 +12,7 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 // features off it describes the offline-only app; with VITE_ENABLE_CLOUD on it
 // also covers accounts, payments and AI. The official hosted service is operated
 // by PERCHWERKS LLC (Windermere, Florida, USA); AI coaching uses Anthropic;
-// interim contact champagne@perchwerks.com. This is a drafted policy, not legal
+// contact support@perchwerks.com. This is a drafted policy, not legal
 // advice — have it reviewed for your jurisdiction.
 
 const Privacy = () => {
@@ -419,7 +419,7 @@ const Privacy = () => {
             Florida, USA). We may update this policy as the app evolves; material
             changes will be reflected by the “Last updated” date below. Questions
             or requests can be sent through the in-app contact form or to
-            champagne@perchwerks.com.
+            support@perchwerks.com.
           </p>
         </section>
       </div>

@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.9.2] - unreleased
 
+### Changed
+- **Support contact email.** The Terms of Service and Privacy Policy now point to
+  **support@perchwerks.com** for questions and requests (replacing the interim
+  address), and the Code of Conduct's enforcement contact was updated to match.
+
 ### Added
 - **Download from a Fledgling over Bluetooth in the native app.** On the native
   (Tauri) app the PerchWerks Fledgling tile in the logger picker now runs a real
