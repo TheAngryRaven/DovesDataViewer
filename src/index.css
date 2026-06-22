@@ -231,6 +231,20 @@
     padding-right: env(safe-area-inset-right);
   }
 
+  /* The horizontal (left/right) inset on its own — for surfaces whose top inset
+     is owned by a sticky header (which carries `.safe-area-top`), so we don't
+     double-pad the top. */
+  .safe-area-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* The top inset on its own — for a sticky/fixed header so its background fills
+     behind the status bar while its content stays clear of the notch. */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;

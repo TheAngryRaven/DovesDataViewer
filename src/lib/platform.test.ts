@@ -8,6 +8,11 @@ import {
   type NativeBridge,
 } from "./platform";
 
+// Tauri's opener plugin is dynamically imported by openExternal; mock it so the
+// native-without-bridge path is observable without a real Tauri runtime.
+const { openUrl } = vi.hoisted(() => ({ openUrl: vi.fn() }));
+vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl }));
+
 // A minimal stand-in for `window`; only the bits each helper touches are set.
 const fakeWindow = (over: Partial<Window> = {}): Window => over as unknown as Window;
 
@@ -59,10 +64,13 @@ describe("openExternal", () => {
     expect(open).not.toHaveBeenCalled();
   });
 
-  it("falls back to a new tab on native when no bridge is wired up", () => {
+  it("routes through the Tauri opener plugin on native when no bridge is wired up", async () => {
+    openUrl.mockResolvedValueOnce(undefined);
     const open = vi.fn();
     openExternal("https://example.com", fakeWindow({ __TAURI_INTERNALS__: {}, open }));
-    expect(open).toHaveBeenCalledWith("https://example.com", "_blank", "noopener,noreferrer");
+    // Never opened in the app's own WebView — handed to the opener plugin instead.
+    expect(open).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(openUrl).toHaveBeenCalledWith("https://example.com"));
   });
 });
 

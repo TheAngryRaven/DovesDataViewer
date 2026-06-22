@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
 import { interceptExternal } from "@/lib/platform";
 import { goBackOrHome } from "@/lib/navBack";
+import { BrandHeader } from "@/components/BrandHeader";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === "true";
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
@@ -23,7 +24,9 @@ const Privacy = () => {
     canonical: "https://lapwingdata.com/privacy",
   });
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 md:p-12 max-w-3xl mx-auto safe-area-inset">
+    <div className="min-h-screen bg-background text-foreground flex flex-col safe-area-x">
+      <BrandHeader />
+      <div className="w-full max-w-3xl mx-auto p-6 md:p-12">
       <button
         type="button"
         onClick={() => goBackOrHome(navigate)}
@@ -424,6 +427,7 @@ const Privacy = () => {
       <p className="mt-10 text-xs text-muted-foreground/60">
         Last updated: June 2026
       </p>
+      </div>
     </div>
   );
 };

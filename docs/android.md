@@ -38,8 +38,14 @@ Lovable-secret parallel `HTT_IS_NATIVE=true`).
   Stripe portal buttons are hidden in `StoragePanel.tsx` (the plan still shows,
   read-only), and `createCheckout`/`createPortal` throw as a backstop
   (`billingClient.ts`).
-- **External links** open in the system browser via the native bridge
-  (`openExternal` / `interceptExternal` in `platform.ts`), not the app WebView.
+- **External links** open in the system browser, not the app WebView, via
+  `openExternal` / `interceptExternal` in `platform.ts`. Resolution order under
+  native: the `__HTT_NATIVE__` bridge if the shell wired it; otherwise Tauri's
+  **opener plugin** (`@tauri-apps/plugin-opener`, dynamically imported so it stays
+  off the web bundle); otherwise a new tab. **For the opener-plugin path to work
+  the Tauri shell must register `tauri-plugin-opener`** (+ an `opener:default`
+  capability) — without it (and without the bridge) external links fall back to a
+  new tab, which a WebView opens in-app.
 
 ## Native bridge contract
 

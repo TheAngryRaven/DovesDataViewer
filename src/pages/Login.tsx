@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Shield, FileText } from 'lucide-react';
-import { BrandLogo } from "@/components/BrandLogo";
+import { BrandHeader } from "@/components/BrandHeader";
 import { useDocumentHead } from '@/hooks/useDocumentHead';
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
@@ -71,13 +71,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 safe-area-inset">
+    <div className="min-h-screen bg-background flex flex-col safe-area-x">
+      <BrandHeader />
+      <div className="flex flex-1 flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm space-y-6">
-        <div className="flex items-center gap-3 justify-center">
-          <BrandLogo className="w-8 h-8" />
-          <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
-        </div>
-
         <div className="racing-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">{t('login.heading')}</h2>
 
@@ -136,6 +133,7 @@ export default function Login() {
             {t('landing:links.terms')}
           </Link>
         </div>
+      </div>
       </div>
     </div>
   );

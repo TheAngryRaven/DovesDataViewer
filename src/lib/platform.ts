@@ -68,6 +68,16 @@ export function openExternal(url: string, w: Window | undefined = currentWindow(
     void bridge.openExternal(url);
     return;
   }
+  // Inside a Tauri WebView, `window.open` just navigates the app's own WebView
+  // (the link opens "in app"). Route through Tauri's opener plugin instead —
+  // dynamically imported so it never enters the web bundle — and fall back to a
+  // new tab if the shell hasn't registered the plugin.
+  if (isTauri(w)) {
+    void import("@tauri-apps/plugin-opener")
+      .then((m) => m.openUrl(url))
+      .catch(() => w.open(url, "_blank", "noopener,noreferrer"));
+    return;
+  }
   w.open(url, "_blank", "noopener,noreferrer");
 }
 

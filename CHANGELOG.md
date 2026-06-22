@@ -67,6 +67,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   screen) instead of always jumping to the home screen.
 
 ### Changed
+- **Sticky headers across the landing and auth/legal pages.** The landing banner
+  is now pinned to the top of the screen, so the Login button is always reachable
+  and content scrolls cleanly under the status bar on mobile. The login, register,
+  privacy, and terms pages share one sticky, clickable brand header (`BrandHeader`)
+  that returns you home — and the privacy/terms pages now carry the mobile
+  safe-area padding the rest of the app has.
+- **Native build hides paid-plan UI.** On the native app (where paid plans aren't
+  sold per Google Play policy), the registration page no longer shows the pricing
+  cards at all — just the free sign-up form. (Profile billing buttons were already
+  hidden on native.)
 - **"Download from logger" relabel.** The file-manager button previously labelled
   "Download from DovesDataLogger" is now "Download from logger" and opens the new
   logger picker.
@@ -102,6 +112,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (speed/telemetry scales) are unchanged.
 
 ### Fixed
+- **External links opened inside the native app.** Links like "Build your own
+  logger" now reliably open in the system browser on the native (Tauri) app
+  instead of navigating the in-app WebView, by routing through Tauri's opener
+  plugin when the shell hasn't wired the `__HTT_NATIVE__` bridge (`platform.ts`).
 - **Login rate limiter locked out valid sign-ins.** The limiter counted *every*
   sign-in attempt — successes included — as a failure on a pre-login check, so
   after five tries an IP was locked for an hour even with the correct password.
