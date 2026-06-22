@@ -1,8 +1,9 @@
 {
   "tagline": "Telemetry Data Viewer",
   "hero": {
-    "title": "Free Online VBO, MoTeC, AiM & NMEA Telemetry Viewer",
-    "subtitle": "Drop in a datalog and explore your laps — maps, charts, sectors and video sync. Everything runs locally in your browser. No upload, no account required."
+    "title": "Free VBO, MoTeC, AiM & NMEA Telemetry Viewer",
+    "subtitle": "Drop in a datalog and explore your laps — maps, charts, sectors and video sync. Everything runs locally in your browser. No upload, no account required.",
+    "offlineNote": "Works entirely offline now that you’ve visited it!"
   },
   "tiles": {
     "sample": {
@@ -168,6 +169,7 @@
       "videoExport": "Video Export (MP4)",
       "audioInExport": "Audio in Export",
       "bleDatalogger": "BLE Datalogger",
+      "wifiDatalogger": "Wi-Fi Datalogger (MyChron)",
       "filePicker": "File Picker",
       "pwaOffline": "PWA / Offline"
     },
@@ -181,7 +183,10 @@
       "silentExports": "Silent exports",
       "native": "Native",
       "fileInputFallback": "File input fallback"
-    }
+    },
+    "triggerNative": "Device Compatibility",
+    "titleNative": "Device Compatibility",
+    "descriptionNative": "Feature support on this device."
   },
   "supportedFiles": {
     "trigger": "Supported Files",

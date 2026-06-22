@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { detectCapabilities, type CapabilityCheck } from "@/lib/browserCompat";
+import { isNativeApp } from "@/lib/platform";
 
 const levelIcon = (level: CapabilityCheck["level"]) => {
   switch (level) {
@@ -27,6 +28,11 @@ export function BrowserCompatDialog() {
   const { t } = useTranslation("landing");
   const checks = useMemo(() => detectCapabilities(), []);
   const hasIssues = checks.some((c) => c.level !== "green");
+  // On the native shell it's a device, not a browser — relabel accordingly.
+  const native = isNativeApp();
+  const triggerLabel = native ? t("browserCompat.triggerNative") : t("browserCompat.trigger");
+  const titleLabel = native ? t("browserCompat.titleNative") : t("browserCompat.title");
+  const descriptionLabel = native ? t("browserCompat.descriptionNative") : t("browserCompat.description");
 
   return (
     <Dialog>
@@ -41,17 +47,17 @@ export function BrowserCompatDialog() {
           }
         >
           <Monitor className="w-3.5 h-3.5 mr-1.5" />
-          {t("browserCompat.trigger")}
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Monitor className="w-5 h-5" />
-            {t("browserCompat.title")}
+            {titleLabel}
           </DialogTitle>
           <DialogDescription>
-            {t("browserCompat.description")}
+            {descriptionLabel}
           </DialogDescription>
         </DialogHeader>
 

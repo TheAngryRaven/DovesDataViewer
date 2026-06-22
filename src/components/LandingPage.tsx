@@ -146,6 +146,9 @@ export function LandingPage({
               <p className="mx-auto max-w-xl text-sm text-muted-foreground">
                 {t("landing:hero.subtitle")}
               </p>
+              <p className="text-sm font-medium text-primary">
+                {t("landing:hero.offlineNote")}
+              </p>
             </div>
           )}
 

@@ -2,8 +2,9 @@
   "_machine": true,
   "tagline": "Visualizador de dados de telemetria",
   "hero": {
-    "title": "Visualizador de telemetria VBO, MoTeC, AiM e NMEA grátis online",
-    "subtitle": "Carregue um datalog e explore suas voltas: mapas, gráficos, setores e sincronização de vídeo. Tudo funciona localmente no seu navegador. Sem upload, sem necessidade de conta."
+    "title": "Visualizador de telemetria VBO, MoTeC, AiM e NMEA grátis",
+    "subtitle": "Carregue um datalog e explore suas voltas: mapas, gráficos, setores e sincronização de vídeo. Tudo funciona localmente no seu navegador. Sem upload, sem necessidade de conta.",
+    "offlineNote": "Funciona totalmente offline agora que você o visitou!"
   },
   "tiles": {
     "sample": {
@@ -213,6 +214,7 @@
       "videoExport": "Exportação de vídeo (MP4)",
       "audioInExport": "Áudio na exportação",
       "bleDatalogger": "Datalogger BLE",
+      "wifiDatalogger": "Datalogger por Wi-Fi (MyChron)",
       "filePicker": "Seletor de arquivos",
       "pwaOffline": "PWA / Offline"
     },
@@ -226,7 +228,10 @@
       "silentExports": "Exportações sem áudio",
       "native": "Nativo",
       "fileInputFallback": "Alternativa de entrada de arquivo"
-    }
+    },
+    "triggerNative": "Compatibilidade do dispositivo",
+    "titleNative": "Compatibilidade do dispositivo",
+    "descriptionNative": "Suporte de recursos neste dispositivo."
   },
   "fileImport": {
     "title": "Abrir um datalog",

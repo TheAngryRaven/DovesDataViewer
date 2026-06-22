@@ -3,6 +3,8 @@
 // module i18n-free. The ids match the `landing.browserCompat.features` /
 // `.statuses` locale keys.
 
+import { isNativeApp } from "./platform";
+
 export type CapabilityLevel = "green" | "yellow" | "red";
 
 export type FeatureId =
@@ -11,6 +13,7 @@ export type FeatureId =
   | "videoExport"
   | "audioInExport"
   | "bleDatalogger"
+  | "wifiDatalogger"
   | "filePicker"
   | "pwaOffline";
 
@@ -42,6 +45,9 @@ export function detectCapabilities(): CapabilityCheck[] {
   const hasFrameCallback = "requestVideoFrameCallback" in HTMLVideoElement.prototype;
   const hasFilePicker = "showOpenFilePicker" in window;
   const hasServiceWorker = "serviceWorker" in navigator;
+  // Wi-Fi logger downloads (e.g. AiM MyChron) need raw sockets the browser can't
+  // open — they only work in the native app.
+  const native = isNativeApp();
 
   return [
     {
@@ -68,6 +74,11 @@ export function detectCapabilities(): CapabilityCheck[] {
       feature: "bleDatalogger",
       status: hasBluetooth ? "supported" : "notAvailable",
       level: hasBluetooth ? "green" : "red",
+    },
+    {
+      feature: "wifiDatalogger",
+      status: native ? "supported" : "notAvailable",
+      level: native ? "green" : "red",
     },
     {
       feature: "filePicker",

@@ -2,8 +2,9 @@
   "_machine": true,
   "tagline": "テレメトリーデータビューア",
   "hero": {
-    "title": "VBO・MoTeC・AiM・NMEA 対応の無料オンライン・テレメトリービューア",
-    "subtitle": "データログを読み込んでラップを分析しましょう。マップ、グラフ、セクター、動画同期に対応。すべてブラウザー上でローカルに動作します。アップロード不要、アカウント不要。"
+    "title": "VBO・MoTeC・AiM・NMEA 対応の無料テレメトリービューア",
+    "subtitle": "データログを読み込んでラップを分析しましょう。マップ、グラフ、セクター、動画同期に対応。すべてブラウザー上でローカルに動作します。アップロード不要、アカウント不要。",
+    "offlineNote": "一度アクセスすれば、完全にオフラインで動作します！"
   },
   "tiles": {
     "sample": {
@@ -213,6 +214,7 @@
       "videoExport": "動画書き出し（MP4）",
       "audioInExport": "書き出し時の音声",
       "bleDatalogger": "BLE データロガー",
+      "wifiDatalogger": "Wi-Fi データロガー（MyChron）",
       "filePicker": "ファイル選択",
       "pwaOffline": "PWA / オフライン"
     },
@@ -226,7 +228,10 @@
       "silentExports": "音声なしの書き出し",
       "native": "ネイティブ",
       "fileInputFallback": "ファイル入力フォールバック"
-    }
+    },
+    "triggerNative": "デバイス互換性",
+    "titleNative": "デバイス互換性",
+    "descriptionNative": "このデバイスでの機能対応状況。"
   },
   "fileImport": {
     "title": "データログを開く",
