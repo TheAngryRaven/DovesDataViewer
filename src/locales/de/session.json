@@ -94,6 +94,12 @@
     "fullLap": "Ganze Runde",
     "sector": "Sektor {{label}}"
   },
+  "controls": {
+    "collapsePanel": "Diagramm einklappen",
+    "expandPanel": "Diagramm ausklappen",
+    "showLegend": "Legende anzeigen",
+    "hideLegend": "Legende ausblenden"
+  },
   "map": {
     "mapPrefix": "Karte",
     "styleDark": "Dunkel",

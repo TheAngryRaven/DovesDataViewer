@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   approved while landing nothing.
 
 ### Changed
+- **Simple-view graph controls are easier to reach.** The collapse/expand button
+  on the map/graph divider is now larger and lives on the **left** — clear of the
+  map's weather/info buttons on the right that it used to crowd. A new **legend
+  toggle** sits next to it to hide the chart's legend bar and reclaim that vertical
+  space (handy for logs with many channels). The "data crop" sector dropdown is
+  also wider in both the Simple and Pro views so it no longer squishes on mobile.
 - **Support contact email.** The Terms of Service and Privacy Policy now point to
   **support@perchwerks.com** for questions and requests (replacing the interim
   address), and the Code of Conduct's enforcement contact was updated to match.
