@@ -109,6 +109,8 @@ export interface ITrackDatabase {
   // Submissions
   getSubmissions(status?: string): Promise<DbSubmission[]>;
   updateSubmission(id: string, status: string, reviewNotes?: string): Promise<void>;
+  /** Materialize an approved submission into the live tracks/courses tables. */
+  applySubmission(sub: DbSubmission): Promise<void>;
 
   // Profiles (display-name lookup, e.g. to show who submitted a track)
   getProfiles(userIds: string[]): Promise<DbProfile[]>;

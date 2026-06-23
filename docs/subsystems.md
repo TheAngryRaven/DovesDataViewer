@@ -363,10 +363,18 @@ The review dialog sends all selected courses in **one** `submit-track` call
 batch size, rate-limits by rows/hour/IP, and inserts one `submissions` row per
 course sharing a generated **`batch_id`** (migration
 `20260603120000_submissions_batch_id.sql`). The admin **Submissions** tab groups a
-batch together with **Approve all / Deny all**; each row is still reviewed/approved
-individually (approval is still manual — it flips status; the admin then
-builds/imports `tracks.json` as before). The single-submission body shape stays
-supported for back-compat.
+batch together with **Approve all / Deny all**; each row is reviewed/approved
+individually. **Approving materializes the submission into the live
+`tracks`/`courses` tables** — `db.applySubmission` upserts the track (creating it
+for a `new_track`), upserts the course by (track, name) from the validated
+`course_data`/`sectors_data` (covering `new_track`/`new_course`/`course_modification`
+alike), sets a new track's `default_course_id`, and attaches any submitted
+`layout_data`. The pure column builder lives in `lib/db/submissionMaterialize.ts`
+(unit-tested); the DB orchestration is in `supabaseAdapter.applySubmission`.
+Materializing runs *before* the status flip, so a bad payload errors and the row
+stays pending instead of being marked approved while never landing. (The Tools-tab
+`tracks.json` export still publishes the approved rows to the offline app as
+before.) The single-submission body shape stays supported for back-compat.
 
 **Submissions table** has `has_layout` (bool) and `layout_data` (jsonb) columns to
 carry drawing data through the workflow. The client sends a course's `layout` as

@@ -90,9 +90,18 @@ export function SubmissionsTab() {
 
   const groups = useMemo(() => groupSubmissions(submissions), [submissions]);
 
-  const handleAction = async (id: string, status: 'approved' | 'denied') => {
+  // Approve = materialize the submission into the live tracks/courses tables,
+  // THEN flag it approved. Materializing first means a bad payload surfaces an
+  // error and the submission stays pending rather than being marked approved
+  // while the track/course silently never landed.
+  const reviewSubmission = async (sub: DbSubmission, status: 'approved' | 'denied') => {
+    if (status === 'approved') await db.applySubmission(sub);
+    await db.updateSubmission(sub.id, status, reviewNotes[sub.id]);
+  };
+
+  const handleAction = async (sub: DbSubmission, status: 'approved' | 'denied') => {
     try {
-      await db.updateSubmission(id, status, reviewNotes[id]);
+      await reviewSubmission(sub, status);
       toast({ title: status === 'approved' ? t('submissions.toastApproved') : t('submissions.toastDenied') });
       load();
     } catch (e: unknown) {
@@ -103,7 +112,7 @@ export function SubmissionsTab() {
   const handleBatchAction = async (items: DbSubmission[], status: 'approved' | 'denied') => {
     const pending = items.filter(s => s.status === 'pending');
     try {
-      await Promise.all(pending.map(s => db.updateSubmission(s.id, status, reviewNotes[s.id])));
+      await Promise.all(pending.map(s => reviewSubmission(s, status)));
       toast({ title: t(status === 'approved' ? 'submissions.batchApproved' : 'submissions.batchDenied', { count: pending.length }) });
       load();
     } catch (e: unknown) {
@@ -190,10 +199,10 @@ export function SubmissionsTab() {
               onChange={e => setReviewNotes(prev => ({ ...prev, [sub.id]: e.target.value }))}
               className="flex-1 text-sm"
             />
-            <Button size="sm" onClick={() => handleAction(sub.id, 'approved')} className="gap-1">
+            <Button size="sm" onClick={() => handleAction(sub, 'approved')} className="gap-1">
               <Check className="w-3 h-3" /> {t('submissions.approve')}
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => handleAction(sub.id, 'denied')} className="gap-1">
+            <Button size="sm" variant="destructive" onClick={() => handleAction(sub, 'denied')} className="gap-1">
               <X className="w-3 h-3" /> {t('submissions.deny')}
             </Button>
           </div>

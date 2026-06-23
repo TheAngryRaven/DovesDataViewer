@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { ITrackDatabase, DbTrack, DbCourse, DbSubmission, DbBannedIp, DbCourseLayout, DbProfile } from './types';
+import { buildCourseColumnsFromSubmission } from './submissionMaterialize';
 import { calculatePolylineLength } from '@/lib/trackUtils';
 import { METERS_TO_FEET } from '@/lib/parserUtils';
 
@@ -115,6 +116,58 @@ export class SupabaseTrackDatabase implements ITrackDatabase {
       reviewed_by: user?.id ?? null,
     }).eq('id', id);
     if (error) throw error;
+  }
+
+  // Materialize an approved submission into the live tracks/courses tables.
+  // Upserts the track (creating it for a new_track submission), then upserts the
+  // course by (track, name) — covering new_track / new_course / course_modification
+  // alike — and attaches any submitted drawn outline. Updating the submission's
+  // status is the caller's job; this is the step that was previously missing, so
+  // an approved track/course never reached the live tables.
+  async applySubmission(sub: DbSubmission): Promise<void> {
+    const columns = buildCourseColumnsFromSubmission(sub);
+    const trackName = sub.track_name.trim();
+    const shortName = (sub.track_short_name?.trim() || trackName.split(/\s+/).map(w => w[0]).join('').slice(0, 8).toUpperCase()).slice(0, 8);
+
+    // Upsert the track, matched by name first, then short name.
+    let track: DbTrack;
+    const { data: byName } = await supabase.from('tracks').select('*').eq('name', trackName).maybeSingle();
+    const existingTrack = byName
+      ?? (sub.track_short_name
+        ? (await supabase.from('tracks').select('*').eq('short_name', sub.track_short_name).maybeSingle()).data
+        : null);
+    if (existingTrack) {
+      track = existingTrack as DbTrack;
+      await supabase.from('tracks').update({ enabled: true }).eq('id', track.id);
+    } else {
+      track = await this.createTrack({ name: trackName, short_name: shortName, enabled: true });
+    }
+
+    // Upsert the course by (track, name).
+    const { data: existingCourse } = await supabase.from('courses')
+      .select('id').eq('track_id', track.id).eq('name', columns.name).maybeSingle();
+    let courseId: string;
+    if (existingCourse) {
+      courseId = (existingCourse as { id: string }).id;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
+      const { error } = await supabase.from('courses').update(columns as any).eq('id', courseId);
+      if (error) throw error;
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
+      const { data, error } = await supabase.from('courses').insert({ ...columns, track_id: track.id } as any).select('id').single();
+      if (error) throw error;
+      courseId = (data as { id: string }).id;
+    }
+
+    // A brand-new track with no default course points at this first course.
+    if (!track.default_course_id) {
+      await supabase.from('tracks').update({ default_course_id: courseId }).eq('id', track.id);
+    }
+
+    // Attach the submitted drawn outline, when present.
+    if (Array.isArray(sub.layout_data) && sub.layout_data.length >= 2) {
+      await this.saveLayout(courseId, sub.layout_data);
+    }
   }
 
   // Profiles — resolve user ids to display names (e.g. submission attribution).

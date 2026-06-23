@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.9.2] - unreleased
 
+### Fixed
+- **Approving a track/course submission now adds it to the database.** In the admin
+  **Submissions** tab, approving a submission previously only flipped its status —
+  it never created the track or course, so an approved new track/course silently
+  never appeared in the live tables. Approval now materializes the submission:
+  it upserts the track (creating it for a new track), upserts the course from the
+  submitted geometry/sectors, sets a new track's default course, and attaches any
+  drawn outline — covering new tracks, new courses, and course modifications. A bad
+  payload now errors and leaves the submission pending instead of being marked
+  approved while landing nothing.
+
 ### Changed
 - **Support contact email.** The Terms of Service and Privacy Policy now point to
   **support@perchwerks.com** for questions and requests (replacing the interim
