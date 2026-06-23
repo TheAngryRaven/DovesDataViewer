@@ -1,10 +1,10 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import {
   Heart,
   Shield,
   Play,
   LogIn,
-  LogOut,
+  User,
   FileText,
   Cpu,
   FolderOpen,
@@ -41,6 +41,8 @@ import { LoggerDownload } from "@/components/LoggerDownload";
 interface LandingPageProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
   onOpenFileManager: () => void;
+  /** Opens the file-manager drawer straight to the Profile (account) tab. */
+  onOpenProfile: () => void;
   autoSave: boolean;
   autoSaveFile: (name: string, blob: Blob) => Promise<void>;
   onLoadSample: () => void;
@@ -49,6 +51,8 @@ interface LandingPageProps {
   showSampleFiles: boolean;
   enableAdmin: boolean;
   enableCloud: boolean;
+  /** The settings modal (trigger + dialog), rendered in the header. */
+  settingsButton: ReactNode;
 }
 
 /**
@@ -66,6 +70,7 @@ interface LandingPageProps {
 export function LandingPage({
   onDataLoaded,
   onOpenFileManager,
+  onOpenProfile,
   autoSave,
   autoSaveFile,
   onLoadSample,
@@ -73,9 +78,10 @@ export function LandingPage({
   showSampleFiles,
   enableAdmin,
   enableCloud,
+  settingsButton,
 }: LandingPageProps) {
   const navigate = useNavigate();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useTranslation(["landing", "common"]);
 
   // On the native (Tauri/Android) shell the user has already installed the app,
@@ -100,23 +106,7 @@ export function LandingPage({
           <div className="flex items-center gap-3">
             <BrandLogo className="w-8 h-8" />
             <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <SupportedFilesDialog />
-            <AboutDialog />
-            {enableCloud && (
-              user ? (
-                <Button variant="ghost" size="sm" className="gap-2" onClick={logout} title={user.email ?? undefined}>
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("common:actions.signOut")}</span>
-                </Button>
-              ) : (
-                <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/login')}>
-                  <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("common:actions.signIn")}</span>
-                </Button>
-              )
-            )}
+            {/* Sponsor sits at the far left, next to the brand. */}
             {!native && (
               <a
                 href="https://github.com/sponsors/TheAngryRaven"
@@ -129,6 +119,27 @@ export function LandingPage({
                   <span className="hidden sm:inline">{t("common:actions.sponsor")}</span>
                 </Button>
               </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <SupportedFilesDialog />
+            <AboutDialog />
+            {/* Settings sits just left of the account button. */}
+            {settingsButton}
+            {/* Account control at the far right: Profile when signed in (opens the
+                drawer's Profile tab), otherwise Sign in. */}
+            {enableCloud && (
+              user ? (
+                <Button variant="ghost" size="sm" className="gap-2" onClick={onOpenProfile} title={user.email ?? undefined}>
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("common:actions.profile")}</span>
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/login')}>
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("common:actions.signIn")}</span>
+                </Button>
+              )
             )}
           </div>
         </div>

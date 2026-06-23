@@ -15,6 +15,9 @@ import { isSampleFileName } from "@/lib/sampleData";
 /** Garage sub-tabs the drawer can be opened directly to. */
 export type GarageTabKey = "files" | "vehicles";
 
+/** Top-level drawer tabs the drawer can be opened directly to. */
+export type TopTabKey = "garage" | "profile";
+
 export function useFileManager() {
   const [isOpen, setIsOpen] = useState(false);
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -22,6 +25,7 @@ export function useFileManager() {
   const [storageUsed, setStorageUsed] = useState(0);
   const [storageQuota, setStorageQuota] = useState(0);
   const [initialGarageTab, setInitialGarageTab] = useState<GarageTabKey>("files");
+  const [initialTopTab, setInitialTopTab] = useState<TopTabKey>("garage");
   // Whether any non-sample file exists — locally or as cloud-synced metadata.
   // Used to lock the "show sample files" setting on when the sample is the user's
   // only file, so they can never hide their only way back into the app.
@@ -67,6 +71,14 @@ export function useFileManager() {
   // argument would be a MouseEvent rather than a tab key.
   const open = useCallback((garageTab?: GarageTabKey) => {
     setInitialGarageTab(typeof garageTab === "string" ? garageTab : "files");
+    setInitialTopTab("garage");
+    setIsOpen(true);
+    refresh();
+  }, [refresh]);
+
+  // Open the drawer straight to the top-level Profile tab (account screen).
+  const openProfile = useCallback(() => {
+    setInitialTopTab("profile");
     setIsOpen(true);
     refresh();
   }, [refresh]);
@@ -114,7 +126,9 @@ export function useFileManager() {
     storageUsed,
     storageQuota,
     initialGarageTab,
+    initialTopTab,
     open,
+    openProfile,
     close,
     refresh,
     saveFile,

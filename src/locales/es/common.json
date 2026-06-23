@@ -4,6 +4,7 @@
   "actions": {
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
+    "profile": "Perfil",
     "sponsor": "Patrocinar",
     "loading": "Cargando…",
     "reset": "Restablecer valores predeterminados",

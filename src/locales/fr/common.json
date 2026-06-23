@@ -4,6 +4,7 @@
   "actions": {
     "signIn": "Se connecter",
     "signOut": "Se déconnecter",
+    "profile": "Profil",
     "sponsor": "Soutenir",
     "loading": "Chargement…",
     "reset": "Réinitialiser les valeurs par défaut",
