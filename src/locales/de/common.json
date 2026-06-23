@@ -4,6 +4,7 @@
   "actions": {
     "signIn": "Anmelden",
     "signOut": "Abmelden",
+    "profile": "Profil",
     "sponsor": "Unterstützen",
     "loading": "Wird geladen…",
     "reset": "Auf Standard zurücksetzen",

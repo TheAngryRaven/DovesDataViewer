@@ -39,17 +39,53 @@
     "estimated": "los tiempos son estimados",
     "blurb": "Contamos con un equipo que lleva más de 20 años desarrollando software de nivel empresarial. Estamos aquí para entregar calidad.",
     "items": [
-      "Logger DIY más económico actualizado (junio '26)",
-      "Clasificaciones de circuitos y perfiles públicos de usuario (junio '26)",
-      "Descargas desde loggers de terceros (junio '26)",
-      "Aplicación nativa (julio '26)",
-      "Organización del día de carrera (julio '26)",
-      "Gestión de equipos e inventario — gratis para equipos de 5 o menos (julio '26)",
-      "Mejoras en el coaching sin conexión (julio '26)",
-      "Balanceo de peso y otras herramientas varias (julio '26)",
-      "Actualizaciones del editor de vídeo (agosto '26)",
-      "Coaching con IA, una vez estables las funciones principales (agosto '26)",
-      "Lanzamiento del logger «Vulture» (T1 '27)"
+      {
+        "text": "Logger DIY más económico actualizado (junio '26)"
+      },
+      {
+        "text": "Clasificaciones de circuitos y perfiles públicos de usuario (junio '26)"
+      },
+      {
+        "text": "Descargas desde loggers de terceros (junio '26)",
+        "sub": [
+          "MyChron: decodificado, requiere aplicación nativa",
+          "Alfano: pendiente"
+        ]
+      },
+      {
+        "text": "Aplicación nativa (julio '26)"
+      },
+      {
+        "text": "Organización del día de carrera (julio '26)"
+      },
+      {
+        "text": "Gestión de equipos e inventario (julio '26)",
+        "sub": [
+          "Gratis para equipos de 5 o menos"
+        ]
+      },
+      {
+        "text": "Primeros productos físicos (julio '26)",
+        "sub": [
+          "Kit DIY Fledgling con carcasa",
+          "Sensor de tacómetro independiente"
+        ]
+      },
+      {
+        "text": "Actualizaciones del editor de vídeo (agosto '26)"
+      },
+      {
+        "text": "Integración con Insta360 — inicio/parada/GPS (agosto '26)"
+      },
+      {
+        "text": "Mejoras en el coaching sin conexión (agosto '26)"
+      },
+      {
+        "text": "Coaching con IA, una vez estables las funciones principales (agosto '26)"
+      },
+      {
+        "text": "Lanzamiento del logger «Vulture» (T1 '27)"
+      }
     ],
     "contact": "¡Contáctanos para cualquier función que necesites!"
   },

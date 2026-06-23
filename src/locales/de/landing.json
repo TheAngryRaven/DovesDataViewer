@@ -39,17 +39,53 @@
     "estimated": "Zeitangaben sind Schätzungen",
     "blurb": "Hinter uns steht ein Team, das seit über 20 Jahren Software auf Enterprise-Niveau entwickelt. Wir liefern Qualität.",
     "items": [
-      "Aktualisierter günstigerer DIY-Logger (Juni '26)",
-      "Strecken-Bestenlisten & öffentliche Benutzerprofile (Juni '26)",
-      "Downloads von Drittanbieter-Loggern (Juni '26)",
-      "Native App (Juli '26)",
-      "Renntag-Organisation (Juli '26)",
-      "Teamverwaltung & Inventar – kostenlos für Teams mit 5 oder weniger Mitgliedern (Juli '26)",
-      "Verbesserungen am Offline-Coaching (Juli '26)",
-      "Gewichtsverteilung und weitere Hilfswerkzeuge (Juli '26)",
-      "Updates am Videoeditor (August '26)",
-      "KI-Coaching, sobald die Kernfunktionen stabil sind (August '26)",
-      "Veröffentlichung des „Vulture“-Loggers (Q1 '27)"
+      {
+        "text": "Aktualisierter günstigerer DIY-Logger (Juni '26)"
+      },
+      {
+        "text": "Strecken-Bestenlisten & öffentliche Benutzerprofile (Juni '26)"
+      },
+      {
+        "text": "Downloads von Drittanbieter-Loggern (Juni '26)",
+        "sub": [
+          "MyChron: dekodiert, native App erforderlich",
+          "Alfano: ausstehend"
+        ]
+      },
+      {
+        "text": "Native App (Juli '26)"
+      },
+      {
+        "text": "Renntag-Organisation (Juli '26)"
+      },
+      {
+        "text": "Teamverwaltung & Inventar (Juli '26)",
+        "sub": [
+          "Kostenlos für Teams mit 5 oder weniger Mitgliedern"
+        ]
+      },
+      {
+        "text": "Erste physische Produkte (Juli '26)",
+        "sub": [
+          "Fledgling-DIY-Kit mit Gehäuse",
+          "Eigenständiger Drehzahlsensor"
+        ]
+      },
+      {
+        "text": "Updates am Videoeditor (August '26)"
+      },
+      {
+        "text": "Insta360-Integration – Start/Stopp/GPS (August '26)"
+      },
+      {
+        "text": "Verbesserungen am Offline-Coaching (August '26)"
+      },
+      {
+        "text": "KI-Coaching, sobald die Kernfunktionen stabil sind (August '26)"
+      },
+      {
+        "text": "Veröffentlichung des „Vulture“-Loggers (Q1 '27)"
+      }
     ],
     "contact": "Kontaktiere uns für alle Funktionen, die du brauchst!"
   },
