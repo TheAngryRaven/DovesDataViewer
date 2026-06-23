@@ -522,19 +522,28 @@ export function TelemetryChart({
           </button>
         )}
         
-        {fieldMappings.map((field, idx) => (
-          <button
-            key={field.name}
-            onClick={() => onFieldToggle(field.name)}
-            className={`flex items-center gap-2 ${field.enabled ? '' : 'opacity-40'}`}
-          >
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ backgroundColor: COLORS[(idx + 1) % COLORS.length] }} 
-            />
-            <span className="text-xs font-mono">{field.label ?? field.name}</span>
-          </button>
-        ))}
+        {/* Only list the fields that are actually drawn — exclude the inactive
+            g-force source so the legend never advertises a series the chart
+            hides (color index stays tied to the full fieldMappings order to
+            match the drawn lines). */}
+        {fieldMappings
+          .filter((field) => !hiddenGForceFields.includes(field.name))
+          .map((field) => {
+            const colorIndex = (fieldMappings.findIndex((f) => f.name === field.name) + 1) % COLORS.length;
+            return (
+              <button
+                key={field.name}
+                onClick={() => onFieldToggle(field.name)}
+                className={`flex items-center gap-2 ${field.enabled ? '' : 'opacity-40'}`}
+              >
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: COLORS[colorIndex] }}
+                />
+                <span className="text-xs font-mono">{field.label ?? field.name}</span>
+              </button>
+            );
+          })}
       </div>
       )}
 

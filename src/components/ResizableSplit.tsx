@@ -190,8 +190,11 @@ export function ResizableSplit({
       >
         <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
 
-        {/* Left-aligned controls: collapse/expand + optional extras */}
-        <div className="absolute left-2 flex items-center gap-1">
+        {/* Left-aligned controls: collapse/expand + optional extras. Rendered as
+            a floating "flag" pill hanging off the divider's left edge so the
+            divider itself stays thin and the icons get a clear, padded surface
+            (matches the map's floating controls). */}
+        <div className="absolute left-2 top-full -mt-3 flex items-center gap-0.5 rounded-md border border-border bg-card/90 px-1 py-0.5 shadow-sm backdrop-blur-sm">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -199,7 +202,7 @@ export function ResizableSplit({
             }}
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
-            className="p-1.5 rounded hover:bg-primary/20 transition-colors"
+            className="p-1 rounded hover:bg-primary/20 transition-colors"
             title={isCollapsed ? t("controls.expandPanel") : t("controls.collapsePanel")}
           >
             {isCollapsed ? (

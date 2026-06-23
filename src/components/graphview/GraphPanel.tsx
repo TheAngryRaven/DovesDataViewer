@@ -359,10 +359,10 @@ export function GraphPanel({
         )}
       </div>
 
-      {/* Range slider + crop-to-sector select (kept wide enough to read on mobile) - fixed at bottom */}
+      {/* Range slider (80%) + crop-to-sector select (~20%, with a min-width floor so it stays readable on mobile) - fixed at bottom */}
       {filteredSamples.length > 0 && (
         <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-t border-border bg-muted/30">
-          <div className="flex-[3] min-w-0">
+          <div className="flex-[4] min-w-0">
             <RangeSlider
               min={0}
               max={filteredSamples.length - 1}
@@ -372,7 +372,7 @@ export function GraphPanel({
               formatLabel={formatRangeLabel}
             />
           </div>
-          <div className="flex-[2] min-w-[120px]">
+          <div className="flex-1 min-w-[88px]">
             <SectorCropSelect
               course={course}
               laps={laps}

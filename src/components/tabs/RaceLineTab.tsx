@@ -27,7 +27,7 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
           }}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className={`p-1.5 rounded hover:bg-primary/20 transition-colors ${showLegend ? "" : "opacity-40"}`}
+          className={`p-1 rounded hover:bg-primary/20 transition-colors ${showLegend ? "" : "opacity-40"}`}
           title={showLegend ? t("controls.hideLegend") : t("controls.showLegend")}
         >
           <List className="w-5 h-5 text-muted-foreground" />
@@ -85,7 +85,7 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
           </div>
           {s.filteredSamples.length > 0 && (
             <div className="shrink-0 flex items-center gap-3 px-4 py-2 border-t border-border bg-muted/30">
-              <div className="flex-[3] min-w-0">
+              <div className="flex-[4] min-w-0">
                 <RangeSlider
                   min={0}
                   max={s.filteredSamples.length - 1}
@@ -95,7 +95,7 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
                   formatLabel={s.formatRangeLabel}
                 />
               </div>
-              <div className="flex-[2] min-w-[120px]">
+              <div className="flex-1 min-w-[88px]">
                 <SectorCropSelect
                   course={s.course}
                   laps={s.laps}

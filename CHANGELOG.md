@@ -26,11 +26,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Simple-view graph controls are easier to reach.** The collapse/expand button
-  on the map/graph divider is now larger and lives on the **left** — clear of the
-  map's weather/info buttons on the right that it used to crowd. A new **legend
-  toggle** sits next to it to hide the chart's legend bar and reclaim that vertical
-  space (handy for logs with many channels). The "data crop" sector dropdown is
-  also wider in both the Simple and Pro views so it no longer squishes on mobile.
+  on the map/graph divider is now larger and lives on the **left**, grouped with a
+  new **legend toggle** in a single floating control flag — clear of the map's
+  weather/info buttons on the right that it used to crowd. The legend toggle hides
+  the chart's legend bar to reclaim vertical space (handy for logs with many
+  channels). The "data crop" sector dropdown keeps a minimum width so it no longer
+  squishes on mobile in the Simple or Pro views.
+
+### Fixed
+- **Simple-graph legend no longer lists g-force lines it doesn't draw.** With the
+  default "hardware" G-force source, the simple telemetry chart draws the hardware
+  accel channels and hides the GPS-derived Lat G/Lon G — but the legend still
+  listed them, so they appeared without ever drawing. The legend now matches what's
+  drawn; switch the G-force source to GPS in Settings to see Lat G/Lon G.
 - **Support contact email.** The Terms of Service and Privacy Policy now point to
   **support@perchwerks.com** for questions and requests (replacing the interim
   address), and the Code of Conduct's enforcement contact was updated to match.
