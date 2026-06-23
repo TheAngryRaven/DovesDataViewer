@@ -25,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   approved while landing nothing.
 
 ### Changed
+- **Simple-view graph controls are easier to reach.** The collapse/expand button
+  on the map/graph divider is now larger and lives on the **left**, grouped with a
+  new **legend toggle** in a single floating control flag — clear of the map's
+  weather/info buttons on the right that it used to crowd. The legend toggle hides
+  the chart's legend bar to reclaim vertical space (handy for logs with many
+  channels), and collapsing the graph now shows a clean grey panel instead of a
+  cramped chart. The "data crop" sector dropdown keeps a minimum width so it no
+  longer squishes on mobile in the Simple or Pro views.
+
+### Fixed
+- **Simple-graph legend no longer lists g-force lines it doesn't draw.** With the
+  default "hardware" G-force source, the simple telemetry chart draws the hardware
+  accel channels and hides the GPS-derived Lat G/Lon G — but the legend still
+  listed them, so they appeared without ever drawing. The legend now matches what's
+  drawn; switch the G-force source to GPS in Settings to see Lat G/Lon G.
 - **Landing-page header layout.** The Sponsor button now sits at the far left next
   to the LapWing brand, and the account control sits at the far right. A new
   **Settings** button (opening the settings panel) sits just left of it. When signed

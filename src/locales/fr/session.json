@@ -94,6 +94,12 @@
     "fullLap": "Tour complet",
     "sector": "Secteur {{label}}"
   },
+  "controls": {
+    "collapsePanel": "Réduire le graphique",
+    "expandPanel": "Agrandir le graphique",
+    "showLegend": "Afficher la légende",
+    "hideLegend": "Masquer la légende"
+  },
   "map": {
     "mapPrefix": "Carte",
     "styleDark": "Sombre",

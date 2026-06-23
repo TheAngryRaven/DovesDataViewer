@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface ResizableSplitProps {
@@ -7,6 +8,8 @@ interface ResizableSplitProps {
   defaultRatio?: number; // 0-1, top panel height ratio
   minTopHeight?: number;
   minBottomHeight?: number;
+  /** Extra control(s) rendered on the divider, next to the collapse button. */
+  dividerStart?: React.ReactNode;
 }
 
 export function ResizableSplit({
@@ -15,7 +18,9 @@ export function ResizableSplit({
   defaultRatio = 0.7,
   minTopHeight = 150,
   minBottomHeight = 100,
+  dividerStart,
 }: ResizableSplitProps) {
+  const { t } = useTranslation("session");
   const containerRef = useRef<HTMLDivElement>(null);
   const ratioRef = useRef(defaultRatio);
   const savedRatioRef = useRef(defaultRatio); // Store ratio before collapse
@@ -184,32 +189,41 @@ export function ResizableSplit({
         }}
       >
         <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
-        
-        {/* Collapse/Expand button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleCollapse();
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          className="absolute right-4 p-1 rounded hover:bg-primary/20 transition-colors"
-          title={isCollapsed ? "Expand panel" : "Collapse panel"}
-        >
-          {isCollapsed ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
-        </button>
+
+        {/* Left-aligned controls: collapse/expand + optional extras. Rendered as
+            a floating "flag" pill hanging off the divider's left edge so the
+            divider itself stays thin and the icons get a clear, padded surface
+            (matches the map's floating controls). */}
+        <div className="absolute left-2 top-full -mt-3 flex items-center gap-0.5 rounded-md border border-border bg-card/90 px-1 py-0.5 shadow-sm backdrop-blur-sm">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleCollapse();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="p-1 rounded hover:bg-primary/20 transition-colors"
+            title={isCollapsed ? t("controls.expandPanel") : t("controls.collapsePanel")}
+          >
+            {isCollapsed ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+          {dividerStart}
+        </div>
       </div>
 
-      {/* Bottom Panel - absolute positioned, anchored to bottom */}
+      {/* Bottom Panel - absolute positioned, anchored to bottom. When collapsed,
+          a plain grey panel covers the cramped content so it reads cleanly; the
+          content stays mounted underneath to preserve its state. */}
       <div
         className="absolute left-0 right-0 bottom-0 overflow-hidden"
         style={{ height: bottomPx > 0 ? `${bottomPx}px` : '30%' }}
       >
         {bottomPanel}
+        {isCollapsed && <div className="absolute inset-0 bg-muted" aria-hidden />}
       </div>
     </div>
   );

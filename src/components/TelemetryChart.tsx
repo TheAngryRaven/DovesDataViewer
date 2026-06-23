@@ -25,6 +25,8 @@ interface TelemetryChartProps {
   rangeStart?: number;
   /** Extra laps/snapshots to overlay as distance-aligned speed lines. */
   overlayLines?: OverlayLine[];
+  /** Show the legend/series-toggle bar above the chart (default true). */
+  showLegend?: boolean;
 }
 
 const COLORS = [
@@ -52,6 +54,7 @@ export function TelemetryChart({
   allSamples,
   rangeStart,
   overlayLines = [],
+  showLegend = true,
 }: TelemetryChartProps) {
   const { t } = useTranslation('session');
   const { useKph, useMetricDistance, gForceSmoothing, gForceSmoothingStrength, darkMode, gForceSource, chartXAxis } = useSettingsContext();
@@ -484,12 +487,16 @@ export function TelemetryChart({
   return (
     <div className="flex w-full flex-col h-full min-h-0 bg-card">
       {/* Legend */}
+      {showLegend && (
       <div className="flex items-center gap-4 px-4 py-2 border-b border-border flex-wrap">
+        {/* Reserve space on the first row for the divider's floating control
+            flag (collapse + legend toggle) so it never overlaps the first item. */}
+        <div className="w-16 shrink-0" aria-hidden />
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[0] }} />
           <span className="text-xs font-mono">{t('graphs.speed', { unit: speedUnit })}</span>
         </div>
-        
+
         {/* Reference speed toggle - only show when reference is selected */}
         {hasReference && (
           <button
@@ -518,20 +525,30 @@ export function TelemetryChart({
           </button>
         )}
         
-        {fieldMappings.map((field, idx) => (
-          <button
-            key={field.name}
-            onClick={() => onFieldToggle(field.name)}
-            className={`flex items-center gap-2 ${field.enabled ? '' : 'opacity-40'}`}
-          >
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ backgroundColor: COLORS[(idx + 1) % COLORS.length] }} 
-            />
-            <span className="text-xs font-mono">{field.label ?? field.name}</span>
-          </button>
-        ))}
+        {/* Only list the fields that are actually drawn — exclude the inactive
+            g-force source so the legend never advertises a series the chart
+            hides (color index stays tied to the full fieldMappings order to
+            match the drawn lines). */}
+        {fieldMappings
+          .filter((field) => !hiddenGForceFields.includes(field.name))
+          .map((field) => {
+            const colorIndex = (fieldMappings.findIndex((f) => f.name === field.name) + 1) % COLORS.length;
+            return (
+              <button
+                key={field.name}
+                onClick={() => onFieldToggle(field.name)}
+                className={`flex items-center gap-2 ${field.enabled ? '' : 'opacity-40'}`}
+              >
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: COLORS[colorIndex] }}
+                />
+                <span className="text-xs font-mono">{field.label ?? field.name}</span>
+              </button>
+            );
+          })}
       </div>
+      )}
 
       {/* Chart: static layer + cursor overlay stacked */}
       <div

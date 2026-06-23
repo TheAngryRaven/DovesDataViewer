@@ -94,6 +94,12 @@
     "fullLap": "Vuelta completa",
     "sector": "Sector {{label}}"
   },
+  "controls": {
+    "collapsePanel": "Contraer gráfico",
+    "expandPanel": "Expandir gráfico",
+    "showLegend": "Mostrar leyenda",
+    "hideLegend": "Ocultar leyenda"
+  },
   "map": {
     "mapPrefix": "Mapa",
     "styleDark": "Oscuro",
