@@ -40,6 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   accel channels and hides the GPS-derived Lat G/Lon G — but the legend still
   listed them, so they appeared without ever drawing. The legend now matches what's
   drawn; switch the G-force source to GPS in Settings to see Lat G/Lon G.
+- **Landing-page header layout.** The Sponsor button now sits at the far left next
+  to the LapWing brand, and the account control sits at the far right. A new
+  **Settings** button (opening the settings panel) sits just left of it. When signed
+  in, the account control is now a **Profile** button that opens the file-manager
+  drawer straight to the Profile tab, replacing the old Sign-out button.
 - **Support contact email.** The Terms of Service and Privacy Policy now point to
   **support@perchwerks.com** for questions and requests (replacing the interim
   address), and the Code of Conduct's enforcement contact was updated to match.

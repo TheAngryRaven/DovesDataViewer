@@ -533,6 +533,7 @@ export default function Index() {
     autoSave: settings.autoSaveFiles,
     showSampleFiles: effectiveShowSampleFiles,
     initialGarageTab: fileManager.initialGarageTab,
+    initialTopTab: fileManager.initialTopTab,
     showProfile,
     vehicles: vehicleManager.vehicles,
     vehicleTypes: templateManager.vehicleTypes,
@@ -548,7 +549,7 @@ export default function Index() {
   }), [
     fileManager.isOpen, fileManager.files, fileManager.fileMetadataMap, fileManager.storageUsed, fileManager.storageQuota,
     fileManager.close, fileManager.loadFile, fileManager.removeFile, fileManager.exportFile, fileManager.saveFile,
-    fileManager.initialGarageTab,
+    fileManager.initialGarageTab, fileManager.initialTopTab,
     handleDataLoaded, settings.autoSaveFiles, effectiveShowSampleFiles, showProfile,
     vehicleManager.vehicles, vehicleManager.addVehicle, vehicleManager.updateVehicle, vehicleManager.removeVehicle,
     data, handleCreateVehicleType,
@@ -589,6 +590,7 @@ export default function Index() {
           <LandingPage
             onDataLoaded={handleDataLoaded}
             onOpenFileManager={fileManager.open}
+            onOpenProfile={fileManager.openProfile}
             autoSave={settings.autoSaveFiles}
             autoSaveFile={fileManager.saveFile}
             onLoadSample={handleLoadSample}
@@ -596,6 +598,15 @@ export default function Index() {
             showSampleFiles={effectiveShowSampleFiles}
             enableAdmin={enableAdmin}
             enableCloud={enableCloud}
+            settingsButton={
+              <SettingsModal
+                settings={settings}
+                onSettingsChange={setSettings}
+                onToggleFieldDefault={toggleFieldDefault}
+                canHideSampleFiles={fileManager.hasOtherFiles}
+                triggerLabelBreakpoint="sm"
+              />
+            }
           />
           <Suspense fallback={null}>
             {/* Off-session stopgap: Setups normally lives in the main toolbar

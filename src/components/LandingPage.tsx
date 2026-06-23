@@ -1,10 +1,10 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import {
   Heart,
   Shield,
   Play,
   LogIn,
-  LogOut,
+  User,
   FileText,
   Cpu,
   FolderOpen,
@@ -41,6 +41,8 @@ import { LoggerDownload } from "@/components/LoggerDownload";
 interface LandingPageProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
   onOpenFileManager: () => void;
+  /** Opens the file-manager drawer straight to the Profile (account) tab. */
+  onOpenProfile: () => void;
   autoSave: boolean;
   autoSaveFile: (name: string, blob: Blob) => Promise<void>;
   onLoadSample: () => void;
@@ -49,6 +51,8 @@ interface LandingPageProps {
   showSampleFiles: boolean;
   enableAdmin: boolean;
   enableCloud: boolean;
+  /** The settings modal (trigger + dialog), rendered in the header. */
+  settingsButton: ReactNode;
 }
 
 /**
@@ -66,6 +70,7 @@ interface LandingPageProps {
 export function LandingPage({
   onDataLoaded,
   onOpenFileManager,
+  onOpenProfile,
   autoSave,
   autoSaveFile,
   onLoadSample,
@@ -73,9 +78,10 @@ export function LandingPage({
   showSampleFiles,
   enableAdmin,
   enableCloud,
+  settingsButton,
 }: LandingPageProps) {
   const navigate = useNavigate();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useTranslation(["landing", "common"]);
 
   // On the native (Tauri/Android) shell the user has already installed the app,
@@ -83,13 +89,16 @@ export function LandingPage({
   // add noise — hide them. The DIY-logger tile stays (it's genuinely useful).
   const native = isNativeApp();
 
-  const roadmapItems = t("landing:roadmap.items", { returnObjects: true }) as string[];
+  const roadmapItems = t("landing:roadmap.items", { returnObjects: true }) as {
+    text: string;
+    sub?: string[];
+  }[];
 
   // Group roadmap items by their trailing month/quarter parenthetical (works
   // across locales — handles both ASCII "()" and full-width "（）") so we can
   // draw a divider whenever the timeframe changes.
-  const roadmapTimeframe = (item: string): string => {
-    const match = item.match(/[（(]([^（()）]*)[）)]\s*$/);
+  const roadmapTimeframe = (text: string): string => {
+    const match = text.match(/[（(]([^（()）]*)[）)]\s*$/);
     return match ? match[1].trim() : "";
   };
 
@@ -100,23 +109,7 @@ export function LandingPage({
           <div className="flex items-center gap-3">
             <BrandLogo className="w-8 h-8" />
             <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <SupportedFilesDialog />
-            <AboutDialog />
-            {enableCloud && (
-              user ? (
-                <Button variant="ghost" size="sm" className="gap-2" onClick={logout} title={user.email ?? undefined}>
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("common:actions.signOut")}</span>
-                </Button>
-              ) : (
-                <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/login')}>
-                  <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("common:actions.signIn")}</span>
-                </Button>
-              )
-            )}
+            {/* Sponsor sits at the far left, next to the brand. */}
             {!native && (
               <a
                 href="https://github.com/sponsors/TheAngryRaven"
@@ -129,6 +122,27 @@ export function LandingPage({
                   <span className="hidden sm:inline">{t("common:actions.sponsor")}</span>
                 </Button>
               </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <SupportedFilesDialog />
+            <AboutDialog />
+            {/* Settings sits just left of the account button. */}
+            {settingsButton}
+            {/* Account control at the far right: Profile when signed in (opens the
+                drawer's Profile tab), otherwise Sign in. */}
+            {enableCloud && (
+              user ? (
+                <Button size="sm" className="gap-2" onClick={onOpenProfile} title={user.email ?? undefined}>
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("common:actions.profile")}</span>
+                </Button>
+              ) : (
+                <Button size="sm" className="gap-2" onClick={() => navigate('/login')}>
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("common:actions.signIn")}</span>
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -245,15 +259,27 @@ export function LandingPage({
             <ul className="mt-3 space-y-2">
               {roadmapItems.map((item, i) => {
                 const showDivider =
-                  i > 0 && roadmapTimeframe(item) !== roadmapTimeframe(roadmapItems[i - 1]);
+                  i > 0 && roadmapTimeframe(item.text) !== roadmapTimeframe(roadmapItems[i - 1].text);
                 return (
-                  <Fragment key={item}>
+                  <Fragment key={item.text}>
                     {showDivider && (
                       <li aria-hidden="true" className="my-1 border-t border-border/60" />
                     )}
-                    <li className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-                      <span>{item}</span>
+                    <li className="text-sm text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                        <span>{item.text}</span>
+                      </div>
+                      {item.sub && item.sub.length > 0 && (
+                        <ul className="mt-1.5 space-y-1 pl-5">
+                          {item.sub.map((sub) => (
+                            <li key={sub} className="flex items-start gap-2">
+                              <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-primary/40" />
+                              <span>{sub}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   </Fragment>
                 );
