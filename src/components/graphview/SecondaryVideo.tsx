@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { VideoOff, Minus, Plus } from 'lucide-react';
+import { VideoOff, Minus, Plus, Check } from 'lucide-react';
 import type { VideoSyncState } from '@/hooks/useVideoSync';
 import { usePlaybackContext } from '@/contexts/PlaybackContext';
 import { coverageOf, sessionMsToVideoSec, type VideoCoverage } from '@/lib/videoTimeline';
@@ -25,12 +25,16 @@ interface SecondaryVideoProps {
   videoState: VideoSyncState;
   /** The overlay lap this player follows; the manual nudge resets when it changes. */
   overlayId: string;
+  /** In-session lap number (null for snap:/file: overlays — no rate calibration). */
+  lapNumber: number | null;
+  /** Commit the current nudge as a rate-calibration anchor for this lap. */
+  onCommitRateAnchor?: (lap: number, sessionMs: number, videoSec: number) => void;
 }
 
 /** Fine-alignment step for the manual nudge, in milliseconds. */
 const NUDGE_STEP_MS = 50;
 
-export function SecondaryVideo({ videoState, overlayId }: SecondaryVideoProps) {
+export function SecondaryVideo({ videoState, overlayId, lapNumber, onCommitRateAnchor }: SecondaryVideoProps) {
   const { t } = useTranslation('session');
   const { currentSample } = usePlaybackContext();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -42,19 +46,19 @@ export function SecondaryVideo({ videoState, overlayId }: SecondaryVideoProps) {
   const [nudgeMs, setNudgeMs] = useState(0);
   useEffect(() => setNudgeMs(0), [overlayId]);
 
-  const { syncOffsetMs, exportChunks, videoDuration, isPlaying } = videoState;
+  const { syncOffsetMs, syncRate, exportChunks, videoDuration, isPlaying } = videoState;
 
   const coverage: VideoCoverage = currentSample
-    ? coverageOf(currentSample.t + nudgeMs, syncOffsetMs, videoDuration)
+    ? coverageOf(currentSample.t + nudgeMs / syncRate, syncOffsetMs, videoDuration, syncRate)
     : 'before';
   const covered = coverage === 'covered' && exportChunks.length > 0;
 
   // Resolve the target footage position (virtual time + chunk) for the cursor.
-  // `nudgeMs` shifts the session time the frame is taken from (+ pushes the
-  // footage later) before the absolute-time → video-time conversion.
+  // The rate-aware model converts session time → video time; `nudgeMs` is a
+  // manual video-time shift on top (+ pushes the footage later).
   const target = useMemo(() => {
     if (!covered || !currentSample) return null;
-    const virtualSec = sessionMsToVideoSec(currentSample.t + nudgeMs, syncOffsetMs);
+    const virtualSec = sessionMsToVideoSec(currentSample.t, syncOffsetMs, syncRate) + nudgeMs / 1000;
     const chunk =
       exportChunks.find((c) => virtualSec >= c.startOffsetSec && virtualSec < c.startOffsetSec + c.durationSec) ??
       exportChunks[exportChunks.length - 1];
@@ -64,7 +68,19 @@ export function SecondaryVideo({ videoState, overlayId }: SecondaryVideoProps) {
       chunkStart: chunk.startOffsetSec,
       localSec: Math.max(0, virtualSec - chunk.startOffsetSec),
     };
-  }, [covered, currentSample, syncOffsetMs, exportChunks, nudgeMs]);
+  }, [covered, currentSample, syncOffsetMs, syncRate, exportChunks, nudgeMs]);
+
+  // Commit the current nudge as a calibration anchor: the true (session ms ↔
+  // video sec) correspondence the user just dialled in. The hook refits the
+  // clock rate from this + the original sync (+ any other laps), so every lap
+  // improves — then the local nudge resets to 0 since the model now accounts for it.
+  const canCommit = nudgeMs !== 0 && lapNumber !== null && !!onCommitRateAnchor && !!currentSample && covered;
+  const commit = () => {
+    if (!canCommit || !currentSample || lapNumber === null) return;
+    const achievedVideoSec = sessionMsToVideoSec(currentSample.t, syncOffsetMs, syncRate) + nudgeMs / 1000;
+    onCommitRateAnchor!(lapNumber, currentSample.t, achievedVideoSec);
+    setNudgeMs(0);
+  };
 
   // The playback loop reads the latest target without re-subscribing per tick.
   const targetRef = useRef(target);
@@ -163,6 +179,14 @@ export function SecondaryVideo({ videoState, overlayId }: SecondaryVideoProps) {
           className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded-md bg-card/90 px-0.5 py-0.5 text-foreground backdrop-blur-sm"
           title={t('graphs.splitVideoNudgeTooltip')}
         >
+          {syncRate !== 1 && (
+            <span
+              className="px-1 font-mono text-[10px] tabular-nums text-muted-foreground"
+              title={t('graphs.splitVideoRateTooltip')}
+            >
+              {syncRate.toFixed(3)}×
+            </span>
+          )}
           <button
             type="button"
             aria-label={t('graphs.splitVideoNudgeEarlier')}
@@ -186,6 +210,17 @@ export function SecondaryVideo({ videoState, overlayId }: SecondaryVideoProps) {
           >
             <Plus className="h-3 w-3" />
           </button>
+          {canCommit && (
+            <button
+              type="button"
+              aria-label={t('graphs.splitVideoCalibrate')}
+              title={t('graphs.splitVideoCalibrate')}
+              className="flex h-5 w-5 items-center justify-center rounded text-primary hover:bg-muted"
+              onClick={commit}
+            >
+              <Check className="h-3 w-3" />
+            </button>
+          )}
         </div>
       )}
     </div>

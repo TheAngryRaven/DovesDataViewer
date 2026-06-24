@@ -171,7 +171,9 @@
     "splitVideoEnded": "O vídeo terminou",
     "splitVideoNudgeEarlier": "Adiantar o vídeo de comparação",
     "splitVideoNudgeLater": "Atrasar o vídeo de comparação",
-    "splitVideoNudgeTooltip": "Deslocamento manual do vídeo (apenas esta comparação)"
+    "splitVideoNudgeTooltip": "Deslocamento manual do vídeo (apenas esta comparação)",
+    "splitVideoCalibrate": "Fixar este alinhamento para corrigir cada volta automaticamente",
+    "splitVideoRateTooltip": "Correção calibrada da taxa de relógio câmera/telemetria"
   },
   "gg": {
     "noData": "Sem dados de força G",

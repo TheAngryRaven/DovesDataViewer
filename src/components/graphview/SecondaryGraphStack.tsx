@@ -35,6 +35,8 @@ interface SecondaryGraphStackProps {
   /** When set, mirror the relocated video as a passive, lap-synced second player. */
   videoState?: VideoSyncState;
   videoEnabled?: boolean;
+  /** Commit a rate-calibration anchor from the comparison video's manual nudge. */
+  onCommitRateAnchor?: (lap: number, sessionMs: number, videoSec: number) => void;
 }
 
 const NO_OVERLAYS: OverlayLine[] = [];
@@ -49,8 +51,11 @@ export function SecondaryGraphStack(props: SecondaryGraphStackProps) {
   const {
     overlay, activeGraphs, graphHeights, mainFilteredSamples, visibleRange,
     referenceSamples, fieldMappings, course, laps, selectedLapNumber, bounds,
-    sessionFileName, onScrub, videoState, videoEnabled = false,
+    sessionFileName, onScrub, videoState, videoEnabled = false, onCommitRateAnchor,
   } = props;
+
+  // The in-session lap number this overlay maps to (null for snap:/file: overlays).
+  const overlayLapNumber = overlay.id.startsWith('lap:') ? Number(overlay.id.slice(4)) : null;
 
   // Cumulative distance for both laps — recomputed only when a lap changes, so
   // the per-tick cursor mapping is just a binary search.
@@ -73,12 +78,11 @@ export function SecondaryGraphStack(props: SecondaryGraphStackProps) {
   // which is what made the comparison video drift later lap-by-lap. Distances are
   // unchanged (only endpoint `t` differs), so `overlayFullD` stays valid here.
   const overlayTimeSamples = useMemo(() => {
-    if (!overlay.id.startsWith('lap:')) return overlay.samples;
-    const lapNumber = Number(overlay.id.slice(4));
-    const lap = laps.find((l) => l.lapNumber === lapNumber);
+    if (overlayLapNumber === null) return overlay.samples;
+    const lap = laps.find((l) => l.lapNumber === overlayLapNumber);
     if (!lap) return overlay.samples;
     return anchorSampleTimes(overlay.samples, lap.startTime, lap.endTime);
-  }, [overlay.id, overlay.samples, laps]);
+  }, [overlayLapNumber, overlay.samples, laps]);
 
   // Override the playback cursor for the mirror subtree: the main cursor's track
   // position, resolved into the overlay lap. `currentIndex` is the snapped integer
@@ -106,7 +110,14 @@ export function SecondaryGraphStack(props: SecondaryGraphStackProps) {
   }, [oStart, overlayFullD, mainFullD, visibleRange, onScrub]);
 
   const renderVideo = videoEnabled && videoState
-    ? () => <SecondaryVideo videoState={videoState} overlayId={overlay.id} />
+    ? () => (
+      <SecondaryVideo
+        videoState={videoState}
+        overlayId={overlay.id}
+        lapNumber={overlayLapNumber}
+        onCommitRateAnchor={onCommitRateAnchor}
+      />
+    )
     : undefined;
 
   const renderMiniMap = useCallback(() => (

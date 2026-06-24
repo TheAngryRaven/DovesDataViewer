@@ -170,7 +170,9 @@
     "splitVideoEnded": "Video ended",
     "splitVideoNudgeEarlier": "Nudge comparison video earlier",
     "splitVideoNudgeLater": "Nudge comparison video later",
-    "splitVideoNudgeTooltip": "Manual video offset (this comparison only)"
+    "splitVideoNudgeTooltip": "Manual video offset (this comparison only)",
+    "splitVideoCalibrate": "Lock in this alignment to auto-correct every lap",
+    "splitVideoRateTooltip": "Calibrated camera/telemetry clock-rate correction"
   },
   "gg": {
     "noData": "No G-force data",

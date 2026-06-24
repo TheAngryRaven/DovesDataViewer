@@ -23,11 +23,25 @@ export interface VideoSyncChunk {
   durationSec: number;
 }
 
+/** A persisted (session time ↔ video virtual time) calibration anchor. */
+export interface VideoRateAnchor {
+  /** Lap number this anchor was committed from (key — re-committing updates it). */
+  lap: number;
+  sessionMs: number;
+  videoSec: number;
+}
+
 export interface VideoSyncRecord {
   sessionFileName: string;
   /** First chunk's handle — kept for single-file back-compat. */
   fileHandle?: FileSystemFileHandle;
   syncOffsetMs: number;
+  /** Camera/datalogger clock-rate ratio (1 = no drift). Absent → 1 (legacy). */
+  syncRate?: number;
+  /** The user's primary sync point, kept so the rate fit can pivot on it. */
+  syncAnchor?: { sessionMs: number; videoSec: number };
+  /** Extra per-lap calibration anchors feeding the rate fit. */
+  rateAnchors?: VideoRateAnchor[];
   videoFileName: string;
   isLocked?: boolean;
   overlaySettings?: OverlaySettings;

@@ -379,6 +379,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
                       onScrub={props.onScrub}
                       videoState={props.videoState}
                       videoEnabled={splitVideoEnabled}
+                      onCommitRateAnchor={props.videoActions?.addRateAnchor}
                     />
                   </ResizablePanel>
                 </>

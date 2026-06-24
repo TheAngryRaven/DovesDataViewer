@@ -5,7 +5,7 @@ import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoM
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
-import { coverageOf, sessionMsToVideoSec, videoSecToSessionMs, type VideoCoverage } from "@/lib/videoTimeline";
+import { coverageOf, sessionMsToVideoSec, videoSecToSessionMs, fitVideoTimeline, type VideoCoverage } from "@/lib/videoTimeline";
 import { buildPlaylist, groupVideoRecordings, virtualToLocal, localToVirtual, type Playlist, type VideoRecording } from "@/lib/videoPlaylist";
 
 interface UseVideoSyncOptions {
@@ -24,6 +24,10 @@ export interface VideoSyncState {
   isLocked: boolean;
   isPlaying: boolean;
   syncOffsetMs: number;
+  /** Camera/datalogger clock-rate ratio (1 = clocks tick together). */
+  syncRate: number;
+  /** Number of per-lap calibration anchors currently feeding the rate fit. */
+  rateAnchorCount: number;
   fps: number;
   /** Virtual (whole-recording) duration in seconds — sum of all chunks. */
   videoDuration: number;
@@ -60,6 +64,10 @@ export interface VideoSyncActions {
   togglePlay: () => void;
   stepFrame: (direction: 1 | -1) => void;
   setSyncPoint: () => void;
+  /** Add/update a per-lap rate-calibration anchor (from the comparison nudge). */
+  addRateAnchor: (lap: number, sessionMs: number, videoSec: number) => void;
+  /** Clear all per-lap rate calibration (back to pure offset). */
+  clearRateAnchors: () => void;
     seekVideo: (timeSec: number) => void;
     updateOverlaySettings: (settings: OverlaySettings) => void;
     deleteStoredVideo: () => Promise<void>;
@@ -125,6 +133,14 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [isPlaying, setIsPlaying] = useState(false);
   const [syncOffsetMs, setSyncOffsetMs] = useState(0);
   const syncOffsetMsRef = useRef(0);
+  // Camera/datalogger clock-rate ratio + the anchors it's fit from. The primary
+  // anchor is the user's sync point; extra anchors (one per fine-aligned lap)
+  // refine the rate via fitVideoTimeline. Rate 1 = legacy pure-offset behaviour.
+  const [syncRate, setSyncRate] = useState(1);
+  const syncRateRef = useRef(1);
+  const [rateAnchorCount, setRateAnchorCount] = useState(0);
+  const syncAnchorRef = useRef<{ sessionMs: number; videoSec: number } | null>(null);
+  const lapAnchorsRef = useRef<Map<number, { sessionMs: number; videoSec: number }>>(new Map());
   const [fps, setFps] = useState(30);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
@@ -224,6 +240,15 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       }
       syncOffsetMsRef.current = record.syncOffsetMs;
       setSyncOffsetMs(record.syncOffsetMs);
+      syncRateRef.current = record.syncRate ?? 1;
+      setSyncRate(record.syncRate ?? 1);
+      // Legacy records carry no anchor; pivot future calibration on footage start
+      // (a valid point on the rate-1 line: videoSec 0 ↔ sessionMs = offset).
+      syncAnchorRef.current = record.syncAnchor ?? { sessionMs: record.syncOffsetMs, videoSec: 0 };
+      lapAnchorsRef.current = new Map(
+        (record.rateAnchors ?? []).map((a) => [a.lap, { sessionMs: a.sessionMs, videoSec: a.videoSec }]),
+      );
+      setRateAnchorCount(lapAnchorsRef.current.size);
       setVideoFileName(record.videoFileName);
       if (record.isLocked !== undefined) setIsLocked(record.isLocked);
       if (record.overlaySettings) setOverlaySettings(record.overlaySettings);
@@ -307,6 +332,9 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     const record: VideoSyncRecord = {
       sessionFileName,
       syncOffsetMs: offset,
+      syncRate: syncRateRef.current,
+      syncAnchor: syncAnchorRef.current ?? undefined,
+      rateAnchors: [...lapAnchorsRef.current.entries()].map(([lap, a]) => ({ lap, ...a })),
       videoFileName: fileName || videoFileName || "",
       fileHandle: handle || chunkHandlesRef.current[0] || fileHandle || undefined,
       isLocked: locked ?? isLocked,
@@ -315,6 +343,21 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     };
     saveVideoSync(record);
   }, [sessionFileName, videoFileName, fileHandle, isLocked, overlaySettings]);
+
+  // Recompute the offset + rate from the current anchors and apply them to
+  // state/refs. Returns the new offset so callers can persist immediately.
+  const refitTimeline = useCallback(() => {
+    const { syncOffsetMs: off, syncRate: rate } = fitVideoTimeline(
+      syncAnchorRef.current,
+      [...lapAnchorsRef.current.values()],
+    );
+    syncOffsetMsRef.current = off;
+    syncRateRef.current = rate;
+    setSyncOffsetMs(off);
+    setSyncRate(rate);
+    setRateAnchorCount(lapAnchorsRef.current.size);
+    return off;
+  }, []);
 
   // Build the playlist from one chosen recording's files (creates the object
   // URLs only for these — the other recordings in a selection never get one).
@@ -485,12 +528,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       const pl = playlistRef.current;
       const total = pl ? pl.totalDuration : v.duration;
       const virtualSec = pl ? localToVirtual(pl, currentChunkIndexRef.current, v.currentTime) : v.currentTime;
-      const telemetryMs = videoSecToSessionMs(virtualSec, syncOffsetMs);
+      const telemetryMs = videoSecToSessionMs(virtualSec, syncOffsetMs, syncRate);
       const s = samplesRef.current;
       const idx = findNearestIndex(s, telemetryMs);
       onScrubRef.current(idx);
       setVideoCurrentTime(virtualSec);
-      setCoverage(coverageOf(telemetryMs, syncOffsetMs, total));
+      setCoverage(coverageOf(telemetryMs, syncOffsetMs, total, syncRate));
       // The footage may run past the end of the session (camera stopped after
       // the logger). We don't play video past the session — pause at the last
       // sample instead of rolling on into uncaptured time.
@@ -520,7 +563,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       requestAnimationFrame(loop);
     }
     return () => { active = false; };
-  }, [videoUrl, isLocked, isPlaying, syncOffsetMs]);
+  }, [videoUrl, isLocked, isPlaying, syncOffsetMs, syncRate]);
 
   // Data-drives-video (locked + paused): seek the playlist to the selected sample.
   useEffect(() => {
@@ -534,9 +577,9 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     lastSeekTimeRef.current = now;
     const sample = samples[currentIndex];
     if (!sample) return;
-    const virtualSec = sessionMsToVideoSec(sample.t, syncOffsetMs);
+    const virtualSec = sessionMsToVideoSec(sample.t, syncOffsetMs, syncRate);
     const clampedSec = Math.max(0, virtualSec);
-    const cov = coverageOf(sample.t, syncOffsetMs, total);
+    const cov = coverageOf(sample.t, syncOffsetMs, total, syncRate);
     setCoverage(cov);
     if (cov !== 'covered') {
       // No footage for this session position — blank it, but the cursor/charts
@@ -557,7 +600,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       }
     }
     setVideoCurrentTime(clampedSec);
-  }, [currentIndex, isLocked, isPlaying, syncOffsetMs, samples, videoUrl, fps, loadChunk]);
+  }, [currentIndex, isLocked, isPlaying, syncOffsetMs, syncRate, samples, videoUrl, fps, loadChunk]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -625,13 +668,29 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const setSyncPoint = useCallback(() => {
     const video = videoRef.current;
     if (!video || samples.length === 0) return;
-    const videoMs = currentVirtualTime() * 1000;
     const telemetryMs = samples[currentIndex]?.t ?? 0;
-    const offset = telemetryMs - videoMs;
-    syncOffsetMsRef.current = offset;
-    setSyncOffsetMs(offset);
-    persistSync(offset);
-  }, [samples, currentIndex, persistSync, currentVirtualTime]);
+    // A fresh manual sync becomes the primary anchor and invalidates any prior
+    // per-lap rate calibration (it was relative to the old anchor).
+    syncAnchorRef.current = { sessionMs: telemetryMs, videoSec: currentVirtualTime() };
+    lapAnchorsRef.current.clear();
+    persistSync(refitTimeline());
+  }, [samples, currentIndex, persistSync, currentVirtualTime, refitTimeline]);
+
+  // Fold a fine-alignment correspondence (from the comparison video's manual
+  // nudge on a given lap) into the rate fit. Keyed by lap so re-aligning the
+  // same lap updates rather than duplicates; the rate refines as more laps are
+  // added. No-op until a primary sync exists.
+  const addRateAnchor = useCallback((lap: number, sessionMs: number, videoSec: number) => {
+    if (!syncAnchorRef.current) return;
+    lapAnchorsRef.current.set(lap, { sessionMs, videoSec });
+    persistSync(refitTimeline());
+  }, [persistSync, refitTimeline]);
+
+  /** Drop all per-lap rate calibration, returning to a pure offset (rate 1). */
+  const clearRateAnchors = useCallback(() => {
+    lapAnchorsRef.current.clear();
+    persistSync(refitTimeline());
+  }, [persistSync, refitTimeline]);
 
   const seekVideo = useCallback((timeSec: number) => {
     const video = videoRef.current;
@@ -694,6 +753,9 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       const record: VideoSyncRecord = {
         sessionFileName,
         syncOffsetMs,
+        syncRate: syncRateRef.current,
+        syncAnchor: syncAnchorRef.current ?? undefined,
+        rateAnchors: [...lapAnchorsRef.current.entries()].map(([lap, a]) => ({ lap, ...a })),
         videoFileName: videoFileName || "",
         fileHandle: chunkHandlesRef.current[0] || fileHandle || undefined,
         isLocked,
@@ -709,22 +771,24 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   // and fresh references on every render would churn the whole context at
   // playback rate.
   const state: VideoSyncState = useMemo(() => ({
-    videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
+    videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
     videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
     storedVideoMeta,
     pendingRecordings,
   }), [
-    videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, fps,
+    videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
     videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
     storedVideoAvailable, storedVideoMeta, pendingRecordings,
   ]);
 
   const actions: VideoSyncActions = useMemo(() => ({
     loadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
+    addRateAnchor, clearRateAnchors,
     seekVideo, updateOverlaySettings, deleteStoredVideo: handleDeleteStoredVideo, refreshStoredMeta, videoRef, preloadVideoRef,
   }), [
     loadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
+    addRateAnchor, clearRateAnchors,
     seekVideo, updateOverlaySettings, handleDeleteStoredVideo, refreshStoredMeta,
   ]);
 

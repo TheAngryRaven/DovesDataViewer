@@ -171,7 +171,9 @@
     "splitVideoEnded": "Video terminato",
     "splitVideoNudgeEarlier": "Anticipa il video di confronto",
     "splitVideoNudgeLater": "Ritarda il video di confronto",
-    "splitVideoNudgeTooltip": "Offset video manuale (solo questo confronto)"
+    "splitVideoNudgeTooltip": "Offset video manuale (solo questo confronto)",
+    "splitVideoCalibrate": "Blocca questo allineamento per correggere ogni giro automaticamente",
+    "splitVideoRateTooltip": "Correzione calibrata della frequenza di clock videocamera/telemetria"
   },
   "gg": {
     "noData": "Nessun dato di forza G",

@@ -5,6 +5,7 @@ import {
   videoCoverageMs,
   coverageOf,
   lapCoverage,
+  fitVideoTimeline,
 } from "./videoTimeline";
 
 // The video sync anchor is absolute session time: one syncOffsetMs maps the
@@ -79,5 +80,89 @@ describe("lapCoverage", () => {
   it("partial when the lap straddles a footage boundary", () => {
     expect(lapCoverage(0, 60000, offset, duration)).toBe("partial"); // starts before footage
     expect(lapCoverage(100000, 140000, offset, duration)).toBe("partial"); // ends after footage
+  });
+});
+
+// ─── rate-aware conversion ───────────────────────────────────────────────────
+
+describe("syncRate (clock-rate-aware conversion)", () => {
+  it("defaults to rate 1 (legacy pure-offset behaviour)", () => {
+    expect(sessionMsToVideoSec(35000, 5000)).toBe(30);
+    expect(sessionMsToVideoSec(35000, 5000, 1)).toBe(30);
+  });
+
+  it("scales video time by the rate, pivoting at the offset", () => {
+    // rate 1.01: video runs 1% fast vs telemetry. At the offset the video is
+    // still 0; 30s of telemetry later the video has advanced 30.3s.
+    expect(sessionMsToVideoSec(5000, 5000, 1.01)).toBe(0);
+    expect(sessionMsToVideoSec(35000, 5000, 1.01)).toBeCloseTo(30.3, 6);
+  });
+
+  it("round-trips with a non-unit rate", () => {
+    const offset = 5000;
+    const rate = 1.013;
+    const v = sessionMsToVideoSec(42000, offset, rate);
+    expect(videoSecToSessionMs(v, offset, rate)).toBeCloseTo(42000, 6);
+  });
+
+  it("shrinks the covered session window when the video runs fast", () => {
+    // 60s of footage at rate 1.2 covers only 50s of session time.
+    const { startMs, endMs } = videoCoverageMs(0, 60, 1.2);
+    expect(startMs).toBe(0);
+    expect(endMs).toBeCloseTo(50000, 6);
+    expect(coverageOf(49000, 0, 60, 1.2)).toBe("covered");
+    expect(coverageOf(51000, 0, 60, 1.2)).toBe("after");
+  });
+});
+
+// ─── fitVideoTimeline ────────────────────────────────────────────────────────
+
+describe("fitVideoTimeline", () => {
+  it("returns the default model with no primary anchor", () => {
+    expect(fitVideoTimeline(null)).toEqual({ syncOffsetMs: 0, syncRate: 1 });
+  });
+
+  it("with only the primary anchor, gives rate 1 and the offset through it", () => {
+    // Primary: session 5000ms ↔ video 0s → offset 5000, rate 1.
+    expect(fitVideoTimeline({ sessionMs: 5000, videoSec: 0 })).toEqual({
+      syncOffsetMs: 5000,
+      syncRate: 1,
+    });
+    // session 35000ms ↔ video 30s, alone → offset = 35000 - 30000 = 5000.
+    const fit = fitVideoTimeline({ sessionMs: 35000, videoSec: 30 });
+    expect(fit.syncRate).toBe(1);
+    expect(fit.syncOffsetMs).toBeCloseTo(5000, 6);
+  });
+
+  it("recovers a known rate from one extra anchor, keeping the primary exact", () => {
+    // Truth: video runs 1% fast, offset 5000 → videoSec = 1.01*(sessionMs-5000)/1000.
+    const primary = { sessionMs: 5000, videoSec: 0 };
+    const extra = { sessionMs: 65000, videoSec: 1.01 * 60 }; // 60.6
+    const { syncOffsetMs, syncRate } = fitVideoTimeline(primary, [extra]);
+    expect(syncRate).toBeCloseTo(1.01, 6);
+    expect(syncOffsetMs).toBeCloseTo(5000, 6);
+    // Primary stays pixel-exact; the extra anchor is now predicted correctly.
+    expect(sessionMsToVideoSec(5000, syncOffsetMs, syncRate)).toBeCloseTo(0, 9);
+    expect(sessionMsToVideoSec(65000, syncOffsetMs, syncRate)).toBeCloseTo(60.6, 6);
+  });
+
+  it("least-squares-fits the slope across multiple noisy anchors", () => {
+    const primary = { sessionMs: 0, videoSec: 0 };
+    // Perfectly rate-1.02 anchors → slope 1.02 exactly.
+    const extra = [
+      { sessionMs: 10000, videoSec: 10.2 },
+      { sessionMs: 20000, videoSec: 20.4 },
+      { sessionMs: 30000, videoSec: 30.6 },
+    ];
+    const { syncRate } = fitVideoTimeline(primary, extra);
+    expect(syncRate).toBeCloseTo(1.02, 6);
+  });
+
+  it("rejects implausible rates (degenerate/garbage anchors) → rate 1", () => {
+    const primary = { sessionMs: 5000, videoSec: 0 };
+    // Extra anchor coincides in session time → zero baseline → no slope info.
+    expect(fitVideoTimeline(primary, [{ sessionMs: 5000, videoSec: 9 }]).syncRate).toBe(1);
+    // Wildly inconsistent anchor would imply a >2× rate → clamped back to 1.
+    expect(fitVideoTimeline(primary, [{ sessionMs: 6000, videoSec: 100 }]).syncRate).toBe(1);
   });
 });

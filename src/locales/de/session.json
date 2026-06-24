@@ -171,7 +171,9 @@
     "splitVideoEnded": "Video beendet",
     "splitVideoNudgeEarlier": "Vergleichsvideo früher schieben",
     "splitVideoNudgeLater": "Vergleichsvideo später schieben",
-    "splitVideoNudgeTooltip": "Manueller Video-Versatz (nur dieser Vergleich)"
+    "splitVideoNudgeTooltip": "Manueller Video-Versatz (nur dieser Vergleich)",
+    "splitVideoCalibrate": "Diese Ausrichtung fixieren, um jede Runde automatisch zu korrigieren",
+    "splitVideoRateTooltip": "Kalibrierte Korrektur der Kamera-/Telemetrie-Taktrate"
   },
   "gg": {
     "noData": "Keine G-Kraft-Daten",

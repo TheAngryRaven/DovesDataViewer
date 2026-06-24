@@ -37,15 +37,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Video ended" while the charts keep playing, instead of a generic message.
 
 ### Fixed
-- **Split-graphs comparison video no longer drifts later lap-by-lap.** The second
-  (comparison) player previously seeked off the overlay lap's snapped first sample,
-  which sits a sub-sample fraction before the true start/finish crossing — and that
-  fraction varies per lap, so each higher lap sat progressively past the finish line
-  (lap 2 ≈ +0.5 s, lap 3 ≈ +1.0 s, …). It now anchors to each lap's true crossing
-  times and interpolates the seek by track distance for sub-sample accuracy. A manual
-  **± nudge** (50 ms steps) on the comparison video lets you fine-tune the alignment
-  for one comparison without touching the saved video sync; it resets when you switch
-  the compared lap.
+- **Split-graphs comparison video no longer drifts lap-by-lap.** Two causes are
+  fixed. First, the comparison player seeked off the overlay lap's snapped first
+  sample (a sub-sample fraction before the true start/finish crossing); it now
+  anchors to each lap's true crossing times and interpolates the seek by track
+  distance. Second — the bigger one — a single sync offset can't absorb a
+  camera/datalogger **clock-rate** difference, so far-from-sync laps drifted by
+  seconds. Video sync is now **rate-aware**: a manual **± nudge** (50 ms steps) on
+  the comparison video fine-tunes one lap, and the **✓ Lock in** button turns that
+  into a calibration anchor — the clock rate is fit through it (refined as you lock
+  more laps) and applied to every lap automatically, keeping the lap you originally
+  synced pixel-exact. Nudges never touch the saved sync until you lock them.
 - **Approving a track/course submission now adds it to the database.** In the admin
   **Submissions** tab, approving a submission previously only flipped its status —
   it never created the track or course, so an approved new track/course silently

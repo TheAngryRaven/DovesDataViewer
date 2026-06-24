@@ -171,7 +171,9 @@
     "splitVideoEnded": "映像は終了しました",
     "splitVideoNudgeEarlier": "比較動画を早める",
     "splitVideoNudgeLater": "比較動画を遅らせる",
-    "splitVideoNudgeTooltip": "手動の動画オフセット（この比較のみ）"
+    "splitVideoNudgeTooltip": "手動の動画オフセット（この比較のみ）",
+    "splitVideoCalibrate": "この位置合わせを固定して全ラップを自動補正",
+    "splitVideoRateTooltip": "カメラ／テレメトリのクロックレート補正（校正済み）"
   },
   "gg": {
     "noData": "G フォースのデータなし",
