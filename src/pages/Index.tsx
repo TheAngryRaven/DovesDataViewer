@@ -74,6 +74,7 @@ import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
 import { PlaybackProvider, type PlaybackContextValue } from "@/contexts/PlaybackContext";
+import { VideoTimeProvider, type VideoTimeContextValue } from "@/contexts/VideoTimeContext";
 import { snapshotLapSamples } from "@/lib/lapSnapshot";
 import type { PluginSnapshot } from "@/plugins/panels";
 
@@ -433,6 +434,14 @@ export default function Index() {
     [currentIndex, currentSample],
   );
 
+  // The synced video's playhead also churns per frame during playback — kept in
+  // its own tiny context (only the VideoPlayer readout consumes it) so it never
+  // re-creates VideoSyncState / the session context.
+  const videoTimeContextValue = useMemo<VideoTimeContextValue>(
+    () => ({ videoCurrentTime: videoSync.videoCurrentTime }),
+    [videoSync.videoCurrentTime],
+  );
+
   // ── SessionContext: everything the three main view tabs need ────────────
   // Tabs read this via `useSessionContext()` instead of receiving 25+ props.
   // Must stay referentially stable during playback — the cursor lives in
@@ -634,6 +643,7 @@ export default function Index() {
     <SettingsProvider value={settingsContextValue}>
     <SessionProvider value={sessionContextValue}>
     <PlaybackProvider value={playbackContextValue}>
+    <VideoTimeProvider value={videoTimeContextValue}>
     <div className="h-screen bg-background flex flex-col overflow-hidden safe-area-inset">
       <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
         <button
@@ -783,6 +793,7 @@ export default function Index() {
         onDismiss={snapshots.dismissPrompt}
       />
     </div>
+    </VideoTimeProvider>
     </PlaybackProvider>
     </SessionProvider>
     </SettingsProvider>

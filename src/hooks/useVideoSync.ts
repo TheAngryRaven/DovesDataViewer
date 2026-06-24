@@ -31,8 +31,6 @@ export interface VideoSyncState {
   fps: number;
   /** Virtual (whole-recording) duration in seconds — sum of all chunks. */
   videoDuration: number;
-  /** Virtual (whole-recording) current time in seconds. */
-  videoCurrentTime: number;
   /** Number of chunks in the playlist (1 for a single file). */
   chunkCount: number;
   /** Index of the currently-playing chunk. */
@@ -772,13 +770,13 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   // playback rate.
   const state: VideoSyncState = useMemo(() => ({
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
-    videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
+    videoDuration, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
     storedVideoMeta,
     pendingRecordings,
   }), [
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
-    videoDuration, videoCurrentTime, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
+    videoDuration, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
     storedVideoAvailable, storedVideoMeta, pendingRecordings,
   ]);
 
@@ -792,5 +790,8 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     seekVideo, updateOverlaySettings, handleDeleteStoredVideo, refreshStoredMeta,
   ]);
 
-  return { state, actions, handleLoadedMetadata };
+  // videoCurrentTime is published separately from `state` (via VideoTimeContext in
+  // Index.tsx): it churns every video frame during playback and would otherwise
+  // re-create the whole VideoSyncState object — and through it the session context.
+  return { state, actions, handleLoadedMetadata, videoCurrentTime };
 }

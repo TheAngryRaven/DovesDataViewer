@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { useSettingsContext } from "@/contexts/SettingsContext";
 import { usePlaybackContext } from "@/contexts/PlaybackContext";
+import { useVideoTime } from "@/contexts/VideoTimeContext";
 import { GpsSample, FieldMapping, Lap, Course } from "@/types/racing";
 import type { VideoSyncState, VideoSyncActions } from "@/hooks/useVideoSync";
 import type { OverlayPosition, OverlayInstance, OverlayRenderContext, OverlaySettings, DataSourceDef } from "@/components/video-overlays/types";
@@ -277,6 +278,9 @@ export const VideoPlayer = memo(function VideoPlayer({
   // Cursor comes from its own context (not props) so only this component —
   // not the whole InfoBox/GraphViewPanel chain — re-renders per playback tick.
   const { currentIndex, currentSample } = usePlaybackContext();
+  // Per-frame playhead from its own context (not VideoSyncState) so the per-tick
+  // churn re-renders only this component, not the session tree.
+  const { videoCurrentTime } = useVideoTime();
   const progressRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -433,7 +437,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   const handlePointerUp = useCallback(() => setIsDragging(false), []);
 
   const progressFraction = state.videoDuration > 0
-    ? Math.max(0, Math.min(1, state.videoCurrentTime / state.videoDuration))
+    ? Math.max(0, Math.min(1, videoCurrentTime / state.videoDuration))
     : 0;
 
   // Build export context that resolves overlay data from video time
@@ -789,7 +793,7 @@ export const VideoPlayer = memo(function VideoPlayer({
             </span>
           )}
           <span className="text-white/60 text-xs font-mono min-w-[80px] text-right">
-            {formatTime(state.videoCurrentTime)} / {formatTime(state.videoDuration)}
+            {formatTime(videoCurrentTime)} / {formatTime(state.videoDuration)}
           </span>
           <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={actions.loadVideo} title={t("player.replaceVideo")}>
             <RefreshCw className="w-3.5 h-3.5" />

@@ -37,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Video ended" while the charts keep playing, instead of a generic message.
 
 ### Fixed
+- **Smoother playback with a video loaded.** Pressing play in Pro graph view with a
+  synced video stuttered: the video's playhead time lived inside the shared video
+  state, so every video frame re-created the whole session context and re-rendered
+  every tab and panel ~30–60×/sec. The per-frame playhead now lives in its own tiny
+  context (like the playback cursor already does), so only the video time readout
+  re-renders per frame and the rest of the view stays quiet.
 - **Split-graphs comparison video no longer drifts lap-by-lap.** Two causes are
   fixed. First, the comparison player seeked off the overlay lap's snapped first
   sample (a sub-sample fraction before the true start/finish crossing); it now
