@@ -463,7 +463,7 @@ After each phase, re-run `npm run i18n:seed` to fill the new namespaces.
 `src/lib/i18n/resources.d.ts` (generated), `public/locales/manifest.json`,
 `public/locales/en/{common,pages,settings}.json` + seeded locale dirs,
 `scripts/seed-translations.mjs`, `scripts/i18n-glossary.json`,
-`docs/plans/i18n-translation-system.md` (this file).
+`docs/plans/0004-i18n-translation-system.md` (this file).
 
 **Edited:** `package.json` (deps + `i18n:seed` script), `vite.config.ts`
 (`vendor-i18n` chunk + `includeAssets`), `src/main.tsx` (i18n init),

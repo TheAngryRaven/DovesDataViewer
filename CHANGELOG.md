@@ -1011,7 +1011,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   current lap so the racing lines actually sit on top of each other — same-session
   laps are left untouched (they already share a receiver). Alignment is map-only;
   the graphs compare by distance and were already drift-immune. This closes the
-  "align data from different loggers" gap. See `docs/plans/multi-lap-overlay.md`.
+  "align data from different loggers" gap. See `docs/plans/0000-multi-lap-overlay.md`.
 - **Build version + commit stamp in the home-page footer.** The landing page now
   shows the running app version and the short git commit hash (e.g.
   `v2.0.0 · 837b514`), baked in at build time. The hash links to that commit on
@@ -1134,7 +1134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The **current lap always renders on top** in every view. (Phase 1:
   current-session laps + snapshots, raw GPS. Cross-session drift-alignment and
   external-file/cross-logger overlays are planned follow-ups — see
-  `docs/plans/multi-lap-overlay.md`.)
+  `docs/plans/0000-multi-lap-overlay.md`.)
 - **G-G diagram (friction circle).** A new pro-mode graph plotting lateral vs.
   longitudinal G as a scatter, so you can see how much of the tyre's grip
   envelope you're using — the classic "are you driving the corners of the

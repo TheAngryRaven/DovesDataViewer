@@ -3,7 +3,7 @@
  *
  * The published OTA package is still a Nordic "DFU" zip (we extract the
  * application `.bin` from it), but the on-device install is the SD-staged,
- * application-level OTA — see `docs/plans/firmware-sdcard-ota.md`. The legacy
+ * application-level OTA — see `docs/plans/0002-firmware-sdcard-ota.md`. The legacy
  * BLE-DFU transport was removed (Chrome blocklists the legacy DFU service); the
  * image is uploaded over the `0x1820` file service (see `firmwareUpload.ts`).
  */

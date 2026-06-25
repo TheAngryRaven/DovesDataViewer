@@ -32,7 +32,7 @@ export {
   deleteTrackFile,
 } from "./trackSync";
 
-// SD-staged firmware update (see docs/plans/firmware-sdcard-ota.md)
+// SD-staged firmware update (see docs/plans/0002-firmware-sdcard-ota.md)
 export { crc32, crc32Hex } from "./firmwareCrc";
 export {
   beginFirmwareUpdate,

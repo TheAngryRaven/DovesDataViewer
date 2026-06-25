@@ -32,7 +32,7 @@ export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
 /**
  * Translation namespaces. Each maps to a JSON file per language under
  * `src/locales/<lng>/<ns>.json`. New surfaces add a namespace here as they're
- * migrated (see docs/plans/i18n-translation-system.md). `common` is always
+ * migrated (see docs/plans/0004-i18n-translation-system.md). `common` is always
  * loaded; the rest load on demand for their surface.
  */
 export const NAMESPACES = ["common", "landing", "settings", "session", "video", "drawer", "weather", "tracks", "plugins", "auth", "admin", "logger"] as const;

@@ -43,6 +43,14 @@ telemetry viewer.
    explain *why*, not *what*, only where non-obvious. Small, focused PRs with clear
    commit messages explaining the *why* — prefer a topic branch + PR over committing
    to `main`. Respect the bundle budget and the conventions below.
+8. **Plans are numbered design records.** Plans live in `docs/plans/`, each prefixed
+   with a zero-padded sequence number (`0000-`, `0001-`, …). A **new plan takes the
+   next number after the highest existing one** — glance at the folder, increment.
+   Keep a plan updated *as you execute it*; only revisit an older plan later when
+   you're working in code that references it. **Every commit tied to a plan MUST cite
+   its plan number in the message** (e.g. `plan 0004:` prefix or `(plan 0004)`). The
+   point is to preserve how and *why* something was built so we don't re-research it
+   from scratch — see `docs/plans/README.md`.
 
 ---
 

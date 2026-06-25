@@ -2,7 +2,7 @@
  * i18next bootstrap. Imported once from `main.tsx` before render so the chosen
  * language is set before first paint (no English flash).
  *
- * Strategy (see docs/plans/i18n-translation-system.md):
+ * Strategy (see docs/plans/0004-i18n-translation-system.md):
  *   - English is bundled eagerly as in-memory `resources` — it's the fallback
  *     language and must always be present with zero network/flash.
  *   - Every other language loads lazily through `importBackend` below, which

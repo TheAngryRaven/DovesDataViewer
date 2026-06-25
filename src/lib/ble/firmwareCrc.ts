@@ -6,7 +6,7 @@
  * init/xor 0xFFFFFFFF) — the same variant `zlib`/`crc32` and most embedded
  * implementations use. Unit-tested against the canonical check vectors.
  *
- * See `docs/plans/firmware-sdcard-ota.md`.
+ * See `docs/plans/0002-firmware-sdcard-ota.md`.
  */
 
 const CRC32_TABLE = (() => {

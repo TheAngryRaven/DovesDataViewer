@@ -10,7 +10,7 @@
  *
  * This is a maintainer tool. It is NOT part of the app or the standard CI build
  * (it makes network calls and needs an API key), and the offline app never runs
- * it — it only commits its JSON output. See docs/plans/i18n-translation-system.md.
+ * it — it only commits its JSON output. See docs/plans/0004-i18n-translation-system.md.
  *
  * Usage:
  *   ANTHROPIC_API_KEY=sk-... npm run i18n:seed            # all languages

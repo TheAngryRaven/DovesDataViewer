@@ -371,7 +371,7 @@ Timeout ~10 s.
 The firmware image is **uploaded to the device's SD card** over the `0x1820` file
 service, CRC-verified on-device, then installed by the firmware itself. This avoids
 the Chrome-blocklisted Nordic DFU service entirely. Full design + firmware contract:
-[`docs/plans/firmware-sdcard-ota.md`](plans/firmware-sdcard-ota.md).
+[`docs/plans/0002-firmware-sdcard-ota.md`](plans/0002-firmware-sdcard-ota.md).
 
 **CRC is CRC-32/IEEE 802.3** (reflected poly `0xEDB88320`, init/xor `0xFFFFFFFF` —
 the zlib/`crc32` variant), exchanged as an **8-char lowercase zero-padded hex

@@ -7,7 +7,7 @@
  * service (`firmwareUpload.ts`) and the device verifies + installs it. The legacy
  * BLE-DFU transport was removed (Chrome blocklists the legacy DFU service).
  *
- * See `docs/plans/firmware-sdcard-ota.md`.
+ * See `docs/plans/0002-firmware-sdcard-ota.md`.
  */
 
 export type {

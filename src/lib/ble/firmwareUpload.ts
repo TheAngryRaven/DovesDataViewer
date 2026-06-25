@@ -9,7 +9,7 @@ import { bleLog } from "./internal";
  * written to `fileRequest` (`0x2A3E`); responses arrive on `fileStatus`
  * (`0x2A40`). CRC is CRC-32/IEEE as an 8-char lowercase hex string.
  *
- * Paranoid handshake (see `docs/plans/firmware-sdcard-ota.md`):
+ * Paranoid handshake (see `docs/plans/0002-firmware-sdcard-ota.md`):
  *   1. `beginFirmwareUpdate` — `FWBEGIN:<size>,<crc>,<variant>` → device echoes
  *      `FWCRC:<crc>`; we abort unless the echo matches (verifies the control
  *      channel before any upload).

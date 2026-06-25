@@ -114,7 +114,7 @@ coverage is being rolled out screen by screen.
 
 Maintainers seed/refresh non-English locales from the English source with
 `bun run i18n:seed` (needs `ANTHROPIC_API_KEY`; see the translation plan in
-`docs/plans/i18n-translation-system.md`). Legal pages remain English by design.
+`docs/plans/0004-i18n-translation-system.md`). Legal pages remain English by design.
 
 ---
 

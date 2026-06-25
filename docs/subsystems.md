@@ -162,7 +162,7 @@ never reasons about sector geometry directly.
   check until regen). `submit-track` edge fn validates the optional `sectors`
   array (≤24, exactly-2-majors-or-none).
 
-Full design history: [`plans/lap-sector-overhaul.md`](plans/lap-sector-overhaul.md).
+Full design history: [`plans/0003-lap-sector-overhaul.md`](plans/0003-lap-sector-overhaul.md).
 
 ---
 
@@ -520,7 +520,7 @@ never transformed. The **Align lines** toggle lives on the map legend
 **The current lap always renders on top.** Chart overlays distance-align each lap
 onto the current lap via `alignByDistance` (`referenceUtils.ts`); synthetic
 `__pace__`/`__braking_g__` series don't overlay. Full design + deferred work:
-[`plans/multi-lap-overlay.md`](plans/multi-lap-overlay.md).
+[`plans/0000-multi-lap-overlay.md`](plans/0000-multi-lap-overlay.md).
 
 **Channels** are normalized to canonical ids at parse time (`channels.ts` →
 `normalizeChannels()`), so `extraFields` keys and `FieldMapping.name` are uniform

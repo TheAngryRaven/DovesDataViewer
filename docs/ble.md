@@ -117,8 +117,8 @@ Bluetooth blocklist bans the Nordic legacy DFU service, and a Secure-DFU bootloa
 needs SWD pins (sealed units). So instead the image is **staged on the device's SD
 card over the existing `0x1820` file service** (not blocklisted), and the device
 verifies it by CRC and installs it itself. Full design + firmware contract:
-[`plans/firmware-sdcard-ota.md`](plans/firmware-sdcard-ota.md). The dead BLE-DFU
-investigation: [`plans/firmware-bluetooth-dfu.md`](plans/firmware-bluetooth-dfu.md).
+[`plans/0002-firmware-sdcard-ota.md`](plans/0002-firmware-sdcard-ota.md). The dead BLE-DFU
+investigation: [`plans/0001-firmware-bluetooth-dfu.md`](plans/0001-firmware-bluetooth-dfu.md).
 
 - **Check version** — read the standard **Device Information Service** (`0x180A`):
   Firmware Revision (`0x2A26`) → version, Model Number (`0x2A24`,

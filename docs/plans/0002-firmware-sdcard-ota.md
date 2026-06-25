@@ -10,7 +10,7 @@ Scope: **multi-repo** — DovesDataViewer (this repo, web client) **+** DovesDat
 (firmware). This doc lives here; the firmware half is a contract for the logger repo.
 
 Supersedes the BLE-DFU approach in
-[`docs/plans/firmware-bluetooth-dfu.md`](firmware-bluetooth-dfu.md), which is
+[`docs/plans/0001-firmware-bluetooth-dfu.md`](0001-firmware-bluetooth-dfu.md), which is
 **dead on the web** (see below).
 
 ---
