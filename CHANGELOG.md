@@ -56,7 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   video on a stale frame. Seeks are now **paced** on the video's own `seeked` event —
   the next seek is issued only when the last completes, always to the latest cursor
   position — using a fast approximate seek during the drag and one precise seek once
-  the cursor settles, so the parked frame is exact and repeatable.
+  the cursor settles, so the parked frame is exact and repeatable. Scrub cursor
+  updates are also coalesced to one per animation frame, so a high-rate mouse or
+  trackpad no longer floods the main thread with graph redraws while the video seeks.
 - **Split-graphs comparison video no longer drifts lap-by-lap.** Two causes are
   fixed. First, the comparison player seeked off the overlay lap's snapped first
   sample (a sub-sample fraction before the true start/finish crossing); it now

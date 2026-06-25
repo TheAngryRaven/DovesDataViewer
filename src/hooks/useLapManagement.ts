@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { ParsedData, Lap, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
 import { calculateLaps } from "@/lib/lapCalculation";
 import { updateFileMetadata } from "@/lib/fileStorage";
@@ -129,10 +129,27 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
     setReferenceLapNumber((prev) => (prev === lapNumber ? null : lapNumber));
   }, []);
 
+  // rAF-coalesce scrub updates: a fast pointer fires far more than 60×/s, and
+  // every cursor change redraws every graph canvas (+ map + overlays) and seeks
+  // the synced video. Doing that per pointer event saturates the main thread and
+  // stutters the video. Cap to one update per frame — the latest index always
+  // lands, so the resting position stays deterministic. (Playback drives the
+  // cursor through setCurrentIndex directly, so it is unaffected.)
+  const scrubRafRef = useRef<number | null>(null);
+  const scrubPendingRef = useRef<number | null>(null);
+  useEffect(() => () => { if (scrubRafRef.current != null) cancelAnimationFrame(scrubRafRef.current); }, []);
+
   const handleScrub = useCallback(
     (index: number) => {
-      const clampedIndex = Math.max(0, Math.min(index, visibleRange[1] - visibleRange[0]));
-      setCurrentIndex(clampedIndex);
+      scrubPendingRef.current = index;
+      if (scrubRafRef.current != null) return;
+      scrubRafRef.current = requestAnimationFrame(() => {
+        scrubRafRef.current = null;
+        const idx = scrubPendingRef.current;
+        if (idx == null) return;
+        const clampedIndex = Math.max(0, Math.min(idx, visibleRange[1] - visibleRange[0]));
+        setCurrentIndex(clampedIndex);
+      });
     },
     [visibleRange]
   );
