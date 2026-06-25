@@ -2,8 +2,8 @@
 // live in billing.ts.
 //
 // subscription_tiers / user_subscriptions are not in the generated Database type
-// yet (Lovable regenerates `integrations/supabase/types.ts` after the migration
-// deploys), so — exactly like cloud-sync's cloudClient.ts — we route those
+// yet (`integrations/supabase/types.ts` is regenerated from Supabase after the
+// migration deploys), so — exactly like cloud-sync's cloudClient.ts — we route those
 // tables through an untyped view of the shared client. Checkout/portal go
 // through the typed `functions.invoke`.
 

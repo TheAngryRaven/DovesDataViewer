@@ -39,17 +39,53 @@
     "estimated": "os prazos são estimados",
     "blurb": "Temos o apoio de uma equipe que desenvolve software de nível empresarial há mais de 20 anos. Estamos aqui para entregar qualidade.",
     "items": [
-      "Logger DIY mais barato atualizado (junho '26)",
-      "Rankings de pista e perfis públicos de usuário (junho '26)",
-      "Downloads de loggers de terceiros (junho '26)",
-      "Aplicativo nativo (julho '26)",
-      "Organização do dia de corrida (julho '26)",
-      "Gestão de equipe e inventário — grátis para equipes de 5 ou menos (julho '26)",
-      "Atualizações no coaching offline (julho '26)",
-      "Balanceamento de peso e outras ferramentas diversas (julho '26)",
-      "Atualizações do editor de vídeo (agosto '26)",
-      "Coaching com IA, depois que os recursos principais estiverem estáveis (agosto '26)",
-      "Lançamento do logger \"Vulture\" (1º tri '27)"
+      {
+        "text": "Logger DIY mais barato atualizado (junho '26)"
+      },
+      {
+        "text": "Rankings de pista e perfis públicos de usuário (junho '26)"
+      },
+      {
+        "text": "Downloads de loggers de terceiros (junho '26)",
+        "sub": [
+          "MyChron: decodificado, requer aplicativo nativo",
+          "Alfano: pendente"
+        ]
+      },
+      {
+        "text": "Aplicativo nativo (julho '26)"
+      },
+      {
+        "text": "Organização do dia de corrida (julho '26)"
+      },
+      {
+        "text": "Gestão de equipe e inventário (julho '26)",
+        "sub": [
+          "Grátis para equipes de 5 ou menos"
+        ]
+      },
+      {
+        "text": "Primeiros produtos físicos (julho '26)",
+        "sub": [
+          "Kit DIY Fledgling com caixa",
+          "Sensor de tacômetro independente"
+        ]
+      },
+      {
+        "text": "Atualizações do editor de vídeo (agosto '26)"
+      },
+      {
+        "text": "Integração com Insta360 — iniciar/parar/GPS (agosto '26)"
+      },
+      {
+        "text": "Atualizações no coaching offline (agosto '26)"
+      },
+      {
+        "text": "Coaching com IA, depois que os recursos principais estiverem estáveis (agosto '26)"
+      },
+      {
+        "text": "Lançamento do logger \"Vulture\" (1º tri '27)"
+      }
     ],
     "contact": "Entre em contato para qualquer funcionalidade que você precisar!"
   },

@@ -64,7 +64,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   payload now errors and leaves the submission pending instead of being marked
   approved while landing nothing.
 
+### Removed
+- **"Continue with Google" sign-in.** Google OAuth routed through a third-party
+  hosted broker; it has been removed (along with its build-time scaffolding and the
+  `VITE_ENABLE_GOOGLE_AUTH` flag) pending a native Supabase Google OAuth setup.
+  Email sign-in/registration is unaffected. No public backend credentials ship in
+  the repo anymore — the Supabase fallbacks are blank, so a fresh clone runs fully
+  offline-first until you supply your own `VITE_SUPABASE_*` values.
+
 ### Changed
+- **Simple-view graph controls are easier to reach.** The collapse/expand button
+  on the map/graph divider is now larger and lives on the **left**, grouped with a
+  new **legend toggle** in a single floating control flag — clear of the map's
+  weather/info buttons on the right that it used to crowd. The legend toggle hides
+  the chart's legend bar to reclaim vertical space (handy for logs with many
+  channels), and collapsing the graph now shows a clean grey panel instead of a
+  cramped chart. The "data crop" sector dropdown keeps a minimum width so it no
+  longer squishes on mobile in the Simple or Pro views.
+
+### Fixed
+- **Simple-graph legend no longer lists g-force lines it doesn't draw.** With the
+  default "hardware" G-force source, the simple telemetry chart draws the hardware
+  accel channels and hides the GPS-derived Lat G/Lon G — but the legend still
+  listed them, so they appeared without ever drawing. The legend now matches what's
+  drawn; switch the G-force source to GPS in Settings to see Lat G/Lon G.
+- **Landing-page header layout.** The Sponsor button now sits at the far left next
+  to the LapWing brand, and the account control sits at the far right. A new
+  **Settings** button (opening the settings panel) sits just left of it. When signed
+  in, the account control is now a **Profile** button that opens the file-manager
+  drawer straight to the Profile tab, replacing the old Sign-out button.
 - **Support contact email.** The Terms of Service and Privacy Policy now point to
   **support@perchwerks.com** for questions and requests (replacing the interim
   address), and the Code of Conduct's enforcement contact was updated to match.

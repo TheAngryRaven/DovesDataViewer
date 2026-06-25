@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
-import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
 // Build-time version metadata for the footer "what changed" stamp. The app
@@ -85,12 +84,14 @@ function externalPluginsLoader(candidates: string[]): Plugin {
 }
 
 const PUBLIC_BACKEND_FALLBACKS = {
-  VITE_SUPABASE_PROJECT_ID: "svjlieovpyiffbqwhtgk",
-  VITE_SUPABASE_PUBLISHABLE_KEY:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2amxpZW92cHlpZmZicXdodGdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMDQ1MzcsImV4cCI6MjA4NjU4MDUzN30.-LnwDsiT1vmWxfoLiHlK9hHqCzN9ToHeB6qkH5-A2I4",
-  VITE_SUPABASE_URL: "https://svjlieovpyiffbqwhtgk.supabase.co",
+  // No public backend is baked in — supply your own Supabase credentials via
+  // VITE_*/HTT_* env (or a committed `.env`) to enable admin/cloud features.
+  // Left blank, the app runs fully offline-first with no backend wired up.
+  VITE_SUPABASE_PROJECT_ID: "",
+  VITE_SUPABASE_PUBLISHABLE_KEY: "",
+  VITE_SUPABASE_URL: "",
   // Admin + cloud default OFF in fallbacks. The production deploy enables them
-  // via Lovable Cloud env injection ("true") / committed `.env` / HTT_* build
+  // via env injection ("true") / committed `.env` / HTT_* build
   // secrets. A new contributor cloning the repo without a .env must see the
   // public, offline-first app — NOT the admin UI or live cloud-sync pointing at
   // a backend they don't control. Anyone who hosts that build would otherwise
@@ -112,17 +113,14 @@ const PUBLIC_BACKEND_FALLBACKS = {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
-  // Lovable's secret store rejects the `VITE_` prefix (those are public,
-  // build-time values by Vite convention). To let contributors stash the
-  // backend wiring in Lovable workspace build secrets *without* committing a
-  // `.env`, we also accept a parallel `HTT_` prefix and copy it into the
-  // VITE_* names at build time. Precedence: VITE_* > HTT_* > public fallback.
+  // Some secret stores reject the `VITE_` prefix (those are public, build-time
+  // values by Vite convention). To let contributors stash the backend wiring in
+  // workspace build secrets *without* committing a `.env`, we also accept a
+  // parallel `HTT_` prefix and copy it into the VITE_* names at build time.
+  // Precedence: VITE_* > HTT_* > public fallback.
   //
-  // REMINDER: until Lovable injects these automatically, you may need to
-  // regenerate `.env` (or re-set the HTT_* build secrets) on each fresh
-  // build environment. See `.env.example` for the full list.
   // NOTE: Vite's loadEnv() only reads .env files — it does NOT include
-  // process.env. Lovable injects build secrets as real env vars, so we must
+  // process.env. Some hosts inject build secrets as real env vars, so we must
   // check process.env explicitly for the HTT_* (and VITE_*) fallbacks to work
   // when there's no committed .env file.
   //
@@ -194,7 +192,6 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       externalPluginsLoader(pluginPackages),
-      mode === "development" && componentTagger(),
       // Emit a tiny version.json next to the bundle so a running tab can detect a
       // newer deploy without depending on the service worker's own diff-detection
       // (see src/lib/versionCheck.ts). It carries the same build constants baked

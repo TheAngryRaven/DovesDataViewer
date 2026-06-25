@@ -11,7 +11,7 @@ export default defineConfig({
     // App tests live under src/; also pick up pure logic extracted from Supabase
     // edge functions (Deno) so it can be unit-tested here (coverage stays src/-only).
     include: ["src/**/*.{test,spec}.{ts,tsx}", "supabase/functions/**/*.{test,spec}.ts"],
-    exclude: ["node_modules", "dist", ".lovable"],
+    exclude: ["node_modules", "dist"],
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",

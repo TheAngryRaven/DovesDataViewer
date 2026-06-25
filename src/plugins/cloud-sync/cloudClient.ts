@@ -2,7 +2,7 @@
 // bucket).
 //
 // The generated `integrations/supabase/types.ts` Database type does not yet
-// include `sync_records` (Lovable regenerates it after the migration deploys),
+// include `sync_records` (regenerated from Supabase after the migration deploys),
 // so `supabase.from('sync_records')` would be a compile error. We confine that
 // gap to this one module: route the new table through an untyped view of the
 // shared client and hand-write the row shape. When types are regenerated this

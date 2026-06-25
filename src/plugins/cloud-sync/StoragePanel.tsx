@@ -34,9 +34,6 @@ const SEGMENTS = [
   { key: "documents", labelKey: "storage.segments.garage", color: "bg-emerald-500" },
 ] as const satisfies { key: StorageType; labelKey: string; color: string }[];
 
-// Google sign-in is gated separately: it currently routes through Lovable's OAuth
-// broker, so it stays off until native Supabase Google OAuth is configured.
-const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
 
 // Merged account + profile panel: your display name + (when signed in) sign-out,
 // plan, and storage usage. Signed in shows TWO bars — cloud quota and on-device
@@ -137,22 +134,11 @@ export default function StoragePanel(_props: PluginPanelProps) {
   );
 }
 
-// Sign-in entry point (moved here from the old Account panel): Google one-tap plus
-// email sign-in / registration. Offline disables it with a hint.
+// Sign-in entry point (moved here from the old Account panel): email sign-in /
+// registration. Offline disables it with a hint.
 function SignInPrompt() {
   const { t } = useTranslation("plugins");
-  const { signInWithGoogle } = useAuth();
   const online = useOnlineStatus();
-  const [busy, setBusy] = useState(false);
-
-  const handleGoogle = async () => {
-    setBusy(true);
-    const { error } = await signInWithGoogle();
-    if (error) {
-      setBusy(false);
-      toast.error(error.message || t("account.googleSignInFailed"));
-    }
-  };
 
   return (
     <div className="space-y-3">
@@ -160,11 +146,6 @@ function SignInPrompt() {
         {t("account.signInBlurb")}
       </p>
       <div className="flex flex-col gap-2">
-        {enableGoogleAuth && (
-          <Button variant="outline" onClick={handleGoogle} disabled={busy || !online}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("account.continueWithGoogle")}
-          </Button>
-        )}
         <div className="grid grid-cols-2 gap-2">
           <Button asChild variant="secondary"><Link to="/login?next=/">{t("account.signIn")}</Link></Button>
           <Button asChild><Link to="/register">{t("account.createAccount")}</Link></Button>

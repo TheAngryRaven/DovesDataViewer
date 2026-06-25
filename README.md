@@ -129,7 +129,7 @@ Maintainers seed/refresh non-English locales from the English source with
 | Charts | Custom Canvas 2D renderer |
 | Video Export | WebCodecs + [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) (H.264 MP4) |
 | State | React Query |
-| Backend | **None** – zero server dependencies (optional admin backend via Lovable Cloud) |
+| Backend | **None** – zero server dependencies (optional admin backend via Supabase) |
 | BLE | Web Bluetooth API for DovesDataLogger device communication & settings |
 
 ---
@@ -154,12 +154,11 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_SUPABASE_URL` | Yes (if using Cloud) | Backend URL (auto-set by Lovable Cloud) |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes (if using Cloud) | Backend public/anon key (auto-set by Lovable Cloud) |
-| `VITE_SUPABASE_PROJECT_ID` | Yes (if using Cloud) | Backend project ID (auto-set by Lovable Cloud) |
+| `VITE_SUPABASE_URL` | Yes (if using Cloud) | Backend URL (your Supabase project) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Yes (if using Cloud) | Backend public/anon key (your Supabase project) |
+| `VITE_SUPABASE_PROJECT_ID` | Yes (if using Cloud) | Backend project ID (your Supabase project) |
 | `VITE_ENABLE_ADMIN` | No | Set to `true` to enable admin UI and `/admin` route. `/login` mounts when admin OR cloud is enabled. Default `false` — a fresh clone ships the public, offline-first app, not admin UI pointed at an upstream backend. |
 | `VITE_ENABLE_CLOUD` | No | Set to `true` to enable public user accounts: Cloud Sync panels, email sign-in/registration, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`. Default `false` — flag-off builds ship zero cloud auth code (offline-first invariant). |
-| `VITE_ENABLE_GOOGLE_AUTH` | No | Set to `true` to show the "Continue with Google" buttons (login, register, Profile). Requires `VITE_ENABLE_CLOUD`. Default `false`: Google sign-in currently routes through Lovable's hosted OAuth broker, so it stays hidden until native Supabase Google OAuth is configured (Google Cloud OAuth client + Supabase provider). |
 | `VITE_IS_NATIVE` | No | Set to `true` **only** for the native (Tauri/Android) shell build. Skips the service worker, hides in-app purchases (paid plans are web-only — Google Play billing policy; cloud sync still works), and opens external links in the system browser. The web app leaves this unset/`false`. See [`docs/android.md`](docs/android.md). |
 | `VITE_TURNSTILE_SITE_KEY` | No | Cloudflare Turnstile site key for track submission CAPTCHA |
 | `VITE_FIRMWARE_MANIFEST_URL` | No | Override the DovesDataLogger firmware OTA manifest URL used by the in-app firmware updater. When unset: `main` builds use the production manifest (`https://theangryraven.github.io/DovesDataLogger/manifest.json`); non-`main`/preview builds use the **beta channel** (`https://theangryraven.github.io/DovesDataLogger/beta/manifest.json`). Set this to force a specific channel on any branch. |
@@ -171,7 +170,7 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 | `ANTHROPIC_API_KEY` | No (translation tooling) | Required by `bun run i18n:seed` to machine-translate locale files (`scripts/seed-translations.mjs`). Maintainer tool only — never read by the app or the standard CI build (`???`). |
 | `I18N_SEED_MODEL` | No | Optional model override for `bun run i18n:seed` (default `claude-sonnet-4-6`). |
 
-> **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in Lovable Cloud, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
+> **Note:** `TURNSTILE_SECRET_KEY` is a server-side secret stored in your Supabase project, not a `VITE_` client variable. If not set, Turnstile verification is skipped.
 
 > **Build version stamp:** `VITE_APP_VERSION`, `VITE_GIT_HASH`, `VITE_BUILD_DATE`,
 > `VITE_GIT_BRANCH`, and `VITE_GIT_COMMIT_DATE` are **not** configured by hand —
@@ -224,7 +223,7 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 
 ### Database Setup
 
-The admin system uses Lovable Cloud (Supabase) for the database. The schema is created automatically via migrations. Tables:
+The admin system uses Supabase for the database. The schema is created automatically via migrations. Tables:
 
 - **tracks** — Track names with short names (max 8 chars) and enabled flag
 - **courses** — Course definitions with start/finish and optional sector lines
@@ -301,7 +300,7 @@ Every track has a `short_name` (max 8 characters) used for:
 
 ### First-Time Setup
 
-1. Enable Lovable Cloud
+1. Provision a Supabase project
 2. Run the database migration (automatic)
 3. Create an admin user via the auth system
 4. Add the admin role: `INSERT INTO user_roles (user_id, role) VALUES ('<your-user-id>', 'admin');`
@@ -588,7 +587,7 @@ Built on the shoulders of these incredible open-source projects and free service
 - [MoTeC i2](https://www.motec.com.au) (file format reference)
 - [libxrk](https://github.com/m3rlin45/libxrk) (MIT) + [TrackDataAnalysis](https://github.com/racer-coder/TrackDataAnalysis) (MIT) — AiM XRK/XRZ parser (Rust → WebAssembly)
 
-Optional admin backend powered by [Supabase](https://supabase.com) via Lovable Cloud.
+Optional admin backend powered by [Supabase](https://supabase.com).
 
 ---
 

@@ -94,6 +94,12 @@
     "fullLap": "ラップ全体",
     "sector": "セクター {{label}}"
   },
+  "controls": {
+    "collapsePanel": "グラフを折りたたむ",
+    "expandPanel": "グラフを展開",
+    "showLegend": "凡例を表示",
+    "hideLegend": "凡例を非表示"
+  },
   "map": {
     "mapPrefix": "マップ",
     "styleDark": "ダーク",

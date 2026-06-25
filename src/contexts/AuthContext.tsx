@@ -8,7 +8,6 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, displayName?: string, captchaToken?: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
@@ -63,9 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp: backendPromise
       ? async (email, password, displayName, captchaToken) =>
           (await backendPromise).signUp(email, password, displayName, captchaToken)
-      : disabledError,
-    signInWithGoogle: backendPromise
-      ? async () => (await backendPromise).signInWithGoogle()
       : disabledError,
     logout: backendPromise
       ? async () => (await backendPromise).logout()

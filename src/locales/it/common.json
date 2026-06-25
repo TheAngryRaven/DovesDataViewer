@@ -4,6 +4,7 @@
   "actions": {
     "signIn": "Accedi",
     "signOut": "Esci",
+    "profile": "Profilo",
     "sponsor": "Sostieni",
     "loading": "Caricamento…",
     "reset": "Ripristina valori predefiniti",

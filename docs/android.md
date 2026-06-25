@@ -21,7 +21,7 @@ signing, and the native bridge implementation.
   registration in `main.tsx`) run before Tauri injects its globals.
 
 To build the native variant: invoke Vite with `VITE_IS_NATIVE=true` (or the
-Lovable-secret parallel `HTT_IS_NATIVE=true`).
+build-secret parallel `HTT_IS_NATIVE=true`).
 
 ## What changes on native
 

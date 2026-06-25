@@ -38,17 +38,53 @@
     "estimated": "times are estimated",
     "blurb": "We're backed by a team that's been building enterprise-grade software for 20+ years. We're here to ship quality.",
     "items": [
-      "Updated cheaper DIY logger (June '26)",
-      "Track leaderboards & public user profiles (June '26)",
-      "Downloads from 3rd-party loggers (June '26)",
-      "Native app (July '26)",
-      "Race day organization (July '26)",
-      "Team management & inventory — free for teams of 5 and smaller (July '26)",
-      "Updates to offline coaching (July '26)",
-      "Weight balancing and other misc tools (July '26)",
-      "Video editor updates (August '26)",
-      "AI coaching, after core features are stable (August '26)",
-      "Release of \"Vulture\" logger (Q1 '27)"
+      {
+        "text": "Updated cheaper DIY logger (June '26)"
+      },
+      {
+        "text": "Track leaderboards & public user profiles (June '26)"
+      },
+      {
+        "text": "Downloads from 3rd-party loggers (June '26)",
+        "sub": [
+          "MyChron: decoded, native app required",
+          "Alfano: pending"
+        ]
+      },
+      {
+        "text": "Native app (July '26)"
+      },
+      {
+        "text": "Race day organization (July '26)"
+      },
+      {
+        "text": "Team management & inventory (July '26)",
+        "sub": [
+          "Free for teams of 5 and smaller"
+        ]
+      },
+      {
+        "text": "First physical products (July '26)",
+        "sub": [
+          "Fledgling DIY kit with enclosure",
+          "Standalone tachometer sensor"
+        ]
+      },
+      {
+        "text": "Video editor updates (August '26)"
+      },
+      {
+        "text": "Insta360 integration — start/stop/GPS (August '26)"
+      },
+      {
+        "text": "Updates to offline coaching (August '26)"
+      },
+      {
+        "text": "AI coaching, after core features are stable (August '26)"
+      },
+      {
+        "text": "Release of \"Vulture\" logger (Q1 '27)"
+      }
     ],
     "contact": "Contact us for any features you may need!"
   },

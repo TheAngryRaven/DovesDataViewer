@@ -35,6 +35,9 @@ interface FileManagerDrawerProps {
   showSampleFiles: boolean;
   // Garage sub-tab to open straight to (defaults to "files").
   initialGarageTab?: GarageTab;
+  // Top-level tab to open straight to (defaults to "garage"). "profile" is
+  // honoured only when showProfile is set, otherwise it falls back to "garage".
+  initialTopTab?: "garage" | "profile";
   // Profile tab is gated on a plugin (cloud-sync) contributing a Profile panel.
   showProfile: boolean;
   // Vehicle props
@@ -63,6 +66,7 @@ export function FileManagerDrawer({
   onClose, onLoadFile, onDeleteFile, onExportFile, onSaveFile, onDataLoaded, autoSave,
   showSampleFiles,
   initialGarageTab = "files",
+  initialTopTab = "garage",
   showProfile,
   vehicles, vehicleTypes,
   onAddVehicle, onUpdateVehicle, onRemoveVehicle, onCreateVehicleType,
@@ -92,12 +96,12 @@ export function FileManagerDrawer({
 
   useEffect(() => {
     if (isOpen) {
-      setTopTab("garage");
+      setTopTab(initialTopTab === "profile" && showProfile ? "profile" : "garage");
       setGarageTab(initialGarageTab);
       setDeviceTab("settings");
       setBattery(null);
     }
-  }, [isOpen, initialGarageTab]);
+  }, [isOpen, initialGarageTab, initialTopTab, showProfile]);
 
   // Fetch battery on connect / when switching to device tab
   const fetchBattery = useCallback(async () => {

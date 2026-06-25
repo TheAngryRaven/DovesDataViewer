@@ -94,6 +94,12 @@
     "fullLap": "Giro completo",
     "sector": "Settore {{label}}"
   },
+  "controls": {
+    "collapsePanel": "Comprimi grafico",
+    "expandPanel": "Espandi grafico",
+    "showLegend": "Mostra legenda",
+    "hideLegend": "Nascondi legenda"
+  },
   "map": {
     "mapPrefix": "Mappa",
     "styleDark": "Scuro",

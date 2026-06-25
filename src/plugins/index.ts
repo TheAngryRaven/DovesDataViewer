@@ -11,7 +11,7 @@ let initialized = false;
  *  2. External plugins installed as npm packages (the coach), surfaced via the
  *     `virtual:external-plugins` module — see `externalPluginsLoader` in
  *     vite.config.ts. Packages absent at build time simply don't appear, so the
- *     public/Lovable build runs without them.
+ *     public build runs without them.
  *
  * When two plugins share an `id`, higher `priority` wins (private coach > public).
  */

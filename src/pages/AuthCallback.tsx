@@ -5,9 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 /**
- * OAuth + email-confirm landing page. Lovable's managed OAuth flow has
- * already set the session by the time we get here; we just wait for
- * onAuthStateChange (or an existing session) and bounce to ?next= or /.
+ * Email-confirm landing page. Supabase has already set the session by the time
+ * we get here; we just wait for onAuthStateChange (or an existing session) and
+ * bounce to ?next= or /.
  */
 export default function AuthCallback() {
   const { t } = useTranslation('auth');

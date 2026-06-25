@@ -20,10 +20,6 @@ import { isPaidTier } from '@/lib/billing';
 import { setPendingCheckout } from '@/lib/pendingCheckout';
 import { isNativeApp } from '@/lib/platform';
 
-// Google sign-in is gated separately: it currently routes through Lovable's OAuth
-// broker, so it stays off until native Supabase Google OAuth is configured.
-const enableGoogleAuth = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === 'true';
-
 export default function Register() {
   const { t } = useTranslation('auth');
   useDocumentHead({
@@ -38,7 +34,7 @@ export default function Register() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanSelection>({ tier: 'free', interval: 'monthly' });
   const [confirmAge, setConfirmAge] = useState(false);
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp } = useAuth();
   const { config } = useStripePrices();
   const navigate = useNavigate();
   // The native (Android) app signs up on the free tier only — paid plans are
@@ -92,19 +88,6 @@ export default function Register() {
         toast({ title: t('register.accountCreated'), description: t('register.accountCreatedConfirm') });
       }
       navigate('/login');
-    }
-  };
-
-  const handleGoogle = async () => {
-    if (!confirmAge) {
-      toast({ title: t('register.confirmAgeRequired'), variant: 'destructive' });
-      return;
-    }
-    setIsLoading(true);
-    const { error } = await signInWithGoogle();
-    if (error) {
-      setIsLoading(false);
-      toast({ title: t('googleFailed'), description: error.message, variant: 'destructive' });
     }
   };
 
@@ -163,19 +146,6 @@ export default function Register() {
               </Button>
             </div>
           </form>
-
-          {enableGoogleAuth && (
-            <>
-              <div className="relative flex items-center">
-                <div className="flex-grow border-t border-border" />
-                <span className="mx-3 text-xs text-muted-foreground">{t('or')}</span>
-                <div className="flex-grow border-t border-border" />
-              </div>
-              <Button type="button" variant="outline" className="w-full" onClick={handleGoogle} disabled={isLoading}>
-                {t('continueWithGoogle')}
-              </Button>
-            </>
-          )}
 
           <p className="text-sm text-muted-foreground text-center">
             {t('register.alreadyHaveAccount')}{' '}

@@ -3,6 +3,7 @@
   "actions": {
     "signIn": "Sign in",
     "signOut": "Sign out",
+    "profile": "Profile",
     "sponsor": "Sponsor",
     "loading": "Loading…",
     "reset": "Reset to Defaults",

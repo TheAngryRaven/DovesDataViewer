@@ -35,7 +35,7 @@ export function GraphRangeControl({
           formatLabel={formatRangeLabel}
         />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-[88px]">
         <SectorCropSelect
           course={course}
           laps={laps}

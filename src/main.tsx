@@ -37,11 +37,7 @@ const isInIframe = (() => {
   }
 })();
 
-const hostname = window.location.hostname.toLowerCase();
-const isPreviewHost =
-  hostname.includes("id-preview--") ||
-  hostname.includes("lovableproject.com") ||
-  window.location.search.includes("nosw=1");
+const isPreviewHost = window.location.search.includes("nosw=1");
 
 const cleanupPreviewServiceWorkers = async () => {
   const registrations = await navigator.serviceWorker?.getRegistrations();

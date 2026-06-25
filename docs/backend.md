@@ -106,7 +106,7 @@ pull; pulling persists via `ctx.onSaveFile` (which refreshes the list). A
 dedicated Cloud *tab* (a new garage-tab mount slot), `modified` detection, and a
 "sync all" affordance remain follow-ups.
 
-After a migration, Lovable regenerates `integrations/supabase/types.ts`. Until
+After a migration, regenerate `integrations/supabase/types.ts` from Supabase. Until
 then `cloudClient.ts` accesses the new table/bucket through a narrowly-typed
 escape hatch confined to that one module.
 

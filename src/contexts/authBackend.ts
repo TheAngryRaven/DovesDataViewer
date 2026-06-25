@@ -127,19 +127,3 @@ export async function signUp(email: string, password: string, displayName?: stri
   });
   return { error };
 }
-
-export async function signInWithGoogle() {
-  try {
-    // Lazy import keeps the Lovable auth SDK out of the main chunk; this
-    // module is only imported in cloud-flagged builds, but the dynamic
-    // import doubles as belt-and-suspenders.
-    const { lovable } = await import('@/integrations/lovable/index');
-    const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: window.location.origin + '/auth/callback',
-    });
-    if (result.error) return { error: result.error as Error };
-    return { error: null };
-  } catch (e) {
-    return { error: e instanceof Error ? e : new Error(String(e)) };
-  }
-}

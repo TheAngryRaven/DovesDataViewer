@@ -372,7 +372,6 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_PROJECT_ID` | Client | Backend creds (auto-set; `vite.config.ts` has public fallbacks) |
 | `VITE_ENABLE_ADMIN` | Client | `"true"` enables admin UI + `/admin`. `/login` is mounted when this OR `VITE_ENABLE_CLOUD` is on. |
 | `VITE_ENABLE_CLOUD` | Client | `"true"` enables public accounts (Cloud Sync + email sign-in + `/register` etc.). Default `"false"`. |
-| `VITE_ENABLE_GOOGLE_AUTH` | Client | `"true"` shows "Continue with Google". Requires `VITE_ENABLE_CLOUD`. Default `"false"`. |
 | `VITE_IS_NATIVE` | Client/Build | `"true"` ONLY for the native (Tauri/Android) shell build. Gates `isNativeApp()` (`lib/platform.ts`): no service worker, no in-app purchases (web-only billing — Google Play policy), external links via the system browser. Default `"false"`. → `docs/android.md`. |
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |

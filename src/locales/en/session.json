@@ -93,6 +93,12 @@
     "fullLap": "Full lap",
     "sector": "Sector {{label}}"
   },
+  "controls": {
+    "collapsePanel": "Collapse graph",
+    "expandPanel": "Expand graph",
+    "showLegend": "Show legend",
+    "hideLegend": "Hide legend"
+  },
   "map": {
     "mapPrefix": "Map",
     "styleDark": "Dark",
