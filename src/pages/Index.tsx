@@ -211,6 +211,9 @@ export default function Index() {
     currentIndex,
     onScrub: handleScrub,
     sessionFileName: currentFileName,
+    // When the top play button drives the cursor, the video plays natively as a
+    // drift-corrected slave instead of being seek-scrubbed per tick (stutter).
+    dataIsPlaying: isPlaying,
   });
   const currentSample = visibleSamples[currentIndex] ?? null;
 

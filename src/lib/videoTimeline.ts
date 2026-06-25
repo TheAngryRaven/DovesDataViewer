@@ -120,3 +120,48 @@ export function fitVideoTimeline(
   return { syncOffsetMs, syncRate: rate };
 }
 
+// ─── playback coordination policy ────────────────────────────────────────────
+//
+// When the telemetry cursor is being PLAYED (the top play button) and a video is
+// locked, the video must NOT be seek-scrubbed once per cursor tick — assigning
+// `video.currentTime` ~20×/s forces a keyframe seek every time and stutters
+// badly. Instead the data clock stays the single cursor authority and the video
+// is a *slave* that plays natively (smooth decode), nudged back into alignment
+// only when it drifts past a threshold. These pure helpers encode that policy so
+// the hook is a thin executor and the decision is unit-testable.
+
+/**
+ * What a locked video should do while the telemetry cursor is playing.
+ * - `play` — the cursor is over footage: the video plays natively as a slave.
+ * - `hold` — the cursor is in a gap with no footage: pause + blank the video,
+ *   but the cursor/charts keep playing through the gap.
+ * - `idle` — no coordination (unlocked, no video, or the cursor isn't playing);
+ *   the video is driven by its own controls / the paused-scrub path instead.
+ */
+export type VideoSlaveAction = 'play' | 'hold' | 'idle';
+
+export function videoSlaveAction(args: {
+  isLocked: boolean;
+  dataIsPlaying: boolean;
+  hasVideo: boolean;
+  coverage: VideoCoverage;
+}): VideoSlaveAction {
+  if (!args.isLocked || !args.dataIsPlaying || !args.hasVideo) return 'idle';
+  return args.coverage === 'covered' ? 'play' : 'hold';
+}
+
+/**
+ * Drift tolerance (seconds) before a playing slave video is hard-seeked back
+ * into alignment. A couple of frames keeps A/V tight without seeking on the
+ * sub-frame jitter that native playback always has; `fps` falls back sanely.
+ */
+export function resyncThresholdSec(fps: number, frames = 2): number {
+  const safeFps = Number.isFinite(fps) && fps > 0 ? fps : 30;
+  return frames / safeFps;
+}
+
+/** True when a playing slave video has drifted far enough to warrant a seek. */
+export function needsResync(actualVideoSec: number, targetVideoSec: number, thresholdSec: number): boolean {
+  return Math.abs(actualVideoSec - targetVideoSec) > thresholdSec;
+}
+

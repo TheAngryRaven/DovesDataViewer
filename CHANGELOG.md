@@ -43,6 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every tab and panel ~30–60×/sec. The per-frame playhead now lives in its own tiny
   context (like the playback cursor already does), so only the video time readout
   re-renders per frame and the rest of the view stays quiet.
+- **A synced video no longer stutters when you play or scrub the data.** Pressing
+  the top play button (or dragging the chart) used to *seek* the video ~20×/sec to
+  chase the telemetry cursor — every seek forces the decoder back to a keyframe, so
+  the picture juddered instead of playing. When the cursor is being played over
+  footage, the video now plays **natively** and is only nudged back into alignment
+  if it drifts more than a couple of frames, so playback is smooth; scrubbing uses a
+  faster approximate seek. The telemetry cursor stays the single clock, and stretches
+  with no footage still let the charts play straight through.
 - **Split-graphs comparison video no longer drifts lap-by-lap.** Two causes are
   fixed. First, the comparison player seeked off the overlay lap's snapped first
   sample (a sub-sample fraction before the true start/finish crossing); it now
