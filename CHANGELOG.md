@@ -49,11 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so the picture juddered instead of playing. The top play button now drives the
   **video itself** when it's locked over footage (the same smooth path as the
   video's own play button), with the cursor derived from the video's playhead.
-- **Scrubbing a synced video now lands on the same frame every time.** Dragging the
-  data cursor and releasing could leave the video on a slightly different frame each
-  time: a fixed seek-throttle silently dropped the final seek, parking the video on a
-  stale frame. Seeks are now coalesced onto the next animation frame, so the cursor's
-  final position always lands (and a fast approximate seek is used where supported).
+- **Scrubbing a synced video is smoother and lands on the same frame every time.**
+  Dragging the data cursor fired a fresh video seek every frame regardless of whether
+  the previous one had finished, so the decoder thrashed (cancel/restart) and the
+  picture juddered; a fixed seek-throttle also dropped the final seek, parking the
+  video on a stale frame. Seeks are now **paced** on the video's own `seeked` event —
+  the next seek is issued only when the last completes, always to the latest cursor
+  position — using a fast approximate seek during the drag and one precise seek once
+  the cursor settles, so the parked frame is exact and repeatable.
 - **Split-graphs comparison video no longer drifts lap-by-lap.** Two causes are
   fixed. First, the comparison player seeked off the overlay lap's snapped first
   sample (a sub-sample fraction before the true start/finish crossing); it now

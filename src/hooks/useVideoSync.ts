@@ -585,53 +585,90 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     return () => { active = false; };
   }, [videoUrl, isLocked, isPlaying, syncOffsetMs, syncRate]);
 
-  // Data-drives-video SCRUB (locked + nothing playing): seek the playlist to the
-  // selected sample so the video follows the cursor while you drag or park.
+  // ── Data-drives-video SCRUB (locked + nothing playing) ─────────────────────
+  // Follow the cursor with the video while dragging or parked. Seeks are PACED
+  // on the <video>'s own `seeked` event: we keep only the latest desired
+  // position and issue the next seek when the previous one finishes, rather than
+  // firing a fresh seek every animation frame. Setting `currentTime` faster than
+  // the decoder can service it makes the browser cancel-and-restart in-flight
+  // seeks — that thrash is the scrub stutter. Pacing runs the decoder at its
+  // natural rate and always converges on where the cursor actually ended up.
   //
-  // The seek is COALESCED onto the next animation frame, not gated by a fixed
-  // time-throttle. A throttle (`if (now - last < 50ms) return`) silently DROPS
-  // the trailing seek when you release after a fast drag, so the same cursor
-  // index lands on a different video frame each time (it's parked wherever the
-  // last un-dropped seek left it). rAF coalescing instead guarantees the LAST
-  // cursor position always seeks — deterministic — while still collapsing a
-  // burst of drag updates to one (fast) seek per frame.
+  // During the drag we use the fast (approximate, keyframe) seek for
+  // responsiveness; ~150ms after the cursor settles we land one PRECISE seek so
+  // the parked frame is exact — and deterministic (same cursor → same frame),
+  // which a fixed seek-throttle broke by dropping the trailing seek.
+  const scrubTargetSecRef = useRef<number | null>(null);
+  const scrubInFlightRef = useRef(false);
+  const scrubSettleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const issueScrubSeek = useCallback((virtualSec: number, precise: boolean): boolean => {
+    const video = videoRef.current;
+    if (!video) return false;
+    const pl = playlistRef.current;
+    if (pl) {
+      const { index, localSec } = virtualToLocal(pl, virtualSec);
+      if (index !== currentChunkIndexRef.current) { loadChunk(index, localSec, false); return true; }
+      if (!needsResync(video.currentTime, localSec, 0.5 / fps)) return false;
+      if (precise) video.currentTime = localSec; else seekVideoElement(video, localSec);
+      return true;
+    }
+    if (!needsResync(video.currentTime, virtualSec, 0.5 / fps)) return false;
+    if (precise) video.currentTime = virtualSec; else seekVideoElement(video, virtualSec);
+    return true;
+  }, [loadChunk, fps]);
+
+  const pumpScrubSeek = useCallback(() => {
+    if (scrubInFlightRef.current) return;
+    const target = scrubTargetSecRef.current;
+    if (target == null) return;
+    scrubTargetSecRef.current = null;
+    if (issueScrubSeek(target, false)) scrubInFlightRef.current = true;
+  }, [issueScrubSeek]);
+
+  // Pace the next queued scrub seek off the previous one completing.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onSeeked = () => { scrubInFlightRef.current = false; pumpScrubSeek(); };
+    video.addEventListener("seeked", onSeeked);
+    return () => video.removeEventListener("seeked", onSeeked);
+  }, [videoUrl, pumpScrubSeek]);
+
+  useEffect(() => () => { if (scrubSettleRef.current) clearTimeout(scrubSettleRef.current); }, []);
+
   useEffect(() => {
     if (!isLocked || isPlaying || dataIsPlaying) return;
     const video = videoRef.current;
     if (!video || !videoUrl || samples.length === 0) return;
     const sample = samples[currentIndex];
     if (!sample) return;
-    const raf = requestAnimationFrame(() => {
-      const pl = playlistRef.current;
-      const total = pl ? pl.totalDuration : video.duration;
-      const virtualSec = sessionMsToVideoSec(sample.t, syncOffsetMs, syncRate);
-      const clampedSec = Math.max(0, virtualSec);
-      const cov = coverageOf(sample.t, syncOffsetMs, total, syncRate);
-      setCoverage(cov);
-      if (cov !== 'covered') {
-        // No footage for this session position — blank it, but the cursor/charts
-        // stay free to scrub or play through the gap.
-        setIsOutOfRange(true);
-        if (!video.paused) video.pause();
-      } else {
-        setIsOutOfRange(false);
-        if (pl) {
-          const { index, localSec } = virtualToLocal(pl, clampedSec);
-          if (index !== currentChunkIndexRef.current) {
-            loadChunk(index, localSec, false);
-          } else if (needsResync(video.currentTime, localSec, 0.5 / fps)) {
-            seekVideoElement(video, localSec);
-          }
-        } else if (needsResync(video.currentTime, clampedSec, 0.5 / fps)) {
-          seekVideoElement(video, clampedSec);
-        }
-      }
-      setVideoCurrentTime(clampedSec);
-    });
-    // A newer cursor value cancels this pending seek and schedules its own, so
-    // only the latest position ever lands — that's what makes it deterministic.
-    return () => cancelAnimationFrame(raf);
-  }, [currentIndex, isLocked, isPlaying, dataIsPlaying, syncOffsetMs, syncRate, samples, videoUrl, fps, loadChunk]);
+    const pl = playlistRef.current;
+    const total = pl ? pl.totalDuration : video.duration;
+    const virtualSec = sessionMsToVideoSec(sample.t, syncOffsetMs, syncRate);
+    const clampedSec = Math.max(0, virtualSec);
+    const cov = coverageOf(sample.t, syncOffsetMs, total, syncRate);
+    setCoverage(cov);
+    setVideoCurrentTime(clampedSec);
+    if (cov !== 'covered') {
+      // No footage here — blank it; the cursor/charts still scrub through the gap.
+      setIsOutOfRange(true);
+      if (!video.paused) video.pause();
+      return;
+    }
+    setIsOutOfRange(false);
+    // Queue the latest position; the pacer issues it when the decoder is ready.
+    scrubTargetSecRef.current = clampedSec;
+    pumpScrubSeek();
+    // Land an exact-frame seek once the drag settles (also self-heals a stuck
+    // in-flight flag if a seek never reported back).
+    if (scrubSettleRef.current) clearTimeout(scrubSettleRef.current);
+    scrubSettleRef.current = setTimeout(() => {
+      scrubInFlightRef.current = false;
+      const v = videoRef.current;
+      if (v && v.paused) issueScrubSeek(clampedSec, true);
+    }, 150);
+  }, [currentIndex, isLocked, isPlaying, dataIsPlaying, syncOffsetMs, syncRate, samples, videoUrl, pumpScrubSeek, issueScrubSeek]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
