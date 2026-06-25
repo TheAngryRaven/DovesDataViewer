@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [2.9.2] - unreleased
+## [2.9.2] - 2026-06-25
 
 ### Added
 - **Frame-by-frame stepping in the header.** Two new buttons flank the play button
@@ -129,7 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   track sync and firmware update stay on the Web Bluetooth path for now. Web
   downloads are unchanged.
 
-## [2.9.1] - unreleased
+## [2.9.1] - 2026-06-22
 
 ### Changed
 - **Landing hero wording.** Dropped "Online" from the main heading (it's an
