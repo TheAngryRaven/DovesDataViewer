@@ -1,6 +1,6 @@
 ---
 name: beta-release-prep
-description: Prepare the BETA branch for release into main. Use when the user wants to "prep beta", "cut a release", "get beta ready for main", or "do release prep". Creates a release branch off BETA, flips the eye-in-the-sky coach plugin from the BETA git dependency to the published production npm package, sets the version in package.json to match the topmost unreleased CHANGELOG heading, dates that heading to today, runs the green-before-merge checks, opens a PR into BETA, ensures a BETA→main PR exists, and opens a follow-up "flip coach back to BETA" PR to merge after release. Never creates tags.
+description: Prepare the BETA branch for release into main. Use when the user wants to "prep beta", "cut a release", "get beta ready for main", or "do release prep". Researches every commit between the last release tag and BETA to verify the CHANGELOG is complete and to build release notes, creates a release branch off BETA, flips the eye-in-the-sky coach plugin from the BETA git dependency to the published production npm package, sets the version in package.json to match the topmost unreleased CHANGELOG heading, dates that heading to today, runs the green-before-merge checks, opens a PR into BETA, ensures a BETA→main PR exists whose body is copy-paste-ready release notes, and opens a follow-up "flip coach back to BETA" PR to merge after release. Documents the manual post-release tag + back-merge of main into BETA. Never creates tags.
 ---
 
 # Beta → Main Release Prep
@@ -40,7 +40,7 @@ These two lines — `package.json` and `vite.config.ts` line ~156 — are the
 ### 0. Sync and branch
 
 ```bash
-git fetch --all --prune
+git fetch --all --prune --tags
 ```
 
 Cut the release branch from `origin/BETA` (not from your current HEAD):
@@ -53,6 +53,33 @@ If you must name the branch before knowing the version, use a placeholder like
 `release/beta-prep` and rename once the version is known, or just keep the
 descriptive name you were given. The important part is that it is based on
 `origin/BETA` and contains a clean tree.
+
+### 0.5. Research the commits since the last release
+
+Releases are tagged on `main` (e.g. `v2.9.1`). The maintainer tags manually
+after merge, so the **latest tag is the last shipped version**. Diff every commit
+between it and `BETA` — this drives both a CHANGELOG-completeness check and the
+release notes in step 6.
+
+```bash
+LAST_TAG=$(git tag --sort=-v:refname | head -1)
+echo "Last released tag: $LAST_TAG"
+git log "$LAST_TAG"..origin/BETA --oneline                  # full commit list
+git log "$LAST_TAG"..origin/BETA --oneline --merges         # merged PRs (often the cleanest summary)
+git diff "$LAST_TAG"..origin/BETA --stat                    # what changed, by file
+```
+
+> The tag lives on `main` and (due to the back-merge model — see "Post-release
+> back-merge" below) may **not** be an ancestor of `BETA`. That's fine: the
+> tagged commit still has `BETA`'s previously-released history as ancestors, so
+> `"$LAST_TAG"..origin/BETA` correctly lists only the *new* commits since release.
+
+**Use this to verify the CHANGELOG is complete.** Walk the merged-PR / commit
+list and confirm every user-facing change is reflected under the topmost
+`## [X.Y.Z] - unreleased` heading. If something user-facing is missing, add it to
+that section before continuing (the changelog is part of the change — Golden Rule
+4). Internal-only commits (CI, tests, refactors with no user impact) don't need a
+changelog line. Keep the raw `git log` output around — step 6 reuses it.
 
 ### 1. Flip the coach plugin to production
 
@@ -162,11 +189,25 @@ tools in the remote/web environment. Owner/repo: `TheAngryRaven/DovesDataViewer`
   ```
   list_pull_requests(owner, repo, base="main", head="BETA", state="open")
   ```
-- If it exists, leave it and just note its number/URL. **Do not** open a
-  duplicate.
-- If not, create it: base `main`, head `BETA`, title `Release v<X.Y.Z>`,
-  body listing the highlights from the dated CHANGELOG section. It may be a
-  draft until PR A lands.
+- **The body must BE the release notes**, written so the maintainer can
+  copy-paste it verbatim into the GitHub Release notes when they tag. Build it
+  from the dated `## [X.Y.Z]` CHANGELOG section (the one you just finalized),
+  cross-checked against the step 0.5 commit research so nothing user-facing is
+  missing. Format:
+  - Start with a one-line `## v<X.Y.Z> — <YYYY-MM-DD>` header.
+  - Reproduce the CHANGELOG section's `### Added / Changed / Fixed / …`
+    subsections and bullets verbatim — this is the human-readable changelog,
+    not a commit dump.
+  - End with a `**Full changelog:** <LAST_TAG>...v<X.Y.Z>` compare link, e.g.
+    `https://github.com/TheAngryRaven/DovesDataViewer/compare/<LAST_TAG>...main`.
+  - Do **not** append the Claude/Co-Authored-By footer to this body — it's
+    release-notes copy, not a normal PR description.
+- **If the PR already exists**, don't open a duplicate — instead update its body
+  to the freshly-generated release notes (`update_pull_request`) so it stays
+  copy-paste ready, and note its number/URL.
+- If it doesn't exist, create it: base `main`, head `BETA`,
+  title `Release v<X.Y.Z>`, body = the release notes above. It may stay a draft
+  until PR A lands.
 
 **PR C — flip the coach back to BETA** (post-release cleanup, opened now):
 - Cut another branch from `origin/BETA`:
@@ -186,8 +227,43 @@ tools in the remote/web environment. Owner/repo: `TheAngryRaven/DovesDataViewer`
 ### 7. Report
 
 Summarize for the user: the release version, whether the coach needed flipping or
-was already production, the three PR URLs (noting if PR B already existed), and an
-explicit reminder that **no tag was created** — they tag manually after merge.
+was already production, the three PR URLs (noting if PR B already existed /
+was updated), and an explicit reminder that **no tag was created** — they tag
+manually after merge. Then remind them of the two manual post-release steps below.
+
+## Post-release: tag, then back-merge main into BETA (manual, after merge)
+
+This skill stops at *prep* — it can't tag or back-merge, because at prep time the
+release isn't merged into `main` yet. Once the maintainer merges **PR B
+(BETA → main)**, two things happen in order:
+
+1. **Tag the release on `main`** (maintainer does this by hand — Claude tagging
+   errors out). The tag (`v<X.Y.Z>`) lands on the `main` merge commit.
+2. **Back-merge `main` into `BETA`.** This is the part that's easy to forget and
+   the reason `git describe` / "commits since last tag" goes wrong over time.
+
+**Why the back-merge is required.** Merging `BETA → main` creates a merge commit
+on `main`; the tag sits on `main` only and is **never** copied to `BETA`. So
+`BETA` and `main` diverge — the tag isn't an ancestor of `BETA`, `git describe`
+from `BETA` can't find the latest release, and the gap compounds with every
+release (you can confirm with `git merge-base --is-ancestor v<X.Y.Z> origin/BETA`
+returning non-zero). Merging `main` back into `BETA` reconverges the branches so
+the tag is reachable from `BETA` again. This is the existing `Main2beta-*` branch
+pattern in the repo history.
+
+Do it via a normal PR (don't push to `BETA` directly):
+
+```bash
+git fetch --all --tags
+git switch -c chore/main-back-to-beta origin/main
+git push -u origin chore/main-back-to-beta
+# open PR: base BETA, head chore/main-back-to-beta, title "Back-merge main → BETA after v<X.Y.Z>"
+```
+
+> Order matters: merge **PR C (flip coach back to BETA)** and this back-merge into
+> `BETA` *after* the release is on `main`. If PR C's coach revert lands on `BETA`
+> before `BETA → main` merges, the release ships with the BETA git-dependency
+> coach — the exact bug this whole skill exists to prevent.
 
 ## Notes & edge cases
 
