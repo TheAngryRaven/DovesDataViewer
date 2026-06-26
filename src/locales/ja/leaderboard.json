@@ -24,5 +24,8 @@
     "exit": "終了",
     "descriptor": "{{course}} · {{engine}}",
     "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
-  }
+  },
+  "loadTopSession_one": "最速ラップを1つのセッションとして読み込む",
+  "loadTopSession_other": "上位 {{count}} ラップを1つのセッションとして読み込む",
+  "loadAllSession": "すべてのラップを1つのセッションとして読み込む"
 }

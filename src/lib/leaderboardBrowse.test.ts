@@ -55,6 +55,9 @@ describe("buildBrowseTree", () => {
     expect(course.groups[0].recordCount).toBe(2);
     expect(course.engineCount).toBe(1);
     expect(course.fastestMs).toBe(61000);
+    // entries + entryIds are ranked fastest-first.
+    expect(course.groups[0].entries.map((x) => x.lapTimeMs)).toEqual([61000, 63000]);
+    expect(course.groups[0].entryIds).toEqual(course.groups[0].entries.map((x) => x.id));
   });
 
   it("splits by exact weight when grouping by weight", () => {
