@@ -27,6 +27,10 @@
     "build": {
       "title": "Construye tu propio registrador",
       "description": "Hardware y firmware GPS de código abierto: el DovesDataLogger"
+    },
+    "leaderboards": {
+      "title": "Leaderboards",
+      "description": "Compare fastest laps by track, course and engine class"
     }
   },
   "links": {

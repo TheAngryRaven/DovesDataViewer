@@ -24,6 +24,7 @@ export const GraphViewTab = memo(function GraphViewTab() {
       sessionStartDate={s.sessionStartDate}
       cachedWeatherStation={s.cachedWeatherStation}
       onWeatherStationResolved={s.onWeatherStationResolved}
+      readOnly={s.readOnly}
       vehicles={s.vehicles}
       setups={s.setups}
       templates={s.templates}

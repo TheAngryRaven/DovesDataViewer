@@ -1,0 +1,28 @@
+{
+  "_machine": true,
+  "title": "Leaderboards",
+  "subtitle": "Fastest community laps by track, course and engine class.",
+  "empty": "No submissions yet :(",
+  "loadFailed": "Couldn't load the leaderboards.",
+  "loading": "Loading leaderboards…",
+  "showTop": "Show top",
+  "all": "All",
+  "groupByWeight": "Group by weight",
+  "bubbles": {
+    "engines_one": "{{count}} engine",
+    "engines_other": "{{count}} engines",
+    "records_one": "{{count}} record",
+    "records_other": "{{count}} records",
+    "fastest": "Fastest: {{time}}"
+  },
+  "unclassifiedEngine": "Unclassified",
+  "weightLabel": "{{weight}} {{unit}}",
+  "openGroup": "View laps",
+  "buildFailed": "Couldn't build that session.",
+  "readOnly": {
+    "banner": "Read-only leaderboard view",
+    "exit": "Exit",
+    "descriptor": "{{course}} · {{engine}}",
+    "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
+  }
+}

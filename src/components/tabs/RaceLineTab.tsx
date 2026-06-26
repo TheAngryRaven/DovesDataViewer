@@ -55,6 +55,7 @@ export const RaceLineTab = memo(function RaceLineTab({ showOverlays }: RaceLineT
           sessionFileName={s.sessionFileName}
           cachedWeatherStation={s.cachedWeatherStation}
           onWeatherStationResolved={s.onWeatherStationResolved}
+          readOnly={s.readOnly}
           isAllLaps={s.isAllLaps}
           parserStats={s.parserStats}
           overlayLines={s.overlayLines}

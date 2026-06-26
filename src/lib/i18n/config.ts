@@ -35,7 +35,7 @@ export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
  * migrated (see docs/plans/0004-i18n-translation-system.md). `common` is always
  * loaded; the rest load on demand for their surface.
  */
-export const NAMESPACES = ["common", "landing", "settings", "session", "video", "drawer", "weather", "tracks", "plugins", "auth", "admin", "logger"] as const;
+export const NAMESPACES = ["common", "landing", "settings", "session", "video", "drawer", "weather", "tracks", "plugins", "auth", "admin", "logger", "leaderboard"] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
 export const DEFAULT_NAMESPACE: Namespace = "common";

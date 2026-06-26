@@ -6,7 +6,8 @@
     "account": "Account",
     "lapSnapshots": "Istantanee del giro",
     "cloudLogs": "Registri nel cloud",
-    "dataPrivacy": "Dati e privacy"
+    "dataPrivacy": "Dati e privacy",
+    "leaderboards": "Leaderboards"
   },
   "account": {
     "signInBlurb": "Accedi per eseguire il backup e sincronizzare i tuoi file, il garage e le note tra i dispositivi. Tutto qui continua a funzionare offline su questo dispositivo — Cloud Sync è facoltativo.",
@@ -172,5 +173,28 @@
     "downloadingFiles_one": "Download di {{count}} file dal cloud…",
     "downloadingFiles_other": "Download di {{count}} file dal cloud…",
     "zipping": "Compressione…"
+  },
+  "leaderboard": {
+    "signInHint": "Sign in to submit your snapshots to the public leaderboards.",
+    "noSnapshots": "Capture a lap snapshot to submit it to the leaderboards.",
+    "intro_one": "You have {{count}} snapshot you can submit to the leaderboards.",
+    "intro_other": "You have {{count}} snapshots you can submit to the leaderboards.",
+    "submitButton": "Submit to leaderboards",
+    "dialogTitle": "Submit to leaderboards",
+    "dialogDescription": "Your GPS data, engine, and listed weight are public so others can compare and verify laps. Your setup sheet and engine sensor data stay private unless you choose to share them.",
+    "listedWeight": "Listed weight",
+    "listedWeightHint": "Shown publicly and used to group records. Defaults to your vehicle weight — change it if you'd rather list a class weight.",
+    "weightRequired": "Enter a listed weight to submit.",
+    "shareSetup": "Share my setup sheet",
+    "shareEngineData": "Share engine sensor data (RPM, temps)",
+    "publicNotice": "Public: GPS, engine name, lap time, listed weight.",
+    "submitOne": "Submit",
+    "submitting": "Submitting…",
+    "submitted": "Submitted",
+    "submitSuccess": "Submitted to the leaderboards.",
+    "submitFailed": "Couldn't submit — please try again.",
+    "alreadySubmitted": "Already on the leaderboards.",
+    "loadFailed": "Couldn't load your submissions.",
+    "close": "Close"
   }
 }

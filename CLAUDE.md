@@ -80,12 +80,14 @@ telemetry viewer.
 ```
 src/
 ├── pages/
-│   ├── Index.tsx          # ★ Main SPA — file import, tab views, all state orchestration
+│   ├── Index.tsx          # ★ Main SPA — file import, tab views, all state orchestration. Also hosts the read-only Leaderboards viewer (plan 0005): consumes a leaderboardHandoff bundle on mount, injects its prebuilt laps/selection, flips a `readOnly` flag that alert-colours the header + hides Coach/Tools/Setups + video/weather/snapshots and labels laps by submitter.
+│   ├── Leaderboards.tsx   # ★ Public /leaderboards page (cloud-gated): Track→Course→engine/weight accordion (Group-by-weight + Show-top), opens a group into Index's read-only viewer via leaderboardHandoff
 │   ├── Admin.tsx          # Admin panel (behind VITE_ENABLE_ADMIN)
 │   └── …                  # Login / Register / Privacy / Terms / NotFound
 ├── components/
 │   ├── ui/                # shadcn/ui primitives
-│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages)
+│   ├── SiteHeader.tsx     # ★ Shared sticky top banner (sponsor + settings + profile); LandingPage shows all, Leaderboards hides supported-files/about
+│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages, Leaderboards)
 │   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Coach, Tools; SetupsNotesPanel = Setups+Notes 50/50 split on md+, separate tabs on phones — bodies live in drawer/)
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox, PanelCard (resizable card chrome for relocated Video/Mini-Map panels). The left column collapses via a divider flag tab (any screen size), and Video/Mini-Map can be relocated into the resizable graph stack from the top of the "Add Graph" picker (GraphPanel reports which are active so the host drops its duplicate VideoPlayer — single shared video ref). Split graphs (tablet+): SecondaryGraphStack mirrors the main panel's graph set for a chosen overlay lap in a draggable two-up view, overriding PlaybackContext for its subtree (nested PlaybackProvider) so one cursor lands on the same track position in both laps (distance-mapped via lib/referenceUtils mapIndexByDistance); SecondaryVideo is a literal second, lap-synced <video> for in-session overlay laps.
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Device*); SetupsTab + NotesTab also here but mounted as main-view tabs
@@ -115,6 +117,7 @@ src/
 │   ├── sampleData.ts      # ★ Bundled sample log seeded as an ordinary file (→ docs/subsystems.md)
 │   ├── lapOverlays.ts / lapAlignment.ts  # ★ Multi-lap overlay logic + Kabsch drift-align (→ docs/subsystems.md)
 │   ├── lapSnapshot*.ts    # ★ Snapshot types/buffer + IndexedDB CRUD (→ docs/subsystems.md)
+│   ├── leaderboard*.ts    # ★ Leaderboards (plan 0005): leaderboardTypes (shared), leaderboardBrowse (Track→Course→engine/weight tree), leaderboardSession (transpose entries → one read-only synthetic session, fastest=lap 1), leaderboardHandoff (one-shot page→Index handoff). Submission + Supabase access live in plugins/cloud-sync (leaderboardSubmission/leaderboardClient). → docs/backend.md
 │   ├── setupRevision*.ts  # ★ Content-addressed setup history + IndexedDB CRUD (→ docs/subsystems.md)
 │   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
 │   ├── vehicleHistory.ts  # ★ Pure vehicle-history view-model (per-vehicle setup revisions, fastest-lap first, course filter) → drawer/VehicleHistoryPanel; reuses setupHistory primitives; shared card chrome in drawer/HistoryCard.tsx

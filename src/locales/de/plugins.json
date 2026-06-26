@@ -6,7 +6,8 @@
     "account": "Konto",
     "lapSnapshots": "Runden-Snapshots",
     "cloudLogs": "Cloud-Logs",
-    "dataPrivacy": "Daten & Datenschutz"
+    "dataPrivacy": "Daten & Datenschutz",
+    "leaderboards": "Leaderboards"
   },
   "account": {
     "signInBlurb": "Melde dich an, um deine Dateien, deine Garage und Notizen geräteübergreifend zu sichern und zu synchronisieren. Alles hier funktioniert weiterhin offline auf diesem Gerät — Cloud Sync ist optional.",
@@ -172,5 +173,28 @@
     "downloadingFiles_one": "{{count}} Cloud-Datei wird heruntergeladen…",
     "downloadingFiles_other": "{{count}} Cloud-Dateien werden heruntergeladen…",
     "zipping": "Wird komprimiert…"
+  },
+  "leaderboard": {
+    "signInHint": "Sign in to submit your snapshots to the public leaderboards.",
+    "noSnapshots": "Capture a lap snapshot to submit it to the leaderboards.",
+    "intro_one": "You have {{count}} snapshot you can submit to the leaderboards.",
+    "intro_other": "You have {{count}} snapshots you can submit to the leaderboards.",
+    "submitButton": "Submit to leaderboards",
+    "dialogTitle": "Submit to leaderboards",
+    "dialogDescription": "Your GPS data, engine, and listed weight are public so others can compare and verify laps. Your setup sheet and engine sensor data stay private unless you choose to share them.",
+    "listedWeight": "Listed weight",
+    "listedWeightHint": "Shown publicly and used to group records. Defaults to your vehicle weight — change it if you'd rather list a class weight.",
+    "weightRequired": "Enter a listed weight to submit.",
+    "shareSetup": "Share my setup sheet",
+    "shareEngineData": "Share engine sensor data (RPM, temps)",
+    "publicNotice": "Public: GPS, engine name, lap time, listed weight.",
+    "submitOne": "Submit",
+    "submitting": "Submitting…",
+    "submitted": "Submitted",
+    "submitSuccess": "Submitted to the leaderboards.",
+    "submitFailed": "Couldn't submit — please try again.",
+    "alreadySubmitted": "Already on the leaderboards.",
+    "loadFailed": "Couldn't load your submissions.",
+    "close": "Close"
   }
 }

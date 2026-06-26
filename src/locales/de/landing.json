@@ -27,6 +27,10 @@
     "build": {
       "title": "Bau deinen eigenen Logger",
       "description": "Open-Source-GPS-Hardware & -Firmware – der DovesDataLogger"
+    },
+    "leaderboards": {
+      "title": "Leaderboards",
+      "description": "Compare fastest laps by track, course and engine class"
     }
   },
   "links": {

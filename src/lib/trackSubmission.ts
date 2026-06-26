@@ -22,6 +22,7 @@ import type { Course, Track } from '@/types/racing';
 import { deriveShortName } from '@/lib/trackUtils';
 import { legacyMirror, normalizeCourseSectors } from '@/lib/courseSectors';
 import { sectorsToJson, type SectorJson } from '@/lib/trackStorage';
+import { fnv1a } from '@/lib/fnv1a';
 
 /** Flat snake_case coordinate payload — the shape the edge fn + DB expect. */
 export interface CourseSubmissionData {
@@ -137,15 +138,6 @@ export function courseToSubmissionData(course: Course): CourseSubmissionData {
 }
 
 // FNV-1a 32-bit → 8 hex chars. Not cryptographic — only change-detection.
-function fnv1a(str: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(16).padStart(8, '0');
-}
-
 /** Canonical (rounded) string for a drawn outline, or '' when there is none. */
 function layoutHashInput(layout?: Array<{ lat: number; lon: number }>): string {
   if (!layout || layout.length < 2) return '';

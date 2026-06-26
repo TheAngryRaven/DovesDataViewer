@@ -6,7 +6,8 @@
     "account": "Compte",
     "lapSnapshots": "Instantanés de tour",
     "cloudLogs": "Journaux dans le cloud",
-    "dataPrivacy": "Données et confidentialité"
+    "dataPrivacy": "Données et confidentialité",
+    "leaderboards": "Leaderboards"
   },
   "account": {
     "signInBlurb": "Connectez-vous pour sauvegarder et synchroniser vos fichiers, votre garage et vos notes sur tous vos appareils. Tout ici fonctionne toujours hors ligne sur cet appareil — Cloud Sync est optionnel.",
@@ -172,5 +173,28 @@
     "downloadingFiles_one": "Téléchargement de {{count}} fichier du cloud…",
     "downloadingFiles_other": "Téléchargement de {{count}} fichiers du cloud…",
     "zipping": "Compression…"
+  },
+  "leaderboard": {
+    "signInHint": "Sign in to submit your snapshots to the public leaderboards.",
+    "noSnapshots": "Capture a lap snapshot to submit it to the leaderboards.",
+    "intro_one": "You have {{count}} snapshot you can submit to the leaderboards.",
+    "intro_other": "You have {{count}} snapshots you can submit to the leaderboards.",
+    "submitButton": "Submit to leaderboards",
+    "dialogTitle": "Submit to leaderboards",
+    "dialogDescription": "Your GPS data, engine, and listed weight are public so others can compare and verify laps. Your setup sheet and engine sensor data stay private unless you choose to share them.",
+    "listedWeight": "Listed weight",
+    "listedWeightHint": "Shown publicly and used to group records. Defaults to your vehicle weight — change it if you'd rather list a class weight.",
+    "weightRequired": "Enter a listed weight to submit.",
+    "shareSetup": "Share my setup sheet",
+    "shareEngineData": "Share engine sensor data (RPM, temps)",
+    "publicNotice": "Public: GPS, engine name, lap time, listed weight.",
+    "submitOne": "Submit",
+    "submitting": "Submitting…",
+    "submitted": "Submitted",
+    "submitSuccess": "Submitted to the leaderboards.",
+    "submitFailed": "Couldn't submit — please try again.",
+    "alreadySubmitted": "Already on the leaderboards.",
+    "loadFailed": "Couldn't load your submissions.",
+    "close": "Close"
   }
 }

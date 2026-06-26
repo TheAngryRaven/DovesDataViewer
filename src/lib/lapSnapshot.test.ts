@@ -99,6 +99,16 @@ describe("buildSnapshot", () => {
     expect(snap.samples[0].t).toBe(0); // clamped to the first sample
   });
 
+  it("freezes the vehicle weight as the leaderboard listed-weight default", () => {
+    const snap = buildSnapshot({
+      lap, samples, course, trackName: "OKC", courseName: "Full CW",
+      engine: "Rotax", sourceFileName: "s.dove",
+      vehicle: { id: "v1", name: "Kart", number: 7, weight: 365, weightUnit: "lb" },
+    });
+    expect(snap.vehicle?.weight).toBe(365);
+    expect(snap.vehicle?.weightUnit).toBe("lb");
+  });
+
   it("preserves createdAt when replacing an existing snapshot", () => {
     const snap = buildSnapshot({
       lap, samples, course, trackName: "OKC", courseName: "Full CW",

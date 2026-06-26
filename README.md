@@ -34,6 +34,7 @@
 - Pro graph view with multi-series telemetry charts
 - Reference lap overlay & pace delta comparison
 - Lap snapshots — save a "course fastest lap" per engine, frozen for cross-session comparison (local-first, optionally cloud-synced)
+- Public leaderboards — submit your snapshots and browse fastest community laps by track, course and engine class (with optional weight grouping); opens any group in a read-only viewer (cloud-enabled builds)
 - Video sync with telemetry playback (incl. GoPro chunked recordings — select all chapter files and they play as one continuous video)
 - 9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)
 - MP4 video export with overlays & audio (H.264 + AAC)

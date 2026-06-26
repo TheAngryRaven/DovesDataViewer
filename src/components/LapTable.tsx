@@ -46,9 +46,13 @@ interface LapTableProps {
   // Map overlays (extra racing lines)
   overlayLines?: OverlayLine[];
   onToggleOverlay?: (id: string) => void;
+  // Read-only leaderboard view (plan 0005): label laps by submitter + show a
+  // course/engine/weight descriptor above the table.
+  lapLabels?: Record<number, string>;
+  readOnlyDescriptor?: { courseName: string; engineLabel: string; weightLabel?: string };
 }
 
-export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot, overlayLines = [], onToggleOverlay }: LapTableProps) {
+export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot, overlayLines = [], onToggleOverlay, lapLabels, readOnlyDescriptor }: LapTableProps) {
   const { t } = useTranslation('session');
   const { useKph } = useSettingsContext();
 
@@ -206,6 +210,16 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
 
   return (
     <div className="h-full overflow-auto scrollbar-thin">
+      {/* Read-only leaderboard descriptor: course · engine · weight class. */}
+      {readOnlyDescriptor && (
+        <div className="border-b border-border bg-warning/10 px-4 py-2 text-sm">
+          <span className="font-medium text-foreground">{readOnlyDescriptor.courseName}</span>
+          <span className="text-muted-foreground"> · {readOnlyDescriptor.engineLabel}</span>
+          {readOnlyDescriptor.weightLabel && (
+            <span className="text-muted-foreground"> · {readOnlyDescriptor.weightLabel}</span>
+          )}
+        </div>
+      )}
       {/* The external-reference bar is superseded by the header "Overlays" menu
           (set references there) + the per-row Ref/Map controls below. Kept
           mounted-but-hidden for now in case we need to fall back. */}
@@ -332,7 +346,11 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm">{lap.lapNumber}</span>
+                    {lapLabels?.[lap.lapNumber] ? (
+                      <span className="text-sm font-medium">{lapLabels[lap.lapNumber]}</span>
+                    ) : (
+                      <span className="font-mono text-sm">{lap.lapNumber}</span>
+                    )}
                     {isFastest && (
                       <Trophy className="w-4 h-4 text-racing-lapBest" />
                     )}

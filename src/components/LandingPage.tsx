@@ -1,29 +1,24 @@
 import { Fragment, type ReactNode } from "react";
 import {
-  Heart,
   Shield,
   Play,
-  LogIn,
-  User,
   FileText,
   Cpu,
   FolderOpen,
   Map,
   Bluetooth,
   Route,
+  Trophy,
 } from "lucide-react";
-import { BrandLogo } from "@/components/BrandLogo";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
-import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/SiteHeader";
 import { FileImport } from "@/components/FileImport";
 import { ActionTile } from "@/components/ActionTile";
 import { TrackEditor } from "@/components/TrackEditor";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { BrowserCompatDialog } from "@/components/BrowserCompatDialog";
 import { ContactDialog } from "@/components/ContactDialog";
-import { SupportedFilesDialog } from "@/components/SupportedFilesDialog";
-import { AboutDialog } from "@/components/AboutDialog";
 import { CreditsDialog } from "@/components/CreditsDialog";
 import { PluginMount } from "@/plugins/PluginMount";
 import { MountSlot } from "@/plugins/mounts";
@@ -81,7 +76,7 @@ export function LandingPage({
   settingsButton,
 }: LandingPageProps) {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const { t } = useTranslation(["landing", "common"]);
 
   // On the native (Tauri/Android) shell the user has already installed the app,
@@ -104,49 +99,7 @@ export function LandingPage({
 
   return (
     <div className="min-h-screen bg-background flex flex-col safe-area-x">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur safe-area-top">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <BrandLogo className="w-8 h-8" />
-            <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
-            {/* Sponsor sits at the far left, next to the brand. */}
-            {!native && (
-              <a
-                href="https://github.com/sponsors/TheAngryRaven"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => interceptExternal(e, "https://github.com/sponsors/TheAngryRaven")}
-              >
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Heart className="w-4 h-4 text-pink-500" />
-                  <span className="hidden sm:inline">{t("common:actions.sponsor")}</span>
-                </Button>
-              </a>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <SupportedFilesDialog />
-            <AboutDialog />
-            {/* Settings sits just left of the account button. */}
-            {settingsButton}
-            {/* Account control at the far right: Profile when signed in (opens the
-                drawer's Profile tab), otherwise Sign in. */}
-            {enableCloud && (
-              user ? (
-                <Button size="sm" className="gap-2" onClick={onOpenProfile} title={user.email ?? undefined}>
-                  <User className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("common:actions.profile")}</span>
-                </Button>
-              ) : (
-                <Button size="sm" className="gap-2" onClick={() => navigate('/login')}>
-                  <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("common:actions.signIn")}</span>
-                </Button>
-              )
-            )}
-          </div>
-        </div>
-      </header>
+      <SiteHeader settingsButton={settingsButton} enableCloud={enableCloud} onOpenProfile={onOpenProfile} />
 
       <main className="flex-1 px-6 py-10">
         <div className="mx-auto w-full max-w-4xl space-y-10">
@@ -226,6 +179,16 @@ export function LandingPage({
                 />
               }
             />
+
+            {/* Public leaderboards — only meaningful with the cloud backend. */}
+            {enableCloud && (
+              <ActionTile
+                icon={Trophy}
+                title={t("landing:tiles.leaderboards.title")}
+                description={t("landing:tiles.leaderboards.description")}
+                onClick={() => navigate('/leaderboards')}
+              />
+            )}
 
             <ActionTile
               icon={Cpu}

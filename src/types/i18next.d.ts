@@ -18,6 +18,7 @@ import type plugins from "@/locales/en/plugins.json";
 import type auth from "@/locales/en/auth.json";
 import type admin from "@/locales/en/admin.json";
 import type logger from "@/locales/en/logger.json";
+import type leaderboard from "@/locales/en/leaderboard.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -35,6 +36,7 @@ declare module "i18next" {
       auth: typeof auth;
       admin: typeof admin;
       logger: typeof logger;
+      leaderboard: typeof leaderboard;
     };
   }
 }

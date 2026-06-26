@@ -11,7 +11,8 @@
     "courses": "Circuiti",
     "tools": "Strumenti",
     "banned": "IP bloccati",
-    "users": "Utenti"
+    "users": "Utenti",
+    "leaderboards": "Leaderboards"
   },
   "common": {
     "error": "Errore",
@@ -200,5 +201,43 @@
     "granted_other": "Concessi {{count}} mesi di premium",
     "grantFailed": "Azione non riuscita",
     "grantRemoved": "Concessione premium rimossa"
+  },
+  "leaderboards": {
+    "title": "Leaderboard records",
+    "loading": "Loading records…",
+    "loadFailed": "Failed to load records.",
+    "empty": "No leaderboard submissions yet.",
+    "filterAll": "All",
+    "filterApproved": "Approved",
+    "filterDenied": "Denied",
+    "colDriver": "Driver",
+    "colTrack": "Track / Course",
+    "colEngine": "Engine",
+    "colClass": "Class",
+    "colWeight": "Weight",
+    "colTime": "Lap time",
+    "colStatus": "Status",
+    "approve": "Approve",
+    "deny": "Deny",
+    "unclassified": "— Unclassified —",
+    "notes": "Admin notes",
+    "notesPlaceholder": "Internal notes (optional)",
+    "saveNotes": "Save",
+    "updated": "Record updated.",
+    "updateFailed": "Couldn't update the record.",
+    "classesTitle": "Engine classes",
+    "classesHint": "Keyword groups that collapse free-text engine names into one class. A submission auto-matches the first class whose keyword appears in its engine name.",
+    "className": "Class name",
+    "classNamePlaceholder": "Tillotson 225",
+    "keywords": "Keywords (comma-separated)",
+    "keywordsPlaceholder": "tilly, 225, 225rs",
+    "addClass": "Add class",
+    "saveClass": "Save",
+    "deleteClass": "Delete",
+    "reclassify": "Reclassify records",
+    "reclassified_one": "Reclassified {{count}} record.",
+    "reclassified_other": "Reclassified {{count}} records.",
+    "classSaved": "Engine class saved.",
+    "classFailed": "Couldn't save the engine class."
   }
 }

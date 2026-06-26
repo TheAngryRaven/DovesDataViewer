@@ -27,6 +27,10 @@
     "build": {
       "title": "自分だけのロガーを作る",
       "description": "オープンソースの GPS ハードウェアとファームウェア — DovesDataLogger"
+    },
+    "leaderboards": {
+      "title": "Leaderboards",
+      "description": "Compare fastest laps by track, course and engine class"
     }
   },
   "links": {

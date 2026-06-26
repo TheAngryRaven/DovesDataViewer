@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Camera, Cloud, ShieldCheck, User } from "lucide-react";
+import { Camera, Cloud, ShieldCheck, Trophy, User } from "lucide-react";
 import { toast } from "sonner";
 import type { DataViewerPlugin } from "@/plugins/types";
 import { PANELS_POINT, PanelSlot, type PluginPanel } from "@/plugins/panels";
@@ -21,6 +21,7 @@ const FileDeleteToggle = lazy(() => import("./FileDeleteToggle"));
 const StoragePanel = lazy(() => import("./StoragePanel"));
 const CloudLogsPanel = lazy(() => import("./CloudLogsPanel"));
 const LapSnapshotsPanel = lazy(() => import("./LapSnapshotsPanel"));
+const LeaderboardSubmitPanel = lazy(() => import("./LeaderboardSubmitPanel"));
 // Profile tab: GDPR self-service — export everything + scheduled account deletion.
 const DataPrivacyPanel = lazy(() => import("./DataPrivacyPanel"));
 
@@ -105,6 +106,17 @@ const plugin: DataViewerPlugin = {
       order: 5,
       icon: Camera,
       component: LapSnapshotsPanel,
+    } satisfies PluginPanel);
+
+    // Profile tab: submit lap snapshots to the public leaderboards (just below
+    // the snapshots panel, since that's the data it acts on).
+    ctx.registry.contribute(PANELS_POINT, {
+      id: "cloud-sync-leaderboard-submit",
+      title: "panels.leaderboards",
+      slot: PanelSlot.Profile,
+      order: 7,
+      icon: Trophy,
+      component: LeaderboardSubmitPanel,
     } satisfies PluginPanel);
 
     // Profile tab: manage (delete) the log files stored in the cloud.
