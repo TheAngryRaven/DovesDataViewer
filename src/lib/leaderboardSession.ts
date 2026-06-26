@@ -16,6 +16,7 @@ import type {
   TrackCourseSelection,
 } from "@/types/racing";
 import { calculateBounds } from "./parserUtils";
+import { computeLapSectors } from "./lapCalculation";
 import type { LeaderboardEntry } from "./leaderboardTypes";
 
 /** A small visual gap inserted between consecutive laps in the stacked timeline. */
@@ -85,6 +86,13 @@ export function buildLeaderboardSession(
       }
     }
 
+    // Sector splits computed on the transposed lap (boundaries are relative to
+    // this entry's samples, so offset them into the concatenated array).
+    const sec = computeLapSectors(src, entry.data!.course);
+    const sectorBoundaries = sec.sectorBoundaries?.map((b) =>
+      b === undefined ? undefined : b + startIndex,
+    );
+
     laps.push({
       lapNumber,
       startTime: samples[startIndex].t,
@@ -96,6 +104,9 @@ export function buildLeaderboardSession(
       minSpeedKph: minKph === Infinity ? 0 : minKph,
       startIndex,
       endIndex,
+      sectors: sec.sectors,
+      sectorTimes: sec.sectorTimes,
+      sectorBoundaries,
     });
     lapLabels[lapNumber] = entry.displayName;
     offset = samples[endIndex].t + LAP_GAP_MS;
