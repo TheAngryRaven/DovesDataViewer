@@ -24,5 +24,8 @@
     "exit": "Sair",
     "descriptor": "{{course}} · {{engine}}",
     "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
-  }
+  },
+  "loadTopSession_one": "Carregar a volta mais rápida como uma única sessão",
+  "loadTopSession_other": "Carregar as {{count}} voltas mais rápidas como uma única sessão",
+  "loadAllSession": "Carregar todas as voltas como uma única sessão"
 }

@@ -6,6 +6,13 @@
 
 import type { EngineClass, LeaderboardEntry } from "./leaderboardTypes";
 
+/** One ranked entry within a group (for the leaderboard list level). */
+export interface GroupEntry {
+  id: string;
+  displayName: string;
+  lapTimeMs: number;
+}
+
 export interface GroupNode {
   /** Stable key for this group within its course (engine[/weight]). */
   key: string;
@@ -13,7 +20,10 @@ export interface GroupNode {
   label: string;
   engineLabel: string;
   weightLabel?: string;
+  /** Entry ids, fastest-first. */
   entryIds: string[];
+  /** Ranked entries (fastest-first) for the leaderboard list. */
+  entries: GroupEntry[];
   recordCount: number;
   fastestMs: number;
 }
@@ -108,12 +118,14 @@ export function buildBrowseTree(
         courseFastest = Math.min(courseFastest, f);
         const eng = engineLabelFor(sample, classesById);
         const wl = groupByWeight ? weightLabel(sample) : undefined;
+        const ranked = [...es].sort((a, b) => a.lapTimeMs - b.lapTimeMs);
         groupNodes.push({
           key: gkey,
           label: wl ? `${eng} · ${wl}` : eng,
           engineLabel: eng,
           weightLabel: wl,
-          entryIds: es.map((e) => e.id),
+          entryIds: ranked.map((e) => e.id),
+          entries: ranked.map((e) => ({ id: e.id, displayName: e.displayName, lapTimeMs: e.lapTimeMs })),
           recordCount: es.length,
           fastestMs: f,
         });

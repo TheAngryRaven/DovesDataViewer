@@ -71,7 +71,9 @@
     "number": "Number",
     "weight": "Weight",
     "update": "Update Vehicle",
-    "add": "Add Vehicle"
+    "add": "Add Vehicle",
+    "engineRequired": "An engine is required.",
+    "needsEngine": "This vehicle needs an engine — edit to add one."
   },
   "engine": {
     "label": "Engine",

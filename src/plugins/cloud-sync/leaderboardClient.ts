@@ -178,7 +178,7 @@ export function buildNewEntryRow(snap: LapSnapshot, opts: SubmitOptions): NewEnt
     engine_key: snap.engineKey,
     listed_weight: opts.listedWeight,
     listed_weight_unit: opts.listedWeightUnit,
-    lap_time_ms: snap.lapTimeMs,
+    lap_time_ms: Math.round(snap.lapTimeMs), // integer column; lapTimeMs is fractional
     content_hash: contentHashForSnapshot(snap),
     setup_public: opts.setupPublic,
     engine_telemetry_public: opts.engineTelemetryPublic,

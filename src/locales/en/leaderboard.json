@@ -17,6 +17,9 @@
   "unclassifiedEngine": "Unclassified",
   "weightLabel": "{{weight}} {{unit}}",
   "openGroup": "View laps",
+  "loadTopSession_one": "Load top lap as a single session",
+  "loadTopSession_other": "Load top {{count}} laps as a single session",
+  "loadAllSession": "Load all laps as a single session",
   "buildFailed": "Couldn't build that session.",
   "readOnly": {
     "banner": "Read-only leaderboard view",

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, Trophy, Cpu, Hash } from "lucide-react";
+import { ChevronRight, Trophy, Cpu, Hash, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -45,7 +45,8 @@ export default function Leaderboards() {
   const [top, setTop] = useState<number | "all">(DEFAULT_TOP);
   const [openTracks, setOpenTracks] = useState<Set<string>>(new Set());
   const [openCourses, setOpenCourses] = useState<Set<string>>(new Set());
-  const [loadingGroup, setLoadingGroup] = useState<string | null>(null);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,29 +75,45 @@ export default function Leaderboards() {
     setter(next);
   };
 
-  const openGroup = useCallback(async (course: CourseNode, group: GroupNode) => {
-    setLoadingGroup(group.key);
-    try {
-      const { fetchGroupEntries } = await import("@/plugins/cloud-sync/leaderboardClient");
-      const limit = top === "all" ? null : top;
-      const full = await fetchGroupEntries(group.entryIds, limit);
-      const bundle = buildLeaderboardSession(full, {
-        courseName: course.courseName,
-        engineLabel: group.engineLabel,
-        weightLabel: group.weightLabel,
-      });
-      if (!bundle) {
-        toast.error(t("buildFailed"));
-        return;
+  // Build + hand off a read-only session from a set of entry ids (one lap, or the
+  // top-N of a group), then jump to the viewer.
+  const loadSession = useCallback(
+    async (course: CourseNode, group: GroupNode, ids: string[], limit: number | null, loadingKey: string) => {
+      setLoadingKey(loadingKey);
+      try {
+        const { fetchGroupEntries } = await import("@/plugins/cloud-sync/leaderboardClient");
+        const full = await fetchGroupEntries(ids, limit);
+        const bundle = buildLeaderboardSession(full, {
+          courseName: course.courseName,
+          engineLabel: group.engineLabel,
+          weightLabel: group.weightLabel,
+        });
+        if (!bundle) {
+          toast.error(t("buildFailed"));
+          return;
+        }
+        setPendingLeaderboardSession(bundle);
+        navigate("/");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("buildFailed"));
+      } finally {
+        setLoadingKey(null);
       }
-      setPendingLeaderboardSession(bundle);
-      navigate("/");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("buildFailed"));
-    } finally {
-      setLoadingGroup(null);
-    }
-  }, [navigate, t, top]);
+    },
+    [navigate, t],
+  );
+
+  const openTopSession = useCallback(
+    (course: CourseNode, group: GroupNode) =>
+      loadSession(course, group, group.entryIds, top === "all" ? null : top, `top:${group.key}`),
+    [loadSession, top],
+  );
+
+  const openSingle = useCallback(
+    (course: CourseNode, group: GroupNode, entryId: string) =>
+      loadSession(course, group, [entryId], 1, `one:${entryId}`),
+    [loadSession],
+  );
 
   const settingsButton = (
     <SettingsModal
@@ -164,8 +181,12 @@ export default function Leaderboards() {
                 onToggle={() => toggle(openTracks, track.trackName, setOpenTracks)}
                 openCourses={openCourses}
                 onToggleCourse={(ck) => toggle(openCourses, ck, setOpenCourses)}
-                onOpenGroup={openGroup}
-                loadingGroup={loadingGroup}
+                openGroups={openGroups}
+                onToggleGroup={(gk) => toggle(openGroups, gk, setOpenGroups)}
+                onOpenTopSession={openTopSession}
+                onOpenSingle={openSingle}
+                top={top}
+                loadingKey={loadingKey}
               />
             ))}
           </div>
@@ -176,15 +197,20 @@ export default function Leaderboards() {
 }
 
 function TrackRow({
-  track, open, onToggle, openCourses, onToggleCourse, onOpenGroup, loadingGroup,
+  track, open, onToggle, openCourses, onToggleCourse, openGroups, onToggleGroup,
+  onOpenTopSession, onOpenSingle, top, loadingKey,
 }: {
   track: TrackNode;
   open: boolean;
   onToggle: () => void;
   openCourses: Set<string>;
   onToggleCourse: (courseKey: string) => void;
-  onOpenGroup: (course: CourseNode, group: GroupNode) => void;
-  loadingGroup: string | null;
+  openGroups: Set<string>;
+  onToggleGroup: (groupKey: string) => void;
+  onOpenTopSession: (course: CourseNode, group: GroupNode) => void;
+  onOpenSingle: (course: CourseNode, group: GroupNode, entryId: string) => void;
+  top: number | "all";
+  loadingKey: string | null;
 }) {
   const { t } = useTranslation("leaderboard");
   return (
@@ -225,22 +251,59 @@ function TrackRow({
 
                 {courseOpen && (
                   <div className="border-t border-border/60 px-2 py-1.5 space-y-1">
-                    {course.groups.map((group) => (
-                      <button
-                        key={group.key}
-                        type="button"
-                        disabled={loadingGroup === group.key}
-                        onClick={() => onOpenGroup(course, group)}
-                        className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-primary/10 disabled:opacity-60"
-                      >
-                        <Trophy className="h-3.5 w-3.5 text-primary" />
-                        <span className="flex-1 text-foreground">{group.label}</span>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {formatLapTime(group.fastestMs)}
-                        </span>
-                        <Bubble icon={Hash}>{t("bubbles.records", { count: group.recordCount })}</Bubble>
-                      </button>
-                    ))}
+                    {course.groups.map((group) => {
+                      const groupKey = `${course.courseKey}|${group.key}`;
+                      const groupOpen = openGroups.has(groupKey);
+                      const topN = top === "all" ? group.recordCount : Math.min(top, group.recordCount);
+                      return (
+                        <div key={group.key} className="rounded border border-border/50">
+                          <button
+                            type="button"
+                            onClick={() => onToggleGroup(groupKey)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-primary/10"
+                          >
+                            <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 transition-transform", groupOpen && "rotate-90")} />
+                            <span className="flex-1 text-foreground">{group.label}</span>
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {formatLapTime(group.fastestMs)}
+                            </span>
+                            <Bubble icon={Hash}>{t("bubbles.records", { count: group.recordCount })}</Bubble>
+                          </button>
+
+                          {groupOpen && (
+                            <div className="border-t border-border/50 px-2 py-1.5 space-y-1">
+                              {group.recordCount > 1 && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="w-full h-8 justify-center gap-1.5"
+                                  disabled={loadingKey === `top:${group.key}`}
+                                  onClick={() => onOpenTopSession(course, group)}
+                                >
+                                  <Layers className="h-3.5 w-3.5" />
+                                  {top === "all"
+                                    ? t("loadAllSession")
+                                    : t("loadTopSession", { count: topN })}
+                                </Button>
+                              )}
+                              {group.entries.map((entry, i) => (
+                                <button
+                                  key={entry.id}
+                                  type="button"
+                                  disabled={loadingKey === `one:${entry.id}`}
+                                  onClick={() => onOpenSingle(course, group, entry.id)}
+                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-primary/10 disabled:opacity-60"
+                                >
+                                  <span className="w-6 shrink-0 text-center font-mono text-xs text-muted-foreground">{i + 1}</span>
+                                  <span className="flex-1 truncate text-foreground">{entry.displayName}</span>
+                                  <span className="font-mono text-xs text-muted-foreground">{formatLapTime(entry.lapTimeMs)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
