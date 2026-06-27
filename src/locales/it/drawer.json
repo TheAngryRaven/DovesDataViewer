@@ -74,7 +74,9 @@
     "update": "Aggiorna veicolo",
     "add": "Aggiungi veicolo",
     "engineRequired": "È richiesto un motore.",
-    "needsEngine": "Questo veicolo ha bisogno di un motore — modificalo per aggiungerne uno."
+    "needsEngine": "Questo veicolo ha bisogno di un motore — modificalo per aggiungerne uno.",
+    "showOnProfile": "Show on profile",
+    "showOnProfileHint": "List this vehicle on your public driver profile (name, type and engine only — never weight or setup)."
   },
   "engine": {
     "label": "Motore",

@@ -26,7 +26,13 @@
     "nameEmpty": "Le nom d'affichage ne peut pas être vide.",
     "nameProfanity": "Veuillez choisir un nom d'affichage plus correct.",
     "nameUpdateFailed": "Impossible de mettre à jour le nom d'affichage.",
-    "loadUsageFailed": "Impossible de charger l'utilisation du stockage"
+    "loadUsageFailed": "Impossible de charger l'utilisation du stockage",
+    "changeAvatar": "Change profile picture",
+    "avatarUpdated": "Profile picture updated.",
+    "avatarFailed": "Couldn't update profile picture.",
+    "copyProfileLink": "Copy profile link",
+    "linkCopied": "Profile link copied.",
+    "linkCopyFailed": "Couldn't copy profile link."
   },
   "plan": {
     "title": "Forfait",

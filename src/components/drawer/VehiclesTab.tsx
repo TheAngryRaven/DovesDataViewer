@@ -31,6 +31,7 @@ const emptyForm = (defaultTypeId: string): Omit<Vehicle, "id"> => ({
   number: 0,
   weight: 0,
   weightUnit: "lb",
+  publicProfile: false,
 });
 
 export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove, onOpenFile, onCreateVehicleType }: VehiclesTabProps) {
@@ -73,6 +74,7 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove,
       number: vehicle.number,
       weight: vehicle.weight,
       weightUnit: vehicle.weightUnit,
+      publicProfile: vehicle.publicProfile ?? false,
     });
   };
 
@@ -208,6 +210,17 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove,
               </div>
             </div>
           </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2">
+          <div className="min-w-0">
+            <Label className="text-xs">{t("vehicles.showOnProfile")}</Label>
+            <p className="text-[11px] text-muted-foreground">{t("vehicles.showOnProfileHint")}</p>
+          </div>
+          <Switch
+            checked={!!form.publicProfile}
+            onCheckedChange={checked => setForm(f => ({ ...f, publicProfile: checked }))}
+            className="shrink-0"
+          />
         </div>
         {form.name.trim() && !form.engine.trim() && (
           <p className="text-xs text-destructive">{t("vehicles.engineRequired")}</p>

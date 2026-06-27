@@ -9,6 +9,7 @@ import type { EngineClass, LeaderboardEntry } from "./leaderboardTypes";
 /** One ranked entry within a group (for the leaderboard list level). */
 export interface GroupEntry {
   id: string;
+  userId: string;
   displayName: string;
   lapTimeMs: number;
 }
@@ -125,7 +126,7 @@ export function buildBrowseTree(
           engineLabel: eng,
           weightLabel: wl,
           entryIds: ranked.map((e) => e.id),
-          entries: ranked.map((e) => ({ id: e.id, displayName: e.displayName, lapTimeMs: e.lapTimeMs })),
+          entries: ranked.map((e) => ({ id: e.id, userId: e.userId, displayName: e.displayName, lapTimeMs: e.lapTimeMs })),
           recordCount: es.length,
           fastestMs: f,
         });

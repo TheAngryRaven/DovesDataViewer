@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
-  Check, CloudOff, CreditCard, Info, Loader2, LogOut, Pencil, RefreshCw,
-  User as UserIcon, WifiOff, X,
+  Camera, Check, CloudOff, CreditCard, Info, Link2, Loader2, LogOut, Pencil, RefreshCw,
+  WifiOff, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -17,9 +18,10 @@ import { isPaidTier, isComped, hasCompGrant, daysUntilTrim } from "@/lib/billing
 import { createPortal } from "@/lib/billingClient";
 import { isNativeApp } from "@/lib/platform";
 import { onGarageChange } from "@/lib/garageEvents";
+import { cropToSquareAvatar } from "@/lib/imageCrop";
 import { getStorageUsage } from "./syncEngine";
 import { getLocalStorageUsage } from "./localUsage";
-import { getMyProfile, updateDisplayName } from "./profile";
+import { avatarPublicUrl, getMyProfile, updateDisplayName, uploadAvatar } from "./profile";
 import { pendingCount } from "./pendingSync";
 import {
   formatBytes, segmentFractions, totalUsed, usageFraction,
@@ -163,23 +165,58 @@ function SignInPrompt() {
 function DisplayName({ userId, email, action }: { userId: string; email: string; action?: ReactNode }) {
   const { t } = useTranslation("plugins");
   const [name, setName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     void getMyProfile(userId)
       .then((p) => {
-        if (!cancelled) setName(p?.display_name ?? null);
+        if (cancelled) return;
+        setName(p?.display_name ?? null);
+        setAvatarUrl(avatarPublicUrl(p));
       })
       .catch(() => {
-        if (!cancelled) setName(null);
+        if (!cancelled) {
+          setName(null);
+          setAvatarUrl(null);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [userId]);
+
+  // Crop to a centered ≤256px square on-device, then upload to the public bucket.
+  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { blob } = await cropToSquareAvatar(file);
+      const saved = await uploadAvatar(userId, blob);
+      setAvatarUrl(avatarPublicUrl(saved));
+      toast.success(t("account.avatarUpdated"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("account.avatarFailed"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const copyProfileLink = () => {
+    if (!name) return;
+    const url = `${window.location.origin}/driver/${encodeURIComponent(name)}`;
+    void navigator.clipboard
+      ?.writeText(url)
+      .then(() => toast.success(t("account.linkCopied")))
+      .catch(() => toast.error(t("account.linkCopyFailed")));
+  };
 
   const startEdit = () => {
     setDraft(name ?? "");
@@ -207,9 +244,25 @@ function DisplayName({ userId, email, action }: { userId: string; email: string;
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <UserIcon className="h-6 w-6" />
-      </div>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        aria-label={t("account.changeAvatar")}
+        className="group relative shrink-0 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        <ProfileAvatar url={avatarUrl} alt={name ?? ""} sizeClassName="h-12 w-12" />
+        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
+          {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+        </span>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => void onPickAvatar(e)}
+        />
+      </button>
       <div className="min-w-0 flex-1">
         {editing ? (
           <div className="flex items-center gap-1.5">
@@ -242,7 +295,18 @@ function DisplayName({ userId, email, action }: { userId: string; email: string;
         )}
         <p className="truncate text-xs text-muted-foreground">{email}</p>
       </div>
-      {action}
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        {action}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={!name}
+          onClick={copyProfileLink}
+        >
+          <Link2 className="mr-1.5 h-4 w-4" /> {t("account.copyProfileLink")}
+        </Button>
+      </div>
     </div>
   );
 }

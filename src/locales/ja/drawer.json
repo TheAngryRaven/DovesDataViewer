@@ -74,7 +74,9 @@
     "update": "車両を更新",
     "add": "車両を追加",
     "engineRequired": "エンジンは必須です。",
-    "needsEngine": "この車両にはエンジンが必要です。編集して追加してください。"
+    "needsEngine": "この車両にはエンジンが必要です。編集して追加してください。",
+    "showOnProfile": "Show on profile",
+    "showOnProfileHint": "List this vehicle on your public driver profile (name, type and engine only — never weight or setup)."
   },
   "engine": {
     "label": "エンジン",

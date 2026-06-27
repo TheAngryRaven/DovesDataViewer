@@ -1,0 +1,13 @@
+{
+  "_machine": true,
+  "loading": "Loading profile…",
+  "loadFailed": "Couldn't load this profile.",
+  "notFoundTitle": "Driver not found",
+  "notFoundBody": "No driver named “{{name}}” exists.",
+  "vehiclesTitle": "Vehicles",
+  "vehiclesEmpty": "This driver hasn't shared any vehicles.",
+  "unknownType": "Unknown type",
+  "snapshotsTitle": "Leaderboard snapshots",
+  "snapshotsEmpty": "This driver hasn't uploaded any leaderboard snapshots.",
+  "noWeight": "No listed weight"
+}

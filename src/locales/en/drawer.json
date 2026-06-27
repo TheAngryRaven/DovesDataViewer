@@ -73,7 +73,9 @@
     "update": "Update Vehicle",
     "add": "Add Vehicle",
     "engineRequired": "An engine is required.",
-    "needsEngine": "This vehicle needs an engine — edit to add one."
+    "needsEngine": "This vehicle needs an engine — edit to add one.",
+    "showOnProfile": "Show on profile",
+    "showOnProfileHint": "List this vehicle on your public driver profile (name, type and engine only — never weight or setup)."
   },
   "engine": {
     "label": "Engine",

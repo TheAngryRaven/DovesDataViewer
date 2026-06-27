@@ -47,7 +47,13 @@
     "nameEmpty": "Display name can't be empty.",
     "nameProfanity": "Please choose a cleaner display name.",
     "nameUpdateFailed": "Couldn't update display name.",
-    "loadUsageFailed": "Failed to load storage usage"
+    "loadUsageFailed": "Failed to load storage usage",
+    "changeAvatar": "Change profile picture",
+    "avatarUpdated": "Profile picture updated.",
+    "avatarFailed": "Couldn't update profile picture.",
+    "copyProfileLink": "Copy profile link",
+    "linkCopied": "Profile link copied.",
+    "linkCopyFailed": "Couldn't copy profile link."
   },
   "plan": {
     "title": "Plan",

@@ -9,7 +9,8 @@
     "loading": "Chargement…",
     "reset": "Réinitialiser les valeurs par défaut",
     "update": "Mettre à jour",
-    "updating": "Mise à jour…"
+    "updating": "Mise à jour…",
+    "backToHome": "Back to home"
   },
   "language": {
     "heading": "Langue",

@@ -26,7 +26,13 @@
     "nameEmpty": "表示名を空にすることはできません。",
     "nameProfanity": "もっと適切な表示名を選んでください。",
     "nameUpdateFailed": "表示名を更新できませんでした。",
-    "loadUsageFailed": "ストレージ使用量を読み込めませんでした"
+    "loadUsageFailed": "ストレージ使用量を読み込めませんでした",
+    "changeAvatar": "Change profile picture",
+    "avatarUpdated": "Profile picture updated.",
+    "avatarFailed": "Couldn't update profile picture.",
+    "copyProfileLink": "Copy profile link",
+    "linkCopied": "Profile link copied.",
+    "linkCopyFailed": "Couldn't copy profile link."
   },
   "plan": {
     "title": "プラン",

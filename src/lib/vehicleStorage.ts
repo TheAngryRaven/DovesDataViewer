@@ -14,6 +14,11 @@ export interface Vehicle {
   number: number;
   weight: number;
   weightUnit: "lb" | "kg";
+  /**
+   * Opt-in: when true, a public-safe projection (name/type/engine/number — never
+   * weight/setup) is published to the user's public driver profile. See plan 0006.
+   */
+  publicProfile?: boolean;
   /** Last local edit time (ms) — set by saveVehicle; used for sync merge. */
   updatedAt?: number;
 }

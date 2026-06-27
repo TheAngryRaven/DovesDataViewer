@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 export const SYNC_BUCKET = "user-files";
+export const AVATAR_BUCKET = "user-avatars";
 
 /** A row in public.sync_records — one client record stored as a jsonb document. */
 export interface SyncRecordRow {
@@ -50,6 +51,11 @@ export function userFiles() {
   return untyped.storage.from(SYNC_BUCKET);
 }
 
+/** Storage API for the public per-user avatar bucket. */
+export function userAvatars() {
+  return untyped.storage.from(AVATAR_BUCKET);
+}
+
 /** The single-row pooled-usage shape returned by the server's sync_storage_usage() RPC. */
 export interface StorageUsageRow {
   documents_bytes: number;
@@ -73,15 +79,48 @@ export function isQuotaError(err: unknown): boolean {
   return err instanceof Error && /quota_exceeded/i.test(err.message);
 }
 
-/** A row in public.profiles — the user's unique, editable display name. */
+/** A row in public.profiles — the user's unique, editable display name + avatar. */
 export interface ProfileRow {
   user_id: string;
   display_name: string;
+  /** Object path in the user-avatars bucket, or null when no avatar is set. */
+  avatar_path?: string | null;
+  /** Last avatar change — used as a ?v= cache-buster on the public URL. */
+  avatar_updated_at?: string | null;
 }
 
-/** Query builder for the profiles table. */
+/** Query builder for the profiles table (owner reads/writes). */
 export function profiles() {
   return untyped.from("profiles");
+}
+
+/** A row in public.public_profiles — the anon-readable, column-limited view. */
+export interface PublicProfileRow {
+  user_id: string;
+  display_name: string;
+  avatar_path: string | null;
+  avatar_updated_at: string | null;
+}
+
+/** Query builder for the anon-readable public_profiles view. */
+export function publicProfilesView() {
+  return untyped.from("public_profiles");
+}
+
+/** A row in public.public_vehicles — a user's opt-in, public-safe vehicle. */
+export interface PublicVehicleRow {
+  user_id: string;
+  vehicle_id: string;
+  name: string;
+  type_name: string | null;
+  engine: string;
+  number: number;
+  updated_at?: string;
+}
+
+/** Query builder for the public_vehicles projection table. */
+export function publicVehicles() {
+  return untyped.from("public_vehicles");
 }
 
 /** True when a Postgres error is a unique-constraint violation (e.g. taken name). */

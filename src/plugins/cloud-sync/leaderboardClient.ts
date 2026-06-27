@@ -107,6 +107,16 @@ export async function fetchApprovedLight(): Promise<LeaderboardEntry[]> {
   return ((data ?? []) as EntryRow[]).map(mapEntryRow);
 }
 
+/** Lightweight approved rows for one user — the public driver profile page (anon). */
+export async function fetchApprovedLightByUser(userId: string): Promise<LeaderboardEntry[]> {
+  const { data, error } = await leaderboardEntriesTable()
+    .select(LIGHT_COLUMNS)
+    .eq("status", "approved")
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as EntryRow[]).map(mapEntryRow);
+}
+
 /**
  * Full rows (with `data`) for one engine[/weight] group, fastest first. `limit`
  * null loads all. Grouping is resolved client-side, so callers pass the already

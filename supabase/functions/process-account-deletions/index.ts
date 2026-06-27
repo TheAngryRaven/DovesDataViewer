@@ -11,15 +11,20 @@ const corsHeaders = {
 };
 
 const SYNC_BUCKET = 'user-files';
+const AVATAR_BUCKET = 'user-avatars';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-/** Remove every object under `${userId}/` in the private user-files bucket. */
-async function removeUserFiles(admin: ReturnType<typeof createClient>, userId: string): Promise<void> {
-  const bucket = admin.storage.from(SYNC_BUCKET);
+/** Remove every object under `${userId}/` in a flat ({userId}/{name}) bucket. */
+async function removeUserObjects(
+  admin: ReturnType<typeof createClient>,
+  bucketId: string,
+  userId: string,
+): Promise<void> {
+  const bucket = admin.storage.from(bucketId);
   // List in pages; the folder is flat ({userId}/{filename}), so one level is enough.
   for (;;) {
     const { data: objects, error } = await bucket.list(userId, { limit: 1000 });
@@ -70,8 +75,11 @@ Deno.serve(async (req) => {
         // harmful than losing files before the account is confirmed deleted. The
         // user is no longer in due_account_deletions, so log loudly for manual
         // sweeping rather than failing the (successful) deletion.
+        // Avatars live in a separate public bucket; public_vehicles rows cascade
+        // via FK, but Storage objects are never FK-cascaded, so wipe both folders.
         try {
-          await removeUserFiles(admin, userId);
+          await removeUserObjects(admin, SYNC_BUCKET, userId);
+          await removeUserObjects(admin, AVATAR_BUCKET, userId);
         } catch (fileErr) {
           console.error('process-account-deletions: blob cleanup failed after delete for', userId, fileErr);
         }

@@ -59,8 +59,11 @@ Backend (migrations `..._cloud_sync.sql`, `..._storage_quotas.sql`,
 | `enforce_sync_quota` | trigger | BEFORE INSERT/UPDATE on `sync_records`: rejects a write that pushes the caller's **pooled total** (this table + all `lap_snapshots`, minus the upserted row) over `tier_total_limit()` (`quota_exceeded`). |
 | `enforce_snapshot_quota` | trigger | BEFORE INSERT/UPDATE on `lap_snapshots`: same pooled check keyed off the snapshot's serialized size (`quota_exceeded`). |
 | `sync_storage_usage()` | RPC | Single row `(documents_bytes, logs_bytes, snapshots_bytes, total_limit_bytes)` for the caller — the limit reflects the caller's tier. |
-| `profiles` | table | `(user_id PK→auth.users, display_name unique, …)`. RLS: authenticated read-all, update/insert own. Display name is unique but **not** a key — user-editable. |
-| `handle_new_user` | trigger | On `auth.users` insert: creates a profile, using the sign-up `display_name` or a generated silly name (`SpeedyRac3r-546`). `unique_display_name()` auto-suffixes a taken name at creation; user edits get an explicit "taken" error instead. |
+| `profiles` | table | `(user_id PK→auth.users, display_name, avatar_path, avatar_updated_at, …)`. RLS: authenticated read-all, update/insert own. Display name is **unique case-insensitively** (`unique index on lower(display_name)`, plan 0006) but **not** a key — user-editable. |
+| `public_profiles` | view | Plan 0006. Anon-readable, column-limited (`user_id, display_name, avatar_path, avatar_updated_at`) — backs the public `/driver/:username` page + Leaderboards avatar thumbnails without exposing the base table to anon. |
+| `public_vehicles` | table | Plan 0006. Opt-in public projection of a user's vehicles `(user_id, vehicle_id PK, name, type_name, engine, number)` — **never weight/setup**. RLS: anon read, owner write. Synced off the garage-change path (`publicVehicleSync`); cascades on account delete. |
+| `user-avatars` | Storage bucket | Plan 0006. **Public**. Avatar at `{user_id}/avatar.{webp\|jpg}` (cropped ≤256px client-side). Public read; owner-folder write. Not FK-cascaded — the deletion worker empties the folder. |
+| `handle_new_user` | trigger | On `auth.users` insert: creates a profile, using the sign-up `display_name` or a generated silly name (`SpeedyRac3r-546`). `unique_display_name()` auto-suffixes a taken name at creation (case-insensitively); user edits get an explicit "taken" error instead. |
 
 Synced stores (`syncStores.ts` — pure, unit-tested): `metadata`, `karts`,
 `setups`, `notes`, `graph-prefs`, `vehicle-types`, `setup-templates`, `engines`,
@@ -300,9 +303,10 @@ JWT manually):
 - `request-account-deletion` — auth user → inserts an `account_deletions` row
   `scheduled_for = now()+7d` (idempotent; never shortens an in-flight request).
 - `process-account-deletions` — **cron-only** (`x-cron-secret` must equal
-  `DELETION_CRON_SECRET`). For each due user: removes their `user-files` Storage
-  objects, then `auth.admin.deleteUser` (cascades profiles/sync_records/
-  subscription/roles/account_deletions via FKs).
+  `DELETION_CRON_SECRET`). For each due user: `auth.admin.deleteUser` (cascades
+  profiles/sync_records/public_vehicles/subscription/roles/account_deletions via
+  FKs), then removes their `user-files` **and** `user-avatars` Storage objects
+  (buckets aren't FK-cascaded).
 
 Scheduling: the migration always schedules the IP purge (pure SQL). The deletion
 worker is auto-wired via `pg_cron` + `pg_net` **only if** a Vault secret

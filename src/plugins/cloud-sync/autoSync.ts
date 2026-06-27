@@ -22,6 +22,7 @@ import { unselectFile } from "./fileSync";
 import { setActiveUserId } from "./activeUser";
 import { pendingId } from "./merge";
 import { FILE_STORE } from "./syncStores";
+import { syncPublicVehicle } from "./publicVehicleSync";
 
 const DEBOUNCE_MS = 800;
 
@@ -72,6 +73,9 @@ async function pushOne(userId: string, change: GarageChange): Promise<void> {
   }
   if (change.type === "delete") await deleteRecord(userId, change.store, change.key);
   else await pushRecord(userId, change.store, change.key);
+
+  // Vehicles carry an opt-in public projection alongside their private backup.
+  if (change.store === STORE_NAMES.KARTS) await syncPublicVehicle(userId, change);
 }
 
 async function flush(change: GarageChange): Promise<void> {

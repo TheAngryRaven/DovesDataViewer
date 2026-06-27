@@ -81,7 +81,8 @@ telemetry viewer.
 src/
 ├── pages/
 │   ├── Index.tsx          # ★ Main SPA — file import, tab views, all state orchestration. Also hosts the read-only Leaderboards viewer (plan 0005): consumes a leaderboardHandoff bundle on mount, injects its prebuilt laps/selection, flips a `readOnly` flag that alert-colours the header + hides Coach/Tools/Setups + video/weather/snapshots and labels laps by submitter.
-│   ├── Leaderboards.tsx   # ★ Public /leaderboards page (cloud-gated): Track→Course→engine/weight accordion (Group-by-weight + Show-top), opens a group into Index's read-only viewer via leaderboardHandoff
+│   ├── Leaderboards.tsx   # ★ Public /leaderboards page (cloud-gated): Track→Course→engine/weight accordion (Group-by-weight + Show-top), opens a group into Index's read-only viewer via leaderboardHandoff; shows uploader avatar thumbnails
+│   ├── DriverProfile.tsx  # ★ Public /driver/:username page (plan 0006, anon, case-insensitive via .ilike): avatar + name + opt-in vehicles (no weights/setups) + the driver's approved leaderboard snapshots grouped by course/weight
 │   ├── Admin.tsx          # Admin panel (behind VITE_ENABLE_ADMIN)
 │   └── …                  # Login / Register / Privacy / Terms / NotFound
 ├── components/
@@ -118,6 +119,8 @@ src/
 │   ├── lapOverlays.ts / lapAlignment.ts  # ★ Multi-lap overlay logic + Kabsch drift-align (→ docs/subsystems.md)
 │   ├── lapSnapshot*.ts    # ★ Snapshot types/buffer + IndexedDB CRUD (→ docs/subsystems.md)
 │   ├── leaderboard*.ts    # ★ Leaderboards (plan 0005): leaderboardTypes (shared), leaderboardBrowse (Track→Course→engine/weight tree), leaderboardSession (transpose entries → one read-only synthetic session, fastest=lap 1), leaderboardHandoff (one-shot page→Index handoff). Submission + Supabase access live in plugins/cloud-sync (leaderboardSubmission/leaderboardClient). → docs/backend.md
+│   ├── imageCrop.ts       # ★ Pure on-device avatar crop (1:1 centre + downscale ≤256, webp/jpeg) — no Supabase (plan 0006)
+│   ├── driverProfileGroups.ts # ★ Pure: one driver's leaderboard entries → Course→weight buckets (plan 0006, DriverProfile)
 │   ├── setupRevision*.ts  # ★ Content-addressed setup history + IndexedDB CRUD (→ docs/subsystems.md)
 │   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
 │   ├── vehicleHistory.ts  # ★ Pure vehicle-history view-model (per-vehicle setup revisions, fastest-lap first, course filter) → drawer/VehicleHistoryPanel; reuses setupHistory primitives; shared card chrome in drawer/HistoryCard.tsx

@@ -26,7 +26,13 @@
     "nameEmpty": "El nombre para mostrar no puede estar vacío.",
     "nameProfanity": "Elige un nombre para mostrar más limpio, por favor.",
     "nameUpdateFailed": "No se pudo actualizar el nombre para mostrar.",
-    "loadUsageFailed": "No se pudo cargar el uso de almacenamiento"
+    "loadUsageFailed": "No se pudo cargar el uso de almacenamiento",
+    "changeAvatar": "Change profile picture",
+    "avatarUpdated": "Profile picture updated.",
+    "avatarFailed": "Couldn't update profile picture.",
+    "copyProfileLink": "Copy profile link",
+    "linkCopied": "Profile link copied.",
+    "linkCopyFailed": "Couldn't copy profile link."
   },
   "plan": {
     "title": "Plan",

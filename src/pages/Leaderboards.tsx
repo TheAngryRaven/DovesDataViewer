@@ -5,6 +5,8 @@ import { ChevronRight, Trophy, Cpu, Hash, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SettingsModal } from "@/components/SettingsModal";
+import { BackToHome } from "@/components/BackToHome";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -40,6 +42,7 @@ export default function Leaderboards() {
 
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [classes, setClasses] = useState<EngineClass[]>([]);
+  const [avatars, setAvatars] = useState<Map<string, string | null>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [groupByWeight, setGroupByWeight] = useState(false);
   const [top, setTop] = useState<number | "all">(DEFAULT_TOP);
@@ -53,10 +56,16 @@ export default function Leaderboards() {
     (async () => {
       try {
         const { fetchApprovedLight, fetchEngineClasses } = await import("@/plugins/cloud-sync/leaderboardClient");
-        const [light, cls] = await Promise.all([fetchApprovedLight(), fetchEngineClasses()]);
+        const { fetchAllPublicProfiles } = await import("@/plugins/cloud-sync/publicProfile");
+        const [light, cls, profiles] = await Promise.all([
+          fetchApprovedLight(),
+          fetchEngineClasses(),
+          fetchAllPublicProfiles().catch(() => new Map()),
+        ]);
         if (cancelled) return;
         setEntries(light);
         setClasses(cls);
+        setAvatars(new Map([...profiles].map(([id, p]) => [id, p.avatarUrl])));
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : t("loadFailed"));
       }
@@ -137,6 +146,7 @@ export default function Leaderboards() {
 
       <main className="flex-1 px-6 py-8">
         <div className="mx-auto w-full max-w-4xl space-y-5">
+          <BackToHome />
           <div className="flex items-center gap-3">
             <Trophy className="h-6 w-6 text-primary" />
             <div>
@@ -187,6 +197,7 @@ export default function Leaderboards() {
                 onOpenSingle={openSingle}
                 top={top}
                 loadingKey={loadingKey}
+                avatars={avatars}
               />
             ))}
           </div>
@@ -198,7 +209,7 @@ export default function Leaderboards() {
 
 function TrackRow({
   track, open, onToggle, openCourses, onToggleCourse, openGroups, onToggleGroup,
-  onOpenTopSession, onOpenSingle, top, loadingKey,
+  onOpenTopSession, onOpenSingle, top, loadingKey, avatars,
 }: {
   track: TrackNode;
   open: boolean;
@@ -211,6 +222,7 @@ function TrackRow({
   onOpenSingle: (course: CourseNode, group: GroupNode, entryId: string) => void;
   top: number | "all";
   loadingKey: string | null;
+  avatars: Map<string, string | null>;
 }) {
   const { t } = useTranslation("leaderboard");
   return (
@@ -295,6 +307,7 @@ function TrackRow({
                                   className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-primary/10 disabled:opacity-60"
                                 >
                                   <span className="w-6 shrink-0 text-center font-mono text-xs text-muted-foreground">{i + 1}</span>
+                                  <ProfileAvatar url={avatars.get(entry.userId)} alt={entry.displayName} sizeClassName="h-5 w-5" />
                                   <span className="flex-1 truncate text-foreground">{entry.displayName}</span>
                                   <span className="font-mono text-xs text-muted-foreground">{formatLapTime(entry.lapTimeMs)}</span>
                                 </button>

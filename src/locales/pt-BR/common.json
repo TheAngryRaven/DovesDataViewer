@@ -9,7 +9,8 @@
     "loading": "Carregando…",
     "reset": "Restaurar padrões",
     "update": "Atualizar",
-    "updating": "Atualizando…"
+    "updating": "Atualizando…",
+    "backToHome": "Back to home"
   },
   "language": {
     "heading": "Idioma",

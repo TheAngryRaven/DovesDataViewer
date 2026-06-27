@@ -26,7 +26,13 @@
     "nameEmpty": "Il nome visualizzato non può essere vuoto.",
     "nameProfanity": "Scegli un nome visualizzato più appropriato.",
     "nameUpdateFailed": "Impossibile aggiornare il nome visualizzato.",
-    "loadUsageFailed": "Impossibile caricare l'utilizzo dello spazio"
+    "loadUsageFailed": "Impossibile caricare l'utilizzo dello spazio",
+    "changeAvatar": "Change profile picture",
+    "avatarUpdated": "Profile picture updated.",
+    "avatarFailed": "Couldn't update profile picture.",
+    "copyProfileLink": "Copy profile link",
+    "linkCopied": "Profile link copied.",
+    "linkCopyFailed": "Couldn't copy profile link."
   },
   "plan": {
     "title": "Piano",

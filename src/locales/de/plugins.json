@@ -26,7 +26,13 @@
     "nameEmpty": "Der Anzeigename darf nicht leer sein.",
     "nameProfanity": "Bitte wähle einen saubereren Anzeigenamen.",
     "nameUpdateFailed": "Anzeigename konnte nicht aktualisiert werden.",
-    "loadUsageFailed": "Speichernutzung konnte nicht geladen werden"
+    "loadUsageFailed": "Speichernutzung konnte nicht geladen werden",
+    "changeAvatar": "Change profile picture",
+    "avatarUpdated": "Profile picture updated.",
+    "avatarFailed": "Couldn't update profile picture.",
+    "copyProfileLink": "Copy profile link",
+    "linkCopied": "Profile link copied.",
+    "linkCopyFailed": "Couldn't copy profile link."
   },
   "plan": {
     "title": "Tarif",

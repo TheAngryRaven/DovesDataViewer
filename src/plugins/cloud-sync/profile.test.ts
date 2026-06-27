@@ -26,12 +26,17 @@ vi.mock("./cloudClient", () => {
   };
   return {
     profiles: () => builder,
+    userAvatars: () => ({
+      getPublicUrl: (path: string) => ({
+        data: { publicUrl: `https://cdn.test/user-avatars/${path}` },
+      }),
+    }),
     isUniqueViolation: (err: unknown) =>
       typeof err === "object" && err !== null && (err as { code?: string }).code === "23505",
   };
 });
 
-import { getMyProfile, updateDisplayName } from "./profile";
+import { avatarPublicUrl, getMyProfile, updateDisplayName } from "./profile";
 
 beforeEach(() => {
   state.read = { data: null, error: null };
@@ -53,6 +58,29 @@ describe("getMyProfile", () => {
   it("throws on a query error", async () => {
     state.read = { data: null, error: { message: "db down" } };
     await expect(getMyProfile("u1")).rejects.toThrow(/db down/);
+  });
+});
+
+describe("avatarPublicUrl", () => {
+  it("returns null when no avatar path is set", () => {
+    expect(avatarPublicUrl(null)).toBeNull();
+    expect(avatarPublicUrl({ avatar_path: null, avatar_updated_at: null })).toBeNull();
+  });
+
+  it("builds a public URL with a ?v= cache-buster from avatar_updated_at", () => {
+    const url = avatarPublicUrl({
+      avatar_path: "u1/avatar.webp",
+      avatar_updated_at: "2026-06-27T00:00:00.000Z",
+    });
+    expect(url).toBe(
+      `https://cdn.test/user-avatars/u1/avatar.webp?v=${Date.parse("2026-06-27T00:00:00.000Z")}`,
+    );
+  });
+
+  it("omits the cache-buster when there is no timestamp", () => {
+    expect(avatarPublicUrl({ avatar_path: "u1/avatar.jpg", avatar_updated_at: null })).toBe(
+      "https://cdn.test/user-avatars/u1/avatar.jpg",
+    );
   });
 });
 
