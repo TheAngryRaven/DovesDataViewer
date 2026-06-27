@@ -387,6 +387,7 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `VITE_FIRMWARE_MANIFEST_URL` | Client | Override the logger firmware OTA manifest URL. Unset: `main` → production manifest, non-`main`/preview → beta channel (same `isPreviewBuild()` switch). |
+| `SUPABASE_ACCESS_TOKEN` | Build (secret) | Supabase PAT. On a preview build, `vite.config.ts` resolves this branch's own Supabase **preview-branch DB** via the Management API (`scripts/resolveSupabaseBranch.ts`) and bakes its creds in, else falls back to the static `*_PREVIEW`/beta creds. Never on `main`/dev/runtime. → plan 0006. |
 | `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages. Overrides the default when set. |
 | `ANTHROPIC_API_KEY` / `I18N_SEED_MODEL` | Maintainer tool | Used **only** by `bun run i18n:seed` (`ANTHROPIC_API_KEY` = `???`). Never in the app or CI build. |
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**; baked from `package.json` + git in `vite.config.ts`. |
@@ -405,7 +406,11 @@ forwards to `beta-lapwing.perchwerks.workers.dev` (auto-deployed by the
 see `beta-proxy/README.md`). Per-branch preview backend: `vite.config.ts` `pick()`
 prefers `*_PREVIEW` Supabase creds on any non-`main` branch
 (`WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`), so beta deployments bake in a preview DB.
-`main` and local dev never read `_PREVIEW`. See README "Deployment".
+With a `SUPABASE_ACCESS_TOKEN` build secret, a preview build goes one better and
+resolves *this branch's own* Supabase preview-branch DB via the Management API
+(`scripts/resolveSupabaseBranch.ts`, plan 0006), falling back to the static
+`*_PREVIEW`/beta creds when the branch has no preview DB. `main` and local dev
+never read `_PREVIEW` or the token. See README "Deployment".
 
 ---
 
