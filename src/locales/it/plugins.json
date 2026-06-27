@@ -6,7 +6,8 @@
     "account": "Account",
     "lapSnapshots": "Istantanee del giro",
     "cloudLogs": "Registri nel cloud",
-    "dataPrivacy": "Dati e privacy"
+    "dataPrivacy": "Dati e privacy",
+    "leaderboards": "Classifiche"
   },
   "account": {
     "signInBlurb": "Accedi per eseguire il backup e sincronizzare i tuoi file, il garage e le note tra i dispositivi. Tutto qui continua a funzionare offline su questo dispositivo — Cloud Sync è facoltativo.",
@@ -172,5 +173,27 @@
     "downloadingFiles_one": "Download di {{count}} file dal cloud…",
     "downloadingFiles_other": "Download di {{count}} file dal cloud…",
     "zipping": "Compressione…"
+  },
+  "leaderboard": {
+    "signInHint": "Accedi per inviare le tue istantanee alle classifiche pubbliche.",
+    "noSnapshots": "Cattura un giro per inviarlo alle classifiche.",
+    "intro_one": "Hai {{count}} istantanea da inviare alle classifiche.",
+    "intro_other": "Hai {{count}} istantanee da inviare alle classifiche.",
+    "submitButton": "Invia alle classifiche",
+    "dialogTitle": "Invia alle classifiche",
+    "dialogDescription": "I tuoi dati GPS, il motore e il peso indicato sono pubblici così altri possono confrontare e verificare i giri. I dati del sensore motore restano privati a meno che tu non scelga di condividerli.",
+    "listedWeight": "Peso indicato",
+    "listedWeightHint": "Mostrato pubblicamente e usato per raggruppare i record. Per impostazione predefinita è il peso del tuo veicolo: cambialo se preferisci indicare un peso di categoria.",
+    "weightRequired": "Inserisci un peso indicato per inviare.",
+    "shareEngineData": "Condividi i dati del sensore motore (RPM, temperature)",
+    "publicNotice": "Pubblico: GPS, nome del motore, tempo sul giro, peso indicato.",
+    "submitOne": "Invia",
+    "submitting": "Invio…",
+    "submitted": "Inviato",
+    "submitSuccess": "Inviato alle classifiche.",
+    "submitFailed": "Invio non riuscito — riprova.",
+    "alreadySubmitted": "Già nelle classifiche.",
+    "loadFailed": "Impossibile caricare i tuoi invii.",
+    "close": "Chiudi"
   }
 }

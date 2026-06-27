@@ -25,6 +25,7 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Register = lazy(() => import("./pages/Register"));
+const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 // Public, no-login account-deletion request page. Mounted un-gated (below) so the
@@ -79,6 +80,7 @@ const App = () => {
               {(enableAdmin || enableCloud) && <Route path="/login" element={<Login />} />}
               {enableAdmin && <Route path="/admin" element={<Admin />} />}
               {enableCloud && <Route path="/register" element={<Register />} />}
+              {enableCloud && <Route path="/leaderboards" element={<Leaderboards />} />}
               {enableCloud && <Route path="/forgot-password" element={<ForgotPassword />} />}
               {enableCloud && <Route path="/reset-password" element={<ResetPassword />} />}
               {enableCloud && <Route path="/auth/callback" element={<AuthCallback />} />}

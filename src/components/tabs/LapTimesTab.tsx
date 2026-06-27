@@ -28,6 +28,8 @@ export const LapTimesTab = memo(function LapTimesTab() {
         onSaveSnapshot={s.onSaveSnapshot}
         overlayLines={s.overlayLines}
         onToggleOverlay={s.onToggleOverlay}
+        lapLabels={s.lapLabels}
+        readOnlyDescriptor={s.readOnlyDescriptor}
       />
     </div>
   );

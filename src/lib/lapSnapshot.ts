@@ -27,6 +27,9 @@ export interface SnapshotVehicle {
   id?: string;
   name?: string;
   number?: number;
+  /** Vehicle weight at capture time — the default "listed weight" for leaderboards. */
+  weight?: number;
+  weightUnit?: "lb" | "kg";
 }
 
 export interface LapSnapshot {

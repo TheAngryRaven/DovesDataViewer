@@ -42,6 +42,8 @@ export interface GraphViewPanelProps {
   sessionStartDate?: Date;
   cachedWeatherStation: WeatherStation | null;
   onWeatherStationResolved: (station: WeatherStation) => void;
+  /** Read-only leaderboard view: disable the video player + weather panel. */
+  readOnly?: boolean;
   // Vehicle/setup
   vehicles: Vehicle[];
   setups: VehicleSetup[];
@@ -149,7 +151,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
   }, [onCombineSplit]);
 
   const { videoState, videoActions, onVideoLoadedMetadata } = props;
-  const canRenderVideo = !!(videoState && videoActions && onVideoLoadedMetadata);
+  const canRenderVideo = !props.readOnly && !!(videoState && videoActions && onVideoLoadedMetadata);
   const renderVideo = useCallback(() => (
     <VideoPlayer
       state={videoState!}
@@ -265,6 +267,7 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
             <ResizablePanel defaultSize={70} minSize={30}>
               <InfoBox
                 hideVideoTab={relocated.video}
+                readOnly={props.readOnly}
                 filteredSamples={props.filteredSamples}
                 course={props.course}
                 lapTimeMs={props.lapTimeMs}

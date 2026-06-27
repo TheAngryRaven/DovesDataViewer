@@ -6,7 +6,8 @@
     "account": "Cuenta",
     "lapSnapshots": "Instantáneas de vuelta",
     "cloudLogs": "Registros en la nube",
-    "dataPrivacy": "Datos y privacidad"
+    "dataPrivacy": "Datos y privacidad",
+    "leaderboards": "Clasificaciones"
   },
   "account": {
     "signInBlurb": "Inicia sesión para respaldar y sincronizar tus archivos, garaje y notas entre dispositivos. Todo aquí sigue funcionando sin conexión en este dispositivo: Cloud Sync es opcional.",
@@ -172,5 +173,27 @@
     "downloadingFiles_one": "Descargando {{count}} archivo de la nube…",
     "downloadingFiles_other": "Descargando {{count}} archivos de la nube…",
     "zipping": "Comprimiendo…"
+  },
+  "leaderboard": {
+    "signInHint": "Inicia sesión para enviar tus capturas a las clasificaciones públicas.",
+    "noSnapshots": "Captura una vuelta para enviarla a las clasificaciones.",
+    "intro_one": "Tienes {{count}} captura que puedes enviar a las clasificaciones.",
+    "intro_other": "Tienes {{count}} capturas que puedes enviar a las clasificaciones.",
+    "submitButton": "Enviar a las clasificaciones",
+    "dialogTitle": "Enviar a las clasificaciones",
+    "dialogDescription": "Tus datos de GPS, el motor y el peso indicado son públicos para que otros puedan comparar y verificar las vueltas. Los datos del sensor del motor permanecen privados a menos que decidas compartirlos.",
+    "listedWeight": "Peso indicado",
+    "listedWeightHint": "Se muestra públicamente y se usa para agrupar los registros. Por defecto es el peso de tu vehículo: cámbialo si prefieres indicar un peso de categoría.",
+    "weightRequired": "Introduce un peso indicado para enviar.",
+    "shareEngineData": "Compartir datos del sensor del motor (RPM, temperaturas)",
+    "publicNotice": "Público: GPS, nombre del motor, tiempo de vuelta, peso indicado.",
+    "submitOne": "Enviar",
+    "submitting": "Enviando…",
+    "submitted": "Enviado",
+    "submitSuccess": "Enviado a las clasificaciones.",
+    "submitFailed": "No se pudo enviar; inténtalo de nuevo.",
+    "alreadySubmitted": "Ya está en las clasificaciones.",
+    "loadFailed": "No se pudieron cargar tus envíos.",
+    "close": "Cerrar"
   }
 }

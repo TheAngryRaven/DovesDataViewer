@@ -1,0 +1,31 @@
+{
+  "_machine": true,
+  "title": "Classements",
+  "subtitle": "Les tours les plus rapides de la communauté par circuit, tracé et catégorie de moteur.",
+  "empty": "Aucun envoi pour l'instant :(",
+  "loadFailed": "Impossible de charger les classements.",
+  "loading": "Chargement des classements…",
+  "showTop": "Afficher le top",
+  "all": "Tous",
+  "groupByWeight": "Grouper par poids",
+  "bubbles": {
+    "engines_one": "{{count}} moteur",
+    "engines_other": "{{count}} moteurs",
+    "records_one": "{{count}} record",
+    "records_other": "{{count}} records",
+    "fastest": "Plus rapide : {{time}}"
+  },
+  "unclassifiedEngine": "Non classé",
+  "weightLabel": "{{weight}} {{unit}}",
+  "openGroup": "Voir les tours",
+  "buildFailed": "Impossible de créer cette session.",
+  "readOnly": {
+    "banner": "Vue de classement en lecture seule",
+    "exit": "Quitter",
+    "descriptor": "{{course}} · {{engine}}",
+    "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
+  },
+  "loadTopSession_one": "Charger le meilleur tour en une seule session",
+  "loadTopSession_other": "Charger les {{count}} meilleurs tours en une seule session",
+  "loadAllSession": "Charger tous les tours en une seule session"
+}

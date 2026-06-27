@@ -11,7 +11,8 @@
     "courses": "Circuitos",
     "tools": "Ferramentas",
     "banned": "IPs banidos",
-    "users": "Usuários"
+    "users": "Usuários",
+    "leaderboards": "Rankings"
   },
   "common": {
     "error": "Erro",
@@ -200,5 +201,43 @@
     "granted_other": "{{count}} meses de premium concedidos",
     "grantFailed": "A ação falhou",
     "grantRemoved": "Concessão premium removida"
+  },
+  "leaderboards": {
+    "title": "Registros de ranking",
+    "loading": "Carregando registros…",
+    "loadFailed": "Falha ao carregar os registros.",
+    "empty": "Nenhum envio de ranking ainda.",
+    "filterAll": "Todos",
+    "filterApproved": "Aprovados",
+    "filterDenied": "Recusados",
+    "colDriver": "Piloto",
+    "colTrack": "Pista / Traçado",
+    "colEngine": "Motor",
+    "colClass": "Classe",
+    "colWeight": "Peso",
+    "colTime": "Tempo de volta",
+    "colStatus": "Status",
+    "approve": "Aprovar",
+    "deny": "Recusar",
+    "unclassified": "— Não classificado —",
+    "notes": "Notas do admin",
+    "notesPlaceholder": "Notas internas (opcional)",
+    "saveNotes": "Salvar",
+    "updated": "Registro atualizado.",
+    "updateFailed": "Não foi possível atualizar o registro.",
+    "classesTitle": "Classes de motor",
+    "classesHint": "Grupos de palavras-chave que unificam nomes de motor em texto livre em uma única classe. Um envio corresponde automaticamente à primeira classe cuja palavra-chave aparece no nome do motor.",
+    "className": "Nome da classe",
+    "classNamePlaceholder": "Tillotson 225",
+    "keywords": "Palavras-chave (separadas por vírgulas)",
+    "keywordsPlaceholder": "tilly, 225, 225rs",
+    "addClass": "Adicionar classe",
+    "saveClass": "Salvar",
+    "deleteClass": "Excluir",
+    "reclassify": "Reclassificar registros",
+    "reclassified_one": "{{count}} registro reclassificado.",
+    "reclassified_other": "{{count}} registros reclassificados.",
+    "classSaved": "Classe de motor salva.",
+    "classFailed": "Não foi possível salvar a classe de motor."
   }
 }

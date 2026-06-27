@@ -11,7 +11,8 @@
     "courses": "Circuiti",
     "tools": "Strumenti",
     "banned": "IP bloccati",
-    "users": "Utenti"
+    "users": "Utenti",
+    "leaderboards": "Classifiche"
   },
   "common": {
     "error": "Errore",
@@ -200,5 +201,43 @@
     "granted_other": "Concessi {{count}} mesi di premium",
     "grantFailed": "Azione non riuscita",
     "grantRemoved": "Concessione premium rimossa"
+  },
+  "leaderboards": {
+    "title": "Record delle classifiche",
+    "loading": "Caricamento record…",
+    "loadFailed": "Impossibile caricare i record.",
+    "empty": "Ancora nessun invio alle classifiche.",
+    "filterAll": "Tutti",
+    "filterApproved": "Approvati",
+    "filterDenied": "Rifiutati",
+    "colDriver": "Pilota",
+    "colTrack": "Pista / Tracciato",
+    "colEngine": "Motore",
+    "colClass": "Classe",
+    "colWeight": "Peso",
+    "colTime": "Tempo sul giro",
+    "colStatus": "Stato",
+    "approve": "Approva",
+    "deny": "Rifiuta",
+    "unclassified": "— Non classificato —",
+    "notes": "Note amministratore",
+    "notesPlaceholder": "Note interne (facoltativo)",
+    "saveNotes": "Salva",
+    "updated": "Record aggiornato.",
+    "updateFailed": "Impossibile aggiornare il record.",
+    "classesTitle": "Classi motore",
+    "classesHint": "Gruppi di parole chiave che uniscono i nomi di motore in testo libero in un'unica classe. Un invio corrisponde automaticamente alla prima classe la cui parola chiave compare nel nome del motore.",
+    "className": "Nome della classe",
+    "classNamePlaceholder": "Tillotson 225",
+    "keywords": "Parole chiave (separate da virgole)",
+    "keywordsPlaceholder": "tilly, 225, 225rs",
+    "addClass": "Aggiungi classe",
+    "saveClass": "Salva",
+    "deleteClass": "Elimina",
+    "reclassify": "Riclassifica record",
+    "reclassified_one": "{{count}} record riclassificato.",
+    "reclassified_other": "{{count}} record riclassificati.",
+    "classSaved": "Classe motore salvata.",
+    "classFailed": "Impossibile salvare la classe motore."
   }
 }

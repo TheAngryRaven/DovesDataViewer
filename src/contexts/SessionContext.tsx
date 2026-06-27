@@ -12,6 +12,7 @@ import type { LapSnapshot } from '@/lib/lapSnapshot';
 import type { OverlayLine } from '@/lib/lapOverlays';
 import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
 import type { PluginSnapshot } from '@/plugins/panels';
+import type { LeaderboardDescriptor } from '@/lib/leaderboardSession';
 
 /**
  * Session-scoped state and handlers shared by the three main view tabs
@@ -48,6 +49,15 @@ export interface SessionContextValue {
   selectedLapTimeMs: number | null;
   referenceLapNumber: number | null;
   isAllLaps: boolean;
+
+  // ── Read-only leaderboard view (plan 0005) ────────────────────────────────
+  /** True when this is a synthetic, read-only leaderboard session (no saving,
+   *  no video/weather/snapshots, alert-coloured header). */
+  readOnly?: boolean;
+  /** lapNumber → submitter display name, shown instead of "Lap N" in read-only. */
+  lapLabels?: Record<number, string>;
+  /** Course / engine / weight context shown above the read-only lap table. */
+  readOnlyDescriptor?: LeaderboardDescriptor;
 
   // ── Reference comparison ──────────────────────────────────────────────────
   hasReference: boolean;

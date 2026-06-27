@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, StepBack, StepForward, Eye, EyeOff, AlertCircle, Wrench, NotebookPen, SlidersHorizontal, Columns2 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -77,6 +78,8 @@ import { PlaybackProvider, type PlaybackContextValue } from "@/contexts/Playback
 import { VideoTimeProvider, type VideoTimeContextValue } from "@/contexts/VideoTimeContext";
 import { snapshotLapSamples } from "@/lib/lapSnapshot";
 import type { PluginSnapshot } from "@/plugins/panels";
+import { takePendingLeaderboardSession } from "@/lib/leaderboardHandoff";
+import type { LeaderboardDescriptor } from "@/lib/leaderboardSession";
 
 
 type TopPanelView = "raceline" | "laptable" | "graphview" | "coach" | "tools" | "setups" | "notes";
@@ -86,6 +89,7 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === 'true';
 
 export default function Index() {
   const { t } = useTranslation("session");
+  const { t: tl } = useTranslation("leaderboard");
   const { settings, setSettings, toggleFieldDefault, isFieldHiddenByDefault } = useSettings();
   const fileManager = useFileManager();
   const vehicleManager = useVehicleManager();
@@ -121,10 +125,53 @@ export default function Index() {
   const {
     selection, selectedCourse, laps, selectedLapNumber, referenceLapNumber,
     filteredSamples, visibleSamples, visibleRange, currentIndex, filteredBounds,
-    setSelectedLapNumber, setReferenceLapNumber, setCurrentIndex,
+    setSelection, setLaps, setSelectedLapNumber, setReferenceLapNumber, setCurrentIndex,
     handleSelectionChange, handleLapSelect, handleLapDropdownChange,
     handleSetReference, handleScrub, handleRangeChange, formatRangeLabel: formatRangeLabelTime,
   } = lapMgmt;
+
+  // ── Read-only leaderboard view (plan 0005) ──────────────────────────────────
+  // The /leaderboards page builds a synthetic session and hands it off here; we
+  // consume it once on mount, inject the prebuilt laps/selection verbatim (no
+  // crossing detection on the stitched multi-driver samples), and flip read-only.
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [readOnly, setReadOnly] = useState(false);
+  const [lapLabels, setLapLabels] = useState<Record<number, string>>({});
+  const [readOnlyDescriptor, setReadOnlyDescriptor] = useState<LeaderboardDescriptor | undefined>();
+  const exitReadOnly = useCallback(() => {
+    setReadOnly(false);
+    setLapLabels({});
+    setReadOnlyDescriptor(undefined);
+    sessionData.clearSession();
+    navigate("/leaderboards");
+  }, [sessionData, navigate]);
+
+  // Consume a pending leaderboard session once on mount. Inject the prebuilt
+  // ParsedData + selection + laps directly (bypassing useLapManagement's detection)
+  // and select the fastest lap (lap 1).
+  useEffect(() => {
+    const bundle = takePendingLeaderboardSession();
+    if (!bundle) return;
+    sessionData.loadParsedData(bundle.data, "leaderboard");
+    setSelection(bundle.selection);
+    setLaps(bundle.laps);
+    setSelectedLapNumber(bundle.laps[0]?.lapNumber ?? null);
+    setLapLabels(bundle.lapLabels);
+    setReadOnlyDescriptor(bundle.descriptor);
+    setReadOnly(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot handoff on mount
+  }, []);
+
+  // The Leaderboards header's Profile button routes here with this flag so the
+  // profile drawer opens without duplicating the drawer onto that route.
+  useEffect(() => {
+    if ((location.state as { openProfile?: boolean } | null)?.openProfile) {
+      fileManager.openProfile();
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on state change only
+  }, [location.state]);
 
   // External reference
   const externalRef = useExternalReference(selectedCourse);
@@ -497,6 +544,9 @@ export default function Index() {
     selectedLapTimeMs,
     referenceLapNumber,
     isAllLaps,
+    readOnly,
+    lapLabels,
+    readOnlyDescriptor,
     hasReference,
     paceDiff,
     paceDiffLabel,
@@ -560,6 +610,7 @@ export default function Index() {
     visibleRange, minRange,
     selectedCourse, filteredBounds,
     laps, selectedLapNumber, selectedLapTimeMs, referenceLapNumber, isAllLaps,
+    readOnly, lapLabels, readOnlyDescriptor,
     hasReference, paceDiff, paceDiffLabel, slicedPaceData, slicedReferenceSpeedData,
     deltaTopSpeed, deltaMinSpeed, lapToFastestDelta, refAvgTopSpeed, refAvgMinSpeed,
     externalRefLabel, savedFiles,
@@ -691,16 +742,26 @@ export default function Index() {
     <PlaybackProvider value={playbackContextValue}>
     <VideoTimeProvider value={videoTimeContextValue}>
     <div className="h-screen bg-background flex flex-col overflow-hidden safe-area-inset">
-      <header className="border-b border-border px-4 py-2 flex items-center justify-between shrink-0">
-        <button
-          type="button"
-          onClick={clearSession}
-          aria-label={t("header.home")}
-          className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <BrandLogo className="w-6 h-6" />
-          <span className="font-semibold text-foreground hidden sm:inline">LapWing</span>
-        </button>
+      <header className={cn(
+        "border-b px-4 py-2 flex items-center justify-between shrink-0",
+        readOnly ? "border-warning bg-warning/15" : "border-border",
+      )}>
+        {readOnly ? (
+          <div className="flex items-center gap-3 min-w-0">
+            <BrandLogo className="w-6 h-6 shrink-0" />
+            <span className="truncate text-sm font-semibold text-warning-foreground">{tl("readOnly.banner")}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={clearSession}
+            aria-label={t("header.home")}
+            className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <BrandLogo className="w-6 h-6" />
+            <span className="font-semibold text-foreground hidden sm:inline">LapWing</span>
+          </button>
+        )}
 
         <div className="flex items-center gap-2">
           <TooltipProvider>
@@ -736,7 +797,9 @@ export default function Index() {
             </Tooltip>
           </TooltipProvider>
 
-          <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact laps={laps} samples={data?.samples} />
+          {!readOnly && (
+            <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact laps={laps} samples={data?.samples} />
+          )}
 
           {laps.length > 0 && (
             <Select value={selectedLapNumber?.toString() ?? "all"} onValueChange={handleLapDropdownChange}>
@@ -747,50 +810,61 @@ export default function Index() {
                 <SelectItem value="all">{t("header.allLaps")}</SelectItem>
                 {laps.map((lap) => (
                   <SelectItem key={lap.lapNumber} value={lap.lapNumber.toString()}>
-                    {t("header.lap", { number: lap.lapNumber })}
+                    {lapLabels[lap.lapNumber] ?? t("header.lap", { number: lap.lapNumber })}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
 
-          <LapSnapshotControls
-            snapshotsForCourse={snapshots.snapshotsForCourse}
-            activeSnapshotId={snapshots.activeSnapshotId}
-            canSnapshot={snapshots.canSnapshot}
-            hasCourse={!!selectedCourse}
-            onLoad={snapshots.loadSnapshot}
-            onClear={snapshots.clearActive}
-            onSave={snapshots.saveSelectedLap}
-            overlayLines={overlayLines}
-            onToggleOverlay={toggleOverlay}
-          />
+          {!readOnly && (
+            <LapSnapshotControls
+              snapshotsForCourse={snapshots.snapshotsForCourse}
+              activeSnapshotId={snapshots.activeSnapshotId}
+              canSnapshot={snapshots.canSnapshot}
+              hasCourse={!!selectedCourse}
+              onLoad={snapshots.loadSnapshot}
+              onClear={snapshots.clearActive}
+              onSave={snapshots.saveSelectedLap}
+              overlayLines={overlayLines}
+              onToggleOverlay={toggleOverlay}
+            />
+          )}
 
-          <OverlaysMenu
-            hasCourse={!!selectedCourse}
-            trackName={selection?.trackName}
-            courseName={selectedCourse?.name}
-            currentFileName={currentFileName}
-            laps={laps}
-            overlayLines={overlayLines}
-            referenceLapNumber={referenceLapNumber}
-            externalRefLabel={externalRefLabel}
-            onLoadOverlayFile={loadOverlayFile}
-            onAddExternalOverlay={addExternalOverlay}
-            onToggleOverlay={toggleOverlay}
-            onSetOverlayReference={handleSetOverlayReference}
-          />
+          {!readOnly && (
+            <OverlaysMenu
+              hasCourse={!!selectedCourse}
+              trackName={selection?.trackName}
+              courseName={selectedCourse?.name}
+              currentFileName={currentFileName}
+              laps={laps}
+              overlayLines={overlayLines}
+              referenceLapNumber={referenceLapNumber}
+              externalRefLabel={externalRefLabel}
+              onLoadOverlayFile={loadOverlayFile}
+              onAddExternalOverlay={addExternalOverlay}
+              onToggleOverlay={toggleOverlay}
+              onSetOverlayReference={handleSetOverlayReference}
+            />
+          )}
 
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} canHideSampleFiles={fileManager.hasOtherFiles} />
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3" onClick={() => fileManager.open()}>
-            <FolderOpen className="w-4 h-4" />
-            <span className="hidden lg:inline">{t("header.garage")}</span>
-          </Button>
+          {readOnly ? (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3" onClick={exitReadOnly}>
+              <FolderOpen className="w-4 h-4" />
+              <span className="hidden lg:inline">{tl("readOnly.exit")}</span>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 lg:px-3" onClick={() => fileManager.open()}>
+              <FolderOpen className="w-4 h-4" />
+              <span className="hidden lg:inline">{t("header.garage")}</span>
+            </Button>
+          )}
         </div>
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showCoach={showCoach} showTools={showTools} setupIndicator={setupIndicator} onSetupIndicatorClick={() => setupIndicator && navigateToManage(setupIndicator.target)} overlayLines={overlayLines} splitActive={splitActive} onStartSplit={startSplit} onCombineSplit={combineSplit} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showCoach={showCoach && !readOnly} showTools={showTools && !readOnly} readOnly={readOnly} setupIndicator={readOnly ? null : setupIndicator} onSetupIndicatorClick={() => setupIndicator && navigateToManage(setupIndicator.target)} overlayLines={overlayLines} splitActive={splitActive} onStartSplit={startSplit} onCombineSplit={combineSplit} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -868,7 +942,7 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showCoach, showTools, setupIndicator, onSetupIndicatorClick, overlayLines, splitActive, onStartSplit, onCombineSplit }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showCoach, showTools, readOnly, setupIndicator, onSetupIndicatorClick, overlayLines, splitActive, onStartSplit, onCombineSplit }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
@@ -876,6 +950,7 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   onToggleOverlays: () => void;
   showCoach: boolean;
   showTools: boolean;
+  readOnly?: boolean;
   setupIndicator: SetupIndicator | null;
   onSetupIndicatorClick: () => void;
   overlayLines: OverlayLine[];
@@ -920,23 +995,28 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
         </button>
       )}
       {/* Phones: Setups and Notes are separate tabs. Tablet/desktop: one merged
-          tab opens the 50/50 split (SetupsNotesPanel handles the layout). */}
-      <button onClick={() => setTopPanelView("setups")} className={cn(tabClass("setups"), "md:hidden")}>
-        <SlidersHorizontal className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.setups")}</span>
-      </button>
-      <button onClick={() => setTopPanelView("notes")} className={cn(tabClass("notes"), "md:hidden")}>
-        <NotebookPen className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.notes")}</span>
-      </button>
-      <button
-        onClick={() => setTopPanelView("setups")}
-        className={cn(tabBase, tabState(setupsNotesActive), "hidden md:flex")}
-      >
-        <span className="flex items-center gap-1">
-          <SlidersHorizontal className="w-4 h-4" />
-          <NotebookPen className="w-4 h-4" />
-        </span>
-        {t("tabs.setupsNotes")}
-      </button>
+          tab opens the 50/50 split (SetupsNotesPanel handles the layout). Hidden
+          in read-only leaderboard view (no saving). */}
+      {!readOnly && (
+        <>
+          <button onClick={() => setTopPanelView("setups")} className={cn(tabClass("setups"), "md:hidden")}>
+            <SlidersHorizontal className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.setups")}</span>
+          </button>
+          <button onClick={() => setTopPanelView("notes")} className={cn(tabClass("notes"), "md:hidden")}>
+            <NotebookPen className="w-4 h-4" /> <span className="hidden sm:inline">{t("tabs.notes")}</span>
+          </button>
+          <button
+            onClick={() => setTopPanelView("setups")}
+            className={cn(tabBase, tabState(setupsNotesActive), "hidden md:flex")}
+          >
+            <span className="flex items-center gap-1">
+              <SlidersHorizontal className="w-4 h-4" />
+              <NotebookPen className="w-4 h-4" />
+            </span>
+            {t("tabs.setupsNotes")}
+          </button>
+        </>
+      )}
       {setupIndicator && (
         <TooltipProvider>
           <Tooltip>

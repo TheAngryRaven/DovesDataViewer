@@ -1,0 +1,31 @@
+{
+  "_machine": true,
+  "title": "Bestenlisten",
+  "subtitle": "Die schnellsten Community-Runden nach Strecke, Layout und Motorklasse.",
+  "empty": "Noch keine Einträge :(",
+  "loadFailed": "Die Bestenlisten konnten nicht geladen werden.",
+  "loading": "Bestenlisten werden geladen…",
+  "showTop": "Top anzeigen",
+  "all": "Alle",
+  "groupByWeight": "Nach Gewicht gruppieren",
+  "bubbles": {
+    "engines_one": "{{count}} Motor",
+    "engines_other": "{{count}} Motoren",
+    "records_one": "{{count}} Eintrag",
+    "records_other": "{{count}} Einträge",
+    "fastest": "Schnellste: {{time}}"
+  },
+  "unclassifiedEngine": "Nicht klassifiziert",
+  "weightLabel": "{{weight}} {{unit}}",
+  "openGroup": "Runden ansehen",
+  "buildFailed": "Diese Sitzung konnte nicht erstellt werden.",
+  "readOnly": {
+    "banner": "Schreibgeschützte Bestenlistenansicht",
+    "exit": "Beenden",
+    "descriptor": "{{course}} · {{engine}}",
+    "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
+  },
+  "loadTopSession_one": "Schnellste Runde als eine Sitzung laden",
+  "loadTopSession_other": "Top {{count}} Runden als eine Sitzung laden",
+  "loadAllSession": "Alle Runden als eine Sitzung laden"
+}

@@ -117,6 +117,37 @@ escape hatch confined to that one module.
 
 ---
 
+## Leaderboards (`..._leaderboards.sql`, plan 0005)
+
+Public community leaderboards built from submitted lap snapshots. **All access is
+through RLS** (no edge function); the client lives in
+`src/plugins/cloud-sync/leaderboardClient.ts`.
+
+| Table | Purpose |
+|-------|---------|
+| `leaderboard_entries` | One row per submitted snapshot. Holds the frozen `data` jsonb (clean-lap samples + course geometry; engine-telemetry channels stripped client-side unless shared — **setup data is never uploaded**), the denormalized `display_name`, the raw `engine` + `engine_key`, the admin-overridable `engine_class_id` (+ `class_source`), the public `listed_weight`, `lap_time_ms`, a `content_hash`, and `status` (`approved` default / `denied`). `unique (user_id, content_hash)` blocks identical resubmits. |
+| `engine_classes` | Admin-managed keyword groups (`name`, `keywords[]`, `sort_order`) that collapse free-text engine names into one class. |
+
+| Function / trigger | What it does |
+|---|---|
+| `classify_engine(text)` | SECURITY DEFINER — first class whose any keyword is a substring of the engine key (by `sort_order`). |
+| `leaderboard_set_class` | BEFORE INSERT on `leaderboard_entries`: auto-fills `engine_class_id` when the client didn't pin one. |
+| `reclassify_entries()` | Admin RPC — re-runs `classify_engine` for every `class_source='auto'` row (manual overrides are protected). |
+
+**RLS.** `leaderboard_entries`: `select` for **anon + authenticated** where
+`status='approved'` (or own); users `insert`/`delete` their own; admins
+(`has_role`) `select` all + `update` (status / class / notes). `engine_classes`:
+public `select`, admin-only writes. Moderation is **allow-by-default** — entries are
+visible immediately and only an admin **deny** hides them.
+
+**Browse model.** The page selects only the light columns (no `data`) for all
+approved rows and aggregates the Track→Course→engine/weight tree client-side
+(`lib/leaderboardBrowse.ts`); opening a group re-queries the chosen ids **with
+`data`** (`lib/leaderboardSession.ts` transposes them into one synthetic read-only
+session). Promote to RPCs / a materialized view if row volume grows.
+
+---
+
 ## Subscriptions / Stripe (`..._stripe_subscriptions.sql`, `..._subscription_grace_trim.sql` + 4 edge functions)
 
 Paid tiers scale **one pooled cloud-storage budget** that documents + logs +

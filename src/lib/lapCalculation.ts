@@ -295,6 +295,62 @@ export function calculateLaps(samples: GpsSample[], inputCourse: Course): Lap[] 
   return laps;
 }
 
+/**
+ * Compute sector splits for ONE already-delimited lap whose samples span exactly
+ * the lap (index 0 = lap start, last index = lap end) — e.g. a leaderboard entry
+ * transposed from a snapshot. Unlike calculateLaps it does NOT re-detect the
+ * start/finish crossing (the slice has no lead-in), it anchors the lap at the
+ * slice ends and only locates the intermediate sector-line crossings. Boundary
+ * indices are relative to the passed `samples`. Returns empty when the course
+ * defines no sectors. Mirrors the per-lap sector logic in calculateLaps.
+ */
+export function computeLapSectors(
+  samples: GpsSample[],
+  inputCourse: Course,
+): { sectors?: SectorTimes; sectorTimes?: (number | undefined)[]; sectorBoundaries?: (number | undefined)[] } {
+  if (samples.length < 2) return {};
+  const course = normalizeCourseSectors(inputCourse);
+  const courseSectors = course.sectors ?? [];
+  if (courseSectors.length === 0) return {};
+
+  const centerLat = (course.startFinishA.lat + course.startFinishB.lat) / 2;
+  const centerLon = (course.startFinishA.lon + course.startFinishB.lon) / 2;
+
+  const startT = samples[0].t;
+  const endT = samples[samples.length - 1].t;
+  const lineCount = courseSectors.length + 1;
+
+  const boundaryTimes: (number | undefined)[] = new Array(lineCount);
+  const boundaryIdx: (number | undefined)[] = new Array(lineCount);
+  boundaryTimes[0] = startT; // line 0 = start/finish = the slice start
+  boundaryIdx[0] = 0;
+  let prevTime = startT;
+
+  for (let j = 0; j < courseSectors.length; j++) {
+    const line = projectSectorLine(courseSectors[j].line, centerLat, centerLon);
+    const crossings = detectLineCrossings(
+      samples, line.a, line.b, centerLat, centerLon, j, MIN_SECTOR_CROSSING_INTERVAL_MS,
+    );
+    const cross = crossings.find((c) => c.crossingTime > prevTime && c.crossingTime < endT);
+    if (cross) {
+      boundaryTimes[j + 1] = cross.crossingTime;
+      boundaryIdx[j + 1] = cross.sampleIndex;
+      prevTime = cross.crossingTime;
+    } else {
+      boundaryTimes[j + 1] = undefined;
+      boundaryIdx[j + 1] = undefined;
+    }
+  }
+
+  const sectorTimes: (number | undefined)[] = new Array(lineCount);
+  for (let k = 0; k < lineCount; k++) {
+    const tStart = boundaryTimes[k];
+    const tEnd = k + 1 < lineCount ? boundaryTimes[k + 1] : endT;
+    sectorTimes[k] = tStart !== undefined && tEnd !== undefined ? tEnd - tStart : undefined;
+  }
+  return { sectors: rollupMajorSectors(course, sectorTimes), sectorTimes, sectorBoundaries: boundaryIdx };
+}
+
 // Format lap time as mm:ss.sss
 export function formatLapTime(ms: number): string {
   const totalSeconds = ms / 1000;

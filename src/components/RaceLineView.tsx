@@ -65,6 +65,8 @@ interface RaceLineViewProps {
   sessionFileName?: string | null;
   cachedWeatherStation?: WeatherStation | null;
   onWeatherStationResolved?: (station: WeatherStation) => void;
+  /** Read-only leaderboard view: hide/disable the weather panel + fetch. */
+  readOnly?: boolean;
   isAllLaps?: boolean;
   parserStats?: ParserStats | null;
   /** Extra racing lines (other laps / snapshots) to overlay, beneath the current lap. */
@@ -111,7 +113,7 @@ function createSpeedEventIcon(event: SpeedEvent, useKph: boolean): L.DivIcon {
   });
 }
 
-export function RaceLineView({ samples, allSamples, referenceSamples = [], course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, sessionFileName, cachedWeatherStation, onWeatherStationResolved, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays, showOverlayLegend = true, onToggleOverlayLegend }: RaceLineViewProps) {
+export function RaceLineView({ samples, allSamples, referenceSamples = [], course, bounds, paceDiff = null, paceDiffLabel = 'best', deltaTopSpeed = null, deltaMinSpeed = null, referenceLapNumber = null, lapToFastestDelta = null, showOverlays = true, lapTimeMs = null, refAvgTopSpeed = null, refAvgMinSpeed = null, sessionGpsPoint, sessionStartDate, sessionFileName, cachedWeatherStation, onWeatherStationResolved, readOnly = false, isAllLaps, parserStats, overlayLines = [], rangeStart = 0, onRemoveOverlay, alignOverlays, onToggleAlignOverlays, showOverlayLegend = true, onToggleOverlayLegend }: RaceLineViewProps) {
   const { t } = useTranslation('session');
   const { useKph, brakingZoneSettings } = useSettingsContext();
   const { currentIndex } = usePlaybackContext();
@@ -677,33 +679,38 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
         </div>
       )}
 
-      {/* Session METAR detail button - bottom right, left of weather toggle */}
-      {showWeather && sessionWeatherData && (
-        <button
-          onClick={() => setSessionMetarOpen(true)}
-          className="absolute bottom-4 right-14 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 text-primary"
-          title={t('map.metarDetail')}
-        >
-          <FileText className="w-4 h-4" />
-        </button>
+      {/* Weather UI — hidden entirely in the read-only leaderboard view. */}
+      {!readOnly && (
+        <>
+          {/* Session METAR detail button - bottom right, left of weather toggle */}
+          {showWeather && sessionWeatherData && (
+            <button
+              onClick={() => setSessionMetarOpen(true)}
+              className="absolute bottom-4 right-14 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 text-primary"
+              title={t('map.metarDetail')}
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Weather toggle button - bottom right */}
+          <button
+            onClick={() => setShowWeather(prev => !prev)}
+            className={`absolute bottom-4 right-4 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 ${showWeather ? 'text-primary' : 'text-muted-foreground'}`}
+            title={showWeather ? t('map.weatherHide') : t('map.weatherShow')}
+          >
+            <CloudSun className="w-4 h-4" />
+          </button>
+
+          {/* Session METAR dialog */}
+          <LocalWeatherDialog
+            sessionWeather={sessionWeatherData}
+            externalOpen={sessionMetarOpen}
+            onExternalOpenChange={setSessionMetarOpen}
+          />
+        </>
       )}
 
-      {/* Weather toggle button - bottom right */}
-      <button
-        onClick={() => setShowWeather(prev => !prev)}
-        className={`absolute bottom-4 right-4 z-[1000] p-2 rounded bg-card/90 backdrop-blur-sm border border-border transition-colors hover:bg-muted/50 ${showWeather ? 'text-primary' : 'text-muted-foreground'}`}
-        title={showWeather ? t('map.weatherHide') : t('map.weatherShow')}
-      >
-        <CloudSun className="w-4 h-4" />
-      </button>
-
-      {/* Session METAR dialog */}
-      <LocalWeatherDialog
-        sessionWeather={sessionWeatherData}
-        externalOpen={sessionMetarOpen}
-        onExternalOpenChange={setSessionMetarOpen}
-      />
-      
       {/* Speed legend and stats panel */}
       {showOverlays && (
         <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded p-2 z-[1000] min-w-[120px] transition-opacity duration-200">
@@ -802,7 +809,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
           })()}
           
           {/* Weather panel - below delta section */}
-          {showWeather && (
+          {!readOnly && showWeather && (
             <div className="mt-3 pt-2 border-t border-border">
               <WeatherPanel
                 lat={sessionGpsPoint?.lat}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   calculateLaps,
+  computeLapSectors,
   formatLapTime,
   formatSectorTime,
   calculateOptimalLap,
@@ -367,6 +368,36 @@ describe("calculateLaps - sectors", () => {
     expect(lap.sectors!.s3).toBeCloseTo(plain.sectors!.s3!, -1);
     // The two sub-segments of S1 sum to S1.
     expect(lap.sectorTimes![0]! + lap.sectorTimes![1]!).toBeCloseTo(lap.sectors!.s1!, -1);
+  });
+});
+
+describe("computeLapSectors", () => {
+  it("returns empty when the course defines no sectors", () => {
+    const samples = makeRacePath(2, 10000);
+    expect(computeLapSectors(samples, sfCourse)).toEqual({});
+  });
+
+  it("computes sector splits for a pre-delimited lap slice (anchored at index 0)", () => {
+    // A clean lap whose first sample IS the lap start (just past S/F), crossing
+    // S2 (lon 0.003) then S3 (lon 0.006) before looping back — exactly the shape
+    // a leaderboard entry feeds in (no lead-in for start/finish re-detection).
+    const lap = [
+      makeSample(0, 0, 0.0005),
+      makeSample(1000, 0, 0.002),
+      makeSample(2000, 0, 0.004), // cross S2
+      makeSample(3000, 0, 0.005),
+      makeSample(4000, 0, 0.007), // cross S3
+      makeSample(5000, 0.01, 0.007),
+      makeSample(7000, 0.01, -0.001),
+      makeSample(9000, 0, -0.0005),
+    ];
+    const sec = computeLapSectors(lap, sectorCourse);
+    expect(sec.sectors).toBeDefined();
+    expect(sec.sectors!.s1).toBeGreaterThan(0);
+    expect(sec.sectors!.s2).toBeGreaterThan(0);
+    expect(sec.sectors!.s3).toBeGreaterThan(0);
+    expect(sec.sectorTimes).toHaveLength(3);
+    expect(sec.sectorBoundaries![0]).toBe(0); // lap start anchored at the slice start
   });
 });
 

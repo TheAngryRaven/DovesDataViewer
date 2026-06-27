@@ -27,6 +27,10 @@
     "build": {
       "title": "Costruisci il tuo logger",
       "description": "Hardware e firmware GPS open source: il DovesDataLogger"
+    },
+    "leaderboards": {
+      "title": "Classifiche",
+      "description": "Confronta i giri più veloci per pista, tracciato e classe motore"
     }
   },
   "links": {

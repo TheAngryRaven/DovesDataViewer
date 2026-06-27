@@ -1,0 +1,31 @@
+{
+  "_machine": true,
+  "title": "リーダーボード",
+  "subtitle": "コース、レイアウト、エンジンクラスごとのコミュニティ最速ラップ。",
+  "empty": "まだ送信がありません :(",
+  "loadFailed": "リーダーボードを読み込めませんでした。",
+  "loading": "リーダーボードを読み込み中…",
+  "showTop": "上位を表示",
+  "all": "すべて",
+  "groupByWeight": "重量でグループ化",
+  "bubbles": {
+    "engines_one": "{{count}} 基のエンジン",
+    "engines_other": "{{count}} 基のエンジン",
+    "records_one": "{{count}} 件の記録",
+    "records_other": "{{count}} 件の記録",
+    "fastest": "最速: {{time}}"
+  },
+  "unclassifiedEngine": "未分類",
+  "weightLabel": "{{weight}} {{unit}}",
+  "openGroup": "ラップを見る",
+  "buildFailed": "そのセッションを作成できませんでした。",
+  "readOnly": {
+    "banner": "読み取り専用のリーダーボード表示",
+    "exit": "終了",
+    "descriptor": "{{course}} · {{engine}}",
+    "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
+  },
+  "loadTopSession_one": "最速ラップを1つのセッションとして読み込む",
+  "loadTopSession_other": "上位 {{count}} ラップを1つのセッションとして読み込む",
+  "loadAllSession": "すべてのラップを1つのセッションとして読み込む"
+}

@@ -77,7 +77,9 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove,
   };
 
   const handleSubmit = useCallback(async () => {
-    if (!form.name.trim()) return;
+    // Name + engine are both required — the engine powers leaderboards and
+    // snapshot matching, so a vehicle must always carry one.
+    if (!form.name.trim() || !form.engine.trim()) return;
     if (editingId) {
       await onUpdate({ id: editingId, ...form });
     } else {
@@ -136,8 +138,12 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove,
                     #{vehicle.number} — {vehicle.name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {vt?.name ?? t("vehicles.unknownType")} · {vehicle.engine} · {vehicle.weight} {vehicle.weightUnit}
+                    {vt?.name ?? t("vehicles.unknownType")}
+                    {vehicle.engine ? ` · ${vehicle.engine}` : ""} · {vehicle.weight} {vehicle.weightUnit}
                   </div>
+                  {!vehicle.engine.trim() && (
+                    <div className="text-xs text-destructive">{t("vehicles.needsEngine")}</div>
+                  )}
                 </div>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100" onClick={() => setHistoryVehicle(vehicle)} title={t("vehicleHistory.openTitle")}>
                   <History className="w-3.5 h-3.5" />
@@ -203,8 +209,11 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove,
             </div>
           </div>
         </div>
+        {form.name.trim() && !form.engine.trim() && (
+          <p className="text-xs text-destructive">{t("vehicles.engineRequired")}</p>
+        )}
         <div className="flex items-center gap-2">
-          <Button className="flex-1" size="sm" onClick={handleSubmit} disabled={!form.name.trim()}>
+          <Button className="flex-1" size="sm" onClick={handleSubmit} disabled={!form.name.trim() || !form.engine.trim()}>
             {editingId ? t("vehicles.update") : t("vehicles.add")}
           </Button>
           {editingId && (

@@ -27,6 +27,10 @@
     "build": {
       "title": "Monte seu próprio registrador",
       "description": "Hardware e firmware GPS de código aberto: o DovesDataLogger"
+    },
+    "leaderboards": {
+      "title": "Rankings",
+      "description": "Compare as voltas mais rápidas por pista, traçado e classe de motor"
     }
   },
   "links": {

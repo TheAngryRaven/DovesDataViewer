@@ -72,7 +72,9 @@
     "number": "Nummer",
     "weight": "Gewicht",
     "update": "Fahrzeug aktualisieren",
-    "add": "Fahrzeug hinzufügen"
+    "add": "Fahrzeug hinzufügen",
+    "engineRequired": "Ein Motor ist erforderlich.",
+    "needsEngine": "Dieses Fahrzeug benötigt einen Motor – bearbeite es, um einen hinzuzufügen."
   },
   "engine": {
     "label": "Motor",

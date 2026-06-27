@@ -11,7 +11,8 @@
     "courses": "Circuitos",
     "tools": "Herramientas",
     "banned": "IP bloqueadas",
-    "users": "Usuarios"
+    "users": "Usuarios",
+    "leaderboards": "Clasificaciones"
   },
   "common": {
     "error": "Error",
@@ -200,5 +201,43 @@
     "granted_other": "Se concedieron {{count}} meses de premium",
     "grantFailed": "La acción falló",
     "grantRemoved": "Concesión de premium eliminada"
+  },
+  "leaderboards": {
+    "title": "Registros de clasificación",
+    "loading": "Cargando registros…",
+    "loadFailed": "Error al cargar los registros.",
+    "empty": "Aún no hay envíos a las clasificaciones.",
+    "filterAll": "Todos",
+    "filterApproved": "Aprobados",
+    "filterDenied": "Rechazados",
+    "colDriver": "Piloto",
+    "colTrack": "Circuito / Trazado",
+    "colEngine": "Motor",
+    "colClass": "Clase",
+    "colWeight": "Peso",
+    "colTime": "Tiempo de vuelta",
+    "colStatus": "Estado",
+    "approve": "Aprobar",
+    "deny": "Rechazar",
+    "unclassified": "— Sin clasificar —",
+    "notes": "Notas de administración",
+    "notesPlaceholder": "Notas internas (opcional)",
+    "saveNotes": "Guardar",
+    "updated": "Registro actualizado.",
+    "updateFailed": "No se pudo actualizar el registro.",
+    "classesTitle": "Clases de motor",
+    "classesHint": "Grupos de palabras clave que unifican los nombres de motor de texto libre en una sola clase. Un envío coincide automáticamente con la primera clase cuya palabra clave aparezca en el nombre del motor.",
+    "className": "Nombre de la clase",
+    "classNamePlaceholder": "Tillotson 225",
+    "keywords": "Palabras clave (separadas por comas)",
+    "keywordsPlaceholder": "tilly, 225, 225rs",
+    "addClass": "Añadir clase",
+    "saveClass": "Guardar",
+    "deleteClass": "Eliminar",
+    "reclassify": "Reclasificar registros",
+    "reclassified_one": "Se reclasificó {{count}} registro.",
+    "reclassified_other": "Se reclasificaron {{count}} registros.",
+    "classSaved": "Clase de motor guardada.",
+    "classFailed": "No se pudo guardar la clase de motor."
   }
 }

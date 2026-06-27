@@ -119,7 +119,9 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
         engine,
         sourceFileName: currentFileName ?? "session",
         recordedAt: data.startDate?.getTime(),
-        vehicle: vehicle ? { id: vehicle.id, name: vehicle.name, number: vehicle.number } : undefined,
+        vehicle: vehicle
+          ? { id: vehicle.id, name: vehicle.name, number: vehicle.number, weight: vehicle.weight, weightUnit: vehicle.weightUnit }
+          : undefined,
         setup: setup ?? undefined,
         createdAt: existing?.createdAt,
       });

@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [2.10.0] - unreleased
+
+### Added
+- **Leaderboards (plan 0005).** A new public **Leaderboards** page (linked from the
+  landing page) where anyone — signed in or not — can browse fastest community laps
+  by **track → course → engine class**, with an optional **Group by weight** toggle
+  and a **Show top** selector (3/10/25/50/100/All). Picking a group launches the
+  normal telemetry viewer in a new **read-only mode** (alert-coloured header,
+  Coach/Tools/Setups + video/weather/snapshots hidden) where every submitted lap is
+  a row, fastest first, labelled by the submitter's name.
+- **Submit snapshots to the leaderboards.** From the Profile tab, signed-in users
+  with lap snapshots get a **Submit to leaderboards** dialog. GPS, engine name and a
+  **listed weight** are public; **engine-telemetry channels** (RPM, temps) stay
+  private unless you opt to share them. Setup data is never uploaded. The listed
+  weight defaults to the vehicle's weight and can be overridden (e.g. show a class
+  weight). Identical snapshots can't be resubmitted.
+- **Engine classification + moderation (admin).** A new admin **Leaderboards** tab
+  lists every submission with approve/deny (allow-by-default), a per-record engine
+  **class override**, and admin notes. Engine **classes** are keyword groups that
+  collapse free-text engine names ("Tillotson 225" / "225RS" / "Tilly") into one
+  class automatically, with a **Reclassify** action — without ever mutating the
+  user's raw engine string.
+
 ## [2.9.2] - 2026-06-25
 
 ### Added

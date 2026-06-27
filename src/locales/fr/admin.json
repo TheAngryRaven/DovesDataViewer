@@ -11,7 +11,8 @@
     "courses": "Parcours",
     "tools": "Outils",
     "banned": "IP bannies",
-    "users": "Utilisateurs"
+    "users": "Utilisateurs",
+    "leaderboards": "Classements"
   },
   "common": {
     "error": "Erreur",
@@ -200,5 +201,43 @@
     "granted_other": "{{count}} mois de premium offerts",
     "grantFailed": "L'action a échoué",
     "grantRemoved": "Offre premium retirée"
+  },
+  "leaderboards": {
+    "title": "Enregistrements de classement",
+    "loading": "Chargement des enregistrements…",
+    "loadFailed": "Échec du chargement des enregistrements.",
+    "empty": "Aucun envoi de classement pour l'instant.",
+    "filterAll": "Tous",
+    "filterApproved": "Approuvés",
+    "filterDenied": "Refusés",
+    "colDriver": "Pilote",
+    "colTrack": "Circuit / Tracé",
+    "colEngine": "Moteur",
+    "colClass": "Catégorie",
+    "colWeight": "Poids",
+    "colTime": "Temps au tour",
+    "colStatus": "Statut",
+    "approve": "Approuver",
+    "deny": "Refuser",
+    "unclassified": "— Non classé —",
+    "notes": "Notes d'administration",
+    "notesPlaceholder": "Notes internes (facultatif)",
+    "saveNotes": "Enregistrer",
+    "updated": "Enregistrement mis à jour.",
+    "updateFailed": "Impossible de mettre à jour l'enregistrement.",
+    "classesTitle": "Catégories de moteur",
+    "classesHint": "Groupes de mots-clés qui regroupent les noms de moteur en texte libre dans une seule catégorie. Un envoi correspond automatiquement à la première catégorie dont le mot-clé apparaît dans le nom du moteur.",
+    "className": "Nom de la catégorie",
+    "classNamePlaceholder": "Tillotson 225",
+    "keywords": "Mots-clés (séparés par des virgules)",
+    "keywordsPlaceholder": "tilly, 225, 225rs",
+    "addClass": "Ajouter une catégorie",
+    "saveClass": "Enregistrer",
+    "deleteClass": "Supprimer",
+    "reclassify": "Reclasser les enregistrements",
+    "reclassified_one": "{{count}} enregistrement reclassé.",
+    "reclassified_other": "{{count}} enregistrements reclassés.",
+    "classSaved": "Catégorie de moteur enregistrée.",
+    "classFailed": "Impossible d'enregistrer la catégorie de moteur."
   }
 }

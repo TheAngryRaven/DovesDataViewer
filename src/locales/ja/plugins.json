@@ -6,7 +6,8 @@
     "account": "アカウント",
     "lapSnapshots": "ラップスナップショット",
     "cloudLogs": "クラウドログ",
-    "dataPrivacy": "データとプライバシー"
+    "dataPrivacy": "データとプライバシー",
+    "leaderboards": "リーダーボード"
   },
   "account": {
     "signInBlurb": "サインインすると、ファイル・ガレージ・メモをデバイス間でバックアップ・同期できます。ここのすべては、このデバイス上でオフラインでも動作します。Cloud Sync は任意です。",
@@ -172,5 +173,27 @@
     "downloadingFiles_one": "{{count}}件のクラウドファイルをダウンロード中…",
     "downloadingFiles_other": "{{count}}件のクラウドファイルをダウンロード中…",
     "zipping": "圧縮中…"
+  },
+  "leaderboard": {
+    "signInHint": "スナップショットを公開リーダーボードに送信するにはサインインしてください。",
+    "noSnapshots": "ラップをスナップショットとして保存すると、リーダーボードに送信できます。",
+    "intro_one": "リーダーボードに送信できるスナップショットが {{count}} 件あります。",
+    "intro_other": "リーダーボードに送信できるスナップショットが {{count}} 件あります。",
+    "submitButton": "リーダーボードに送信",
+    "dialogTitle": "リーダーボードに送信",
+    "dialogDescription": "GPSデータ、エンジン、申告重量は公開され、他のユーザーがラップを比較・確認できます。エンジンセンサーのデータは、共有を選択しない限り非公開のままです。",
+    "listedWeight": "申告重量",
+    "listedWeightHint": "公開され、記録のグループ分けに使用されます。既定では車両の重量です。クラス重量を表示したい場合は変更してください。",
+    "weightRequired": "送信するには申告重量を入力してください。",
+    "shareEngineData": "エンジンセンサーのデータを共有する（回転数、温度）",
+    "publicNotice": "公開: GPS、エンジン名、ラップタイム、申告重量。",
+    "submitOne": "送信",
+    "submitting": "送信中…",
+    "submitted": "送信済み",
+    "submitSuccess": "リーダーボードに送信しました。",
+    "submitFailed": "送信できませんでした。もう一度お試しください。",
+    "alreadySubmitted": "すでにリーダーボードに登録されています。",
+    "loadFailed": "あなたの送信を読み込めませんでした。",
+    "close": "閉じる"
   }
 }

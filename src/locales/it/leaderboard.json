@@ -1,0 +1,31 @@
+{
+  "_machine": true,
+  "title": "Classifiche",
+  "subtitle": "I giri più veloci della community per pista, tracciato e classe motore.",
+  "empty": "Ancora nessun invio :(",
+  "loadFailed": "Impossibile caricare le classifiche.",
+  "loading": "Caricamento classifiche…",
+  "showTop": "Mostra i migliori",
+  "all": "Tutti",
+  "groupByWeight": "Raggruppa per peso",
+  "bubbles": {
+    "engines_one": "{{count}} motore",
+    "engines_other": "{{count}} motori",
+    "records_one": "{{count}} record",
+    "records_other": "{{count}} record",
+    "fastest": "Più veloce: {{time}}"
+  },
+  "unclassifiedEngine": "Non classificato",
+  "weightLabel": "{{weight}} {{unit}}",
+  "openGroup": "Vedi i giri",
+  "buildFailed": "Impossibile creare quella sessione.",
+  "readOnly": {
+    "banner": "Vista classifica in sola lettura",
+    "exit": "Esci",
+    "descriptor": "{{course}} · {{engine}}",
+    "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
+  },
+  "loadTopSession_one": "Carica il giro più veloce come singola sessione",
+  "loadTopSession_other": "Carica i {{count}} giri più veloci come singola sessione",
+  "loadAllSession": "Carica tutti i giri come singola sessione"
+}

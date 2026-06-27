@@ -27,6 +27,10 @@
     "build": {
       "title": "Construisez votre propre enregistreur",
       "description": "Matériel et firmware GPS open source : le DovesDataLogger"
+    },
+    "leaderboards": {
+      "title": "Classements",
+      "description": "Comparez les tours les plus rapides par circuit, tracé et catégorie de moteur"
     }
   },
   "links": {

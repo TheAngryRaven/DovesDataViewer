@@ -6,7 +6,8 @@
     "account": "Compte",
     "lapSnapshots": "Instantanés de tour",
     "cloudLogs": "Journaux dans le cloud",
-    "dataPrivacy": "Données et confidentialité"
+    "dataPrivacy": "Données et confidentialité",
+    "leaderboards": "Classements"
   },
   "account": {
     "signInBlurb": "Connectez-vous pour sauvegarder et synchroniser vos fichiers, votre garage et vos notes sur tous vos appareils. Tout ici fonctionne toujours hors ligne sur cet appareil — Cloud Sync est optionnel.",
@@ -172,5 +173,27 @@
     "downloadingFiles_one": "Téléchargement de {{count}} fichier du cloud…",
     "downloadingFiles_other": "Téléchargement de {{count}} fichiers du cloud…",
     "zipping": "Compression…"
+  },
+  "leaderboard": {
+    "signInHint": "Connectez-vous pour envoyer vos instantanés aux classements publics.",
+    "noSnapshots": "Capturez un tour pour l'envoyer aux classements.",
+    "intro_one": "Vous avez {{count}} instantané à envoyer aux classements.",
+    "intro_other": "Vous avez {{count}} instantanés à envoyer aux classements.",
+    "submitButton": "Envoyer aux classements",
+    "dialogTitle": "Envoyer aux classements",
+    "dialogDescription": "Vos données GPS, le moteur et le poids indiqué sont publics afin que d'autres puissent comparer et vérifier les tours. Les données du capteur moteur restent privées sauf si vous choisissez de les partager.",
+    "listedWeight": "Poids indiqué",
+    "listedWeightHint": "Affiché publiquement et utilisé pour regrouper les records. Par défaut, le poids de votre véhicule — changez-le si vous préférez indiquer un poids de catégorie.",
+    "weightRequired": "Saisissez un poids indiqué pour envoyer.",
+    "shareEngineData": "Partager les données du capteur moteur (régime, températures)",
+    "publicNotice": "Public : GPS, nom du moteur, temps au tour, poids indiqué.",
+    "submitOne": "Envoyer",
+    "submitting": "Envoi…",
+    "submitted": "Envoyé",
+    "submitSuccess": "Envoyé aux classements.",
+    "submitFailed": "Échec de l'envoi — veuillez réessayer.",
+    "alreadySubmitted": "Déjà dans les classements.",
+    "loadFailed": "Impossible de charger vos envois.",
+    "close": "Fermer"
   }
 }

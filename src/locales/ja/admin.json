@@ -11,7 +11,8 @@
     "courses": "コース",
     "tools": "ツール",
     "banned": "禁止 IP",
-    "users": "ユーザー"
+    "users": "ユーザー",
+    "leaderboards": "リーダーボード"
   },
   "common": {
     "error": "エラー",
@@ -200,5 +201,43 @@
     "granted_other": "{{count}}か月のプレミアムを付与しました",
     "grantFailed": "操作に失敗しました",
     "grantRemoved": "プレミアム付与を取り消しました"
+  },
+  "leaderboards": {
+    "title": "リーダーボードの記録",
+    "loading": "記録を読み込み中…",
+    "loadFailed": "記録の読み込みに失敗しました。",
+    "empty": "リーダーボードへの送信はまだありません。",
+    "filterAll": "すべて",
+    "filterApproved": "承認済み",
+    "filterDenied": "却下",
+    "colDriver": "ドライバー",
+    "colTrack": "コース / レイアウト",
+    "colEngine": "エンジン",
+    "colClass": "クラス",
+    "colWeight": "重量",
+    "colTime": "ラップタイム",
+    "colStatus": "ステータス",
+    "approve": "承認",
+    "deny": "却下",
+    "unclassified": "— 未分類 —",
+    "notes": "管理者メモ",
+    "notesPlaceholder": "内部メモ（任意）",
+    "saveNotes": "保存",
+    "updated": "記録を更新しました。",
+    "updateFailed": "記録を更新できませんでした。",
+    "classesTitle": "エンジンクラス",
+    "classesHint": "自由入力のエンジン名を1つのクラスにまとめるキーワードグループです。送信は、エンジン名にキーワードが含まれる最初のクラスに自動的に一致します。",
+    "className": "クラス名",
+    "classNamePlaceholder": "Tillotson 225",
+    "keywords": "キーワード（カンマ区切り）",
+    "keywordsPlaceholder": "tilly, 225, 225rs",
+    "addClass": "クラスを追加",
+    "saveClass": "保存",
+    "deleteClass": "削除",
+    "reclassify": "記録を再分類",
+    "reclassified_one": "{{count}} 件の記録を再分類しました。",
+    "reclassified_other": "{{count}} 件の記録を再分類しました。",
+    "classSaved": "エンジンクラスを保存しました。",
+    "classFailed": "エンジンクラスを保存できませんでした。"
   }
 }

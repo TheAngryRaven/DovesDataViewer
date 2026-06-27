@@ -1,0 +1,31 @@
+{
+  "_machine": true,
+  "title": "Rankings",
+  "subtitle": "As voltas mais rápidas da comunidade por pista, traçado e classe de motor.",
+  "empty": "Nenhum envio ainda :(",
+  "loadFailed": "Não foi possível carregar os rankings.",
+  "loading": "Carregando rankings…",
+  "showTop": "Mostrar os melhores",
+  "all": "Todos",
+  "groupByWeight": "Agrupar por peso",
+  "bubbles": {
+    "engines_one": "{{count}} motor",
+    "engines_other": "{{count}} motores",
+    "records_one": "{{count}} registro",
+    "records_other": "{{count}} registros",
+    "fastest": "Mais rápida: {{time}}"
+  },
+  "unclassifiedEngine": "Não classificado",
+  "weightLabel": "{{weight}} {{unit}}",
+  "openGroup": "Ver voltas",
+  "buildFailed": "Não foi possível criar essa sessão.",
+  "readOnly": {
+    "banner": "Visualização de ranking somente leitura",
+    "exit": "Sair",
+    "descriptor": "{{course}} · {{engine}}",
+    "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
+  },
+  "loadTopSession_one": "Carregar a volta mais rápida como uma única sessão",
+  "loadTopSession_other": "Carregar as {{count}} voltas mais rápidas como uma única sessão",
+  "loadAllSession": "Carregar todas as voltas como uma única sessão"
+}

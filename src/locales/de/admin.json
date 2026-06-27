@@ -11,7 +11,8 @@
     "courses": "Kurse",
     "tools": "Werkzeuge",
     "banned": "Gesperrte IPs",
-    "users": "Benutzer"
+    "users": "Benutzer",
+    "leaderboards": "Bestenlisten"
   },
   "common": {
     "error": "Fehler",
@@ -200,5 +201,43 @@
     "granted_other": "{{count}} Monate Premium gewährt",
     "grantFailed": "Aktion fehlgeschlagen",
     "grantRemoved": "Premium-Gewährung entfernt"
+  },
+  "leaderboards": {
+    "title": "Bestenlisten-Einträge",
+    "loading": "Einträge werden geladen…",
+    "loadFailed": "Einträge konnten nicht geladen werden.",
+    "empty": "Noch keine Bestenlisten-Einträge.",
+    "filterAll": "Alle",
+    "filterApproved": "Genehmigt",
+    "filterDenied": "Abgelehnt",
+    "colDriver": "Fahrer",
+    "colTrack": "Strecke / Layout",
+    "colEngine": "Motor",
+    "colClass": "Klasse",
+    "colWeight": "Gewicht",
+    "colTime": "Rundenzeit",
+    "colStatus": "Status",
+    "approve": "Genehmigen",
+    "deny": "Ablehnen",
+    "unclassified": "— Nicht klassifiziert —",
+    "notes": "Admin-Notizen",
+    "notesPlaceholder": "Interne Notizen (optional)",
+    "saveNotes": "Speichern",
+    "updated": "Eintrag aktualisiert.",
+    "updateFailed": "Eintrag konnte nicht aktualisiert werden.",
+    "classesTitle": "Motorklassen",
+    "classesHint": "Schlüsselwortgruppen, die frei eingegebene Motornamen zu einer Klasse zusammenfassen. Ein Eintrag wird automatisch der ersten Klasse zugeordnet, deren Schlüsselwort im Motornamen vorkommt.",
+    "className": "Klassenname",
+    "classNamePlaceholder": "Tillotson 225",
+    "keywords": "Schlüsselwörter (durch Kommas getrennt)",
+    "keywordsPlaceholder": "tilly, 225, 225rs",
+    "addClass": "Klasse hinzufügen",
+    "saveClass": "Speichern",
+    "deleteClass": "Löschen",
+    "reclassify": "Einträge neu klassifizieren",
+    "reclassified_one": "{{count}} Eintrag neu klassifiziert.",
+    "reclassified_other": "{{count}} Einträge neu klassifiziert.",
+    "classSaved": "Motorklasse gespeichert.",
+    "classFailed": "Motorklasse konnte nicht gespeichert werden."
   }
 }
