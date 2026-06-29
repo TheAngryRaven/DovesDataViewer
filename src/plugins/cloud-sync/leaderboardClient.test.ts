@@ -35,10 +35,13 @@ function snap(): LapSnapshot {
 describe("buildNewEntryRow", () => {
   it("rounds lap_time_ms to an integer (the column type)", () => {
     const row = buildNewEntryRow(snap(), {
-      userId: "u1", displayName: "Bob", engineTelemetryPublic: false,
+      userId: "u1", engineTelemetryPublic: false,
       listedWeight: 365, listedWeightUnit: "lb",
     });
     expect(row.lap_time_ms).toBe(55604);
     expect(Number.isInteger(row.lap_time_ms)).toBe(true);
+    // display_name is no longer denormalized onto the row — it's resolved live
+    // from the linked profile at read time.
+    expect(row).not.toHaveProperty("display_name");
   });
 });

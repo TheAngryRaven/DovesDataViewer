@@ -28,14 +28,19 @@ export function engineClassesTable() {
   return untyped.from("engine_classes");
 }
 
-/** Columns selected for the lightweight browse tree (everything except `data`). */
+// Columns for the lightweight browse tree (everything except `data`). The display
+// name is embedded LIVE from profiles (FK leaderboard_entries.user_id → profiles),
+// not read from the denormalized column, so a rename propagates everywhere.
 export const LIGHT_COLUMNS =
-  "id,user_id,display_name,track_name,course_name,course_key,direction,engine,engine_key,engine_class_id,listed_weight,listed_weight_unit,lap_time_ms,content_hash,engine_telemetry_public,status,created_at";
+  "id,user_id,track_name,course_name,course_key,direction,engine,engine_key,engine_class_id,listed_weight,listed_weight_unit,lap_time_ms,content_hash,engine_telemetry_public,status,created_at,profiles!leaderboard_entries_profile_fkey(display_name)";
+
+/** Embedded profile shape (PostgREST returns the to-one relationship as an object). */
+type EmbeddedProfile = { display_name: string | null } | { display_name: string | null }[] | null;
 
 interface EntryRow {
   id: string;
   user_id: string;
-  display_name: string;
+  profiles?: EmbeddedProfile;
   track_name: string;
   course_name: string;
   course_key: string;
@@ -56,10 +61,11 @@ interface EntryRow {
 }
 
 export function mapEntryRow(r: EntryRow): LeaderboardEntry {
+  const prof = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
   return {
     id: r.id,
     userId: r.user_id,
-    displayName: r.display_name,
+    displayName: prof?.display_name ?? "Unknown",
     trackName: r.track_name,
     courseName: r.course_name,
     courseKey: r.course_key,
@@ -148,7 +154,6 @@ export async function fetchMyEntries(userId: string): Promise<LeaderboardEntry[]
 /** A row to insert into leaderboard_entries (snake_case, server fills defaults). */
 export interface NewEntryRow {
   user_id: string;
-  display_name: string;
   track_name: string;
   course_name: string;
   course_key: string;
@@ -165,7 +170,6 @@ export interface NewEntryRow {
 
 export interface SubmitOptions {
   userId: string;
-  displayName: string;
   engineTelemetryPublic: boolean;
   listedWeight: number;
   listedWeightUnit: "lb" | "kg";
@@ -175,7 +179,6 @@ export interface SubmitOptions {
 export function buildNewEntryRow(snap: LapSnapshot, opts: SubmitOptions): NewEntryRow {
   return {
     user_id: opts.userId,
-    display_name: opts.displayName,
     track_name: snap.trackName,
     course_name: snap.courseName,
     course_key: snap.courseKey,

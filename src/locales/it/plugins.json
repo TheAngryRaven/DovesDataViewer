@@ -200,6 +200,8 @@
     "submitFailed": "Invio non riuscito — riprova.",
     "alreadySubmitted": "Già nelle classifiche.",
     "loadFailed": "Impossibile caricare i tuoi invii.",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "customTrackNotice": "This track isn't in the built-in list — its layout and sectors are submitted with your snapshot so others can view the lap. Please also add it to the community track database.",
+    "customTrackSubmit": "Add track to database"
   }
 }

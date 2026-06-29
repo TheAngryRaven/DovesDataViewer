@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.10.0] - unreleased
 
 ### Added
+- **Custom tracks ride along with leaderboard snapshots.** When you submit a snapshot
+  for a track that isn't in the built-in list, the submit dialog now tells you its
+  layout + sectors are included with the snapshot (so others can view the lap) and
+  offers a one-tap **"Add track to database"** that opens the existing community
+  track-submission flow.
 - **Alfano logger groundwork.** Picking the Alfano tile in the logger picker now
   explains that Alfano transfers over Bluetooth serial (Classic Bluetooth SPP),
   which browsers can't access in-browser, so it will require the native app. The
@@ -36,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Display names are now unique case-insensitively** so a name can't be impersonated by
   changing case (existing case-duplicates are auto-suffixed by the migration).
+- **Leaderboard names update live.** A submitter's name on the leaderboards now comes from
+  their current profile (linked by account) instead of a copy frozen at submit time, so
+  renaming your display name updates all your existing entries.
 
 - **Leaderboards (plan 0005).** A new public **Leaderboards** page (linked from the
   landing page) where anyone — signed in or not — can browse fastest community laps

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trophy, Check } from "lucide-react";
+import { Trophy, Check, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
+import { SubmitTrackDialog } from "@/components/SubmitTrackDialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,6 @@ import {
   contentHashForSnapshot, defaultListedWeight, isValidListedWeight,
 } from "./leaderboardSubmission";
 import { buildNewEntryRow, fetchMyEntries, insertEntries } from "./leaderboardClient";
-import { getMyProfile } from "./profile";
 
 /** Per-snapshot form state in the submit dialog. */
 interface RowState {
@@ -96,11 +96,8 @@ export default function LeaderboardSubmitPanel(_props: PluginPanelProps) {
     }
     setRow(snap.id, { busy: true });
     try {
-      const profile = await getMyProfile(user.id);
-      const displayName = profile?.display_name ?? user.email ?? "Anonymous";
       const newRow = buildNewEntryRow(snap, {
         userId: user.id,
-        displayName,
         engineTelemetryPublic: row.shareEngine,
         listedWeight: weight,
         listedWeightUnit: row.unit,
@@ -201,6 +198,24 @@ export default function LeaderboardSubmitPanel(_props: PluginPanelProps) {
                         <Label htmlFor={`eng-${snap.id}`} className="text-xs text-muted-foreground">{t("leaderboard.shareEngineData")}</Label>
                       </div>
                       <p className="text-[11px] text-muted-foreground">{t("leaderboard.publicNotice")}</p>
+
+                      {/* Custom (non-built-in) track: its layout + sectors ride along in the
+                          snapshot data, and we nudge the user to also add it to the shared
+                          community track DB via the existing submit-track flow. */}
+                      {snap.course?.isUserDefined && (
+                        <div className="space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2">
+                          <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                            {t("leaderboard.customTrackNotice")}
+                          </p>
+                          <SubmitTrackDialog
+                            trigger={
+                              <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
+                                <MapPin className="h-3.5 w-3.5" /> {t("leaderboard.customTrackSubmit")}
+                              </Button>
+                            }
+                          />
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

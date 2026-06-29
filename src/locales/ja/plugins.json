@@ -200,6 +200,8 @@
     "submitFailed": "送信できませんでした。もう一度お試しください。",
     "alreadySubmitted": "すでにリーダーボードに登録されています。",
     "loadFailed": "あなたの送信を読み込めませんでした。",
-    "close": "閉じる"
+    "close": "閉じる",
+    "customTrackNotice": "This track isn't in the built-in list — its layout and sectors are submitted with your snapshot so others can view the lap. Please also add it to the community track database.",
+    "customTrackSubmit": "Add track to database"
   }
 }

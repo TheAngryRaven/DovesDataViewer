@@ -21,6 +21,8 @@
     "weightRequired": "Enter a listed weight to submit.",
     "shareEngineData": "Share engine sensor data (RPM, temps)",
     "publicNotice": "Public: GPS, engine name, lap time, listed weight.",
+    "customTrackNotice": "This track isn't in the built-in list — its layout and sectors are submitted with your snapshot so others can view the lap. Please also add it to the community track database.",
+    "customTrackSubmit": "Add track to database",
     "submitOne": "Submit",
     "submitting": "Submitting…",
     "submitted": "Submitted",
