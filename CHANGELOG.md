@@ -66,6 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   user's raw engine string.
 
 ### Changed
+- **An engine is now required on every vehicle.** The vehicle form won't save without
+  one (it drives leaderboard grouping and snapshot matching), and any existing
+  engine-less vehicle is flagged in the garage so you can fill it in.
 - **Display names are now unique case-insensitively** so a name can't be impersonated by
   changing case (existing case-duplicates are auto-suffixed by the migration).
 - **Leaderboard names update live.** A submitter's name on the leaderboards now comes from

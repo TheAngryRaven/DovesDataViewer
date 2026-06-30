@@ -390,7 +390,7 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `VITE_FIRMWARE_MANIFEST_URL` | Client | Override the logger firmware OTA manifest URL. Unset: `main` → production manifest, non-`main`/preview → beta channel (same `isPreviewBuild()` switch). |
-| `SUPABASE_ACCESS_TOKEN` | Build (secret) | Supabase PAT. On a **feature-branch** build (not `main`, not `BETA`), `vite.config.ts` resolves that branch's own Supabase **preview-branch DB** via the Management API (`scripts/resolveSupabaseBranch.ts`) and bakes its creds in, else falls back to the static `*_PREVIEW`/beta creds. Never on `main`/`BETA`/dev/runtime. → plan 0006. |
+| `SUPABASE_ACCESS_TOKEN` | Build (secret) | Supabase PAT. On a **feature-branch** build (not `main`, not `BETA`), `vite.config.ts` resolves that branch's own Supabase **preview-branch DB** via the Management API (`scripts/resolveSupabaseBranch.ts`) and bakes its creds in, else falls back to the static `*_PREVIEW`/beta creds. Never on `main`/`BETA`/dev/runtime. → plan 0007. |
 | `DOVE_PLUGIN_PACKAGES` | Build | Comma-separated external plugin npm packages. Overrides the default when set. |
 | `ANTHROPIC_API_KEY` / `I18N_SEED_MODEL` | Maintainer tool | Used **only** by `bun run i18n:seed` (`ANTHROPIC_API_KEY` = `???`). Never in the app or CI build. |
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**; baked from `package.json` + git in `vite.config.ts`. |
@@ -411,7 +411,7 @@ see `beta-proxy/README.md`). Backend by branch (`vite.config.ts` `pick()`, keyed
 **`BETA`** → static `*_PREVIEW` creds (the shared beta DB — never the resolver);
 **any other branch** → with a `SUPABASE_ACCESS_TOKEN` secret, that branch's own
 Supabase preview-branch DB via the Management API (`scripts/resolveSupabaseBranch.ts`,
-plan 0006), else the `*_PREVIEW`/beta fallback. Each build logs `[backend] Supabase
+plan 0007), else the `*_PREVIEW`/beta fallback. Each build logs `[backend] Supabase
 URL baked: … — <tier>`. `main` and local dev never read `_PREVIEW`/the token. See
 README "Deployment".
 

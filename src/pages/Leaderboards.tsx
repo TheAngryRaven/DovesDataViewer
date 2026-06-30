@@ -114,7 +114,7 @@ export default function Leaderboards() {
 
   const openTopSession = useCallback(
     (course: CourseNode, group: GroupNode) =>
-      loadSession(course, group, group.entryIds, top === "all" ? null : top, `top:${group.key}`),
+      loadSession(course, group, group.entryIds, top === "all" ? null : top, `top:${course.courseKey}|${group.key}`),
     [loadSession, top],
   );
 
@@ -289,7 +289,7 @@ function TrackRow({
                                   size="sm"
                                   variant="secondary"
                                   className="w-full h-8 justify-center gap-1.5"
-                                  disabled={loadingKey === `top:${group.key}`}
+                                  disabled={loadingKey === `top:${course.courseKey}|${group.key}`}
                                   onClick={() => onOpenTopSession(course, group)}
                                 >
                                   <Layers className="h-3.5 w-3.5" />

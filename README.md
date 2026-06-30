@@ -484,7 +484,7 @@ Supabase **Management API** whether a preview branch exists for the build's git
 branch (`scripts/resolveSupabaseBranch.ts`). If one does and it's healthy, that
 branch's URL + anon key + ref are baked in; otherwise it falls back to the static
 `*_PREVIEW`/beta creds. The lookup never throws and times out fast, so it can't
-break a deploy. Full design: [`docs/plans/0006-dynamic-supabase-branch-db.md`](docs/plans/0006-dynamic-supabase-branch-db.md).
+break a deploy. Full design: [`docs/plans/0007-dynamic-supabase-branch-db.md`](docs/plans/0007-dynamic-supabase-branch-db.md).
 
 > Supabase only generates a preview branch when the git branch carries **migration
 > changes**. Branches without DB changes simply fall back to beta. To force a DB

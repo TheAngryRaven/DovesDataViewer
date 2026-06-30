@@ -1,4 +1,4 @@
-# Plan 0006 — Dynamic per-branch Supabase preview database
+# Plan 0007 — Dynamic per-branch Supabase preview database
 
 ## Goal / problem
 
