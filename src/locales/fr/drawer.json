@@ -76,7 +76,9 @@
     "engineRequired": "Un moteur est requis.",
     "needsEngine": "Ce véhicule a besoin d'un moteur — modifiez-le pour en ajouter un.",
     "showOnProfile": "Show on profile",
-    "showOnProfileHint": "List this vehicle on your public driver profile (name, type and engine only — never weight or setup)."
+    "showOnProfileHint": "List this vehicle on your public driver profile (name, type and engine only — never weight or setup).",
+    "publicBadge": "Public",
+    "publicHint": "Shown on your public driver profile."
   },
   "engine": {
     "label": "Moteur",

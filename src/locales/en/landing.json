@@ -46,7 +46,8 @@
         "text": "Updated cheaper DIY logger (June '26)"
       },
       {
-        "text": "Track leaderboards & public user profiles (June '26)"
+        "text": "Track leaderboards & public user profiles (June '26)",
+        "done": true
       },
       {
         "text": "Downloads from 3rd-party loggers (June '26)",

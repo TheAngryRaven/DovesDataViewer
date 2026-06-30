@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Pencil, Trash2, Car, History, Plus } from "lucide-react";
+import { Pencil, Trash2, Car, History, Plus, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,8 +136,18 @@ export function VehiclesTab({ vehicles, vehicleTypes, onAdd, onUpdate, onRemove,
                 className={`flex items-center gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors ${editingId === vehicle.id ? "ring-1 ring-primary bg-primary/5" : ""}`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate text-foreground">
-                    #{vehicle.number} — {vehicle.name}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium truncate text-foreground">
+                      #{vehicle.number} — {vehicle.name}
+                    </span>
+                    {vehicle.publicProfile && (
+                      <span
+                        className="flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                        title={t("vehicles.publicHint")}
+                      >
+                        <Globe className="h-2.5 w-2.5" /> {t("vehicles.publicBadge")}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {vt?.name ?? t("vehicles.unknownType")}
