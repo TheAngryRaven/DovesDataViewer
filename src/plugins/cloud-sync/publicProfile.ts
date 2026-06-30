@@ -29,7 +29,7 @@ export interface PublicVehicle {
 }
 
 /** Escape PostgREST ilike wildcards so a name is matched literally (not as a pattern). */
-function escapeLike(value: string): string {
+export function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
