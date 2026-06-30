@@ -27,5 +27,6 @@
   },
   "loadTopSession_one": "Schnellste Runde als eine Sitzung laden",
   "loadTopSession_other": "Top {{count}} Runden als eine Sitzung laden",
-  "loadAllSession": "Alle Runden als eine Sitzung laden"
+  "loadAllSession": "Alle Runden als eine Sitzung laden",
+  "viewProfile": "View driver profile"
 }

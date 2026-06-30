@@ -27,5 +27,6 @@
   },
   "loadTopSession_one": "Carica il giro più veloce come singola sessione",
   "loadTopSession_other": "Carica i {{count}} giri più veloci come singola sessione",
-  "loadAllSession": "Carica tutti i giri come singola sessione"
+  "loadAllSession": "Carica tutti i giri come singola sessione",
+  "viewProfile": "View driver profile"
 }

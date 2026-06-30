@@ -27,5 +27,6 @@
   },
   "loadTopSession_one": "Charger le meilleur tour en une seule session",
   "loadTopSession_other": "Charger les {{count}} meilleurs tours en une seule session",
-  "loadAllSession": "Charger tous les tours en une seule session"
+  "loadAllSession": "Charger tous les tours en une seule session",
+  "viewProfile": "View driver profile"
 }

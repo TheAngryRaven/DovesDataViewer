@@ -28,7 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public driver profiles (plan 0006).** A new public `/driver/{name}` page (shareable,
   viewable signed-out) shows a driver's **profile picture**, display name, their **opt-in
   vehicles** (name/type/engine only — never weights or setups), and their uploaded
-  **leaderboard snapshots** grouped by course and weight. URLs are case-insensitive.
+  **leaderboard snapshots** as cards. URLs are case-insensitive. **Click a driver's
+  avatar on the Leaderboards** to open their profile, and **click any snapshot card** to
+  load that lap in the read-only viewer.
 - **Profile pictures.** Tap your profile picture on the Profile tab to upload one; it's
   cropped to a centred square and downscaled to ≤256px on-device, then stored in the
   cloud. Avatar thumbnails now appear next to names on the Leaderboards.

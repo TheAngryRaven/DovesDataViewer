@@ -27,5 +27,6 @@
   },
   "loadTopSession_one": "Cargar la vuelta más rápida como una sola sesión",
   "loadTopSession_other": "Cargar las {{count}} mejores vueltas como una sola sesión",
-  "loadAllSession": "Cargar todas las vueltas como una sola sesión"
+  "loadAllSession": "Cargar todas las vueltas como una sola sesión",
+  "viewProfile": "View driver profile"
 }

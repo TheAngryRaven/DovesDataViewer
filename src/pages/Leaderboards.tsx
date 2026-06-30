@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, Trophy, Cpu, Hash, Layers } from "lucide-react";
 import { toast } from "sonner";
@@ -299,18 +299,28 @@ function TrackRow({
                                 </Button>
                               )}
                               {group.entries.map((entry, i) => (
-                                <button
+                                <div
                                   key={entry.id}
-                                  type="button"
-                                  disabled={loadingKey === `one:${entry.id}`}
-                                  onClick={() => onOpenSingle(course, group, entry.id)}
-                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-primary/10 disabled:opacity-60"
+                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-primary/10"
                                 >
                                   <span className="w-6 shrink-0 text-center font-mono text-xs text-muted-foreground">{i + 1}</span>
-                                  <ProfileAvatar url={avatars.get(entry.userId)} alt={entry.displayName} sizeClassName="h-5 w-5" />
-                                  <span className="flex-1 truncate text-foreground">{entry.displayName}</span>
-                                  <span className="font-mono text-xs text-muted-foreground">{formatLapTime(entry.lapTimeMs)}</span>
-                                </button>
+                                  <Link
+                                    to={`/driver/${encodeURIComponent(entry.displayName)}`}
+                                    title={t("viewProfile")}
+                                    className="shrink-0 rounded-full transition-opacity hover:opacity-80"
+                                  >
+                                    <ProfileAvatar url={avatars.get(entry.userId)} alt={entry.displayName} sizeClassName="h-5 w-5" />
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    disabled={loadingKey === `one:${entry.id}`}
+                                    onClick={() => onOpenSingle(course, group, entry.id)}
+                                    className="flex flex-1 items-center gap-2 text-left disabled:opacity-60"
+                                  >
+                                    <span className="flex-1 truncate text-foreground">{entry.displayName}</span>
+                                    <span className="font-mono text-xs text-muted-foreground">{formatLapTime(entry.lapTimeMs)}</span>
+                                  </button>
+                                </div>
                               ))}
                             </div>
                           )}

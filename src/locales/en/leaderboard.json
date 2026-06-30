@@ -5,6 +5,7 @@
   "loadFailed": "Couldn't load the leaderboards.",
   "loading": "Loading leaderboards…",
   "showTop": "Show top",
+  "viewProfile": "View driver profile",
   "all": "All",
   "groupByWeight": "Group by weight",
   "bubbles": {

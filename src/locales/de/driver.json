@@ -9,5 +9,6 @@
   "unknownType": "Unknown type",
   "snapshotsTitle": "Leaderboard snapshots",
   "snapshotsEmpty": "This driver hasn't uploaded any leaderboard snapshots.",
-  "noWeight": "No listed weight"
+  "noWeight": "No listed weight",
+  "openSnapshot": "Open this lap in the viewer"
 }
