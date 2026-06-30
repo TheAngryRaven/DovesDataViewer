@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [2.10.0] - unreleased
+## [3.0.0] - 2026-06-30
 
 ### Added
 - **Public-vehicle badge.** Vehicles marked *Show on profile* now carry a small
@@ -42,14 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Show a vehicle on your profile.** Each vehicle in the garage now has a *Show on
   profile* toggle that publishes a public-safe projection (no weight, no setup).
 - A **← Back to home** button on the Leaderboards and driver-profile pages.
-
-### Changed
-- **Display names are now unique case-insensitively** so a name can't be impersonated by
-  changing case (existing case-duplicates are auto-suffixed by the migration).
-- **Leaderboard names update live.** A submitter's name on the leaderboards now comes from
-  their current profile (linked by account) instead of a copy frozen at submit time, so
-  renaming your display name updates all your existing entries.
-
 - **Leaderboards (plan 0005).** A new public **Leaderboards** page (linked from the
   landing page) where anyone — signed in or not — can browse fastest community laps
   by **track → course → engine class**, with an optional **Group by weight** toggle
@@ -69,6 +61,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collapse free-text engine names ("Tillotson 225" / "225RS" / "Tilly") into one
   class automatically, with a **Reclassify** action — without ever mutating the
   user's raw engine string.
+
+### Changed
+- **Display names are now unique case-insensitively** so a name can't be impersonated by
+  changing case (existing case-duplicates are auto-suffixed by the migration).
+- **Leaderboard names update live.** A submitter's name on the leaderboards now comes from
+  their current profile (linked by account) instead of a copy frozen at submit time, so
+  renaming your display name updates all your existing entries.
 
 ## [2.9.2] - 2026-06-25
 
