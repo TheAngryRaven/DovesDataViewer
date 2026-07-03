@@ -4,6 +4,7 @@
   "subtitle": "Wähle deinen Logger, um einen Download zu starten.",
   "comingSoon": "Demnächst",
   "close": "Schließen",
+  "requestLogger": "Weitere Datenlogger anfragen",
   "trademarks": "MyChron ist eine Marke von AiM Tech S.r.l. und Alfano ist eine Marke von Alfano S.A. LapWing ist unabhängig und steht in keiner Verbindung zu ihnen und wird von ihnen nicht unterstützt; alle Produktnamen, Logos und Marken sind Eigentum ihrer jeweiligen Inhaber.",
   "tags": {
     "fledgling": "DIY-Logger · Bluetooth LE",
@@ -11,6 +12,43 @@
     "alfano": "Bluetooth Serial · native App erforderlich"
   },
   "fledglingUnsupported": "Web Bluetooth wird hier nicht unterstützt – nutze Chrome, Edge oder Opera auf dem Desktop.",
+  "progress": {
+    "received": "Empfangen:",
+    "speed": "Geschwindigkeit:",
+    "eta": "Restzeit:",
+    "complete": "{{percent}} % abgeschlossen"
+  },
+  "errors": {
+    "unreachable": "Der Logger ist nicht erreichbar. Stelle sicher, dass er eingeschaltet und in der Nähe ist.",
+    "permission": "Bluetooth-Berechtigung erforderlich — erlaube Bluetooth / Geräte in der Nähe für diese App und versuche es erneut.",
+    "hung": "Die Verbindung zum Logger ist während der Übertragung abgebrochen.",
+    "protocol": "Der Logger hat eine unerwartete Antwort gesendet.",
+    "unsupported": "Diese Funktion ist auf diesem Gerät nicht verfügbar.",
+    "unsupportedAlfano": "Alfano-Downloads sind auf diesem Gerät noch nicht verfügbar — vorerst nur unter Android.",
+    "wifiDeclined": "Wähle das WLAN deines MyChron aus, um fortzufahren.",
+    "notConnected": "Der Logger ist nicht mehr verbunden.",
+    "unknown": "Etwas ist schiefgelaufen.",
+    "detailLabel": "Technische Details",
+    "actionRetry": "Erneut versuchen",
+    "actionRescan": "Erneut suchen",
+    "actionReconnect": "Neu verbinden"
+  },
+  "fledgling": {
+    "flow": {
+      "connecting": "Verbindung…",
+      "scanningStatus": "Suche nach DovesLapTimer…",
+      "pickerHint": "Wähle bei Aufforderung „DovesLapTimer“ aus der Liste",
+      "fetching": "Dateien werden abgerufen…",
+      "fetchingStatus": "Dateiliste wird abgerufen…",
+      "selectFile": "Wähle eine Datei zum Herunterladen",
+      "downloading": "Wird heruntergeladen…",
+      "errorTitle": "Verbindungsfehler",
+      "instructions": "Tippe auf eine Datei, um sie herunterzuladen und zu laden:",
+      "empty": "Keine Dateien auf dem Gerät gefunden",
+      "savedHint": "Die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
+      "cancel": "Abbrechen"
+    }
+  },
   "mychron": {
     "nativeTitle": "MyChron-Download",
     "nativeBody": "Noch offen",
@@ -26,7 +64,7 @@
       "errorTitle": "Verbindungsfehler",
       "instructions": "Tippe auf eine Sitzung, um sie herunterzuladen und zu laden:",
       "empty": "Keine Sitzungen auf diesem Gerät",
-      "savedHint": " — die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
+      "savedHint": "Die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
       "retry": "Erneut versuchen",
       "cancel": "Abbrechen"
     }
@@ -45,9 +83,25 @@
       "errorTitle": "Verbindungsfehler",
       "instructions": "Tippe auf eine Sitzung, um sie herunterzuladen und zu laden:",
       "empty": "Keine Sitzungen auf diesem Gerät",
-      "savedHint": " — die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
+      "savedHint": "Die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
       "retry": "Erneut versuchen",
       "cancel": "Abbrechen"
+    },
+    "firmware": {
+      "button": "Firmware-Update",
+      "title": "Firmware-Update",
+      "checking": "Suche nach Updates…",
+      "upToDate": "Firmware v{{version}} ist aktuell.",
+      "noBuild": "Für diesen Logger ist kein Firmware-Build verfügbar.",
+      "installLatest": "Firmware v{{version}} ({{variant}}) installieren?",
+      "variantConfirmTitle": "Welche Logger-Variante hast du?",
+      "variantConfirmBody": "Dieser Logger hat seine Hardware-Variante nicht gemeldet. Ein falsches Image schlägt auf dem Gerät fehl — wähle sorgfältig:",
+      "install": "Installieren",
+      "rebooting": "Update gesendet — dein Logger flasht die neue Firmware und startet neu.",
+      "rebootingBody": "Die Bluetooth-Verbindung bricht während der Installation ab. Warte ein paar Sekunden und suche dann erneut, um dich wieder zu verbinden.",
+      "notAvailable": "Firmware-Updates sind in dieser App-Version noch nicht verfügbar.",
+      "notAvailableBody": "Aktualisiere die App für Logger-Firmware-Updates oder nutze die Web-App über Web Bluetooth.",
+      "back": "Zurück"
     }
   },
   "alfano": {
@@ -64,12 +118,12 @@
       "selectFile": "Wähle eine Sitzung zum Herunterladen",
       "downloading": "Wird heruntergeladen…",
       "errorTitle": "Verbindungsfehler",
+      "unavailableTitle": "Auf diesem Gerät nicht verfügbar",
       "instructions": "Tippe auf eine Sitzung, um sie herunterzuladen und zu laden:",
       "empty": "Keine Sitzungen auf diesem Gerät",
-      "savedHint": " — die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
+      "savedHint": "Die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
       "retry": "Erneut versuchen",
       "cancel": "Abbrechen"
     }
-  },
-  "requestLogger": "Weitere Datenlogger anfragen"
+  }
 }
