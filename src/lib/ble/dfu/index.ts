@@ -37,6 +37,9 @@ export type {
 
 export { parseDfuPackage } from "./dfuPackage";
 
+export { acquireFirmwareImage } from "./firmwareImage";
+export type { AcquiredFirmwareImage } from "./firmwareImage";
+
 export {
   DIS_SERVICE_UUID,
   parseVariantFromModel,

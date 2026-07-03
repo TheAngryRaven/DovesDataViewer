@@ -4,13 +4,11 @@ import type { BleConnection } from "@/lib/bleDatalogger";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { isPreviewBuild } from "@/lib/buildInfo";
 import { isDebugEnabled } from "@/lib/debugConsole";
-import { crc32Hex, beginFirmwareUpdate, uploadFirmwareImage, applyFirmware } from "@/lib/ble";
+import { beginFirmwareUpdate, uploadFirmwareImage, applyFirmware } from "@/lib/ble";
 import {
-  assertImageMatchesBuild,
+  acquireFirmwareImage,
   evaluateFirmwareUpdate,
   fetchFirmwareManifest,
-  fetchFirmwarePackage,
-  parseDfuPackage,
   readDeviceFirmwareInfo,
   type DeviceFirmwareInfo,
   type FirmwareBuild,
@@ -144,16 +142,8 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
       //    full-circle CRC chain (catches a corrupt download before the device
       //    is involved). Falls back to unzipping the dfuZip for older manifests.
       setPhase("downloading");
-      let image: Uint8Array;
-      if (build.appBin) {
-        fwLog("downloading raw .bin", build.name, build.appBin);
-        image = new Uint8Array(await fetchFirmwarePackage(build.appBin));
-      } else {
-        fwLog("downloading dfuZip", build.name, build.dfuZip);
-        image = (await parseDfuPackage(await fetchFirmwarePackage(build.dfuZip))).image;
-      }
-      const crc = crc32Hex(image);
-      assertImageMatchesBuild(build, image, crc);
+      fwLog("downloading", build.name, build.appBin ?? build.dfuZip);
+      const { image, crc } = await acquireFirmwareImage(build);
       fwLog("image ready + verified vs manifest", { bytes: image.byteLength, crc });
 
       // 1–3. CRC handshake — verify the control channel, and declare the target

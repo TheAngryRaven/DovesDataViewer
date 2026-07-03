@@ -1,10 +1,18 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Bluetooth, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DeviceListPanel, ErrorPanel, FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
+import { NativeFirmwarePanel } from "@/components/loggers/NativeFirmwarePanel";
+import { useNativeFirmwareUpdate, isFirmwareUpdateUnavailable } from "@/hooks/useNativeFirmwareUpdate";
 import { createDovesloggerConnection } from "@/lib/loggers/doveslogger/dovesloggerConnection";
-import { loggerScan, loggerConnect, type ScannedDevice } from "@/lib/loggers/doveslogger/ipc";
+import {
+  loggerScan,
+  loggerConnect,
+  type LoggerDeviceInfo,
+  type ScannedDevice,
+} from "@/lib/loggers/doveslogger/ipc";
 import {
   classifyLoggerError,
   loggerErrorKey,
@@ -24,6 +32,7 @@ type DownloadState =
   | "fetching-files"
   | "file-list"
   | "downloading"
+  | "firmware"
   | "error";
 
 interface Failure {
@@ -60,8 +69,10 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
   const [progress, setProgress] = useState<LoggerDownloadProgress | null>(null);
   const [currentFile, setCurrentFile] = useState<string>("");
   const [failure, setFailure] = useState<Failure | null>(null);
+  const [deviceInfo, setDeviceInfo] = useState<LoggerDeviceInfo | null>(null);
   const loggerRef = useRef<LoggerConnection | null>(null);
   const lastFileRef = useRef<LoggerFile | null>(null);
+  const firmwareUpdate = useNativeFirmwareUpdate(deviceInfo);
 
   const handleClose = useCallback(() => {
     loggerRef.current?.disconnect();
@@ -72,6 +83,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
     setProgress(null);
     setCurrentFile("");
     setFailure(null);
+    setDeviceInfo(null);
     onClose();
   }, [onClose]);
 
@@ -80,6 +92,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
     // A fresh scan implies any prior connection is stale — drop it.
     loggerRef.current?.disconnect();
     loggerRef.current = null;
+    setDeviceInfo(null);
     setState("scanning");
     try {
       const found = await loggerScan();
@@ -99,6 +112,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
       const info = await loggerConnect({ host: device.id });
       const logger = createDovesloggerConnection(info);
       loggerRef.current = logger;
+      setDeviceInfo(info);
 
       setState("fetching-files");
       const fileList = await logger.listLogs();
@@ -203,6 +217,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
             {state === "fetching-files" && t("doveslogger.flow.fetching")}
             {state === "file-list" && t("doveslogger.flow.selectFile")}
             {state === "downloading" && t("doveslogger.flow.downloading")}
+            {state === "firmware" && t("doveslogger.firmware.title")}
             {state === "error" && t("doveslogger.flow.errorTitle")}
           </DialogTitle>
         </DialogHeader>
@@ -240,11 +255,28 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
         )}
 
         {state === "file-list" && (
-          <FileListPanel
-            files={files}
-            onSelect={handleFileSelect}
-            instructions={t("doveslogger.flow.instructions")}
-            emptyText={t("doveslogger.flow.empty")}
+          <>
+            <FileListPanel
+              files={files}
+              onSelect={handleFileSelect}
+              instructions={t("doveslogger.flow.instructions")}
+              emptyText={t("doveslogger.flow.empty")}
+            />
+            {!isFirmwareUpdateUnavailable() && (
+              <Button variant="outline" className="w-full" onClick={() => setState("firmware")}>
+                {t("doveslogger.firmware.button")}
+              </Button>
+            )}
+          </>
+        )}
+
+        {state === "firmware" && (
+          <NativeFirmwarePanel
+            update={firmwareUpdate}
+            // The device flashed + rebooted — the old link is dead; land the
+            // user back at the scan screen to reconnect (handleScan drops it).
+            onDone={() => void handleScan()}
+            onBack={() => setState("file-list")}
           />
         )}
 
