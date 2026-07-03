@@ -161,3 +161,12 @@ On **beta/preview builds** (`isPreviewBuild()`, any non-`main` branch),
 matching build is always offered (testers can re-flash the same/older version); the
 confirm dialog shows an amber "on beta branches updates always push through for
 testing" note.
+
+**Native (Tauri) path:** the same `dfu/` layer (manifest, variant pick, version
+evaluate, CRC-verified download — now shared via `dfu/firmwareImage.ts`
+`acquireFirmwareImage`, which both hooks call) also powers the native firmware
+update, but the transfer rides the Tauri IPC command `logger_update_firmware`
+instead of the `0x1820` GATT protocol, and the installed version/variant come
+from the connect handshake's `LoggerDeviceInfo.fields` instead of the DIS
+(`lib/loggers/doveslogger/firmwareInfo.ts`). Flow + open items: `docs/android.md`
+→ *DovesLogger / Fledgling BLE download + firmware (native)*.
