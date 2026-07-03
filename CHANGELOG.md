@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.1.0] - unreleased
+
+### Added
+- **Logger firmware updates in the native app.** The DovesLogger/Fledgling flow's
+  connected screen gains a **Firmware update** button: it checks the published OTA
+  manifest, confirms the build (asking you to pick the *sense*/*nonsense* variant
+  explicitly if the device didn't report one), downloads and CRC-verifies the image,
+  and uploads it to the logger with progress. The device then flashes and restarts —
+  the app says so and returns you to the scan screen to reconnect. On app versions
+  whose native shell can't flash yet, the button gracefully reports "not available in
+  this app version" instead of erroring. Web firmware updates are unchanged.
+
+### Changed
+- **Friendlier logger-download errors.** All logger download flows (Fledgling web +
+  native, MyChron, Alfano) now translate failures into plain-language messages with
+  the right recovery button — Try again, Rescan, or Reconnect — instead of showing
+  raw backend errors. A denied Android Bluetooth permission gets a dedicated
+  "Bluetooth permission needed" message, a cancelled MyChron Wi-Fi join asks you to
+  pick the network again, and Alfano on unsupported platforms shows an informational
+  "not available on this device" notice. The raw technical detail stays available
+  behind a collapsible line, and download failures now only claim the file was saved
+  when it actually was.
+- The web Fledgling download dialog and shared download panels are now fully
+  translated (they had hard-coded English).
+
 ## [3.0.0] - 2026-06-30
 
 ### Added

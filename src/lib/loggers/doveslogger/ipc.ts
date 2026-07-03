@@ -16,7 +16,7 @@
  * the prefix.
  */
 
-import { api, type LoggerDeviceInfo } from "../native/ipc";
+import { api, type DownloadProgress, type LoggerDeviceInfo } from "../native/ipc";
 
 // Re-export the shared native surface so DovesLogger callers import it all from here.
 export {
@@ -57,4 +57,25 @@ export async function loggerConnect(opts: { host?: string } = {}): Promise<Logge
     kind: "doveslogger",
     host: opts.host,
   });
+}
+
+/**
+ * Upload a firmware image to the connected DovesLogger, streaming upload
+ * progress through a `Channel`. After the upload the device flashes and
+ * reboots — the BLE link dropping at that point is SUCCESS, not an error (the
+ * backend resolves before triggering the reboot). Fledgling-specific, so it
+ * lives here rather than in the kind-agnostic `../native/ipc`.
+ *
+ * NOTE: the backend command is still landing on the LapWing side — older
+ * native shells reject with an unknown-command error (`isMissingCommandError`)
+ * or `unsupported:`, which the UI degrades to "not available in this version".
+ */
+export async function loggerUpdateFirmware(
+  image: Uint8Array,
+  onProgress: (p: DownloadProgress) => void,
+): Promise<void> {
+  const { invoke, Channel } = await api();
+  const channel = new Channel<DownloadProgress>();
+  channel.onmessage = onProgress;
+  await invoke("logger_update_firmware", { image, onProgress: channel });
 }
