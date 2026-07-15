@@ -13,6 +13,7 @@ import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
 import { FileEntry } from '@/lib/fileStorage';
 import { useSettingsContext } from '@/contexts/SettingsContext';
 import { haversineDistance, METERS_TO_FEET } from '@/lib/parserUtils';
+import type { LeaderboardDescriptor } from '@/lib/leaderboardSession';
 
 /**
  * Feature flag: the old "External Ref" bar at the top of the lap list is hidden
@@ -46,10 +47,10 @@ interface LapTableProps {
   // Map overlays (extra racing lines)
   overlayLines?: OverlayLine[];
   onToggleOverlay?: (id: string) => void;
-  // Read-only leaderboard view (plan 0005): label laps by submitter + show a
-  // course/engine/weight descriptor above the table.
+  // Read-only views (plans 0005 + 0009): label laps by submitter + show a
+  // course/engine/weight (leaderboard) or course/driver/date (share) descriptor.
   lapLabels?: Record<number, string>;
-  readOnlyDescriptor?: { courseName: string; engineLabel: string; weightLabel?: string };
+  readOnlyDescriptor?: LeaderboardDescriptor;
 }
 
 export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot, overlayLines = [], onToggleOverlay, lapLabels, readOnlyDescriptor }: LapTableProps) {
@@ -210,13 +211,22 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
 
   return (
     <div className="h-full overflow-auto scrollbar-thin">
-      {/* Read-only leaderboard descriptor: course · engine · weight class. */}
+      {/* Read-only descriptor: course · engine · weight (leaderboards) or
+          course · driver · date (shared sessions). */}
       {readOnlyDescriptor && (
         <div className="border-b border-border bg-warning/10 px-4 py-2 text-sm">
           <span className="font-medium text-foreground">{readOnlyDescriptor.courseName}</span>
-          <span className="text-muted-foreground"> · {readOnlyDescriptor.engineLabel}</span>
+          {readOnlyDescriptor.driverLabel && (
+            <span className="text-muted-foreground"> · {readOnlyDescriptor.driverLabel}</span>
+          )}
+          {readOnlyDescriptor.engineLabel && (
+            <span className="text-muted-foreground"> · {readOnlyDescriptor.engineLabel}</span>
+          )}
           {readOnlyDescriptor.weightLabel && (
             <span className="text-muted-foreground"> · {readOnlyDescriptor.weightLabel}</span>
+          )}
+          {readOnlyDescriptor.dateLabel && (
+            <span className="text-muted-foreground"> · {readOnlyDescriptor.dateLabel}</span>
           )}
         </div>
       )}

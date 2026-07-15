@@ -12,6 +12,7 @@ const corsHeaders = {
 
 const SYNC_BUCKET = 'user-files';
 const AVATAR_BUCKET = 'user-avatars';
+const SHARED_BUCKET = 'shared-sessions';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -80,6 +81,8 @@ Deno.serve(async (req) => {
         try {
           await removeUserObjects(admin, SYNC_BUCKET, userId);
           await removeUserObjects(admin, AVATAR_BUCKET, userId);
+          // Shared-session rows cascade via FK; their public blobs do not.
+          await removeUserObjects(admin, SHARED_BUCKET, userId);
         } catch (fileErr) {
           console.error('process-account-deletions: blob cleanup failed after delete for', userId, fileErr);
         }

@@ -28,5 +28,10 @@
   "loadTopSession_one": "Cargar la vuelta más rápida como una sola sesión",
   "loadTopSession_other": "Cargar las {{count}} mejores vueltas como una sola sesión",
   "loadAllSession": "Cargar todas las vueltas como una sola sesión",
-  "viewProfile": "Ver perfil del piloto"
+  "viewProfile": "Ver perfil del piloto",
+  "share": {
+    "loading": "Cargando sesión compartida…",
+    "notFound": "Este enlace no existe o se ha hecho privado.",
+    "loadFailed": "No se pudo cargar la sesión compartida."
+  }
 }

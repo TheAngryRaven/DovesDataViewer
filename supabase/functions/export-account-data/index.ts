@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const [profile, subscription, roles, syncRecords, messages, pendingDeletion] = await Promise.all([
+    const [profile, subscription, roles, syncRecords, messages, pendingDeletion, sharedSessions] = await Promise.all([
       admin.from('profiles').select('display_name, created_at, updated_at').eq('user_id', user.id).maybeSingle(),
       admin.from('user_subscriptions').select('tier, status, stripe_customer_id, stripe_subscription_id, current_period_end, updated_at').eq('user_id', user.id).maybeSingle(),
       admin.from('user_roles').select('role').eq('user_id', user.id),
@@ -53,6 +53,9 @@ Deno.serve(async (req) => {
         ? admin.from('messages').select('category, email, message, created_at').eq('email', user.email)
         : Promise.resolve({ data: [] }),
       admin.from('account_deletions').select('requested_at, scheduled_for').eq('user_id', user.id).maybeSingle(),
+      // Public share rows (plan 0009) — light columns; the course geometry and the
+      // per-file share intent already export inside garage_records / cloud_files.
+      admin.from('shared_sessions').select('token, file_ext, track_name, course_name, session_date, fastest_lap_ms, size_bytes, created_at').eq('user_id', user.id),
     ]);
 
     const records = (syncRecords.data ?? []) as Array<{ store: string; record_key: string; data: unknown; updated_at?: string }>;
@@ -77,6 +80,7 @@ Deno.serve(async (req) => {
       roles: (roles.data ?? []).map((r: { role: string }) => r.role),
       pending_deletion: pendingDeletion.data ?? null,
       cloud_files: cloudFiles,
+      shared_sessions: sharedSessions.data ?? [],
       garage_records: records.filter((r) => r.store !== 'files'),
       contact_messages: messages.data ?? [],
     };

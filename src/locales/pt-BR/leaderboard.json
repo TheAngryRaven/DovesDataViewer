@@ -28,5 +28,10 @@
   "loadTopSession_one": "Carregar a volta mais rápida como uma única sessão",
   "loadTopSession_other": "Carregar as {{count}} voltas mais rápidas como uma única sessão",
   "loadAllSession": "Carregar todas as voltas como uma única sessão",
-  "viewProfile": "Ver perfil do piloto"
+  "viewProfile": "Ver perfil do piloto",
+  "share": {
+    "loading": "Carregando sessão compartilhada…",
+    "notFound": "Este link de compartilhamento não existe ou foi tornado privado.",
+    "loadFailed": "Não foi possível carregar a sessão compartilhada."
+  }
 }

@@ -10,5 +10,8 @@
   "snapshotsTitle": "リーダーボードのスナップショット",
   "snapshotsEmpty": "このドライバーはリーダーボードにスナップショットをアップロードしていません。",
   "noWeight": "重量の記載なし",
-  "openSnapshot": "このラップをビューアで開く"
+  "openSnapshot": "このラップをビューアで開く",
+  "sharedTitle": "共有セッション",
+  "sharedEmpty": "共有セッションはまだありません。",
+  "openShared": "このセッションを読み取り専用ビューアで開く"
 }

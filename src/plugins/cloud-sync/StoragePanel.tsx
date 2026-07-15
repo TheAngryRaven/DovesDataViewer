@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +23,7 @@ import { onGarageChange } from "@/lib/garageEvents";
 import { cropToSquareAvatar } from "@/lib/imageCrop";
 import { getStorageUsage } from "./syncEngine";
 import { getLocalStorageUsage } from "./localUsage";
-import { avatarPublicUrl, getMyProfile, updateDisplayName, uploadAvatar } from "./profile";
+import { avatarPublicUrl, getMyProfile, updateDisplayName, updateShareDefault, uploadAvatar } from "./profile";
 import { pendingCount } from "./pendingSync";
 import {
   formatBytes, segmentFractions, totalUsed, usageFraction,
@@ -113,6 +115,8 @@ export default function StoragePanel(_props: PluginPanelProps) {
 
       <PlanSection />
 
+      <ShareDefaultSection userId={user.id} />
+
       {!online && (
         <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
           <CloudOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -158,6 +162,53 @@ function SignInPrompt() {
           <WifiOff className="h-3.5 w-3.5" /> {t("account.offlineSignIn")}
         </p>
       )}
+    </div>
+  );
+}
+
+// Profile default for shared-session links (plan 0009): when on, every newly
+// cloud-synced log auto-publishes a share link. Future uploads only — flipping
+// it never publishes or retires existing sessions.
+function ShareDefaultSection({ userId }: { userId: string }) {
+  const { t } = useTranslation("plugins");
+  const online = useOnlineStatus();
+  const [value, setValue] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getMyProfile(userId)
+      .then((p) => !cancelled && setValue(!!p?.share_sessions_default))
+      .catch(() => !cancelled && setValue(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const onChange = async (next: boolean) => {
+    setSaving(true);
+    try {
+      await updateShareDefault(userId, next);
+      setValue(next);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("share.defaultUpdateFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <Label htmlFor="share-default" className="text-sm">{t("share.defaultToggle")}</Label>
+        <p className="text-xs text-muted-foreground">{t("share.defaultToggleHint")}</p>
+      </div>
+      <Switch
+        id="share-default"
+        checked={!!value}
+        disabled={value === null || saving || !online}
+        onCheckedChange={(v) => void onChange(v)}
+      />
     </div>
   );
 }

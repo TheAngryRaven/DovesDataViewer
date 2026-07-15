@@ -28,5 +28,10 @@
   "loadTopSession_one": "Schnellste Runde als eine Sitzung laden",
   "loadTopSession_other": "Top {{count}} Runden als eine Sitzung laden",
   "loadAllSession": "Alle Runden als eine Sitzung laden",
-  "viewProfile": "Fahrerprofil ansehen"
+  "viewProfile": "Fahrerprofil ansehen",
+  "share": {
+    "loading": "Geteilte Session wird geladen…",
+    "notFound": "Dieser Freigabelink existiert nicht oder wurde privat gemacht.",
+    "loadFailed": "Geteilte Session konnte nicht geladen werden."
+  }
 }

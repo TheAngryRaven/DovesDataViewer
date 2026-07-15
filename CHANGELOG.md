@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - unreleased
 
 ### Added
+- **Shareable session links.** Cloud-synced logs can now be shared publicly behind
+  an opaque link (`/s/…`) that never reveals the file name — anyone with the link
+  (no account needed) opens the full session in the read-only viewer, with precise
+  lap and sector timing even on your personal custom courses (the course geometry
+  travels with the share; custom courses are also auto-submitted to the community
+  track database for review). Share or unshare any session from the link icon in
+  the file browser or the Cloud Logs panel; a new profile setting makes future
+  uploads public by default (private remains the default), and your public sessions
+  appear on your driver profile page. Shared copies count toward cloud storage.
 - **Logger firmware updates in the native app.** The DovesLogger/Fledgling flow's
   connected screen gains a **Firmware update** button: it checks the published OTA
   manifest, confirms the build (asking you to pick the *sense*/*nonsense* variant

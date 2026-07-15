@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, StepBack, StepForward, Eye, EyeOff, AlertCircle, Wrench, NotebookPen, SlidersHorizontal, Columns2 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -80,6 +80,9 @@ import { snapshotLapSamples } from "@/lib/lapSnapshot";
 import type { PluginSnapshot } from "@/plugins/panels";
 import { takePendingLeaderboardSession } from "@/lib/leaderboardHandoff";
 import type { LeaderboardDescriptor } from "@/lib/leaderboardSession";
+import { buildSharedSessionBundle } from "@/lib/shareSession";
+import { beginFileLoading, endFileLoading } from "@/lib/fileLoadingState";
+import { toast } from "sonner";
 
 
 type TopPanelView = "raceline" | "laptable" | "graphview" | "coach" | "tools" | "setups" | "notes";
@@ -130,13 +133,15 @@ export default function Index() {
     handleSetReference, handleScrub, handleRangeChange, formatRangeLabel: formatRangeLabelTime,
   } = lapMgmt;
 
-  // ── Read-only leaderboard view (plan 0005) ──────────────────────────────────
-  // The /leaderboards page builds a synthetic session and hands it off here; we
-  // consume it once on mount, inject the prebuilt laps/selection verbatim (no
-  // crossing detection on the stitched multi-driver samples), and flip read-only.
+  // ── Read-only views (plans 0005 + 0009) ─────────────────────────────────────
+  // Two ways in: the /leaderboards page hands off a synthetic session in memory,
+  // or a /s/:token share link self-loads from the cloud. Both inject a prebuilt
+  // bundle and flip read-only; the source picks where Exit navigates back to.
   const navigate = useNavigate();
   const location = useLocation();
+  const { token: shareLinkToken } = useParams<{ token?: string }>();
   const [readOnly, setReadOnly] = useState(false);
+  const [readOnlySource, setReadOnlySource] = useState<"leaderboard" | "share" | null>(null);
   const [lapLabels, setLapLabels] = useState<Record<number, string>>({});
   const [readOnlyDescriptor, setReadOnlyDescriptor] = useState<LeaderboardDescriptor | undefined>();
   const exitReadOnly = useCallback(() => {
@@ -144,8 +149,9 @@ export default function Index() {
     setLapLabels({});
     setReadOnlyDescriptor(undefined);
     sessionData.clearSession();
-    navigate("/leaderboards");
-  }, [sessionData, navigate]);
+    navigate(readOnlySource === "share" ? "/" : "/leaderboards");
+    setReadOnlySource(null);
+  }, [sessionData, navigate, readOnlySource]);
 
   // Consume a pending leaderboard session once on mount. Inject the prebuilt
   // ParsedData + selection + laps directly (bypassing useLapManagement's detection)
@@ -160,8 +166,71 @@ export default function Index() {
     setLapLabels(bundle.lapLabels);
     setReadOnlyDescriptor(bundle.descriptor);
     setReadOnly(true);
+    setReadOnlySource("leaderboard");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot handoff on mount
   }, []);
+
+  // Shared-session link (plan 0009): /s/:token self-loads — resolve the token
+  // anonymously, fetch the public blob, parse it client-side, and time laps
+  // against the share's frozen course. Reload-safe (no in-memory handoff).
+  // Everything Supabase-touching stays behind dynamic imports (bundle rule).
+  useEffect(() => {
+    if (!shareLinkToken || !enableCloud) return;
+    let cancelled = false;
+    const prevTitle = document.title;
+    (async () => {
+      beginFileLoading(tl("share.loading"));
+      const { fetchSharedSession, sharedBlobUrl } = await import("@/plugins/cloud-sync/publicShare");
+      const share = await fetchSharedSession(shareLinkToken);
+      if (cancelled) return;
+      if (!share) {
+        endFileLoading();
+        toast.error(tl("share.notFound"));
+        navigate("/", { replace: true });
+        return;
+      }
+      const blobUrl = sharedBlobUrl(share.userId, share.token);
+      if (!blobUrl) throw new Error("No public URL for shared blob");
+      const res = await fetch(blobUrl);
+      if (!res.ok) throw new Error(`Shared blob fetch failed: ${res.status}`);
+      const blob = await res.blob();
+      const file = new File([blob], share.fileExt ? `shared-session.${share.fileExt}` : "shared-session", {
+        type: blob.type,
+      });
+      // parseDatalogFile brackets the loading overlay itself from here on.
+      const parsed = await parseDatalogFile(file);
+      if (cancelled) return;
+      const bundle = buildSharedSessionBundle(parsed, {
+        course: share.course,
+        trackName: share.trackName,
+        courseName: share.courseName,
+        driverName: share.driverName,
+        sessionDate: share.sessionDate,
+      });
+      sessionData.loadParsedData(bundle.data, "shared");
+      setSelection(bundle.selection);
+      setLaps(bundle.laps);
+      setSelectedLapNumber(null); // whole-session view first
+      setLapLabels(bundle.lapLabels);
+      setReadOnlyDescriptor(bundle.descriptor);
+      setReadOnly(true);
+      setReadOnlySource("share");
+      document.title = share.driverName
+        ? `${share.driverName} — ${share.courseName}`
+        : share.courseName;
+    })().catch((err) => {
+      if (cancelled) return;
+      console.error("Failed to open shared session:", err);
+      endFileLoading();
+      toast.error(tl("share.loadFailed"));
+      navigate("/", { replace: true });
+    });
+    return () => {
+      cancelled = true;
+      document.title = prevTitle;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot load per token
+  }, [shareLinkToken]);
 
   // The Leaderboards header's Profile button routes here with this flag so the
   // profile drawer opens without duplicating the drawer onto that route.

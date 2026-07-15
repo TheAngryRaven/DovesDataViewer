@@ -151,6 +151,43 @@ session). Promote to RPCs / a materialized view if row volume grows.
 
 ---
 
+## Shared sessions (`..._shared_sessions.sql`, plan 0009)
+
+Public share links for cloud-synced logs: `/s/{token}` opens the full session in
+the read-only viewer for anyone, no account needed. **All access is through RLS**
+(no edge function); owner-side orchestration lives in
+`src/plugins/cloud-sync/sessionShare.ts`, anon reads in `publicShare.ts`.
+
+| Object | Purpose |
+|--------|---------|
+| `shared_sessions` | One row per published log, keyed by an opaque crypto-random `token` (22-char base64url, ≥128 bits — the token IS the secret). Carries `file_ext` (parser routing only), the **frozen `course` jsonb** (normalized geometry incl. sectors/layout, so recipients time laps precisely even on personal courses), `track_name`/`course_name`, `session_date`, `fastest_lap_ms`, `size_bytes`. **THE TABLE HAS NO FILENAME COLUMN — never add one.** RLS can't hide columns, so the anon-readable surface simply never stores the name; the owner-side token↔filename mapping rides the log's private `sync_records` index row (`data.share = {token}` or `{optedOut:true}`). A second FK `user_id→profiles(user_id)` lets reads embed the LIVE `profiles(display_name)`. |
+| `shared-sessions` bucket | Public bucket holding a **copy** of the raw log blob at `{user_id}/{token}` (client re-uploads it at share time — the private `user-files` object never gets a public path). Owner-folder write policies mirror `user-avatars`. |
+| `profiles.share_sessions_default` | boolean, default `false`. When on, the client auto-publishes each newly pushed log (best-effort, client-side — `maybeAutoPublish`). Future uploads only. |
+| `enforce_share_quota` | BEFORE INSERT trigger — shared copies **count** toward the pooled byte budget; `total_storage_used`, both other enforce triggers, and `sync_storage_usage()` (folded into `logs_bytes`) were redefined to include them. |
+
+**RLS.** `select` for **anon + authenticated** (the token is the capability);
+owner-only `insert`/`delete`; **no update** — a share is immutable, unshare +
+reshare mints a fresh token/URL.
+
+**Lifecycle.** Unshare deletes the row + blob and pins `data.share={optedOut:true}`
+so a default-public re-upload can't resurrect it. `syncEngine.deleteCloudFile` is
+the deletion choke point (reads the token from the index row before removing it,
+best-effort cleans the share). `trim_expired_logs()` removes a trimmed log's share
+row + blob in SQL (token from `r.data->'share'->>'token'`).
+`process-account-deletions` wipes the user's `shared-sessions` bucket folder (rows
+cascade); `export-account-data` includes the share rows.
+
+**Viewer.** `/s/:token` (cloud-gated) renders `Index`, which anon-fetches the row,
+downloads the public blob, parses it client-side, and runs real `calculateLaps`
+against the embedded course (`lib/shareSession.ts`) — reload-safe, unlike the
+in-memory leaderboard handoff. Public sessions also list on `/driver/:username`.
+
+> After deploying the migration, regenerate `integrations/supabase/types.ts` —
+> `shared_sessions` + the new `profiles` column currently ride the untyped
+> `cloudClient.ts` escape hatch (leaderboards precedent).
+
+---
+
 ## Subscriptions / Stripe (`..._stripe_subscriptions.sql`, `..._subscription_grace_trim.sql` + 4 edge functions)
 
 Paid tiers scale **one pooled cloud-storage budget** that documents + logs +

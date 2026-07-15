@@ -10,5 +10,8 @@
   "snapshotsTitle": "Snapshot della classifica",
   "snapshotsEmpty": "Questo pilota non ha caricato alcuno snapshot in classifica.",
   "noWeight": "Nessun peso indicato",
-  "openSnapshot": "Apri questo giro nel visualizzatore"
+  "openSnapshot": "Apri questo giro nel visualizzatore",
+  "sharedTitle": "Sessioni condivise",
+  "sharedEmpty": "Ancora nessuna sessione condivisa.",
+  "openShared": "Apri questa sessione nel visualizzatore in sola lettura"
 }

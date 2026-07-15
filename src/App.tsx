@@ -83,6 +83,9 @@ const App = () => {
               {enableCloud && <Route path="/register" element={<Register />} />}
               {enableCloud && <Route path="/leaderboards" element={<Leaderboards />} />}
               {enableCloud && <Route path="/driver/:username" element={<DriverProfile />} />}
+              {/* Shared-session link (plan 0009): Index self-loads from the token,
+                  so the URL survives reloads and works cold for anonymous visitors. */}
+              {enableCloud && <Route path="/s/:token" element={<Index />} />}
               {enableCloud && <Route path="/forgot-password" element={<ForgotPassword />} />}
               {enableCloud && <Route path="/reset-password" element={<ResetPassword />} />}
               {enableCloud && <Route path="/auth/callback" element={<AuthCallback />} />}

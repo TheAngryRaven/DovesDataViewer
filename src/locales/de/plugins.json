@@ -203,5 +203,25 @@
     "close": "Schließen",
     "customTrackNotice": "Diese Strecke ist nicht in der integrierten Liste – ihr Layout und ihre Sektoren werden mit deinem Snapshot übermittelt, und die Strecke wird zur Überprüfung der Community-Datenbank hinzugefügt.",
     "trackAdded": "Strecke zur Überprüfung an die Community-Datenbank gesendet."
+  },
+  "share": {
+    "iconTitle": "Session teilen",
+    "dialogTitle": "Session teilen",
+    "dialogDescription": "Jeder mit dem Link kann diese Session schreibgeschützt ansehen. Der Link verrät nie den Dateinamen.",
+    "publicToggle": "Öffentlicher Freigabelink",
+    "linkLabel": "Freigabelink",
+    "copy": "Link kopieren",
+    "copied": "Link kopiert",
+    "copyFailed": "Link konnte nicht kopiert werden",
+    "privacyNote": "Öffentlich geteilt werden: die GPS-Spur und Telemetriekanäle dieses Logs, die Streckengeometrie, dein Anzeigename, das Sessiondatum und die schnellste Runde. Nicht geteilt: der Dateiname, Setups, Notizen und Videos.",
+    "customCourseNote": "Diese Session nutzt eine deiner eigenen Strecken. Ihre Geometrie ist in der Freigabe enthalten, damit Betrachter präzise Rundenzeiten sehen, und die Strecke wird zusätzlich zur Prüfung an die Community-Streckendatenbank übermittelt.",
+    "noCourse": "Diese Session ist keiner bekannten Strecke zugeordnet und kann daher noch nicht geteilt werden. Weise zuerst eine Strecke und einen Kurs zu.",
+    "offline": "Du bist offline — Teilen erfordert eine Verbindung.",
+    "loadStateFailed": "Freigabestatus dieser Session konnte nicht geladen werden",
+    "shareFailed": "Freigabelink konnte nicht erstellt werden",
+    "unshareFailed": "Session konnte nicht privat gemacht werden",
+    "defaultToggle": "Neue Uploads sind standardmäßig öffentlich",
+    "defaultToggleHint": "Gilt nur für künftige Uploads — bestehende Sessions behalten ihren aktuellen Status.",
+    "defaultUpdateFailed": "Freigabe-Voreinstellung konnte nicht aktualisiert werden"
   }
 }

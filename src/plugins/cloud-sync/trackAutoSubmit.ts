@@ -1,19 +1,27 @@
-// Auto-submit a snapshot's custom track to the community track database.
+// Auto-submit a custom course to the community track database.
 //
-// When a leaderboard snapshot is for a track that isn't in the built-in list, we
-// also push that course to the `submissions` review queue via the same submit-track
-// edge function the manual SubmitTrackDialog uses — so the community DB gathers the
-// geometry of tracks people are actually posting laps on (the snapshot already
-// carries the full course in its `data`). Best-effort: a failure here must never
-// block the snapshot submission. The signed-in user's JWT is attached, which skips
-// the CAPTCHA and attributes the submission; already-contributed courses are skipped
-// via the local submitted-records dedupe.
+// When a leaderboard snapshot or a shared session (plan 0009) is on a track that
+// isn't in the built-in list, we also push that course to the `submissions` review
+// queue via the same submit-track edge function the manual SubmitTrackDialog uses —
+// so the community DB gathers the geometry of tracks people are actually posting
+// laps on. Best-effort: a failure here must never block the caller's flow. The
+// signed-in user's JWT is attached, which skips the CAPTCHA and attributes the
+// submission; already-contributed courses are skipped via the local
+// submitted-records dedupe.
 
+import type { Course } from "@/types/racing";
 import type { LapSnapshot } from "@/lib/lapSnapshot";
 
-/** Returns true when a track submission was actually sent (false = nothing to add). */
-export async function autoSubmitSnapshotTrack(snap: LapSnapshot): Promise<boolean> {
-  if (!snap.course?.isUserDefined) return false;
+/**
+ * Submit one user-defined course to the community review queue.
+ * Returns true when a submission was actually sent (false = nothing to add).
+ */
+export async function submitCustomCourse(
+  trackName: string,
+  courseName: string,
+  course: Course,
+): Promise<boolean> {
+  if (!course.isUserDefined) return false;
 
   const [{ loadDefaultTracks }, { buildCourseSubmission }, { loadSubmittedRecords, markCoursesSubmitted }] =
     await Promise.all([
@@ -23,7 +31,7 @@ export async function autoSubmitSnapshotTrack(snap: LapSnapshot): Promise<boolea
     ]);
 
   const defaults = await loadDefaultTracks();
-  const sub = buildCourseSubmission(snap.trackName, snap.courseName, snap.course, defaults);
+  const sub = buildCourseSubmission(trackName, courseName, course, defaults);
   if (!sub) return false; // identical to a built-in course — nothing to add
 
   // Skip if this exact content was already contributed.
@@ -47,4 +55,10 @@ export async function autoSubmitSnapshotTrack(snap: LapSnapshot): Promise<boolea
   const batchId = (data as { batch_id?: string } | null)?.batch_id ?? `local-${Date.now()}`;
   markCoursesSubmitted([sub], batchId);
   return true;
+}
+
+/** Returns true when a track submission was actually sent (false = nothing to add). */
+export async function autoSubmitSnapshotTrack(snap: LapSnapshot): Promise<boolean> {
+  if (!snap.course?.isUserDefined) return false;
+  return submitCustomCourse(snap.trackName, snap.courseName, snap.course);
 }
