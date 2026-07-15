@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
-import { Trash2, AlertTriangle, CloudDownload, Loader2 } from "lucide-react";
+import { Trash2, AlertTriangle, CloudDownload, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { FileTypeBadge } from "@/components/FileTypeBadge";
 import { cleanupOrphanBlobs, deleteCloudFile, downloadCloudFile, listCloudFiles, type CloudFile } from "./syncEngine";
 import { cloudOnlyNames, markPushed, unselectFile } from "./fileSync";
 import { formatBytes } from "./storageTypes";
+import ShareSessionDialog from "./ShareSessionDialog";
 
 function formatDate(iso?: string): string {
   if (!iso) return "—";
@@ -46,6 +47,7 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
   const [alsoLocal, setAlsoLocal] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<{ done: number; total: number } | null>(null);
+  const [sharing, setSharing] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -162,6 +164,17 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
           <Button
             size="icon"
             variant="ghost"
+            className="h-7 w-7 shrink-0 text-muted-foreground"
+            disabled={busy === s.fileName}
+            onClick={() => setSharing(s.fileName)}
+            aria-label={t("share.iconTitle")}
+            title={t("share.iconTitle")}
+          >
+            <Link2 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
             className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
             disabled={busy === s.fileName}
             onClick={() => { setConfirming(s.fileName); setAlsoLocal(false); }}
@@ -231,6 +244,13 @@ export default function CloudLogsPanel(_props: PluginPanelProps) {
         <p className="text-xs text-muted-foreground text-center">{t("cloudLogs.offline")}</p>
       )}
       <SessionBrowser view={view} onNavigate={setNav} renderRow={renderRow} emptyText={t("cloudLogs.empty")} />
+      {sharing && (
+        <ShareSessionDialog
+          fileName={sharing}
+          open={!!sharing}
+          onOpenChange={(o) => !o && setSharing(null)}
+        />
+      )}
     </div>
   );
 }

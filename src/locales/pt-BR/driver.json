@@ -10,5 +10,8 @@
   "snapshotsTitle": "Snapshots do ranking",
   "snapshotsEmpty": "Este piloto não enviou nenhum snapshot ao ranking.",
   "noWeight": "Sem peso informado",
-  "openSnapshot": "Abrir esta volta no visualizador"
+  "openSnapshot": "Abrir esta volta no visualizador",
+  "sharedTitle": "Sessões compartilhadas",
+  "sharedEmpty": "Nenhuma sessão compartilhada ainda.",
+  "openShared": "Abrir esta sessão no visualizador somente leitura"
 }

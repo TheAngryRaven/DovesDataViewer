@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Car, Cpu, Trophy, UserX, Weight, Loader2 } from "lucide-react";
+import { Car, Cpu, Link2, Trophy, UserX, Weight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -13,6 +13,7 @@ import { groupEntriesByCourseWeight, type DriverCourseGroup } from "@/lib/driver
 import { buildLeaderboardSession } from "@/lib/leaderboardSession";
 import { setPendingLeaderboardSession } from "@/lib/leaderboardHandoff";
 import type { PublicProfile, PublicVehicle } from "@/plugins/cloud-sync/publicProfile";
+import type { PublicSharedSessionSummary } from "@/plugins/cloud-sync/publicShare";
 
 /** One flattened, clickable uploaded snapshot card. */
 interface SnapshotCard {
@@ -46,6 +47,7 @@ interface LoadedData {
   profile: PublicProfile;
   vehicles: PublicVehicle[];
   courses: DriverCourseGroup[];
+  shared: PublicSharedSessionSummary[];
 }
 
 type LoadState =
@@ -76,18 +78,22 @@ export default function DriverProfile() {
           setState({ status: "notfound" });
           return;
         }
-        const { fetchApprovedLightByUser, fetchEngineClasses } = await import(
-          "@/plugins/cloud-sync/leaderboardClient"
-        );
-        const [entries, classes, vehicles] = await Promise.all([
+        const [{ fetchApprovedLightByUser, fetchEngineClasses }, { fetchSharedSessionsByUser }] =
+          await Promise.all([
+            import("@/plugins/cloud-sync/leaderboardClient"),
+            import("@/plugins/cloud-sync/publicShare"),
+          ]);
+        const [entries, classes, vehicles, shared] = await Promise.all([
           fetchApprovedLightByUser(profile.userId),
           fetchEngineClasses(),
           fetchPublicVehicles(profile.userId),
+          // Shared sessions are additive — a hiccup here must not sink the page.
+          fetchSharedSessionsByUser(profile.userId).catch(() => []),
         ]);
         if (cancelled) return;
         setState({
           status: "ready",
-          data: { profile, vehicles, courses: groupEntriesByCourseWeight(entries, classes) },
+          data: { profile, vehicles, shared, courses: groupEntriesByCourseWeight(entries, classes) },
         });
       } catch (e) {
         if (!cancelled) {
@@ -146,7 +152,7 @@ export default function DriverProfile() {
 function DriverBody({ data }: { data: LoadedData }) {
   const { t } = useTranslation("driver");
   const navigate = useNavigate();
-  const { profile, vehicles, courses } = data;
+  const { profile, vehicles, courses, shared } = data;
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const snapshots = flattenSnapshots(courses);
 
@@ -255,6 +261,47 @@ function DriverBody({ data }: { data: LoadedData }) {
                     </span>
                   )}
                 </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Public shared sessions (plan 0009): each card opens the full session
+          read-only at its share URL. */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Link2 className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold text-foreground">{t("sharedTitle")}</h3>
+        </div>
+        {shared.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+            {t("sharedEmpty")}
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {shared.map((s) => (
+              <button
+                key={s.token}
+                type="button"
+                onClick={() => navigate(`/s/${s.token}`)}
+                title={t("openShared")}
+                className="flex flex-col gap-1 rounded-lg border border-border p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{s.courseName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{s.trackName}</p>
+                  </div>
+                  {s.fastestLapMs != null && (
+                    <span className="shrink-0 font-mono text-sm font-semibold text-primary">
+                      {formatLapTime(s.fastestLapMs)}
+                    </span>
+                  )}
+                </div>
+                {s.sessionDate && (
+                  <p className="text-[11px] text-muted-foreground">{s.sessionDate.toLocaleDateString()}</p>
+                )}
               </button>
             ))}
           </div>

@@ -28,5 +28,10 @@
   "loadTopSession_one": "最速ラップを1つのセッションとして読み込む",
   "loadTopSession_other": "上位 {{count}} ラップを1つのセッションとして読み込む",
   "loadAllSession": "すべてのラップを1つのセッションとして読み込む",
-  "viewProfile": "ドライバープロフィールを見る"
+  "viewProfile": "ドライバープロフィールを見る",
+  "share": {
+    "loading": "共有セッションを読み込み中…",
+    "notFound": "この共有リンクは存在しないか、非公開になりました。",
+    "loadFailed": "共有セッションを読み込めませんでした。"
+  }
 }

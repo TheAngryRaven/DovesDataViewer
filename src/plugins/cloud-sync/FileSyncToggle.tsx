@@ -60,6 +60,9 @@ export default function FileSyncToggle({ ctx }: { ctx: FileRowContext }) {
         if (user && online) {
           await pushFile(user.id, name);
           setState("synced");
+          // Auto-publish a share link when the profile default asks for one
+          // (plan 0009). Fire-and-forget: best-effort by design.
+          void import("./sessionShare").then((m) => m.maybeAutoPublish(user.id, name));
         } else {
           setState("pending"); // intent recorded; uploads later
         }

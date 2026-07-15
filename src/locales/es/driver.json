@@ -10,5 +10,8 @@
   "snapshotsTitle": "Capturas de la clasificación",
   "snapshotsEmpty": "Este piloto no ha subido ninguna captura a la clasificación.",
   "noWeight": "Sin peso indicado",
-  "openSnapshot": "Abrir esta vuelta en el visor"
+  "openSnapshot": "Abrir esta vuelta en el visor",
+  "sharedTitle": "Sesiones compartidas",
+  "sharedEmpty": "Aún no hay sesiones compartidas.",
+  "openShared": "Abrir esta sesión en el visor de solo lectura"
 }

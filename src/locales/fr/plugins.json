@@ -203,5 +203,25 @@
     "close": "Fermer",
     "customTrackNotice": "Ce circuit n'est pas dans la liste intégrée : son tracé et ses secteurs sont envoyés avec votre instantané, et le circuit est ajouté à la base de données communautaire pour révision.",
     "trackAdded": "Circuit envoyé à la base de données communautaire pour révision."
+  },
+  "share": {
+    "iconTitle": "Partager la session",
+    "dialogTitle": "Partager la session",
+    "dialogDescription": "Toute personne disposant du lien peut voir cette session en lecture seule. Le lien ne révèle jamais le nom du fichier.",
+    "publicToggle": "Lien de partage public",
+    "linkLabel": "Lien de partage",
+    "copy": "Copier le lien",
+    "copied": "Lien copié",
+    "copyFailed": "Impossible de copier le lien",
+    "privacyNote": "Partagé publiquement : la trace GPS et les canaux de télémétrie de ce journal, la géométrie du circuit, votre nom d'affichage, la date de la session et le meilleur tour. Non partagé : le nom du fichier, les réglages, les notes et les vidéos.",
+    "customCourseNote": "Cette session utilise un de vos circuits personnalisés. Sa géométrie est intégrée au partage pour que les spectateurs aient un chronométrage précis, et le circuit est aussi soumis à la base de données communautaire pour révision.",
+    "noCourse": "Cette session n'est pas associée à un circuit connu, elle ne peut donc pas encore être partagée. Attribuez d'abord une piste et un circuit.",
+    "offline": "Vous êtes hors ligne — le partage nécessite une connexion.",
+    "loadStateFailed": "Impossible de charger l'état de partage de cette session",
+    "shareFailed": "Impossible de créer le lien de partage",
+    "unshareFailed": "Impossible de rendre la session privée",
+    "defaultToggle": "Les nouveaux envois sont publics par défaut",
+    "defaultToggleHint": "N'affecte que les futurs envois — les sessions existantes conservent leur partage actuel.",
+    "defaultUpdateFailed": "Impossible de mettre à jour la préférence de partage"
   }
 }

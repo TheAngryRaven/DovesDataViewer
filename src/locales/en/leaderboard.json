@@ -27,5 +27,10 @@
     "exit": "Exit",
     "descriptor": "{{course}} · {{engine}}",
     "descriptorWeight": "{{course}} · {{engine}} · {{weight}}"
+  },
+  "share": {
+    "loading": "Loading shared session…",
+    "notFound": "This share link doesn't exist or was made private.",
+    "loadFailed": "Couldn't load the shared session."
   }
 }

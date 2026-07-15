@@ -202,5 +202,25 @@
     "downloadingFiles_one": "Downloading {{count}} cloud file…",
     "downloadingFiles_other": "Downloading {{count}} cloud files…",
     "zipping": "Zipping…"
+  },
+  "share": {
+    "iconTitle": "Share session",
+    "dialogTitle": "Share session",
+    "dialogDescription": "Anyone with the link can view this session read-only. The link never reveals your file name.",
+    "publicToggle": "Public share link",
+    "linkLabel": "Share link",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "copyFailed": "Couldn't copy the link",
+    "privacyNote": "Shared publicly: the GPS trace and telemetry channels in this log, the course geometry, your display name, the session date, and the fastest lap. Not shared: the file name, setups, notes, and videos.",
+    "customCourseNote": "This session uses one of your custom courses. Its geometry is embedded in the share so viewers get precise lap timing, and the course is also submitted to the community track database for review.",
+    "noCourse": "This session isn't tagged with a known course, so it can't be shared yet. Assign a track and course first.",
+    "offline": "You're offline — sharing needs a connection.",
+    "loadStateFailed": "Couldn't load this session's sharing state",
+    "shareFailed": "Couldn't create the share link",
+    "unshareFailed": "Couldn't make the session private",
+    "defaultToggle": "New uploads are public by default",
+    "defaultToggleHint": "Only affects future uploads — existing sessions keep their current sharing.",
+    "defaultUpdateFailed": "Couldn't update the sharing default"
   }
 }
