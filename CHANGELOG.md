@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the file browser or the Cloud Logs panel; a new profile setting makes future
   uploads public by default (private remains the default), and your public sessions
   appear on your driver profile page. Shared copies count toward cloud storage.
+  Opening a shared session selects its fastest lap automatically.
+- **Read-only views gained overlays + weather.** The Overlays menu now works in
+  read-only sessions (leaderboards and shared links), so you can compare those laps
+  against your own local sessions, and historical weather is shown when the session
+  carries a date. Vehicle/setup editing stays hidden — including the pro-mode
+  Vehicle tab, which read-only views previously still showed.
 - **Logger firmware updates in the native app.** The DovesLogger/Fledgling flow's
   connected screen gains a **Firmware update** button: it checks the published OTA
   manifest, confirms the build (asking you to pick the *sense*/*nonsense* variant

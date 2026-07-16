@@ -808,16 +808,18 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
             );
           })()}
           
-          {/* Weather panel - below delta section */}
-          {!readOnly && showWeather && (
+          {/* Weather panel - below delta section. Works in read-only too, but
+              without the per-session cache/metadata writes: the synthetic
+              "shared"/"leaderboard" file name must not key a cache entry. */}
+          {showWeather && (
             <div className="mt-3 pt-2 border-t border-border">
               <WeatherPanel
                 lat={sessionGpsPoint?.lat}
                 lon={sessionGpsPoint?.lon}
                 sessionDate={sessionStartDate}
-                sessionFileName={sessionFileName}
+                sessionFileName={readOnly ? null : sessionFileName}
                 cachedStation={cachedWeatherStation}
-                onStationResolved={onWeatherStationResolved}
+                onStationResolved={readOnly ? undefined : onWeatherStationResolved}
                 onWeatherLoaded={setSessionWeatherData}
               />
             </div>

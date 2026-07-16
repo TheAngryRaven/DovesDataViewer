@@ -111,6 +111,18 @@ navigates by source (`share` → `/`, `leaderboard` → `/leaderboards`).
 - Edge fns: `process-account-deletions` (wipe shared bucket),
   `export-account-data` (include share rows)
 
+## Follow-up polish (maintainer feedback after the BETA merge)
+
+- Opening a share selects the **fastest lap** (was: whole-session view).
+- **OverlaysMenu is enabled in read-only** (shares AND leaderboards) so viewers
+  can compare read-only laps against their own local sessions.
+- **Weather works in read-only**: the map + pro-mode InfoBox weather panels lost
+  their `readOnly` gates, but the per-session weather cache and the
+  station-metadata write-back are skipped (the synthetic "shared"/"leaderboard"
+  file names must never key a cache entry or a metadata row).
+- The pro-mode **InfoBox Vehicle tab is hidden** in read-only (was missed —
+  saving a vehicle/setup makes no sense on a read-only view).
+
 ## Post-deploy
 
 - Apply the migration, then regenerate `integrations/supabase/types.ts`
