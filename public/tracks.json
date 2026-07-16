@@ -1,4 +1,42 @@
 {
+  "Colorado Karting Circuit": {
+    "shortName": "CKC",
+    "defaultCourse": "Colorado Karting Circuit CCW",
+    "courses": [
+      {
+        "name": "Colorado Karting Circuit CCW",
+        "lengthFt": 4201,
+        "start_a_lat": 39.5698074116402,
+        "start_a_lng": -104.831080287695,
+        "start_b_lat": 39.5698694389592,
+        "start_b_lng": -104.831054806709,
+        "sector_2_a_lat": 39.5702612435752,
+        "sector_2_a_lng": -104.830867052078,
+        "sector_2_b_lat": 39.5701940476902,
+        "sector_2_b_lng": -104.830901920795,
+        "sector_3_a_lat": 39.5701682031017,
+        "sector_3_a_lng": -104.831551015377,
+        "sector_3_b_lat": 39.570219892269,
+        "sector_3_b_lng": -104.831508100033,
+        "sectors": [
+          {
+            "a_lat": 39.57026124357517,
+            "a_lng": -104.83086705207826,
+            "b_lat": 39.570194047690165,
+            "b_lng": -104.83090192079545,
+            "major": true
+          },
+          {
+            "a_lat": 39.57016820310166,
+            "a_lng": -104.83155101537706,
+            "b_lat": 39.570219892269,
+            "b_lng": -104.83150810003282,
+            "major": true
+          }
+        ]
+      }
+    ]
+  },
   "Orlando Kart Center": {
     "shortName": "OKC",
     "defaultCourse": "Normal",
