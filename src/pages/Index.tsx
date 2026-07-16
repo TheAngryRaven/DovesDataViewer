@@ -210,7 +210,8 @@ export default function Index() {
       sessionData.loadParsedData(bundle.data, "shared");
       setSelection(bundle.selection);
       setLaps(bundle.laps);
-      setSelectedLapNumber(null); // whole-session view first
+      const fastest = [...bundle.laps].sort((a, b) => a.lapTimeMs - b.lapTimeMs)[0];
+      setSelectedLapNumber(fastest?.lapNumber ?? null);
       setLapLabels(bundle.lapLabels);
       setReadOnlyDescriptor(bundle.descriptor);
       setReadOnly(true);
@@ -900,22 +901,22 @@ export default function Index() {
             />
           )}
 
-          {!readOnly && (
-            <OverlaysMenu
-              hasCourse={!!selectedCourse}
-              trackName={selection?.trackName}
-              courseName={selectedCourse?.name}
-              currentFileName={currentFileName}
-              laps={laps}
-              overlayLines={overlayLines}
-              referenceLapNumber={referenceLapNumber}
-              externalRefLabel={externalRefLabel}
-              onLoadOverlayFile={loadOverlayFile}
-              onAddExternalOverlay={addExternalOverlay}
-              onToggleOverlay={toggleOverlay}
-              onSetOverlayReference={handleSetOverlayReference}
-            />
-          )}
+          {/* Overlays stay available in read-only so viewers can compare
+              leaderboard/shared laps against their own local sessions. */}
+          <OverlaysMenu
+            hasCourse={!!selectedCourse}
+            trackName={selection?.trackName}
+            courseName={selectedCourse?.name}
+            currentFileName={currentFileName}
+            laps={laps}
+            overlayLines={overlayLines}
+            referenceLapNumber={referenceLapNumber}
+            externalRefLabel={externalRefLabel}
+            onLoadOverlayFile={loadOverlayFile}
+            onAddExternalOverlay={addExternalOverlay}
+            onToggleOverlay={toggleOverlay}
+            onSetOverlayReference={handleSetOverlayReference}
+          />
 
           <SettingsModal settings={settings} onSettingsChange={setSettings} onToggleFieldDefault={toggleFieldDefault} canHideSampleFiles={fileManager.hasOtherFiles} />
           {readOnly ? (
