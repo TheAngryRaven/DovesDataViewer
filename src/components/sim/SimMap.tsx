@@ -110,7 +110,10 @@ export function SimMap({ samples, course, positionIndex }: SimMapProps) {
   if (samples.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border">
+    // z-0 + isolate: Leaflet's internal panes carry z-indexes in the
+    // hundreds — without a contained stacking context they'd float over
+    // the sticky SiteHeader (z-30) when the page scrolls.
+    <div className="relative z-0 isolate overflow-hidden rounded-lg border border-border">
       <div ref={containerRef} className="h-64 w-full sm:h-80" />
       <div className="absolute right-2 top-2 z-[1000]">
         <Button

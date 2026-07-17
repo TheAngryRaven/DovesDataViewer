@@ -36,9 +36,7 @@
     "provenance": "Build do firmware {{sha}} · {{date}} — código idêntico ao dispositivo físico."
   },
   "picker": {
-    "label": "Sessão:",
-    "upload": "Enviar .dovex…",
-    "uploadError": "Não foi possível ler esse arquivo como registro de sessão."
+    "label": "Sessão:"
   },
   "map": {
     "toggleStyle": "Alternar estilo do mapa"

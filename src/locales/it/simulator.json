@@ -36,9 +36,7 @@
     "provenance": "Build firmware {{sha}} · {{date}} — codice identico al dispositivo fisico."
   },
   "picker": {
-    "label": "Sessione:",
-    "upload": "Carica .dovex…",
-    "uploadError": "Impossibile leggere questo file come log di sessione."
+    "label": "Sessione:"
   },
   "map": {
     "toggleStyle": "Cambia stile mappa"

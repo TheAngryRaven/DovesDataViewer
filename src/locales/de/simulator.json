@@ -36,9 +36,7 @@
     "provenance": "Firmware-Build {{sha}} · {{date}} — identischer Code wie auf dem physischen Gerät."
   },
   "picker": {
-    "label": "Session:",
-    "upload": ".dovex hochladen…",
-    "uploadError": "Diese Datei konnte nicht als Session-Log gelesen werden."
+    "label": "Session:"
   },
   "map": {
     "toggleStyle": "Kartenstil wechseln"

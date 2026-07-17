@@ -13,11 +13,10 @@
  * adds capture/share.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Loader2, Pause, Play, SkipForward, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { Loader2, Pause, Play, SkipForward } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SettingsModal } from "@/components/SettingsModal";
 import { BackToHome } from "@/components/BackToHome";
@@ -56,7 +55,6 @@ const Simulator = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [sessionName, setSessionName] = useState<string>("");
   const [loadError, setLoadError] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   // True-size default ON for first-time visitors (the spec's honesty rule);
   // remembered once toggled so returning users keep their preference.
   const [trueSize, setTrueSize] = useState(
@@ -100,20 +98,6 @@ const Simulator = () => {
     })();
     return () => { cancelled = true; };
   }, []);
-
-  // "Upload your own .dovex" — parsed in memory with the standard parser;
-  // nothing is saved to the file manager from here.
-  const onUpload = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      const parsed = await parseDatalogFile(file);
-      if (!parsed.samples.length) throw new Error("no samples");
-      await adoptSession(parsed, file.name);
-    } catch (e) {
-      console.error("simulator: upload parse failed", e);
-      toast.error(t("picker.uploadError"));
-    }
-  };
 
   const onTrueSizeChange = (v: boolean) => {
     setTrueSize(v);
@@ -181,28 +165,10 @@ const Simulator = () => {
 
         {!loading && sim.status === "ready" && data && (
           <div className="flex flex-col gap-6">
-            {/* Session picker: bundled demo + upload your own */}
+            {/* The bundled demo session (fixed — no user uploads here) */}
             <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
               <span className="text-muted-foreground">{t("picker.label")}</span>
               <span className="max-w-64 truncate font-medium">{sessionName}</span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="mr-1 h-4 w-4" />
-                {t("picker.upload")}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".dovex"
-                className="hidden"
-                onChange={(e) => {
-                  void onUpload(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
             </div>
 
             <SimMap
