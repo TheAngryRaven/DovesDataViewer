@@ -105,6 +105,54 @@
         "desc": "Center button ends the session and saves the log"
       }
     },
-    "note": "Note: Bluetooth and USB transfer are not functional in the simulator."
+    "note": "Note: Bluetooth and USB transfer are not functional in the simulator.",
+    "systemTitle": "Menu & system pages (the rest of the firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "The bird, briefly, at power-on"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Every boot lands here: lock state and HDOP up top, one signal bar per satellite below; any button skips it"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Jump straight into race mode; logging starts once GPS time locks"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Browse saved session logs; center button opens one"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Instant replay of a saved session: driver, course, date, best and optimal lap, and the full lap list"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (companion-app download) or USB (the SD card as a drive)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Insta360 pairing and status, manual serial entry, and a bench-test menu — the device auto-records your camera when the engine starts"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Boot page for a blank/corrupted SD card: hold Select 3 s to format it on-device"
+      },
+      "warnings": {
+        "name": "Warnings & faults",
+        "desc": "Recoverable notices dismiss with any button; hard faults (no SD card) hold the screen"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Plugged-in idle screen; any button wakes the device back to the menu"
+      }
+    },
+    "systemNote": "Pages that need real hardware — the USB drive, a paired camera, SD formatting, charging — can't be reached in the simulator."
   }
 }

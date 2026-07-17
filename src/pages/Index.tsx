@@ -59,6 +59,7 @@ import { useNoteManager } from "@/hooks/useNoteManager";
 import { useSetupManager } from "@/hooks/useSetupManager";
 import { useTemplateManager } from "@/hooks/useTemplateManager";
 import { useSessionData } from "@/hooks/useSessionData";
+import { setSessionActive } from "@/lib/appActivity";
 import { useLapManagement } from "@/hooks/useLapManagement";
 import { useReferenceLap, useExternalReference } from "@/hooks/useReferenceLap";
 import { useLapSnapshots } from "@/hooks/useLapSnapshots";
@@ -120,6 +121,13 @@ export default function Index() {
   // Core session data
   const sessionData = useSessionData(isFieldHiddenByDefault, settings.defaultHiddenFields);
   const { data, currentFileName, fieldMappings, sessionGpsPoint, clearSession } = sessionData;
+
+  // Host-level activity signal: the update flow (main.tsx, outside React)
+  // must never auto-reload while a session is loaded.
+  useEffect(() => {
+    setSessionActive(data !== null);
+    return () => setSessionActive(false);
+  }, [data]);
 
   const noteManager = useNoteManager(currentFileName);
 

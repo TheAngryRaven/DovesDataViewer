@@ -105,6 +105,54 @@
         "desc": "O botão central encerra a sessão e grava o log"
       }
     },
-    "note": "Nota: Bluetooth e transferência USB não funcionam no simulador."
+    "note": "Nota: Bluetooth e transferência USB não funcionam no simulador.",
+    "systemTitle": "Páginas de menu e sistema (o resto do firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "O pássaro, por um instante, ao ligar"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Todo boot chega aqui: estado da trava e HDOP em cima, uma barra de sinal por satélite embaixo; qualquer botão pula"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Entra direto no modo corrida; o registro começa quando a hora do GPS trava"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Navegue pelos logs salvos; o botão central abre um"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Replay instantâneo de uma sessão salva: piloto, traçado, data, melhor volta e volta ótima, e a lista completa de voltas"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (download pelo app) ou USB (o cartão SD como unidade)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Pareamento e status da Insta360, entrada manual do serial e menu de testes — o dispositivo grava sua câmera automaticamente quando o motor liga"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Página de boot para um SD vazio/corrompido: segure Select por 3 s para formatar no próprio dispositivo"
+      },
+      "warnings": {
+        "name": "Avisos e falhas",
+        "desc": "Avisos recuperáveis fecham com qualquer botão; falhas graves (sem SD) travam a tela"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Tela de carga em repouso; qualquer botão acorda o dispositivo de volta ao menu"
+      }
+    },
+    "systemNote": "Páginas que exigem hardware real — a unidade USB, uma câmera pareada, formatação do SD, carregamento — não podem ser acessadas no simulador."
   }
 }

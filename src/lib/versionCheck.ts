@@ -71,7 +71,7 @@ export async function fetchRemoteVersion(): Promise<RemoteVersion | null> {
  * `onUpdate` fires at most once per newly-seen remote commit. Returns a cleanup
  * function that stops all timers/listeners.
  */
-export function startVersionPolling(onUpdate: () => void): () => void {
+export function startVersionPolling(onUpdate: (remote: RemoteVersion) => void): () => void {
   let notifiedCommit: string | null = null;
   let stopped = false;
 
@@ -81,7 +81,7 @@ export function startVersionPolling(onUpdate: () => void): () => void {
     if (stopped || !remote || !isUpdateAvailable(remote)) return;
     if (notifiedCommit === remote.commit) return;
     notifiedCommit = remote.commit;
-    onUpdate();
+    onUpdate(remote);
   };
 
   const onOnline = () => void check();

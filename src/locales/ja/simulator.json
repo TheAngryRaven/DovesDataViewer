@@ -105,6 +105,54 @@
         "desc": "中央ボタンでセッションを終了しログを保存"
       }
     },
-    "note": "注意: Bluetooth と USB 転送はシミュレーターでは動作しません。"
+    "note": "注意: Bluetooth と USB 転送はシミュレーターでは動作しません。",
+    "systemTitle": "メニュー・システムページ（ファームウェアのその他の機能）",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "電源投入時に一瞬表示される鳥のロゴ"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "毎回の起動でここに到着: 上部にロック状態と HDOP、下部に衛星ごとの信号バー。任意のボタンでスキップ"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race・Review・Transfer・Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "レースモードへ直行。GPS 時刻がロックされるとロギング開始"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "保存済みログの一覧。中央ボタンで開く"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "保存セッションのインスタントリプレイ: ドライバー、コース、日付、ベスト/オプティマルラップ、全ラップ一覧"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth（コンパニオンアプリへのダウンロード）または USB（SD カードをドライブとして公開）"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Insta360 のペアリングと状態、シリアル手動入力、ベンチテストメニュー — エンジン始動でカメラの録画を自動開始"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "空/破損 SD カード時のブートページ: Select を3秒長押しで本体フォーマット"
+      },
+      "warnings": {
+        "name": "警告と障害",
+        "desc": "回復可能な通知は任意のボタンで閉じる。重大な障害（SD なし）は画面を保持"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "接続中のアイドル画面。任意のボタンでメニューに復帰"
+      }
+    },
+    "systemNote": "実機ハードウェアが必要なページ — USB ドライブ、ペアリング済みカメラ、SD フォーマット、充電 — はシミュレーターでは到達できません。"
   }
 }

@@ -20,6 +20,9 @@
     "title": "Actualización disponible",
     "description": "Actualiza para borrar archivos en caché obsoletos y cargar la última versión de la aplicación.",
     "refresh": "Actualizar",
-    "later": "Más tarde"
+    "later": "Más tarde",
+    "updating": "Actualizando…",
+    "updatingBody": "Descargando la última versión — un momento.",
+    "updated": "Ya tienes la última versión."
   }
 }
