@@ -27,8 +27,6 @@ import {
 import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { BirdsEyeSim } from "@/lib/sim/simClient";
-
 const FB_W = 128;
 const FB_H = 64;
 /** SH1106 128×64 panel active area, mm (the spec's "true size"). */
@@ -36,8 +34,8 @@ const PANEL_W_MM = 55.0;
 const PANEL_H_MM = 27.5;
 
 export interface SimDevicePanelProps {
-  /** Register/unregister the blit sink (called when the frame hash changes). */
-  setFrameSink: (sink: ((sim: BirdsEyeSim) => void) | null) => void;
+  /** Register/unregister the blit sink (fed 1024-byte framebuffers). */
+  setFrameSink: (sink: ((pixels: Uint8Array) => void) | null) => void;
   buttonDown: (idx: number) => void;
   buttonUp: (idx: number) => void;
   trueSize: boolean;
@@ -55,9 +53,9 @@ export function SimDevicePanel({
   const imageRef = useRef<ImageData | null>(null);
 
   // Blit sink: firmware page layout -> 1:1 ImageData -> canvas. The host
-  // hook only calls this when the frame hash actually changed (fw paints
-  // at 3 Hz — no 60 fps repaints of identical pixels).
-  const blit = useCallback((sim: BirdsEyeSim) => {
+  // hook only calls this when the frame content actually changed (fw
+  // paints at 3 Hz — no 60 fps repaints of identical pixels).
+  const blit = useCallback((fb: Uint8Array) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -66,7 +64,6 @@ export function SimDevicePanel({
       img = ctx.createImageData(FB_W, FB_H);
       imageRef.current = img;
     }
-    const fb = sim.getFramebuffer();
     const px = img.data;
     for (let y = 0; y < FB_H; y++) {
       const page = (y >> 3) * FB_W;
