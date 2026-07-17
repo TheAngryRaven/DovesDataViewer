@@ -40,5 +40,71 @@
   },
   "map": {
     "toggleStyle": "Toggle map style"
+  },
+  "guide": {
+    "title": "How the simulator works",
+    "lead": "This is a full simulation of the DovesDataLogger firmware — the exact code the physical device runs, compiled for your browser — for testing, evaluation, and poking around before you build one.",
+    "steps": {
+      "boot": {
+        "title": "Booting",
+        "body": "The device boots just like the real one. Press any button to skip the GPS lock screen and go straight to the main menu — or simply press Play: about 3 seconds after the GPS locks, the screen moves on by itself."
+      },
+      "controls": {
+        "title": "Controls",
+        "body": "The outer buttons (◀ ▶) move between menu items and race pages; the center button selects. The keyboard works too: ← Enter →."
+      },
+      "replay": {
+        "title": "Replaying a session",
+        "body": "Press Play to replay the recorded session. Race mode engages automatically, the firmware searches for the nearest track, runs course detection, and starts timing laps — the same pipeline the device runs at the track."
+      },
+      "ending": {
+        "title": "Ending the session",
+        "body": "At the end of the replay the kart comes to a stop. Let the session end on its own, or navigate to the END RACE page and press the center button to commit the log file yourself."
+      },
+      "review": {
+        "title": "Reviewing",
+        "body": "An ended session is saved to the simulator's temporary storage: open Review in the main menu to load it back and browse its laps, exactly like on the device. (It evaporates when you leave the page.)"
+      }
+    },
+    "pagesTitle": "Race mode pages (◀ ▶ to flip through them)",
+    "pages": {
+      "stats": {
+        "name": "GPS Stats",
+        "desc": "Diagnostics: satellites, HDOP, coordinates, battery"
+      },
+      "speed": {
+        "name": "Speed",
+        "desc": "Big current speed with the lap counter"
+      },
+      "rpm": {
+        "name": "Engine RPM",
+        "desc": "Live RPM, with an over-rev warning at the limit"
+      },
+      "lapTime": {
+        "name": "Current Lap",
+        "desc": "The running lap timer"
+      },
+      "pace": {
+        "name": "Lap Pace",
+        "desc": "Live +/− delta against your best lap (center button jumps here while moving)"
+      },
+      "best": {
+        "name": "Best Lap",
+        "desc": "Fastest lap so far, and which lap set it"
+      },
+      "optimal": {
+        "name": "Optimal Lap",
+        "desc": "Theoretical best built from your best sectors"
+      },
+      "history": {
+        "name": "Lap History",
+        "desc": "Every lap this session; the center button pages through the list"
+      },
+      "end": {
+        "name": "End Race",
+        "desc": "Center button ends the session and saves the log"
+      }
+    },
+    "note": "Note: Bluetooth and USB transfer are not functional in the simulator."
   }
 }

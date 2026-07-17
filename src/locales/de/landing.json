@@ -285,5 +285,13 @@
     "parseErrorSaved": "{{message}} — die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
     "loaded": "Geladen: {{name}}",
     "errorLine": "Fehler: {{error}}"
+  },
+  "buildDialog": {
+    "title": "Bau deinen eigenen Datenlogger",
+    "tagline": "Open-Source-GPS-Rundenzähler — Hardware, Firmware und Gehäuse",
+    "imageAlt": "Der Fledgling DIY-Datenlogger",
+    "body": "Der Fledgling ist der DIY-Logger, um den diese App gebaut wurde: 25-Hz-GPS-Rundenzeiten, Motordrehzahl, G-Kräfte, OLED-Display und drahtloser Download — zusammengebaut aus günstigen Standardteilen. Schaltpläne, Firmware, 3D-druckbares Gehäuse und die komplette Bauanleitung gibt es kostenlos auf GitHub.",
+    "simulator": "Sieh dir an, wie es funktioniert!",
+    "github": "Bauanleitung auf GitHub"
   }
 }
