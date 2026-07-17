@@ -68,6 +68,7 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
   const playingRef = useRef(false);
   const speedRef = useRef(1);
   const busyRef = useRef(false); // guards reset/seek re-entrancy
+  const pendingSeekRef = useRef<number | null>(null); // latest target requested mid-seek
 
   // Virtual playback cursor, absolute unix-ms (matches sample timestamps).
   const cursorRef = useRef(0);
@@ -235,29 +236,46 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
 
   const seek = useCallback((sessionMs: number) => {
     const sim = simRef.current;
-    if (!sim || !data || busyRef.current) return;
-    const targetAbs = epochMs + Math.max(0, Math.min(sessionMs, durationMs));
-    const plan = planScrub(cursorRef.current, targetAbs, epochMs);
+    if (!sim || !data) return;
+    // Coalesce while a seek is in flight: the Radix slider fires onValueChange
+    // for every value during a drag, and a backward seek re-boots the wasm +
+    // replays headlessly (slow). Rather than drop those events — which would
+    // strand the thumb at a stale intermediate target and replay once per tick —
+    // remember only the latest requested target and let the running seek pick it
+    // up when it finishes, so exactly the released position is rendered.
+    if (busyRef.current) {
+      pendingSeekRef.current = sessionMs;
+      return;
+    }
     busyRef.current = true;
     (async () => {
       try {
-        if (plan.reset) {
-          await bootFresh(sim);
-          // Headless pre-roll: run it at once (no rendering between).
-          runActions(preRollLeftRef.current);
-          preRollLeftRef.current = [];
-        } else if (preRollLeftRef.current.length > 0) {
-          runActions(preRollLeftRef.current);
-          preRollLeftRef.current = [];
+        let target = sessionMs;
+        for (;;) {
+          const targetAbs = epochMs + Math.max(0, Math.min(target, durationMs));
+          const plan = planScrub(cursorRef.current, targetAbs, epochMs);
+          if (plan.reset) {
+            await bootFresh(sim);
+            // Headless pre-roll: run it at once (no rendering between).
+            runActions(preRollLeftRef.current);
+            preRollLeftRef.current = [];
+          } else if (preRollLeftRef.current.length > 0) {
+            runActions(preRollLeftRef.current);
+            preRollLeftRef.current = [];
+          }
+          // Headless fast-replay in one plan (row-accurate, no paints).
+          const { actions, nextIndex } = buildTickPlan(
+            data.samples, epochMs, cursorRef.current, targetAbs,
+            sampleIndexRef.current,
+          );
+          runActions(actions);
+          cursorRef.current = targetAbs;
+          sampleIndexRef.current = nextIndex;
+          // A newer target arrived mid-seek — run once more to it, otherwise stop.
+          if (pendingSeekRef.current === null) break;
+          target = pendingSeekRef.current;
+          pendingSeekRef.current = null;
         }
-        // Headless fast-replay in one plan (row-accurate, no paints).
-        const { actions, nextIndex } = buildTickPlan(
-          data.samples, epochMs, cursorRef.current, targetAbs,
-          sampleIndexRef.current,
-        );
-        runActions(actions);
-        cursorRef.current = targetAbs;
-        sampleIndexRef.current = nextIndex;
         publish(true);
       } finally {
         busyRef.current = false;

@@ -35,6 +35,7 @@
 - Reference lap overlay & pace delta comparison
 - Lap snapshots — save a "course fastest lap" per engine, frozen for cross-session comparison (local-first, optionally cloud-synced)
 - Public leaderboards — submit your snapshots and browse fastest community laps by track, course and engine class (with optional weight grouping); opens any group in a read-only viewer (cloud-enabled builds)
+- Shareable session links — share a cloud-synced log behind an opaque public link (`/s/…`, no account needed) that never reveals the file name; opens the full session in the read-only viewer with precise lap/sector timing (custom course geometry travels with the share). Opt into public-by-default uploads and your public sessions appear on your driver profile (cloud-enabled builds)
 - Video sync with telemetry playback (incl. GoPro chunked recordings — select all chapter files and they play as one continuous video)
 - 9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)
 - MP4 video export with overlays & audio (H.264 + AAC)
@@ -42,6 +43,7 @@
 - Session notes per file
 - BLE device integration (DovesDataLogger)
 - Device track sync over Bluetooth
+- Firmware simulator (`/simulator`) — the real DovesDataLogger firmware compiled to WebAssembly, running in the browser on a simulated OLED so you can watch it boot, acquire GPS, auto-enter race mode and count laps; no account, fully offline
 - Custom track & course editor with community submissions
 - Local weather lookup
 - Optional cloud sync of files & garage data across devices (requires backend + sign-in)
