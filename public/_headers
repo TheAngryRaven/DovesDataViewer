@@ -16,3 +16,9 @@
 # Hashed build assets are content-addressed and safe to cache forever.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Vendored firmware simulator (public/sim/): NOT content-hashed — the same
+# filenames are replaced on redeploy — so always revalidate. version.json
+# carries the build provenance the capture/share feature pins against.
+/sim/*
+  Cache-Control: no-cache
