@@ -41,6 +41,12 @@
   "map": {
     "toggleStyle": "Alternar estilo do mapa"
   },
+  "howItWorks": {
+    "title": "O que o dispositivo está fazendo",
+    "p1": "O dispositivo liga quando um botão é pressionado ou quando detecta RPM. Em seguida encontra a pista mais próxima e carrega na memória todos os traçados dela.",
+    "p2": "O modo corrida é selecionado automaticamente assim que RPM é detectado.",
+    "p3": "Quando a velocidade atinge um limite definido, um waypoint é marcado e o dispositivo passa a monitorar todas as linhas de largada/chegada e de setor ao mesmo tempo. Ao alcançar esse waypoint de novo, ele compara a distância percorrida, encontra o traçado com o comprimento mais próximo — e no qual você também cruzou várias linhas —, seleciona esse traçado e descarta os demais. Isso registra sua primeira volta com um tempo preciso, e daí em diante ele conta as voltas normalmente."
+  },
   "guide": {
     "title": "Como o simulador funciona",
     "lead": "Esta é uma simulação completa do firmware do DovesDataLogger — exatamente o código que o dispositivo físico executa, compilado para o seu navegador — para testar, avaliar e explorar antes de montar o seu.",

@@ -41,6 +41,12 @@
   "map": {
     "toggleStyle": "Kartenstil wechseln"
   },
+  "howItWorks": {
+    "title": "Was das Gerät gerade macht",
+    "p1": "Das Gerät startet, sobald eine Taste gedrückt oder eine Drehzahl erkannt wird. Danach sucht es die nächstgelegene Strecke und lädt alle ihre Streckenvarianten in den Speicher.",
+    "p2": "Der Rennmodus wird automatisch gewählt, sobald eine Drehzahl erkannt wird.",
+    "p3": "Erreicht die Geschwindigkeit einen festgelegten Schwellwert, wird ein Wegpunkt gesetzt und das Gerät überwacht ab dann alle Start-/Ziel- und Sektorlinien gleichzeitig. Beim erneuten Erreichen dieses Wegpunkts vergleicht es die gefahrene Distanz, sucht die Streckenvariante mit der besten Längenübereinstimmung — bei der außerdem mehrere ihrer Linien überquert wurden —, wählt sie aus und verwirft den Rest. Damit ist die erste Runde mit einer präzisen Rundenzeit registriert, und ab dann zählt es die Runden ganz normal."
+  },
   "guide": {
     "title": "So funktioniert der Simulator",
     "lead": "Dies ist eine vollständige Simulation der DovesDataLogger-Firmware — exakt der Code, den das physische Gerät ausführt, für deinen Browser kompiliert — zum Testen, Bewerten und Ausprobieren, bevor du eines baust.",
