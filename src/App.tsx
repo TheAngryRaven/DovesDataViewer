@@ -28,6 +28,9 @@ const Register = lazy(() => import("./pages/Register"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const DriverProfile = lazy(() => import("./pages/DriverProfile"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+// The firmware simulator (plan 0010): public + offline-first — the wasm
+// module and demo session are same-origin, SW-cached assets.
+const Simulator = lazy(() => import("./pages/Simulator"));
 const Terms = lazy(() => import("./pages/Terms"));
 // Public, no-login account-deletion request page. Mounted un-gated (below) so the
 // URL Google Play requires resolves on every build, even offline-only ones.
@@ -74,6 +77,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/simulator" element={<Simulator />} />
               <Route path="/terms" element={<Terms />} />
               {/* Un-gated: Google Play requires a publicly reachable account-deletion
                   URL. The page itself adapts when cloud accounts are disabled. */}

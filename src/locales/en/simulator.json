@@ -1,0 +1,38 @@
+{
+  "title": "Firmware Simulator",
+  "subtitle": "The real DovesDataLogger firmware, compiled to WebAssembly, replaying a real track session. The buttons drive the actual menus — even mid-lap.",
+  "loading": "Booting the firmware…",
+  "loadError": "The simulator could not be loaded. Check your connection and try again.",
+  "display": {
+    "canvasLabel": "Simulated device display",
+    "trueSize": "True size",
+    "trueSizeWhy": "Why so small? This is the device's real 1.3″ screen size — what it actually looks like on a steering wheel.",
+    "scale": "Zoom"
+  },
+  "buttons": {
+    "group": "Device buttons",
+    "left": "Left button",
+    "select": "Select button",
+    "right": "Right button",
+    "keyboardHint": "Keyboard: ← Enter →"
+  },
+  "transport": {
+    "play": "Play",
+    "pause": "Pause",
+    "skipPreRoll": "Skip GPS acquisition",
+    "preRoll": "Acquiring GPS…",
+    "timeline": "Session timeline"
+  },
+  "state": {
+    "racing": "Race mode",
+    "idle": "Menu",
+    "laps_one": "{{count}} lap",
+    "laps_other": "{{count}} laps",
+    "best": "Best",
+    "gpsLocked": "GPS {{sats}} sats",
+    "gpsAcquiring": "No GPS fix"
+  },
+  "footer": {
+    "provenance": "Firmware build {{sha}} · {{date}} — identical code to the physical device."
+  }
+}

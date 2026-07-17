@@ -1,0 +1,38 @@
+{
+  "title": "ファームウェアシミュレーター",
+  "subtitle": "DovesDataLogger の実機ファームウェアを WebAssembly にコンパイルし、実際の走行セッションを再生します。ボタンは本物のメニューを操作できます — ラップ中でも。",
+  "loading": "ファームウェアを起動中…",
+  "loadError": "シミュレーターを読み込めませんでした。接続を確認して再試行してください。",
+  "display": {
+    "canvasLabel": "シミュレートされたデバイスの画面",
+    "trueSize": "実寸大",
+    "trueSizeWhy": "なぜ小さい？これがデバイスの実際の1.3インチ画面サイズです — ステアリングに付けた実際の見え方です。",
+    "scale": "ズーム"
+  },
+  "buttons": {
+    "group": "デバイスのボタン",
+    "left": "左ボタン",
+    "select": "選択ボタン",
+    "right": "右ボタン",
+    "keyboardHint": "キーボード: ← Enter →"
+  },
+  "transport": {
+    "play": "再生",
+    "pause": "一時停止",
+    "skipPreRoll": "GPS捕捉をスキップ",
+    "preRoll": "GPS捕捉中…",
+    "timeline": "セッションのタイムライン"
+  },
+  "state": {
+    "racing": "レースモード",
+    "idle": "メニュー",
+    "laps_one": "{{count}} 周",
+    "laps_other": "{{count}} 周",
+    "best": "ベスト",
+    "gpsLocked": "GPS {{sats}} 衛星",
+    "gpsAcquiring": "GPS未取得"
+  },
+  "footer": {
+    "provenance": "ファームウェアビルド {{sha}} · {{date}} — 実機と同一のコードです。"
+  }
+}

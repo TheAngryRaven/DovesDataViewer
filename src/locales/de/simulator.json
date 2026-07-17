@@ -1,0 +1,38 @@
+{
+  "title": "Firmware-Simulator",
+  "subtitle": "Die echte DovesDataLogger-Firmware, kompiliert zu WebAssembly, spielt eine echte Streckensession ab. Die Tasten bedienen die echten Menüs — auch mitten in der Runde.",
+  "loading": "Firmware startet…",
+  "loadError": "Der Simulator konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+  "display": {
+    "canvasLabel": "Simuliertes Gerätedisplay",
+    "trueSize": "Originalgröße",
+    "trueSizeWhy": "Warum so klein? Das ist die echte Größe des 1,3″-Displays — so sieht es am Lenkrad aus.",
+    "scale": "Zoom"
+  },
+  "buttons": {
+    "group": "Gerätetasten",
+    "left": "Linke Taste",
+    "select": "Auswahltaste",
+    "right": "Rechte Taste",
+    "keyboardHint": "Tastatur: ← Enter →"
+  },
+  "transport": {
+    "play": "Abspielen",
+    "pause": "Pause",
+    "skipPreRoll": "GPS-Erfassung überspringen",
+    "preRoll": "GPS-Erfassung…",
+    "timeline": "Session-Zeitleiste"
+  },
+  "state": {
+    "racing": "Rennmodus",
+    "idle": "Menü",
+    "laps_one": "{{count}} Runde",
+    "laps_other": "{{count}} Runden",
+    "best": "Beste",
+    "gpsLocked": "GPS {{sats}} Sat.",
+    "gpsAcquiring": "Kein GPS-Fix"
+  },
+  "footer": {
+    "provenance": "Firmware-Build {{sha}} · {{date}} — identischer Code wie auf dem physischen Gerät."
+  }
+}
