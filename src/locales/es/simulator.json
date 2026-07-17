@@ -41,6 +41,12 @@
   "map": {
     "toggleStyle": "Cambiar estilo de mapa"
   },
+  "howItWorks": {
+    "title": "Qué está haciendo el dispositivo",
+    "p1": "El dispositivo arranca al pulsar un botón o al detectar RPM. Después busca el circuito más cercano y carga en memoria todos sus trazados.",
+    "p2": "El modo carrera se selecciona automáticamente en cuanto se detectan RPM.",
+    "p3": "Cuando la velocidad alcanza un umbral establecido, se coloca un waypoint y el dispositivo empieza a vigilar todas las líneas de meta y de sector a la vez. Al volver a pasar por ese waypoint, compara la distancia recorrida, busca el trazado cuya longitud coincide mejor — y en el que además hayas cruzado varias de sus líneas —, selecciona ese trazado y descarta el resto. Así registra tu primera vuelta con un tiempo preciso, y a partir de ahí cuenta las vueltas con normalidad."
+  },
   "guide": {
     "title": "Cómo funciona el simulador",
     "lead": "Esta es una simulación completa del firmware del DovesDataLogger — el mismo código que ejecuta el dispositivo físico, compilado para tu navegador — para probar, evaluar y explorar antes de construir uno.",

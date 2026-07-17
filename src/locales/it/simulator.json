@@ -41,6 +41,12 @@
   "map": {
     "toggleStyle": "Cambia stile mappa"
   },
+  "howItWorks": {
+    "title": "Cosa sta facendo il dispositivo",
+    "p1": "Il dispositivo si avvia alla pressione di un pulsante o quando rileva dei giri motore. Poi individua il tracciato più vicino e carica in memoria tutte le sue configurazioni.",
+    "p2": "La modalità gara viene selezionata automaticamente non appena vengono rilevati i giri motore.",
+    "p3": "Quando la velocità raggiunge una soglia impostata, viene posato un waypoint e il dispositivo inizia a monitorare contemporaneamente tutte le linee di partenza/arrivo e di settore. Quando raggiungi di nuovo quel waypoint, confronta la distanza percorsa, trova la configurazione con la lunghezza più simile — e di cui hai anche attraversato più linee —, la seleziona e scarta le altre. Così registra il tuo primo giro con un tempo preciso, e da lì conta i giri normalmente."
+  },
   "guide": {
     "title": "Come funziona il simulatore",
     "lead": "Questa è una simulazione completa del firmware del DovesDataLogger — esattamente il codice che esegue il dispositivo fisico, compilato per il tuo browser — per testare, valutare ed esplorare prima di costruirne uno.",

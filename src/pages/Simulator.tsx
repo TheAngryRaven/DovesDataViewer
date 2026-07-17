@@ -238,6 +238,16 @@ const Simulator = () => {
               </div>
             </div>
 
+            {/* What the firmware is actually doing (plan 0010 follow-up) */}
+            <div className="rounded-lg border border-border bg-card/50 p-4 text-sm">
+              <p className="mb-2 font-semibold">{t("howItWorks.title")}</p>
+              <div className="space-y-2 text-muted-foreground">
+                <p>{t("howItWorks.p1")}</p>
+                <p>{t("howItWorks.p2")}</p>
+                <p>{t("howItWorks.p3")}</p>
+              </div>
+            </div>
+
             {/* Live firmware state */}
             {st && (
               <div

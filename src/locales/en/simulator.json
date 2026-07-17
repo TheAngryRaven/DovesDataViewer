@@ -41,6 +41,12 @@
   "map": {
     "toggleStyle": "Toggle map style"
   },
+  "howItWorks": {
+    "title": "What the device is doing",
+    "p1": "The device boots when a button is pressed or RPM is detected. It then finds the closest track and loads all of that track's courses into memory.",
+    "p2": "Race mode is selected automatically as soon as RPM is detected.",
+    "p3": "When your speed reaches a set threshold, a waypoint is dropped and the device starts monitoring every start/finish and sector line at once. When you reach that waypoint again, it compares the distance driven, finds the course with the nearest length match — one where you've also crossed several of its lines — selects that course, and drops the rest. That registers your first lap with an accurate first-lap time, and from there it counts laps as normal."
+  },
   "guide": {
     "title": "How the simulator works",
     "lead": "This is a full simulation of the DovesDataLogger firmware — the exact code the physical device runs, compiled for your browser — for testing, evaluation, and poking around before you build one.",

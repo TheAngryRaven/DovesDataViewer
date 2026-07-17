@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pairing, SD format, warnings/faults, and the charging screen — so users
   can see the full feature set of the firmware, including the pages that
   need real hardware and can't be reached in the simulator. (plan 0010)
+- **Simulator "what the device is doing" explainer.** A short description
+  below the playback controls walking through the firmware's actual
+  behavior: boot on button press or RPM, nearest-track lookup with all
+  courses loaded into memory, automatic race-mode entry on RPM, and the
+  waypoint-drop course-detection pass that picks the matching course and
+  registers an accurate first lap. (plan 0010)
 - **Firmware simulator page (`/simulator`).** The real DovesDataLogger
   firmware — the vendored WebAssembly build — running in the browser on a
   simulated 128×64 OLED, replaying the bundled Orlando Kart Center sample

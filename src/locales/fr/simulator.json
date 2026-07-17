@@ -41,6 +41,12 @@
   "map": {
     "toggleStyle": "Changer le style de carte"
   },
+  "howItWorks": {
+    "title": "Ce que fait l’appareil",
+    "p1": "L’appareil démarre à l’appui d’un bouton ou dès qu’un régime moteur est détecté. Il cherche ensuite le circuit le plus proche et charge tous ses tracés en mémoire.",
+    "p2": "Le mode course est sélectionné automatiquement dès que des tours/minute sont détectés.",
+    "p3": "Quand la vitesse atteint un seuil défini, un point de passage est posé et l’appareil surveille alors toutes les lignes de départ/arrivée et de secteur à la fois. Au retour sur ce point de passage, il compare la distance parcourue, trouve le tracé dont la longueur correspond le mieux — et dont vous avez aussi franchi plusieurs lignes —, sélectionne ce tracé et écarte les autres. Votre premier tour est alors enregistré avec un temps précis, puis le comptage des tours continue normalement."
+  },
   "guide": {
     "title": "Comment fonctionne le simulateur",
     "lead": "Ceci est une simulation complète du firmware du DovesDataLogger — le code exact qu'exécute l'appareil physique, compilé pour votre navigateur — pour tester, évaluer et explorer avant d'en construire un.",
