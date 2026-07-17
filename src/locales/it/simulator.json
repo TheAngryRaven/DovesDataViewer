@@ -1,0 +1,38 @@
+{
+  "title": "Simulatore firmware",
+  "subtitle": "Il vero firmware del DovesDataLogger, compilato in WebAssembly, che riproduce una vera sessione in pista. I pulsanti comandano i menu reali, anche a metà giro.",
+  "loading": "Avvio del firmware…",
+  "loadError": "Impossibile caricare il simulatore. Controlla la connessione e riprova.",
+  "display": {
+    "canvasLabel": "Display del dispositivo simulato",
+    "trueSize": "Dimensioni reali",
+    "trueSizeWhy": "Perché così piccolo? Questa è la dimensione reale dello schermo da 1,3″ — così appare montato sul volante.",
+    "scale": "Zoom"
+  },
+  "buttons": {
+    "group": "Pulsanti del dispositivo",
+    "left": "Pulsante sinistro",
+    "select": "Pulsante di selezione",
+    "right": "Pulsante destro",
+    "keyboardHint": "Tastiera: ← Invio →"
+  },
+  "transport": {
+    "play": "Riproduci",
+    "pause": "Pausa",
+    "skipPreRoll": "Salta acquisizione GPS",
+    "preRoll": "Acquisizione GPS…",
+    "timeline": "Timeline della sessione"
+  },
+  "state": {
+    "racing": "Modalità gara",
+    "idle": "Menu",
+    "laps_one": "{{count}} giro",
+    "laps_other": "{{count}} giri",
+    "best": "Migliore",
+    "gpsLocked": "GPS {{sats}} sat.",
+    "gpsAcquiring": "Nessun fix GPS"
+  },
+  "footer": {
+    "provenance": "Build firmware {{sha}} · {{date}} — codice identico al dispositivo fisico."
+  }
+}

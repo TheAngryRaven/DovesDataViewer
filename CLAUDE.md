@@ -83,6 +83,7 @@ src/
 │   ├── Index.tsx          # ★ Main SPA — file import, tab views, all state orchestration. Also hosts the read-only viewer (plans 0005+0009): consumes a leaderboardHandoff bundle on mount OR self-loads a /s/:token shared session (anon fetch → parse → calculateLaps vs the share's frozen course), injects prebuilt laps/selection, flips a `readOnly` flag that alert-colours the header + hides Coach/Tools/Setups + video/weather/snapshots.
 │   ├── Leaderboards.tsx   # ★ Public /leaderboards page (cloud-gated): Track→Course→engine/weight accordion (Group-by-weight + Show-top), opens a group into Index's read-only viewer via leaderboardHandoff; shows uploader avatar thumbnails
 │   ├── DriverProfile.tsx  # ★ Public /driver/:username page (plan 0006, anon, case-insensitive via .ilike): avatar + name + opt-in vehicles (no weights/setups) + the driver's approved leaderboard snapshots grouped by course/weight
+│   ├── Simulator.tsx      # ★ Public /simulator page (plan 0010): the vendored firmware wasm (public/sim/) on a canvas OLED, replaying the bundled sample via lib/sim + useSimPlayback
 │   ├── Admin.tsx          # Admin panel (behind VITE_ENABLE_ADMIN)
 │   └── …                  # Login / Register / Privacy / Terms / NotFound
 ├── components/
@@ -130,6 +131,7 @@ src/
 │   ├── garageEvents.ts    # ★ Host pub/sub: storage emits {store,key,put|delete}; cloud-sync syncs off it
 │   ├── fileLoadingState.ts # ★ Host pub/sub for the global file-load overlay
 │   ├── *Storage.ts        # IDB/localStorage store modules (file, vehicle, engine, template, note, setup, …)
+│   ├── sim/               # ★ Firmware simulator (plan 0010): simClient (typed loader for the vendored /sim/birdseye-sim.mjs, API contract v1 — reset() is async/re-instantiating) + simPlayback (PURE tick/pre-roll/scrub planning, Vitest-covered). The rAF loop lives in hooks/useSimPlayback; the device chrome in components/sim/SimDevicePanel
 │   ├── gps/               # ★ Phone-as-datalogger layer: gpsFix, customGps, sessionGate, realtimeTimer, dovepWriter
 │   ├── loggers/           # ★ Generic LoggerConnection (listLogs/downloadLog/disconnect) + per-logger adapters — Fledgling=web BLE, mychron/=MyChron over native (Tauri) Wi-Fi IPC, doveslogger/=same Fledgling hardware over native (Tauri) BLE IPC (scan→connect→list→download), alfano/=Alfano over native (Tauri) Bluetooth-serial IPC (SKELETON: web-side seam only, Rust backend TBD — Bluetooth serial can't be reached in-browser so there's no web path); native/ipc.ts = shared kind-agnostic native IPC (all lazy; @tauri-apps/api dynamic-imported, native-only). progress.ts = transport-neutral formatters + computeProgress; errors.ts = pure error-prefix classifier + recovery-action table — every download flow renders classified, translated errors via the shared ErrorPanel, never raw backend strings. Native Fledgling firmware OTA (plan 0008): doveslogger/`loggerUpdateFirmware` + `firmwareInfo.ts` + `useNativeFirmwareUpdate`/`NativeFirmwarePanel`, reusing lib/ble/dfu; availability runtime-detected (→ docs/ble.md, docs/android.md)
 │   ├── speedHeatmap.ts / mapMarker.ts / brakingZones / gforceCalculation / …  # racing math

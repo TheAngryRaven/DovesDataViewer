@@ -299,7 +299,9 @@ export default defineConfig(async ({ mode }) => {
           skipWaiting: true,
           // woff2 only: every SW-capable browser supports it, so the legacy
           // .woff fallbacks @fontsource emits would just be dead precache weight.
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,json,nmea,wasm}"],
+          // mjs: the vendored firmware-simulator module (public/sim/) — precached
+          // so the /simulator page works offline like everything else.
+          globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,json,nmea,wasm}"],
           // version.json must never be precached — it's the freshness signal the
           // running tab fetches uncached to detect a newer deploy (see versionCheck.ts).
           globIgnores: ["**/tracks.zip", "version.json"],

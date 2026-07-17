@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - unreleased
 
 ### Added
+- **Firmware simulator page (`/simulator`).** The real DovesDataLogger
+  firmware — the vendored WebAssembly build — running in the browser on a
+  simulated 128×64 OLED, replaying the bundled Orlando Kart Center sample
+  session: watch it boot, acquire GPS, auto-enter race mode, detect the
+  track and count laps, exactly as the physical device does (the same wasm
+  core reproduces this session's 13 hardware lap times to the millisecond).
+  Three on-screen buttons (plus ← Enter →) drive the real firmware menus,
+  even mid-playback. Includes play/pause, 1–10× speed, a scrubbable
+  timeline (rewinds re-boot the firmware and fast-replay — it's a real
+  device, not a video), an integer-scale zoom picker, and a true-size
+  toggle showing the display at its physical 1.3″ size. Fully offline-capable.
+  (plan 0010, Phase A)
 - **Vendored BirdsEye firmware simulator (`public/sim/`, groundwork).** The
   real DovesDataLogger firmware compiled to WebAssembly (207 KB), pinned by
   construction: `birdseye-sim.mjs` (API contract v1 — see `BirdsEye/sim/API.md`
