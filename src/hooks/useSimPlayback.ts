@@ -12,6 +12,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ParsedData } from "@/types/racing";
 import { createSim, type BirdsEyeSim, type SimState, type SimVersion } from "@/lib/sim/simClient";
+
+type FrameSink = (pixels: Uint8Array) => void;
+type BootFrame = { tMs: number; pixels: Uint8Array };
 import {
   PRE_ROLL_MS,
   buildTickPlan,
@@ -42,8 +45,8 @@ export interface SimPlayback {
   skipPreRoll: () => void;
   buttonDown: (idx: number) => void;
   buttonUp: (idx: number) => void;
-  /** Blit target: called with the sim whenever the frame hash changes. */
-  setFrameSink: (sink: ((sim: BirdsEyeSim) => void) | null) => void;
+  /** Blit target: fed 1024-byte framebuffers whenever the frame changes. */
+  setFrameSink: (sink: FrameSink | null) => void;
 }
 
 export function useSimPlayback(data: ParsedData | null): SimPlayback {
@@ -55,7 +58,11 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
   const [positionMs, setPositionMs] = useState(-PRE_ROLL_MS);
 
   const simRef = useRef<BirdsEyeSim | null>(null);
-  const frameSinkRef = useRef<((sim: BirdsEyeSim) => void) | null>(null);
+  const frameSinkRef = useRef<FrameSink | null>(null);
+  // Boot-sequence intro: frames captured by init(), replayed at their
+  // real pace before live stepping starts (queued until a sink exists).
+  const bootIntroRef = useRef<BootFrame[] | null>(null);
+  const introTimersRef = useRef<number[]>([]);
   const lastHashRef = useRef(-1);
   const lastUiPushRef = useRef(0);
   const playingRef = useRef(false);
@@ -76,7 +83,7 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
     const hash = sim.getFrameHash();
     if (hash !== lastHashRef.current) {
       lastHashRef.current = hash;
-      frameSinkRef.current?.(sim);
+      frameSinkRef.current?.(sim.getFramebuffer());
     }
     const now = performance.now();
     if (force || now - lastUiPushRef.current > 100) {
@@ -99,6 +106,27 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
       if (a.stepMs > 0) sim.stepMillis(a.stepMs);
     }
   }, []);
+
+  /** Play the captured boot keyframes at their virtual pace, then go live. */
+  const startBootIntro = useCallback(() => {
+    const frames = bootIntroRef.current;
+    if (!frames || frames.length === 0 || !frameSinkRef.current) return;
+    bootIntroRef.current = null;
+    busyRef.current = true;  // rAF ticks idle while the boot movie plays
+    const t0 = frames[0].tMs;
+    frames.forEach((f, i) => {
+      introTimersRef.current.push(window.setTimeout(() => {
+        frameSinkRef.current?.(f.pixels);
+        if (i === frames.length - 1) {
+          introTimersRef.current.push(window.setTimeout(() => {
+            busyRef.current = false;
+            lastHashRef.current = -1;  // force the first live blit
+            publish(true);
+          }, 500));
+        }
+      }, f.tMs - t0));
+    });
+  }, [publish]);
 
   /** Fresh boot + arm the pre-roll queue; cursor parks at session start. */
   const bootFresh = useCallback(async (sim: BirdsEyeSim) => {
@@ -127,8 +155,11 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
         playingRef.current = false;
         setPlaying(false);
         setVersion(sim.getVersion());
+        // Queue the power-on movie; it starts once the canvas sink mounts.
+        bootIntroRef.current = sim.getBootFrames();
         setStatus("ready");
-        publish(true);
+        setSimState(sim.getStateJson());
+        startBootIntro();
       } catch (err) {
         console.error("sim load failed", err);
         if (!cancelled) setStatus("error");
@@ -137,8 +168,11 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
     return () => {
       cancelled = true;
       simRef.current = null;
+      for (const id of introTimersRef.current) window.clearTimeout(id);
+      introTimersRef.current = [];
+      busyRef.current = false;
     };
-  }, [data, epochMs, publish]);
+  }, [data, epochMs, publish, startBootIntro]);
 
   // The playback loop.
   useEffect(() => {
@@ -259,13 +293,16 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
   }, []);
 
   const setFrameSink = useCallback(
-    (sink: ((sim: BirdsEyeSim) => void) | null) => {
+    (sink: FrameSink | null) => {
       frameSinkRef.current = sink;
-      if (sink && simRef.current) {
+      if (!sink) return;
+      if (bootIntroRef.current) {
+        startBootIntro();  // sink arrived after init — start the movie now
+      } else if (simRef.current) {
         lastHashRef.current = -1; // force a first blit
       }
     },
-    [],
+    [startBootIntro],
   );
 
   return {

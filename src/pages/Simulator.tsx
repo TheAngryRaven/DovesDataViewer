@@ -237,7 +237,10 @@ const Simulator = () => {
 
             {/* Live firmware state */}
             {st && (
-              <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+              <div
+                className="flex flex-wrap items-center justify-center gap-2 text-xs"
+                data-sim-page={st.page}
+              >
                 <Badge variant={st.raceActive ? "default" : "secondary"}>
                   {st.raceActive ? t("state.racing") : t("state.idle")}
                 </Badge>

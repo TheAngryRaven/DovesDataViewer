@@ -52,6 +52,8 @@ export interface BirdsEyeSim {
   /** 1024-byte view; bit = buf[x + (y>>3)*128] >> (y&7) & 1. Re-take per use. */
   getFramebuffer(): Uint8Array;
   getFrameHash(): number;
+  /** Boot-sequence keyframes captured during init() (virtual timestamps). */
+  getBootFrames(): { tMs: number; pixels: Uint8Array }[];
   getStateJson(): SimState;
   getVersion(): SimVersion;
   resetRequested(): boolean;
