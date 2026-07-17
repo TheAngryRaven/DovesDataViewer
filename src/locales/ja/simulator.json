@@ -34,5 +34,11 @@
   },
   "footer": {
     "provenance": "ファームウェアビルド {{sha}} · {{date}} — 実機と同一のコードです。"
+  },
+  "picker": {
+    "label": "セッション:"
+  },
+  "map": {
+    "toggleStyle": "地図スタイルを切り替え"
   }
 }

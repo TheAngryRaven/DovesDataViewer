@@ -5,6 +5,7 @@ import {
   PRE_ROLL_MS,
   buildTickPlan,
   planScrub,
+  positionIndexAt,
   preRollFrames,
   sampleRpm,
   sampleTimeMs,
@@ -159,6 +160,22 @@ describe("planScrub", () => {
       reset: true,
       replayFromMs: 100,
     });
+  });
+});
+
+describe("positionIndexAt", () => {
+  const samples = [mkSample(0), mkSample(40), mkSample(80), mkSample(120)];
+
+  it("is -1 before the first sample (pre-roll)", () => {
+    expect(positionIndexAt(samples, EPOCH, EPOCH - 1)).toBe(-1);
+    expect(positionIndexAt([], EPOCH, EPOCH + 50)).toBe(-1);
+  });
+  it("returns the last sample at or before the cursor", () => {
+    expect(positionIndexAt(samples, EPOCH, EPOCH)).toBe(0);
+    expect(positionIndexAt(samples, EPOCH, EPOCH + 39)).toBe(0);
+    expect(positionIndexAt(samples, EPOCH, EPOCH + 40)).toBe(1);
+    expect(positionIndexAt(samples, EPOCH, EPOCH + 119)).toBe(2);
+    expect(positionIndexAt(samples, EPOCH, EPOCH + 10_000)).toBe(3);
   });
 });
 

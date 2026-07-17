@@ -22,6 +22,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { BackToHome } from "@/components/BackToHome";
 import { useSettings } from "@/hooks/useSettings";
 import { SimDevicePanel } from "@/components/sim/SimDevicePanel";
+import { SimMap } from "@/components/sim/SimMap";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
@@ -29,10 +30,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useSimPlayback } from "@/hooks/useSimPlayback";
-import { ensureSampleFile, SAMPLE_FILE_NAME } from "@/lib/sampleData";
+import { ensureSampleFile, SAMPLE_DISPLAY_NAME, SAMPLE_FILE_NAME } from "@/lib/sampleData";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { formatLapTime } from "@/lib/lapCalculation";
-import type { ParsedData } from "@/types/racing";
+import { autoDetectCourse } from "@/lib/courseDetection";
+import { loadTracks } from "@/lib/trackStorage";
+import { positionIndexAt } from "@/lib/sim/simPlayback";
+import type { Course, ParsedData } from "@/types/racing";
 
 const TRUE_SIZE_SEEN_KEY = "dove-sim-true-size-seen";
 
@@ -48,6 +52,8 @@ const Simulator = () => {
   const navigate = useNavigate();
   const { settings, setSettings, toggleFieldDefault } = useSettings();
   const [data, setData] = useState<ParsedData | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [sessionName, setSessionName] = useState<string>("");
   const [loadError, setLoadError] = useState(false);
   // True-size default ON for first-time visitors (the spec's honesty rule);
   // remembered once toggled so returning users keep their preference.
@@ -59,6 +65,22 @@ const Simulator = () => {
 
   const sim = useSimPlayback(data);
 
+  // Adopt a parsed session: detect the course (same offline track DB the
+  // whole app uses) so the map can draw the start/finish line.
+  const adoptSession = async (parsed: ParsedData, name: string) => {
+    let detected: Course | null = null;
+    try {
+      const tracks = await loadTracks();
+      const det = autoDetectCourse(parsed.samples, tracks);
+      if (det && !det.isWaypointMode) detected = det.course;
+    } catch (e) {
+      console.warn("simulator: course detection failed", e);
+    }
+    setCourse(detected);
+    setSessionName(name);
+    setData(parsed);
+  };
+
   // Load + parse the bundled demo session (IDB-cached after first fetch).
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +90,7 @@ const Simulator = () => {
         if (!blob) throw new Error("sample unavailable");
         const file = new File([blob], SAMPLE_FILE_NAME);
         const parsed = await parseDatalogFile(file);
-        if (!cancelled) setData(parsed);
+        if (!cancelled) await adoptSession(parsed, SAMPLE_DISPLAY_NAME);
       } catch (e) {
         console.error("simulator: demo session load failed", e);
         if (!cancelled) setLoadError(true);
@@ -87,6 +109,14 @@ const Simulator = () => {
     if (sim.positionMs < 0) return t("transport.preRoll");
     return `${fmtClock(sim.positionMs)} / ${fmtClock(sim.durationMs)}`;
   }, [sim.positionMs, sim.durationMs, t]);
+
+  // Map cursor from the SAME playback cursor the sim runs on — the marker,
+  // the sim display and the scrubber share one clock and cannot disagree.
+  const epochMs = data?.startDate ? data.startDate.getTime() : 0;
+  const positionIndex = useMemo(() => {
+    if (!data || sim.positionMs < 0) return -1;
+    return positionIndexAt(data.samples, epochMs, epochMs + sim.positionMs);
+  }, [data, epochMs, sim.positionMs]);
 
   const loading = !loadError && (data === null || sim.status === "loading");
 
@@ -133,8 +163,20 @@ const Simulator = () => {
           <p className="py-16 text-center text-sm text-destructive">{t("loadError")}</p>
         )}
 
-        {!loading && sim.status === "ready" && (
+        {!loading && sim.status === "ready" && data && (
           <div className="flex flex-col gap-6">
+            {/* The bundled demo session (fixed — no user uploads here) */}
+            <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t("picker.label")}</span>
+              <span className="max-w-64 truncate font-medium">{sessionName}</span>
+            </div>
+
+            <SimMap
+              samples={data.samples}
+              course={course}
+              positionIndex={positionIndex}
+            />
+
             <SimDevicePanel
               setFrameSink={sim.setFrameSink}
               buttonDown={sim.buttonDown}

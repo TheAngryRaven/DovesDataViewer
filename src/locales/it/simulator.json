@@ -34,5 +34,11 @@
   },
   "footer": {
     "provenance": "Build firmware {{sha}} · {{date}} — codice identico al dispositivo fisico."
+  },
+  "picker": {
+    "label": "Sessione:"
+  },
+  "map": {
+    "toggleStyle": "Cambia stile mappa"
   }
 }

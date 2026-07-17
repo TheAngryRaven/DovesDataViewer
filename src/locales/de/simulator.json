@@ -34,5 +34,11 @@
   },
   "footer": {
     "provenance": "Firmware-Build {{sha}} · {{date}} — identischer Code wie auf dem physischen Gerät."
+  },
+  "picker": {
+    "label": "Session:"
+  },
+  "map": {
+    "toggleStyle": "Kartenstil wechseln"
   }
 }
