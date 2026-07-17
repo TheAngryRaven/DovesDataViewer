@@ -20,6 +20,9 @@
     "title": "Mise à jour disponible",
     "description": "Actualisez pour vider les fichiers en cache obsolètes et charger la dernière version de l'application.",
     "refresh": "Actualiser",
-    "later": "Plus tard"
+    "later": "Plus tard",
+    "updating": "Mise à jour…",
+    "updatingBody": "Récupération de la dernière version — un instant.",
+    "updated": "Vous êtes sur la dernière version."
   }
 }

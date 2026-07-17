@@ -105,6 +105,54 @@
         "desc": "Die mittlere Taste beendet die Session und speichert das Log"
       }
     },
-    "note": "Hinweis: Bluetooth und USB-Übertragung funktionieren im Simulator nicht."
+    "note": "Hinweis: Bluetooth und USB-Übertragung funktionieren im Simulator nicht.",
+    "systemTitle": "Menü- & Systemseiten (der Rest der Firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "Der Vogel, kurz, beim Einschalten"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Jeder Start landet hier: Fix-Status und HDOP oben, ein Signalbalken pro Satellit unten; jede Taste überspringt sie"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Direkt in den Rennmodus; das Logging startet, sobald die GPS-Zeit fixiert ist"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Gespeicherte Logs durchstöbern; die mittlere Taste öffnet eines"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Sofortwiedergabe einer gespeicherten Session: Fahrer, Kurs, Datum, beste und optimale Runde und die komplette Rundenliste"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (Download per Begleit-App) oder USB (die SD-Karte als Laufwerk)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Insta360-Kopplung und Status, manuelle Seriennummern-Eingabe und ein Testmenü — das Gerät startet deine Kamera automatisch beim Motorstart"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Boot-Seite für eine leere/defekte SD-Karte: Select 3 s halten, um sie am Gerät zu formatieren"
+      },
+      "warnings": {
+        "name": "Warnungen & Fehler",
+        "desc": "Behebbare Hinweise schließt jede Taste; harte Fehler (keine SD-Karte) halten den Bildschirm"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Ladebildschirm im Ruhezustand; jede Taste weckt das Gerät zurück ins Menü"
+      }
+    },
+    "systemNote": "Seiten, die echte Hardware brauchen — das USB-Laufwerk, eine gekoppelte Kamera, SD-Formatierung, Laden — sind im Simulator nicht erreichbar."
   }
 }

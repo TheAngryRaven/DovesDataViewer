@@ -20,6 +20,10 @@ const PAGES = [
   "stats", "speed", "rpm", "lapTime", "pace", "best", "optimal",
   "history", "end",
 ] as const;
+const SYSTEM = [
+  "splash", "gpsStatus", "menu", "race", "reviewList", "reviewResults",
+  "transfer", "camera", "sdFormat", "warnings", "charging",
+] as const;
 
 export function SimGuide() {
   const { t } = useTranslation("simulator");
@@ -67,6 +71,23 @@ export function SimGuide() {
               </li>
             ))}
           </ul>
+        </div>
+
+        <div>
+          <p className="mb-2 font-medium">{t("guide.systemTitle")}</p>
+          <ul className="space-y-1">
+            {SYSTEM.map((k) => (
+              <li key={k} className="flex gap-2">
+                <span className="min-w-28 shrink-0 font-medium">
+                  {t(`guide.system.${k}.name`)}
+                </span>
+                <span className="text-muted-foreground">
+                  {t(`guide.system.${k}.desc`)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">{t("guide.systemNote")}</p>
         </div>
 
         <p className="text-xs text-muted-foreground">{t("guide.note")}</p>

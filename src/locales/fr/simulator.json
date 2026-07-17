@@ -105,6 +105,54 @@
         "desc": "Le bouton central termine la session et enregistre le journal"
       }
     },
-    "note": "Remarque : le Bluetooth et le transfert USB ne sont pas fonctionnels dans le simulateur."
+    "note": "Remarque : le Bluetooth et le transfert USB ne sont pas fonctionnels dans le simulateur.",
+    "systemTitle": "Pages de menu et système (le reste du firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "L'oiseau, brièvement, à l'allumage"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Chaque démarrage arrive ici : état du verrouillage et HDOP en haut, une barre de signal par satellite en bas ; n'importe quel bouton la passe"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Entre directement en mode course ; l'enregistrement démarre dès le verrouillage de l'heure GPS"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Parcourez les journaux enregistrés ; le bouton central en ouvre un"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Relecture instantanée d'une session enregistrée : pilote, tracé, date, meilleur tour et tour optimal, et la liste complète des tours"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (téléchargement via l'app) ou USB (la carte SD comme lecteur)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Appairage et état de l'Insta360, saisie manuelle du numéro de série et menu de test — l'appareil déclenche votre caméra automatiquement au démarrage du moteur"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Page de démarrage pour une carte SD vierge/corrompue : maintenez Select 3 s pour la formater sur l'appareil"
+      },
+      "warnings": {
+        "name": "Avertissements et pannes",
+        "desc": "Les avis récupérables se ferment avec n'importe quel bouton ; les pannes dures (pas de carte SD) verrouillent l'écran"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Écran de charge au repos ; n'importe quel bouton réveille l'appareil vers le menu"
+      }
+    },
+    "systemNote": "Les pages nécessitant du vrai matériel — le lecteur USB, une caméra appairée, le formatage SD, la charge — sont inaccessibles dans le simulateur."
   }
 }

@@ -105,6 +105,54 @@
         "desc": "Il pulsante centrale termina la sessione e salva il log"
       }
     },
-    "note": "Nota: Bluetooth e trasferimento USB non sono funzionanti nel simulatore."
+    "note": "Nota: Bluetooth e trasferimento USB non sono funzionanti nel simulatore.",
+    "systemTitle": "Pagine di menu e sistema (il resto del firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "L'uccello, per un attimo, all'accensione"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Ogni avvio arriva qui: stato dell'aggancio e HDOP in alto, una barra di segnale per satellite in basso; qualsiasi pulsante la salta"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Entra direttamente in modalità gara; la registrazione parte all'aggancio dell'ora GPS"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Sfoglia i log salvati; il pulsante centrale ne apre uno"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Replay istantaneo di una sessione salvata: pilota, tracciato, data, giro migliore e ottimale, e l'elenco completo dei giri"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (download con l'app) o USB (la scheda SD come unità)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Abbinamento e stato della Insta360, inserimento manuale del seriale e menu di test — il dispositivo avvia la registrazione della tua camera all'accensione del motore"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Pagina di avvio per una SD vuota/corrotta: tieni premuto Select 3 s per formattarla sul dispositivo"
+      },
+      "warnings": {
+        "name": "Avvisi e guasti",
+        "desc": "Gli avvisi recuperabili si chiudono con qualsiasi pulsante; i guasti gravi (nessuna SD) bloccano lo schermo"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Schermata di ricarica a riposo; qualsiasi pulsante risveglia il dispositivo al menu"
+      }
+    },
+    "systemNote": "Le pagine che richiedono hardware reale — l'unità USB, una camera abbinata, la formattazione SD, la ricarica — non sono raggiungibili nel simulatore."
   }
 }

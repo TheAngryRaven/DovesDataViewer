@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - unreleased
 
 ### Added
+- **Silent auto-update on an idle home page.** When a new build is detected
+  and the user isn't in the middle of anything (home page, no session
+  loaded), the app now applies the update itself: a brief "Updating…"
+  progress toast, an automatic reboot onto the new version, and a
+  confirmation toast on the fresh load — no more mystery refresh that
+  eventually "flashes" into the new build. Mid-session (or on any other
+  page) the existing "Update ready" toast is shown instead, so a loaded
+  session is never yanked away. A per-commit guard prevents reload loops
+  if an update fails to stick. (plan 0010)
+- **Simulator system-pages glossary.** The simulator guide now ends with a
+  glossary of the firmware's menu and system pages — boot splash, GPS
+  status, main menu, race mode, session review, transfer (BLE/USB), camera
+  pairing, SD format, warnings/faults, and the charging screen — so users
+  can see the full feature set of the firmware, including the pages that
+  need real hardware and can't be reached in the simulator. (plan 0010)
 - **Firmware simulator page (`/simulator`).** The real DovesDataLogger
   firmware — the vendored WebAssembly build — running in the browser on a
   simulated 128×64 OLED, replaying the bundled Orlando Kart Center sample

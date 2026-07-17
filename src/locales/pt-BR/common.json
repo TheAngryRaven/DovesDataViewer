@@ -20,6 +20,9 @@
     "title": "Atualização disponível",
     "description": "Atualize para limpar arquivos em cache desatualizados e carregar a versão mais recente do aplicativo.",
     "refresh": "Atualizar",
-    "later": "Mais tarde"
+    "later": "Mais tarde",
+    "updating": "Atualizando…",
+    "updatingBody": "Baixando a versão mais recente — um momento.",
+    "updated": "Você está na versão mais recente."
   }
 }
