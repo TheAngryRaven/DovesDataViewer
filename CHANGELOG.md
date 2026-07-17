@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - unreleased
 
 ### Added
+- **Vendored BirdsEye firmware simulator (`public/sim/`, groundwork).** The
+  real DovesDataLogger firmware compiled to WebAssembly (207 KB), pinned by
+  construction: `birdseye-sim.mjs` (API contract v1 — see `BirdsEye/sim/API.md`
+  in the firmware repo), the Emscripten core module + wasm, `version.json`
+  build provenance (firmware sha, DovesLapTimer sha, display-lib versions),
+  and a standalone `sim/test.html` harness that boots the firmware on a canvas
+  and replays real `.dovex` files. Renders byte-identically to the firmware
+  repo's golden fixtures and reproduces a hardware session's 13 lap times to
+  the exact millisecond. The `/simulator` page consuming it lands in a
+  follow-up (sim plan Phases 5-7).
 - **Shareable session links.** Cloud-synced logs can now be shared publicly behind
   an opaque link (`/s/…`) that never reveals the file name — anyone with the link
   (no account needed) opens the full session in the read-only viewer, with precise

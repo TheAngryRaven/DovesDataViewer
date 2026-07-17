@@ -1,0 +1,8 @@
+{
+  "firmwareSha": "ef62d0f",
+  "buildDate": "2026-07-17",
+  "simApiVersion": 1,
+  "dovesLapTimerSha": "b4203d1",
+  "adafruitGfx": "1.12.6",
+  "adafruitSh110x": "2.1.14"
+}
