@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [3.1.0] - unreleased
+## [3.1.0] - 2026-07-17
 
 ### Added
 - **Silent auto-update on an idle home page.** When a new build is detected
