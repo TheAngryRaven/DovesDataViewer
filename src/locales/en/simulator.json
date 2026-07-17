@@ -34,5 +34,13 @@
   },
   "footer": {
     "provenance": "Firmware build {{sha}} · {{date}} — identical code to the physical device."
+  },
+  "picker": {
+    "label": "Session:",
+    "upload": "Upload .dovex…",
+    "uploadError": "Could not read that file as a session log."
+  },
+  "map": {
+    "toggleStyle": "Toggle map style"
   }
 }

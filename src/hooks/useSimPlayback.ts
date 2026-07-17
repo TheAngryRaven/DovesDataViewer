@@ -123,6 +123,9 @@ export function useSimPlayback(data: ParsedData | null): SimPlayback {
         preRollLeftRef.current = preRollFrames(epochMs);
         cursorRef.current = epochMs;
         sampleIndexRef.current = 0;
+        // A session swap starts paused at the fresh boot.
+        playingRef.current = false;
+        setPlaying(false);
         setVersion(sim.getVersion());
         setStatus("ready");
         publish(true);

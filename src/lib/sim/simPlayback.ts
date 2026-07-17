@@ -184,3 +184,26 @@ export function sessionEndMs(
     ? sampleTimeMs(samples[samples.length - 1], epochMs)
     : epochMs;
 }
+
+/**
+ * Index of the last sample at or before the playback cursor (binary
+ * search) — the single source of truth both the map marker and any
+ * other cursor consumer read, so they can never disagree with the sim.
+ * -1 while the cursor is before the first sample (boot pre-roll).
+ */
+export function positionIndexAt(
+  samples: readonly GpsSample[],
+  epochMs: number,
+  cursorAbsMs: number,
+): number {
+  const rel = cursorAbsMs - epochMs;
+  if (samples.length === 0 || rel < samples[0].t) return -1;
+  let lo = 0;
+  let hi = samples.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (samples[mid].t <= rel) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}

@@ -34,5 +34,13 @@
   },
   "footer": {
     "provenance": "Version du firmware {{sha}} · {{date}} — code identique à l'appareil physique."
+  },
+  "picker": {
+    "label": "Session :",
+    "upload": "Importer un .dovex…",
+    "uploadError": "Impossible de lire ce fichier comme journal de session."
+  },
+  "map": {
+    "toggleStyle": "Changer le style de carte"
   }
 }
