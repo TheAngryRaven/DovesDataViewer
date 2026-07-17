@@ -40,5 +40,71 @@
   },
   "map": {
     "toggleStyle": "Kartenstil wechseln"
+  },
+  "guide": {
+    "title": "So funktioniert der Simulator",
+    "lead": "Dies ist eine vollständige Simulation der DovesDataLogger-Firmware — exakt der Code, den das physische Gerät ausführt, für deinen Browser kompiliert — zum Testen, Bewerten und Ausprobieren, bevor du eines baust.",
+    "steps": {
+      "boot": {
+        "title": "Booten",
+        "body": "Das Gerät bootet wie das echte. Drücke eine beliebige Taste, um den GPS-Sperrbildschirm zu überspringen und direkt ins Hauptmenü zu gelangen — oder drücke einfach Abspielen: etwa 3 Sekunden nach dem GPS-Fix wechselt der Bildschirm von selbst."
+      },
+      "controls": {
+        "title": "Bedienung",
+        "body": "Die äußeren Tasten (◀ ▶) wechseln zwischen Menüpunkten und Rennseiten; die mittlere Taste wählt aus. Die Tastatur funktioniert auch: ← Enter →."
+      },
+      "replay": {
+        "title": "Eine Session abspielen",
+        "body": "Drücke Abspielen, um die aufgezeichnete Session wiederzugeben. Der Rennmodus startet automatisch, die Firmware sucht die nächstgelegene Strecke, führt die Kurserkennung aus und beginnt Runden zu stoppen — dieselbe Pipeline wie auf der Strecke."
+      },
+      "ending": {
+        "title": "Session beenden",
+        "body": "Am Ende der Wiedergabe kommt das Kart zum Stehen. Lass die Session von selbst enden, oder navigiere zur END-RACE-Seite und drücke die mittlere Taste, um das Log selbst zu speichern."
+      },
+      "review": {
+        "title": "Auswerten",
+        "body": "Eine beendete Session landet im temporären Speicher des Simulators: öffne Review im Hauptmenü, um sie zu laden und ihre Runden durchzusehen — genau wie am Gerät. (Beim Verlassen der Seite verschwindet sie.)"
+      }
+    },
+    "pagesTitle": "Rennmodus-Seiten (mit ◀ ▶ durchblättern)",
+    "pages": {
+      "stats": {
+        "name": "GPS Stats",
+        "desc": "Diagnose: Satelliten, HDOP, Koordinaten, Akku"
+      },
+      "speed": {
+        "name": "Speed",
+        "desc": "Aktuelle Geschwindigkeit groß, mit Rundenzähler"
+      },
+      "rpm": {
+        "name": "Engine RPM",
+        "desc": "Live-Drehzahl, mit Überdreh-Warnung am Limit"
+      },
+      "lapTime": {
+        "name": "Current Lap",
+        "desc": "Die laufende Rundenzeit"
+      },
+      "pace": {
+        "name": "Lap Pace",
+        "desc": "Live-Delta +/− zur besten Runde (die mittlere Taste springt in Fahrt hierher)"
+      },
+      "best": {
+        "name": "Best Lap",
+        "desc": "Schnellste Runde bisher, und welche Runde sie gesetzt hat"
+      },
+      "optimal": {
+        "name": "Optimal Lap",
+        "desc": "Theoretische Bestzeit aus deinen besten Sektoren"
+      },
+      "history": {
+        "name": "Lap History",
+        "desc": "Jede Runde der Session; die mittlere Taste blättert durch die Liste"
+      },
+      "end": {
+        "name": "End Race",
+        "desc": "Die mittlere Taste beendet die Session und speichert das Log"
+      }
+    },
+    "note": "Hinweis: Bluetooth und USB-Übertragung funktionieren im Simulator nicht."
   }
 }

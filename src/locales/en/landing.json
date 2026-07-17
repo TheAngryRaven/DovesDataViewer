@@ -284,5 +284,13 @@
         "body": "CSV exports from Race Studio 3 (RS2Analysis style) for MyChron 5/6. Extension: <code>.csv</code>"
       }
     }
+  },
+  "buildDialog": {
+    "title": "Build your own datalogger",
+    "tagline": "Open-source GPS lap timer — hardware, firmware and enclosure",
+    "imageAlt": "The Fledgling DIY datalogger",
+    "body": "The Fledgling is the DIY logger this app was built around: 25 Hz GPS lap timing, engine RPM, g-force, an OLED display and wireless download — assembled from inexpensive off-the-shelf parts. Schematics, firmware, 3D-printable enclosure and the full build guide are free on GitHub.",
+    "simulator": "See how it works!",
+    "github": "Build guide on GitHub"
   }
 }

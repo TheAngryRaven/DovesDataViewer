@@ -285,5 +285,13 @@
     "parseErrorSaved": "{{message}} — el archivo se guardó y puedes encontrarlo en Explorar archivos.",
     "loaded": "Cargado: {{name}}",
     "errorLine": "Error: {{error}}"
+  },
+  "buildDialog": {
+    "title": "Construye tu propio datalogger",
+    "tagline": "Cronómetro GPS de código abierto — hardware, firmware y carcasa",
+    "imageAlt": "El datalogger DIY Fledgling",
+    "body": "El Fledgling es el logger DIY alrededor del cual se construyó esta app: cronometraje GPS a 25 Hz, RPM del motor, fuerza G, pantalla OLED y descarga inalámbrica — montado con piezas económicas y comunes. Los esquemas, el firmware, la carcasa imprimible en 3D y la guía completa de montaje son gratis en GitHub.",
+    "simulator": "¡Mira cómo funciona!",
+    "github": "Guía de montaje en GitHub"
   }
 }

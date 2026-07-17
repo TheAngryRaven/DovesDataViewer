@@ -40,5 +40,71 @@
   },
   "map": {
     "toggleStyle": "Cambia stile mappa"
+  },
+  "guide": {
+    "title": "Come funziona il simulatore",
+    "lead": "Questa è una simulazione completa del firmware del DovesDataLogger — esattamente il codice che esegue il dispositivo fisico, compilato per il tuo browser — per testare, valutare ed esplorare prima di costruirne uno.",
+    "steps": {
+      "boot": {
+        "title": "Avvio",
+        "body": "Il dispositivo si avvia come quello vero. Premi un pulsante qualsiasi per saltare la schermata di aggancio GPS e andare dritto al menu principale — oppure premi semplicemente Riproduci: circa 3 secondi dopo l'aggancio GPS, la schermata avanza da sola."
+      },
+      "controls": {
+        "title": "Comandi",
+        "body": "I pulsanti esterni (◀ ▶) scorrono le voci di menu e le pagine di gara; il pulsante centrale seleziona. Funziona anche la tastiera: ← Invio →."
+      },
+      "replay": {
+        "title": "Riprodurre una sessione",
+        "body": "Premi Riproduci per rivivere la sessione registrata. La modalità gara si attiva automaticamente, il firmware cerca la pista più vicina, esegue il rilevamento del tracciato e inizia a cronometrare i giri — la stessa pipeline che il dispositivo esegue in pista."
+      },
+      "ending": {
+        "title": "Terminare la sessione",
+        "body": "Alla fine della riproduzione il kart si ferma. Lascia che la sessione termini da sola, oppure vai alla pagina END RACE e premi il pulsante centrale per salvare il log manualmente."
+      },
+      "review": {
+        "title": "Rivedere",
+        "body": "Una sessione terminata viene salvata nella memoria temporanea del simulatore: apri Review nel menu principale per ricaricarla e sfogliare i suoi giri, proprio come sul dispositivo. (Svanisce quando lasci la pagina.)"
+      }
+    },
+    "pagesTitle": "Pagine della modalità gara (◀ ▶ per scorrerle)",
+    "pages": {
+      "stats": {
+        "name": "GPS Stats",
+        "desc": "Diagnostica: satelliti, HDOP, coordinate, batteria"
+      },
+      "speed": {
+        "name": "Speed",
+        "desc": "Velocità attuale in grande con il contagiri"
+      },
+      "rpm": {
+        "name": "Engine RPM",
+        "desc": "RPM in tempo reale, con avviso di fuorigiri al limite"
+      },
+      "lapTime": {
+        "name": "Current Lap",
+        "desc": "Il cronometro del giro in corso"
+      },
+      "pace": {
+        "name": "Lap Pace",
+        "desc": "Delta +/− in tempo reale rispetto al giro migliore (il pulsante centrale salta qui in movimento)"
+      },
+      "best": {
+        "name": "Best Lap",
+        "desc": "Il giro più veloce finora, e quale giro lo ha stabilito"
+      },
+      "optimal": {
+        "name": "Optimal Lap",
+        "desc": "Miglior tempo teorico costruito dai tuoi settori migliori"
+      },
+      "history": {
+        "name": "Lap History",
+        "desc": "Tutti i giri della sessione; il pulsante centrale sfoglia l'elenco"
+      },
+      "end": {
+        "name": "End Race",
+        "desc": "Il pulsante centrale termina la sessione e salva il log"
+      }
+    },
+    "note": "Nota: Bluetooth e trasferimento USB non sono funzionanti nel simulatore."
   }
 }

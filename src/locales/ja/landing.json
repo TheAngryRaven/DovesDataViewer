@@ -285,5 +285,13 @@
     "parseErrorSaved": "{{message}} — ファイルは保存され、「ファイルを参照」で見つけられます。",
     "loaded": "読み込み済み: {{name}}",
     "errorLine": "エラー: {{error}}"
+  },
+  "buildDialog": {
+    "title": "自分だけのデータロガーを作ろう",
+    "tagline": "オープンソースの GPS ラップタイマー — ハードウェア・ファームウェア・ケース",
+    "imageAlt": "Fledgling DIY データロガー",
+    "body": "Fledgling はこのアプリの原点となった DIY ロガーです: 25 Hz GPS ラップ計測、エンジン回転数、G フォース、OLED ディスプレイ、ワイヤレスダウンロード — 安価な市販部品で組み立てられます。回路図、ファームウェア、3D プリント可能なケース、組み立てガイドはすべて GitHub で無料公開中です。",
+    "simulator": "動きを見てみよう！",
+    "github": "GitHub の組み立てガイド"
   }
 }

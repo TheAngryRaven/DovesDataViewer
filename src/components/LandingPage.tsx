@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import {
   Shield,
   Play,
@@ -15,6 +15,7 @@ import { useTranslation, Trans } from "react-i18next";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FileImport } from "@/components/FileImport";
 import { ActionTile } from "@/components/ActionTile";
+import { BuildLoggerDialog } from "@/components/BuildLoggerDialog";
 import { TrackEditor } from "@/components/TrackEditor";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
 import { BrowserCompatDialog } from "@/components/BrowserCompatDialog";
@@ -92,6 +93,8 @@ export function LandingPage({
   }[];
 
   // Group roadmap items by their trailing month/quarter parenthetical (works
+  const [buildDialogOpen, setBuildDialogOpen] = useState(false);
+
   // across locales — handles both ASCII "()" and full-width "（）") so we can
   // draw a divider whenever the timeframe changes.
   const roadmapTimeframe = (text: string): string => {
@@ -102,6 +105,7 @@ export function LandingPage({
   return (
     <div className="min-h-screen bg-background flex flex-col safe-area-x">
       <SiteHeader settingsButton={settingsButton} enableCloud={enableCloud} onOpenProfile={onOpenProfile} />
+      <BuildLoggerDialog open={buildDialogOpen} onOpenChange={setBuildDialogOpen} />
 
       <main className="flex-1 px-6 py-10">
         <div className="mx-auto w-full max-w-4xl space-y-10">
@@ -196,7 +200,7 @@ export function LandingPage({
               icon={Cpu}
               title={t("landing:tiles.build.title")}
               description={t("landing:tiles.build.description")}
-              href="https://github.com/TheAngryRaven/DovesDataLogger"
+              onClick={() => setBuildDialogOpen(true)}
             />
 
             {/* Plugin-contributed landing tiles (e.g. the Tools plugin). Renders

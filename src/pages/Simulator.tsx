@@ -22,6 +22,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { BackToHome } from "@/components/BackToHome";
 import { useSettings } from "@/hooks/useSettings";
 import { SimDevicePanel } from "@/components/sim/SimDevicePanel";
+import { SimGuide } from "@/components/sim/SimGuide";
 import { SimMap } from "@/components/sim/SimMap";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -165,6 +166,8 @@ const Simulator = () => {
 
         {!loading && sim.status === "ready" && data && (
           <div className="flex flex-col gap-6">
+            <SimGuide />
+
             {/* The bundled demo session (fixed — no user uploads here) */}
             <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
               <span className="text-muted-foreground">{t("picker.label")}</span>

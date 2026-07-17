@@ -40,5 +40,71 @@
   },
   "map": {
     "toggleStyle": "Alternar estilo do mapa"
+  },
+  "guide": {
+    "title": "Como o simulador funciona",
+    "lead": "Esta é uma simulação completa do firmware do DovesDataLogger — exatamente o código que o dispositivo físico executa, compilado para o seu navegador — para testar, avaliar e explorar antes de montar o seu.",
+    "steps": {
+      "boot": {
+        "title": "Inicialização",
+        "body": "O dispositivo inicia como o de verdade. Pressione qualquer botão para pular a tela de trava do GPS e ir direto ao menu principal — ou simplesmente aperte Reproduzir: cerca de 3 segundos após o GPS travar, a tela avança sozinha."
+      },
+      "controls": {
+        "title": "Controles",
+        "body": "Os botões externos (◀ ▶) alternam entre itens do menu e páginas de corrida; o botão central seleciona. O teclado também funciona: ← Enter →."
+      },
+      "replay": {
+        "title": "Reproduzindo uma sessão",
+        "body": "Aperte Reproduzir para reviver a sessão gravada. O modo corrida ativa automaticamente, o firmware procura a pista mais próxima, executa a detecção de traçado e começa a cronometrar voltas — o mesmo processo que o dispositivo executa na pista."
+      },
+      "ending": {
+        "title": "Encerrando a sessão",
+        "body": "No fim da reprodução o kart para. Deixe a sessão encerrar sozinha, ou navegue até a página END RACE e pressione o botão central para gravar o log você mesmo."
+      },
+      "review": {
+        "title": "Revisando",
+        "body": "Uma sessão encerrada fica salva no armazenamento temporário do simulador: abra Review no menu principal para carregá-la e navegar pelas voltas, exatamente como no dispositivo. (Ela some ao sair da página.)"
+      }
+    },
+    "pagesTitle": "Páginas do modo corrida (◀ ▶ para navegar)",
+    "pages": {
+      "stats": {
+        "name": "GPS Stats",
+        "desc": "Diagnóstico: satélites, HDOP, coordenadas, bateria"
+      },
+      "speed": {
+        "name": "Speed",
+        "desc": "Velocidade atual em destaque com o contador de voltas"
+      },
+      "rpm": {
+        "name": "Engine RPM",
+        "desc": "RPM ao vivo, com alerta de giro excessivo no limite"
+      },
+      "lapTime": {
+        "name": "Current Lap",
+        "desc": "O cronômetro da volta em andamento"
+      },
+      "pace": {
+        "name": "Lap Pace",
+        "desc": "Delta +/− ao vivo contra sua melhor volta (o botão central pula para cá em movimento)"
+      },
+      "best": {
+        "name": "Best Lap",
+        "desc": "A volta mais rápida até agora, e qual volta a marcou"
+      },
+      "optimal": {
+        "name": "Optimal Lap",
+        "desc": "Melhor teórica montada com seus melhores setores"
+      },
+      "history": {
+        "name": "Lap History",
+        "desc": "Todas as voltas da sessão; o botão central folheia a lista"
+      },
+      "end": {
+        "name": "End Race",
+        "desc": "O botão central encerra a sessão e grava o log"
+      }
+    },
+    "note": "Nota: Bluetooth e transferência USB não funcionam no simulador."
   }
 }
