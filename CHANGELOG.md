@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - unreleased
 
+### Changed
+- **Vendored firmware simulator updated to firmware `v3.0.0`** (build
+  `ecc88c3`): the `/simulator` page now runs the exact code of the v3.0.0
+  firmware release, with the matching DovesLapTimer revision. Passed the
+  sim's node smoke test (boot, state, determinism, reset) before vendoring.
+
 ### Added
 - **Silent auto-update on an idle home page.** When a new build is detected
   and the user isn't in the middle of anything (home page, no session
