@@ -10,5 +10,8 @@
   "snapshotsTitle": "Bestenlisten-Snapshots",
   "snapshotsEmpty": "Dieser Fahrer hat keine Bestenlisten-Snapshots hochgeladen.",
   "noWeight": "Kein angegebenes Gewicht",
-  "openSnapshot": "Diese Runde im Viewer öffnen"
+  "openSnapshot": "Diese Runde im Viewer öffnen",
+  "sharedTitle": "Geteilte Sessions",
+  "sharedEmpty": "Noch keine geteilten Sessions.",
+  "openShared": "Diese Session im schreibgeschützten Viewer öffnen"
 }

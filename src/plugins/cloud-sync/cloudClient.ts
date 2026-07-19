@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const SYNC_BUCKET = "user-files";
 export const AVATAR_BUCKET = "user-avatars";
+export const SHARED_BUCKET = "shared-sessions";
 
 /** A row in public.sync_records — one client record stored as a jsonb document. */
 export interface SyncRecordRow {
@@ -87,6 +88,8 @@ export interface ProfileRow {
   avatar_path?: string | null;
   /** Last avatar change — used as a ?v= cache-buster on the public URL. */
   avatar_updated_at?: string | null;
+  /** When true, newly cloud-synced logs auto-publish a share link (plan 0009). */
+  share_sessions_default?: boolean;
 }
 
 /** Query builder for the profiles table (owner reads/writes). */
@@ -121,6 +124,39 @@ export interface PublicVehicleRow {
 /** Query builder for the public_vehicles projection table. */
 export function publicVehicles() {
   return untyped.from("public_vehicles");
+}
+
+/**
+ * A row in public.shared_sessions — one published log behind an opaque token
+ * (plan 0009). Anon-readable by design; deliberately carries NO filename — the
+ * owner-side token↔filename mapping lives in the log's private sync_records
+ * index row (`data.share`).
+ */
+export interface SharedSessionRow {
+  token: string;
+  user_id: string;
+  /** File extension only (parser routing) — never the name. */
+  file_ext: string;
+  /** Frozen Course geometry (normalized sectors + layout). */
+  course: unknown;
+  track_name: string;
+  course_name: string;
+  session_date: string | null;
+  fastest_lap_ms: number | null;
+  size_bytes: number;
+  created_at?: string;
+  /** PostgREST embed via shared_sessions_profile_fkey. */
+  profiles?: { display_name: string | null } | { display_name: string | null }[] | null;
+}
+
+/** Query builder for the shared_sessions table (anon read; owner insert/delete). */
+export function sharedSessions() {
+  return untyped.from("shared_sessions");
+}
+
+/** Storage API for the public shared-session blob bucket. */
+export function sharedFiles() {
+  return untyped.storage.from(SHARED_BUCKET);
 }
 
 /** True when a Postgres error is a unique-constraint violation (e.g. taken name). */

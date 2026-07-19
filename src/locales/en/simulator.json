@@ -1,0 +1,164 @@
+{
+  "title": "Firmware Simulator",
+  "subtitle": "The real DovesDataLogger firmware, compiled to WebAssembly, replaying a real track session. The buttons drive the actual menus — even mid-lap.",
+  "loading": "Booting the firmware…",
+  "loadError": "The simulator could not be loaded. Check your connection and try again.",
+  "display": {
+    "canvasLabel": "Simulated device display",
+    "trueSize": "True size",
+    "trueSizeWhy": "Why so small? This is the device's real 1.3″ screen size — what it actually looks like on a steering wheel.",
+    "scale": "Zoom"
+  },
+  "buttons": {
+    "group": "Device buttons",
+    "left": "Left button",
+    "select": "Select button",
+    "right": "Right button",
+    "keyboardHint": "Keyboard: ← Enter →"
+  },
+  "transport": {
+    "play": "Play",
+    "pause": "Pause",
+    "skipPreRoll": "Skip GPS acquisition",
+    "preRoll": "Acquiring GPS…",
+    "timeline": "Session timeline"
+  },
+  "state": {
+    "racing": "Race mode",
+    "idle": "Menu",
+    "laps_one": "{{count}} lap",
+    "laps_other": "{{count}} laps",
+    "best": "Best",
+    "gpsLocked": "GPS {{sats}} sats",
+    "gpsAcquiring": "No GPS fix"
+  },
+  "footer": {
+    "provenance": "Firmware build {{sha}} · {{date}} — identical code to the physical device."
+  },
+  "picker": {
+    "label": "Session:"
+  },
+  "map": {
+    "toggleStyle": "Toggle map style"
+  },
+  "howItWorks": {
+    "title": "What the device is doing",
+    "p1": "The device boots when a button is pressed or RPM is detected. It then finds the closest track and loads all of that track's courses into memory.",
+    "p2": "Race mode is selected automatically as soon as RPM is detected.",
+    "p3": "When your speed reaches a set threshold, a waypoint is dropped and the device starts monitoring every start/finish and sector line at once. When you reach that waypoint again, it compares the distance driven, finds the course with the nearest length match — one where you've also crossed several of its lines — selects that course, and drops the rest. That registers your first lap with an accurate first-lap time, and from there it counts laps as normal."
+  },
+  "guide": {
+    "title": "How the simulator works",
+    "lead": "This is a full simulation of the DovesDataLogger firmware — the exact code the physical device runs, compiled for your browser — for testing, evaluation, and poking around before you build one.",
+    "steps": {
+      "boot": {
+        "title": "Booting",
+        "body": "The device boots just like the real one. Press any button to skip the GPS lock screen and go straight to the main menu — or simply press Play: about 3 seconds after the GPS locks, the screen moves on by itself."
+      },
+      "controls": {
+        "title": "Controls",
+        "body": "The outer buttons (◀ ▶) move between menu items and race pages; the center button selects. The keyboard works too: ← Enter →."
+      },
+      "replay": {
+        "title": "Replaying a session",
+        "body": "Press Play to replay the recorded session. Race mode engages automatically, the firmware searches for the nearest track, runs course detection, and starts timing laps — the same pipeline the device runs at the track."
+      },
+      "ending": {
+        "title": "Ending the session",
+        "body": "At the end of the replay the kart comes to a stop. Let the session end on its own, or navigate to the END RACE page and press the center button to commit the log file yourself."
+      },
+      "review": {
+        "title": "Reviewing",
+        "body": "An ended session is saved to the simulator's temporary storage: open Review in the main menu to load it back and browse its laps, exactly like on the device. (It evaporates when you leave the page.)"
+      }
+    },
+    "pagesTitle": "Race mode pages (◀ ▶ to flip through them)",
+    "pages": {
+      "stats": {
+        "name": "GPS Stats",
+        "desc": "Diagnostics: satellites, HDOP, coordinates, battery"
+      },
+      "speed": {
+        "name": "Speed",
+        "desc": "Big current speed with the lap counter"
+      },
+      "rpm": {
+        "name": "Engine RPM",
+        "desc": "Live RPM, with an over-rev warning at the limit"
+      },
+      "lapTime": {
+        "name": "Current Lap",
+        "desc": "The running lap timer"
+      },
+      "pace": {
+        "name": "Lap Pace",
+        "desc": "Live +/− delta against your best lap (center button jumps here while moving)"
+      },
+      "best": {
+        "name": "Best Lap",
+        "desc": "Fastest lap so far, and which lap set it"
+      },
+      "optimal": {
+        "name": "Optimal Lap",
+        "desc": "Theoretical best built from your best sectors"
+      },
+      "history": {
+        "name": "Lap History",
+        "desc": "Every lap this session; the center button pages through the list"
+      },
+      "end": {
+        "name": "End Race",
+        "desc": "Center button ends the session and saves the log"
+      }
+    },
+    "note": "Note: Bluetooth and USB transfer are not functional in the simulator.",
+    "systemTitle": "Menu & system pages (the rest of the firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "The bird, briefly, at power-on"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Every boot lands here: lock state and HDOP up top, one signal bar per satellite below; any button skips it"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Jump straight into race mode; logging starts once GPS time locks"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Browse saved session logs; center button opens one"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Instant replay of a saved session: driver, course, date, best and optimal lap, and the full lap list"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (companion-app download) or USB (the SD card as a drive)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Insta360 pairing and status, manual serial entry, and a bench-test menu — the device auto-records your camera when the engine starts"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Boot page for a blank/corrupted SD card: hold Select 3 s to format it on-device"
+      },
+      "warnings": {
+        "name": "Warnings & faults",
+        "desc": "Recoverable notices dismiss with any button; hard faults (no SD card) hold the screen"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Plugged-in idle screen; any button wakes the device back to the menu"
+      }
+    },
+    "systemNote": "Pages that need real hardware — the USB drive, a paired camera, SD formatting, charging — can't be reached in the simulator."
+  }
+}

@@ -203,5 +203,25 @@
     "close": "Chiudi",
     "customTrackNotice": "Questo circuito non è nell'elenco integrato: il suo tracciato e i settori vengono inviati con il tuo snapshot e il circuito viene aggiunto al database della community per la revisione.",
     "trackAdded": "Circuito inviato al database della community per la revisione."
+  },
+  "share": {
+    "iconTitle": "Condividi sessione",
+    "dialogTitle": "Condividi sessione",
+    "dialogDescription": "Chiunque abbia il link può vedere questa sessione in sola lettura. Il link non rivela mai il nome del file.",
+    "publicToggle": "Link di condivisione pubblico",
+    "linkLabel": "Link di condivisione",
+    "copy": "Copia link",
+    "copied": "Link copiato",
+    "copyFailed": "Impossibile copiare il link",
+    "privacyNote": "Condiviso pubblicamente: la traccia GPS e i canali di telemetria di questo log, la geometria del tracciato, il tuo nome visibile, la data della sessione e il giro più veloce. Non condiviso: il nome del file, gli assetti, le note e i video.",
+    "customCourseNote": "Questa sessione usa uno dei tuoi tracciati personalizzati. La sua geometria è inclusa nella condivisione così gli spettatori hanno tempi sul giro precisi, e il tracciato viene anche inviato al database comunitario per la revisione.",
+    "noCourse": "Questa sessione non è associata a un tracciato conosciuto, quindi non può ancora essere condivisa. Assegna prima una pista e un tracciato.",
+    "offline": "Sei offline — la condivisione richiede una connessione.",
+    "loadStateFailed": "Impossibile caricare lo stato di condivisione di questa sessione",
+    "shareFailed": "Impossibile creare il link di condivisione",
+    "unshareFailed": "Impossibile rendere privata la sessione",
+    "defaultToggle": "I nuovi caricamenti sono pubblici per impostazione predefinita",
+    "defaultToggleHint": "Riguarda solo i caricamenti futuri — le sessioni esistenti mantengono la condivisione attuale.",
+    "defaultUpdateFailed": "Impossibile aggiornare la preferenza di condivisione"
   }
 }

@@ -1,11 +1,17 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Wifi, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
+import { ErrorPanel, FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
 import { createMychronConnection } from "@/lib/loggers/mychron/mychronConnection";
 import { MYCHRON_SSID_PREFIX, loggerConnect } from "@/lib/loggers/mychron/ipc";
+import {
+  classifyLoggerError,
+  loggerErrorKey,
+  recoveryActionFor,
+  type ClassifiedLoggerError,
+  type LoggerFlowStage,
+} from "@/lib/loggers/errors";
 import type { LoggerConnection, LoggerFile, LoggerDownloadProgress } from "@/lib/loggers";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { useSettings } from "@/hooks/useSettings";
@@ -19,6 +25,13 @@ type DownloadState =
   | "file-list"
   | "downloading"
   | "error";
+
+interface Failure {
+  error: ClassifiedLoggerError;
+  stage: LoggerFlowStage;
+  /** Only download-stage failures leave a saved raw file behind. */
+  fileSaved: boolean;
+}
 
 interface MyChronDownloadProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
@@ -50,8 +63,9 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
   const [files, setFiles] = useState<LoggerFile[]>([]);
   const [progress, setProgress] = useState<LoggerDownloadProgress | null>(null);
   const [currentFile, setCurrentFile] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [failure, setFailure] = useState<Failure | null>(null);
   const loggerRef = useRef<LoggerConnection | null>(null);
+  const lastFileRef = useRef<LoggerFile | null>(null);
 
   const handleClose = useCallback(() => {
     loggerRef.current?.disconnect();
@@ -60,12 +74,12 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
     setFiles([]);
     setProgress(null);
     setCurrentFile("");
-    setError("");
+    setFailure(null);
     onClose();
   }, [onClose]);
 
   const handleConnect = useCallback(async () => {
-    setError("");
+    setFailure(null);
     try {
       // Connect — on Android this drives the OS Wi-Fi picker (join + bind). The
       // picker only lists networks whose SSID starts with this prefix, so it's
@@ -86,7 +100,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
       setState("file-list");
     } catch (err) {
       console.error("MyChron connect/list error:", err);
-      setError(err instanceof Error ? err.message : String(err));
+      setFailure({ error: classifyLoggerError(err), stage: "connect", fileSaved: false });
       setState("error");
     }
   }, [settings.mychronSsidPrefix]);
@@ -107,20 +121,26 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
     async (file: LoggerFile) => {
       const logger = loggerRef.current;
       if (!logger) {
-        setError(t("mychron.flow.errorTitle"));
+        setFailure({
+          error: { category: "not-connected", detail: "" },
+          stage: "download",
+          fileSaved: false,
+        });
         setState("error");
         return;
       }
 
       setState("downloading");
       setCurrentFile(file.name);
+      lastFileRef.current = file;
       setProgress({ received: 0, total: file.size, percent: 0, speed: "0 B/s", eta: "--" });
-      setError("");
+      setFailure(null);
 
       // Bytes are already-inflated XRK — name accordingly so the importer routes
       // them to the async wasm path.
       const fileName = file.name.toLowerCase().endsWith(".xrk") ? file.name : `${file.name}.xrk`;
 
+      let saved = false;
       try {
         const bytes = await logger.downloadLog(file.name, setProgress);
         const blob = new Blob([bytes.buffer as ArrayBuffer]);
@@ -129,6 +149,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
         if (autoSave && autoSaveFile) {
           try {
             await autoSaveFile(fileName, blob);
+            saved = true;
           } catch (e) {
             console.warn("Auto-save failed:", e);
           }
@@ -139,20 +160,34 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
         onDataLoaded(data, fileName);
       } catch (err) {
         console.error("MyChron download/parse error:", err);
-        const msg = err instanceof Error ? err.message : String(err);
-        setError(`${msg}${t("mychron.flow.savedHint")}`);
+        setFailure({ error: classifyLoggerError(err), stage: "download", fileSaved: saved });
         setState("error");
       }
     },
-    [autoSave, autoSaveFile, handleClose, onDataLoaded, t],
+    [autoSave, autoSaveFile, handleClose, onDataLoaded],
   );
 
-  const handleRetry = useCallback(() => {
+  const handleReconnect = useCallback(() => {
     loggerRef.current?.disconnect();
     loggerRef.current = null;
-    setError("");
+    setFailure(null);
     void handleConnect();
   }, [handleConnect]);
+
+  // Recovery: a failed download retries the same file while the link is alive;
+  // everything else (a declined Wi-Fi join, a dead link) re-drives the connect,
+  // which re-opens the OS Wi-Fi picker on Android.
+  const action = failure ? recoveryActionFor(failure.error.category, failure.stage) : "none";
+  const handleRecover = useCallback(() => {
+    const lastFile = lastFileRef.current;
+    if (action === "retry" && loggerRef.current && lastFile) {
+      void handleFileSelect(lastFile);
+    } else {
+      handleReconnect();
+    }
+  }, [action, handleFileSelect, handleReconnect]);
+  // There's no scan step over Wi-Fi — every non-retry recovery is a reconnect.
+  const actionLabel = action === "retry" ? t("errors.actionRetry") : t("errors.actionReconnect");
 
   const isModalOpen = state !== "idle";
 
@@ -202,19 +237,29 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
         )}
 
         {state === "downloading" && progress && (
-          <ProgressPanel currentFile={currentFile} progress={progress} />
+          <ProgressPanel
+            currentFile={currentFile}
+            progress={progress}
+            labels={{
+              received: t("progress.received"),
+              speed: t("progress.speed"),
+              eta: t("progress.eta"),
+            }}
+            completeText={t("progress.complete", { percent: progress.percent.toFixed(1) })}
+          />
         )}
 
-        {state === "error" && (
-          <div className="flex flex-col items-center gap-4 py-4">
-            <p className="text-destructive text-center">{error}</p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleClose}>
-                {t("mychron.flow.cancel")}
-              </Button>
-              <Button onClick={handleRetry}>{t("mychron.flow.retry")}</Button>
-            </div>
-          </div>
+        {state === "error" && failure && (
+          <ErrorPanel
+            message={t(loggerErrorKey(failure.error.category))}
+            detail={failure.error.detail || undefined}
+            detailLabel={t("errors.detailLabel")}
+            savedHint={failure.fileSaved ? t("mychron.flow.savedHint") : undefined}
+            onCancel={handleClose}
+            cancelLabel={t("mychron.flow.cancel")}
+            onAction={action !== "none" ? handleRecover : undefined}
+            actionLabel={action !== "none" ? actionLabel : undefined}
+          />
         )}
       </DialogContent>
     </Dialog>

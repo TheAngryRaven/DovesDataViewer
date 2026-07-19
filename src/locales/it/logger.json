@@ -4,6 +4,7 @@
   "subtitle": "Scegli il tuo logger per avviare un download.",
   "comingSoon": "Prossimamente",
   "close": "Chiudi",
+  "requestLogger": "Richiedi altri data logger",
   "trademarks": "MyChron è un marchio di AiM Tech S.r.l. e Alfano è un marchio di Alfano S.A. LapWing è indipendente e non è affiliata né approvata da loro; tutti i nomi di prodotti, loghi e marchi sono di proprietà dei rispettivi titolari.",
   "tags": {
     "fledgling": "Logger DIY · Bluetooth LE",
@@ -11,6 +12,43 @@
     "alfano": "Bluetooth seriale · richiede app nativa"
   },
   "fledglingUnsupported": "Web Bluetooth non è supportato qui: usa Chrome, Edge o Opera su computer.",
+  "progress": {
+    "received": "Ricevuti:",
+    "speed": "Velocità:",
+    "eta": "Tempo residuo:",
+    "complete": "{{percent}}% completato"
+  },
+  "errors": {
+    "unreachable": "Impossibile raggiungere il logger. Assicurati che sia acceso e nelle vicinanze.",
+    "permission": "Serve l'autorizzazione Bluetooth: consenti Bluetooth / Dispositivi nelle vicinanze per questa app e riprova.",
+    "hung": "Connessione con il logger persa durante il trasferimento.",
+    "protocol": "Il logger ha inviato una risposta imprevista.",
+    "unsupported": "Questa funzione non è disponibile su questo dispositivo.",
+    "unsupportedAlfano": "I download Alfano non sono ancora disponibili su questo dispositivo: per ora solo su Android.",
+    "wifiDeclined": "Seleziona la rete Wi-Fi del tuo MyChron per continuare.",
+    "notConnected": "Il logger non è più connesso.",
+    "unknown": "Qualcosa è andato storto.",
+    "detailLabel": "Dettagli tecnici",
+    "actionRetry": "Riprova",
+    "actionRescan": "Cerca di nuovo",
+    "actionReconnect": "Riconnetti"
+  },
+  "fledgling": {
+    "flow": {
+      "connecting": "Connessione…",
+      "scanningStatus": "Ricerca di DovesLapTimer…",
+      "pickerHint": "Se richiesto, seleziona “DovesLapTimer” dall'elenco",
+      "fetching": "Recupero dei file…",
+      "fetchingStatus": "Recupero dell'elenco dei file…",
+      "selectFile": "Seleziona un file da scaricare",
+      "downloading": "Download in corso…",
+      "errorTitle": "Errore di connessione",
+      "instructions": "Tocca un file per scaricarlo e caricarlo:",
+      "empty": "Nessun file trovato sul dispositivo",
+      "savedHint": "Il file è stato salvato e si trova in Sfoglia file.",
+      "cancel": "Annulla"
+    }
+  },
   "mychron": {
     "nativeTitle": "Download MyChron",
     "nativeBody": "Da definire",
@@ -26,7 +64,7 @@
       "errorTitle": "Errore di connessione",
       "instructions": "Tocca una sessione per scaricarla e caricarla:",
       "empty": "Nessuna sessione su questo dispositivo",
-      "savedHint": " — il file è stato salvato e si trova in Sfoglia file.",
+      "savedHint": "Il file è stato salvato e si trova in Sfoglia file.",
       "retry": "Riprova",
       "cancel": "Annulla"
     }
@@ -45,9 +83,25 @@
       "errorTitle": "Errore di connessione",
       "instructions": "Tocca una sessione per scaricarla e caricarla:",
       "empty": "Nessuna sessione su questo dispositivo",
-      "savedHint": " — il file è stato salvato e si trova in Sfoglia file.",
+      "savedHint": "Il file è stato salvato e si trova in Sfoglia file.",
       "retry": "Riprova",
       "cancel": "Annulla"
+    },
+    "firmware": {
+      "button": "Aggiornamento firmware",
+      "title": "Aggiornamento firmware",
+      "checking": "Ricerca aggiornamenti…",
+      "upToDate": "Il firmware v{{version}} è aggiornato.",
+      "noBuild": "Nessuna build del firmware disponibile per questo logger.",
+      "installLatest": "Installare il firmware v{{version}} ({{variant}})?",
+      "variantConfirmTitle": "Quale variante di logger possiedi?",
+      "variantConfirmBody": "Questo logger non ha comunicato la sua variante hardware. Installare l'immagine sbagliata fallirà sul dispositivo; scegli con attenzione:",
+      "install": "Installa",
+      "rebooting": "Aggiornamento inviato: il logger sta installando il nuovo firmware e si sta riavviando.",
+      "rebootingBody": "Il collegamento Bluetooth si interrompe durante l'installazione. Attendi qualche secondo, poi esegui una nuova scansione per riconnetterti.",
+      "notAvailable": "Gli aggiornamenti del firmware non sono ancora disponibili in questa versione dell'app.",
+      "notAvailableBody": "Aggiorna l'app per ricevere gli aggiornamenti del firmware del logger, oppure usa l'app web tramite Web Bluetooth.",
+      "back": "Indietro"
     }
   },
   "alfano": {
@@ -64,12 +118,12 @@
       "selectFile": "Seleziona una sessione da scaricare",
       "downloading": "Download in corso…",
       "errorTitle": "Errore di connessione",
+      "unavailableTitle": "Non disponibile su questo dispositivo",
       "instructions": "Tocca una sessione per scaricarla e caricarla:",
       "empty": "Nessuna sessione su questo dispositivo",
-      "savedHint": " — il file è stato salvato e si trova in Sfoglia file.",
+      "savedHint": "Il file è stato salvato e si trova in Sfoglia file.",
       "retry": "Riprova",
       "cancel": "Annulla"
     }
-  },
-  "requestLogger": "Richiedi altri data logger"
+  }
 }

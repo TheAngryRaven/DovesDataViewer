@@ -14,6 +14,7 @@ import { getActiveUserId } from "./activeUser";
 // The per-file toggle + delete toggle: lazy so the file-manager drawer doesn't
 // pull the sync engine onto its chunk until they render (see Bundle Splitting).
 const FileSyncToggle = lazy(() => import("./FileSyncToggle"));
+const ShareFileButton = lazy(() => import("./ShareFileButton"));
 const FileDeleteToggle = lazy(() => import("./FileDeleteToggle"));
 // Profile tab panels: merged account + storage meters, and cloud-log management.
 // Lazy so the Supabase sync engine + storage modules load only when the Profile
@@ -43,6 +44,15 @@ const plugin: DataViewerPlugin = {
       slot: MountSlot.FileRow,
       order: 0,
       component: FileSyncToggle,
+    } satisfies PluginMountDef<FileRowContext>);
+
+    // Share-link affordance next to the sync toggle (plan 0009): renders only
+    // for signed-in users on cloud-synced rows; opens the share modal.
+    ctx.registry.contribute(MOUNTS_POINT, {
+      id: "cloud-sync-file-share",
+      slot: MountSlot.FileRow,
+      order: 1,
+      component: ShareFileButton,
     } satisfies PluginMountDef<FileRowContext>);
 
     // "Also delete from the cloud" opt-in, shown in the file delete-confirm

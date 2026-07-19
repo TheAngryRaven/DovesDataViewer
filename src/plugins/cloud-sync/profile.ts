@@ -8,11 +8,19 @@ import { isUniqueViolation, profiles, userAvatars, type ProfileRow } from "./clo
 /** The signed-in user's profile, or null if it doesn't exist yet. */
 export async function getMyProfile(userId: string): Promise<ProfileRow | null> {
   const { data, error } = await profiles()
-    .select("user_id,display_name,avatar_path,avatar_updated_at")
+    .select("user_id,display_name,avatar_path,avatar_updated_at,share_sessions_default")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return (data as ProfileRow | null) ?? null;
+}
+
+/** Flip whether newly cloud-synced logs auto-publish a share link (plan 0009). */
+export async function updateShareDefault(userId: string, value: boolean): Promise<void> {
+  const { error } = await profiles()
+    .update({ share_sessions_default: value, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
 }
 
 /**

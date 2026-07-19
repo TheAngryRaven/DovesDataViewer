@@ -4,6 +4,7 @@
   "subtitle": "Choisissez votre enregistreur pour lancer un téléchargement.",
   "comingSoon": "Bientôt disponible",
   "close": "Fermer",
+  "requestLogger": "Demander d'autres enregistreurs de données",
   "trademarks": "MyChron est une marque déposée d'AiM Tech S.r.l. et Alfano est une marque déposée d'Alfano S.A. LapWing est indépendant et n'est ni affilié ni approuvé par eux ; tous les noms de produits, logos et marques appartiennent à leurs propriétaires respectifs.",
   "tags": {
     "fledgling": "Enregistreur DIY · Bluetooth LE",
@@ -11,6 +12,43 @@
     "alfano": "Bluetooth série · app native requise"
   },
   "fledglingUnsupported": "Web Bluetooth n'est pas pris en charge ici — utilisez Chrome, Edge ou Opera sur ordinateur.",
+  "progress": {
+    "received": "Reçu :",
+    "speed": "Vitesse :",
+    "eta": "Temps restant :",
+    "complete": "{{percent}} % terminé"
+  },
+  "errors": {
+    "unreachable": "Impossible de joindre l'enregistreur. Vérifiez qu'il est allumé et à proximité.",
+    "permission": "Autorisation Bluetooth requise — autorisez le Bluetooth / les appareils à proximité pour cette application, puis réessayez.",
+    "hung": "Connexion à l'enregistreur perdue en cours de transfert.",
+    "protocol": "L'enregistreur a envoyé une réponse inattendue.",
+    "unsupported": "Cette fonctionnalité n'est pas disponible sur cet appareil.",
+    "unsupportedAlfano": "Les téléchargements Alfano ne sont pas encore disponibles sur cet appareil — pour l'instant, Android uniquement.",
+    "wifiDeclined": "Sélectionnez le réseau Wi-Fi de votre MyChron pour continuer.",
+    "notConnected": "L'enregistreur n'est plus connecté.",
+    "unknown": "Une erreur est survenue.",
+    "detailLabel": "Détails techniques",
+    "actionRetry": "Réessayer",
+    "actionRescan": "Relancer la recherche",
+    "actionReconnect": "Reconnecter"
+  },
+  "fledgling": {
+    "flow": {
+      "connecting": "Connexion…",
+      "scanningStatus": "Recherche de DovesLapTimer…",
+      "pickerHint": "Si demandé, sélectionnez « DovesLapTimer » dans la liste",
+      "fetching": "Récupération des fichiers…",
+      "fetchingStatus": "Récupération de la liste des fichiers…",
+      "selectFile": "Sélectionnez un fichier à télécharger",
+      "downloading": "Téléchargement…",
+      "errorTitle": "Erreur de connexion",
+      "instructions": "Touchez un fichier pour le télécharger et le charger :",
+      "empty": "Aucun fichier trouvé sur l'appareil",
+      "savedHint": "Le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
+      "cancel": "Annuler"
+    }
+  },
   "mychron": {
     "nativeTitle": "Téléchargement MyChron",
     "nativeBody": "À définir",
@@ -26,7 +64,7 @@
       "errorTitle": "Erreur de connexion",
       "instructions": "Touchez une session pour la télécharger et la charger :",
       "empty": "Aucune session sur cet appareil",
-      "savedHint": " — le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
+      "savedHint": "Le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
       "retry": "Réessayer",
       "cancel": "Annuler"
     }
@@ -45,9 +83,25 @@
       "errorTitle": "Erreur de connexion",
       "instructions": "Touchez une session pour la télécharger et la charger :",
       "empty": "Aucune session sur cet appareil",
-      "savedHint": " — le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
+      "savedHint": "Le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
       "retry": "Réessayer",
       "cancel": "Annuler"
+    },
+    "firmware": {
+      "button": "Mise à jour du firmware",
+      "title": "Mise à jour du firmware",
+      "checking": "Recherche de mises à jour…",
+      "upToDate": "Le firmware v{{version}} est à jour.",
+      "noBuild": "Aucune version de firmware n'est disponible pour cet enregistreur.",
+      "installLatest": "Installer le firmware v{{version}} ({{variant}}) ?",
+      "variantConfirmTitle": "Quelle variante d'enregistreur avez-vous ?",
+      "variantConfirmBody": "Cet enregistreur n'a pas indiqué sa variante matérielle. Installer la mauvaise image échouera sur l'appareil ; choisissez avec soin :",
+      "install": "Installer",
+      "rebooting": "Mise à jour envoyée — votre enregistreur flashe le nouveau firmware et redémarre.",
+      "rebootingBody": "La liaison Bluetooth se coupe pendant l'installation. Patientez quelques secondes, puis relancez la recherche pour vous reconnecter.",
+      "notAvailable": "Les mises à jour du firmware ne sont pas encore disponibles dans cette version de l'application.",
+      "notAvailableBody": "Mettez à jour l'application pour obtenir les mises à jour du firmware de l'enregistreur, ou utilisez l'application web via Web Bluetooth.",
+      "back": "Retour"
     }
   },
   "alfano": {
@@ -64,12 +118,12 @@
       "selectFile": "Sélectionnez une session à télécharger",
       "downloading": "Téléchargement…",
       "errorTitle": "Erreur de connexion",
+      "unavailableTitle": "Non disponible sur cet appareil",
       "instructions": "Touchez une session pour la télécharger et la charger :",
       "empty": "Aucune session sur cet appareil",
-      "savedHint": " — le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
+      "savedHint": "Le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
       "retry": "Réessayer",
       "cancel": "Annuler"
     }
-  },
-  "requestLogger": "Demander d'autres enregistreurs de données"
+  }
 }

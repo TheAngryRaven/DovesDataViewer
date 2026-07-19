@@ -20,6 +20,7 @@ import type admin from "@/locales/en/admin.json";
 import type logger from "@/locales/en/logger.json";
 import type leaderboard from "@/locales/en/leaderboard.json";
 import type driver from "@/locales/en/driver.json";
+import type simulator from "@/locales/en/simulator.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -39,6 +40,7 @@ declare module "i18next" {
       logger: typeof logger;
       leaderboard: typeof leaderboard;
       driver: typeof driver;
+      simulator: typeof simulator;
     };
   }
 }

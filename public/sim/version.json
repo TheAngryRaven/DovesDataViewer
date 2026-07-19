@@ -1,0 +1,8 @@
+{
+  "firmwareSha": "ecc88c3",
+  "buildDate": "2026-07-18",
+  "simApiVersion": 1,
+  "dovesLapTimerSha": "a6add21",
+  "adafruitGfx": "1.12.6",
+  "adafruitSh110x": "2.1.14"
+}

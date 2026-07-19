@@ -28,5 +28,10 @@
   "loadTopSession_one": "Charger le meilleur tour en une seule session",
   "loadTopSession_other": "Charger les {{count}} meilleurs tours en une seule session",
   "loadAllSession": "Charger tous les tours en une seule session",
-  "viewProfile": "Voir le profil du pilote"
+  "viewProfile": "Voir le profil du pilote",
+  "share": {
+    "loading": "Chargement de la session partagée…",
+    "notFound": "Ce lien de partage n'existe pas ou a été rendu privé.",
+    "loadFailed": "Impossible de charger la session partagée."
+  }
 }

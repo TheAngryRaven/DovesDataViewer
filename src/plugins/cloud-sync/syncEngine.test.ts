@@ -24,6 +24,9 @@ const { cloud } = vi.hoisted(() => ({
     uploadError: null as { message: string } | null,
     removeError: null as { message: string } | null,
     deleteError: null as { message: string } | null,
+    sharedRows: [] as { token: string; user_id: string }[],
+    sharedBucket: new Map<string, Blob>(),
+    sharedRemoveRejects: false,
     usage: null as
       | { documents_bytes: number; logs_bytes: number; snapshots_bytes: number; total_limit_bytes: number }
       | null,
@@ -74,9 +77,42 @@ vi.mock("./cloudClient", () => {
         }
         return resolve({ data: matched, error: null });
       },
+      maybeSingle: () => {
+        const matched = cloud.rows.filter((r) =>
+          Object.entries(filters).every(([k, v]) => (r as unknown as Record<string, string>)[k] === v),
+        );
+        return Promise.resolve({ data: matched[0] ?? null, error: null });
+      },
     };
     return builder;
   };
+
+  // Anon-readable share rows (plan 0009) — syncEngine only ever deletes these.
+  const sharedSessions = () => {
+    const filters: Record<string, string> = {};
+    const builder = {
+      delete: () => builder,
+      eq: (col: string, val: string) => {
+        filters[col] = val;
+        return builder;
+      },
+      then: (resolve: (v: unknown) => unknown) => {
+        cloud.sharedRows = cloud.sharedRows.filter(
+          (r) => !Object.entries(filters).every(([k, v]) => (r as unknown as Record<string, string>)[k] === v),
+        );
+        return resolve({ error: null });
+      },
+    };
+    return builder;
+  };
+
+  const sharedFiles = () => ({
+    remove: (paths: string[]) => {
+      if (cloud.sharedRemoveRejects) return Promise.reject(new Error("shared bucket down"));
+      paths.forEach((p) => cloud.sharedBucket.delete(p));
+      return Promise.resolve({ error: null });
+    },
+  });
 
   const userFiles = () => ({
     upload: (path: string, blob: Blob) => {
@@ -106,6 +142,8 @@ vi.mock("./cloudClient", () => {
     SYNC_BUCKET: "user-files",
     syncRecords,
     userFiles,
+    sharedSessions,
+    sharedFiles,
     fetchStorageUsage: async () => cloud.usage,
     isQuotaError: (err: unknown) => err instanceof Error && /quota_exceeded/i.test(err.message),
   };
@@ -143,6 +181,9 @@ beforeEach(() => {
   cloud.uploadError = null;
   cloud.removeError = null;
   cloud.deleteError = null;
+  cloud.sharedRows = [];
+  cloud.sharedBucket = new Map();
+  cloud.sharedRemoveRejects = false;
   cloud.usage = null;
 });
 
@@ -288,6 +329,55 @@ describe("file blob sync", () => {
     cloud.bucket.set(`${U}/run1.dove`, { blob: new Blob(["abc"]) });
     expect(await downloadCloudFile(U, "run1.dove")).toBeInstanceOf(Blob);
     expect(await downloadCloudFile(U, "missing.dove")).toBeNull();
+  });
+});
+
+describe("share state on the file index row (plan 0009)", () => {
+  it("re-uploading a file preserves data.share on its index row", async () => {
+    await saveFile("run1.dove", new Blob(["abcde"]));
+    cloud.rows = [
+      { user_id: U, store: FILE_STORE, record_key: "run1.dove", data: { size: 1, share: { token: "tok1" } } },
+    ];
+    await pushFile(U, "run1.dove");
+    const row = cloud.rows.find((r) => r.store === FILE_STORE && r.record_key === "run1.dove");
+    expect(row?.data).toMatchObject({ size: 5, share: { token: "tok1" } });
+  });
+
+  it("re-uploading preserves an explicit opt-out marker", async () => {
+    await saveFile("run1.dove", new Blob(["abcde"]));
+    cloud.rows = [
+      { user_id: U, store: FILE_STORE, record_key: "run1.dove", data: { size: 1, share: { optedOut: true } } },
+    ];
+    await pushFile(U, "run1.dove");
+    const row = cloud.rows.find((r) => r.store === FILE_STORE && r.record_key === "run1.dove");
+    expect(row?.data).toMatchObject({ size: 5, share: { optedOut: true } });
+  });
+
+  it("deleting a cloud file retires its share row + public blob", async () => {
+    cloud.bucket.set(`${U}/run1.dove`, { blob: new Blob(["x"]) });
+    cloud.rows = [
+      { user_id: U, store: FILE_STORE, record_key: "run1.dove", data: { size: 1, share: { token: "tok1" } } },
+    ];
+    cloud.sharedRows = [{ token: "tok1", user_id: U }];
+    cloud.sharedBucket.set(`${U}/tok1`, new Blob(["x"]));
+
+    await deleteCloudFile(U, "run1.dove");
+    expect(cloud.sharedRows).toEqual([]);
+    expect(cloud.sharedBucket.has(`${U}/tok1`)).toBe(false);
+    expect(cloud.rows).toEqual([]);
+  });
+
+  it("a share-cleanup failure never blocks the cloud delete", async () => {
+    cloud.bucket.set(`${U}/run1.dove`, { blob: new Blob(["x"]) });
+    cloud.rows = [
+      { user_id: U, store: FILE_STORE, record_key: "run1.dove", data: { size: 1, share: { token: "tok1" } } },
+    ];
+    cloud.sharedBucket.set(`${U}/tok1`, new Blob(["x"]));
+    cloud.sharedRemoveRejects = true;
+
+    await deleteCloudFile(U, "run1.dove");
+    expect(cloud.rows).toEqual([]);
+    expect(cloud.bucket.has(`${U}/run1.dove`)).toBe(false);
   });
 });
 

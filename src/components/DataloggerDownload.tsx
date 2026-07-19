@@ -1,9 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Bluetooth, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createFledglingConnection, type LoggerConnection, type LoggerFile, type LoggerDownloadProgress } from "@/lib/loggers";
-import { FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
+import { ErrorPanel, FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
+import {
+  classifyLoggerError,
+  loggerErrorKey,
+  recoveryActionFor,
+  type ClassifiedLoggerError,
+  type LoggerFlowStage,
+} from "@/lib/loggers/errors";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { parseDatalogContent } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
@@ -15,6 +22,13 @@ type DownloadState =
   | "file-list"
   | "downloading"
   | "error";
+
+interface Failure {
+  error: ClassifiedLoggerError;
+  stage: LoggerFlowStage;
+  /** Only download-stage failures leave a saved raw file behind. */
+  fileSaved: boolean;
+}
 
 interface DataloggerDownloadProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
@@ -34,15 +48,17 @@ interface DataloggerDownloadProps {
  * through the generic `LoggerConnection` surface.
  */
 export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart, onClose }: DataloggerDownloadProps) {
+  const { t } = useTranslation("logger");
   const device = useDeviceContext();
   const connection = device.connection;
   const [state, setState] = useState<DownloadState>("idle");
   const [files, setFiles] = useState<LoggerFile[]>([]);
   const [progress, setProgress] = useState<LoggerDownloadProgress | null>(null);
   const [currentFile, setCurrentFile] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [failure, setFailure] = useState<Failure | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const loggerRef = useRef<LoggerConnection | null>(null);
+  const lastFileRef = useRef<LoggerFile | null>(null);
 
   const handleClose = useCallback(() => {
     // Do NOT disconnect — connection lifecycle is owned by DeviceContext.
@@ -51,7 +67,7 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
     setFiles([]);
     setProgress(null);
     setCurrentFile("");
-    setError("");
+    setFailure(null);
     setStatusMessage("");
     loggerRef.current = null;
     onClose();
@@ -59,8 +75,8 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
 
   const handleConnect = useCallback(async () => {
     setState("connecting");
-    setError("");
-    setStatusMessage("Scanning for DovesLapTimer...");
+    setFailure(null);
+    setStatusMessage(t("fledgling.flow.scanningStatus"));
 
     try {
       // Reuse existing context connection if available; otherwise connect via context.
@@ -75,18 +91,17 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
       loggerRef.current = logger;
 
       setState("fetching-files");
-      setStatusMessage("Fetching file list...");
+      setStatusMessage(t("fledgling.flow.fetchingStatus"));
 
       const fileList = await logger.listLogs(setStatusMessage);
       setFiles(fileList);
       setState("file-list");
-      setStatusMessage(`Found ${fileList.length} files`);
     } catch (err) {
       console.error("Connection/file list error:", err);
-      setError(err instanceof Error ? err.message : "Failed to connect");
+      setFailure({ error: classifyLoggerError(err), stage: "connect", fileSaved: false });
       setState("error");
     }
-  }, [device, handleClose]);
+  }, [device, handleClose, t]);
 
   // Kick off the connection as soon as the flow is mounted (once).
   const startedRef = useRef(false);
@@ -101,13 +116,18 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
     async (file: LoggerFile) => {
       const logger = loggerRef.current;
       if (!connection || !logger) {
-        setError("Device disconnected. Please reconnect.");
+        setFailure({
+          error: { category: "not-connected", detail: "" },
+          stage: "download",
+          fileSaved: false,
+        });
         setState("error");
         return;
       }
 
       setState("downloading");
       setCurrentFile(file.name);
+      lastFileRef.current = file;
       setProgress({
         received: 0,
         total: file.size,
@@ -115,8 +135,9 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
         speed: "0 B/s",
         eta: "--",
       });
-      setError("");
+      setFailure(null);
 
+      let saved = false;
       try {
         const fileData = await logger.downloadLog(file.name, setProgress, setStatusMessage);
 
@@ -124,13 +145,11 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
         if (autoSave && autoSaveFile) {
           try {
             await autoSaveFile(file.name, new Blob([fileData.buffer as ArrayBuffer]));
+            saved = true;
           } catch (e) {
             console.warn("Auto-save failed:", e);
           }
         }
-
-        // Parse the downloaded file
-        setStatusMessage("Parsing file...");
 
         // Convert Uint8Array to string for text-based formats
         const decoder = new TextDecoder();
@@ -143,8 +162,7 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
         onDataLoaded(parsedData, file.name);
       } catch (err) {
         console.error("Download/parse error:", err);
-        const msg = err instanceof Error ? err.message : "Download failed";
-        setError(`${msg} — file was saved and can be found in Browse Files.`);
+        setFailure({ error: classifyLoggerError(err), stage: "download", fileSaved: saved });
         setState("error");
       }
     },
@@ -154,15 +172,28 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
   // React to unexpected disconnects from the context while a transfer is in flight.
   useEffect(() => {
     if (!connection && (state === "downloading" || state === "fetching-files" || state === "file-list")) {
-      setError("Device disconnected unexpectedly.");
+      setFailure({
+        error: { category: "not-connected", detail: "" },
+        stage: state === "downloading" ? "download" : "connect",
+        fileSaved: false,
+      });
       setState("error");
     }
   }, [connection, state]);
 
-  const handleRetry = useCallback(() => {
-    setError("");
-    void handleConnect();
-  }, [handleConnect]);
+  // Recovery: a failed download retries the same file while the link is alive;
+  // everything else re-drives the Web Bluetooth connect (there's no scan step —
+  // the browser chooser IS the picker, so "rescan" reads as reconnect here).
+  const action = failure ? recoveryActionFor(failure.error.category, failure.stage) : "none";
+  const handleRecover = useCallback(() => {
+    const lastFile = lastFileRef.current;
+    if (action === "retry" && connection && loggerRef.current && lastFile) {
+      void handleFileSelect(lastFile);
+    } else {
+      void handleConnect();
+    }
+  }, [action, connection, handleFileSelect, handleConnect]);
+  const actionLabel = action === "retry" ? t("errors.actionRetry") : t("errors.actionReconnect");
 
   const isModalOpen = state !== "idle";
 
@@ -172,11 +203,11 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bluetooth className="w-5 h-5" />
-            {state === "connecting" && "Connecting..."}
-            {state === "fetching-files" && "Fetching Files..."}
-            {state === "file-list" && "Select File to Download"}
-            {state === "downloading" && "Downloading..."}
-            {state === "error" && "Connection Error"}
+            {state === "connecting" && t("fledgling.flow.connecting")}
+            {state === "fetching-files" && t("fledgling.flow.fetching")}
+            {state === "file-list" && t("fledgling.flow.selectFile")}
+            {state === "downloading" && t("fledgling.flow.downloading")}
+            {state === "error" && t("fledgling.flow.errorTitle")}
           </DialogTitle>
         </DialogHeader>
 
@@ -185,9 +216,7 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
           <div className="flex flex-col items-center gap-4 py-8">
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
             <p className="text-muted-foreground">{statusMessage}</p>
-            <p className="text-sm text-muted-foreground">
-              If prompted, select "DovesLapTimer" from the list
-            </p>
+            <p className="text-sm text-muted-foreground">{t("fledgling.flow.pickerHint")}</p>
           </div>
         )}
 
@@ -201,25 +230,40 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
 
         {/* File List State */}
         {state === "file-list" && (
-          <FileListPanel files={files} onSelect={handleFileSelect} />
+          <FileListPanel
+            files={files}
+            onSelect={handleFileSelect}
+            instructions={t("fledgling.flow.instructions")}
+            emptyText={t("fledgling.flow.empty")}
+          />
         )}
 
         {/* Downloading State */}
         {state === "downloading" && progress && (
-          <ProgressPanel currentFile={currentFile} progress={progress} />
+          <ProgressPanel
+            currentFile={currentFile}
+            progress={progress}
+            labels={{
+              received: t("progress.received"),
+              speed: t("progress.speed"),
+              eta: t("progress.eta"),
+            }}
+            completeText={t("progress.complete", { percent: progress.percent.toFixed(1) })}
+          />
         )}
 
         {/* Error State */}
-        {state === "error" && (
-          <div className="flex flex-col items-center gap-4 py-4">
-            <p className="text-destructive text-center">{error}</p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleRetry}>Try Again</Button>
-            </div>
-          </div>
+        {state === "error" && failure && (
+          <ErrorPanel
+            message={t(loggerErrorKey(failure.error.category))}
+            detail={failure.error.detail || undefined}
+            detailLabel={t("errors.detailLabel")}
+            savedHint={failure.fileSaved ? t("fledgling.flow.savedHint") : undefined}
+            onCancel={handleClose}
+            cancelLabel={t("fledgling.flow.cancel")}
+            onAction={action !== "none" ? handleRecover : undefined}
+            actionLabel={action !== "none" ? actionLabel : undefined}
+          />
         )}
       </DialogContent>
     </Dialog>

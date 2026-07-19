@@ -22,11 +22,18 @@ import type { LeaderboardEntry } from "./leaderboardTypes";
 /** A small visual gap inserted between consecutive laps in the stacked timeline. */
 const LAP_GAP_MS = 1000;
 
-/** Course/engine/weight context shown above the read-only lap table. */
+/**
+ * Context shown above the read-only lap table. Leaderboard handoffs set
+ * course/engine(/weight); shared-session links (plan 0009) set course/driver/date.
+ */
 export interface LeaderboardDescriptor {
   courseName: string;
-  engineLabel: string;
+  engineLabel?: string;
   weightLabel?: string;
+  /** The sharing driver's display name (shared sessions). */
+  driverLabel?: string;
+  /** The session's date (shared sessions). */
+  dateLabel?: string;
 }
 
 export interface LeaderboardSessionBundle {

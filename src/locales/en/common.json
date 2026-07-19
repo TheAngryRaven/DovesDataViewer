@@ -19,6 +19,9 @@
     "title": "Update ready",
     "description": "Refresh to clear stale cached files and load the latest app version.",
     "refresh": "Refresh",
-    "later": "Later"
+    "later": "Later",
+    "updating": "Updating…",
+    "updatingBody": "Grabbing the latest version — one moment.",
+    "updated": "You're on the latest version."
   }
 }

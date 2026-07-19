@@ -27,23 +27,41 @@ export function fileSyncStatus(rec: FileSyncRecord | undefined): FileSyncState {
   return rec.pushedAt ? "synced" : "pending";
 }
 
+// Same-tab change signal so sibling row controls (sync toggle ↔ share button)
+// stay consistent without polling.
+type SyncListener = () => void;
+const listeners = new Set<SyncListener>();
+
+/** Subscribe to file-sync selection changes; returns an unsubscribe fn. */
+export function subscribeFileSync(listener: SyncListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function emitChange(): void {
+  for (const listener of listeners) listener();
+}
+
 export function getFileRecord(name: string): Promise<FileSyncRecord | undefined> {
   return store.get<FileSyncRecord>(recordKey(name));
 }
 
 /** Mark a file as selected for sync (not yet uploaded). */
-export function selectFile(name: string): Promise<void> {
-  return store.set<FileSyncRecord>(recordKey(name), {});
+export async function selectFile(name: string): Promise<void> {
+  await store.set<FileSyncRecord>(recordKey(name), {});
+  emitChange();
 }
 
 /** Record that a file has been uploaded to the cloud. */
-export function markPushed(name: string): Promise<void> {
-  return store.set<FileSyncRecord>(recordKey(name), { pushedAt: Date.now() });
+export async function markPushed(name: string): Promise<void> {
+  await store.set<FileSyncRecord>(recordKey(name), { pushedAt: Date.now() });
+  emitChange();
 }
 
 /** Stop syncing a file. Additive: the cloud copy is left in place. */
-export function unselectFile(name: string): Promise<void> {
-  return store.delete(recordKey(name));
+export async function unselectFile(name: string): Promise<void> {
+  await store.delete(recordKey(name));
+  emitChange();
 }
 
 /** Cloud file names that aren't present locally (i.e. pullable). Pure. */

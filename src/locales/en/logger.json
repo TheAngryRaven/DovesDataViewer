@@ -11,6 +11,43 @@
     "alfano": "Bluetooth serial · native app required"
   },
   "fledglingUnsupported": "Web Bluetooth isn't supported here — use Chrome, Edge or Opera on desktop.",
+  "progress": {
+    "received": "Received:",
+    "speed": "Speed:",
+    "eta": "ETA:",
+    "complete": "{{percent}}% complete"
+  },
+  "errors": {
+    "unreachable": "Can't reach the logger. Make sure it's powered on and nearby.",
+    "permission": "Bluetooth permission needed — allow Bluetooth / Nearby devices for this app, then try again.",
+    "hung": "Lost the connection to the logger mid-transfer.",
+    "protocol": "The logger sent an unexpected response.",
+    "unsupported": "This feature isn't available on this device.",
+    "unsupportedAlfano": "Alfano downloads aren't available on this device yet — they're Android-only for now.",
+    "wifiDeclined": "Select your MyChron's Wi-Fi network to continue.",
+    "notConnected": "The logger is no longer connected.",
+    "unknown": "Something went wrong.",
+    "detailLabel": "Technical details",
+    "actionRetry": "Try again",
+    "actionRescan": "Rescan",
+    "actionReconnect": "Reconnect"
+  },
+  "fledgling": {
+    "flow": {
+      "connecting": "Connecting…",
+      "scanningStatus": "Scanning for DovesLapTimer…",
+      "pickerHint": "If prompted, select \"DovesLapTimer\" from the list",
+      "fetching": "Fetching files…",
+      "fetchingStatus": "Fetching file list…",
+      "selectFile": "Select a file to download",
+      "downloading": "Downloading…",
+      "errorTitle": "Connection error",
+      "instructions": "Tap a file to download and load it:",
+      "empty": "No files found on device",
+      "savedHint": "The file was saved and can be found in Browse Files.",
+      "cancel": "Cancel"
+    }
+  },
   "mychron": {
     "nativeTitle": "MyChron download",
     "nativeBody": "TBD",
@@ -26,7 +63,7 @@
       "errorTitle": "Connection error",
       "instructions": "Tap a session to download and load it:",
       "empty": "No sessions on this device",
-      "savedHint": " — the file was saved and can be found in Browse Files.",
+      "savedHint": "The file was saved and can be found in Browse Files.",
       "retry": "Try again",
       "cancel": "Cancel"
     }
@@ -45,9 +82,25 @@
       "errorTitle": "Connection error",
       "instructions": "Tap a session to download and load it:",
       "empty": "No sessions on this device",
-      "savedHint": " — the file was saved and can be found in Browse Files.",
+      "savedHint": "The file was saved and can be found in Browse Files.",
       "retry": "Try again",
       "cancel": "Cancel"
+    },
+    "firmware": {
+      "button": "Firmware update",
+      "title": "Firmware update",
+      "checking": "Checking for updates…",
+      "upToDate": "Firmware v{{version}} is up to date.",
+      "noBuild": "No firmware build is available for this logger.",
+      "installLatest": "Install firmware v{{version}} ({{variant}})?",
+      "variantConfirmTitle": "Which logger variant do you have?",
+      "variantConfirmBody": "This logger didn't report its hardware variant. Installing the wrong image will fail on-device, but pick carefully:",
+      "install": "Install",
+      "rebooting": "Update sent — your logger is flashing the new firmware and restarting.",
+      "rebootingBody": "The Bluetooth link drops while it installs. Give it a few seconds, then rescan to reconnect.",
+      "notAvailable": "Firmware updates aren't available in this app version yet.",
+      "notAvailableBody": "Update the app to get logger firmware updates, or use the web app over Web Bluetooth.",
+      "back": "Back"
     }
   },
   "alfano": {
@@ -64,9 +117,10 @@
       "selectFile": "Select a session to download",
       "downloading": "Downloading…",
       "errorTitle": "Connection error",
+      "unavailableTitle": "Not available on this device",
       "instructions": "Tap a session to download and load it:",
       "empty": "No sessions on this device",
-      "savedHint": " — the file was saved and can be found in Browse Files.",
+      "savedHint": "The file was saved and can be found in Browse Files.",
       "retry": "Try again",
       "cancel": "Cancel"
     }

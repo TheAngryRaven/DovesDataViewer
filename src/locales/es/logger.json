@@ -4,6 +4,7 @@
   "subtitle": "Elige tu registrador para iniciar una descarga.",
   "comingSoon": "Próximamente",
   "close": "Cerrar",
+  "requestLogger": "Solicitar más registradores de datos",
   "trademarks": "MyChron es una marca registrada de AiM Tech S.r.l. y Alfano es una marca registrada de Alfano S.A. LapWing es independiente y no está afiliada ni respaldada por ellas; todos los nombres de productos, logotipos y marcas son propiedad de sus respectivos dueños.",
   "tags": {
     "fledgling": "Registrador DIY · Bluetooth LE",
@@ -11,6 +12,43 @@
     "alfano": "Bluetooth serie · requiere app nativa"
   },
   "fledglingUnsupported": "Web Bluetooth no es compatible aquí: usa Chrome, Edge u Opera en ordenador.",
+  "progress": {
+    "received": "Recibido:",
+    "speed": "Velocidad:",
+    "eta": "Tiempo restante:",
+    "complete": "{{percent}}% completado"
+  },
+  "errors": {
+    "unreachable": "No se puede conectar con el registrador. Asegúrate de que esté encendido y cerca.",
+    "permission": "Se necesita permiso de Bluetooth: permite Bluetooth / Dispositivos cercanos para esta app y vuelve a intentarlo.",
+    "hung": "Se perdió la conexión con el registrador durante la transferencia.",
+    "protocol": "El registrador envió una respuesta inesperada.",
+    "unsupported": "Esta función no está disponible en este dispositivo.",
+    "unsupportedAlfano": "Las descargas de Alfano aún no están disponibles en este dispositivo; por ahora son solo para Android.",
+    "wifiDeclined": "Selecciona la red Wi-Fi de tu MyChron para continuar.",
+    "notConnected": "El registrador ya no está conectado.",
+    "unknown": "Algo salió mal.",
+    "detailLabel": "Detalles técnicos",
+    "actionRetry": "Reintentar",
+    "actionRescan": "Buscar de nuevo",
+    "actionReconnect": "Reconectar"
+  },
+  "fledgling": {
+    "flow": {
+      "connecting": "Conectando…",
+      "scanningStatus": "Buscando DovesLapTimer…",
+      "pickerHint": "Si se te solicita, selecciona “DovesLapTimer” en la lista",
+      "fetching": "Obteniendo archivos…",
+      "fetchingStatus": "Obteniendo la lista de archivos…",
+      "selectFile": "Selecciona un archivo para descargar",
+      "downloading": "Descargando…",
+      "errorTitle": "Error de conexión",
+      "instructions": "Toca un archivo para descargarlo y cargarlo:",
+      "empty": "No se encontraron archivos en el dispositivo",
+      "savedHint": "El archivo se guardó y puedes encontrarlo en Explorar archivos.",
+      "cancel": "Cancelar"
+    }
+  },
   "mychron": {
     "nativeTitle": "Descarga de MyChron",
     "nativeBody": "Por determinar",
@@ -26,7 +64,7 @@
       "errorTitle": "Error de conexión",
       "instructions": "Toca una sesión para descargarla y cargarla:",
       "empty": "No hay sesiones en este dispositivo",
-      "savedHint": " — el archivo se guardó y puedes encontrarlo en Explorar archivos.",
+      "savedHint": "El archivo se guardó y puedes encontrarlo en Explorar archivos.",
       "retry": "Reintentar",
       "cancel": "Cancelar"
     }
@@ -45,9 +83,25 @@
       "errorTitle": "Error de conexión",
       "instructions": "Toca una sesión para descargarla y cargarla:",
       "empty": "No hay sesiones en este dispositivo",
-      "savedHint": " — el archivo se guardó y puedes encontrarlo en Explorar archivos.",
+      "savedHint": "El archivo se guardó y puedes encontrarlo en Explorar archivos.",
       "retry": "Reintentar",
       "cancel": "Cancelar"
+    },
+    "firmware": {
+      "button": "Actualización de firmware",
+      "title": "Actualización de firmware",
+      "checking": "Buscando actualizaciones…",
+      "upToDate": "El firmware v{{version}} está actualizado.",
+      "noBuild": "No hay ninguna versión de firmware disponible para este registrador.",
+      "installLatest": "¿Instalar el firmware v{{version}} ({{variant}})?",
+      "variantConfirmTitle": "¿Qué variante de registrador tienes?",
+      "variantConfirmBody": "Este registrador no informó su variante de hardware. Instalar la imagen equivocada fallará en el dispositivo; elige con cuidado:",
+      "install": "Instalar",
+      "rebooting": "Actualización enviada: tu registrador está grabando el nuevo firmware y reiniciándose.",
+      "rebootingBody": "La conexión Bluetooth se corta durante la instalación. Espera unos segundos y vuelve a buscar para reconectar.",
+      "notAvailable": "Las actualizaciones de firmware aún no están disponibles en esta versión de la app.",
+      "notAvailableBody": "Actualiza la app para recibir actualizaciones de firmware del registrador, o usa la versión web con Web Bluetooth.",
+      "back": "Atrás"
     }
   },
   "alfano": {
@@ -64,12 +118,12 @@
       "selectFile": "Selecciona una sesión para descargar",
       "downloading": "Descargando…",
       "errorTitle": "Error de conexión",
+      "unavailableTitle": "No disponible en este dispositivo",
       "instructions": "Toca una sesión para descargarla y cargarla:",
       "empty": "No hay sesiones en este dispositivo",
-      "savedHint": " — el archivo se guardó y puedes encontrarlo en Explorar archivos.",
+      "savedHint": "El archivo se guardó y puedes encontrarlo en Explorar archivos.",
       "retry": "Reintentar",
       "cancel": "Cancelar"
     }
-  },
-  "requestLogger": "Solicitar más registradores de datos"
+  }
 }

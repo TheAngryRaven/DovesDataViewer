@@ -11,7 +11,7 @@ const { invoke, ChannelMock } = vi.hoisted(() => {
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke, Channel: ChannelMock }));
 
-import { loggerScan, loggerConnect } from "./ipc";
+import { loggerScan, loggerConnect, loggerUpdateFirmware } from "./ipc";
 
 // The kind-agnostic commands (list / download / disconnect) are covered by
 // ../native/ipc.test.ts; this suite asserts the DovesLogger-specific scan/connect.
@@ -48,5 +48,31 @@ describe("doveslogger ipc", () => {
   it("passes backend error strings through unwrapped (prefix preserved)", async () => {
     invoke.mockRejectedValueOnce("device unreachable: permission denied");
     await expect(loggerScan()).rejects.toBe("device unreachable: permission denied");
+  });
+
+  it("uploads firmware with a progress channel and the raw image bytes", async () => {
+    type Progress = { received: number; total: number };
+    invoke.mockImplementation(
+      async (_cmd: string, args: { onProgress: { onmessage: ((m: Progress) => void) | null } }) => {
+        args.onProgress.onmessage?.({ received: 128, total: 256 });
+      },
+    );
+    const image = new Uint8Array([1, 2, 3]);
+    const onProgress = vi.fn();
+
+    await loggerUpdateFirmware(image, onProgress);
+
+    expect(invoke).toHaveBeenCalledWith("logger_update_firmware", {
+      image,
+      onProgress: expect.any(ChannelMock),
+    });
+    expect(onProgress).toHaveBeenCalledWith({ received: 128, total: 256 });
+  });
+
+  it("passes firmware rejections through unwrapped (unsupported/unknown-command intact)", async () => {
+    invoke.mockRejectedValueOnce("unsupported: firmware update not available");
+    await expect(loggerUpdateFirmware(new Uint8Array(), vi.fn())).rejects.toBe(
+      "unsupported: firmware update not available",
+    );
   });
 });

@@ -20,6 +20,9 @@
     "title": "Aggiornamento disponibile",
     "description": "Aggiorna per cancellare i file memorizzati nella cache obsoleti e caricare l'ultima versione dell'app.",
     "refresh": "Aggiorna",
-    "later": "Più tardi"
+    "later": "Più tardi",
+    "updating": "Aggiornamento…",
+    "updatingBody": "Scarico l'ultima versione — un attimo.",
+    "updated": "Sei sull'ultima versione."
   }
 }

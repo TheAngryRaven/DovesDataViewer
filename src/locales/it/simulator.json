@@ -1,0 +1,164 @@
+{
+  "title": "Simulatore firmware",
+  "subtitle": "Il vero firmware del DovesDataLogger, compilato in WebAssembly, che riproduce una vera sessione in pista. I pulsanti comandano i menu reali, anche a metà giro.",
+  "loading": "Avvio del firmware…",
+  "loadError": "Impossibile caricare il simulatore. Controlla la connessione e riprova.",
+  "display": {
+    "canvasLabel": "Display del dispositivo simulato",
+    "trueSize": "Dimensioni reali",
+    "trueSizeWhy": "Perché così piccolo? Questa è la dimensione reale dello schermo da 1,3″ — così appare montato sul volante.",
+    "scale": "Zoom"
+  },
+  "buttons": {
+    "group": "Pulsanti del dispositivo",
+    "left": "Pulsante sinistro",
+    "select": "Pulsante di selezione",
+    "right": "Pulsante destro",
+    "keyboardHint": "Tastiera: ← Invio →"
+  },
+  "transport": {
+    "play": "Riproduci",
+    "pause": "Pausa",
+    "skipPreRoll": "Salta acquisizione GPS",
+    "preRoll": "Acquisizione GPS…",
+    "timeline": "Timeline della sessione"
+  },
+  "state": {
+    "racing": "Modalità gara",
+    "idle": "Menu",
+    "laps_one": "{{count}} giro",
+    "laps_other": "{{count}} giri",
+    "best": "Migliore",
+    "gpsLocked": "GPS {{sats}} sat.",
+    "gpsAcquiring": "Nessun fix GPS"
+  },
+  "footer": {
+    "provenance": "Build firmware {{sha}} · {{date}} — codice identico al dispositivo fisico."
+  },
+  "picker": {
+    "label": "Sessione:"
+  },
+  "map": {
+    "toggleStyle": "Cambia stile mappa"
+  },
+  "howItWorks": {
+    "title": "Cosa sta facendo il dispositivo",
+    "p1": "Il dispositivo si avvia alla pressione di un pulsante o quando rileva dei giri motore. Poi individua il tracciato più vicino e carica in memoria tutte le sue configurazioni.",
+    "p2": "La modalità gara viene selezionata automaticamente non appena vengono rilevati i giri motore.",
+    "p3": "Quando la velocità raggiunge una soglia impostata, viene posato un waypoint e il dispositivo inizia a monitorare contemporaneamente tutte le linee di partenza/arrivo e di settore. Quando raggiungi di nuovo quel waypoint, confronta la distanza percorsa, trova la configurazione con la lunghezza più simile — e di cui hai anche attraversato più linee —, la seleziona e scarta le altre. Così registra il tuo primo giro con un tempo preciso, e da lì conta i giri normalmente."
+  },
+  "guide": {
+    "title": "Come funziona il simulatore",
+    "lead": "Questa è una simulazione completa del firmware del DovesDataLogger — esattamente il codice che esegue il dispositivo fisico, compilato per il tuo browser — per testare, valutare ed esplorare prima di costruirne uno.",
+    "steps": {
+      "boot": {
+        "title": "Avvio",
+        "body": "Il dispositivo si avvia come quello vero. Premi un pulsante qualsiasi per saltare la schermata di aggancio GPS e andare dritto al menu principale — oppure premi semplicemente Riproduci: circa 3 secondi dopo l'aggancio GPS, la schermata avanza da sola."
+      },
+      "controls": {
+        "title": "Comandi",
+        "body": "I pulsanti esterni (◀ ▶) scorrono le voci di menu e le pagine di gara; il pulsante centrale seleziona. Funziona anche la tastiera: ← Invio →."
+      },
+      "replay": {
+        "title": "Riprodurre una sessione",
+        "body": "Premi Riproduci per rivivere la sessione registrata. La modalità gara si attiva automaticamente, il firmware cerca la pista più vicina, esegue il rilevamento del tracciato e inizia a cronometrare i giri — la stessa pipeline che il dispositivo esegue in pista."
+      },
+      "ending": {
+        "title": "Terminare la sessione",
+        "body": "Alla fine della riproduzione il kart si ferma. Lascia che la sessione termini da sola, oppure vai alla pagina END RACE e premi il pulsante centrale per salvare il log manualmente."
+      },
+      "review": {
+        "title": "Rivedere",
+        "body": "Una sessione terminata viene salvata nella memoria temporanea del simulatore: apri Review nel menu principale per ricaricarla e sfogliare i suoi giri, proprio come sul dispositivo. (Svanisce quando lasci la pagina.)"
+      }
+    },
+    "pagesTitle": "Pagine della modalità gara (◀ ▶ per scorrerle)",
+    "pages": {
+      "stats": {
+        "name": "GPS Stats",
+        "desc": "Diagnostica: satelliti, HDOP, coordinate, batteria"
+      },
+      "speed": {
+        "name": "Speed",
+        "desc": "Velocità attuale in grande con il contagiri"
+      },
+      "rpm": {
+        "name": "Engine RPM",
+        "desc": "RPM in tempo reale, con avviso di fuorigiri al limite"
+      },
+      "lapTime": {
+        "name": "Current Lap",
+        "desc": "Il cronometro del giro in corso"
+      },
+      "pace": {
+        "name": "Lap Pace",
+        "desc": "Delta +/− in tempo reale rispetto al giro migliore (il pulsante centrale salta qui in movimento)"
+      },
+      "best": {
+        "name": "Best Lap",
+        "desc": "Il giro più veloce finora, e quale giro lo ha stabilito"
+      },
+      "optimal": {
+        "name": "Optimal Lap",
+        "desc": "Miglior tempo teorico costruito dai tuoi settori migliori"
+      },
+      "history": {
+        "name": "Lap History",
+        "desc": "Tutti i giri della sessione; il pulsante centrale sfoglia l'elenco"
+      },
+      "end": {
+        "name": "End Race",
+        "desc": "Il pulsante centrale termina la sessione e salva il log"
+      }
+    },
+    "note": "Nota: Bluetooth e trasferimento USB non sono funzionanti nel simulatore.",
+    "systemTitle": "Pagine di menu e sistema (il resto del firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "L'uccello, per un attimo, all'accensione"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Ogni avvio arriva qui: stato dell'aggancio e HDOP in alto, una barra di segnale per satellite in basso; qualsiasi pulsante la salta"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Entra direttamente in modalità gara; la registrazione parte all'aggancio dell'ora GPS"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Sfoglia i log salvati; il pulsante centrale ne apre uno"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Replay istantaneo di una sessione salvata: pilota, tracciato, data, giro migliore e ottimale, e l'elenco completo dei giri"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (download con l'app) o USB (la scheda SD come unità)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Abbinamento e stato della Insta360, inserimento manuale del seriale e menu di test — il dispositivo avvia la registrazione della tua camera all'accensione del motore"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Pagina di avvio per una SD vuota/corrotta: tieni premuto Select 3 s per formattarla sul dispositivo"
+      },
+      "warnings": {
+        "name": "Avvisi e guasti",
+        "desc": "Gli avvisi recuperabili si chiudono con qualsiasi pulsante; i guasti gravi (nessuna SD) bloccano lo schermo"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Schermata di ricarica a riposo; qualsiasi pulsante risveglia il dispositivo al menu"
+      }
+    },
+    "systemNote": "Le pagine che richiedono hardware reale — l'unità USB, una camera abbinata, la formattazione SD, la ricarica — non sono raggiungibili nel simulatore."
+  }
+}

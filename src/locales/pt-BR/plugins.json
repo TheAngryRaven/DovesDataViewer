@@ -203,5 +203,25 @@
     "close": "Fechar",
     "customTrackNotice": "Esta pista não está na lista integrada — seu traçado e setores são enviados com o seu snapshot, e a pista é adicionada ao banco de dados da comunidade para revisão.",
     "trackAdded": "Pista enviada ao banco de dados da comunidade para revisão."
+  },
+  "share": {
+    "iconTitle": "Compartilhar sessão",
+    "dialogTitle": "Compartilhar sessão",
+    "dialogDescription": "Qualquer pessoa com o link pode ver esta sessão em modo somente leitura. O link nunca revela o nome do arquivo.",
+    "publicToggle": "Link de compartilhamento público",
+    "linkLabel": "Link de compartilhamento",
+    "copy": "Copiar link",
+    "copied": "Link copiado",
+    "copyFailed": "Não foi possível copiar o link",
+    "privacyNote": "Compartilhado publicamente: o traçado GPS e os canais de telemetria deste registro, a geometria do circuito, seu nome de exibição, a data da sessão e a volta mais rápida. Não compartilhado: o nome do arquivo, os acertos, as notas e os vídeos.",
+    "customCourseNote": "Esta sessão usa um dos seus circuitos personalizados. A geometria dele é incluída no compartilhamento para que os espectadores tenham tempos de volta precisos, e o circuito também é enviado ao banco de dados comunitário para revisão.",
+    "noCourse": "Esta sessão não está marcada com um circuito conhecido, então ainda não pode ser compartilhada. Atribua uma pista e um circuito primeiro.",
+    "offline": "Você está offline — compartilhar requer conexão.",
+    "loadStateFailed": "Não foi possível carregar o estado de compartilhamento desta sessão",
+    "shareFailed": "Não foi possível criar o link de compartilhamento",
+    "unshareFailed": "Não foi possível tornar a sessão privada",
+    "defaultToggle": "Novos envios são públicos por padrão",
+    "defaultToggleHint": "Afeta apenas envios futuros — as sessões existentes mantêm o compartilhamento atual.",
+    "defaultUpdateFailed": "Não foi possível atualizar a preferência de compartilhamento"
   }
 }

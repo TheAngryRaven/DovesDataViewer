@@ -100,6 +100,67 @@ connection** and calls `logger_disconnect` on every exit (close/cancel/error/
 unmount). MyChron's `LoggerConnection.supportsDeviceDetails` is `false` — no in-app
 settings/tracks/firmware tab.
 
+## Error-prefix handling (all native logger flows)
+
+Every `logger_*` rejection string is classified by
+`src/lib/loggers/errors.ts` (`classifyLoggerError`) into a typed category, and the
+download flows render a translated, actionable headline (`logger:errors.*`) with
+the matching Retry / Rescan / Reconnect button via the shared `ErrorPanel`
+(`DownloadPanels.tsx`); the raw backend string is preserved behind a collapsed
+"technical details" disclosure. Android permission denials arrive under
+`device unreachable:` — the remainder is sniffed for permission wording and maps
+to a dedicated "Bluetooth permission needed" message. `unsupported:` renders as
+an informational "not available" panel (never an error toast), and
+`isMissingCommandError` detects an older shell missing a command entirely.
+
+## DovesLogger / Fledgling BLE download + firmware (native)
+
+The same Fledgling hardware the web app reaches over Web Bluetooth is served
+natively over Tauri BLE IPC: `DovesloggerDownload.tsx` (lazy) drives
+`logger_scan({ kind:"doveslogger" })` → in-app device picker (BLE has no OS
+picker; the backend matches the advertised `0x1820` service, so renamed devices
+still appear) → `logger_connect({ kind:"doveslogger", host })` → list → download.
+Downloads are the raw device file bytes (`.dove`/`.dovex`/`.csv`) fed to
+`parseDatalogFile` unchanged. First scan/connect on Android may pop the runtime
+Bluetooth permission dialog — a denial rejects under `device unreachable:` and
+renders the permission message + Rescan. The flow owns its connection and
+disconnects on every exit.
+
+**Firmware update (native):** a Firmware button on the connected file-list
+screen runs check → confirm → download → upload via
+`logger_update_firmware({ image, onProgress: Channel })`
+(`useNativeFirmwareUpdate` + `NativeFirmwarePanel`). It reuses the web OTA's
+transport-agnostic `lib/ble/dfu/` layer end-to-end (manifest, variant pick,
+version evaluate, CRC-verified download via `acquireFirmwareImage`); installed
+version/variant come from the connect handshake's `LoggerDeviceInfo.fields`
+(`doveslogger/firmwareInfo.ts` probes candidate keys and honors an optional
+`cap.fw_update` capability flag — **exact field names are an open item with the
+LapWing side**). When the device didn't report a variant, the user confirms
+sense/nonsense explicitly. After upload the device **flashes and reboots — the
+BLE drop is success**; the UI says "device is restarting" and lands back at the
+scan screen. If the shell lacks the command (`unsupported:` / unknown command),
+the flow shows "not available in this app version" and hides the button for the
+session — no build flag needed. Settings/tracks/battery remain web-only
+(`supportsDeviceDetails` stays `false`). Open items: the final command
+name/signature and whether the image should ride a raw-body
+`tauri::ipc::Request` instead of a JSON-serialized `Uint8Array` (~3-4× inflation
+for a ~700 KB image) — the JS wrapper's signature is stable either way.
+
+## Alfano 6 Bluetooth-serial download (native, Android-only)
+
+Alfano talks Classic Bluetooth SPP, which neither the web nor (currently)
+desktop shells can reach — the backend is Android-only and still TBD.
+`AlfanoDownload.tsx` (lazy) mirrors the DovesLogger flow over
+`logger_scan({ kind:"alfano" })` / `logger_connect({ kind:"alfano", host })`.
+Per the contract: the scan returns **already-paired (bonded) devices only** (no
+in-app discovery/pairing — the empty state should point at Android Bluetooth
+settings), `rssi` is always absent, `logger_list_files` returns sessions newest →
+oldest with hex-id `name`s (use `date`/`meta` for display), and desktop rejects
+with `unsupported:`, which renders as the informational "not available on this
+device" panel. The final download file format is still being decided on the
+LapWing side (raw Alfano records today; the plan is a format DDV already
+imports), so the import step stays pluggable behind `parseDatalogFile`.
+
 ## Account deletion (Google Play requirement)
 
 Play requires a publicly reachable account-deletion URL in addition to the in-app

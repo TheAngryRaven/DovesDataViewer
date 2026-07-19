@@ -1,8 +1,9 @@
 /**
- * Shared presentational panels for the logger download flows. The file-list and
- * progress UI is identical across transports (BLE Fledgling, native MyChron), so
- * it lives here and both flows compose it. Transport-specific states (connecting,
- * Wi-Fi selecting, errors) stay in each flow's component.
+ * Shared presentational panels for the logger download flows. The file-list,
+ * progress, and error UI is identical across transports (BLE Fledgling, native
+ * MyChron/DovesLogger/Alfano), so it lives here and every flow composes it.
+ * Transport-specific states (connecting, Wi-Fi selecting) stay in each flow's
+ * component, and all strings are translated by the caller.
  */
 
 import { Button } from "@/components/ui/button";
@@ -14,18 +15,13 @@ interface FileListPanelProps {
   files: LoggerFile[];
   onSelect: (file: LoggerFile) => void;
   /** Instruction line above the list. */
-  instructions?: string;
+  instructions: string;
   /** Shown when the device reports no files. */
-  emptyText?: string;
+  emptyText: string;
 }
 
 /** Tappable list of downloadable logs on the device. */
-export function FileListPanel({
-  files,
-  onSelect,
-  instructions = "Click a file to download and load it:",
-  emptyText = "No files found on device",
-}: FileListPanelProps) {
+export function FileListPanel({ files, onSelect, instructions, emptyText }: FileListPanelProps) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm text-muted-foreground mb-2">{instructions}</p>
@@ -105,10 +101,14 @@ export function DeviceListPanel({
 interface ProgressPanelProps {
   currentFile: string;
   progress: LoggerDownloadProgress;
+  /** Stat-row labels, translated by the caller. */
+  labels: { received: string; speed: string; eta: string };
+  /** Fully-formatted "x% complete" line, translated by the caller. */
+  completeText: string;
 }
 
 /** Progress bar + received/speed/eta stats for an in-flight download. */
-export function ProgressPanel({ currentFile, progress }: ProgressPanelProps) {
+export function ProgressPanel({ currentFile, progress, labels, completeText }: ProgressPanelProps) {
   return (
     <div className="flex flex-col gap-4 py-4">
       <p className="font-mono text-sm text-center">{currentFile}</p>
@@ -121,21 +121,73 @@ export function ProgressPanel({ currentFile, progress }: ProgressPanelProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <div className="text-muted-foreground">Received:</div>
+        <div className="text-muted-foreground">{labels.received}</div>
         <div className="text-right font-mono">
           {formatBytes(progress.received)} / {formatBytes(progress.total)}
         </div>
 
-        <div className="text-muted-foreground">Speed:</div>
+        <div className="text-muted-foreground">{labels.speed}</div>
         <div className="text-right font-mono">{progress.speed}</div>
 
-        <div className="text-muted-foreground">ETA:</div>
+        <div className="text-muted-foreground">{labels.eta}</div>
         <div className="text-right font-mono">{progress.eta}</div>
       </div>
 
-      <p className="text-xs text-center text-muted-foreground">
-        {progress.percent.toFixed(1)}% complete
-      </p>
+      <p className="text-xs text-center text-muted-foreground">{completeText}</p>
+    </div>
+  );
+}
+
+interface ErrorPanelProps {
+  /** Translated, user-facing headline — never the raw backend string. */
+  message: string;
+  /** Raw error text, tucked into a collapsed disclosure for bug reports. */
+  detail?: string;
+  /** Label for the disclosure, translated by the caller. */
+  detailLabel: string;
+  onCancel: () => void;
+  cancelLabel: string;
+  /** Recovery affordance; omitted when the failure has nothing to retry. */
+  onAction?: () => void;
+  actionLabel?: string;
+  /** Optional "the file was saved" reassurance under the headline. */
+  savedHint?: string;
+}
+
+/**
+ * Shared failure panel for the download flows: a translated headline with the
+ * matching recovery action (retry / rescan / reconnect), and the raw backend
+ * message collapsed behind a "technical details" disclosure so it's available
+ * without being the message.
+ */
+export function ErrorPanel({
+  message,
+  detail,
+  detailLabel,
+  onCancel,
+  cancelLabel,
+  onAction,
+  actionLabel,
+  savedHint,
+}: ErrorPanelProps) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-4">
+      <p className="text-destructive text-center">{message}</p>
+      {savedHint && <p className="text-sm text-center text-muted-foreground">{savedHint}</p>}
+      {detail && (
+        <details className="w-full text-center">
+          <summary className="text-xs text-muted-foreground cursor-pointer select-none">
+            {detailLabel}
+          </summary>
+          <p className="mt-1 font-mono text-xs text-muted-foreground break-words">{detail}</p>
+        </details>
+      )}
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={onCancel}>
+          {cancelLabel}
+        </Button>
+        {onAction && actionLabel && <Button onClick={onAction}>{actionLabel}</Button>}
+      </div>
     </div>
   );
 }

@@ -10,5 +10,8 @@
   "snapshotsTitle": "Instantanés du classement",
   "snapshotsEmpty": "Ce pilote n'a téléversé aucun instantané au classement.",
   "noWeight": "Aucun poids indiqué",
-  "openSnapshot": "Ouvrir ce tour dans la visionneuse"
+  "openSnapshot": "Ouvrir ce tour dans la visionneuse",
+  "sharedTitle": "Sessions partagées",
+  "sharedEmpty": "Aucune session partagée pour le moment.",
+  "openShared": "Ouvrir cette session dans la visionneuse en lecture seule"
 }

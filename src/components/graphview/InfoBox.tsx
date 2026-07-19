@@ -52,7 +52,7 @@ interface InfoBoxProps {
   /** Hide the Video tab — the player was relocated into the graph stack (mobile),
    *  and two players can't share the single video element ref. */
   hideVideoTab?: boolean;
-  /** Read-only leaderboard view: hide the Video tab + weather panel. */
+  /** Read-only view: hide the Video + Vehicle tabs (weather stays available). */
   readOnly?: boolean;
 }
 
@@ -75,8 +75,11 @@ export function InfoBox({
 
   useEffect(() => { setSelectedVehicleId(sessionKartId); setSelectedSetupId(sessionSetupId); }, [sessionKartId, sessionSetupId]);
 
-  // If the video panel was relocated while this tab was open, fall back to data.
-  useEffect(() => { if ((hideVideoTab || readOnly) && tab === 'video') setTab('data'); }, [hideVideoTab, readOnly, tab]);
+  // If the open tab became unavailable (video relocated, or read-only hid
+  // video/vehicle), fall back to data.
+  useEffect(() => {
+    if (((hideVideoTab || readOnly) && tab === 'video') || (readOnly && tab === 'vehicle')) setTab('data');
+  }, [hideVideoTab, readOnly, tab]);
 
   const unit = useKph ? 'kph' : 'mph';
   const convertSpeed = (speed: number) => useKph ? speed * 1.60934 : speed;
@@ -117,7 +120,9 @@ export function InfoBox({
     <div className="flex flex-col h-full min-h-0 bg-card border-b border-border">
       <div className="flex shrink-0 border-b border-border">
         <button onClick={() => setTab('data')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'data' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabData')}</button>
-        <button onClick={() => setTab('vehicle')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'vehicle' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVehicle')}</button>
+        {!readOnly && (
+          <button onClick={() => setTab('vehicle')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'vehicle' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVehicle')}</button>
+        )}
         {!hideVideoTab && !readOnly && (
           <button onClick={() => setTab('video')} className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'video' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}>{t('infoBox.tabVideo')}</button>
         )}
@@ -192,11 +197,11 @@ export function InfoBox({
                 )}
               </div>
             )}
-            {!readOnly && (
-              <div className="pt-2 border-t border-border">
-                <WeatherPanel lat={sessionGpsPoint?.lat} lon={sessionGpsPoint?.lon} sessionDate={sessionStartDate} cachedStation={cachedWeatherStation} onStationResolved={onWeatherStationResolved} detailed />
-              </div>
-            )}
+            {/* Weather works in read-only too — just without the metadata
+                write-back (the synthetic session has no real file to tag). */}
+            <div className="pt-2 border-t border-border">
+              <WeatherPanel lat={sessionGpsPoint?.lat} lon={sessionGpsPoint?.lon} sessionDate={sessionStartDate} cachedStation={cachedWeatherStation} onStationResolved={readOnly ? undefined : onWeatherStationResolved} detailed />
+            </div>
           </>
         ) : (
           /* Vehicle tab */

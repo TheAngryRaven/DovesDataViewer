@@ -20,6 +20,9 @@
     "title": "Update verfügbar",
     "description": "Aktualisieren, um veraltete zwischengespeicherte Dateien zu löschen und die neueste App-Version zu laden.",
     "refresh": "Neu laden",
-    "later": "Später"
+    "later": "Später",
+    "updating": "Aktualisiere…",
+    "updatingBody": "Neueste Version wird geladen — einen Moment.",
+    "updated": "Du bist auf der neuesten Version."
   }
 }

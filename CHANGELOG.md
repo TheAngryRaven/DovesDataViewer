@@ -11,6 +11,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.1.0] - 2026-07-17
+
+### Changed
+- **Vendored firmware simulator updated to firmware `v3.0.0`** (build
+  `ecc88c3`): the `/simulator` page now runs the exact code of the v3.0.0
+  firmware release, with the matching DovesLapTimer revision. Passed the
+  sim's node smoke test (boot, state, determinism, reset) before vendoring.
+
+### Added
+- **Silent auto-update on an idle home page.** When a new build is detected
+  and the user isn't in the middle of anything (home page, no session
+  loaded), the app now applies the update itself: a brief "Updating…"
+  progress toast, an automatic reboot onto the new version, and a
+  confirmation toast on the fresh load — no more mystery refresh that
+  eventually "flashes" into the new build. Mid-session (or on any other
+  page) the existing "Update ready" toast is shown instead, so a loaded
+  session is never yanked away. A per-commit guard prevents reload loops
+  if an update fails to stick. (plan 0010)
+- **Simulator system-pages glossary.** The simulator guide now ends with a
+  glossary of the firmware's menu and system pages — boot splash, GPS
+  status, main menu, race mode, session review, transfer (BLE/USB), camera
+  pairing, SD format, warnings/faults, and the charging screen — so users
+  can see the full feature set of the firmware, including the pages that
+  need real hardware and can't be reached in the simulator. (plan 0010)
+- **Simulator "what the device is doing" explainer.** A short description
+  below the playback controls walking through the firmware's actual
+  behavior: boot on button press or RPM, nearest-track lookup with all
+  courses loaded into memory, automatic race-mode entry on RPM, and the
+  waypoint-drop course-detection pass that picks the matching course and
+  registers an accurate first lap. (plan 0010)
+- **Firmware simulator page (`/simulator`).** The real DovesDataLogger
+  firmware — the vendored WebAssembly build — running in the browser on a
+  simulated 128×64 OLED, replaying the bundled Orlando Kart Center sample
+  session: watch it boot, acquire GPS, auto-enter race mode, detect the
+  track and count laps, exactly as the physical device does (the same wasm
+  core reproduces this session's 13 hardware lap times to the millisecond).
+  Three on-screen buttons (plus ← Enter →) drive the real firmware menus,
+  even mid-playback. Includes play/pause, 1–10× speed, a scrubbable
+  timeline (rewinds re-boot the firmware and fast-replay — it's a real
+  device, not a video), an integer-scale zoom picker, and a true-size
+  toggle showing the display at its physical 1.3″ size. Fully offline-capable.
+  (plan 0010, Phase A)
+- **Vendored BirdsEye firmware simulator (`public/sim/`, groundwork).** The
+  real DovesDataLogger firmware compiled to WebAssembly (207 KB), pinned by
+  construction: `birdseye-sim.mjs` (API contract v1 — see `BirdsEye/sim/API.md`
+  in the firmware repo), the Emscripten core module + wasm, `version.json`
+  build provenance (firmware sha, DovesLapTimer sha, display-lib versions),
+  and a standalone `sim/test.html` harness that boots the firmware on a canvas
+  and replays real `.dovex` files. Renders byte-identically to the firmware
+  repo's golden fixtures and reproduces a hardware session's 13 lap times to
+  the exact millisecond. The `/simulator` page consuming it lands in a
+  follow-up (sim plan Phases 5-7).
+- **Shareable session links.** Cloud-synced logs can now be shared publicly behind
+  an opaque link (`/s/…`) that never reveals the file name — anyone with the link
+  (no account needed) opens the full session in the read-only viewer, with precise
+  lap and sector timing even on your personal custom courses (the course geometry
+  travels with the share; custom courses are also auto-submitted to the community
+  track database for review). Share or unshare any session from the link icon in
+  the file browser or the Cloud Logs panel; a new profile setting makes future
+  uploads public by default (private remains the default), and your public sessions
+  appear on your driver profile page. Shared copies count toward cloud storage.
+  Opening a shared session selects its fastest lap automatically.
+- **Read-only views gained overlays + weather.** The Overlays menu now works in
+  read-only sessions (leaderboards and shared links), so you can compare those laps
+  against your own local sessions, and historical weather is shown when the session
+  carries a date. Vehicle/setup editing stays hidden — including the pro-mode
+  Vehicle tab, which read-only views previously still showed.
+- **Logger firmware updates in the native app.** The DovesLogger/Fledgling flow's
+  connected screen gains a **Firmware update** button: it checks the published OTA
+  manifest, confirms the build (asking you to pick the *sense*/*nonsense* variant
+  explicitly if the device didn't report one), downloads and CRC-verifies the image,
+  and uploads it to the logger with progress. The device then flashes and restarts —
+  the app says so and returns you to the scan screen to reconnect. On app versions
+  whose native shell can't flash yet, the button gracefully reports "not available in
+  this app version" instead of erroring. Web firmware updates are unchanged.
+
+### Changed
+- **Friendlier logger-download errors.** All logger download flows (Fledgling web +
+  native, MyChron, Alfano) now translate failures into plain-language messages with
+  the right recovery button — Try again, Rescan, or Reconnect — instead of showing
+  raw backend errors. A denied Android Bluetooth permission gets a dedicated
+  "Bluetooth permission needed" message, a cancelled MyChron Wi-Fi join asks you to
+  pick the network again, and Alfano on unsupported platforms shows an informational
+  "not available on this device" notice. The raw technical detail stays available
+  behind a collapsible line, and download failures now only claim the file was saved
+  when it actually was.
+- The web Fledgling download dialog and shared download panels are now fully
+  translated (they had hard-coded English).
+
 ## [3.0.0] - 2026-06-30
 
 ### Added

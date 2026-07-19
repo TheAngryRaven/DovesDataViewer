@@ -1,0 +1,164 @@
+{
+  "title": "Firmware-Simulator",
+  "subtitle": "Die echte DovesDataLogger-Firmware, kompiliert zu WebAssembly, spielt eine echte Streckensession ab. Die Tasten bedienen die echten Menüs — auch mitten in der Runde.",
+  "loading": "Firmware startet…",
+  "loadError": "Der Simulator konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+  "display": {
+    "canvasLabel": "Simuliertes Gerätedisplay",
+    "trueSize": "Originalgröße",
+    "trueSizeWhy": "Warum so klein? Das ist die echte Größe des 1,3″-Displays — so sieht es am Lenkrad aus.",
+    "scale": "Zoom"
+  },
+  "buttons": {
+    "group": "Gerätetasten",
+    "left": "Linke Taste",
+    "select": "Auswahltaste",
+    "right": "Rechte Taste",
+    "keyboardHint": "Tastatur: ← Enter →"
+  },
+  "transport": {
+    "play": "Abspielen",
+    "pause": "Pause",
+    "skipPreRoll": "GPS-Erfassung überspringen",
+    "preRoll": "GPS-Erfassung…",
+    "timeline": "Session-Zeitleiste"
+  },
+  "state": {
+    "racing": "Rennmodus",
+    "idle": "Menü",
+    "laps_one": "{{count}} Runde",
+    "laps_other": "{{count}} Runden",
+    "best": "Beste",
+    "gpsLocked": "GPS {{sats}} Sat.",
+    "gpsAcquiring": "Kein GPS-Fix"
+  },
+  "footer": {
+    "provenance": "Firmware-Build {{sha}} · {{date}} — identischer Code wie auf dem physischen Gerät."
+  },
+  "picker": {
+    "label": "Session:"
+  },
+  "map": {
+    "toggleStyle": "Kartenstil wechseln"
+  },
+  "howItWorks": {
+    "title": "Was das Gerät gerade macht",
+    "p1": "Das Gerät startet, sobald eine Taste gedrückt oder eine Drehzahl erkannt wird. Danach sucht es die nächstgelegene Strecke und lädt alle ihre Streckenvarianten in den Speicher.",
+    "p2": "Der Rennmodus wird automatisch gewählt, sobald eine Drehzahl erkannt wird.",
+    "p3": "Erreicht die Geschwindigkeit einen festgelegten Schwellwert, wird ein Wegpunkt gesetzt und das Gerät überwacht ab dann alle Start-/Ziel- und Sektorlinien gleichzeitig. Beim erneuten Erreichen dieses Wegpunkts vergleicht es die gefahrene Distanz, sucht die Streckenvariante mit der besten Längenübereinstimmung — bei der außerdem mehrere ihrer Linien überquert wurden —, wählt sie aus und verwirft den Rest. Damit ist die erste Runde mit einer präzisen Rundenzeit registriert, und ab dann zählt es die Runden ganz normal."
+  },
+  "guide": {
+    "title": "So funktioniert der Simulator",
+    "lead": "Dies ist eine vollständige Simulation der DovesDataLogger-Firmware — exakt der Code, den das physische Gerät ausführt, für deinen Browser kompiliert — zum Testen, Bewerten und Ausprobieren, bevor du eines baust.",
+    "steps": {
+      "boot": {
+        "title": "Booten",
+        "body": "Das Gerät bootet wie das echte. Drücke eine beliebige Taste, um den GPS-Sperrbildschirm zu überspringen und direkt ins Hauptmenü zu gelangen — oder drücke einfach Abspielen: etwa 3 Sekunden nach dem GPS-Fix wechselt der Bildschirm von selbst."
+      },
+      "controls": {
+        "title": "Bedienung",
+        "body": "Die äußeren Tasten (◀ ▶) wechseln zwischen Menüpunkten und Rennseiten; die mittlere Taste wählt aus. Die Tastatur funktioniert auch: ← Enter →."
+      },
+      "replay": {
+        "title": "Eine Session abspielen",
+        "body": "Drücke Abspielen, um die aufgezeichnete Session wiederzugeben. Der Rennmodus startet automatisch, die Firmware sucht die nächstgelegene Strecke, führt die Kurserkennung aus und beginnt Runden zu stoppen — dieselbe Pipeline wie auf der Strecke."
+      },
+      "ending": {
+        "title": "Session beenden",
+        "body": "Am Ende der Wiedergabe kommt das Kart zum Stehen. Lass die Session von selbst enden, oder navigiere zur END-RACE-Seite und drücke die mittlere Taste, um das Log selbst zu speichern."
+      },
+      "review": {
+        "title": "Auswerten",
+        "body": "Eine beendete Session landet im temporären Speicher des Simulators: öffne Review im Hauptmenü, um sie zu laden und ihre Runden durchzusehen — genau wie am Gerät. (Beim Verlassen der Seite verschwindet sie.)"
+      }
+    },
+    "pagesTitle": "Rennmodus-Seiten (mit ◀ ▶ durchblättern)",
+    "pages": {
+      "stats": {
+        "name": "GPS Stats",
+        "desc": "Diagnose: Satelliten, HDOP, Koordinaten, Akku"
+      },
+      "speed": {
+        "name": "Speed",
+        "desc": "Aktuelle Geschwindigkeit groß, mit Rundenzähler"
+      },
+      "rpm": {
+        "name": "Engine RPM",
+        "desc": "Live-Drehzahl, mit Überdreh-Warnung am Limit"
+      },
+      "lapTime": {
+        "name": "Current Lap",
+        "desc": "Die laufende Rundenzeit"
+      },
+      "pace": {
+        "name": "Lap Pace",
+        "desc": "Live-Delta +/− zur besten Runde (die mittlere Taste springt in Fahrt hierher)"
+      },
+      "best": {
+        "name": "Best Lap",
+        "desc": "Schnellste Runde bisher, und welche Runde sie gesetzt hat"
+      },
+      "optimal": {
+        "name": "Optimal Lap",
+        "desc": "Theoretische Bestzeit aus deinen besten Sektoren"
+      },
+      "history": {
+        "name": "Lap History",
+        "desc": "Jede Runde der Session; die mittlere Taste blättert durch die Liste"
+      },
+      "end": {
+        "name": "End Race",
+        "desc": "Die mittlere Taste beendet die Session und speichert das Log"
+      }
+    },
+    "note": "Hinweis: Bluetooth und USB-Übertragung funktionieren im Simulator nicht.",
+    "systemTitle": "Menü- & Systemseiten (der Rest der Firmware)",
+    "system": {
+      "splash": {
+        "name": "Boot splash",
+        "desc": "Der Vogel, kurz, beim Einschalten"
+      },
+      "gpsStatus": {
+        "name": "GPS Status",
+        "desc": "Jeder Start landet hier: Fix-Status und HDOP oben, ein Signalbalken pro Satellit unten; jede Taste überspringt sie"
+      },
+      "menu": {
+        "name": "Main Menu",
+        "desc": "Race, Review, Transfer, Camera"
+      },
+      "race": {
+        "name": "Race",
+        "desc": "Direkt in den Rennmodus; das Logging startet, sobald die GPS-Zeit fixiert ist"
+      },
+      "reviewList": {
+        "name": "Review: files",
+        "desc": "Gespeicherte Logs durchstöbern; die mittlere Taste öffnet eines"
+      },
+      "reviewResults": {
+        "name": "Review: results",
+        "desc": "Sofortwiedergabe einer gespeicherten Session: Fahrer, Kurs, Datum, beste und optimale Runde und die komplette Rundenliste"
+      },
+      "transfer": {
+        "name": "Transfer",
+        "desc": "Bluetooth (Download per Begleit-App) oder USB (die SD-Karte als Laufwerk)"
+      },
+      "camera": {
+        "name": "Camera",
+        "desc": "Insta360-Kopplung und Status, manuelle Seriennummern-Eingabe und ein Testmenü — das Gerät startet deine Kamera automatisch beim Motorstart"
+      },
+      "sdFormat": {
+        "name": "SD Format",
+        "desc": "Boot-Seite für eine leere/defekte SD-Karte: Select 3 s halten, um sie am Gerät zu formatieren"
+      },
+      "warnings": {
+        "name": "Warnungen & Fehler",
+        "desc": "Behebbare Hinweise schließt jede Taste; harte Fehler (keine SD-Karte) halten den Bildschirm"
+      },
+      "charging": {
+        "name": "Charging",
+        "desc": "Ladebildschirm im Ruhezustand; jede Taste weckt das Gerät zurück ins Menü"
+      }
+    },
+    "systemNote": "Seiten, die echte Hardware brauchen — das USB-Laufwerk, eine gekoppelte Kamera, SD-Formatierung, Laden — sind im Simulator nicht erreichbar."
+  }
+}

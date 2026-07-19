@@ -12,11 +12,20 @@
 
 import { getFile, saveFile } from "@/lib/fileStorage";
 import { getAccessor } from "./storeAccessors";
-import { fetchStorageUsage, isQuotaError, syncRecords, userFiles, type SyncRecordRow } from "./cloudClient";
+import {
+  fetchStorageUsage,
+  isQuotaError,
+  sharedFiles,
+  sharedSessions,
+  syncRecords,
+  userFiles,
+  type SyncRecordRow,
+} from "./cloudClient";
 import { DOC_STORES, FILE_STORE, extractKey } from "./syncStores";
 import { markPushed, orphanedObjectNames } from "./fileSync";
 import { DEFAULT_TOTAL_LIMIT, type StorageUsage } from "./storageTypes";
 import { decideSync, pendingId, recordUpdatedAt } from "./merge";
+import { shareToken, type FileIndexData } from "./shareState";
 
 /** Storage object path for a file blob, scoped to the user's folder. */
 function blobPath(userId: string, name: string): string {
@@ -33,18 +42,48 @@ async function writeOne(store: string, record: unknown): Promise<void> {
   await getAccessor(store).putOne(record as Record<string, unknown>);
 }
 
+/** The file's cloud index-row data (size + share marker), or null when not indexed. */
+export async function readFileIndexData(userId: string, name: string): Promise<FileIndexData | null> {
+  const { data, error } = await syncRecords()
+    .select("data")
+    .eq("user_id", userId)
+    .eq("store", FILE_STORE)
+    .eq("record_key", name)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to read file index for ${name}: ${error.message}`);
+  return ((data as { data?: FileIndexData } | null)?.data as FileIndexData | undefined) ?? null;
+}
+
+/** Merge a patch into the file's index-row data (read-merge-write, share-preserving). */
+export async function patchFileIndexData(
+  userId: string,
+  name: string,
+  patch: (data: FileIndexData | null) => FileIndexData,
+): Promise<void> {
+  const existing = await readFileIndexData(userId, name);
+  const { error } = await syncRecords().upsert(
+    [{ user_id: userId, store: FILE_STORE, record_key: name, data: patch(existing) }],
+    { onConflict: "user_id,store,record_key" },
+  );
+  if (error) throw new Error(`Failed to update file index for ${name}: ${error.message}`);
+}
+
 /** Upload one local file blob + its index row. Returns false if not stored locally. */
 async function uploadBlob(userId: string, name: string): Promise<boolean> {
   const blob = await getFile(name);
   if (!blob) return false;
   const path = blobPath(userId, name);
+  // Read the existing index row first: re-uploads must preserve the share
+  // marker (data.share — a live token or an explicit opt-out, plan 0009).
+  const existing = await readFileIndexData(userId, name).catch(() => null);
   const { error: upErr } = await userFiles().upload(path, blob, {
     upsert: true,
     contentType: blob.type || "application/octet-stream",
   });
   if (upErr) throw new Error(`Failed to upload ${name}: ${upErr.message}`);
+  const data: FileIndexData = { ...(existing ?? {}), size: blob.size };
   const { error } = await syncRecords().upsert(
-    [{ user_id: userId, store: FILE_STORE, record_key: name, data: { size: blob.size } }],
+    [{ user_id: userId, store: FILE_STORE, record_key: name, data }],
     { onConflict: "user_id,store,record_key" },
   );
   if (error) {
@@ -89,8 +128,24 @@ export async function listCloudFiles(userId: string): Promise<CloudFile[]> {
  * Delete one log file from the cloud: the blob in the bucket + its index row.
  * Does NOT touch any device's local copy — callers handle local deletion
  * separately (and only for the current device).
+ *
+ * This is the single choke point every cloud-file deletion funnels through, so
+ * it also retires the file's share (plan 0009): the index row carries the share
+ * token, and once that row is gone the token↔filename mapping is lost — clean
+ * up the public share row + blob first. Best-effort: a share-cleanup hiccup
+ * must never block the delete itself.
  */
 export async function deleteCloudFile(userId: string, name: string): Promise<void> {
+  try {
+    const data = await readFileIndexData(userId, name);
+    const token = shareToken(data?.share);
+    if (token) {
+      await sharedSessions().delete().eq("token", token).eq("user_id", userId);
+      await sharedFiles().remove([`${userId}/${token}`]);
+    }
+  } catch (err) {
+    console.error("Share cleanup failed (continuing with delete):", err);
+  }
   const { error: rmErr } = await userFiles().remove([blobPath(userId, name)]);
   if (rmErr) throw new Error(`Failed to delete cloud file: ${rmErr.message}`);
   const { error } = await syncRecords()

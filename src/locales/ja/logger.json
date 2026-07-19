@@ -4,6 +4,7 @@
   "subtitle": "ダウンロードを開始するロガーを選択してください。",
   "comingSoon": "近日公開",
   "close": "閉じる",
+  "requestLogger": "他のデータロガーをリクエスト",
   "trademarks": "MyChron は AiM Tech S.r.l. の、Alfano は Alfano S.A. の商標です。LapWing は独立しており、これらの企業と提携も推奨もされていません。すべての製品名、ロゴ、ブランドはそれぞれの所有者に帰属します。",
   "tags": {
     "fledgling": "DIYロガー · Bluetooth LE",
@@ -11,6 +12,43 @@
     "alfano": "Bluetooth シリアル · ネイティブアプリが必要"
   },
   "fledglingUnsupported": "Web Bluetooth はこの環境では非対応です。デスクトップの Chrome、Edge、または Opera をご利用ください。",
+  "progress": {
+    "received": "受信済み:",
+    "speed": "速度:",
+    "eta": "残り時間:",
+    "complete": "{{percent}}% 完了"
+  },
+  "errors": {
+    "unreachable": "ロガーに接続できません。電源が入っていて近くにあることを確認してください。",
+    "permission": "Bluetoothの権限が必要です。このアプリにBluetooth／付近のデバイスを許可してから、もう一度お試しください。",
+    "hung": "転送中にロガーとの接続が切断されました。",
+    "protocol": "ロガーから予期しない応答がありました。",
+    "unsupported": "この機能はこのデバイスでは利用できません。",
+    "unsupportedAlfano": "Alfanoのダウンロードはこのデバイスではまだ利用できません。現時点ではAndroidのみ対応です。",
+    "wifiDeclined": "続行するには、MyChronのWi-Fiネットワークを選択してください。",
+    "notConnected": "ロガーが接続されていません。",
+    "unknown": "問題が発生しました。",
+    "detailLabel": "技術的な詳細",
+    "actionRetry": "再試行",
+    "actionRescan": "再検索",
+    "actionReconnect": "再接続"
+  },
+  "fledgling": {
+    "flow": {
+      "connecting": "接続中…",
+      "scanningStatus": "DovesLapTimerを検索中…",
+      "pickerHint": "表示されたら、リストから「DovesLapTimer」を選択してください",
+      "fetching": "ファイルを取得中…",
+      "fetchingStatus": "ファイル一覧を取得中…",
+      "selectFile": "ダウンロードするファイルを選択",
+      "downloading": "ダウンロード中…",
+      "errorTitle": "接続エラー",
+      "instructions": "ファイルをタップしてダウンロードし、読み込みます:",
+      "empty": "デバイスにファイルが見つかりません",
+      "savedHint": "ファイルは保存され、「ファイルを参照」で見つけられます。",
+      "cancel": "キャンセル"
+    }
+  },
   "mychron": {
     "nativeTitle": "MyChron のダウンロード",
     "nativeBody": "未定",
@@ -26,7 +64,7 @@
       "errorTitle": "接続エラー",
       "instructions": "セッションをタップしてダウンロードして読み込みます：",
       "empty": "このデバイスにセッションはありません",
-      "savedHint": " — ファイルは保存され、「ファイルを参照」で見つけられます。",
+      "savedHint": "ファイルは保存され、「ファイルを参照」で見つけられます。",
       "retry": "再試行",
       "cancel": "キャンセル"
     }
@@ -45,9 +83,25 @@
       "errorTitle": "接続エラー",
       "instructions": "セッションをタップしてダウンロードして読み込みます：",
       "empty": "このデバイスにセッションはありません",
-      "savedHint": " — ファイルは保存され、「ファイルを参照」で見つけられます。",
+      "savedHint": "ファイルは保存され、「ファイルを参照」で見つけられます。",
       "retry": "再試行",
       "cancel": "キャンセル"
+    },
+    "firmware": {
+      "button": "ファームウェア更新",
+      "title": "ファームウェア更新",
+      "checking": "更新を確認中…",
+      "upToDate": "ファームウェア v{{version}} は最新です。",
+      "noBuild": "このロガーに利用できるファームウェアがありません。",
+      "installLatest": "ファームウェア v{{version}}（{{variant}}）をインストールしますか？",
+      "variantConfirmTitle": "お使いのロガーのバリアントはどれですか？",
+      "variantConfirmBody": "このロガーはハードウェアのバリアントを報告しませんでした。誤ったイメージはデバイス側で失敗します。慎重に選択してください:",
+      "install": "インストール",
+      "rebooting": "更新を送信しました。ロガーは新しいファームウェアを書き込み、再起動しています。",
+      "rebootingBody": "インストール中はBluetooth接続が切断されます。数秒待ってから再スキャンして再接続してください。",
+      "notAvailable": "このバージョンのアプリでは、ファームウェア更新はまだ利用できません。",
+      "notAvailableBody": "アプリを更新してロガーのファームウェア更新を利用するか、Web Bluetooth対応のWeb版アプリをご利用ください。",
+      "back": "戻る"
     }
   },
   "alfano": {
@@ -64,12 +118,12 @@
       "selectFile": "ダウンロードするセッションを選択",
       "downloading": "ダウンロード中…",
       "errorTitle": "接続エラー",
+      "unavailableTitle": "このデバイスでは利用できません",
       "instructions": "セッションをタップしてダウンロードして読み込みます：",
       "empty": "このデバイスにセッションはありません",
-      "savedHint": " — ファイルは保存され、「ファイルを参照」で見つけられます。",
+      "savedHint": "ファイルは保存され、「ファイルを参照」で見つけられます。",
       "retry": "再試行",
       "cancel": "キャンセル"
     }
-  },
-  "requestLogger": "他のデータロガーをリクエスト"
+  }
 }
