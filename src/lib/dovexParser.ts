@@ -12,7 +12,9 @@ import { parseDoveFile, isDoveFormat } from './doveParser';
  *   Line 4: lap data values (comma-separated ms values)
  * Legacy files use fixed 8192-byte preambles; newer files may use variable-length padding.
  *
- * GPS logs should always be valid even if the metadata header is corrupted.
+ * GPS logs should always be valid even if the metadata header is corrupted —
+ * including when it was never written at all (session not ended on the logger),
+ * which leaves the reserved preamble as pure padding before the Dove CSV.
  */
 
 const LEGACY_HEADER_SIZE = 8192;
@@ -58,17 +60,36 @@ function findDoveCsvStart(content: string): number {
 
 /**
  * Check if content is .dovex format.
- * Requires metadata signature on line 1 and a valid embedded Dove CSV payload.
+ * Accepts either a metadata signature on line 1 (normal case) or a preamble of
+ * pure padding (headerless case — the logger only writes the metadata on "end
+ * session", so an unclosed session leaves the reserved region blank). Both
+ * require a valid embedded Dove CSV payload.
  */
 export function isDovexFormat(content: string): boolean {
   if (content.length < 100) return false;
 
   const firstLine = (content.match(/^[^\r\n]*/) || [''])[0].toLowerCase().trim();
-  if (!firstLine.includes('datetime') || !firstLine.includes('driver') || !firstLine.includes('course')) {
+  const hasMetadataSignature =
+    firstLine.includes('datetime') && firstLine.includes('driver') && firstLine.includes('course');
+
+  // Cheap reject: no metadata signature and no leading padding — can't be
+  // either dovex layout, so skip the embedded-CSV scan entirely.
+  // eslint-disable-next-line no-control-regex -- intentional: null bytes are valid preamble padding
+  if (!hasMetadataSignature && !/^[\s\u0000]/.test(content)) {
     return false;
   }
 
-  return findDoveCsvStart(content) !== -1;
+  const csvStart = findDoveCsvStart(content);
+  if (csvStart === -1) return false;
+  if (hasMetadataSignature) return true;
+
+  // Headerless dovex: the leading-padding gate above already proved this isn't
+  // a plain .dove CSV (those start with the "timestamp,..." header directly and
+  // keep routing to the Dove parser), so accept as long as everything before
+  // the embedded CSV is padding only. csvStart can legitimately be 0 here: a
+  // pure-null preamble has no newline, so the CSV's "line" starts at byte 0.
+  // eslint-disable-next-line no-control-regex -- intentional: null bytes are valid preamble padding
+  return /^[\s\u0000]*$/.test(content.substring(0, csvStart));
 }
 
 /**

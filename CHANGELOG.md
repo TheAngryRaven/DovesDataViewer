@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.1.1] - unreleased
+
+### Fixed
+- **Headerless `.dovex` files now load.** If a session was never "ended" on the
+  logger, the reserved metadata header is left as blank padding and the file
+  used to be mis-detected as an Alfano CSV ("Alfano csv error"). Detection now
+  recognizes a padding-only preamble followed by valid Dove GPS data as
+  `.dovex` and parses the session normally — driver/course metadata is simply
+  absent, and the in-app auto track detection takes over.
+
 ## [3.1.0] - 2026-07-17
 
 ### Changed
