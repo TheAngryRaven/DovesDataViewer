@@ -34,6 +34,17 @@ function findDoveCsvStart(content: string): number {
     const timestampIdx = lower.indexOf('timestamp', searchFrom);
     if (timestampIdx === -1) break;
 
+    // The CSV header row leads with the timestamp column, so the candidate
+    // anchored at the match itself is exact — and it copes with a corrupted
+    // preamble butting straight against the header with no newline between
+    // them (where the line-start candidate below would drag the garbage into
+    // the header row and later fail the parse).
+    if (isDoveFormat(content.substring(timestampIdx))) {
+      return timestampIdx;
+    }
+
+    // Fallback for a header row that doesn't lead with the timestamp column:
+    // anchor at the start of its line instead.
     const lineStart = lower.lastIndexOf('\n', timestampIdx);
     const candidateStart = lineStart === -1 ? 0 : lineStart + 1;
     // eslint-disable-next-line no-control-regex -- intentional: strip null-byte padding between metadata header and embedded Dove CSV
@@ -119,10 +130,13 @@ function parseMetadataHeader(headerText: string): DovexMetadata {
     if (i < values.length) headerMap[h] = values[i];
   });
 
-  meta.datetime = headerMap['datetime'] || undefined;
-  meta.driver = headerMap['driver'] || undefined;
-  meta.course = headerMap['course'] || undefined;
-  meta.shortName = headerMap['short_name'] || undefined;
+  // Only assign fields that actually carry a value — a corrupted preamble
+  // that happens to split into lines must not produce a metadata object of
+  // all-undefined keys (which would read as "metadata present" downstream).
+  if (headerMap['datetime']) meta.datetime = headerMap['datetime'];
+  if (headerMap['driver']) meta.driver = headerMap['driver'];
+  if (headerMap['course']) meta.course = headerMap['course'];
+  if (headerMap['short_name']) meta.shortName = headerMap['short_name'];
 
   if (headerMap['best_lap_ms']) {
     const v = parseInt(headerMap['best_lap_ms'], 10);
