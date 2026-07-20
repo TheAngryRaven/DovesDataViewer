@@ -36,7 +36,10 @@
     "provenance": "Firmware build {{sha}} · {{date}} — identical code to the physical device."
   },
   "picker": {
-    "label": "Session:"
+    "label": "Session:",
+    "load": "Load .dovex…",
+    "demo": "Back to demo",
+    "error": "Couldn't load {{name}} — no Dove GPS data found in it."
   },
   "map": {
     "toggleStyle": "Toggle map style"

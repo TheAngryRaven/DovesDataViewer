@@ -36,7 +36,10 @@
     "provenance": "Firmware-Build {{sha}} · {{date}} — identischer Code wie auf dem physischen Gerät."
   },
   "picker": {
-    "label": "Session:"
+    "label": "Session:",
+    "load": ".dovex laden…",
+    "demo": "Zurück zur Demo",
+    "error": "{{name}} konnte nicht geladen werden – keine Dove-GPS-Daten in der Datei gefunden."
   },
   "map": {
     "toggleStyle": "Kartenstil wechseln"

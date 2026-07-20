@@ -36,7 +36,10 @@
     "provenance": "Build firmware {{sha}} · {{date}} — codice identico al dispositivo fisico."
   },
   "picker": {
-    "label": "Sessione:"
+    "label": "Sessione:",
+    "load": "Carica .dovex…",
+    "demo": "Torna alla demo",
+    "error": "Impossibile caricare {{name}}: nessun dato GPS Dove trovato nel file."
   },
   "map": {
     "toggleStyle": "Cambia stile mappa"

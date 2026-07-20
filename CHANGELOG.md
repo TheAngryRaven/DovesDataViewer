@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.1] - unreleased
 
+### Added
+- **Simulator: load your own `.dovex`.** The `/simulator` page now has a
+  session picker — feed the firmware any dove-family log
+  (`.dovex`/`.dovep`/`.dove`) instead of only the bundled demo, with a
+  one-tap "Back to demo". Picked files are parsed leniently: a log whose
+  metadata header was never written (session not ended on the logger) or was
+  corrupted still replays as long as the CSV column headers are intact —
+  handy for reproducing on-device bugs in the browser.
+
 ### Fixed
 - **Headerless `.dovex` files now load.** If a session was never "ended" on the
   logger, the reserved metadata header is left as blank padding and the file

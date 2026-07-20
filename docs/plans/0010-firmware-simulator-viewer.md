@@ -57,6 +57,18 @@ Map above the sim panel reusing the existing Leaflet/track rendering;
 one virtual clock drives map cursor + sim; session picker incl. "upload
 your own .dovex".
 
+**Session picker: shipped** (pulled forward as a bug-hunting tool — replay
+a real problem log through the real firmware in the browser). The picker
+accepts any dove-family log (`.dovex`/`.dovep`/`.dove`) via
+`lib/sim/simSession.ts`: a lenient parse path that bypasses global format
+auto-detection (`normalizeChannels(parseDovexFile(text))`, Vitest-covered),
+so files with a missing or corrupted metadata preamble still load as long
+as the embedded CSV column headers are intact. Supporting that,
+`dovexParser.findDoveCsvStart` now tries the candidate anchored at the
+`timestamp` match itself before the line-start candidate — coping with a
+corrupted preamble glued straight onto the CSV header row (global
+`isDovexFormat` detection is unchanged: strict, padding-only preambles).
+
 ## Phase C — session capture + share (external spec Phase 7)
 
 Record inputs with virtual timestamps; Supabase `sim_sessions` table;
