@@ -27,6 +27,9 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Register = lazy(() => import("./pages/Register"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const DriverProfile = lazy(() => import("./pages/DriverProfile"));
+// Updates blog (plan 0011): admin-authored posts read anonymously from Supabase.
+const Updates = lazy(() => import("./pages/Updates"));
+const UpdatePost = lazy(() => import("./pages/UpdatePost"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 // The firmware simulator (plan 0010): public + offline-first — the wasm
 // module and demo session are same-origin, SW-cached assets.
@@ -87,6 +90,8 @@ const App = () => {
               {enableCloud && <Route path="/register" element={<Register />} />}
               {enableCloud && <Route path="/leaderboards" element={<Leaderboards />} />}
               {enableCloud && <Route path="/driver/:username" element={<DriverProfile />} />}
+              {enableCloud && <Route path="/updates" element={<Updates />} />}
+              {enableCloud && <Route path="/updates/:slug" element={<UpdatePost />} />}
               {/* Shared-session link (plan 0009): Index self-loads from the token,
                   so the URL survives reloads and works cold for anonymous visitors. */}
               {enableCloud && <Route path="/s/:token" element={<Index />} />}

@@ -4,6 +4,14 @@ interface DocumentHeadOptions {
   title: string;
   description?: string;
   canonical?: string;
+  /** og:type override (index.html default is "website"), e.g. "article". */
+  ogType?: string;
+  /** ISO timestamp for article:published_time (articles only). */
+  publishedTime?: string;
+  /** ISO timestamp for article:modified_time (articles only). */
+  modifiedTime?: string;
+  /** Structured data injected as a JSON-LD script, removed on unmount. */
+  jsonLd?: Record<string, unknown>;
 }
 
 /**
@@ -12,7 +20,19 @@ interface DocumentHeadOptions {
  * them on unmount so other routes fall back to the static defaults in
  * index.html.
  */
-export function useDocumentHead({ title, description, canonical }: DocumentHeadOptions): void {
+export function useDocumentHead({
+  title,
+  description,
+  canonical,
+  ogType,
+  publishedTime,
+  modifiedTime,
+  jsonLd,
+}: DocumentHeadOptions): void {
+  // Depend on the serialized form so callers can pass an inline object literal
+  // without re-running the effect every render.
+  const jsonLdText = jsonLd ? JSON.stringify(jsonLd) : undefined;
+
   useEffect(() => {
     const prevTitle = document.title;
     document.title = title;
@@ -98,10 +118,26 @@ export function useDocumentHead({ title, description, canonical }: DocumentHeadO
       );
       restorers.push(metaProp("og:url", canonical));
     }
+    if (ogType) {
+      restorers.push(metaProp("og:type", ogType));
+    }
+    if (publishedTime) {
+      restorers.push(metaProp("article:published_time", publishedTime));
+    }
+    if (modifiedTime) {
+      restorers.push(metaProp("article:modified_time", modifiedTime));
+    }
+    if (jsonLdText) {
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.text = jsonLdText;
+      document.head.appendChild(script);
+      restorers.push(() => script.remove());
+    }
 
     return () => {
       document.title = prevTitle;
       restorers.forEach((r) => r());
     };
-  }, [title, description, canonical]);
+  }, [title, description, canonical, ogType, publishedTime, modifiedTime, jsonLdText]);
 }
