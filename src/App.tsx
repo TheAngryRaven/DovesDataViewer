@@ -27,7 +27,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Register = lazy(() => import("./pages/Register"));
 const Leaderboards = lazy(() => import("./pages/Leaderboards"));
 const DriverProfile = lazy(() => import("./pages/DriverProfile"));
-// Updates blog (plan 0011): admin-authored posts read anonymously from Supabase.
+// Updates blog (plan 0012): admin-authored posts read anonymously from Supabase.
 const Updates = lazy(() => import("./pages/Updates"));
 const UpdatePost = lazy(() => import("./pages/UpdatePost"));
 const Privacy = lazy(() => import("./pages/Privacy"));

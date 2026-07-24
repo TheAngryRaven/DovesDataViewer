@@ -1,4 +1,4 @@
-// Untyped access to the posts table (plan 0011). Same pattern as
+// Untyped access to the posts table (plan 0012). Same pattern as
 // leaderboardClient.ts: the generated Database type doesn't yet include
 // `posts`, so route it through an untyped view of the shared client and
 // hand-map rows (lib/blogPosts.ts). Public reads work for anonymous visitors

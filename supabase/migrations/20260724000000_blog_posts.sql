@@ -1,4 +1,4 @@
--- Updates blog (plan 0011): admin-authored articles for the public /updates page.
+-- Updates blog (plan 0012): admin-authored articles for the public /updates page.
 --
 -- Posts are markdown documents written from the admin portal. The public page
 -- reads anonymously; RLS keeps drafts invisible until published. Excerpts are

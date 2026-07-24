@@ -188,7 +188,7 @@ in-memory leaderboard handoff. Public sessions also list on `/driver/:username`.
 
 ---
 
-## Updates blog (`..._blog_posts.sql`, plan 0011)
+## Updates blog (`..._blog_posts.sql`, plan 0012)
 
 Admin-authored articles for the public `/updates` page (`/updates/:slug` per
 post). **All access is through RLS** (no edge function); the client lives in

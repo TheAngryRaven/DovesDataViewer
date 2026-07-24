@@ -1,4 +1,4 @@
-# 0011 — Updates blog / minimal CMS (`/updates`, `/updates/:slug`)
+# 0012 — Updates blog / minimal CMS (`/updates`, `/updates/:slug`)
 
 **Status:** Shipped (initial version).
 

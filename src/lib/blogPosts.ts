@@ -1,4 +1,4 @@
-// Updates blog helpers (plan 0011). Kept in lib/ (not the cloud-sync plugin) so
+// Updates blog helpers (plan 0012). Kept in lib/ (not the cloud-sync plugin) so
 // they stay pure and unit-testable: types + row mapping, slug generation,
 // excerpt derivation, and tag normalization. Supabase access lives in
 // plugins/cloud-sync/postsClient.ts.

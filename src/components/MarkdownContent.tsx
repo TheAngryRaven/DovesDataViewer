@@ -6,7 +6,7 @@ interface MarkdownContentProps {
 }
 
 /**
- * Shared markdown renderer for blog posts (plan 0011): public pages and the
+ * Shared markdown renderer for blog posts (plan 0012): public pages and the
  * admin editor preview render through the same component so what you preview
  * is what ships. react-markdown never renders raw HTML, so no sanitizer is
  * needed; images are plain external URLs.
