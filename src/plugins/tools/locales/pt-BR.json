@@ -187,11 +187,6 @@
     "cal": {
       "title": "Calibração do chassi",
       "disclaimer": "Estas constantes são padrões aproximados — as excentricidades reais variam por chassi e não são publicadas. Confira com um medidor de cambagem/caster antes de confiar nos números e ajuste o que não bater.",
-      "preset": "Predefinição",
-      "presetGeneric": "Kart genérico",
-      "presetOtk": "OTK (aprox.)",
-      "presetCustom": "Personalizado",
-      "resetPreset": "Restaurar predefinição",
       "h": "Distância entre alojamentos H",
       "lRim": "Vão do medidor",
       "split": "Fração da altura da roda",
@@ -203,7 +198,25 @@
       "eccentricity": "Excentricidade por tamanho (e0 é sempre 0)",
       "signCamber": "Inverter sinal da cambagem",
       "signCaster": "Inverter sinal do caster",
-      "mirrorRight": "Espelhar ângulos do lado direito"
+      "mirrorRight": "Espelhar ângulos do lado direito",
+      "profile": "Perfil de chassi",
+      "profileCustom": "Personalizado (não salvo)",
+      "userProfiles": "Meus perfis medidos",
+      "builtinProfiles": "Integrados",
+      "estimated": "estimado",
+      "measured": "medido",
+      "profileName": "Nome do perfil",
+      "profileNamePlaceholder": "ex. Meu Praga — julho 2026",
+      "saveProfile": "Salvar como perfil medido",
+      "deleteProfile": "Excluir perfil",
+      "measureTitle": "Auxiliares de medição",
+      "sweep": "Curso do relógio em 180°",
+      "sweepSize": "Tamanho do excêntrico",
+      "applySweep": "Definir e = curso ÷ 2",
+      "zeroIntro": "Com os dois excêntricos no tamanho 0, insira as leituras do medidor para deduzir os deslocamentos de fábrica do chassi.",
+      "zeroCamber": "Cambagem medida",
+      "zeroCaster": "Caster medido",
+      "applyZero": "Definir ponto zero"
     }
   }
 }

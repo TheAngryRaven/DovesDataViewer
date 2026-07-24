@@ -187,11 +187,6 @@
     "cal": {
       "title": "シャシー校正",
       "disclaimer": "これらの定数はあくまで近似の既定値です。実際の偏心量はシャシーごとに異なり、公表されていません。数値を信頼する前にキャンバー/キャスターゲージで確認し、合わない値は編集してください。",
-      "preset": "プリセット",
-      "presetGeneric": "汎用カート",
-      "presetOtk": "OTK（近似）",
-      "presetCustom": "カスタム",
-      "resetPreset": "プリセットに戻す",
       "h": "ボア間隔 H",
       "lRim": "ゲージ測定幅",
       "split": "ホイール高さ比率",
@@ -203,7 +198,25 @@
       "eccentricity": "サイズ別偏心量（e0 は常に 0）",
       "signCamber": "キャンバー符号を反転",
       "signCaster": "キャスター符号を反転",
-      "mirrorRight": "右側の角度をミラー"
+      "mirrorRight": "右側の角度をミラー",
+      "profile": "シャシープロファイル",
+      "profileCustom": "カスタム（未保存）",
+      "userProfiles": "自分の実測プロファイル",
+      "builtinProfiles": "内蔵",
+      "estimated": "推定",
+      "measured": "実測",
+      "profileName": "プロファイル名",
+      "profileNamePlaceholder": "例: 自分のPraga — 2026年7月",
+      "saveProfile": "実測プロファイルとして保存",
+      "deleteProfile": "プロファイルを削除",
+      "measureTitle": "測定ヘルパー",
+      "sweep": "180°回転時のダイヤルゲージ振れ",
+      "sweepSize": "ピルサイズ",
+      "applySweep": "e = 振れ ÷ 2 を設定",
+      "zeroIntro": "両方のピルをサイズ0にした状態でゲージの読みを入力すると、シャシー固有のオフセットを逆算します。",
+      "zeroCamber": "実測キャンバー",
+      "zeroCaster": "実測キャスター",
+      "applyZero": "ゼロ点を設定"
     }
   }
 }

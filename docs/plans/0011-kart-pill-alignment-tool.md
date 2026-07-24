@@ -26,12 +26,21 @@ constants). This plan records how it landed in the codebase.
   `src/plugins/tools/toolList.ts` surfaces the tool both in the in-session
   Tools tab and the landing-page Tools drawer — no host/framework changes.
   Follows the seat-position convention: pure modules + tests, thin `.tsx`.
-- **Editable calibration with approximate presets.** Real OTK eccentricities
-  (mm offset per dot count) are not published. Every chassis constant (H,
-  e[0..5], neutral offset n, γ0, L_rim, wheel-height fraction f, signs, hole
-  count) is user-editable in an advanced section; presets are labelled
-  "(approx)" and the tool carries an Experimental badge. A least-squares
-  "calibrate to my kart" wizard is a future follow-up.
+- **Modular chassis-profile system, built for measurement.** Real
+  eccentricities (mm offset per dot count) are not published for any brand,
+  so calibration is a first-class `ChassisProfile` record (`profiles.ts`)
+  rather than hardcoded presets. Built-ins cover the common eccentric-pill
+  brands (Generic, OTK/Tony Kart, Kart Republic, CompKart, Birel ART, Praga,
+  Sodi), all flagged `source: "estimated"` — placeholders sharing the 22 mm
+  dial geometry until someone measures the real numbers. The workflow the
+  system is designed around: measure a chassis (the calibration panel has
+  helpers — dial-indicator sweep over 180° → e = sweep/2, and a zero-point
+  back-out that inverts the forward model from gauge readings at size-0
+  pills), then "save as measured profile" freezes the constants as a named
+  user profile (plugin store, `pill-alignment:profiles:v1`). Adding a newly
+  measured brand later = one entry in `BUILTIN_PROFILES`. Every constant
+  stays hand-editable; any edit detaches the active profile. A least-squares
+  multi-config fit is a future follow-up.
 - **Angle convention.** Dial angle 0° = dot forward, positive toward
   outboard, per corner — so identical dial settings on both sides produce
   symmetric camber by default. A `mirrorRight` calibration flag negates
@@ -55,7 +64,8 @@ constants). This plan records how it landed in the codebase.
 
 ```
 src/plugins/tools/pill-alignment/
-├── model.ts / model.test.ts       types, calibration+presets, forwardCorner, snapToHole, persisted state
+├── model.ts / model.test.ts       types, calibration, forwardCorner, snapToHole, measurement helpers, persisted state
+├── profiles.ts / profiles.test.ts chassis-profile system: built-in brands + user "measured" profile CRUD
 ├── inverse.ts / inverse.test.ts   findSetups (two-circle Find Setup), nearestAngles (drag-solve)
 ├── envelope.ts / envelope.test.ts sweepEnvelope, singlePillLoci, color buckets + ramp
 ├── toe.ts / toe.test.ts           tie-rod→toe, toe-mm, resolveSetupAlignmentFields (session setup read)

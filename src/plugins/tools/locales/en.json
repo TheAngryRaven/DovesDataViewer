@@ -186,11 +186,6 @@
     "cal": {
       "title": "Chassis calibration",
       "disclaimer": "These constants are approximate defaults — real eccentricities vary by chassis and are not published. Verify against a camber/caster gauge before trusting the numbers, and edit anything that disagrees.",
-      "preset": "Preset",
-      "presetGeneric": "Generic kart",
-      "presetOtk": "OTK (approx)",
-      "presetCustom": "Custom",
-      "resetPreset": "Reset to preset",
       "h": "Bore gap H",
       "lRim": "Gauge span",
       "split": "Wheel height fraction",
@@ -202,7 +197,25 @@
       "eccentricity": "Eccentricity per pill size (e0 is always 0)",
       "signCamber": "Flip camber sign",
       "signCaster": "Flip caster sign",
-      "mirrorRight": "Mirror right-side angles"
+      "mirrorRight": "Mirror right-side angles",
+      "profile": "Chassis profile",
+      "profileCustom": "Custom (unsaved)",
+      "userProfiles": "My measured profiles",
+      "builtinProfiles": "Built-in",
+      "estimated": "estimated",
+      "measured": "measured",
+      "profileName": "Profile name",
+      "profileNamePlaceholder": "e.g. My Praga — July 2026",
+      "saveProfile": "Save as measured profile",
+      "deleteProfile": "Delete profile",
+      "measureTitle": "Measurement helpers",
+      "sweep": "Indicator sweep over 180°",
+      "sweepSize": "Pill size",
+      "applySweep": "Set e = sweep ÷ 2",
+      "zeroIntro": "With both pills at size 0, enter the gauge readings to back out the chassis's built-in offsets.",
+      "zeroCamber": "Measured camber",
+      "zeroCaster": "Measured caster",
+      "applyZero": "Set zero point"
     }
   }
 }

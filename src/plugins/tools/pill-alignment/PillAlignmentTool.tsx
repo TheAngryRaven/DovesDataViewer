@@ -34,6 +34,13 @@ import {
 import { nearestAngles } from "./inverse";
 import { singlePillLoci, sweepEnvelope } from "./envelope";
 import { resolveSetupAlignmentFields, type SetupAlignmentValues } from "./toe";
+import {
+  makeUserProfile,
+  migrateProfileId,
+  removeUserProfile,
+  upsertUserProfile,
+  type ChassisProfile,
+} from "./profiles";
 import { EnvelopePlot } from "./EnvelopePlot";
 import { PillDial } from "./PillDial";
 import { FindSetupPanel } from "./FindSetupPanel";
@@ -41,6 +48,7 @@ import { OverheadToeView } from "./OverheadToeView";
 import { CalibrationPanel } from "./CalibrationPanel";
 
 const STORE_KEY = "pill-alignment:v1";
+const PROFILES_KEY = "pill-alignment:profiles:v1";
 
 const COLOR_MODE_KEYS: Record<EnvelopeColorMode, ToolsKey> = {
   trackDelta: "pill.colorMode.trackDelta",
@@ -60,18 +68,23 @@ export default function PillAlignmentTool({ sessionSetup }: PluginPanelProps) {
   const store = useMemo(() => getPluginStore("tools"), []);
 
   const [state, setState] = useState<PersistedStateV1>(DEFAULT_STATE);
+  const [userProfiles, setUserProfiles] = useState<ChassisProfile[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [setupSeed, setSetupSeed] = useState<SetupAlignmentValues | null>(null);
 
   useEffect(() => {
     let active = true;
-    store
-      .get<PersistedStateV1>(STORE_KEY)
-      .then((saved) => {
-        if (active && saved) {
+    Promise.all([
+      store.get<PersistedStateV1 & { presetId?: string | null }>(STORE_KEY),
+      store.get<ChassisProfile[]>(PROFILES_KEY),
+    ])
+      .then(([saved, profiles]) => {
+        if (!active) return;
+        if (saved) {
           setState({
             ...DEFAULT_STATE,
             ...saved,
+            profileId: migrateProfileId(saved.profileId ?? saved.presetId),
             calibration: { ...DEFAULT_STATE.calibration, ...saved.calibration },
             corners: {
               left: { ...DEFAULT_STATE.corners.left, ...saved.corners?.left },
@@ -80,6 +93,7 @@ export default function PillAlignmentTool({ sessionSetup }: PluginPanelProps) {
             toe: { ...DEFAULT_STATE.toe, ...saved.toe },
           });
         }
+        if (profiles) setUserProfiles(profiles);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -97,6 +111,11 @@ export default function PillAlignmentTool({ sessionSetup }: PluginPanelProps) {
     }, 400);
     return () => clearTimeout(timer);
   }, [state, loaded, store]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    void store.set(PROFILES_KEY, userProfiles).catch(() => undefined);
+  }, [userProfiles, loaded, store]);
 
   const { calibration: cal, corners, linked, activeSide, colorMode, snapHoles, toe } = state;
   const active = corners[activeSide];
@@ -376,8 +395,18 @@ export default function PillAlignmentTool({ sessionSetup }: PluginPanelProps) {
         <Section title={t("pill.cal.title")}>
           <CalibrationPanel
             cal={cal}
-            presetId={state.presetId}
-            onChange={(calibration, presetId) => setState((s) => ({ ...s, calibration, presetId }))}
+            profileId={state.profileId}
+            userProfiles={userProfiles}
+            onChange={(calibration, profileId) => setState((s) => ({ ...s, calibration, profileId }))}
+            onSaveProfile={(name) => {
+              const profile = makeUserProfile(name, cal, userProfiles);
+              setUserProfiles((list) => upsertUserProfile(list, profile));
+              setState((s) => ({ ...s, profileId: profile.id }));
+            }}
+            onDeleteProfile={(id) => {
+              setUserProfiles((list) => removeUserProfile(list, id));
+              setState((s) => (s.profileId === id ? { ...s, profileId: null } : s));
+            }}
           />
         </Section>
       </div>

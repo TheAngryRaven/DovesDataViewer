@@ -187,11 +187,6 @@
     "cal": {
       "title": "Calibrazione telaio",
       "disclaimer": "Queste costanti sono valori predefiniti approssimativi: le eccentricità reali variano da telaio a telaio e non sono pubblicate. Verifica con un goniometro campanatura/incidenza prima di fidarti dei numeri e correggi ciò che non torna.",
-      "preset": "Preimpostazione",
-      "presetGeneric": "Kart generico",
-      "presetOtk": "OTK (appross.)",
-      "presetCustom": "Personalizzato",
-      "resetPreset": "Ripristina preimpostazione",
       "h": "Interasse sedi H",
       "lRim": "Luce del goniometro",
       "split": "Frazione altezza ruota",
@@ -203,7 +198,25 @@
       "eccentricity": "Eccentricità per misura (e0 è sempre 0)",
       "signCamber": "Inverti segno campanatura",
       "signCaster": "Inverti segno incidenza",
-      "mirrorRight": "Specchia angoli lato destro"
+      "mirrorRight": "Specchia angoli lato destro",
+      "profile": "Profilo telaio",
+      "profileCustom": "Personalizzato (non salvato)",
+      "userProfiles": "I miei profili misurati",
+      "builtinProfiles": "Integrati",
+      "estimated": "stimato",
+      "measured": "misurato",
+      "profileName": "Nome del profilo",
+      "profileNamePlaceholder": "es. Il mio Praga — luglio 2026",
+      "saveProfile": "Salva come profilo misurato",
+      "deleteProfile": "Elimina profilo",
+      "measureTitle": "Aiuti alla misura",
+      "sweep": "Corsa del comparatore su 180°",
+      "sweepSize": "Misura eccentrico",
+      "applySweep": "Imposta e = corsa ÷ 2",
+      "zeroIntro": "Con entrambi gli eccentrici a misura 0, inserisci le letture del goniometro per ricavare gli offset di fabbrica del telaio.",
+      "zeroCamber": "Campanatura misurata",
+      "zeroCaster": "Incidenza misurata",
+      "applyZero": "Imposta punto zero"
     }
   }
 }

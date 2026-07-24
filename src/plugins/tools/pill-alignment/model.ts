@@ -142,11 +142,11 @@ export function pillContribution(
 }
 
 // ---------------------------------------------------------------------------
-// Calibration defaults & presets
+// Calibration defaults & measurement helpers
 //
-// Real OTK eccentricities are not published; these are plausible round numbers
-// so the tool behaves sensibly out of the box. Everything is user-editable and
-// the UI labels presets "(approx)" with an experimental disclaimer.
+// Real eccentricities are not published; the default is a plausible starting
+// point. Chassis-specific values live in the profile system (profiles.ts) and
+// the helpers below turn paddock measurements into constants.
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_CALIBRATION: PillCalibration = {
@@ -164,18 +164,31 @@ export const DEFAULT_CALIBRATION: PillCalibration = {
   toeCouplingMmPerMm: 0.5,
 };
 
-export interface ChassisPreset {
-  id: string;
-  cal: PillCalibration;
+/**
+ * Eccentricity from a dial indicator on the bore: turning the pill 180° sweeps
+ * the hole across the full offset diameter, so e = total sweep / 2.
+ */
+export function eccentricityFromSweep(totalSweepMm: number): number {
+  return Math.max(totalSweepMm, 0) / 2;
 }
 
-export const CHASSIS_PRESETS: readonly ChassisPreset[] = [
-  { id: "generic", cal: DEFAULT_CALIBRATION },
-  {
-    id: "otk-approx",
-    cal: { ...DEFAULT_CALIBRATION, hMm: 112, eMm: [0, 0.6, 1.2, 1.8, 2.4, 3.0], gamma0Deg: -0.4 },
-  },
-];
+/**
+ * Back out the built-in offsets from gauge readings taken with BOTH pills at
+ * size 0 (concentric). γ0 and nY are redundant at this fidelity (both shift
+ * camber), so the whole lateral term is folded into nY — callers should zero
+ * gamma0Deg when applying.
+ */
+export function neutralFromMeasured(
+  cal: PillCalibration,
+  measuredCamberDeg: number,
+  measuredCasterDeg: number,
+): { nXMm: number; nYMm: number } {
+  const D2R_ = Math.PI / 180;
+  return {
+    nXMm: -cal.hMm * Math.tan(cal.signCaster * measuredCasterDeg * D2R_),
+    nYMm: cal.hMm * Math.tan(cal.signCamber * measuredCamberDeg * D2R_),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Persisted tool state (plugin store, key "pill-alignment:v1")
@@ -198,8 +211,8 @@ export interface ToeState {
 
 export interface PersistedStateV1 {
   calibration: PillCalibration;
-  /** Active preset id, or null once any constant is hand-edited. */
-  presetId: string | null;
+  /** Active chassis-profile id (built-in or user), or null once any constant is hand-edited. */
+  profileId: string | null;
   corners: { left: CornerPills; right: CornerPills };
   /** Mirror left-side edits onto the right side. */
   linked: boolean;
@@ -221,7 +234,7 @@ export const DEFAULT_TOE: ToeState = {
 
 export const DEFAULT_STATE: PersistedStateV1 = {
   calibration: DEFAULT_CALIBRATION,
-  presetId: "generic",
+  profileId: "generic",
   corners: { left: DEFAULT_CORNER, right: DEFAULT_CORNER },
   linked: true,
   activeSide: "left",

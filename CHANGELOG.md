@@ -21,8 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pill angles), and use "Find Setup" to get ranked pill combinations for a
   target alignment — with hole snapping, toe entry + overhead toe visual, a
   resultant-toe color mode, and a "load from session setup" shortcut. Chassis
-  calibration is fully editable with approximate presets; works offline and
-  from the homepage Tools drawer.
+  constants live in a modular profile system — built-in brand profiles (OTK /
+  Tony Kart, Kart Republic, CompKart, Birel ART, Praga, Sodi; estimated until
+  measured) plus measurement helpers that turn dial-indicator and gauge
+  readings into constants you can save as named measured profiles. Works
+  offline and from the homepage Tools drawer.
 - **Simulator: load your own `.dovex`.** The `/simulator` page now has a
   session picker — feed the firmware any dove-family log
   (`.dovex`/`.dovep`/`.dove`) instead of only the bundled demo, with a

@@ -187,11 +187,6 @@
     "cal": {
       "title": "Calibration du châssis",
       "disclaimer": "Ces constantes sont des valeurs approximatives par défaut : les excentricités réelles varient selon le châssis et ne sont pas publiées. Vérifiez avec une jauge de carrossage/chasse avant de vous fier aux chiffres, et modifiez ce qui ne correspond pas.",
-      "preset": "Préréglage",
-      "presetGeneric": "Kart générique",
-      "presetOtk": "OTK (approx.)",
-      "presetCustom": "Personnalisé",
-      "resetPreset": "Rétablir le préréglage",
       "h": "Écart des logements H",
       "lRim": "Portée de la jauge",
       "split": "Fraction de hauteur de roue",
@@ -203,7 +198,25 @@
       "eccentricity": "Excentricité par taille (e0 vaut toujours 0)",
       "signCamber": "Inverser le signe du carrossage",
       "signCaster": "Inverser le signe de la chasse",
-      "mirrorRight": "Miroir des angles côté droit"
+      "mirrorRight": "Miroir des angles côté droit",
+      "profile": "Profil de châssis",
+      "profileCustom": "Personnalisé (non enregistré)",
+      "userProfiles": "Mes profils mesurés",
+      "builtinProfiles": "Intégrés",
+      "estimated": "estimé",
+      "measured": "mesuré",
+      "profileName": "Nom du profil",
+      "profileNamePlaceholder": "ex. Mon Praga — juillet 2026",
+      "saveProfile": "Enregistrer comme profil mesuré",
+      "deleteProfile": "Supprimer le profil",
+      "measureTitle": "Aides à la mesure",
+      "sweep": "Course du comparateur sur 180°",
+      "sweepSize": "Taille d'excentrique",
+      "applySweep": "Définir e = course ÷ 2",
+      "zeroIntro": "Avec les deux excentriques en taille 0, saisissez les lectures de la jauge pour déduire les décalages d'origine du châssis.",
+      "zeroCamber": "Carrossage mesuré",
+      "zeroCaster": "Chasse mesurée",
+      "applyZero": "Définir le point zéro"
     }
   }
 }

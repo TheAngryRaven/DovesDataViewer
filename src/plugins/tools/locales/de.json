@@ -187,11 +187,6 @@
     "cal": {
       "title": "Chassis-Kalibrierung",
       "disclaimer": "Diese Konstanten sind ungefähre Vorgaben — echte Exzentrizitäten variieren je Chassis und sind nicht veröffentlicht. Vor dem Vertrauen in die Zahlen mit einer Sturz-/Nachlauflehre prüfen und Abweichendes anpassen.",
-      "preset": "Voreinstellung",
-      "presetGeneric": "Generisches Kart",
-      "presetOtk": "OTK (ca.)",
-      "presetCustom": "Benutzerdefiniert",
-      "resetPreset": "Auf Voreinstellung zurücksetzen",
       "h": "Bohrungsabstand H",
       "lRim": "Messweite der Lehre",
       "split": "Radhöhenanteil",
@@ -203,7 +198,25 @@
       "eccentricity": "Exzentrizität je Größe (e0 ist immer 0)",
       "signCamber": "Sturz-Vorzeichen umkehren",
       "signCaster": "Nachlauf-Vorzeichen umkehren",
-      "mirrorRight": "Winkel rechts spiegeln"
+      "mirrorRight": "Winkel rechts spiegeln",
+      "profile": "Chassis-Profil",
+      "profileCustom": "Benutzerdefiniert (nicht gespeichert)",
+      "userProfiles": "Meine gemessenen Profile",
+      "builtinProfiles": "Integriert",
+      "estimated": "geschätzt",
+      "measured": "gemessen",
+      "profileName": "Profilname",
+      "profileNamePlaceholder": "z. B. Mein Praga — Juli 2026",
+      "saveProfile": "Als gemessenes Profil speichern",
+      "deleteProfile": "Profil löschen",
+      "measureTitle": "Messhilfen",
+      "sweep": "Messuhr-Weg über 180°",
+      "sweepSize": "Exzentergröße",
+      "applySweep": "e = Weg ÷ 2 setzen",
+      "zeroIntro": "Mit beiden Exzentern auf Größe 0 die Lehrenwerte eingeben, um die werksseitigen Versätze des Chassis zu bestimmen.",
+      "zeroCamber": "Gemessener Sturz",
+      "zeroCaster": "Gemessener Nachlauf",
+      "applyZero": "Nullpunkt setzen"
     }
   }
 }

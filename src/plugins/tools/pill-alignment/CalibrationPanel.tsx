@@ -1,28 +1,59 @@
-// Chassis calibration editor (plan 0011). Real OTK eccentricities aren't
-// published, so every constant is editable; presets are approximate starting
-// points and any hand edit detaches the preset.
+// Chassis calibration editor (plan 0011), built around the profile system:
+// pick a built-in brand profile (all estimated until someone measures one),
+// turn paddock measurements into constants with the helpers, and freeze the
+// result as a named "measured" profile for reuse. Any hand edit detaches the
+// active profile.
 
+import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToolsT, type ToolsKey } from "../i18n";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToolsT } from "../i18n";
 import { NumRow } from "../shared/NumRow";
-import { CHASSIS_PRESETS, type PillCalibration } from "./model";
+import {
+  eccentricityFromSweep,
+  neutralFromMeasured,
+  PILL_SIZES,
+  type PillCalibration,
+  type PillSize,
+} from "./model";
+import { BUILTIN_PROFILES, findProfile, type ChassisProfile } from "./profiles";
 
 interface CalibrationPanelProps {
   cal: PillCalibration;
-  presetId: string | null;
-  onChange: (cal: PillCalibration, presetId: string | null) => void;
+  profileId: string | null;
+  userProfiles: ChassisProfile[];
+  onChange: (cal: PillCalibration, profileId: string | null) => void;
+  onSaveProfile: (name: string) => void;
+  onDeleteProfile: (id: string) => void;
 }
 
-const PRESET_NAME_KEYS: Record<string, ToolsKey> = {
-  generic: "pill.cal.presetGeneric",
-  "otk-approx": "pill.cal.presetOtk",
-};
-
-export function CalibrationPanel({ cal, presetId, onChange }: CalibrationPanelProps) {
+export function CalibrationPanel({
+  cal,
+  profileId,
+  userProfiles,
+  onChange,
+  onSaveProfile,
+  onDeleteProfile,
+}: CalibrationPanelProps) {
   const t = useToolsT();
+  const [profileName, setProfileName] = useState("");
+  const [sweepMm, setSweepMm] = useState(0);
+  const [sweepSize, setSweepSize] = useState<PillSize>(3);
+  const [zeroCamber, setZeroCamber] = useState(0);
+  const [zeroCaster, setZeroCaster] = useState(0);
+
   const edit = (patch: Partial<PillCalibration>) => onChange({ ...cal, ...patch }, null);
   const editE = (i: number, v: number) => {
     const eMm = [...cal.eMm] as PillCalibration["eMm"];
@@ -30,47 +61,91 @@ export function CalibrationPanel({ cal, presetId, onChange }: CalibrationPanelPr
     edit({ eMm });
   };
 
+  const activeProfile = findProfile(profileId, userProfiles);
+  const isUserProfile = activeProfile !== null && userProfiles.some((p) => p.id === activeProfile.id);
+  const sourceLabel = (p: ChassisProfile) =>
+    p.source === "measured" ? t("pill.cal.measured") : t("pill.cal.estimated");
+
   return (
     <div className="space-y-4">
       <p className="text-[11px] text-muted-foreground">{t("pill.cal.disclaimer")}</p>
 
+      {/* Profile picker + lifecycle */}
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <Label className="text-xs text-muted-foreground">{t("pill.cal.preset")}</Label>
+          <Label className="text-xs text-muted-foreground">{t("pill.cal.profile")}</Label>
           <Select
-            value={presetId ?? "custom"}
+            value={profileId ?? "custom"}
             onValueChange={(id) => {
-              const preset = CHASSIS_PRESETS.find((p) => p.id === id);
-              if (preset) onChange({ ...preset.cal }, preset.id);
+              const profile = findProfile(id, userProfiles);
+              if (profile) onChange({ ...profile.cal, eMm: [...profile.cal.eMm] }, profile.id);
             }}
           >
-            <SelectTrigger className="h-8 w-44 mt-1 text-sm">
+            <SelectTrigger className="h-8 w-56 mt-1 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CHASSIS_PRESETS.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {t(PRESET_NAME_KEYS[p.id])}
-                </SelectItem>
-              ))}
-              {presetId === null && (
+              {userProfiles.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>{t("pill.cal.userProfiles")}</SelectLabel>
+                  {userProfiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} · {sourceLabel(p)}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+              <SelectGroup>
+                <SelectLabel>{t("pill.cal.builtinProfiles")}</SelectLabel>
+                {BUILTIN_PROFILES.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} · {sourceLabel(p)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+              {profileId === null && (
                 <SelectItem value="custom" disabled>
-                  {t("pill.cal.presetCustom")}
+                  {t("pill.cal.profileCustom")}
                 </SelectItem>
               )}
             </SelectContent>
           </Select>
         </div>
-        {presetId === null && (
+        {isUserProfile && (
           <Button
             variant="outline"
             size="sm"
-            className="h-8"
-            onClick={() => onChange({ ...CHASSIS_PRESETS[0].cal }, CHASSIS_PRESETS[0].id)}
+            className="h-8 gap-1.5 text-destructive"
+            onClick={() => onDeleteProfile(activeProfile.id)}
           >
-            {t("pill.cal.resetPreset")}
+            <Trash2 className="w-3.5 h-3.5" /> {t("pill.cal.deleteProfile")}
           </Button>
         )}
+      </div>
+
+      {/* Freeze the current constants as a named measured profile */}
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-0">
+          <Label className="text-xs text-muted-foreground">{t("pill.cal.profileName")}</Label>
+          <Input
+            className="h-8 mt-1 w-56 text-sm"
+            value={profileName}
+            onChange={(e) => setProfileName(e.target.value)}
+            placeholder={t("pill.cal.profileNamePlaceholder")}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={profileName.trim().length === 0}
+          onClick={() => {
+            onSaveProfile(profileName);
+            setProfileName("");
+          }}
+        >
+          {t("pill.cal.saveProfile")}
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -99,6 +174,53 @@ export function CalibrationPanel({ cal, presetId, onChange }: CalibrationPanelPr
               className={i === 0 ? "pointer-events-none opacity-50" : undefined}
             />
           ))}
+        </div>
+      </div>
+
+      {/* Measurement helpers — turn paddock readings into constants */}
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <p className="text-xs font-medium text-foreground">{t("pill.cal.measureTitle")}</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <NumRow label={t("pill.cal.sweep")} unit="mm" step={0.1} value={sweepMm} onChange={setSweepMm} />
+          <div>
+            <Label className="text-xs text-muted-foreground">{t("pill.cal.sweepSize")}</Label>
+            <Select value={String(sweepSize)} onValueChange={(v) => setSweepSize(Number(v) as PillSize)}>
+              <SelectTrigger className="h-8 w-16 mt-1 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PILL_SIZES.filter((s) => s > 0).map((s) => (
+                  <SelectItem key={s} value={String(s)}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            disabled={sweepMm <= 0}
+            onClick={() => editE(sweepSize, eccentricityFromSweep(sweepMm))}
+          >
+            {t("pill.cal.applySweep")}
+          </Button>
+        </div>
+        <div className="space-y-2">
+          <p className="text-[11px] text-muted-foreground">{t("pill.cal.zeroIntro")}</p>
+          <div className="flex flex-wrap items-end gap-2">
+            <NumRow label={t("pill.cal.zeroCamber")} unit="°" step={0.1} value={zeroCamber} onChange={setZeroCamber} />
+            <NumRow label={t("pill.cal.zeroCaster")} unit="°" step={0.1} value={zeroCaster} onChange={setZeroCaster} />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => edit({ ...neutralFromMeasured(cal, zeroCamber, zeroCaster), gamma0Deg: 0 })}
+            >
+              {t("pill.cal.applyZero")}
+            </Button>
+          </div>
         </div>
       </div>
 

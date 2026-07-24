@@ -187,11 +187,6 @@
     "cal": {
       "title": "Calibración del chasis",
       "disclaimer": "Estas constantes son valores aproximados por defecto: las excentricidades reales varían según el chasis y no están publicadas. Verifica con un medidor de caída/avance antes de fiarte de los números y edita lo que no cuadre.",
-      "preset": "Preajuste",
-      "presetGeneric": "Kart genérico",
-      "presetOtk": "OTK (aprox.)",
-      "presetCustom": "Personalizado",
-      "resetPreset": "Restablecer al preajuste",
       "h": "Separación de alojamientos H",
       "lRim": "Luz del medidor",
       "split": "Fracción de altura de rueda",
@@ -203,7 +198,25 @@
       "eccentricity": "Excentricidad por tamaño (e0 siempre es 0)",
       "signCamber": "Invertir signo de caída",
       "signCaster": "Invertir signo de avance",
-      "mirrorRight": "Reflejar ángulos del lado derecho"
+      "mirrorRight": "Reflejar ángulos del lado derecho",
+      "profile": "Perfil de chasis",
+      "profileCustom": "Personalizado (sin guardar)",
+      "userProfiles": "Mis perfiles medidos",
+      "builtinProfiles": "Integrados",
+      "estimated": "estimado",
+      "measured": "medido",
+      "profileName": "Nombre del perfil",
+      "profileNamePlaceholder": "p. ej. Mi Praga — julio 2026",
+      "saveProfile": "Guardar como perfil medido",
+      "deleteProfile": "Eliminar perfil",
+      "measureTitle": "Ayudas de medición",
+      "sweep": "Recorrido del reloj en 180°",
+      "sweepSize": "Tamaño de excéntrica",
+      "applySweep": "Fijar e = recorrido ÷ 2",
+      "zeroIntro": "Con ambas excéntricas en tamaño 0, introduce las lecturas del medidor para deducir los desplazamientos de fábrica del chasis.",
+      "zeroCamber": "Caída medida",
+      "zeroCaster": "Avance medido",
+      "applyZero": "Fijar punto cero"
     }
   }
 }
