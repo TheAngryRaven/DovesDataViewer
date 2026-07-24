@@ -188,6 +188,25 @@ in-memory leaderboard handoff. Public sessions also list on `/driver/:username`.
 
 ---
 
+## Updates blog (`..._blog_posts.sql`, plan 0011)
+
+Admin-authored articles for the public `/updates` page (`/updates/:slug` per
+post). **All access is through RLS** (no edge function); the client lives in
+`src/plugins/cloud-sync/postsClient.ts`.
+
+| Table | Purpose |
+|-------|---------|
+| `posts` | One row per article: `slug` (unique, permanent SEO url segment), `title`, `body` (markdown source — rendered client-side by react-markdown, raw HTML never rendered), `tags text[]`, `ai_assisted`, `published` + `published_at` (set client-side on first publish, kept across unpublish/republish for stable ordering), `author_id` (FK `auth.users`, null on account deletion), `created_at`/`updated_at` (client-set on update, `engine_classes` convention). Excerpts are derived client-side from `body` (`lib/blogPosts.ts`) — no excerpt column. |
+
+**RLS.** `select` for **anon + authenticated** where `published`; admins
+(`has_role`) get select-all + insert/update/delete. Drafts are invisible to the
+public by policy, not by client filtering. Partial index
+`(published_at desc) where published` serves the public listing; tag filtering
+is client-side (no GIN index — add one only if server-side tag queries become
+necessary).
+
+---
+
 ## Subscriptions / Stripe (`..._stripe_subscriptions.sql`, `..._subscription_grace_trim.sql` + 4 edge functions)
 
 Paid tiers scale **one pooled cloud-storage budget** that documents + logs +
