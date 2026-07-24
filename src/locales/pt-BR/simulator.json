@@ -36,7 +36,10 @@
     "provenance": "Build do firmware {{sha}} · {{date}} — código idêntico ao dispositivo físico."
   },
   "picker": {
-    "label": "Sessão:"
+    "label": "Sessão:",
+    "load": "Carregar .dovex…",
+    "demo": "Voltar à demo",
+    "error": "Não foi possível carregar {{name}} — nenhum dado GPS Dove encontrado no arquivo."
   },
   "map": {
     "toggleStyle": "Alternar estilo do mapa"

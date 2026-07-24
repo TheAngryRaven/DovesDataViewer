@@ -36,7 +36,10 @@
     "provenance": "ファームウェアビルド {{sha}} · {{date}} — 実機と同一のコードです。"
   },
   "picker": {
-    "label": "セッション:"
+    "label": "セッション:",
+    "load": ".dovexを読み込む…",
+    "demo": "デモに戻る",
+    "error": "{{name}}を読み込めませんでした — ファイル内にDove GPSデータが見つかりません。"
   },
   "map": {
     "toggleStyle": "地図スタイルを切り替え"

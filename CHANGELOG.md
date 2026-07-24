@@ -11,6 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.1.1] - unreleased
+
+### Added
+- **Pill Alignment tool.** New Tools-tab calculator for OTK-style eccentric
+  kingpin pills: set top/bottom pill size and rotation per side and read
+  camber/caster/track-width instantly, explore the full reachable
+  camber–caster envelope on an interactive scatter (drag the marker to solve
+  pill angles), and use "Find Setup" to get ranked pill combinations for a
+  target alignment — with hole snapping, toe entry + overhead toe visual, a
+  resultant-toe color mode, and a "load from session setup" shortcut. Chassis
+  constants live in a modular profile system — built-in brand profiles (OTK /
+  Tony Kart, Kart Republic, CompKart, Birel ART, Praga, Sodi; estimated until
+  measured) plus measurement helpers that turn dial-indicator and gauge
+  readings into constants you can save as named measured profiles. Works
+  offline and from the homepage Tools drawer.
+- **Simulator: load your own `.dovex`.** The `/simulator` page now has a
+  session picker — feed the firmware any dove-family log
+  (`.dovex`/`.dovep`/`.dove`) instead of only the bundled demo, with a
+  one-tap "Back to demo". Picked files are parsed leniently: a log whose
+  metadata header was never written (session not ended on the logger) or was
+  corrupted still replays as long as the CSV column headers are intact —
+  handy for reproducing on-device bugs in the browser.
+
+### Fixed
+- **Headerless `.dovex` files now load.** If a session was never "ended" on the
+  logger, the reserved metadata header is left as blank padding and the file
+  used to be mis-detected as an Alfano CSV ("Alfano csv error"). Detection now
+  recognizes a padding-only preamble followed by valid Dove GPS data as
+  `.dovex` and parses the session normally — driver/course metadata is simply
+  absent, and the in-app auto track detection takes over.
+
 ## [3.1.0] - 2026-07-17
 
 ### Changed

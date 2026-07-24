@@ -84,6 +84,13 @@ Byte 8192+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
 GPS data is always parseable even if metadata is corrupted. Metadata is attached
 as `ParsedData.dovexMetadata`.
 
+**Headerless files:** the logger only writes the metadata header on "end
+session", so an unclosed session leaves the reserved region as blank padding
+(newlines and/or null bytes). `isDovexFormat` accepts a padding-only preamble
+followed by a valid embedded Dove CSV — the session parses with no
+`dovexMetadata` and course detection fills in the track. Without this, detection
+would fall through to the Alfano CSV parser and fail.
+
 **`.dovep` ("Dove phone")** is the Phone Datalogger tool's output
 (`lib/gps/dovepWriter.ts`). It is **byte-compatible `.dovex`** — same metadata
 preamble + Dove CSV — so `isDovexFormat`/`parseDovexFile` read it with no new

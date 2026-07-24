@@ -123,5 +123,100 @@
     "statusRecording": "Aufnahme",
     "statusEnded": "Beendet",
     "statusWaiting": "Warten"
+  },
+  "pillAlignment": {
+    "name": "Exzenter-Ausrichtung",
+    "description": "Sturz- und Nachlaufrechner für Exzenterbuchsen mit Setup-Löser.",
+    "badge": "Experimentell"
+  },
+  "pill": {
+    "linkSides": "L/R koppeln",
+    "snapHoles": "Auf Löcher rasten",
+    "loadFromSetup": "Aus Session-Setup laden",
+    "sideLeft": "Links",
+    "sideRight": "Rechts",
+    "sideL": "L",
+    "sideR": "R",
+    "colorMode": {
+      "trackDelta": "Δ Spurweite",
+      "thetaTop": "Winkel oberer Exzenter",
+      "resultantToe": "Resultierende Spur"
+    },
+    "envelope": {
+      "xLabel": "Sturz (°)",
+      "yLabel": "Nachlauf (°)",
+      "dragHint": "Marker ziehen, um die Exzenterwinkel für diesen Sturz/Nachlauf zu lösen. Orange = Bahn des oberen Exzenters, Magenta = unterer."
+    },
+    "dial": {
+      "topLeft": "Links · Oben",
+      "topRight": "Rechts · Oben",
+      "bottomLeft": "Links · Unten",
+      "bottomRight": "Rechts · Unten",
+      "size": "Exzentergröße",
+      "aria": "Exzenterwinkel {{label}}"
+    },
+    "readout": {
+      "camber": "Sturz",
+      "caster": "Nachlauf",
+      "track": "Spur",
+      "totalTrack": "Gesamtänderung der Spurweite: {{value}} mm"
+    },
+    "toe": {
+      "title": "Spur",
+      "usePerSide": "Pro Seite eingeben",
+      "useRod": "Spurstangenänderung eingeben",
+      "rodDelta": "Δ Spurstange",
+      "rArm": "Lenkhebelradius",
+      "left": "Spur links",
+      "right": "Spur rechts",
+      "out": "NACHSPUR",
+      "in": "VORSPUR",
+      "neutral": "Neutrale Spur"
+    },
+    "findSetup": {
+      "title": "Setup finden",
+      "targetCamber": "Ziel-Sturz",
+      "targetCaster": "Ziel-Nachlauf",
+      "solve": "Exzenterpositionen finden",
+      "apply": "Übernehmen",
+      "residual": "Abweichung",
+      "noResults": "Dieses Ziel liegt außerhalb dessen, was diese Exzenter erreichen können. Weniger Sturz/Nachlauf oder größere Exzenter versuchen.",
+      "top": "Oben",
+      "bottom": "Unten"
+    },
+    "cal": {
+      "title": "Chassis-Kalibrierung",
+      "disclaimer": "Diese Konstanten sind ungefähre Vorgaben — echte Exzentrizitäten variieren je Chassis und sind nicht veröffentlicht. Vor dem Vertrauen in die Zahlen mit einer Sturz-/Nachlauflehre prüfen und Abweichendes anpassen.",
+      "h": "Bohrungsabstand H",
+      "lRim": "Messweite der Lehre",
+      "split": "Radhöhenanteil",
+      "neutralX": "Neutralversatz vorn",
+      "neutralY": "Neutralversatz außen",
+      "gamma0": "Werksseitiger Sturz",
+      "holeCount": "Löcher pro Exzenter",
+      "toeCoupling": "Spur-Kopplung",
+      "eccentricity": "Exzentrizität je Größe (e0 ist immer 0)",
+      "signCamber": "Sturz-Vorzeichen umkehren",
+      "signCaster": "Nachlauf-Vorzeichen umkehren",
+      "mirrorRight": "Winkel rechts spiegeln",
+      "profile": "Chassis-Profil",
+      "profileCustom": "Benutzerdefiniert (nicht gespeichert)",
+      "userProfiles": "Meine gemessenen Profile",
+      "builtinProfiles": "Integriert",
+      "estimated": "geschätzt",
+      "measured": "gemessen",
+      "profileName": "Profilname",
+      "profileNamePlaceholder": "z. B. Mein Praga — Juli 2026",
+      "saveProfile": "Als gemessenes Profil speichern",
+      "deleteProfile": "Profil löschen",
+      "measureTitle": "Messhilfen",
+      "sweep": "Messuhr-Weg über 180°",
+      "sweepSize": "Exzentergröße",
+      "applySweep": "e = Weg ÷ 2 setzen",
+      "zeroIntro": "Mit beiden Exzentern auf Größe 0 die Lehrenwerte eingeben, um die werksseitigen Versätze des Chassis zu bestimmen.",
+      "zeroCamber": "Gemessener Sturz",
+      "zeroCaster": "Gemessener Nachlauf",
+      "applyZero": "Nullpunkt setzen"
+    }
   }
 }
