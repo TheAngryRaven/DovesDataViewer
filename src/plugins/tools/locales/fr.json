@@ -123,5 +123,87 @@
     "statusRecording": "Enregistrement",
     "statusEnded": "Terminée",
     "statusWaiting": "En attente"
+  },
+  "pillAlignment": {
+    "name": "Alignement par excentriques",
+    "description": "Calculateur de carrossage et de chasse par excentriques, avec solveur de réglage.",
+    "badge": "Expérimental"
+  },
+  "pill": {
+    "linkSides": "Lier G/D",
+    "snapHoles": "Caler sur les trous",
+    "loadFromSetup": "Charger depuis le réglage de la session",
+    "sideLeft": "Gauche",
+    "sideRight": "Droite",
+    "sideL": "G",
+    "sideR": "D",
+    "colorMode": {
+      "trackDelta": "Δ largeur de voie",
+      "thetaTop": "Angle excentrique sup.",
+      "resultantToe": "Pincement résultant"
+    },
+    "envelope": {
+      "xLabel": "Carrossage (°)",
+      "yLabel": "Chasse (°)",
+      "dragHint": "Faites glisser le repère pour résoudre les angles d'excentriques pour ce carrossage/chasse. Orange = lieu de l'excentrique supérieur, magenta = inférieur."
+    },
+    "dial": {
+      "topLeft": "Gauche · Haut",
+      "topRight": "Droite · Haut",
+      "bottomLeft": "Gauche · Bas",
+      "bottomRight": "Droite · Bas",
+      "size": "Taille d'excentrique",
+      "aria": "Angle de l'excentrique {{label}}"
+    },
+    "readout": {
+      "camber": "Carrossage",
+      "caster": "Chasse",
+      "track": "Voie",
+      "totalTrack": "Variation totale de la voie : {{value}} mm"
+    },
+    "toe": {
+      "title": "Pincement",
+      "usePerSide": "Saisir par côté",
+      "useRod": "Saisir la variation de biellette",
+      "rodDelta": "Δ biellette",
+      "rArm": "Rayon du levier de direction",
+      "left": "Pincement gauche",
+      "right": "Pincement droit",
+      "out": "OUVERTURE",
+      "in": "PINCEMENT",
+      "neutral": "Pincement neutre"
+    },
+    "findSetup": {
+      "title": "Trouver un réglage",
+      "targetCamber": "Carrossage cible",
+      "targetCaster": "Chasse cible",
+      "solve": "Trouver les positions d'excentriques",
+      "apply": "Appliquer",
+      "residual": "écart",
+      "noResults": "Cette cible dépasse ce que ces excentriques peuvent atteindre. Essayez moins de carrossage/chasse ou des excentriques plus grands.",
+      "top": "Haut",
+      "bottom": "Bas"
+    },
+    "cal": {
+      "title": "Calibration du châssis",
+      "disclaimer": "Ces constantes sont des valeurs approximatives par défaut : les excentricités réelles varient selon le châssis et ne sont pas publiées. Vérifiez avec une jauge de carrossage/chasse avant de vous fier aux chiffres, et modifiez ce qui ne correspond pas.",
+      "preset": "Préréglage",
+      "presetGeneric": "Kart générique",
+      "presetOtk": "OTK (approx.)",
+      "presetCustom": "Personnalisé",
+      "resetPreset": "Rétablir le préréglage",
+      "h": "Écart des logements H",
+      "lRim": "Portée de la jauge",
+      "split": "Fraction de hauteur de roue",
+      "neutralX": "Décalage neutre avant",
+      "neutralY": "Décalage neutre extérieur",
+      "gamma0": "Carrossage d'origine",
+      "holeCount": "Trous par excentrique",
+      "toeCoupling": "Couplage de pincement",
+      "eccentricity": "Excentricité par taille (e0 vaut toujours 0)",
+      "signCamber": "Inverser le signe du carrossage",
+      "signCaster": "Inverser le signe de la chasse",
+      "mirrorRight": "Miroir des angles côté droit"
+    }
   }
 }

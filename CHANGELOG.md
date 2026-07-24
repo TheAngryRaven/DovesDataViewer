@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.1] - unreleased
 
 ### Added
+- **Pill Alignment tool.** New Tools-tab calculator for OTK-style eccentric
+  kingpin pills: set top/bottom pill size and rotation per side and read
+  camber/caster/track-width instantly, explore the full reachable
+  camber–caster envelope on an interactive scatter (drag the marker to solve
+  pill angles), and use "Find Setup" to get ranked pill combinations for a
+  target alignment — with hole snapping, toe entry + overhead toe visual, a
+  resultant-toe color mode, and a "load from session setup" shortcut. Chassis
+  calibration is fully editable with approximate presets; works offline and
+  from the homepage Tools drawer.
 - **Simulator: load your own `.dovex`.** The `/simulator` page now has a
   session picker — feed the firmware any dove-family log
   (`.dovex`/`.dovep`/`.dove`) instead of only the bundled demo, with a

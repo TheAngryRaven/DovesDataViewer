@@ -123,5 +123,87 @@
     "statusRecording": "Gravando",
     "statusEnded": "Encerrada",
     "statusWaiting": "Aguardando"
+  },
+  "pillAlignment": {
+    "name": "Alinhamento por excêntricos",
+    "description": "Calculadora de cambagem e caster por excêntricos, com solucionador de acerto.",
+    "badge": "Experimental"
+  },
+  "pill": {
+    "linkSides": "Vincular esq./dir.",
+    "snapHoles": "Encaixar nos furos",
+    "loadFromSetup": "Carregar do acerto da sessão",
+    "sideLeft": "Esquerda",
+    "sideRight": "Direita",
+    "sideL": "E",
+    "sideR": "D",
+    "colorMode": {
+      "trackDelta": "Δ bitola",
+      "thetaTop": "Ângulo excêntrico sup.",
+      "resultantToe": "Convergência resultante"
+    },
+    "envelope": {
+      "xLabel": "Cambagem (°)",
+      "yLabel": "Caster (°)",
+      "dragHint": "Arraste o marcador para resolver os ângulos dos excêntricos para essa cambagem/caster. Laranja = trajetória do excêntrico superior, magenta = inferior."
+    },
+    "dial": {
+      "topLeft": "Esq. · Superior",
+      "topRight": "Dir. · Superior",
+      "bottomLeft": "Esq. · Inferior",
+      "bottomRight": "Dir. · Inferior",
+      "size": "Tamanho do excêntrico",
+      "aria": "Ângulo do excêntrico {{label}}"
+    },
+    "readout": {
+      "camber": "Cambagem",
+      "caster": "Caster",
+      "track": "Bitola",
+      "totalTrack": "Variação total da bitola: {{value}} mm"
+    },
+    "toe": {
+      "title": "Convergência",
+      "usePerSide": "Inserir por lado",
+      "useRod": "Inserir variação do tirante",
+      "rodDelta": "Δ tirante",
+      "rArm": "Raio do braço de direção",
+      "left": "Convergência esq.",
+      "right": "Convergência dir.",
+      "out": "DIVERGENTE",
+      "in": "CONVERGENTE",
+      "neutral": "Convergência neutra"
+    },
+    "findSetup": {
+      "title": "Encontrar acerto",
+      "targetCamber": "Cambagem alvo",
+      "targetCaster": "Caster alvo",
+      "solve": "Encontrar posições dos excêntricos",
+      "apply": "Aplicar",
+      "residual": "desvio",
+      "noResults": "Esse alvo está fora do alcance destes excêntricos. Tente menos cambagem/caster ou excêntricos maiores.",
+      "top": "Sup",
+      "bottom": "Inf"
+    },
+    "cal": {
+      "title": "Calibração do chassi",
+      "disclaimer": "Estas constantes são padrões aproximados — as excentricidades reais variam por chassi e não são publicadas. Confira com um medidor de cambagem/caster antes de confiar nos números e ajuste o que não bater.",
+      "preset": "Predefinição",
+      "presetGeneric": "Kart genérico",
+      "presetOtk": "OTK (aprox.)",
+      "presetCustom": "Personalizado",
+      "resetPreset": "Restaurar predefinição",
+      "h": "Distância entre alojamentos H",
+      "lRim": "Vão do medidor",
+      "split": "Fração da altura da roda",
+      "neutralX": "Deslocamento neutro à frente",
+      "neutralY": "Deslocamento neutro para fora",
+      "gamma0": "Cambagem de fábrica",
+      "holeCount": "Furos por excêntrico",
+      "toeCoupling": "Acoplamento de convergência",
+      "eccentricity": "Excentricidade por tamanho (e0 é sempre 0)",
+      "signCamber": "Inverter sinal da cambagem",
+      "signCaster": "Inverter sinal do caster",
+      "mirrorRight": "Espelhar ângulos do lado direito"
+    }
   }
 }

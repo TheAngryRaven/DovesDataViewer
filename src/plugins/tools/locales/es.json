@@ -123,5 +123,87 @@
     "statusRecording": "Grabando",
     "statusEnded": "Finalizada",
     "statusWaiting": "Esperando"
+  },
+  "pillAlignment": {
+    "name": "Alineación de excéntricas",
+    "description": "Calculadora de caída y avance por excéntricas, con solucionador de reglajes.",
+    "badge": "Experimental"
+  },
+  "pill": {
+    "linkSides": "Vincular izq./der.",
+    "snapHoles": "Ajustar a los agujeros",
+    "loadFromSetup": "Cargar del reglaje de la sesión",
+    "sideLeft": "Izquierda",
+    "sideRight": "Derecha",
+    "sideL": "I",
+    "sideR": "D",
+    "colorMode": {
+      "trackDelta": "Δ ancho de vía",
+      "thetaTop": "Ángulo excéntrica sup.",
+      "resultantToe": "Convergencia resultante"
+    },
+    "envelope": {
+      "xLabel": "Caída (°)",
+      "yLabel": "Avance (°)",
+      "dragHint": "Arrastra el marcador para resolver los ángulos de las excéntricas para esa caída/avance. Naranja = lugar de la excéntrica superior, magenta = inferior."
+    },
+    "dial": {
+      "topLeft": "Izq. · Superior",
+      "topRight": "Der. · Superior",
+      "bottomLeft": "Izq. · Inferior",
+      "bottomRight": "Der. · Inferior",
+      "size": "Tamaño de excéntrica",
+      "aria": "Ángulo de la excéntrica {{label}}"
+    },
+    "readout": {
+      "camber": "Caída",
+      "caster": "Avance",
+      "track": "Vía",
+      "totalTrack": "Cambio total de ancho de vía: {{value}} mm"
+    },
+    "toe": {
+      "title": "Convergencia",
+      "usePerSide": "Introducir por lado",
+      "useRod": "Introducir cambio de tirante",
+      "rodDelta": "Δ tirante",
+      "rArm": "Radio del brazo de dirección",
+      "left": "Convergencia izq.",
+      "right": "Convergencia der.",
+      "out": "DIVERGENCIA",
+      "in": "CONVERGENCIA",
+      "neutral": "Convergencia neutra"
+    },
+    "findSetup": {
+      "title": "Buscar reglaje",
+      "targetCamber": "Caída objetivo",
+      "targetCaster": "Avance objetivo",
+      "solve": "Buscar posiciones de excéntricas",
+      "apply": "Aplicar",
+      "residual": "desvío",
+      "noResults": "Ese objetivo está fuera del alcance de estas excéntricas. Prueba menos caída/avance o excéntricas mayores.",
+      "top": "Sup",
+      "bottom": "Inf"
+    },
+    "cal": {
+      "title": "Calibración del chasis",
+      "disclaimer": "Estas constantes son valores aproximados por defecto: las excentricidades reales varían según el chasis y no están publicadas. Verifica con un medidor de caída/avance antes de fiarte de los números y edita lo que no cuadre.",
+      "preset": "Preajuste",
+      "presetGeneric": "Kart genérico",
+      "presetOtk": "OTK (aprox.)",
+      "presetCustom": "Personalizado",
+      "resetPreset": "Restablecer al preajuste",
+      "h": "Separación de alojamientos H",
+      "lRim": "Luz del medidor",
+      "split": "Fracción de altura de rueda",
+      "neutralX": "Desplazamiento neutro adelante",
+      "neutralY": "Desplazamiento neutro afuera",
+      "gamma0": "Caída de fábrica",
+      "holeCount": "Agujeros por excéntrica",
+      "toeCoupling": "Acoplamiento de convergencia",
+      "eccentricity": "Excentricidad por tamaño (e0 siempre es 0)",
+      "signCamber": "Invertir signo de caída",
+      "signCaster": "Invertir signo de avance",
+      "mirrorRight": "Reflejar ángulos del lado derecho"
+    }
   }
 }
