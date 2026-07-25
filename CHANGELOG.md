@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   measured) plus measurement helpers that turn dial-indicator and gauge
   readings into constants you can save as named measured profiles. Works
   offline and from the homepage Tools drawer.
+- **Updates blog.** New public `/updates` page with articles from the team —
+  release notes, news, and engineering write-ups — each at its own
+  SEO-friendly `/updates/<slug>` URL. Posts support Markdown (headers, bold,
+  links, image embeds), tags with tag filtering on the index, and an
+  "AI-assisted" marker. Written and managed from the admin portal. An RSS
+  feed (subscribe link on the page + browser autodiscovery) lets readers
+  follow new posts.
 - **Simulator: load your own `.dovex`.** The `/simulator` page now has a
   session picker — feed the firmware any dove-family log
   (`.dovex`/`.dovep`/`.dove`) instead of only the bundled demo, with a
@@ -33,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metadata header was never written (session not ended on the logger) or was
   corrupted still replays as long as the CSV column headers are intact —
   handy for reproducing on-device bugs in the browser.
+
+### Changed
+- **Home page roadmap replaced by "Latest updates".** The hand-maintained
+  roadmap list is gone; in its place, two tap-through panels show the newest
+  published blog post tagged `web update` and the newest other news, with a
+  button to the full `/updates` page. The section hides itself offline or
+  when nothing is published.
 
 ### Fixed
 - **Headerless `.dovex` files now load.** If a session was never "ended" on the

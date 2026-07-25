@@ -21,6 +21,7 @@ import type logger from "@/locales/en/logger.json";
 import type leaderboard from "@/locales/en/leaderboard.json";
 import type driver from "@/locales/en/driver.json";
 import type simulator from "@/locales/en/simulator.json";
+import type updates from "@/locales/en/updates.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -41,6 +42,7 @@ declare module "i18next" {
       leaderboard: typeof leaderboard;
       driver: typeof driver;
       simulator: typeof simulator;
+      updates: typeof updates;
     };
   }
 }
