@@ -5,17 +5,16 @@
 // plugin's own IndexedDB store, so a calibrated setup survives reloads and
 // works fully offline trackside.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Trans } from "react-i18next";
-import { ChevronDown, RotateCcw, Crosshair } from "lucide-react";
+import { RotateCcw, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { NumberInput } from "@/components/ui/number-input";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { PluginPanelProps } from "@/plugins/panels";
 import { getPluginStore } from "@/plugins/storage";
+import { NumRow, Section } from "../shared/NumRow";
 import { SeatDiagram } from "./SeatDiagram";
 import { TOOLS_NS, useToolsT } from "../i18n";
 import {
@@ -75,61 +74,6 @@ function formatSlideInches(mm: number): string {
 function signed(value: number, digits: number): string {
   const r = value.toFixed(digits);
   return value >= 0 ? `+${r}` : r.replace("-", "−");
-}
-
-/** Number field that doesn't fight the keyboard: commits parseable input, resyncs on outside change. */
-function NumRow({ label, value, onChange, unit, step = 1, className }: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  unit?: string;
-  step?: number;
-  className?: string;
-}) {
-  const display = useMemo(() => String(Number(value.toFixed(2))), [value]);
-  const [text, setText] = useState(display);
-  const editing = useRef(false);
-  useEffect(() => {
-    if (!editing.current) setText(display);
-  }, [display]);
-  return (
-    <div className={className}>
-      <Label className="text-xs text-muted-foreground">
-        {label}
-        {unit ? ` (${unit})` : ""}
-      </Label>
-      <NumberInput
-        className="h-8 mt-1 text-sm"
-        step={step}
-        value={text}
-        onFocus={() => {
-          editing.current = true;
-        }}
-        onBlur={() => {
-          editing.current = false;
-          setText(display);
-        }}
-        onValueChange={(raw) => {
-          setText(raw);
-          const v = parseFloat(raw);
-          if (Number.isFinite(v)) onChange(v);
-        }}
-      />
-    </div>
-  );
-}
-
-function Section({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) {
-  const [open, setOpen] = useState(!!defaultOpen);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border border-border bg-card">
-      <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-foreground">
-        {title}
-        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="border-t border-border p-4">{children}</CollapsibleContent>
-    </Collapsible>
-  );
 }
 
 export default function SeatPositionTool(_props: PluginPanelProps) {

@@ -123,5 +123,100 @@
     "statusRecording": "記録中",
     "statusEnded": "終了",
     "statusWaiting": "待機中"
+  },
+  "pillAlignment": {
+    "name": "ピルアライメント",
+    "description": "偏心ピルによるキャンバー/キャスター計算機。セットアップ探索付き。",
+    "badge": "実験的"
+  },
+  "pill": {
+    "linkSides": "左右を連動",
+    "snapHoles": "穴にスナップ",
+    "loadFromSetup": "セッションのセットアップから読み込む",
+    "sideLeft": "左",
+    "sideRight": "右",
+    "sideL": "左",
+    "sideR": "右",
+    "colorMode": {
+      "trackDelta": "トレッド幅Δ",
+      "thetaTop": "上ピル角度",
+      "resultantToe": "合成トー"
+    },
+    "envelope": {
+      "xLabel": "キャンバー (°)",
+      "yLabel": "キャスター (°)",
+      "dragHint": "マーカーをドラッグすると、そのキャンバー/キャスターに対するピル角度を解きます。オレンジ = 上ピルの軌跡、マゼンタ = 下ピルの軌跡。"
+    },
+    "dial": {
+      "topLeft": "左・上",
+      "topRight": "右・上",
+      "bottomLeft": "左・下",
+      "bottomRight": "右・下",
+      "size": "ピルサイズ",
+      "aria": "{{label}}のピル角度"
+    },
+    "readout": {
+      "camber": "キャンバー",
+      "caster": "キャスター",
+      "track": "トレッド",
+      "totalTrack": "トレッド幅の合計変化: {{value}} mm"
+    },
+    "toe": {
+      "title": "トー",
+      "usePerSide": "左右別に入力",
+      "useRod": "タイロッド変化で入力",
+      "rodDelta": "タイロッドΔ",
+      "rArm": "ステアリングアーム半径",
+      "left": "左トー",
+      "right": "右トー",
+      "out": "トーアウト",
+      "in": "トーイン",
+      "neutral": "トーゼロ"
+    },
+    "findSetup": {
+      "title": "セットアップ探索",
+      "targetCamber": "目標キャンバー",
+      "targetCaster": "目標キャスター",
+      "solve": "ピル位置を探索",
+      "apply": "適用",
+      "residual": "誤差",
+      "noResults": "その目標はこのピルでは到達できません。キャンバー/キャスターを小さくするか、大きいピルを試してください。",
+      "top": "上",
+      "bottom": "下"
+    },
+    "cal": {
+      "title": "シャシー校正",
+      "disclaimer": "これらの定数はあくまで近似の既定値です。実際の偏心量はシャシーごとに異なり、公表されていません。数値を信頼する前にキャンバー/キャスターゲージで確認し、合わない値は編集してください。",
+      "h": "ボア間隔 H",
+      "lRim": "ゲージ測定幅",
+      "split": "ホイール高さ比率",
+      "neutralX": "中立オフセット前方",
+      "neutralY": "中立オフセット外側",
+      "gamma0": "初期キャンバー",
+      "holeCount": "ピルの穴数",
+      "toeCoupling": "トー連成係数",
+      "eccentricity": "サイズ別偏心量（e0 は常に 0）",
+      "signCamber": "キャンバー符号を反転",
+      "signCaster": "キャスター符号を反転",
+      "mirrorRight": "右側の角度をミラー",
+      "profile": "シャシープロファイル",
+      "profileCustom": "カスタム（未保存）",
+      "userProfiles": "自分の実測プロファイル",
+      "builtinProfiles": "内蔵",
+      "estimated": "推定",
+      "measured": "実測",
+      "profileName": "プロファイル名",
+      "profileNamePlaceholder": "例: 自分のPraga — 2026年7月",
+      "saveProfile": "実測プロファイルとして保存",
+      "deleteProfile": "プロファイルを削除",
+      "measureTitle": "測定ヘルパー",
+      "sweep": "180°回転時のダイヤルゲージ振れ",
+      "sweepSize": "ピルサイズ",
+      "applySweep": "e = 振れ ÷ 2 を設定",
+      "zeroIntro": "両方のピルをサイズ0にした状態でゲージの読みを入力すると、シャシー固有のオフセットを逆算します。",
+      "zeroCamber": "実測キャンバー",
+      "zeroCaster": "実測キャスター",
+      "applyZero": "ゼロ点を設定"
+    }
   }
 }

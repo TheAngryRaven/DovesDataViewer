@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.1] - unreleased
 
 ### Added
+- **Pill Alignment tool.** New Tools-tab calculator for OTK-style eccentric
+  kingpin pills: set top/bottom pill size and rotation per side and read
+  camber/caster/track-width instantly, explore the full reachable
+  camber–caster envelope on an interactive scatter (drag the marker to solve
+  pill angles), and use "Find Setup" to get ranked pill combinations for a
+  target alignment — with hole snapping, toe entry + overhead toe visual, a
+  resultant-toe color mode, and a "load from session setup" shortcut. Chassis
+  constants live in a modular profile system — built-in brand profiles (OTK /
+  Tony Kart, Kart Republic, CompKart, Birel ART, Praga, Sodi; estimated until
+  measured) plus measurement helpers that turn dial-indicator and gauge
+  readings into constants you can save as named measured profiles. Works
+  offline and from the homepage Tools drawer.
 - **Updates blog.** New public `/updates` page with articles from the team —
   release notes, news, and engineering write-ups — each at its own
   SEO-friendly `/updates/<slug>` URL. Posts support Markdown (headers, bold,
