@@ -5,6 +5,8 @@ import {
   deriveExcerpt,
   normalizeTags,
   collectTags,
+  splitLatestByTag,
+  WEB_UPDATE_TAG,
   type PostRow,
 } from "./blogPosts";
 
@@ -101,6 +103,34 @@ describe("collectTags", () => {
 
   it("handles no posts", () => {
     expect(collectTags([])).toEqual([]);
+  });
+});
+
+describe("splitLatestByTag", () => {
+  const post = (slug: string, tags: string[]) => ({ slug, tags });
+
+  it("picks the newest tagged and newest untagged post", () => {
+    const posts = [
+      post("newest-news", ["firmware"]),
+      post("newest-web", [WEB_UPDATE_TAG, "release"]),
+      post("older-web", [WEB_UPDATE_TAG]),
+      post("older-news", []),
+    ];
+    const { tagged, untagged } = splitLatestByTag(posts, WEB_UPDATE_TAG);
+    expect(tagged?.slug).toBe("newest-web");
+    expect(untagged?.slug).toBe("newest-news");
+  });
+
+  it("returns null for a side with no matching post", () => {
+    expect(splitLatestByTag([post("a", [WEB_UPDATE_TAG])], WEB_UPDATE_TAG)).toEqual({
+      tagged: post("a", [WEB_UPDATE_TAG]),
+      untagged: null,
+    });
+    expect(splitLatestByTag([post("b", ["news"])], WEB_UPDATE_TAG)).toEqual({
+      tagged: null,
+      untagged: post("b", ["news"]),
+    });
+    expect(splitLatestByTag([], WEB_UPDATE_TAG)).toEqual({ tagged: null, untagged: null });
   });
 });
 

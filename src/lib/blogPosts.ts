@@ -137,3 +137,27 @@ export function collectTags(posts: Array<{ tags: string[] }>): string[] {
   for (const post of posts) for (const tag of post.tags) all.add(tag);
   return [...all].sort((a, b) => a.localeCompare(b));
 }
+
+/** Tag marking a post as a viewer/web release note — drives the landing split. */
+export const WEB_UPDATE_TAG = "web update";
+
+/**
+ * From a newest-first post list, pick the latest post carrying `tag` and the
+ * latest post without it (the landing page's two "latest update" panels).
+ */
+export function splitLatestByTag<T extends { tags: string[] }>(
+  posts: T[],
+  tag: string,
+): { tagged: T | null; untagged: T | null } {
+  let tagged: T | null = null;
+  let untagged: T | null = null;
+  for (const post of posts) {
+    if (post.tags.includes(tag)) {
+      tagged ??= post;
+    } else {
+      untagged ??= post;
+    }
+    if (tagged && untagged) break;
+  }
+  return { tagged, untagged };
+}

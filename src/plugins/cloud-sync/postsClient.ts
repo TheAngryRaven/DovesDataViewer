@@ -42,6 +42,31 @@ export async function fetchPostBySlug(slug: string): Promise<BlogPost | null> {
   return data ? mapPostRow(data as PostRow) : null;
 }
 
+/** Light row for the landing "latest updates" panels — no body payload. */
+export interface PostSummary {
+  slug: string;
+  title: string;
+  tags: string[];
+  publishedAt: string | null;
+}
+
+/** Newest published posts, summaries only. The landing split happens client-side. */
+export async function fetchLatestPostSummaries(limit = 50): Promise<PostSummary[]> {
+  const { data, error } = await postsTable()
+    .select("slug,title,tags,published_at")
+    .eq("published", true)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error) throw error;
+  const rows = (data ?? []) as Array<Pick<PostRow, "slug" | "title" | "tags" | "published_at">>;
+  return rows.map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    tags: r.tags ?? [],
+    publishedAt: r.published_at,
+  }));
+}
+
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 /** Every post including drafts (admin RLS), newest created first. */
