@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   corrupted still replays as long as the CSV column headers are intact —
   handy for reproducing on-device bugs in the browser.
 
+### Changed
+- **Home page roadmap replaced by "Latest updates".** The hand-maintained
+  roadmap list is gone; in its place, two tap-through panels show the newest
+  published blog post tagged `web update` and the newest other news, with a
+  button to the full `/updates` page. The section hides itself offline or
+  when nothing is published.
+
 ### Fixed
 - **Headerless `.dovex` files now load.** If a session was never "ended" on the
   logger, the reserved metadata header is left as blank padding and the file

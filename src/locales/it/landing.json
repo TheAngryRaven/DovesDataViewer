@@ -38,63 +38,6 @@
     "terms": "Termini di servizio",
     "admin": "Amministrazione"
   },
-  "roadmap": {
-    "title": "Roadmap delle funzionalità in arrivo",
-    "estimated": "i tempi sono stimati",
-    "blurb": "Siamo supportati da un team che sviluppa software di livello enterprise da oltre 20 anni. Siamo qui per offrire qualità.",
-    "items": [
-      {
-        "text": "Logger DIY più economico aggiornato (giugno '26)"
-      },
-      {
-        "text": "Classifiche dei circuiti e profili utente pubblici (giugno '26)",
-        "done": true
-      },
-      {
-        "text": "Download da logger di terze parti (giugno '26)",
-        "sub": [
-          "MyChron: decodificato, richiede l'app nativa",
-          "Alfano: Bluetooth seriale, richiede l'app nativa"
-        ],
-        "done": true
-      },
-      {
-        "text": "App nativa (luglio '26)"
-      },
-      {
-        "text": "Organizzazione della giornata di gara (luglio '26)"
-      },
-      {
-        "text": "Gestione del team e inventario (luglio '26)",
-        "sub": [
-          "Gratis per team di 5 persone o meno"
-        ]
-      },
-      {
-        "text": "Primi prodotti fisici (luglio '26)",
-        "sub": [
-          "Kit DIY Fledgling con custodia",
-          "Sensore contagiri autonomo"
-        ]
-      },
-      {
-        "text": "Aggiornamenti all'editor video (agosto '26)"
-      },
-      {
-        "text": "Integrazione Insta360 — avvio/stop/GPS (agosto '26)"
-      },
-      {
-        "text": "Aggiornamenti al coaching offline (agosto '26)"
-      },
-      {
-        "text": "Coaching con IA, una volta stabilizzate le funzioni principali (agosto '26)"
-      },
-      {
-        "text": "Uscita del logger «Vulture» (Q1 '27)"
-      }
-    ],
-    "contact": "Contattaci per qualsiasi funzionalità di cui hai bisogno!"
-  },
   "footer": {
     "operatedBy": "Gestito da",
     "previewWarning": "Questo branch è in esecuzione su un database di anteprima: gli account possono essere cancellati in qualsiasi momento. Non fare affidamento sul salvataggio dei dati in un luogo diverso da quello locale. Se i pagamenti sono attivati, <strong>non inserire informazioni di pagamento reali.</strong>"
@@ -293,5 +236,11 @@
     "body": "Il Fledgling è il logger DIY attorno a cui è nata questa app: cronometraggio GPS a 25 Hz, RPM del motore, forza G, display OLED e download wireless — assemblato con componenti economici e comuni. Schemi, firmware, custodia stampabile in 3D e guida completa al montaggio sono gratuiti su GitHub.",
     "simulator": "Guarda come funziona!",
     "github": "Guida al montaggio su GitHub"
+  },
+  "updates": {
+    "title": "Ultime novità",
+    "viewAll": "Tutte le novità",
+    "webUpdate": "Aggiornamento web",
+    "news": "Notizie"
   }
 }

@@ -58,6 +58,7 @@ ones; public index filters by tag), and a per-post "AI-assisted" flag.
 | Admin | `src/components/admin/UpdatesTab.tsx` (TracksTab CRUD skeleton, inline editor, Write/Preview toggle) |
 | SEO | `useDocumentHead` extended with `ogType` / `publishedTime` / `modifiedTime` / `jsonLd` (JSON-LD `BlogPosting`) / `feedUrl` (RSS autodiscovery); `public/sitemap.xml` + `public/llms.txt` list `/updates` |
 | RSS | `supabase/functions/rss-feed` renders the RSS 2.0 feed server-side (readers can't run the SPA; hosting is static-only). Anon-key read of published posts, 15-min cache. `lib/rssFeed.ts` builds the per-backend URL; `/updates` shows a subscribe link and both pages emit the autodiscovery `<link>`. The function duplicates a trimmed `deriveExcerpt` (Deno can't import from `src/`) — keep them in step |
+| Landing teaser | `components/LatestUpdates.tsx` replaced the old roadmap list: two tap-through panels — newest published post tagged **`web update`** (`WEB_UPDATE_TAG`, split by the pure `splitLatestByTag`) and newest other post — plus an "All updates" button. Cloud-gated in `LandingPage`; fetches summaries only (`fetchLatestPostSummaries`, no bodies) via dynamic import and hides itself on fetch failure so the offline landing stays clean. The `web update` tag value is a content convention — tag viewer release posts with it |
 
 `published_at` is set client-side the first time a post is published (kept on
 later unpublish/republish so ordering is stable). `updated_at` is set by the
