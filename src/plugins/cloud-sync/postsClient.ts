@@ -16,10 +16,16 @@ export function postsTable() {
 
 // ── Public (anon) reads ───────────────────────────────────────────────────────
 
-/** Published posts, newest first. RLS hides drafts — no client filter needed. */
+// The explicit published filter matters even though anon RLS already hides
+// drafts: for a signed-in admin the "Admins read all posts" policy also
+// applies to these queries, so without it drafts would leak onto the public
+// pages in the admin's own browser.
+
+/** Published posts, newest first. */
 export async function fetchPublishedPosts(): Promise<BlogPost[]> {
   const { data, error } = await postsTable()
     .select("*")
+    .eq("published", true)
     .order("published_at", { ascending: false, nullsFirst: false });
   if (error) throw error;
   return ((data ?? []) as PostRow[]).map(mapPostRow);
@@ -27,7 +33,11 @@ export async function fetchPublishedPosts(): Promise<BlogPost[]> {
 
 /** One published post by slug, or null when it doesn't exist (or is a draft). */
 export async function fetchPostBySlug(slug: string): Promise<BlogPost | null> {
-  const { data, error } = await postsTable().select("*").eq("slug", slug).maybeSingle();
+  const { data, error } = await postsTable()
+    .select("*")
+    .eq("slug", slug)
+    .eq("published", true)
+    .maybeSingle();
   if (error) throw error;
   return data ? mapPostRow(data as PostRow) : null;
 }

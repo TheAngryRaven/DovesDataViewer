@@ -191,8 +191,12 @@ in-memory leaderboard handoff. Public sessions also list on `/driver/:username`.
 ## Updates blog (`..._blog_posts.sql`, plan 0012)
 
 Admin-authored articles for the public `/updates` page (`/updates/:slug` per
-post). **All access is through RLS** (no edge function); the client lives in
-`src/plugins/cloud-sync/postsClient.ts`.
+post). **App access is through RLS**; the client lives in
+`src/plugins/cloud-sync/postsClient.ts`. One edge function, `rss-feed`, renders
+the RSS 2.0 feed (feed readers can't run the SPA and hosting is static-only):
+anon-key read of published posts, 15-min cache, linked from `/updates` and
+autodiscoverable via `<link rel="alternate">` (`lib/rssFeed.ts` builds the URL
+from the baked `VITE_SUPABASE_URL`).
 
 | Table | Purpose |
 |-------|---------|

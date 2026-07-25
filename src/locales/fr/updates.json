@@ -12,5 +12,6 @@
   "readMore": "Lire la suite",
   "notFoundTitle": "Article introuvable",
   "notFoundBody": "Cet article n'existe pas ou n'a pas été publié.",
-  "backToUpdates": "Toutes les actualités"
+  "backToUpdates": "Toutes les actualités",
+  "subscribeRss": "Flux RSS"
 }

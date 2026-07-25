@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Newspaper, Sparkles } from "lucide-react";
+import { Newspaper, Rss, Sparkles } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SettingsModal } from "@/components/SettingsModal";
 import { BackToHome } from "@/components/BackToHome";
 import { useSettings } from "@/hooks/useSettings";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
 import { deriveExcerpt, collectTags, type BlogPost } from "@/lib/blogPosts";
+import { FEED_URL } from "@/lib/rssFeed";
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 
@@ -23,6 +24,7 @@ export default function Updates() {
     title: t("updates:metaTitle"),
     description: t("updates:metaDescription"),
     canonical: "https://lapwingdata.com/updates",
+    feedUrl: FEED_URL,
   });
 
   useEffect(() => {
@@ -74,6 +76,16 @@ export default function Updates() {
           <div className="flex items-center gap-2">
             <Newspaper className="h-5 w-5 text-primary" />
             <h2 className="text-2xl font-bold text-foreground">{t("updates:pageTitle")}</h2>
+            <a
+              href={FEED_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t("updates:subscribeRss")}
+              className="ml-auto flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+            >
+              <Rss className="h-3.5 w-3.5" />
+              {t("updates:subscribeRss")}
+            </a>
           </div>
           <p className="text-sm text-muted-foreground">{t("updates:pageSubtitle")}</p>
 

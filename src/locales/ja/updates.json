@@ -12,5 +12,6 @@
   "readMore": "続きを読む",
   "notFoundTitle": "記事が見つかりません",
   "notFoundBody": "この記事は存在しないか、まだ公開されていません。",
-  "backToUpdates": "アップデート一覧"
+  "backToUpdates": "アップデート一覧",
+  "subscribeRss": "RSSフィード"
 }
