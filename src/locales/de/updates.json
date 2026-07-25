@@ -12,5 +12,6 @@
   "readMore": "Weiterlesen",
   "notFoundTitle": "Beitrag nicht gefunden",
   "notFoundBody": "Dieser Beitrag existiert nicht oder wurde nicht veröffentlicht.",
-  "backToUpdates": "Alle Neuigkeiten"
+  "backToUpdates": "Alle Neuigkeiten",
+  "subscribeRss": "RSS-Feed"
 }

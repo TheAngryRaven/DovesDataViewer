@@ -11,5 +11,6 @@
   "readMore": "Read more",
   "notFoundTitle": "Post not found",
   "notFoundBody": "This post doesn't exist or hasn't been published.",
-  "backToUpdates": "All updates"
+  "backToUpdates": "All updates",
+  "subscribeRss": "RSS feed"
 }

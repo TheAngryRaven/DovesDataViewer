@@ -8,6 +8,7 @@ import { MarkdownContent } from "@/components/MarkdownContent";
 import { useSettings } from "@/hooks/useSettings";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
 import { deriveExcerpt, type BlogPost } from "@/lib/blogPosts";
+import { FEED_URL } from "@/lib/rssFeed";
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 
@@ -64,6 +65,7 @@ export default function UpdatePost() {
           author: { "@type": "Organization", name: "LapWing" },
         }
       : undefined,
+    feedUrl: FEED_URL,
   });
 
   const settingsButton = (

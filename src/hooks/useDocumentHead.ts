@@ -12,6 +12,8 @@ interface DocumentHeadOptions {
   modifiedTime?: string;
   /** Structured data injected as a JSON-LD script, removed on unmount. */
   jsonLd?: Record<string, unknown>;
+  /** RSS autodiscovery: <link rel="alternate" type="application/rss+xml">. */
+  feedUrl?: string;
 }
 
 /**
@@ -28,6 +30,7 @@ export function useDocumentHead({
   publishedTime,
   modifiedTime,
   jsonLd,
+  feedUrl,
 }: DocumentHeadOptions): void {
   // Depend on the serialized form so callers can pass an inline object literal
   // without re-running the effect every render.
@@ -134,10 +137,19 @@ export function useDocumentHead({
       document.head.appendChild(script);
       restorers.push(() => script.remove());
     }
+    if (feedUrl) {
+      const link = document.createElement("link");
+      link.rel = "alternate";
+      link.type = "application/rss+xml";
+      link.title = title;
+      link.href = feedUrl;
+      document.head.appendChild(link);
+      restorers.push(() => link.remove());
+    }
 
     return () => {
       document.title = prevTitle;
       restorers.forEach((r) => r());
     };
-  }, [title, description, canonical, ogType, publishedTime, modifiedTime, jsonLdText]);
+  }, [title, description, canonical, ogType, publishedTime, modifiedTime, jsonLdText, feedUrl]);
 }

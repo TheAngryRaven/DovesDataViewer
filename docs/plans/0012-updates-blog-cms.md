@@ -56,7 +56,8 @@ ones; public index filters by tag), and a per-post "AI-assisted" flag.
 | Shared renderer | `src/components/MarkdownContent.tsx` (`prose dark:prose-invert` + token overrides; `@tailwindcss/typography` registered in `tailwind.config.ts`) |
 | Public pages | `src/pages/Updates.tsx`, `src/pages/UpdatePost.tsx` (DriverProfile load-state model) |
 | Admin | `src/components/admin/UpdatesTab.tsx` (TracksTab CRUD skeleton, inline editor, Write/Preview toggle) |
-| SEO | `useDocumentHead` extended with `ogType` / `publishedTime` / `modifiedTime` / `jsonLd` (JSON-LD `BlogPosting`); `public/sitemap.xml` + `public/llms.txt` list `/updates` |
+| SEO | `useDocumentHead` extended with `ogType` / `publishedTime` / `modifiedTime` / `jsonLd` (JSON-LD `BlogPosting`) / `feedUrl` (RSS autodiscovery); `public/sitemap.xml` + `public/llms.txt` list `/updates` |
+| RSS | `supabase/functions/rss-feed` renders the RSS 2.0 feed server-side (readers can't run the SPA; hosting is static-only). Anon-key read of published posts, 15-min cache. `lib/rssFeed.ts` builds the per-backend URL; `/updates` shows a subscribe link and both pages emit the autodiscovery `<link>`. The function duplicates a trimmed `deriveExcerpt` (Deno can't import from `src/`) — keep them in step |
 
 `published_at` is set client-side the first time a post is published (kept on
 later unpublish/republish so ordering is stable). `updated_at` is set by the
