@@ -1,0 +1,15 @@
+{
+  "metaTitle": "Updates — LapWing",
+  "metaDescription": "News, release notes, and engineering write-ups from the LapWing telemetry viewer.",
+  "pageTitle": "Updates",
+  "pageSubtitle": "News, release notes, and write-ups from the team.",
+  "loading": "Loading updates…",
+  "loadFailed": "Couldn't load updates.",
+  "empty": "Nothing published yet — check back soon.",
+  "allTag": "All",
+  "aiAssisted": "AI-assisted",
+  "readMore": "Read more",
+  "notFoundTitle": "Post not found",
+  "notFoundBody": "This post doesn't exist or hasn't been published.",
+  "backToUpdates": "All updates"
+}

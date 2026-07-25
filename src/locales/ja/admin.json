@@ -12,7 +12,8 @@
     "tools": "ツール",
     "banned": "禁止 IP",
     "users": "ユーザー",
-    "leaderboards": "リーダーボード"
+    "leaderboards": "リーダーボード",
+    "updates": "アップデート"
   },
   "common": {
     "error": "エラー",
@@ -240,5 +241,28 @@
     "reclassified_other": "{{count}} 件の記録を再分類しました。",
     "classSaved": "エンジンクラスを保存しました。",
     "classFailed": "エンジンクラスを保存できませんでした。"
+  },
+  "updates": {
+    "title": "ブログ記事",
+    "addPost": "新規記事",
+    "none": "まだ記事がありません。",
+    "fields": {
+      "title": "タイトル",
+      "slug": "スラッグ",
+      "body": "本文（Markdown）",
+      "tags": "タグ"
+    },
+    "bodyPlaceholder": "# 見出し\n\nMarkdownで記述できます — **太字**、[リンク](https://example.com)、画像は ![alt](https://example.com/image.png)。",
+    "tagPlaceholder": "タグを追加…",
+    "previouslyUsed": "使用済みのタグ:",
+    "aiAssisted": "AI支援",
+    "published": "公開",
+    "write": "編集",
+    "preview": "プレビュー",
+    "save": "保存",
+    "created": "記事を作成しました",
+    "updated": "記事を更新しました",
+    "deleted": "記事を削除しました",
+    "slugTaken": "そのスラッグは既に使用されています"
   }
 }

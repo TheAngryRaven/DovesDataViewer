@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.1] - unreleased
 
 ### Added
+- **Updates blog.** New public `/updates` page with articles from the team —
+  release notes, news, and engineering write-ups — each at its own
+  SEO-friendly `/updates/<slug>` URL. Posts support Markdown (headers, bold,
+  links, image embeds), tags with tag filtering on the index, and an
+  "AI-assisted" marker. Written and managed from the admin portal.
 - **Simulator: load your own `.dovex`.** The `/simulator` page now has a
   session picker — feed the firmware any dove-family log
   (`.dovex`/`.dovep`/`.dove`) instead of only the bundled demo, with a
