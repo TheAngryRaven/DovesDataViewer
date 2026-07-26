@@ -1,0 +1,17 @@
+{
+  "_machine": true,
+  "metaTitle": "Novità — LapWing",
+  "metaDescription": "Notizie, note di rilascio e articoli tecnici dal visualizzatore di telemetria LapWing.",
+  "pageTitle": "Novità",
+  "pageSubtitle": "Notizie, note di rilascio e articoli dal team.",
+  "loading": "Caricamento delle novità…",
+  "loadFailed": "Impossibile caricare le novità.",
+  "empty": "Nessuna pubblicazione al momento — torna presto.",
+  "allTag": "Tutto",
+  "aiAssisted": "Assistito da IA",
+  "readMore": "Leggi tutto",
+  "notFoundTitle": "Articolo non trovato",
+  "notFoundBody": "Questo articolo non esiste o non è stato pubblicato.",
+  "backToUpdates": "Tutte le novità",
+  "subscribeRss": "Feed RSS"
+}

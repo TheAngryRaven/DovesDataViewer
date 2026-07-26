@@ -13,10 +13,10 @@
  * adds capture/share.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Loader2, Pause, Play, SkipForward } from "lucide-react";
+import { Loader2, Pause, Play, SkipForward, Upload } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SettingsModal } from "@/components/SettingsModal";
 import { BackToHome } from "@/components/BackToHome";
@@ -37,6 +37,7 @@ import { formatLapTime } from "@/lib/lapCalculation";
 import { autoDetectCourse } from "@/lib/courseDetection";
 import { loadTracks } from "@/lib/trackStorage";
 import { positionIndexAt } from "@/lib/sim/simPlayback";
+import { parseSimSession, SIM_SESSION_ACCEPT } from "@/lib/sim/simSession";
 import type { Course, ParsedData } from "@/types/racing";
 
 const TRUE_SIZE_SEEN_KEY = "dove-sim-true-size-seen";
@@ -48,6 +49,13 @@ function fmtClock(ms: number): string {
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 
+/** Load + parse the bundled demo session (IDB-cached after first fetch). */
+async function loadDemoSession(): Promise<ParsedData> {
+  const blob = await ensureSampleFile();
+  if (!blob) throw new Error("sample unavailable");
+  return parseDatalogFile(new File([blob], SAMPLE_FILE_NAME));
+}
+
 const Simulator = () => {
   const { t } = useTranslation("simulator");
   const navigate = useNavigate();
@@ -56,6 +64,9 @@ const Simulator = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [sessionName, setSessionName] = useState<string>("");
   const [loadError, setLoadError] = useState(false);
+  /** Name of a user-picked file that failed to parse (null = no error). */
+  const [pickError, setPickError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // True-size default ON for first-time visitors (the spec's honesty rule);
   // remembered once toggled so returning users keep their preference.
   const [trueSize, setTrueSize] = useState(
@@ -82,15 +93,12 @@ const Simulator = () => {
     setData(parsed);
   };
 
-  // Load + parse the bundled demo session (IDB-cached after first fetch).
+  // Start on the bundled demo session.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const blob = await ensureSampleFile();
-        if (!blob) throw new Error("sample unavailable");
-        const file = new File([blob], SAMPLE_FILE_NAME);
-        const parsed = await parseDatalogFile(file);
+        const parsed = await loadDemoSession();
         if (!cancelled) await adoptSession(parsed, SAMPLE_DISPLAY_NAME);
       } catch (e) {
         console.error("simulator: demo session load failed", e);
@@ -99,6 +107,35 @@ const Simulator = () => {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // User-picked dove-family log (the bug-hunting path): parsed leniently, so
+  // a file with a missing or corrupted metadata preamble still replays as
+  // long as its CSV column headers survived. A failed parse keeps the
+  // current session and reports the file name inline.
+  const onSessionFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const parsed = parseSimSession(await file.text());
+      setPickError(null);
+      await adoptSession(parsed, file.name);
+    } catch (err) {
+      console.error("simulator: session file load failed", err);
+      setPickError(file.name);
+    }
+  };
+
+  const onReloadDemo = async () => {
+    try {
+      const parsed = await loadDemoSession();
+      setPickError(null);
+      await adoptSession(parsed, SAMPLE_DISPLAY_NAME);
+    } catch (e) {
+      console.error("simulator: demo session load failed", e);
+      setLoadError(true);
+    }
+  };
 
   const onTrueSizeChange = (v: boolean) => {
     setTrueSize(v);
@@ -168,10 +205,37 @@ const Simulator = () => {
           <div className="flex flex-col gap-6">
             <SimGuide />
 
-            {/* The bundled demo session (fixed — no user uploads here) */}
-            <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-              <span className="text-muted-foreground">{t("picker.label")}</span>
-              <span className="max-w-64 truncate font-medium">{sessionName}</span>
+            {/* Session picker: the bundled demo, or any user .dovex/.dove log */}
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+                <span className="text-muted-foreground">{t("picker.label")}</span>
+                <span className="max-w-64 truncate font-medium">{sessionName}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="mr-1 h-4 w-4" />
+                  {t("picker.load")}
+                </Button>
+                {sessionName !== SAMPLE_DISPLAY_NAME && (
+                  <Button size="sm" variant="ghost" onClick={onReloadDemo}>
+                    {t("picker.demo")}
+                  </Button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={SIM_SESSION_ACCEPT}
+                  className="hidden"
+                  onChange={onSessionFile}
+                />
+              </div>
+              {pickError && (
+                <p className="text-center text-xs text-destructive">
+                  {t("picker.error", { name: pickError })}
+                </p>
+              )}
             </div>
 
             <SimMap

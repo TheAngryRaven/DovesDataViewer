@@ -12,7 +12,8 @@
     "tools": "Herramientas",
     "banned": "IP bloqueadas",
     "users": "Usuarios",
-    "leaderboards": "Clasificaciones"
+    "leaderboards": "Clasificaciones",
+    "updates": "Novedades"
   },
   "common": {
     "error": "Error",
@@ -240,5 +241,28 @@
     "reclassified_other": "Se reclasificaron {{count}} registros.",
     "classSaved": "Clase de motor guardada.",
     "classFailed": "No se pudo guardar la clase de motor."
+  },
+  "updates": {
+    "title": "Publicaciones del blog",
+    "addPost": "Nueva publicación",
+    "none": "Aún no hay publicaciones.",
+    "fields": {
+      "title": "Título",
+      "slug": "Slug",
+      "body": "Contenido (Markdown)",
+      "tags": "Etiquetas"
+    },
+    "bodyPlaceholder": "# Encabezado\n\nEscribe en Markdown: **negrita**, [enlaces](https://example.com) e imágenes con ![alt](https://example.com/image.png).",
+    "tagPlaceholder": "Añadir etiqueta…",
+    "previouslyUsed": "Usadas anteriormente:",
+    "aiAssisted": "Asistido por IA",
+    "published": "Publicado",
+    "write": "Escribir",
+    "preview": "Vista previa",
+    "save": "Guardar",
+    "created": "Publicación creada",
+    "updated": "Publicación actualizada",
+    "deleted": "Publicación eliminada",
+    "slugTaken": "Ese slug ya está en uso"
   }
 }

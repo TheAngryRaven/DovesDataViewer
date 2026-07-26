@@ -12,7 +12,8 @@
     "tools": "Werkzeuge",
     "banned": "Gesperrte IPs",
     "users": "Benutzer",
-    "leaderboards": "Bestenlisten"
+    "leaderboards": "Bestenlisten",
+    "updates": "Neuigkeiten"
   },
   "common": {
     "error": "Fehler",
@@ -240,5 +241,28 @@
     "reclassified_other": "{{count}} Einträge neu klassifiziert.",
     "classSaved": "Motorklasse gespeichert.",
     "classFailed": "Motorklasse konnte nicht gespeichert werden."
+  },
+  "updates": {
+    "title": "Blogbeiträge",
+    "addPost": "Neuer Beitrag",
+    "none": "Noch keine Beiträge.",
+    "fields": {
+      "title": "Titel",
+      "slug": "Slug",
+      "body": "Inhalt (Markdown)",
+      "tags": "Tags"
+    },
+    "bodyPlaceholder": "# Überschrift\n\nSchreibe in Markdown — **fett**, [Links](https://example.com) und Bilder über ![alt](https://example.com/image.png).",
+    "tagPlaceholder": "Tag hinzufügen…",
+    "previouslyUsed": "Zuvor verwendet:",
+    "aiAssisted": "KI-unterstützt",
+    "published": "Veröffentlicht",
+    "write": "Schreiben",
+    "preview": "Vorschau",
+    "save": "Speichern",
+    "created": "Beitrag erstellt",
+    "updated": "Beitrag aktualisiert",
+    "deleted": "Beitrag gelöscht",
+    "slugTaken": "Dieser Slug wird bereits verwendet"
   }
 }

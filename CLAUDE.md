@@ -84,6 +84,7 @@ src/
 │   ├── Leaderboards.tsx   # ★ Public /leaderboards page (cloud-gated): Track→Course→engine/weight accordion (Group-by-weight + Show-top), opens a group into Index's read-only viewer via leaderboardHandoff; shows uploader avatar thumbnails
 │   ├── DriverProfile.tsx  # ★ Public /driver/:username page (plan 0006, anon, case-insensitive via .ilike): avatar + name + opt-in vehicles (no weights/setups) + the driver's approved leaderboard snapshots grouped by course/weight
 │   ├── Simulator.tsx      # ★ Public /simulator page (plan 0010): the vendored firmware wasm (public/sim/) on a canvas OLED, replaying the bundled sample via lib/sim + useSimPlayback
+│   ├── Updates.tsx / UpdatePost.tsx  # Public /updates blog (plan 0012, cloud-gated): admin-authored markdown posts (lib/blogPosts.ts pure helpers + cloud-sync/postsClient.ts; anon RLS reads published only), tag filtering, per-post SEO head + JSON-LD; authored in the admin Updates tab
 │   ├── Admin.tsx          # Admin panel (behind VITE_ENABLE_ADMIN)
 │   └── …                  # Login / Register / Privacy / Terms / NotFound
 ├── components/
@@ -153,7 +154,7 @@ src/
 ├── plugins/               # ★ Plugin framework (auto-discovered) — see src/plugins/README.md
 │   ├── (framework)        # types, registry, index, panels, mounts, fileSources, storage + hosts
 │   ├── cloud-sync/        # ★ First-party plugin: Supabase file + garage sync (→ docs/backend.md)
-│   ├── tools/             # ★ First-party plugin: Tools tab (kart seat-position viz; phone Lap Timer)
+│   ├── tools/             # ★ First-party plugin: Tools tab (kart seat-position viz; phone Lap Timer; pill alignment calculator — plan 0011)
 │   └── coaching/          # Gitignored slot for the AI coach (npm pkg in production)
 ├── types/racing.ts        # ★ Core types: GpsSample, ParsedData, Lap, Course, Track, …
 ├── contexts/              # SettingsContext, SessionContext, PlaybackContext, DeviceContext, AuthContext

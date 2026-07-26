@@ -7,6 +7,7 @@ LapWing (aka Dove's DataViewer) is a privacy-first Progressive Web App for motor
 ## Pages
 
 - [Home](/): Main viewer — import telemetry files, view race line maps, charts, lap times, and reference comparisons.
+- [Updates](/updates): News, release notes, and engineering write-ups from the LapWing team.
 - [Privacy Policy](/privacy): How the app handles data (everything stays in your browser).
 
 ## Optional

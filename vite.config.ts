@@ -383,6 +383,7 @@ export default defineConfig(async ({ mode }) => {
             "vendor-i18n": ["i18next", "react-i18next"],
             "vendor-leaflet": ["leaflet"],
             "vendor-supabase": ["@supabase/supabase-js"],
+            "vendor-markdown": ["react-markdown", "remark-gfm"],
             // Radix is many small packages; group them into one chunk.
             "vendor-radix": [
               "@radix-ui/react-collapsible",

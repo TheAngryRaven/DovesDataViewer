@@ -122,5 +122,101 @@
     "statusRecording": "Recording",
     "statusEnded": "Ended",
     "statusWaiting": "Waiting"
+  },
+  "pillAlignment": {
+    "name": "Pill Alignment",
+    "description": "Eccentric-pill camber & caster calculator with a Find Setup solver.",
+    "badge": "Experimental"
+  },
+  "pill": {
+    "linkSides": "Link L/R",
+    "snapHoles": "Snap to holes",
+    "loadFromSetup": "Load from session setup",
+    "sideLeft": "Left",
+    "sideRight": "Right",
+    "sideL": "L",
+    "sideR": "R",
+    "colorMode": {
+      "trackDelta": "Track width Δ",
+      "thetaTop": "Top pill angle",
+      "resultantToe": "Resultant toe"
+    },
+    "envelope": {
+      "xLabel": "Camber (°)",
+      "yLabel": "Caster (°)",
+      "dragHint": "Drag the marker to solve pill angles for that camber/caster. Orange = top pill locus, magenta = bottom pill locus."
+    },
+    "dial": {
+      "topLeft": "Left · Top",
+      "topRight": "Right · Top",
+      "bottomLeft": "Left · Bottom",
+      "bottomRight": "Right · Bottom",
+      "size": "Pill size",
+      "aria": "{{label}} pill angle"
+    },
+    "readout": {
+      "camber": "Camber",
+      "caster": "Caster",
+      "track": "Track",
+      "totalTrack": "Total track width change: {{value}} mm"
+    },
+    "toe": {
+      "title": "Toe",
+      "usePerSide": "Enter per side",
+      "useRod": "Enter tie-rod change",
+      "rodDelta": "Tie-rod Δ",
+      "rArm": "Steering-arm radius",
+      "left": "Left toe",
+      "right": "Right toe",
+      "out": "TOE OUT",
+      "in": "TOE IN",
+      "neutral": "Neutral toe"
+    },
+    "findSetup": {
+      "title": "Find Setup",
+      "targetCamber": "Target camber",
+      "targetCaster": "Target caster",
+      "solve": "Find pill positions",
+      "apply": "Apply",
+      "residual": "off by",
+      "closest": "closest",
+      "noResults": "No pill combination fits that target with the current chassis constants.",
+      "top": "Top",
+      "bottom": "Bot"
+    },
+    "cal": {
+      "title": "Chassis calibration",
+      "disclaimer": "These constants are approximate defaults — real eccentricities vary by chassis and are not published. Verify against a camber/caster gauge before trusting the numbers, and edit anything that disagrees.",
+      "h": "Bore gap H",
+      "lRim": "Gauge span",
+      "split": "Wheel height fraction",
+      "neutralX": "Neutral offset fwd",
+      "neutralY": "Neutral offset out",
+      "gamma0": "Built-in camber",
+      "holeCount": "Holes per pill",
+      "toeCoupling": "Toe drift coupling",
+      "eccentricity": "Eccentricity per pill size (e0 is always 0)",
+      "signCamber": "Flip camber sign",
+      "signCaster": "Flip caster sign",
+      "mirrorRight": "Mirror right-side angles",
+      "profile": "Chassis profile",
+      "profileCustom": "Custom (unsaved)",
+      "userProfiles": "My measured profiles",
+      "builtinProfiles": "Built-in",
+      "estimated": "estimated",
+      "measured": "measured",
+      "profileName": "Profile name",
+      "profileNamePlaceholder": "e.g. My Praga — July 2026",
+      "saveProfile": "Save as measured profile",
+      "deleteProfile": "Delete profile",
+      "measureTitle": "Measurement helpers",
+      "sweep": "Indicator sweep over 180°",
+      "sweepSize": "Pill size",
+      "applySweep": "Set e = sweep ÷ 2",
+      "zeroIntro": "With both pills at size 0, enter the gauge readings to back out the chassis's built-in offsets.",
+      "zeroCamber": "Measured camber",
+      "zeroCaster": "Measured caster",
+      "applyZero": "Set zero point"
+    }
   }
 }

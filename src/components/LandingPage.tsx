@@ -1,4 +1,4 @@
-import { Fragment, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Shield,
   Play,
@@ -7,7 +7,6 @@ import {
   FolderOpen,
   Map,
   Bluetooth,
-  Route,
   Trophy,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -15,6 +14,7 @@ import { useTranslation, Trans } from "react-i18next";
 import { SiteHeader } from "@/components/SiteHeader";
 import { FileImport } from "@/components/FileImport";
 import { ActionTile } from "@/components/ActionTile";
+import { LatestUpdates } from "@/components/LatestUpdates";
 import { BuildLoggerDialog } from "@/components/BuildLoggerDialog";
 import { TrackEditor } from "@/components/TrackEditor";
 import { LocalWeatherDialog } from "@/components/LocalWeatherDialog";
@@ -81,26 +81,11 @@ export function LandingPage({
   const { t } = useTranslation(["landing", "common"]);
 
   // On the native (Tauri/Android) shell the user has already installed the app,
-  // so the marketing surfaces (hero pitch, roadmap, GitHub/sponsor links) just
-  // add noise — hide them. The DIY-logger tile stays (it's genuinely useful).
+  // so the marketing surfaces (hero pitch, GitHub/sponsor links) just add
+  // noise — hide them. The DIY-logger tile stays (it's genuinely useful).
   const native = isNativeApp();
 
-  const roadmapItems = t("landing:roadmap.items", { returnObjects: true }) as {
-    text: string;
-    sub?: string[];
-    /** Shipped — rendered struck through to show it's landed. */
-    done?: boolean;
-  }[];
-
-  // Group roadmap items by their trailing month/quarter parenthetical (works
   const [buildDialogOpen, setBuildDialogOpen] = useState(false);
-
-  // across locales — handles both ASCII "()" and full-width "（）") so we can
-  // draw a divider whenever the timeframe changes.
-  const roadmapTimeframe = (text: string): string => {
-    const match = text.match(/[（(]([^（()）]*)[）)]\s*$/);
-    return match ? match[1].trim() : "";
-  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col safe-area-x">
@@ -209,56 +194,10 @@ export function LandingPage({
             <PluginMount slot={MountSlot.Landing} ctx={{}} />
           </div>
 
-          {/* Roadmap — what's still coming, with rough timing estimates.
-              Hidden on native: it's a sales surface for a user who's already in. */}
-          {!native && (
-          <div className="rounded-xl border border-border bg-card/50 p-5">
-            <div className="flex items-center gap-2">
-              <Route className="h-5 w-5 text-primary" />
-              <h3 className="text-base font-semibold text-foreground">
-                {t("landing:roadmap.title")}
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                ({t("landing:roadmap.estimated")})
-              </span>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              {t("landing:roadmap.blurb")}
-            </p>
-            <ul className="mt-3 space-y-2">
-              {roadmapItems.map((item, i) => {
-                const showDivider =
-                  i > 0 && roadmapTimeframe(item.text) !== roadmapTimeframe(roadmapItems[i - 1].text);
-                return (
-                  <Fragment key={item.text}>
-                    {showDivider && (
-                      <li aria-hidden="true" className="my-1 border-t border-border/60" />
-                    )}
-                    <li className="text-sm text-muted-foreground">
-                      <div className="flex items-start gap-2">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-                        <span className={item.done ? "line-through opacity-70" : undefined}>{item.text}</span>
-                      </div>
-                      {item.sub && item.sub.length > 0 && (
-                        <ul className="mt-1.5 space-y-1 pl-5">
-                          {item.sub.map((sub) => (
-                            <li key={sub} className="flex items-start gap-2">
-                              <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-primary/40" />
-                              <span className={item.done ? "line-through opacity-70" : undefined}>{sub}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  </Fragment>
-                );
-              })}
-            </ul>
-            <p className="mt-3 text-sm font-medium text-foreground">
-              {t("landing:roadmap.contact")}
-            </p>
-          </div>
-          )}
+          {/* Latest updates — two tap-through teasers from the /updates blog
+              (newest "web update" post + newest other news). Cloud-gated like
+              the blog routes; the component hides itself offline. */}
+          {enableCloud && <LatestUpdates />}
 
           {/* Reference dialogs — Credits sits to the left of Browser Compatibility. */}
           <div className="flex flex-wrap items-center justify-center gap-3">

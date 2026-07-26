@@ -126,6 +126,19 @@ describe("regression: okc-tillotson-data.dovex", () => {
     expect(stats.acceptedRows + sumRejected).toBe(stats.totalRows);
   });
 
+  it("headerless variant (metadata never written) still routes to the dovex parser", () => {
+    // Regression: a session never "ended" on the logger leaves the reserved
+    // preamble as blank padding — no datetime/driver/course line. Detection
+    // used to fall through to the Alfano parser and fail. Rebuild that shape
+    // from the real sample: strip its metadata preamble, pad with newlines.
+    const csvStart = content.indexOf("timestamp");
+    const headerless = "\n".repeat(1024) + content.substring(csvStart);
+    expect(isDovexFormat(headerless)).toBe(true);
+    const reparsed = parseDatalogContent(headerless);
+    expect(reparsed.samples.length).toBe(parsed.samples.length);
+    expect(reparsed.dovexMetadata).toBeUndefined();
+  });
+
   it("parses to the same result via parseDovexFile directly", () => {
     const direct = parseDovexFile(content);
     expect(direct.samples.length).toBe(parsed.samples.length);

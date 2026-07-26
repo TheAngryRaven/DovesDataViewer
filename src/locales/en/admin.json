@@ -11,7 +11,8 @@
     "tools": "Tools",
     "banned": "Banned IPs",
     "users": "Users",
-    "leaderboards": "Leaderboards"
+    "leaderboards": "Leaderboards",
+    "updates": "Updates"
   },
   "common": {
     "error": "Error",
@@ -239,5 +240,28 @@
     "granted_other": "Granted {{count}} months of premium",
     "grantFailed": "Action failed",
     "grantRemoved": "Premium grant removed"
+  },
+  "updates": {
+    "title": "Blog posts",
+    "addPost": "New post",
+    "none": "No posts yet.",
+    "fields": {
+      "title": "Title",
+      "slug": "Slug",
+      "body": "Body (Markdown)",
+      "tags": "Tags"
+    },
+    "bodyPlaceholder": "# Heading\n\nWrite in Markdown — **bold**, [links](https://example.com), and images via ![alt](https://example.com/image.png).",
+    "tagPlaceholder": "Add a tag…",
+    "previouslyUsed": "Previously used:",
+    "aiAssisted": "AI-assisted",
+    "published": "Published",
+    "write": "Write",
+    "preview": "Preview",
+    "save": "Save",
+    "created": "Post created",
+    "updated": "Post updated",
+    "deleted": "Post deleted",
+    "slugTaken": "That slug is already in use"
   }
 }
