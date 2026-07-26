@@ -180,7 +180,8 @@
       "solve": "Trova posizioni eccentrici",
       "apply": "Applica",
       "residual": "scarto",
-      "noResults": "Quell'obiettivo è fuori dalla portata di questi eccentrici. Prova meno campanatura/incidenza o eccentrici più grandi.",
+      "closest": "più vicino",
+      "noResults": "Nessuna combinazione di pillole corrisponde a quell'obiettivo con le costanti attuali del telaio.",
       "top": "Sup",
       "bottom": "Inf"
     },

@@ -98,7 +98,10 @@ export function deriveExcerpt(markdown: string, maxChars = 280): string {
       if (paragraph.length > 0) break;
       continue;
     }
-    paragraph.push(trimmed);
+    // Strip leading block markers per line: a post that opens with a bullet
+    // list or a quote should still read as prose in a card excerpt and a
+    // search-result meta description.
+    paragraph.push(trimmed.replace(/^>\s?/, "").replace(/^(?:[-*+]|\d+[.)])\s+/, ""));
   }
 
   const text = paragraph
@@ -109,7 +112,6 @@ export function deriveExcerpt(markdown: string, maxChars = 280): string {
     .replace(/(\*|_)(.*?)\1/g, "$2")
     .replace(/~~(.*?)~~/g, "$1")
     .replace(/`([^`]*)`/g, "$1")
-    .replace(/^>\s?/, "")
     .replace(/\s+/g, " ")
     .trim();
 

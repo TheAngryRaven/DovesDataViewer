@@ -180,7 +180,8 @@
       "solve": "Buscar posiciones de excéntricas",
       "apply": "Aplicar",
       "residual": "desvío",
-      "noResults": "Ese objetivo está fuera del alcance de estas excéntricas. Prueba menos caída/avance o excéntricas mayores.",
+      "closest": "más cercano",
+      "noResults": "Ninguna combinación de pastillas se ajusta a ese objetivo con las constantes actuales del chasis.",
       "top": "Sup",
       "bottom": "Inf"
     },

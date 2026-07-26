@@ -180,7 +180,8 @@
       "solve": "Trouver les positions d'excentriques",
       "apply": "Appliquer",
       "residual": "écart",
-      "noResults": "Cette cible dépasse ce que ces excentriques peuvent atteindre. Essayez moins de carrossage/chasse ou des excentriques plus grands.",
+      "closest": "au plus près",
+      "noResults": "Aucune combinaison de pastilles ne correspond à cette cible avec les constantes actuelles du châssis.",
       "top": "Haut",
       "bottom": "Bas"
     },

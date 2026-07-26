@@ -180,7 +180,8 @@
       "solve": "Encontrar posições dos excêntricos",
       "apply": "Aplicar",
       "residual": "desvio",
-      "noResults": "Esse alvo está fora do alcance destes excêntricos. Tente menos cambagem/caster ou excêntricos maiores.",
+      "closest": "mais próximo",
+      "noResults": "Nenhuma combinação de pinos corresponde a esse alvo com as constantes atuais do chassi.",
       "top": "Sup",
       "bottom": "Inf"
     },

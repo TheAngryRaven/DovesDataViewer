@@ -64,6 +64,11 @@ export function FindSetupPanel({ cal, side, snapHoles, currentCasterDeg, seedCam
                 <p className="text-foreground">
                   {t("pill.findSetup.top")} {r.pills.sTop} @ {angleText(r.pills.thetaTopDeg)} ·{" "}
                   {t("pill.findSetup.bottom")} {r.pills.sBot} @ {angleText(r.pills.thetaBotDeg)}
+                  {!r.exact && (
+                    <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 font-sans text-[10px] text-muted-foreground">
+                      {t("pill.findSetup.closest")}
+                    </span>
+                  )}
                 </p>
                 <p className="text-muted-foreground">
                   {r.result.camberDeg.toFixed(2)}° / {r.result.casterDeg.toFixed(2)}° ·{" "}

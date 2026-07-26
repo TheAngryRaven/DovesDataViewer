@@ -179,7 +179,8 @@
       "solve": "Find pill positions",
       "apply": "Apply",
       "residual": "off by",
-      "noResults": "That target is outside what these pills can reach. Try a smaller camber/caster or larger pills.",
+      "closest": "closest",
+      "noResults": "No pill combination fits that target with the current chassis constants.",
       "top": "Top",
       "bottom": "Bot"
     },
