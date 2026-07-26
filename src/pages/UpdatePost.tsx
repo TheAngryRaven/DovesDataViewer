@@ -15,7 +15,7 @@ const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
 type LoadState =
   | { status: "loading" }
   | { status: "notfound" }
-  | { status: "error"; message: string }
+  | { status: "error" }
   | { status: "ready"; post: BlogPost };
 
 export default function UpdatePost() {
@@ -25,6 +25,8 @@ export default function UpdatePost() {
   const { settings, setSettings, toggleFieldDefault } = useSettings();
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
+  // No `t` dependency: the error is a state tag, translated at render time, so
+  // a language switch doesn't refetch the post.
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
@@ -35,15 +37,15 @@ export default function UpdatePost() {
         if (cancelled) return;
         setState(post ? { status: "ready", post } : { status: "notfound" });
       } catch (e) {
-        if (!cancelled) {
-          setState({ status: "error", message: e instanceof Error ? e.message : t("updates:loadFailed") });
-        }
+        // Backend text is never public-facing — log it, show the translation.
+        console.error("Failed to load post:", e);
+        if (!cancelled) setState({ status: "error" });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [slug, t]);
+  }, [slug]);
 
   const post = state.status === "ready" ? state.post : null;
   useDocumentHead({
@@ -66,6 +68,8 @@ export default function UpdatePost() {
         }
       : undefined,
     feedUrl: FEED_URL,
+    // Static hosting can't return a real 404, so keep the soft 404 out of the index.
+    robots: state.status === "notfound" ? "noindex" : undefined,
   });
 
   const settingsButton = (
@@ -101,7 +105,9 @@ export default function UpdatePost() {
           {state.status === "loading" && (
             <p className="text-sm text-muted-foreground">{t("updates:loading")}</p>
           )}
-          {state.status === "error" && <p className="text-sm text-destructive">{state.message}</p>}
+          {state.status === "error" && (
+            <p className="text-sm text-destructive">{t("updates:loadFailed")}</p>
+          )}
           {state.status === "notfound" && (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
               <FileQuestion className="h-10 w-10 opacity-40" />

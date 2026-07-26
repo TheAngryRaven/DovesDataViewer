@@ -7,7 +7,8 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { BackToHome } from "@/components/BackToHome";
 import { useSettings } from "@/hooks/useSettings";
 import { useDocumentHead } from "@/hooks/useDocumentHead";
-import { deriveExcerpt, collectTags, type BlogPost } from "@/lib/blogPosts";
+import { deriveExcerpt, collectTags } from "@/lib/blogPosts";
+import type { PostListItem } from "@/plugins/cloud-sync/postsClient";
 import { FEED_URL } from "@/lib/rssFeed";
 
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
@@ -16,8 +17,8 @@ export default function Updates() {
   const navigate = useNavigate();
   const { t } = useTranslation(["updates", "common"]);
   const { settings, setSettings, toggleFieldDefault } = useSettings();
-  const [posts, setPosts] = useState<BlogPost[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [posts, setPosts] = useState<PostListItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   useDocumentHead({
@@ -27,21 +28,25 @@ export default function Updates() {
     feedUrl: FEED_URL,
   });
 
+  // No `t` dependency: the failure is rendered as a flag so switching language
+  // re-renders the message instead of re-running the fetch.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const { fetchPublishedPosts } = await import("@/plugins/cloud-sync/postsClient");
-        const published = await fetchPublishedPosts();
+        const { fetchPublishedPostList } = await import("@/plugins/cloud-sync/postsClient");
+        const published = await fetchPublishedPostList();
         if (!cancelled) setPosts(published);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : t("updates:loadFailed"));
+        // Backend text is never public-facing — log it, show the translation.
+        console.error("Failed to load updates:", e);
+        if (!cancelled) setFailed(true);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, []);
 
   const tags = useMemo(() => (posts ? collectTags(posts) : []), [posts]);
   const visible = useMemo(
@@ -89,8 +94,8 @@ export default function Updates() {
           </div>
           <p className="text-sm text-muted-foreground">{t("updates:pageSubtitle")}</p>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {!posts && !error && <p className="text-sm text-muted-foreground">{t("updates:loading")}</p>}
+          {failed && <p className="text-sm text-destructive">{t("updates:loadFailed")}</p>}
+          {!posts && !failed && <p className="text-sm text-muted-foreground">{t("updates:loading")}</p>}
 
           {posts && tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -140,9 +145,9 @@ function TagPill({ label, active, onClick }: { label: string; active: boolean; o
   );
 }
 
-function PostCard({ post, onTagClick }: { post: BlogPost; onTagClick: (tag: string) => void }) {
+function PostCard({ post, onTagClick }: { post: PostListItem; onTagClick: (tag: string) => void }) {
   const { t } = useTranslation("updates");
-  const excerpt = deriveExcerpt(post.body);
+  const excerpt = deriveExcerpt(post.bodyPreview);
   return (
     <article className="rounded-lg border border-border p-4 transition-colors hover:border-primary/50 hover:bg-primary/5">
       <div className="flex items-start justify-between gap-3">

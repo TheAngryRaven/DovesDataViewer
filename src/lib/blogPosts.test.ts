@@ -79,6 +79,20 @@ describe("deriveExcerpt", () => {
     expect(deriveExcerpt(md, 14)).toBe("alpha bravo…");
   });
 
+  it("strips leading list markers so bullet-led posts read as prose", () => {
+    expect(deriveExcerpt("- first item\n- second item")).toBe("first item second item");
+    expect(deriveExcerpt("* star item\n+ plus item")).toBe("star item plus item");
+    expect(deriveExcerpt("1. one\n2) two")).toBe("one two");
+  });
+
+  it("strips a blockquote marker from every line, not just the first", () => {
+    expect(deriveExcerpt("> quoted one\n> quoted two")).toBe("quoted one quoted two");
+  });
+
+  it("leaves hyphens inside a sentence alone", () => {
+    expect(deriveExcerpt("well-known lap-time gains")).toBe("well-known lap-time gains");
+  });
+
   it("returns empty for an empty or heading-only body", () => {
     expect(deriveExcerpt("")).toBe("");
     expect(deriveExcerpt("# Only a title")).toBe("");

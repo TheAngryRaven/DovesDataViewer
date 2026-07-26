@@ -43,9 +43,13 @@ describe("findSetups", () => {
     }
   });
 
-  it("returns nothing for a target far outside the reachable envelope", () => {
+  it("falls back to closest-achievable for a target far outside the envelope", () => {
     const sols = findSetups(cal(), { camberDeg: 45, casterDeg: 0 }, "left", noSnap);
-    expect(sols).toHaveLength(0);
+    expect(sols.length).toBeGreaterThan(0);
+    // Nothing can actually reach 45° of camber, so every candidate is a
+    // projection onto its pair's annulus rather than an exact solve.
+    expect(sols.every((s) => s.exact)).toBe(false);
+    expect(sols.every((s) => s.residualDeg > 1)).toBe(true);
   });
 
   it("solves the one-pill degenerate cases", () => {
@@ -118,5 +122,61 @@ describe("nearestAngles", () => {
     const step = 360 / c.holeCount;
     expect(normalizeDeg(solved.thetaTopDeg) % step).toBeCloseTo(0, 6);
     expect(normalizeDeg(solved.thetaBotDeg) % step).toBeCloseTo(0, 6);
+  });
+});
+
+describe("findSetups — out-of-reach targets", () => {
+  it("returns ranked closest-achievable candidates instead of nothing", () => {
+    const c = cal();
+    // Max lateral pill offset is e[5]+e[5] = 5 mm, so 30° of camber is far
+    // outside every pair's envelope.
+    const results = findSetups(c, { camberDeg: 30, casterDeg: 0 }, "left", noSnap);
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((r) => r.exact)).toBe(false);
+    // Best candidate should be the largest-offset pair pushing hardest at it.
+    const best = results[0];
+    const maxCamber = Math.atan2(2 * c.eMm[5], c.hMm) * (180 / Math.PI);
+    expect(forwardCorner(c, best.pills, "left").camberDeg).toBeLessThanOrEqual(maxCamber + 1e-6);
+  });
+
+  it("flags reachable targets as exact", () => {
+    const c = cal();
+    const target = forwardCorner(c, { sTop: 3, sBot: 3, thetaTopDeg: 40, thetaBotDeg: 210 }, "left");
+    const [best] = findSetups(c, { camberDeg: target.camberDeg, casterDeg: target.casterDeg }, "left", noSnap);
+    expect(best.exact).toBe(true);
+  });
+
+  it("solves a target that lands exactly on the built-in alignment", () => {
+    // R ≈ 0: equal-eccentricity pairs cancel at any shared angle. This used to
+    // fall through the |R| < 1e-9 guard and return nothing at all.
+    const c = cal({ nXMm: 0.4, nYMm: -0.2 });
+    const neutral = forwardCorner(c, { sTop: 2, sBot: 2, thetaTopDeg: 0, thetaBotDeg: 0 }, "left");
+    const results = findSetups(c, { camberDeg: neutral.camberDeg, casterDeg: neutral.casterDeg }, "left", noSnap);
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].residualDeg).toBeLessThan(1e-6);
+    expect(results[0].exact).toBe(true);
+  });
+});
+
+describe("nearestAngles — annulus boundaries", () => {
+  it("reaches the inner limit when the BOTTOM pill is the larger one", () => {
+    // e_b > e_t: the pair's minimum contribution points opposite the shared
+    // angle, so the elbow-straight fallback has to flip both angles by π.
+    const c = cal({ nXMm: 0, nYMm: 0, gamma0Deg: 0 });
+    const cur: CornerPills = { sTop: 1, sBot: 5, thetaTopDeg: 0, thetaBotDeg: 0 };
+    // Aim at dead-neutral, which the |e_t − e_b| = 2 mm inner limit excludes.
+    const solved = nearestAngles(c, cur, { camberDeg: 0, casterDeg: 0 }, "left", false);
+    const check = forwardCorner(c, solved, "left");
+    const rMin = Math.abs(c.eMm[1] - c.eMm[5]);
+    expect(Math.hypot(check.dXMm - c.nXMm, check.dYMm - c.nYMm)).toBeCloseTo(rMin, 6);
+  });
+
+  it("reaches the outer limit exactly", () => {
+    const c = cal({ nXMm: 0, nYMm: 0, gamma0Deg: 0 });
+    const cur: CornerPills = { sTop: 4, sBot: 4, thetaTopDeg: 0, thetaBotDeg: 0 };
+    const solved = nearestAngles(c, cur, { camberDeg: 45, casterDeg: 0 }, "left", false);
+    const check = forwardCorner(c, solved, "left");
+    const rMax = c.eMm[4] + c.eMm[4];
+    expect(Math.hypot(check.dXMm - c.nXMm, check.dYMm - c.nYMm)).toBeCloseTo(rMax, 6);
   });
 });

@@ -14,6 +14,12 @@ interface DocumentHeadOptions {
   jsonLd?: Record<string, unknown>;
   /** RSS autodiscovery: <link rel="alternate" type="application/rss+xml">. */
   feedUrl?: string;
+  /**
+   * `<meta name="robots">` override, e.g. "noindex". A static-hosted SPA can't
+   * return a real 404 status, so a not-found route says so here instead of
+   * letting crawlers index a soft 404.
+   */
+  robots?: string;
 }
 
 /**
@@ -31,6 +37,7 @@ export function useDocumentHead({
   modifiedTime,
   jsonLd,
   feedUrl,
+  robots,
 }: DocumentHeadOptions): void {
   // Depend on the serialized form so callers can pass an inline object literal
   // without re-running the effect every render.
@@ -124,6 +131,9 @@ export function useDocumentHead({
     if (ogType) {
       restorers.push(metaProp("og:type", ogType));
     }
+    if (robots) {
+      restorers.push(metaName("robots", robots));
+    }
     if (publishedTime) {
       restorers.push(metaProp("article:published_time", publishedTime));
     }
@@ -151,5 +161,5 @@ export function useDocumentHead({
       document.title = prevTitle;
       restorers.forEach((r) => r());
     };
-  }, [title, description, canonical, ogType, publishedTime, modifiedTime, jsonLdText, feedUrl]);
+  }, [title, description, canonical, ogType, publishedTime, modifiedTime, jsonLdText, feedUrl, robots]);
 }

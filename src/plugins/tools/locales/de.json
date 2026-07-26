@@ -180,7 +180,8 @@
       "solve": "Exzenterpositionen finden",
       "apply": "Übernehmen",
       "residual": "Abweichung",
-      "noResults": "Dieses Ziel liegt außerhalb dessen, was diese Exzenter erreichen können. Weniger Sturz/Nachlauf oder größere Exzenter versuchen.",
+      "closest": "am nächsten",
+      "noResults": "Keine Pill-Kombination passt zu diesem Ziel mit den aktuellen Chassis-Konstanten.",
       "top": "Oben",
       "bottom": "Unten"
     },

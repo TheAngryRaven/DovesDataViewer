@@ -21,14 +21,44 @@ export function postsTable() {
 // applies to these queries, so without it drafts would leak onto the public
 // pages in the admin's own browser.
 
-/** Published posts, newest first. */
-export async function fetchPublishedPosts(): Promise<BlogPost[]> {
+/** One row of the /updates index — everything the card needs, no full body. */
+export interface PostListItem {
+  id: string;
+  slug: string;
+  title: string;
+  tags: string[];
+  aiAssisted: boolean;
+  publishedAt: string | null;
+  /** Leading slice of the markdown body (DB generated column) — excerpt source. */
+  bodyPreview: string;
+}
+
+/**
+ * Published posts for the index, newest first. Deliberately selects
+ * `body_preview` rather than `body`: the listing only renders excerpts, and
+ * pulling every post's full markdown would grow the page payload without
+ * bound as the blog fills up.
+ */
+export async function fetchPublishedPostList(): Promise<PostListItem[]> {
   const { data, error } = await postsTable()
-    .select("*")
+    .select("id,slug,title,tags,ai_assisted,published_at,body_preview")
     .eq("published", true)
     .order("published_at", { ascending: false, nullsFirst: false });
   if (error) throw error;
-  return ((data ?? []) as PostRow[]).map(mapPostRow);
+  const rows = (data ?? []) as Array<
+    Pick<PostRow, "id" | "slug" | "title" | "tags" | "ai_assisted" | "published_at"> & {
+      body_preview: string | null;
+    }
+  >;
+  return rows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    tags: r.tags ?? [],
+    aiAssisted: r.ai_assisted,
+    publishedAt: r.published_at,
+    bodyPreview: r.body_preview ?? "",
+  }));
 }
 
 /** One published post by slug, or null when it doesn't exist (or is a draft). */
@@ -113,8 +143,9 @@ export interface PostPatch {
   publishedAt?: string | null;
 }
 
+/** `updated_at` is maintained by the update_posts_updated_at trigger, not here. */
 export async function updatePost(id: string, patch: PostPatch): Promise<void> {
-  const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const row: Record<string, unknown> = {};
   if (patch.slug !== undefined) row.slug = patch.slug;
   if (patch.title !== undefined) row.title = patch.title;
   if (patch.body !== undefined) row.body = patch.body;
@@ -122,6 +153,8 @@ export async function updatePost(id: string, patch: PostPatch): Promise<void> {
   if (patch.aiAssisted !== undefined) row.ai_assisted = patch.aiAssisted;
   if (patch.published !== undefined) row.published = patch.published;
   if (patch.publishedAt !== undefined) row.published_at = patch.publishedAt;
+  // An empty PATCH is a 400 from PostgREST, not a no-op.
+  if (Object.keys(row).length === 0) return;
   const { error } = await postsTable().update(row).eq("id", id);
   if (error) throw error;
 }

@@ -34,7 +34,7 @@ function excerpt(markdown: string, maxChars = 300): string {
       if (paragraph.length > 0) break;
       continue;
     }
-    paragraph.push(trimmed);
+    paragraph.push(trimmed.replace(/^>\s?/, "").replace(/^(?:[-*+]|\d+[.)])\s+/, ""));
   }
   const text = paragraph
     .join(" ")
@@ -44,7 +44,6 @@ function excerpt(markdown: string, maxChars = 300): string {
     .replace(/(\*|_)(.*?)\1/g, "$2")
     .replace(/~~(.*?)~~/g, "$1")
     .replace(/`([^`]*)`/g, "$1")
-    .replace(/^>\s?/, "")
     .replace(/\s+/g, " ")
     .trim();
   if (text.length <= maxChars) return text;
@@ -83,7 +82,10 @@ Deno.serve(async (req) => {
     const lastBuild = posts[0]?.published_at ?? new Date().toISOString();
 
     const items = posts.map((p) => {
-      const url = `${SITE_URL}/updates/${p.slug}`;
+      // Escaped, not trusted: the admin UI funnels slugs through slugify(), but
+      // RLS lets an admin write any slug straight to the table, and a single
+      // raw "&" would corrupt the feed for every subscriber.
+      const url = escapeXml(`${SITE_URL}/updates/${p.slug}`);
       const categories = (p.tags ?? [])
         .map((tag) => `      <category>${escapeXml(tag)}</category>`)
         .join("\n");
