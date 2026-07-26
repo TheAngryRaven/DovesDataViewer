@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [3.1.1] - unreleased
+## [3.1.1] - 2026-07-26
 
 ### Added
 - **Pill Alignment tool.** New Tools-tab calculator for OTK-style eccentric
@@ -19,7 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   camber/caster/track-width instantly, explore the full reachable
   camber–caster envelope on an interactive scatter (drag the marker to solve
   pill angles), and use "Find Setup" to get ranked pill combinations for a
-  target alignment — with hole snapping, toe entry + overhead toe visual, a
+  target alignment — falling back to the closest achievable setting (flagged
+  as such) when a target is outside what the pills can reach, so you always
+  get an answer — with hole snapping, toe entry + overhead toe visual, a
   resultant-toe color mode, and a "load from session setup" shortcut. Chassis
   constants live in a modular profile system — built-in brand profiles (OTK /
   Tony Kart, Kart Republic, CompKart, Birel ART, Praga, Sodi; estimated until
