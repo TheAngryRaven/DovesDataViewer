@@ -22,7 +22,8 @@
     "overlay": "Sovrapposizione",
     "setupNotConfigured": "Configurazione sessione non impostata",
     "setupNoneRed": "Nessun veicolo o assetto salvato — clicca per aggiungerne uno",
-    "setupNoneOrange": "Nessun assetto salvato per questa sessione — clicca per configurare"
+    "setupNoneOrange": "Nessun assetto salvato per questa sessione — clicca per configurare",
+    "help": "Aiuto"
   },
   "lapTable": {
     "noLaps": "Nessun giro rilevato.",

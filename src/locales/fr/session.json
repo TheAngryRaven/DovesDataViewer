@@ -22,7 +22,8 @@
     "overlay": "Superposition",
     "setupNotConfigured": "Configuration de session non définie",
     "setupNoneRed": "Aucun véhicule ni réglage enregistré — cliquez pour en ajouter un",
-    "setupNoneOrange": "Aucun réglage enregistré pour cette session — cliquez pour configurer"
+    "setupNoneOrange": "Aucun réglage enregistré pour cette session — cliquez pour configurer",
+    "help": "Aide"
   },
   "lapTable": {
     "noLaps": "Aucun tour détecté.",

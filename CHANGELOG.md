@@ -11,7 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [3.1.2] - unreleased
+## [3.2.0] - unreleased
+
+### Added
+- **Send failed files to support.** When a datalog fails to parse, you can now
+  send the file straight to the support team for diagnosis — with a message
+  (tell us which datalogger made it and how it was exported) and an optional
+  reply email. Works signed in or out; files are compressed on-device before
+  upload. Handled in a new admin **Support** page with attachment download.
+- **Help button in the session view.** A new Help button in the session tab
+  bar (left of the overlay toggle) opens the contact form, so you can reach
+  the team without going back to the home page. With a session loaded, the
+  form offers a toggle to attach the current session's datalog to your
+  message (compressed on-device before upload).
+
+### Changed
+- **Admin panel navigation.** The ever-crowding tab bar is now a collapsible
+  side menu (all pages with icons and unread badges) — open by default on
+  desktop, tucked away on phones.
 
 ### Fixed
 - **Alfano 6 ADA "classic Excel" exports now import.** The ADA app's

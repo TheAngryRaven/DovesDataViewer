@@ -142,7 +142,9 @@
     "errorGeneric": "Something went wrong.",
     "errorNetwork": "Could not send message. Please try again.",
     "sent": "Message sent!",
-    "sentDesc": "Thanks for your feedback."
+    "sentDesc": "Thanks for your feedback.",
+    "attachSession": "Attach the current session's datalog:",
+    "attachMissing": "Could not read the session file from local storage."
   },
   "browserCompat": {
     "trigger": "Browser Compatibility",
@@ -241,5 +243,28 @@
     "viewAll": "All updates",
     "webUpdate": "Web update",
     "news": "News"
+  },
+  "parseReport": {
+    "sendButton": "Send this file to the support team for diagnosis",
+    "title": "Send file to support",
+    "description": "Your datalog and message go straight to the developers so we can add or fix support for your file's format.",
+    "fileLine": "Attached: {{name}} ({{size}})",
+    "messageLabel": "Message *",
+    "messagePlaceholder": "e.g. Alfano 6, exported from the ADA app as a classic Excel file…",
+    "messageHint": "Please include the datalogger you used (brand + model) and which app/settings exported the file.",
+    "emailLabel": "Email",
+    "emailOptional": "(optional, for a reply)",
+    "emailPlaceholder": "your@email.com",
+    "missingMessage": "Message required",
+    "missingMessageDesc": "Please describe the datalogger and app that produced this file.",
+    "tooLarge": "File too large",
+    "tooLargeDesc": "Attachments are limited to {{max}} MB.",
+    "sending": "Sending…",
+    "send": "Send to Support",
+    "sent": "Report sent",
+    "sentDesc": "Thanks! We'll take a look at your file.",
+    "error": "Failed to send",
+    "errorGeneric": "An error occurred. Please try again later.",
+    "errorNetwork": "Network error. Please check your connection."
   }
 }

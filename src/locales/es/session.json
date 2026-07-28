@@ -22,7 +22,8 @@
     "overlay": "Superposición",
     "setupNotConfigured": "Configuración de sesión no establecida",
     "setupNoneRed": "Aún no hay vehículo ni reglaje guardado — haz clic para añadir uno",
-    "setupNoneOrange": "No hay reglaje guardado para esta sesión — haz clic para configurar"
+    "setupNoneOrange": "No hay reglaje guardado para esta sesión — haz clic para configurar",
+    "help": "Ayuda"
   },
   "lapTable": {
     "noLaps": "No se detectaron vueltas.",

@@ -1,8 +1,13 @@
-import { useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, LifeBuoy } from "lucide-react";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
+
+// Loaded only after a parse actually fails (plan 0013).
+const ParseErrorReportDialog = lazy(() =>
+  import("@/components/ParseErrorReportDialog").then((m) => ({ default: m.ParseErrorReportDialog })),
+);
 
 interface FileImportProps {
   onDataLoaded: (data: ParsedData, fileName?: string) => void;
@@ -24,6 +29,10 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // The file + raw parser error behind the "send to support" offer (plan 0013)
+  const [failedFile, setFailedFile] = useState<File | null>(null);
+  const [failedError, setFailedError] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const processFile = useCallback(
     async (file: File) => {
@@ -31,6 +40,8 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
       setError(null);
       setProgress(null);
       setFileName(file.name);
+      setFailedFile(null);
+      setFailedError(null);
 
       try {
         // Always save the raw file first so it's never lost
@@ -44,6 +55,8 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
       } catch (e) {
         const msg = e instanceof Error ? e.message : t("fileImport.parseFailed");
         setError(autoSave ? t("fileImport.parseErrorSaved", { message: msg }) : msg);
+        setFailedFile(file);
+        setFailedError(e instanceof Error ? e.message : null);
       } finally {
         setIsLoading(false);
         setProgress(null);
@@ -123,6 +136,25 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
         <p className="text-center text-sm font-mono text-muted-foreground">{t("fileImport.loaded", { name: fileName })}</p>
       )}
       {error && <p className="text-center text-sm font-medium text-destructive">{t("fileImport.errorLine", { error })}</p>}
+      {failedFile && (
+        <button
+          onClick={() => setReportOpen(true)}
+          className="mx-auto inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline"
+        >
+          <LifeBuoy className="h-4 w-4" />
+          {t("parseReport.sendButton")}
+        </button>
+      )}
+      {failedFile && reportOpen && (
+        <Suspense fallback={null}>
+          <ParseErrorReportDialog
+            file={failedFile}
+            errorText={failedError}
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
