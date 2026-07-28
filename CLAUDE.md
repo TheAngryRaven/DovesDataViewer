@@ -410,7 +410,10 @@ the dashboard). The beta domain `beta.lapwingdata.com` can't bind to a Branch
 Preview URL, so a separate thin reverse-proxy Worker in `beta-proxy/` owns it and
 forwards to `beta-lapwing.perchwerks.workers.dev` (auto-deployed by the
 `deploy-beta-proxy.yml` workflow on `BETA` pushes that touch `beta-proxy/**`;
-see `beta-proxy/README.md`). Backend by branch (`vite.config.ts` `pick()`, keyed on
+see `beta-proxy/README.md`). The legacy domain `hackthetrack.net` is owned by
+the `htt-redirect/` Worker — 301 → lapwingdata.com plus an SW kill-switch for
+old PWA installs (auto-deployed by `deploy-htt-redirect.yml` on `main` pushes;
+see `htt-redirect/README.md`). Backend by branch (`vite.config.ts` `pick()`, keyed on
 `WORKERS_CI_BRANCH`/`CF_PAGES_BRANCH`): **`main`** → base/production vars;
 **`BETA`** → static `*_PREVIEW` creds (the shared beta DB — never the resolver);
 **any other branch** → with a `SUPABASE_ACCESS_TOKEN` secret, that branch's own

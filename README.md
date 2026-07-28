@@ -494,7 +494,7 @@ break a deploy. Full design: [`docs/plans/0007-dynamic-supabase-branch-db.md`](d
 > Supabase dashboard. Remember to add each preview URL to the branch's
 > **Auth → Redirect URLs** for cloud sign-in.
 
-#### Custom domains (production + beta)
+#### Custom domains (production + beta + legacy)
 
 - **Production — `lapwingdata.com`:** `wrangler.jsonc` declares a
   `custom_domain` route, so `wrangler deploy` provisions the DNS record and TLS
@@ -507,6 +507,13 @@ break a deploy. Full design: [`docs/plans/0007-dynamic-supabase-branch-db.md`](d
   It lives in [`beta-proxy/`](beta-proxy/README.md) and is deployed on its own
   (`cd beta-proxy && npm install && npm run deploy`). Keep Cloudflare Access
   **off** on the upstream preview URL — see that README.
+- **Legacy — `hackthetrack.net`:** the old domain 301-redirects everything
+  (path + query preserved) to `lapwingdata.com` via the tiny
+  [`htt-redirect/`](htt-redirect/README.md) Worker. It also serves a
+  service-worker **kill-switch** at the old SW URLs so installed offline-first
+  PWA clients on the old origin drop their cache and follow the redirect.
+  Deployed by `.github/workflows/deploy-htt-redirect.yml` on `main` pushes that
+  touch it.
 
 ### Android app (Tauri)
 

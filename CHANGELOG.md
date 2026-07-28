@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.1.2] - unreleased
+
+### Changed
+- **hackthetrack.net now fully redirects to lapwingdata.com.** The old
+  domain's announced shutdown date (July 20, 2026) has passed: every page on
+  hackthetrack.net (and www) now permanently redirects to the same path on
+  lapwingdata.com. Installed/offline copies of the old site clean themselves
+  up on their next online visit and follow the redirect. (New `htt-redirect/`
+  Cloudflare Worker; the app itself is unchanged.)
+
 ## [3.1.1] - 2026-07-26
 
 ### Added

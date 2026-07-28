@@ -1,0 +1,66 @@
+name: Deploy htt-redirect
+
+# htt-redirect/ is the Worker that owns the old domain (hackthetrack.net) and
+# permanently redirects it to lapwingdata.com. It is a SEPARATE Worker from the
+# main app — Cloudflare's connected-repo CI builds the app but nothing deploys
+# this redirect. This workflow does:
+#   • validate it on PRs that touch it (dry-run, no secrets — runs on forks too)
+#   • deploy it on main pushes that change it, or on demand (workflow_dispatch)
+#
+# Required repo secrets for the deploy job (shared with deploy-beta-proxy):
+#   • CLOUDFLARE_API_TOKEN   — token with "Edit Cloudflare Workers" on the account
+#   • CLOUDFLARE_ACCOUNT_ID  — the account that owns the hackthetrack.net zone
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "htt-redirect/**"
+      - ".github/workflows/deploy-htt-redirect.yml"
+  pull_request:
+    paths:
+      - "htt-redirect/**"
+      - ".github/workflows/deploy-htt-redirect.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Pin the wrangler version used to both validate and deploy so runs are
+# reproducible (htt-redirect has no committed lockfile).
+env:
+  WRANGLER_VERSION: "4.103.0"
+
+# Never let two deploys of the same ref overlap; queue rather than cancel so an
+# in-flight deploy always finishes.
+concurrency:
+  group: deploy-htt-redirect-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Bundle + config check for PRs. Needs no Cloudflare secrets, so it catches a
+  # broken wrangler.toml before it can reach main (and works for fork PRs).
+  validate:
+    if: github.event_name == 'pull_request'
+    name: Dry-run
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: htt-redirect
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx --yes wrangler@${{ env.WRANGLER_VERSION }} deploy --dry-run --config ./wrangler.toml
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    name: Deploy Worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: htt-redirect
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
+          command: deploy --config ./wrangler.toml

@@ -1,0 +1,14 @@
+name = "htt-redirect"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+
+# Attaching custom_domain routes makes Cloudflare provision the DNS records and
+# TLS certificates for the old domain automatically — do NOT create any DNS
+# records by hand. The zone hackthetrack.net must be in this account, and both
+# hostnames must be detached from whatever Worker served the old site before
+# this first deploys: a custom domain can only bind to one Worker, and a
+# non-interactive (CI) deploy fails on the conflict instead of prompting.
+routes = [
+  { pattern = "hackthetrack.net", custom_domain = true },
+  { pattern = "www.hackthetrack.net", custom_domain = true }
+]
