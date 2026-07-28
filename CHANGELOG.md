@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.1.2] - unreleased
+
+### Fixed
+- **Alfano 6 ADA "classic Excel" exports now import.** The ADA app's
+  full-session Excel/CSV export (user-reported) failed with "Could not find
+  valid header row": its `Lat.`/`Lon.`/`Speed GPS`/`Absolute Time` headers
+  weren't recognized. The parser now understands that layout end-to-end —
+  it uses the monotonic `Absolute Time` column instead of the per-lap `Time`
+  column (which resets to 0 every lap and would corrupt the timeline), strips
+  locale grouping separators from numbers (`4,120` RPM previously parsed
+  as 4) with support for both period- and comma-decimal locales, reads
+  heading from the centidegree `Orientation` column, and maps `Gf. X`/`Gf. Y`
+  to the native lateral/longitudinal G channels.
+
 ## [3.1.1] - 2026-07-26
 
 ### Added
