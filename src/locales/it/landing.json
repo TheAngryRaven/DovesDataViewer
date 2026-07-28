@@ -187,7 +187,9 @@
     "errorGeneric": "Qualcosa è andato storto.",
     "errorNetwork": "Impossibile inviare il messaggio. Riprova.",
     "sent": "Messaggio inviato!",
-    "sentDesc": "Grazie per il tuo feedback."
+    "sentDesc": "Grazie per il tuo feedback.",
+    "attachSession": "Allega il datalog della sessione corrente:",
+    "attachMissing": "Impossibile leggere il file della sessione dall'archiviazione locale."
   },
   "browserCompat": {
     "trigger": "Compatibilità del browser",
@@ -242,5 +244,28 @@
     "viewAll": "Tutte le novità",
     "webUpdate": "Aggiornamento web",
     "news": "Notizie"
+  },
+  "parseReport": {
+    "sendButton": "Invia questo file al team di supporto per la diagnosi",
+    "title": "Invia il file al supporto",
+    "description": "Il tuo datalog e il tuo messaggio arrivano direttamente agli sviluppatori, così possiamo aggiungere o correggere il supporto per il formato del tuo file.",
+    "fileLine": "Allegato: {{name}} ({{size}})",
+    "messageLabel": "Messaggio *",
+    "messagePlaceholder": "es. Alfano 6, esportato dall'app ADA come file Excel classico…",
+    "messageHint": "Indica il datalogger utilizzato (marca + modello) e con quale app/impostazioni è stato esportato il file.",
+    "emailLabel": "Email",
+    "emailOptional": "(facoltativa, per una risposta)",
+    "emailPlaceholder": "tua@email.com",
+    "missingMessage": "Messaggio obbligatorio",
+    "missingMessageDesc": "Descrivi il datalogger e l'app che hanno prodotto questo file.",
+    "tooLarge": "File troppo grande",
+    "tooLargeDesc": "Gli allegati sono limitati a {{max}} MB.",
+    "sending": "Invio…",
+    "send": "Invia al supporto",
+    "sent": "Segnalazione inviata",
+    "sentDesc": "Grazie! Daremo un'occhiata al tuo file.",
+    "error": "Invio non riuscito",
+    "errorGeneric": "Si è verificato un errore. Riprova più tardi.",
+    "errorNetwork": "Errore di rete. Controlla la connessione."
   }
 }

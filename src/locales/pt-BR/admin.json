@@ -13,7 +13,8 @@
     "banned": "IPs banidos",
     "users": "Usuários",
     "leaderboards": "Rankings",
-    "updates": "Novidades"
+    "updates": "Novidades",
+    "support": "Suporte"
   },
   "common": {
     "error": "Erro",
@@ -264,5 +265,29 @@
     "updated": "Publicação atualizada",
     "deleted": "Publicação excluída",
     "slugTaken": "Esse slug já está em uso"
+  },
+  "support": {
+    "loading": "Carregando relatórios…",
+    "loadError": "Erro ao carregar os relatórios",
+    "none": "Nenhum relatório de erro de análise",
+    "filterAll": "Todos",
+    "filterUnread": "Não lidos",
+    "filterRead": "Lidos",
+    "refresh": "Atualizar",
+    "download": "Baixar arquivo",
+    "downloadError": "Falha no download",
+    "deleteFileError": "Falha ao excluir o arquivo armazenado",
+    "errorLabel": "Erro do analisador",
+    "fileLine": "{{name}} ({{size}})",
+    "versionLine": "App: {{version}}",
+    "emailLine": "E-mail: {{email}}",
+    "userLine": "Usuário: {{id}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "desconhecido"
+  },
+  "nav": {
+    "menu": "Menu",
+    "collapse": "Recolher menu",
+    "expand": "Expandir menu"
   }
 }

@@ -14,21 +14,31 @@ import {
 
 /**
  * Alfano CSV Parser
- * 
+ *
  * Alfano data loggers export CSV files with metadata preamble followed by data.
  * Common exports from Alfano ADA app or Off Camber Data.
- * 
+ *
  * Typical structure:
  * - Metadata rows (Driver:, Track:, Date:, etc.)
  * - Header row with column names
  * - Data rows
+ *
+ * The ADA app's "classic Excel" export (Alfano 6) has no metadata preamble:
+ * the header row comes first (`Lap;Time Lap;Strip;Time Strip;Absolute Time;
+ * Time;Distance;RPM;Speed GPS;T1;T2;Gf. X;Gf. Y;Orientation;Speed rear;Lat.;
+ * Lon.;Altitude;UTC time : <hhmmss>`), the delimiter is `;`, numbers embed
+ * locale grouping separators (`4,120` RPM), `Time` resets to 0 every lap
+ * (only `Absolute Time` is monotonic), and `Orientation` is heading in
+ * hundredths of a degree.
  */
 
 // Alfano-specific column header patterns (case-insensitive)
 const ALFANO_HEADERS = [
   'gps_latitude', 'gps_longitude', 'gps_speed', 'gps_heading', 'gps_altitude',
   'latacc', 'lonacc', 'lat acc', 'lon acc', 'lateral acc', 'longitudinal acc',
-  'rpm', 't1', 't2', 'egt', 'water', 'oil', 'throttle', 'lap', 'laptime'
+  'rpm', 't1', 't2', 'egt', 'water', 'oil', 'throttle', 'lap', 'laptime',
+  // ADA "classic Excel" export (Alfano 6)
+  'time strip', 'speed gps', 'gf. x'
 ];
 
 // Metadata patterns that indicate Alfano format
@@ -66,14 +76,16 @@ export function isAlfanoFormat(content: string): boolean {
 
 // Column name mappings (Alfano header → internal name)
 const COLUMN_MAPPINGS: Record<string, string> = {
-  // Time
+  // Time. 'time' may reset to 0 every lap (ADA classic-Excel export) — when a
+  // monotonic 'absolute time' column exists it always wins.
   'time': 'time',
   'timestamp': 'time',
   'elapsed': 'time',
   'elapsed time': 'time',
   'time (s)': 'time',
   'time (ms)': 'time_ms',
-  
+  'absolute time': 'time_abs',
+
   // GPS
   'gps_latitude': 'lat',
   'gps_longitude': 'lon',
@@ -82,20 +94,27 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   'lat': 'lat',
   'lon': 'lon',
   'long': 'lon',
+  'lat.': 'lat',
+  'lon.': 'lon',
   'gps_speed': 'speed',
   'speed': 'speed',
   'speed (km/h)': 'speed',
   'speed (kph)': 'speed',
+  'speed gps': 'speed',
   'velocity': 'speed',
   'gps_heading': 'heading',
   'heading': 'heading',
   'course': 'heading',
+  'orientation': 'orientation',
   'gps_altitude': 'altitude',
   'altitude': 'altitude',
   'height': 'altitude',
   'alt': 'altitude',
   
-  // Accelerometers
+  // Accelerometers. Alfano 6 exports lateral as "Gf. X" and longitudinal as
+  // "Gf. Y" (lateral has the wider range on a kart).
+  'gf. x': 'latG',
+  'gf. y': 'lonG',
   'latacc': 'latG',
   'lat acc': 'latG',
   'lateral acc': 'latG',
@@ -147,6 +166,54 @@ function detectAlfanoDelimiter(lines: string[]): string {
     if (commas > 0 || semis > 0) return semis > commas ? ';' : ',';
   }
   return ',';
+}
+
+/**
+ * Decide, once per file, whether comma is the decimal separator.
+ *
+ * Semicolon-delimited Alfano exports embed locale-formatted numbers: a US/UK
+ * export writes `4,120` RPM (comma = thousands grouping, period = decimal)
+ * while a European export writes `52,6` (comma = decimal). `parseFloat` stops
+ * at the comma either way, so both must be normalized — but in opposite
+ * directions. Ambiguous tokens (exactly 3 digits after the separator could be
+ * either grouping or a decimal) don't vote; GPS coordinates always settle it.
+ */
+export function detectAlfanoDecimalComma(
+  lines: string[],
+  startIndex: number,
+  delimiter: string
+): boolean {
+  if (delimiter === ',') return false; // fields can never contain commas
+  let periodVotes = 0;
+  let commaVotes = 0;
+  let scanned = 0;
+  for (let i = startIndex; i < lines.length && scanned < 50; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    scanned++;
+    for (const f of parseCsvLine(line, delimiter)) {
+      if (f.includes('.') && f.includes(',')) {
+        // Both present in one token (e.g. `17,090.4`): the later one is the
+        // decimal separator. Decisive on its own.
+        return f.lastIndexOf(',') > f.lastIndexOf('.');
+      }
+      if (/^-?\d+\.\d+$/.test(f) && !/\.\d{3}$/.test(f)) periodVotes++;
+      else if (/^-?\d+,\d+$/.test(f) && !/,\d{3}$/.test(f)) commaVotes++;
+    }
+  }
+  return commaVotes > periodVotes;
+}
+
+/**
+ * Parse a locale-formatted numeric field: strip grouping separators, then
+ * normalize the decimal separator to a period for `parseFloat`.
+ */
+export function parseAlfanoNumber(value: string | undefined, decimalComma: boolean): number {
+  if (!value) return NaN;
+  const cleaned = decimalComma
+    ? value.replace(/\./g, '').replace(/,/g, '.')
+    : value.replace(/,/g, '');
+  return parseFloat(cleaned);
 }
 
 /**
@@ -217,20 +284,44 @@ export function parseAlfanoFile(content: string): ParsedData {
     throw new Error('Could not find valid header row in Alfano CSV');
   }
   
+  const decimalComma = detectAlfanoDecimalComma(lines, headerIndex + 1, delimiter);
+  const num = (value: string | undefined) => parseAlfanoNumber(value, decimalComma);
+
+  // Time source priority: 'absolute time' (monotonic across the whole session)
+  // beats 'time', which the ADA classic-Excel export resets to 0 every lap —
+  // using it would run time backwards at each lap boundary and the midnight
+  // patch below would add a fake day per lap.
+  const timeKey = (['time_abs', 'time_ms', 'time'] as const)
+    .find(k => columnMap[k] !== undefined);
+
   // Decide the generic time column's unit ONCE for the whole file. The old
   // per-row heuristic (`> 100000 ? ms : ×1000`) flipped units mid-file: a
   // ms-based column had its first 100 seconds multiplied by 1000, then
   // collapsed — time ran backwards and the midnight patch added a fake day.
+  // The same pass sizes 'orientation': Alfano 6 stores heading in hundredths
+  // of a degree (0–35999), detected by the column exceeding 360.
   let timeMultiplier = 1000; // seconds → ms (the historical default)
-  if (columnMap['time'] !== undefined && columnMap['time_ms'] === undefined) {
+  let headingDivisor = 1;
+  const scanTimeCol = timeKey === 'time_abs' || timeKey === 'time' ? columnMap[timeKey] : undefined;
+  const orientationCol = columnMap['orientation'];
+  if (scanTimeCol !== undefined || orientationCol !== undefined) {
     const timeValues: number[] = [];
+    let orientationMax = 0;
     for (let i = headerIndex + 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line || ALFANO_METADATA_PATTERNS.some(p => p.test(line))) continue;
-      const v = parseFloat(parseCsvLine(line, delimiter)[columnMap['time']]);
-      if (!isNaN(v)) timeValues.push(v);
+      const fields = parseCsvLine(line, delimiter);
+      if (scanTimeCol !== undefined) {
+        const v = num(fields[scanTimeCol]);
+        if (!isNaN(v)) timeValues.push(v);
+      }
+      if (orientationCol !== undefined) {
+        const o = num(fields[orientationCol]);
+        if (!isNaN(o) && o > orientationMax) orientationMax = o;
+      }
     }
-    timeMultiplier = detectAlfanoTimeMultiplier(timeValues);
+    if (scanTimeCol !== undefined) timeMultiplier = detectAlfanoTimeMultiplier(timeValues);
+    if (orientationMax > 360) headingDivisor = 100;
   }
 
   // Parse data rows
@@ -250,44 +341,47 @@ export function parseAlfanoFile(content: string): ParsedData {
     if (fields.length < 3) continue;
 
     // Parse coordinates
-    const lat = columnMap['lat'] !== undefined ? parseFloat(fields[columnMap['lat']]) : NaN;
-    const lon = columnMap['lon'] !== undefined ? parseFloat(fields[columnMap['lon']]) : NaN;
+    const lat = columnMap['lat'] !== undefined ? num(fields[columnMap['lat']]) : NaN;
+    const lon = columnMap['lon'] !== undefined ? num(fields[columnMap['lon']]) : NaN;
 
     if (validateGpsCoords(lat, lon) !== null) continue;
-    
+
     // Parse time
     let timeMs = 0;
-    if (columnMap['time_ms'] !== undefined) {
-      timeMs = parseFloat(fields[columnMap['time_ms']]) || 0;
-    } else if (columnMap['time'] !== undefined) {
-      const timeVal = parseFloat(fields[columnMap['time']]);
+    if (timeKey === 'time_ms') {
+      timeMs = num(fields[columnMap['time_ms']]) || 0;
+    } else if (timeKey !== undefined) {
+      const timeVal = num(fields[columnMap[timeKey]]);
       if (!isNaN(timeVal)) {
         timeMs = timeVal * timeMultiplier;
       }
     }
-    
+
     if (baseTimeMs === null) {
       baseTimeMs = timeMs;
     }
-    
+
     let t = timeMs - baseTimeMs;
     if (t < 0) t += 86400000; // Handle midnight wrap
-    
+
     // Parse speed (assume km/h)
     let speedKph = 0;
     if (columnMap['speed'] !== undefined) {
-      speedKph = parseFloat(fields[columnMap['speed']]) || 0;
+      speedKph = num(fields[columnMap['speed']]) || 0;
     }
     const speedMps = speedKph * KPH_TO_MPS;
 
     // Sanity check on speed
     if (speedMps > MAX_SPEED_MPS) continue;
 
-    // Parse heading
+    // Parse heading (explicit heading column, else Alfano 'orientation')
     let heading: number | undefined;
     if (columnMap['heading'] !== undefined) {
-      const h = parseFloat(fields[columnMap['heading']]);
+      const h = num(fields[columnMap['heading']]);
       if (!isNaN(h)) heading = normalizeHeading(h);
+    } else if (orientationCol !== undefined) {
+      const h = num(fields[orientationCol]);
+      if (!isNaN(h)) heading = normalizeHeading(h / headingDivisor);
     }
     
     // Teleportation filter
@@ -301,7 +395,7 @@ export function parseAlfanoFile(content: string): ParsedData {
     
     // Native G-forces (may be in m/s² or G — Alfano uses a higher threshold than other formats)
     if (columnMap['latG'] !== undefined) {
-      const latG = parseFloat(fields[columnMap['latG']]);
+      const latG = num(fields[columnMap['latG']]);
       if (!isNaN(latG)) {
         extraFields['Lat G (Native)'] = normalizeAccelToG(latG, 10);
         hasNativeG = true;
@@ -309,7 +403,7 @@ export function parseAlfanoFile(content: string): ParsedData {
     }
 
     if (columnMap['lonG'] !== undefined) {
-      const lonG = parseFloat(fields[columnMap['lonG']]);
+      const lonG = num(fields[columnMap['lonG']]);
       if (!isNaN(lonG)) {
         extraFields['Lon G (Native)'] = normalizeAccelToG(lonG, 10);
         hasNativeG = true;
@@ -318,54 +412,54 @@ export function parseAlfanoFile(content: string): ParsedData {
     
     // Altitude
     if (columnMap['altitude'] !== undefined) {
-      const alt = parseFloat(fields[columnMap['altitude']]);
+      const alt = num(fields[columnMap['altitude']]);
       if (!isNaN(alt)) extraFields['Altitude (m)'] = alt;
     }
     
     // RPM
     if (columnMap['rpm'] !== undefined) {
-      const rpm = parseFloat(fields[columnMap['rpm']]);
+      const rpm = num(fields[columnMap['rpm']]);
       if (!isNaN(rpm) && rpm >= 0) extraFields['RPM'] = rpm;
     }
     
     // Temperatures
     if (columnMap['temp1'] !== undefined) {
-      const temp = parseFloat(fields[columnMap['temp1']]);
+      const temp = num(fields[columnMap['temp1']]);
       if (!isNaN(temp)) extraFields['Temp 1'] = temp;
     }
     if (columnMap['temp2'] !== undefined) {
-      const temp = parseFloat(fields[columnMap['temp2']]);
+      const temp = num(fields[columnMap['temp2']]);
       if (!isNaN(temp)) extraFields['Temp 2'] = temp;
     }
     if (columnMap['egt'] !== undefined) {
-      const temp = parseFloat(fields[columnMap['egt']]);
+      const temp = num(fields[columnMap['egt']]);
       if (!isNaN(temp)) extraFields['EGT'] = temp;
     }
     if (columnMap['water_temp'] !== undefined) {
-      const temp = parseFloat(fields[columnMap['water_temp']]);
+      const temp = num(fields[columnMap['water_temp']]);
       if (!isNaN(temp)) extraFields['Water Temp'] = temp;
     }
     if (columnMap['oil_temp'] !== undefined) {
-      const temp = parseFloat(fields[columnMap['oil_temp']]);
+      const temp = num(fields[columnMap['oil_temp']]);
       if (!isNaN(temp)) extraFields['Oil Temp'] = temp;
     }
     
     // Throttle
     if (columnMap['throttle'] !== undefined) {
-      const throttle = parseFloat(fields[columnMap['throttle']]);
+      const throttle = num(fields[columnMap['throttle']]);
       if (!isNaN(throttle)) extraFields['Throttle'] = throttle;
     }
     
     // Distance
     if (columnMap['distance'] !== undefined) {
-      const dist = parseFloat(fields[columnMap['distance']]);
+      const dist = num(fields[columnMap['distance']]);
       if (!isNaN(dist)) extraFields['Distance'] = dist;
     }
     
     // Satellites
     if (columnMap['satellites'] !== undefined) {
-      const sats = parseInt(fields[columnMap['satellites']], 10);
-      if (!isNaN(sats)) extraFields['Satellites'] = sats;
+      const sats = num(fields[columnMap['satellites']]);
+      if (!isNaN(sats)) extraFields['Satellites'] = Math.round(sats);
     }
     
     samples.push({

@@ -13,7 +13,8 @@
     "banned": "Gesperrte IPs",
     "users": "Benutzer",
     "leaderboards": "Bestenlisten",
-    "updates": "Neuigkeiten"
+    "updates": "Neuigkeiten",
+    "support": "Support"
   },
   "common": {
     "error": "Fehler",
@@ -264,5 +265,29 @@
     "updated": "Beitrag aktualisiert",
     "deleted": "Beitrag gelöscht",
     "slugTaken": "Dieser Slug wird bereits verwendet"
+  },
+  "support": {
+    "loading": "Berichte werden geladen…",
+    "loadError": "Fehler beim Laden der Berichte",
+    "none": "Keine Parse-Fehlerberichte",
+    "filterAll": "Alle",
+    "filterUnread": "Ungelesen",
+    "filterRead": "Gelesen",
+    "refresh": "Aktualisieren",
+    "download": "Datei herunterladen",
+    "downloadError": "Download fehlgeschlagen",
+    "deleteFileError": "Gespeicherte Datei konnte nicht gelöscht werden",
+    "errorLabel": "Parser-Fehler",
+    "fileLine": "{{name}} ({{size}})",
+    "versionLine": "App: {{version}}",
+    "emailLine": "E-Mail: {{email}}",
+    "userLine": "Benutzer: {{id}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "unbekannt"
+  },
+  "nav": {
+    "menu": "Menü",
+    "collapse": "Menü einklappen",
+    "expand": "Menü ausklappen"
   }
 }

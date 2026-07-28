@@ -187,7 +187,9 @@
     "errorGeneric": "Etwas ist schiefgelaufen.",
     "errorNetwork": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.",
     "sent": "Nachricht gesendet!",
-    "sentDesc": "Danke für dein Feedback."
+    "sentDesc": "Danke für dein Feedback.",
+    "attachSession": "Datalog der aktuellen Sitzung anhängen:",
+    "attachMissing": "Die Sitzungsdatei konnte nicht aus dem lokalen Speicher gelesen werden."
   },
   "browserCompat": {
     "trigger": "Browser-Kompatibilität",
@@ -242,5 +244,28 @@
     "viewAll": "Alle Neuigkeiten",
     "webUpdate": "Web-Update",
     "news": "News"
+  },
+  "parseReport": {
+    "sendButton": "Diese Datei zur Diagnose an das Support-Team senden",
+    "title": "Datei an den Support senden",
+    "description": "Dein Datalog und deine Nachricht gehen direkt an die Entwickler, damit wir die Unterstützung für dein Dateiformat hinzufügen oder korrigieren können.",
+    "fileLine": "Anhang: {{name}} ({{size}})",
+    "messageLabel": "Nachricht *",
+    "messagePlaceholder": "z. B. Alfano 6, aus der ADA-App als klassische Excel-Datei exportiert…",
+    "messageHint": "Bitte gib den verwendeten Datenlogger (Marke + Modell) an sowie die App/Einstellungen, mit denen die Datei exportiert wurde.",
+    "emailLabel": "E-Mail",
+    "emailOptional": "(optional, für eine Antwort)",
+    "emailPlaceholder": "deine@email.com",
+    "missingMessage": "Nachricht erforderlich",
+    "missingMessageDesc": "Bitte beschreibe den Datenlogger und die App, die diese Datei erzeugt haben.",
+    "tooLarge": "Datei zu groß",
+    "tooLargeDesc": "Anhänge sind auf {{max}} MB begrenzt.",
+    "sending": "Wird gesendet…",
+    "send": "An den Support senden",
+    "sent": "Bericht gesendet",
+    "sentDesc": "Danke! Wir sehen uns deine Datei an.",
+    "error": "Senden fehlgeschlagen",
+    "errorGeneric": "Ein Fehler ist aufgetreten. Bitte versuche es später erneut.",
+    "errorNetwork": "Netzwerkfehler. Bitte überprüfe deine Verbindung."
   }
 }

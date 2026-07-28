@@ -1,13 +1,16 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Mail } from "lucide-react";
+import { Mail, Paperclip } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { submitContactMessage } from "@/lib/contactMessage";
+import { MAX_UPLOAD_BYTES } from "@/lib/parseReport";
 
 // The "request a new datalogger" category — exported so the logger picker can
 // open this dialog with it preselected. Keep the VALUE in sync with the edge
@@ -31,18 +34,26 @@ export function ContactDialog({
   variant = "footer",
   trigger,
   defaultCategory,
+  sessionFile,
 }: {
   variant?: "header" | "footer";
   /** Custom trigger element (overrides the default header/footer button). */
   trigger?: ReactNode;
   /** Preselect a category when the dialog opens (e.g. from the logger picker). */
   defaultCategory?: string;
+  /**
+   * The currently-loaded session's datalog (plan 0013): when set, the dialog
+   * offers a toggle to attach it to the message. The blob is fetched lazily
+   * on submit so merely opening the dialog never touches IndexedDB.
+   */
+  sessionFile?: { name: string; getBlob: () => Promise<Blob | null> };
 }) {
   const { t } = useTranslation("landing");
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<string>(defaultCategory ?? "");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [attachSession, setAttachSession] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Re-seed the preselected category each time the dialog opens.
@@ -63,16 +74,34 @@ export function ContactDialog({
 
     setSubmitting(true);
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/submit-message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, email: email.trim() || null, message: message.trim() }),
-      });
+      let attachment: { blob: Blob; name: string } | undefined;
+      if (attachSession && sessionFile) {
+        const blob = await sessionFile.getBlob();
+        if (!blob) {
+          toast({ title: t("contact.error"), description: t("contact.attachMissing"), variant: "destructive" });
+          return;
+        }
+        attachment = { blob, name: sessionFile.name };
+      }
 
-      const data = await resp.json();
-      if (!resp.ok) {
-        toast({ title: t("contact.error"), description: data.error || t("contact.errorGeneric"), variant: "destructive" });
+      const result = await submitContactMessage({ category, email, message, attachment });
+      if (!result.ok) {
+        if (result.reason === "too-large") {
+          toast({
+            title: t("parseReport.tooLarge"),
+            description: t("parseReport.tooLargeDesc", { max: Math.round(MAX_UPLOAD_BYTES / (1024 * 1024)) }),
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: t("contact.error"),
+            description:
+              result.reason === "network"
+                ? t("contact.errorNetwork")
+                : result.serverError || t("contact.errorGeneric"),
+            variant: "destructive",
+          });
+        }
         return;
       }
 
@@ -80,9 +109,8 @@ export function ContactDialog({
       setCategory(defaultCategory ?? "");
       setEmail("");
       setMessage("");
+      setAttachSession(false);
       setOpen(false);
-    } catch {
-      toast({ title: t("contact.error"), description: t("contact.errorNetwork"), variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -143,6 +171,18 @@ export function ContactDialog({
             />
             <p className="text-xs text-muted-foreground text-right">{message.length}/2000</p>
           </div>
+          {sessionFile && (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+              <Label htmlFor="attach-session" className="flex min-w-0 cursor-pointer items-center gap-2 text-sm font-normal">
+                <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0">
+                  {t("contact.attachSession")}{" "}
+                  <span className="break-all font-mono text-xs text-muted-foreground">{sessionFile.name}</span>
+                </span>
+              </Label>
+              <Switch id="attach-session" checked={attachSession} onCheckedChange={setAttachSession} />
+            </div>
+          )}
           <Button onClick={handleSubmit} disabled={submitting || !category || !message.trim()} className="w-full">
             {submitting ? t("contact.sending") : t("contact.send")}
           </Button>

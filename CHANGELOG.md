@@ -11,6 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.2.0] - 2026-07-28
+
+### Added
+- **Send failed files to support.** When a datalog fails to parse, you can now
+  send the file straight to the support team for diagnosis — with a message
+  (tell us which datalogger made it and how it was exported) and an optional
+  reply email. Works signed in or out; files are compressed on-device before
+  upload. Handled in a new admin **Support** page with attachment download.
+- **Help button in the session view.** A new Help button in the session tab
+  bar (left of the overlay toggle) opens the contact form, so you can reach
+  the team without going back to the home page. With a session loaded, the
+  form offers a toggle to attach the current session's datalog to your
+  message (compressed on-device before upload).
+
+### Changed
+- **Admin panel navigation.** The ever-crowding tab bar is now a collapsible
+  side menu (all pages with icons and unread badges) — open by default on
+  desktop, tucked away on phones.
+
+### Fixed
+- **Alfano 6 ADA "classic Excel" exports now import.** The ADA app's
+  full-session Excel/CSV export (user-reported) failed with "Could not find
+  valid header row": its `Lat.`/`Lon.`/`Speed GPS`/`Absolute Time` headers
+  weren't recognized. The parser now understands that layout end-to-end —
+  it uses the monotonic `Absolute Time` column instead of the per-lap `Time`
+  column (which resets to 0 every lap and would corrupt the timeline), strips
+  locale grouping separators from numbers (`4,120` RPM previously parsed
+  as 4) with support for both period- and comma-decimal locales, reads
+  heading from the centidegree `Orientation` column, and maps `Gf. X`/`Gf. Y`
+  to the native lateral/longitudinal G channels.
+
 ## [3.1.1] - 2026-07-26
 
 ### Added

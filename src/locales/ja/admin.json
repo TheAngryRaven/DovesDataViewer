@@ -13,7 +13,8 @@
     "banned": "禁止 IP",
     "users": "ユーザー",
     "leaderboards": "リーダーボード",
-    "updates": "アップデート"
+    "updates": "アップデート",
+    "support": "サポート"
   },
   "common": {
     "error": "エラー",
@@ -264,5 +265,29 @@
     "updated": "記事を更新しました",
     "deleted": "記事を削除しました",
     "slugTaken": "そのスラッグは既に使用されています"
+  },
+  "support": {
+    "loading": "レポートを読み込み中…",
+    "loadError": "レポートの読み込みエラー",
+    "none": "解析エラーレポートはありません",
+    "filterAll": "すべて",
+    "filterUnread": "未読",
+    "filterRead": "既読",
+    "refresh": "更新",
+    "download": "ファイルをダウンロード",
+    "downloadError": "ダウンロードに失敗しました",
+    "deleteFileError": "保存ファイルの削除に失敗しました",
+    "errorLabel": "パーサーエラー",
+    "fileLine": "{{name}}（{{size}}）",
+    "versionLine": "アプリ: {{version}}",
+    "emailLine": "メール: {{email}}",
+    "userLine": "ユーザー: {{id}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "不明"
+  },
+  "nav": {
+    "menu": "メニュー",
+    "collapse": "メニューを折りたたむ",
+    "expand": "メニューを展開"
   }
 }
