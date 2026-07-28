@@ -242,5 +242,28 @@
     "viewAll": "アップデート一覧",
     "webUpdate": "ウェブ更新",
     "news": "ニュース"
+  },
+  "parseReport": {
+    "sendButton": "このファイルをサポートチームに送信して診断を依頼",
+    "title": "ファイルをサポートに送信",
+    "description": "データログとメッセージは開発者に直接届き、ファイル形式への対応の追加や修正に役立てられます。",
+    "fileLine": "添付：{{name}}（{{size}}）",
+    "messageLabel": "メッセージ *",
+    "messagePlaceholder": "例：Alfano 6、ADAアプリからクラシックExcelファイルとしてエクスポート…",
+    "messageHint": "使用したデータロガー（メーカー＋モデル）と、ファイルをエクスポートしたアプリ／設定を記載してください。",
+    "emailLabel": "メールアドレス",
+    "emailOptional": "（任意、返信用）",
+    "emailPlaceholder": "your@email.com",
+    "missingMessage": "メッセージが必要です",
+    "missingMessageDesc": "このファイルを生成したデータロガーとアプリを記載してください。",
+    "tooLarge": "ファイルが大きすぎます",
+    "tooLargeDesc": "添付ファイルは {{max}} MB までです。",
+    "sending": "送信中…",
+    "send": "サポートに送信",
+    "sent": "レポートを送信しました",
+    "sentDesc": "ありがとうございます！ファイルを確認します。",
+    "error": "送信に失敗しました",
+    "errorGeneric": "エラーが発生しました。後でもう一度お試しください。",
+    "errorNetwork": "ネットワークエラーです。接続を確認してください。"
   }
 }

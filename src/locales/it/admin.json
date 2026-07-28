@@ -13,7 +13,8 @@
     "banned": "IP bloccati",
     "users": "Utenti",
     "leaderboards": "Classifiche",
-    "updates": "Novità"
+    "updates": "Novità",
+    "support": "Supporto"
   },
   "common": {
     "error": "Errore",
@@ -264,5 +265,24 @@
     "updated": "Articolo aggiornato",
     "deleted": "Articolo eliminato",
     "slugTaken": "Questo slug è già in uso"
+  },
+  "support": {
+    "loading": "Caricamento segnalazioni…",
+    "loadError": "Errore nel caricamento delle segnalazioni",
+    "none": "Nessuna segnalazione di errori di parsing",
+    "filterAll": "Tutte",
+    "filterUnread": "Non lette",
+    "filterRead": "Lette",
+    "refresh": "Aggiorna",
+    "download": "Scarica file",
+    "downloadError": "Download non riuscito",
+    "deleteFileError": "Impossibile eliminare il file archiviato",
+    "errorLabel": "Errore del parser",
+    "fileLine": "{{name}} ({{size}})",
+    "versionLine": "App: {{version}}",
+    "emailLine": "Email: {{email}}",
+    "userLine": "Utente: {{id}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "sconosciuto"
   }
 }

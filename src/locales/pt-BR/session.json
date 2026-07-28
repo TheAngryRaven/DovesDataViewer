@@ -22,7 +22,8 @@
     "overlay": "Sobreposição",
     "setupNotConfigured": "Configuração da sessão não definida",
     "setupNoneRed": "Nenhum veículo ou acerto salvo ainda — clique para adicionar um",
-    "setupNoneOrange": "Nenhum acerto salvo para esta sessão — clique para configurar"
+    "setupNoneOrange": "Nenhum acerto salvo para esta sessão — clique para configurar",
+    "help": "Ajuda"
   },
   "lapTable": {
     "noLaps": "Nenhuma volta detectada.",

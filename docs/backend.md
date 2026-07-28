@@ -211,6 +211,23 @@ necessary).
 
 ---
 
+## Parse-error support reports (`..._parse_error_reports.sql`, plan 0013)
+
+When a datalog fails to parse, `FileImport` offers "send this file to the
+support team" — anonymous or signed-in. Handled by the admin **Support** tab.
+
+| Object | Type | Notes |
+|--------|------|-------|
+| `parse_error_reports` | table | `message`, `email?`, `error_text?` (the parser exception), `app_version?`, `file_name`/`file_size` (original), `storage_path`, `compression?` (`'gzip'` when the client compressed), `user_id?` (FK→auth.users, set-null), `is_read`, `submitted_by_ip`. RLS: admins select/update/delete; **no insert policy** — service role only. |
+| `support-files` | private bucket | Attachments at `uuid/<sanitized name>[.gz]`. Storage policies: admins select (download) + delete. Writes only via the edge function. Not counted against any user quota. |
+| `submit-parse-report` | edge fn (`verify_jwt=false`) | Multipart. Mirrors `submit-message` abuse controls: banned-IP check + **3/hour/IP** rate limit. 20 MB upload cap (client gzips first — `src/lib/parseReport.ts`). Optional `Authorization` bearer attributes `user_id`. Uploads then inserts; removes the object if the insert fails. |
+
+Client pieces: `src/lib/parseReport.ts` (plain `fetch`, keeps Supabase off the
+eager graph), lazy `ParseErrorReportDialog`, admin `SupportTab` (downloads via
+admin storage RLS, gunzips client-side, deletes object-then-row).
+
+---
+
 ## Subscriptions / Stripe (`..._stripe_subscriptions.sql`, `..._subscription_grace_trim.sql` + 4 edge functions)
 
 Paid tiers scale **one pooled cloud-storage budget** that documents + logs +

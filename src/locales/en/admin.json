@@ -12,7 +12,8 @@
     "banned": "Banned IPs",
     "users": "Users",
     "leaderboards": "Leaderboards",
-    "updates": "Updates"
+    "updates": "Updates",
+    "support": "Support"
   },
   "common": {
     "error": "Error",
@@ -263,5 +264,24 @@
     "updated": "Post updated",
     "deleted": "Post deleted",
     "slugTaken": "That slug is already in use"
+  },
+  "support": {
+    "loading": "Loading reports…",
+    "loadError": "Error loading reports",
+    "none": "No parse-error reports",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "filterRead": "Read",
+    "refresh": "Refresh",
+    "download": "Download file",
+    "downloadError": "Download failed",
+    "deleteFileError": "Failed to delete stored file",
+    "errorLabel": "Parser error",
+    "fileLine": "{{name}} ({{size}})",
+    "versionLine": "App: {{version}}",
+    "emailLine": "Email: {{email}}",
+    "userLine": "User: {{id}}",
+    "ipLine": "IP: {{ip}}",
+    "unknownIp": "unknown"
   }
 }

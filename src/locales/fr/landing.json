@@ -242,5 +242,28 @@
     "viewAll": "Toutes les actualités",
     "webUpdate": "Mise à jour web",
     "news": "Actus"
+  },
+  "parseReport": {
+    "sendButton": "Envoyer ce fichier à l'équipe d'assistance pour diagnostic",
+    "title": "Envoyer le fichier à l'assistance",
+    "description": "Votre datalog et votre message sont transmis directement aux développeurs afin d'ajouter ou de corriger la prise en charge du format de votre fichier.",
+    "fileLine": "Pièce jointe : {{name}} ({{size}})",
+    "messageLabel": "Message *",
+    "messagePlaceholder": "p. ex. Alfano 6, exporté depuis l'app ADA en fichier Excel classique…",
+    "messageHint": "Merci d'indiquer le datalogger utilisé (marque + modèle) et l'application/les réglages d'export du fichier.",
+    "emailLabel": "E-mail",
+    "emailOptional": "(facultatif, pour une réponse)",
+    "emailPlaceholder": "votre@email.com",
+    "missingMessage": "Message requis",
+    "missingMessageDesc": "Veuillez décrire le datalogger et l'application qui ont produit ce fichier.",
+    "tooLarge": "Fichier trop volumineux",
+    "tooLargeDesc": "Les pièces jointes sont limitées à {{max}} Mo.",
+    "sending": "Envoi…",
+    "send": "Envoyer à l'assistance",
+    "sent": "Rapport envoyé",
+    "sentDesc": "Merci ! Nous examinerons votre fichier.",
+    "error": "Échec de l'envoi",
+    "errorGeneric": "Une erreur est survenue. Veuillez réessayer plus tard.",
+    "errorNetwork": "Erreur réseau. Vérifiez votre connexion."
   }
 }

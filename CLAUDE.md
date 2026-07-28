@@ -90,7 +90,7 @@ src/
 ├── components/
 │   ├── ui/                # shadcn/ui primitives
 │   ├── SiteHeader.tsx     # ★ Shared sticky top banner (sponsor + settings + profile); LandingPage shows all, Leaderboards hides supported-files/about
-│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages, Leaderboards)
+│   ├── admin/             # Admin tabs (Tracks, Courses, Submissions, Users, BannedIps, Tools, Messages, Support, Leaderboards, Updates)
 │   ├── tabs/              # View tabs (GraphView, RaceLine, LapTimes, Coach, Tools; SetupsNotesPanel = Setups+Notes 50/50 split on md+, separate tabs on phones — bodies live in drawer/)
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox, PanelCard (resizable card chrome for relocated Video/Mini-Map panels). The left column collapses via a divider flag tab (any screen size), and Video/Mini-Map can be relocated into the resizable graph stack from the top of the "Add Graph" picker (GraphPanel reports which are active so the host drops its duplicate VideoPlayer — single shared video ref). Split graphs (tablet+): SecondaryGraphStack mirrors the main panel's graph set for a chosen overlay lap in a draggable two-up view, overriding PlaybackContext for its subtree (nested PlaybackProvider) so one cursor lands on the same track position in both laps (distance-mapped via lib/referenceUtils mapIndexByDistance); SecondaryVideo is a literal second, lap-synced <video> for in-session overlay laps.
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Device*); SetupsTab + NotesTab also here but mounted as main-view tabs

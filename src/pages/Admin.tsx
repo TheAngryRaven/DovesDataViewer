@@ -12,6 +12,7 @@ import { CoursesTab } from '@/components/admin/CoursesTab';
 import { ToolsTab } from '@/components/admin/ToolsTab';
 import { BannedIpsTab } from '@/components/admin/BannedIpsTab';
 import { MessagesTab } from '@/components/admin/MessagesTab';
+import { SupportTab } from '@/components/admin/SupportTab';
 import { UsersTab } from '@/components/admin/UsersTab';
 import { LeaderboardsTab } from '@/components/admin/LeaderboardsTab';
 import { UpdatesTab } from '@/components/admin/UpdatesTab';
@@ -21,6 +22,7 @@ export default function Admin() {
   const { user, isAdmin, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -60,12 +62,20 @@ export default function Admin() {
 
       <main className="flex-1 p-6 max-w-6xl mx-auto w-full">
         <Tabs defaultValue="messages" className="w-full">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="messages" className="relative">
               {t('tabs.messages')}
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="support" className="relative">
+              {t('tabs.support')}
+              {unreadSupportCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadSupportCount > 99 ? "99+" : unreadSupportCount}
                 </span>
               )}
             </TabsTrigger>
@@ -79,6 +89,7 @@ export default function Admin() {
             <TabsTrigger value="banned">{t('tabs.banned')}</TabsTrigger>
           </TabsList>
           <TabsContent value="messages"><MessagesTab onUnreadCount={setUnreadCount} /></TabsContent>
+          <TabsContent value="support"><SupportTab onUnreadCount={setUnreadSupportCount} /></TabsContent>
           <TabsContent value="submissions"><SubmissionsTab /></TabsContent>
           <TabsContent value="users"><UsersTab /></TabsContent>
           <TabsContent value="tracks"><TracksTab /></TabsContent>

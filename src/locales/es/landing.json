@@ -242,5 +242,28 @@
     "viewAll": "Todas las novedades",
     "webUpdate": "Actualización web",
     "news": "Noticias"
+  },
+  "parseReport": {
+    "sendButton": "Enviar este archivo al equipo de soporte para su diagnóstico",
+    "title": "Enviar archivo a soporte",
+    "description": "Tu datalog y tu mensaje llegan directamente a los desarrolladores para que podamos añadir o corregir la compatibilidad con el formato de tu archivo.",
+    "fileLine": "Adjunto: {{name}} ({{size}})",
+    "messageLabel": "Mensaje *",
+    "messagePlaceholder": "p. ej. Alfano 6, exportado desde la app ADA como archivo Excel clásico…",
+    "messageHint": "Incluye el registrador de datos que usaste (marca + modelo) y con qué app/ajustes se exportó el archivo.",
+    "emailLabel": "Correo electrónico",
+    "emailOptional": "(opcional, para una respuesta)",
+    "emailPlaceholder": "tu@correo.com",
+    "missingMessage": "Mensaje obligatorio",
+    "missingMessageDesc": "Describe el registrador de datos y la app que produjeron este archivo.",
+    "tooLarge": "Archivo demasiado grande",
+    "tooLargeDesc": "Los adjuntos están limitados a {{max}} MB.",
+    "sending": "Enviando…",
+    "send": "Enviar a soporte",
+    "sent": "Informe enviado",
+    "sentDesc": "¡Gracias! Echaremos un vistazo a tu archivo.",
+    "error": "Error al enviar",
+    "errorGeneric": "Ocurrió un error. Inténtalo de nuevo más tarde.",
+    "errorNetwork": "Error de red. Comprueba tu conexión."
   }
 }

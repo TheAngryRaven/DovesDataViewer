@@ -22,7 +22,8 @@
     "overlay": "Overlay",
     "setupNotConfigured": "Session-Setup nicht konfiguriert",
     "setupNoneRed": "Noch kein Fahrzeug oder Setup gespeichert — zum Hinzufügen klicken",
-    "setupNoneOrange": "Kein Setup für diese Session gespeichert — zum Konfigurieren klicken"
+    "setupNoneOrange": "Kein Setup für diese Session gespeichert — zum Konfigurieren klicken",
+    "help": "Hilfe"
   },
   "lapTable": {
     "noLaps": "Keine Runden erkannt.",

@@ -21,7 +21,8 @@
     "overlay": "Overlay",
     "setupNotConfigured": "Session setup not configured",
     "setupNoneRed": "No vehicle or setup saved yet — click to add one",
-    "setupNoneOrange": "No setup saved for this session — click to configure"
+    "setupNoneOrange": "No setup saved for this session — click to configure",
+    "help": "Help"
   },
   "lapTable": {
     "noLaps": "No laps detected.",
