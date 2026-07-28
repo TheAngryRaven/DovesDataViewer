@@ -187,7 +187,9 @@
     "errorGeneric": "Qualcosa è andato storto.",
     "errorNetwork": "Impossibile inviare il messaggio. Riprova.",
     "sent": "Messaggio inviato!",
-    "sentDesc": "Grazie per il tuo feedback."
+    "sentDesc": "Grazie per il tuo feedback.",
+    "attachSession": "Allega il datalog della sessione corrente:",
+    "attachMissing": "Impossibile leggere il file della sessione dall'archiviazione locale."
   },
   "browserCompat": {
     "trigger": "Compatibilità del browser",

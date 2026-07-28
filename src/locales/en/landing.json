@@ -142,7 +142,9 @@
     "errorGeneric": "Something went wrong.",
     "errorNetwork": "Could not send message. Please try again.",
     "sent": "Message sent!",
-    "sentDesc": "Thanks for your feedback."
+    "sentDesc": "Thanks for your feedback.",
+    "attachSession": "Attach the current session's datalog:",
+    "attachMissing": "Could not read the session file from local storage."
   },
   "browserCompat": {
     "trigger": "Browser Compatibility",

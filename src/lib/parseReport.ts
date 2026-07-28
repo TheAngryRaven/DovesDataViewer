@@ -41,6 +41,46 @@ export async function gzipBlob(blob: Blob): Promise<Blob | null> {
   }
 }
 
+export interface PreparedAttachment {
+  /** The bytes to upload — gzipped when it actually helps. */
+  payload: Blob;
+  /** Multipart filename for the payload (`.gz` suffixed when compressed). */
+  uploadName: string;
+  /** Sanitized original filename (what the admin download restores). */
+  fileName: string;
+  /** Original (uncompressed) size in bytes. */
+  fileSize: number;
+  compression: "gzip" | "";
+}
+
+/**
+ * Prepare a datalog for upload: sanitize the name, gzip when it helps, and
+ * enforce the upload ceiling. Shared by parse-error reports and contact
+ * messages with a session-file attachment.
+ */
+export async function prepareAttachment(file: File | Blob, name: string): Promise<PreparedAttachment | "too-large"> {
+  const gz = await gzipBlob(file);
+  const useGzip = gz !== null && gz.size < file.size;
+  const payload = useGzip ? gz : file;
+  if (payload.size > MAX_UPLOAD_BYTES) return "too-large";
+  const fileName = sanitizeReportFileName(name);
+  return {
+    payload,
+    uploadName: useGzip ? `${fileName}.gz` : fileName,
+    fileName,
+    fileSize: file.size,
+    compression: useGzip ? "gzip" : "",
+  };
+}
+
+/** Append a prepared attachment's fields to a multipart body. */
+export function appendAttachment(form: FormData, attachment: PreparedAttachment): void {
+  form.set("fileName", attachment.fileName);
+  form.set("fileSize", String(attachment.fileSize));
+  form.set("compression", attachment.compression);
+  form.set("file", attachment.payload, attachment.uploadName);
+}
+
 export interface ParseReportInput {
   file: File;
   message: string;
@@ -57,26 +97,19 @@ export type ParseReportResult =
   | { ok: false; reason: "too-large" | "network" | "server"; serverError?: string };
 
 /**
- * Choose the payload to upload (gzipped when it actually helps) and build the
- * multipart body. Exported for tests; `submitParseReport` is the entry point.
+ * Build the multipart body for a parse-error report. Exported for tests;
+ * `submitParseReport` is the entry point.
  */
 export async function buildParseReportForm(input: ParseReportInput): Promise<FormData | "too-large"> {
-  const { file } = input;
-  const gz = await gzipBlob(file);
-  const useGzip = gz !== null && gz.size < file.size;
-  const payload = useGzip ? gz : file;
-  if (payload.size > MAX_UPLOAD_BYTES) return "too-large";
+  const attachment = await prepareAttachment(input.file, input.file.name);
+  if (attachment === "too-large") return "too-large";
 
-  const safeName = sanitizeReportFileName(file.name);
   const form = new FormData();
   form.set("message", input.message.trim());
   if (input.email?.trim()) form.set("email", input.email.trim());
   if (input.errorText) form.set("errorText", input.errorText.slice(0, MAX_REPORT_MESSAGE_CHARS));
   if (input.appVersion) form.set("appVersion", input.appVersion.slice(0, 100));
-  form.set("fileName", safeName);
-  form.set("fileSize", String(file.size));
-  form.set("compression", useGzip ? "gzip" : "");
-  form.set("file", payload, useGzip ? `${safeName}.gz` : safeName);
+  appendAttachment(form, attachment);
   return form;
 }
 

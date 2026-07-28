@@ -187,7 +187,9 @@
     "errorGeneric": "Algo deu errado.",
     "errorNetwork": "Não foi possível enviar a mensagem. Tente novamente.",
     "sent": "Mensagem enviada!",
-    "sentDesc": "Obrigado pelo seu feedback."
+    "sentDesc": "Obrigado pelo seu feedback.",
+    "attachSession": "Anexar o datalog da sessão atual:",
+    "attachMissing": "Não foi possível ler o arquivo da sessão do armazenamento local."
   },
   "browserCompat": {
     "trigger": "Compatibilidade do navegador",

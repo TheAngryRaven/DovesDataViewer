@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils";
 import { usePanelsForSlot, PanelSlot } from "@/plugins/panels";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { ContactDialog } from "@/components/ContactDialog";
+import { getFile as getStoredFile } from "@/lib/fileStorage";
 import { useSettings } from "@/hooks/useSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePlayback } from "@/hooks/usePlayback";
@@ -943,7 +944,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showCoach={showCoach && !readOnly} showTools={showTools && !readOnly} readOnly={readOnly} setupIndicator={readOnly ? null : setupIndicator} onSetupIndicatorClick={() => setupIndicator && navigateToManage(setupIndicator.target)} overlayLines={overlayLines} splitActive={splitActive} onStartSplit={startSplit} onCombineSplit={combineSplit} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showCoach={showCoach && !readOnly} showTools={showTools && !readOnly} readOnly={readOnly} setupIndicator={readOnly ? null : setupIndicator} onSetupIndicatorClick={() => setupIndicator && navigateToManage(setupIndicator.target)} overlayLines={overlayLines} splitActive={splitActive} onStartSplit={startSplit} onCombineSplit={combineSplit} currentFileName={readOnly ? undefined : currentFileName} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -1021,7 +1022,7 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showCoach, showTools, readOnly, setupIndicator, onSetupIndicatorClick, overlayLines, splitActive, onStartSplit, onCombineSplit }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showCoach, showTools, readOnly, setupIndicator, onSetupIndicatorClick, overlayLines, splitActive, onStartSplit, onCombineSplit, currentFileName }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
@@ -1036,6 +1037,8 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   splitActive: boolean;
   onStartSplit: (overlayId: string) => void;
   onCombineSplit: () => void;
+  /** The loaded session's stored file name — lets the help dialog attach it. */
+  currentFileName?: string | null;
 }) {
   const { t } = useTranslation("session");
   const isMobile = useIsMobile();
@@ -1127,6 +1130,11 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
           the view-specific controls (overlay eye, split graphs) sit after it. */}
       <div className="ml-auto mr-3 flex items-center gap-1">
         <ContactDialog
+          sessionFile={
+            currentFileName
+              ? { name: currentFileName, getBlob: () => getStoredFile(currentFileName) }
+              : undefined
+          }
           trigger={
             <Button variant="ghost" size="sm" className="h-7 px-2 gap-1.5" aria-label={t("header.help")}>
               <LifeBuoy className="w-4 h-4" />

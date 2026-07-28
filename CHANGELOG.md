@@ -21,7 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upload. Handled in a new admin **Support** page with attachment download.
 - **Help button in the session view.** A new Help button in the session tab
   bar (left of the overlay toggle) opens the contact form, so you can reach
-  the team without going back to the home page.
+  the team without going back to the home page. With a session loaded, the
+  form offers a toggle to attach the current session's datalog to your
+  message (compressed on-device before upload).
 
 ### Changed
 - **Admin panel navigation.** The ever-crowding tab bar is now a collapsible

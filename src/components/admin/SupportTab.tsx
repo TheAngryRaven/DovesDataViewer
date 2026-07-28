@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Mail, MailOpen, Download, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatReportFileSize } from "@/lib/parseReport";
+import { downloadSupportAttachment, removeSupportAttachment } from "./supportAttachment";
 
 /**
  * Parse-error support reports (plan 0013): datalogs users sent for diagnosis
@@ -67,11 +68,9 @@ export function SupportTab({ onUnreadCount }: { onUnreadCount?: (count: number) 
 
   const deleteReport = async (report: ParseErrorReport) => {
     // Storage object first; a failed removal keeps the row so nothing orphans.
-    const { error: storageError } = await supabase.storage
-      .from("support-files")
-      .remove([report.storage_path]);
+    const storageError = await removeSupportAttachment(report.storage_path);
     if (storageError) {
-      toast({ title: t("support.deleteFileError"), description: storageError.message, variant: "destructive" });
+      toast({ title: t("support.deleteFileError"), description: storageError, variant: "destructive" });
       return;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase types lag schema; remove on next type regen
@@ -89,23 +88,7 @@ export function SupportTab({ onUnreadCount }: { onUnreadCount?: (count: number) 
   const downloadFile = async (report: ParseErrorReport) => {
     setDownloadingId(report.id);
     try {
-      const { data, error } = await supabase.storage
-        .from("support-files")
-        .download(report.storage_path);
-      if (error || !data) throw error ?? new Error("empty download");
-
-      // Client gzipped the upload — restore the original bytes + name.
-      let blob: Blob = data;
-      if (report.compression === "gzip" && typeof DecompressionStream !== "undefined") {
-        blob = await new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).blob();
-      }
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = report.file_name;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadSupportAttachment(report.storage_path, report.compression, report.file_name);
     } catch (e) {
       toast({
         title: t("support.downloadError"),

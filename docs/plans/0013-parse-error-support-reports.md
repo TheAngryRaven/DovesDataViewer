@@ -84,6 +84,19 @@ filename. Delete removes the storage object first, then the row.
 - Reports intentionally do **not** count against any user storage quota —
   they are support artifacts, admin-deletable, in their own private bucket.
 
+## Follow-up: contact messages attach the session datalog
+
+With a session loaded, the help button's ContactDialog offers a toggle to
+attach the current session's file (fetched from IndexedDB only on submit).
+`messages` grew nullable `file_name`/`file_size`/`storage_path`/`compression`
+columns; `submit-message` accepts multipart alongside the original JSON
+contract, storing into the same `support-files` bucket with the same caps.
+`lib/contactMessage.ts` owns the payload building (shared attachment prep in
+`lib/parseReport.ts`); `admin/supportAttachment.ts` centralizes admin
+download/remove for both MessagesTab and SupportTab. The same migration folds
+`parse_error_reports` + attached objects into `purge_expired_personal_data()`
+so support artifacts follow the standard 90 d IP / 1 y content retention.
+
 ## Status
 
 - [x] Migration + edge function + config.toml
@@ -91,3 +104,4 @@ filename. Delete removes the storage object first, then the row.
 - [x] Dialog + FileImport wiring + TabBar help button
 - [x] Admin SupportTab
 - [x] i18n (en + all shipped languages), docs, changelog
+- [x] Follow-up: session-file attachment on contact messages + retention wiring

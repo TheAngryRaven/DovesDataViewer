@@ -222,9 +222,20 @@ support team" — anonymous or signed-in. Handled by the admin **Support** tab.
 | `support-files` | private bucket | Attachments at `uuid/<sanitized name>[.gz]`. Storage policies: admins select (download) + delete. Writes only via the edge function. Not counted against any user quota. |
 | `submit-parse-report` | edge fn (`verify_jwt=false`) | Multipart. Mirrors `submit-message` abuse controls: banned-IP check + **3/hour/IP** rate limit. 20 MB upload cap (client gzips first — `src/lib/parseReport.ts`). Optional `Authorization` bearer attributes `user_id`. Uploads then inserts; removes the object if the insert fails. |
 
-Client pieces: `src/lib/parseReport.ts` (plain `fetch`, keeps Supabase off the
-eager graph), lazy `ParseErrorReportDialog`, admin `SupportTab` (downloads via
-admin storage RLS, gunzips client-side, deletes object-then-row).
+**Contact messages can attach the session datalog** (same plan): `messages`
+grew nullable `file_name`/`file_size`/`storage_path`/`compression` columns and
+`submit-message` accepts multipart (JSON stays the no-attachment contract),
+storing the file in the same `support-files` bucket with the same caps.
+Retention: `purge_expired_personal_data()` covers `parse_error_reports` like
+`messages` (IP nulled at 90 d, rows at 1 y) and deletes the attached
+`support-files` objects together with their rows.
+
+Client pieces: `src/lib/parseReport.ts` + `src/lib/contactMessage.ts` (plain
+`fetch`, keeps Supabase off the eager graph), lazy `ParseErrorReportDialog`,
+the ContactDialog attach toggle (session file fetched from IndexedDB on
+submit), admin `SupportTab`/`MessagesTab` sharing
+`admin/supportAttachment.ts` (download via admin storage RLS, client-side
+gunzip, object-then-row delete).
 
 ---
 

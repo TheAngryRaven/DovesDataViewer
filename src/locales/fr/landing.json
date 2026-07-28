@@ -187,7 +187,9 @@
     "errorGeneric": "Une erreur s'est produite.",
     "errorNetwork": "Impossible d'envoyer le message. Veuillez réessayer.",
     "sent": "Message envoyé !",
-    "sentDesc": "Merci pour votre retour."
+    "sentDesc": "Merci pour votre retour.",
+    "attachSession": "Joindre le datalog de la session en cours :",
+    "attachMissing": "Impossible de lire le fichier de session depuis le stockage local."
   },
   "browserCompat": {
     "trigger": "Compatibilité du navigateur",

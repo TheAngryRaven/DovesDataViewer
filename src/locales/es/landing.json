@@ -187,7 +187,9 @@
     "errorGeneric": "Algo salió mal.",
     "errorNetwork": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
     "sent": "¡Mensaje enviado!",
-    "sentDesc": "Gracias por tus comentarios."
+    "sentDesc": "Gracias por tus comentarios.",
+    "attachSession": "Adjuntar el datalog de la sesión actual:",
+    "attachMissing": "No se pudo leer el archivo de la sesión desde el almacenamiento local."
   },
   "browserCompat": {
     "trigger": "Compatibilidad del navegador",
