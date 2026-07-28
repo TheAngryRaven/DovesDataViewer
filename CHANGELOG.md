@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [3.2.0] - unreleased
+## [3.2.0] - 2026-07-28
 
 ### Added
 - **Send failed files to support.** When a datalog fails to parse, you can now
