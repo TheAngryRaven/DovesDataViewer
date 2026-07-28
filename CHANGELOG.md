@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bar (left of the overlay toggle) opens the contact form, so you can reach
   the team without going back to the home page.
 
+### Changed
+- **Admin panel navigation.** The ever-crowding tab bar is now a collapsible
+  side menu (all pages with icons and unread badges) — open by default on
+  desktop, tucked away on phones.
+
 ### Fixed
 - **Alfano 6 ADA "classic Excel" exports now import.** The ADA app's
   full-session Excel/CSV export (user-reported) failed with "Could not find

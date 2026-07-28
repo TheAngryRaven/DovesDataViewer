@@ -284,5 +284,10 @@
     "userLine": "Utilisateur : {{id}}",
     "ipLine": "IP : {{ip}}",
     "unknownIp": "inconnue"
+  },
+  "nav": {
+    "menu": "Menu",
+    "collapse": "Réduire le menu",
+    "expand": "Déployer le menu"
   }
 }

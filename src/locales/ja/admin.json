@@ -284,5 +284,10 @@
     "userLine": "ユーザー: {{id}}",
     "ipLine": "IP: {{ip}}",
     "unknownIp": "不明"
+  },
+  "nav": {
+    "menu": "メニュー",
+    "collapse": "メニューを折りたたむ",
+    "expand": "メニューを展開"
   }
 }
