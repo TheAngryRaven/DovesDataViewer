@@ -1,27 +1,38 @@
 /**
  * Post-parse GPS cleanup — runs once for every format, right after
  * `normalizeChannels()` in the datalog router. Walks the parsed samples and
- * rebuilds them into a clean dataset, dropping any row whose own quality
- * channels condemn it:
+ * rebuilds them into a clean dataset, skipping any row that is provably
+ * trash. A row is trash when:
  *
- *   - a negative satellite count, position accuracy, or DOP — these can never
- *     go negative, so the logger provably wrote garbage on that row, and
- *   - HDOP/pDOP above `MAX_DOP` (10) — a junk fix.
+ *   - a quality channel it carries is negative (satellite counts, position
+ *     accuracy, and DOP can never go negative — the logger wrote garbage on
+ *     that row), or
+ *   - its HDOP/pDOP is above `MAX_DOP` (10) — a junk fix, or
+ *   - its position implies moving faster than `MAX_SPEED_MPS` (150 m/s,
+ *     ~335 mph — the app-wide "anything above is a GPS glitch" bound) from
+ *     the last kept row. This catches corrupt fixes that carry NO quality
+ *     data at all: with heavy packet loss the logger can write a garbage
+ *     position without recording satellites/DOP for it, so the position
+ *     itself is the only proof.
  *
- * Signals are opt-in per sample: files without quality channels pass through
- * untouched. Because the drop happens before anything downstream runs, the bad
- * rows are voided from every feature (race line, laps, distance, speed stats,
- * charts, g-force, braking zones) at the single point they all draw from.
+ * Quality signals are opt-in per sample and never fabricated — a row is only
+ * judged on values the logger actually recorded for it. Because the drop
+ * happens before anything downstream runs, the bad rows are voided from every
+ * feature (race line, laps, distance, speed stats, charts, g-force, braking
+ * zones) at the single point they all draw from.
  *
  * Deliberately nothing else happens here — no smoothing, no interpolation, no
- * speed rules. Clean the dataset first; whether the survivors need further
- * processing is a separate, later step (plan 0014).
+ * repair. Bad rows are skipped, good rows pass through byte-identical.
+ * Whether the survivors need further processing is a separate, later step
+ * (plan 0014).
  */
 
 import { ParsedData, GpsSample, ParserStats } from '@/types/racing';
 import {
+  MAX_SPEED_MPS,
   calculateBounds,
   createRejectedCounter,
+  haversineDistance,
   isLowQualityFix,
   type GpsQualityReading,
 } from './parserUtils';
@@ -41,6 +52,12 @@ const POS_ACCURACY_KEYS = [
   'custom:gps_position_accuracy',
 ];
 
+// After this many consecutive position-jump rejections, re-anchor at the
+// current row: if the FIRST kept row was itself garbage, everything real
+// would look like a jump from it — the streak reset stops one bad anchor
+// from condemning the rest of the file.
+const JUMP_REANCHOR_AFTER = 50;
+
 function firstPresentKey(fieldKeys: Set<string>, candidates: string[]): string | undefined {
   return candidates.find((k) => fieldKeys.has(k));
 }
@@ -49,7 +66,8 @@ function firstPresentKey(fieldKeys: Set<string>, candidates: string[]): string |
  * Rebuild a freshly-parsed (and channel-normalized) session without its
  * bad rows. Returns `data` unchanged when nothing was dropped; otherwise a
  * copy with the clean samples, recomputed bounds/duration, and the drops
- * counted in `parserStats.rejected.lowQuality`.
+ * counted in `parserStats.rejected` (`lowQuality` for condemned quality
+ * values, `teleportation` for impossible position jumps).
  */
 export function filterGpsQuality(data: ParsedData): ParsedData {
   const { samples } = data;
@@ -59,24 +77,49 @@ export function filterGpsQuality(data: ParsedData): ParsedData {
   const satKey = firstPresentKey(fieldKeys, SATELLITE_KEYS);
   const dopKey = firstPresentKey(fieldKeys, DOP_KEYS);
   const accKey = firstPresentKey(fieldKeys, POS_ACCURACY_KEYS);
-  if (satKey === undefined && dopKey === undefined && accKey === undefined) return data;
+  const hasQualitySignals = satKey !== undefined || dopKey !== undefined || accKey !== undefined;
 
   const kept: GpsSample[] = [];
+  let lowQuality = 0;
+  let teleportation = 0;
+  let anchor: GpsSample | null = null;
+  let jumpStreak = 0;
+
   for (const s of samples) {
-    const reading: GpsQualityReading = {};
-    if (satKey !== undefined) reading.satellites = s.extraFields[satKey];
-    if (dopKey !== undefined) reading.dop = s.extraFields[dopKey];
-    if (accKey !== undefined) reading.posAccuracy = s.extraFields[accKey];
-    if (!isLowQualityFix(reading)) kept.push(s);
+    if (hasQualitySignals) {
+      const reading: GpsQualityReading = {};
+      if (satKey !== undefined) reading.satellites = s.extraFields[satKey];
+      if (dopKey !== undefined) reading.dop = s.extraFields[dopKey];
+      if (accKey !== undefined) reading.posAccuracy = s.extraFields[accKey];
+      if (isLowQualityFix(reading)) {
+        lowQuality++;
+        continue;
+      }
+    }
+    if (anchor) {
+      const dt = (s.t - anchor.t) / 1000;
+      if (dt > 0 && haversineDistance(anchor.lat, anchor.lon, s.lat, s.lon) / dt > MAX_SPEED_MPS) {
+        teleportation++;
+        jumpStreak++;
+        if (jumpStreak >= JUMP_REANCHOR_AFTER) {
+          anchor = s;
+          jumpStreak = 0;
+        }
+        continue;
+      }
+    }
+    anchor = s;
+    jumpStreak = 0;
+    kept.push(s);
   }
 
-  const dropped = samples.length - kept.length;
+  const dropped = lowQuality + teleportation;
   if (dropped === 0) return data;
   // A file where every single row is condemned is better shown raw than
   // refused — leave it to the user to judge.
   if (kept.length === 0) return data;
 
-  const parserStats = mergeStats(data.parserStats, samples.length, kept.length);
+  const parserStats = mergeStats(data.parserStats, samples.length, kept.length, lowQuality, teleportation);
 
   return {
     ...data,
@@ -93,16 +136,23 @@ function mergeStats(
   existing: ParserStats | undefined,
   inputRows: number,
   keptRows: number,
+  lowQuality: number,
+  teleportation: number,
 ): ParserStats {
   const dropped = inputRows - keptRows;
   if (existing) {
     return {
       ...existing,
       acceptedRows: existing.acceptedRows - dropped,
-      rejected: { ...existing.rejected, lowQuality: (existing.rejected.lowQuality ?? 0) + dropped },
+      rejected: {
+        ...existing.rejected,
+        lowQuality: (existing.rejected.lowQuality ?? 0) + lowQuality,
+        teleportation: existing.rejected.teleportation + teleportation,
+      },
     };
   }
   const rejected = createRejectedCounter();
-  rejected.lowQuality = dropped;
+  rejected.lowQuality = lowQuality;
+  rejected.teleportation = teleportation;
   return { totalRows: inputRows, acceptedRows: keptRows, rejected };
 }

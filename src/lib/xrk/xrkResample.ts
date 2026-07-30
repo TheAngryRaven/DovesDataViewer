@@ -29,11 +29,13 @@ export interface XrkWasmResult {
 // GPS position/speed channels, in preference order, used as the shared timebase.
 const TIMEBASE_PREFERENCE = ["GPS Latitude", "GPS Longitude", "GPS Speed"];
 
-// GPS fix-quality channels are discrete per-fix readings, not continuous
-// signals: linearly interpolating them between a good and a corrupt native
-// sample fabricates values no receiver ever reported (e.g. "-1597 satellites")
-// and can mask garbage behind plausible mid-ramp numbers, blinding the GPS
-// quality filter. Always forward-fill them, whatever the wasm flag says.
+// GPS fix-quality channels are per-fix readings, not continuous signals, and
+// they must NEVER be fabricated onto rows the logger didn't record them for:
+// interpolation invents values no receiver reported (e.g. "-1597 satellites"),
+// and forward-fill carries a healthy reading onto a garbage row, hiding it
+// from the GPS quality filter (a corrupt fix then shows "15 sats / pDOP 1.2"
+// in the tooltip). A row gets a quality value only when the channel has a
+// native sample at that row's timecode; everywhere else it stays NaN (absent).
 const QUALITY_CHANNELS = new Set([
   "gps nsat",
   "gps satellites",
@@ -98,6 +100,28 @@ function interpolateOnto(
 }
 
 /**
+ * Exact-timecode match onto `target`: a row takes the channel's value only
+ * when a native sample exists at (within EXACT_EPS of) that row's timecode;
+ * everywhere else NaN — the value is simply not recorded for that row.
+ */
+const EXACT_EPS = 5; // ms — well under any real sample spacing (25Hz = 40ms)
+
+function exactMatchOnto(
+  target: number[],
+  xp: number[],
+  fp: number[],
+  out: Float64Array,
+): void {
+  const n = xp.length;
+  let k = 0;
+  for (let i = 0; i < target.length; i++) {
+    const t = target[i];
+    while (k + 1 < n && xp[k + 1] <= t + EXACT_EPS) k++;
+    out[i] = Math.abs(xp[k] - t) <= EXACT_EPS ? fp[k] : NaN;
+  }
+}
+
+/**
  * Forward-fill onto `target`: each target takes the last channel value at or
  * before it; targets before the first sample take the first value (backfill).
  */
@@ -133,7 +157,8 @@ export function wasmResultToRaw(result: XrkWasmResult): XrkRawResult {
     .filter((c) => c.timecodes.length > 0 && c.values.length === c.timecodes.length)
     .map((c) => {
       const out = new Float64Array(target.length);
-      if (c.interpolate && !isQualityChannel(c.name)) interpolateOnto(target, c.timecodes, c.values, out);
+      if (isQualityChannel(c.name)) exactMatchOnto(target, c.timecodes, c.values, out);
+      else if (c.interpolate) interpolateOnto(target, c.timecodes, c.values, out);
       else forwardFillOnto(target, c.timecodes, c.values, out);
       return { name: c.name, unit: c.units, values: out };
     });

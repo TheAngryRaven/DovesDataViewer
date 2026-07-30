@@ -109,7 +109,7 @@ src/
 │   └── use*Manager        # IndexedDB CRUD: File, Vehicle (←Kart compat), Engine, Template, Note, Setup
 ├── lib/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
-│   ├── gpsQualityFilter.ts # ★ Post-parse cleanup (plan 0014): rebuilds samples dropping rows whose own quality channels are provably invalid (negative sats/accuracy/DOP, DOP>10) — all formats
+│   ├── gpsQualityFilter.ts # ★ Post-parse cleanup (plan 0014): rebuilds samples dropping provably-bad rows (negative sats/accuracy/DOP, DOP>10, or a position jump implying >MAX_SPEED_MPS) — all formats; quality values are never fabricated onto rows (see xrk/xrkResample)
 │   ├── *Parser.ts         # nmea, ubx, iracing (.ibt), vbo, dove, dovex, alfano, aim, motec
 │   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk (Rust→WASM) in a Web Worker (→ docs/subsystems.md)
 │   ├── channels.ts        # ★ Canonical channel registry + normalizeChannels()
@@ -176,8 +176,8 @@ File Import (drag-drop / BLE download / file manager)
     → datalogParser.ts (auto-detect format, route to specific parser)
       → normalizeChannels() (channels.ts): rewrites every fieldMapping name + extraFields key to a
         canonical ChannelId (or `custom:` slug). Runs once for all formats.
-      → filterGpsQuality() (gpsQualityFilter.ts): drops rows whose quality channels are provably
-        invalid (negative sats/accuracy/DOP, DOP>10). Runs once for all formats (plan 0014).
+      → filterGpsQuality() (gpsQualityFilter.ts): drops provably-bad rows (negative sats/accuracy/
+        DOP, DOP>10, impossible position jumps). Runs once for all formats (plan 0014).
       → returns ParsedData { samples, fieldMappings, bounds, duration, startDate, dovexMetadata?, parserStats? }
   → courseDetection.ts (auto-detect track, course, direction; waypoint fallback)
   → useLapManagement.ts (detect laps via lapCalculation.ts using the course's start/finish line)

@@ -99,6 +99,62 @@ describe("filterGpsQuality", () => {
     expect(out.bounds.maxLat).toBeCloseTo(40 + 7 * M, 10);
   });
 
+  it("skips rows whose position implies an impossible jump — even with healthy-looking or missing quality values", () => {
+    // The Solo2 failure mode: a garbage position row with NO quality data
+    // recorded for it (or values inherited from a healthy packet). Position
+    // is the only proof — ~11km from the previous row in 40ms.
+    const samples = makeRun(10, () => ({ satellites: 13 }));
+    samples[5] = makeSample(5 * 40, 40.1, -74, { satellites: 13 });
+    const out = filterGpsQuality(makeData(samples, [satMapping]));
+    expect(out.samples).toHaveLength(9);
+    expect(out.samples.some((s) => s.lat > 40.05)).toBe(false);
+    expect(out.parserStats?.rejected.teleportation).toBe(1);
+    expect(out.parserStats?.rejected.lowQuality).toBe(0);
+  });
+
+  it("runs the jump check even when the file has no quality channels at all", () => {
+    const samples = makeRun(10);
+    samples[5] = makeSample(5 * 40, 40.1, -74);
+    const out = filterGpsQuality(makeData(samples));
+    expect(out.samples).toHaveLength(9);
+    expect(out.parserStats?.rejected.teleportation).toBe(1);
+  });
+
+  it("does not judge the row after a skipped jump against the garbage point", () => {
+    const samples = makeRun(10);
+    samples[5] = makeSample(5 * 40, 40.1, -74); // spike out...
+    // ...and the next row is back on track (1m from row 4's position). If the
+    // spike had become the reference, this healthy row would be dropped too.
+    const out = filterGpsQuality(makeData(samples));
+    expect(out.samples).toHaveLength(9);
+    expect(out.samples[5].lat).toBeCloseTo(40 + 6 * M, 10);
+  });
+
+  it("keeps a legitimate long move after a recording gap (trailer to the next session)", () => {
+    const track1 = makeRun(5);
+    // ~20km away, 10 minutes later: 33 m/s implied — real-world transport.
+    const track2 = Array.from({ length: 5 }, (_, i) =>
+      makeSample(600_000 + i * 40, 40.18 + i * M, -74),
+    );
+    const out = filterGpsQuality(makeData([...track1, ...track2]));
+    expect(out.samples).toHaveLength(10);
+  });
+
+  it("re-anchors after a long rejection streak so a garbage first row can't condemn the file", () => {
+    // First row is 11km from where the real session happens.
+    const garbageFirst = makeSample(0, 40.1, -74);
+    const real = Array.from({ length: 60 }, (_, i) =>
+      makeSample((i + 1) * 40, 40 + i * M, -74),
+    );
+    const out = filterGpsQuality(makeData([garbageFirst, ...real]));
+    // The garbage first row itself is kept (there is nothing to judge it
+    // against yet), the next 50 real rows get rejected against it, then the
+    // streak reset re-anchors and the rest of the session survives.
+    expect(out.samples).toHaveLength(11);
+    expect(out.samples.filter((s) => s.lat < 40.05)).toHaveLength(10);
+    expect(out.parserStats?.rejected.teleportation).toBe(50);
+  });
+
   it("merges into parser-emitted stats without losing the parser's counts", () => {
     const samples = makeRun(6, (i) => ({ satellites: i === 0 ? -1 : 13 }));
     const data = makeData(samples, [satMapping]);

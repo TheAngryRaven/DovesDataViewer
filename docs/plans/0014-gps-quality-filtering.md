@@ -34,19 +34,27 @@ Root causes:
 every format at the single place all features draw from, and quality channel
 keys are already canonical there.
 
-**Drop rules** (`isLowQualityFix` in `parserUtils.ts`) — a row is dropped
-when any quality signal it carries is:
+**Drop rules** — a row is skipped during the rebuild when:
 
-- **negative** — satellite counts, position accuracy, and DOP can never go
-  negative, so the logger provably wrote garbage on that row; or
-- **DOP above `MAX_DOP` (10)** — a junk fix on the standard DOP scale.
+- any quality signal it carries is **negative** (`isLowQualityFix` in
+  `parserUtils.ts`) — satellite counts, position accuracy, and DOP can never
+  go negative, so the logger provably wrote garbage on that row; or
+- its **DOP is above `MAX_DOP` (10)** — a junk fix on the standard scale; or
+- its **position implies moving faster than `MAX_SPEED_MPS`** (150 m/s,
+  ~335 mph — the app-wide "anything above is a GPS glitch" bound) from the
+  last kept row. This exists because a corrupt fix can carry NO quality data
+  at all: under heavy packet loss the logger writes a garbage position
+  without recording satellites/DOP for that row, so the position itself is
+  the only proof. The reference only advances on kept rows, and after 50
+  consecutive jump rejections it re-anchors so one garbage row early in the
+  file can't condemn the rest.
 
-Signals are opt-in per row: absent/non-finite values are skipped, so files
-without quality channels pass through untouched. If *every* row would be
-condemned, the file is shown raw instead of refused. Dropped rows are counted
-in a new `ParserStats.rejected.lowQuality` category (merged into
-parser-emitted stats or created fresh) and surfaced by the existing
-`RaceLineView` badge as `bad-fix`.
+Quality signals are opt-in per row: absent/non-finite values are skipped, so
+files without quality channels still get the jump check but nothing else. If
+*every* row would be condemned, the file is shown raw instead of refused.
+Drops are counted in `ParserStats.rejected` (`lowQuality` for condemned
+quality values — the `bad-fix` badge reason — and `teleportation` for
+impossible jumps, which the badge already displayed for other parsers).
 
 **Channel key lists** (the per-signal "secondary lists" — extend when a format
 carries a signal under a new name):
@@ -60,10 +68,12 @@ carries a signal under a new name):
 
 ### Supporting changes
 
-- `xrk/xrkResample.ts`: quality channels are **always forward-filled**, never
-  interpolated, whatever the wasm `interpolate` flag says — each resampled row
-  keeps a real recorded reading, so the negative blips stay visible to the
-  cleanup instead of being smeared into plausible mid-ramp values.
+- `xrk/xrkResample.ts`: quality channels are **never fabricated** — a row
+  gets a quality value only when the channel has a native sample at that
+  row's timecode (±5 ms); everywhere else it stays NaN/absent. Interpolation
+  invented values no receiver reported ("-1597 satellites"), and forward-fill
+  (tried first) was worse: it carried a *healthy* reading onto a garbage row,
+  which made the corrupt fix look clean and hid it from the cleanup entirely.
 - `aimParser.ts`: exports `H Accuracy` (PosAccuracy converted to meters via
   the RS3 units row) and pDOP/HDOP (only a real hdop column may claim the
   canonical HDOP channel), alongside the existing `Satellites` — feeding the

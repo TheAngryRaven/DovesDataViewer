@@ -90,15 +90,16 @@ describe("wasmResultToRaw", () => {
   });
 });
 
-// ─── Quality channels never interpolate (plan 0014) ───────────────────────────
+// ─── Quality channels are never fabricated (plan 0014) ───────────────────────
 //
-// A discrete per-fix quality value linearly interpolated between a good and a
-// corrupt native sample fabricates readings no receiver ever reported (the
-// "-1597 satellites" tooltip from the Solo2 poor-signal report) and can mask
-// garbage from the GPS quality filter behind plausible mid-ramp values.
+// A per-fix quality reading must never appear on a row the logger didn't
+// record it for. Interpolation invents values no receiver reported (the
+// "-1597 satellites" tooltip from the Solo2 poor-signal report); fill carries
+// a healthy reading onto a garbage row, hiding it from the GPS quality
+// cleanup. Rows without a native sample at their timecode stay NaN (absent).
 
 describe("wasmResultToRaw — quality channels", () => {
-  it("forward-fills GPS quality channels even when the wasm flags them interpolate=true", () => {
+  it("assigns quality values only at matching native timecodes (NaN elsewhere)", () => {
     const raw = wasmResultToRaw(
       wasm([
         { name: "GPS Latitude", units: "deg", interpolate: true, timecodes: [0, 100, 200], values: [0, 0, 0] },
@@ -106,8 +107,9 @@ describe("wasmResultToRaw — quality channels", () => {
       ]),
     );
     const nsat = raw.channels.find((c) => c.name === "GPS Nsat")!;
-    // Forward-fill: no fabricated midpoint (-1494) — t=100 keeps the last real reading.
-    expect(Array.from(nsat.values)).toEqual([12, 12, -3000]);
+    // t=100 has no recorded reading — NOT a fabricated midpoint (-1494) and
+    // NOT the previous value carried forward.
+    expect(Array.from(nsat.values)).toEqual([12, NaN, -3000]);
   });
 
   it("matches quality channels tolerantly (case / underscores)", () => {
@@ -115,11 +117,22 @@ describe("wasmResultToRaw — quality channels", () => {
       wasm([
         { name: "GPS Latitude", units: "deg", interpolate: true, timecodes: [0, 100, 200], values: [0, 0, 0] },
         { name: "GPS_Position_Accuracy", units: "mm", interpolate: true, timecodes: [0, 200], values: [1000, 5000] },
-        { name: "GPS_pDOP", units: "", interpolate: true, timecodes: [0, 200], values: [1, 3] },
+        { name: "GPS_pDOP", units: "", interpolate: true, timecodes: [100, 200], values: [1, 3] },
       ]),
     );
-    expect(Array.from(raw.channels.find((c) => c.name === "GPS_Position_Accuracy")!.values)).toEqual([1000, 1000, 5000]);
-    expect(Array.from(raw.channels.find((c) => c.name === "GPS_pDOP")!.values)).toEqual([1, 1, 3]);
+    expect(Array.from(raw.channels.find((c) => c.name === "GPS_Position_Accuracy")!.values)).toEqual([1000, NaN, 5000]);
+    // A quality channel starting later never back-fills earlier rows.
+    expect(Array.from(raw.channels.find((c) => c.name === "GPS_pDOP")!.values)).toEqual([NaN, 1, 3]);
+  });
+
+  it("tolerates small timecode jitter when matching", () => {
+    const raw = wasmResultToRaw(
+      wasm([
+        { name: "GPS Latitude", units: "deg", interpolate: true, timecodes: [0, 100, 200], values: [0, 0, 0] },
+        { name: "GPS Nsat", units: "", interpolate: false, timecodes: [2, 101, 198], values: [10, 11, 12] },
+      ]),
+    );
+    expect(Array.from(raw.channels.find((c) => c.name === "GPS Nsat")!.values)).toEqual([10, 11, 12]);
   });
 
   it("still interpolates non-quality channels", () => {

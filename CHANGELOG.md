@@ -14,27 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.3.0] - unreleased
 
 ### Added
-- **Bad GPS rows are dropped on load, for every file format.** Loggers that
-  record their own fix quality (satellites, position accuracy, HDOP/pDOP —
-  e.g. the AiM Solo 2) get their datalog rebuilt into a clean dataset as it
-  loads: any row with a negative satellite count, negative accuracy, negative
-  DOP (values that can never go negative — that row is provably garbage), or
-  a DOP above 10 is dropped before anything downstream sees it, so a
+- **Bad GPS rows are dropped on load, for every file format.** The datalog is
+  rebuilt into a clean dataset as it loads: any row with a negative satellite
+  count, negative accuracy, or negative DOP (values that can never go
+  negative — that row is provably garbage), a DOP above 10, or a position
+  that implies moving faster than ~335 mph from the previous kept row (a GPS
+  glitch no ground vehicle can produce — catches corrupt fixes that carry no
+  quality data at all) is skipped before anything downstream sees it, so a
   poor-signal session no longer corrupts the race line, lap detection,
   distance, or speed stats (user-reported: a low-signal Solo 2 session showed
   a 735 mph top speed and a 134-mile race line). Dropped rows are counted on
-  the map's rejected-rows badge as `bad-fix`; files without quality channels
-  are untouched.
+  the map's rejected-rows badge (`bad-fix` / `teleport`).
 - **AiM quality channels on the charts.** AiM CSV imports now expose
   `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
   `.xrk` imports already carried.
 
 ### Changed
-- **AiM `.xrk` quality channels no longer interpolate.** Satellite counts,
-  position/speed accuracy, and DOP resample by carrying the last real reading
-  forward instead of blending between fixes — interpolation across a corrupt
-  sample fabricated impossible values (e.g. "-1597 satellites" in tooltips)
-  and hid the garbage rows from the new cleanup.
+- **AiM `.xrk` quality channels are never fabricated.** Satellite counts,
+  position/speed accuracy, and DOP now appear on a row only when the logger
+  actually recorded them at that row's timestamp — no interpolation (which
+  invented impossible values like "-1597 satellites" in tooltips) and no
+  filling (which dressed garbage rows up with a neighbor's healthy readings
+  and hid them from the cleanup).
 
 ## [3.2.0] - 2026-07-28
 
