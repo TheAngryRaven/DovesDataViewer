@@ -14,6 +14,7 @@ import {
   type LoggerFlowStage,
 } from "@/lib/loggers/errors";
 import type { LoggerConnection, LoggerFile, LoggerDownloadProgress } from "@/lib/loggers";
+import { csvFileName } from "@/lib/loggers/fileNaming";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ParsedData } from "@/types/racing";
 
@@ -146,6 +147,10 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
       setProgress({ received: 0, total: file.size, percent: 0, speed: "0 B/s", eta: "--" });
       setFailure(null);
 
+      // The device reports bare session ids; the payload is CSV — save/import
+      // under a `.csv` name so the importer routes it correctly.
+      const fileName = csvFileName(file.name);
+
       let saved = false;
       try {
         const bytes = await logger.downloadLog(file.name, setProgress);
@@ -154,16 +159,16 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
         // Save the raw file first so it's never lost.
         if (autoSave && autoSaveFile) {
           try {
-            await autoSaveFile(file.name, blob);
+            await autoSaveFile(fileName, blob);
             saved = true;
           } catch (e) {
             console.warn("Auto-save failed:", e);
           }
         }
 
-        const data = await parseDatalogFile(new File([blob], file.name));
+        const data = await parseDatalogFile(new File([blob], fileName));
         handleClose();
-        onDataLoaded(data, file.name);
+        onDataLoaded(data, fileName);
       } catch (err) {
         console.error("Alfano download/parse error:", err);
         setFailure({ error: classifyLoggerError(err), stage: "download", fileSaved: saved });
@@ -199,7 +204,7 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md safe-area-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bluetooth className="w-5 h-5" />

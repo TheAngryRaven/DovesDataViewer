@@ -34,7 +34,9 @@ describe("createAlfanoConnection", () => {
       { name: "session_01", size: 4096, date: "2026-06-28", meta: { laps: "8" } },
     ]);
     const conn = createAlfanoConnection(info());
-    await expect(conn.listLogs()).resolves.toEqual([{ name: "session_01", size: 4096 }]);
+    await expect(conn.listLogs()).resolves.toEqual([
+      { name: "session_01", size: 4096, date: "2026-06-28", meta: { laps: "8" } },
+    ]);
   });
 
   it("wraps raw {received,total} progress into a full LoggerDownloadProgress", async () => {

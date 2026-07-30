@@ -207,7 +207,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md safe-area-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bluetooth className="w-5 h-5" />
