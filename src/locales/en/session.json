@@ -142,7 +142,10 @@
     "reasonZeroCoord": "zero-coord",
     "reasonOor": "OOR",
     "reasonSpeedCap": "speed-cap",
-    "reasonShortRow": "short-row"
+    "reasonShortRow": "short-row",
+    "reasonLowQuality": "bad-fix",
+    "speedsRepaired_one": "speed repaired",
+    "speedsRepaired_other": "speeds repaired"
   },
   "stats": {
     "lapTime": "Lap Time",

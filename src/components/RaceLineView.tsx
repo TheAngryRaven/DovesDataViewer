@@ -828,7 +828,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
       )}
 
       {/* Dropped packet / rejected row indicator */}
-      {((droppedPacketInfo?.droppedCount ?? 0) > 0 || (parserStats && parserStats.acceptedRows < parserStats.totalRows)) && (
+      {((droppedPacketInfo?.droppedCount ?? 0) > 0 || (parserStats && (parserStats.acceptedRows < parserStats.totalRows || (parserStats.repairedSpeeds ?? 0) > 0))) && (
         <div className="absolute bottom-2 left-12 z-[1000] bg-card/80 backdrop-blur-sm border border-border rounded px-2 py-1 text-xs font-mono text-muted-foreground">
           {droppedPacketInfo && droppedPacketInfo.droppedCount > 0 && (
             <div>
@@ -844,6 +844,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
             const r = parserStats.rejected;
             const totalRejected = parserStats.totalRows - parserStats.acceptedRows;
             const reasons: string[] = [];
+            if ((r.lowQuality ?? 0) > 0) reasons.push(`${r.lowQuality} ${t('map.reasonLowQuality')}`);
             if (r.teleportation > 0) reasons.push(`${r.teleportation} ${t('map.reasonTeleport')}`);
             if (r.nanFields > 0) reasons.push(`${r.nanFields} ${t('map.reasonNan')}`);
             if (r.zeroCoords > 0) reasons.push(`${r.zeroCoords} ${t('map.reasonZeroCoord')}`);
@@ -858,6 +859,12 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
               </div>
             );
           })()}
+          {parserStats && (parserStats.repairedSpeeds ?? 0) > 0 && (
+            <div>
+              <span className="text-yellow-500 font-semibold">{parserStats.repairedSpeeds}</span>
+              {' '}{t('map.speedsRepaired', { count: parserStats.repairedSpeeds })}
+            </div>
+          )}
         </div>
       )}
     </div>

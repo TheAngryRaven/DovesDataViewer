@@ -143,7 +143,10 @@
     "reasonZeroCoord": "zero-coord",
     "reasonOor": "OOR",
     "reasonSpeedCap": "speed-cap",
-    "reasonShortRow": "short-row"
+    "reasonShortRow": "short-row",
+    "reasonLowQuality": "bad-fix",
+    "speedsRepaired_one": "Geschwindigkeit repariert",
+    "speedsRepaired_other": "Geschwindigkeiten repariert"
   },
   "stats": {
     "lapTime": "Rundenzeit",

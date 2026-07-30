@@ -112,6 +112,124 @@ export function isTeleportation(
   return false;
 }
 
+/**
+ * Stateful teleportation gate for sequential sample filtering. Wraps
+ * `isTeleportation` plus a stricter implied-speed rule, and manages the
+ * previous-sample anchor so callers can't get it wrong: the anchor only
+ * advances on accepted samples (a rejected glitch never becomes the reference),
+ * and after `resetAfter` consecutive rejections it re-anchors at the current
+ * point so one garbage fix early in a file can't poison everything after it.
+ */
+export interface TeleportGate {
+  /** True = teleportation glitch, reject the sample. */
+  check(lat: number, lon: number, tMs: number): boolean;
+}
+
+export interface TeleportGateOptions {
+  /** Format name for the console warning emitted by `isTeleportation`. */
+  formatName?: string;
+  /** Implied ground speed (m) between accepted samples above which the new
+   *  sample is a glitch. Default 100 m/s (~224 mph) — tuned for karts; raise
+   *  for formats whose vehicles legitimately exceed it. */
+  maxImpliedSpeedMps?: number;
+  /** Consecutive rejections before the gate re-anchors at the current point. */
+  resetAfter?: number;
+}
+
+export function createTeleportGate(opts: TeleportGateOptions = {}): TeleportGate {
+  const maxImplied = opts.maxImpliedSpeedMps ?? 100;
+  const resetAfter = opts.resetAfter ?? 25;
+  let anchor: { lat: number; lon: number; t: number } | null = null;
+  let rejectStreak = 0;
+
+  return {
+    check(lat: number, lon: number, tMs: number): boolean {
+      if (!anchor) {
+        anchor = { lat, lon, t: tMs };
+        return false;
+      }
+      let teleport = isTeleportation(anchor.lat, anchor.lon, anchor.t, lat, lon, tMs, opts.formatName);
+      if (!teleport) {
+        const dt = (tMs - anchor.t) / 1000;
+        if (dt > 0 && dt < 10 && haversineDistance(anchor.lat, anchor.lon, lat, lon) / dt > maxImplied) {
+          teleport = true;
+        }
+      }
+      if (!teleport) {
+        anchor = { lat, lon, t: tMs };
+        rejectStreak = 0;
+        return false;
+      }
+      rejectStreak++;
+      if (rejectStreak >= resetAfter) {
+        anchor = { lat, lon, t: tMs };
+        rejectStreak = 0;
+      }
+      return true;
+    },
+  };
+}
+
+// ─── GPS fix quality ────────────────────────────────────────────────────────
+
+export interface GpsQualityThresholds {
+  /** Fewer satellites than this can't produce a trustworthy 3D fix. */
+  minSatellites: number;
+  /** More than this is physically impossible — a corrupt/garbage value. */
+  maxSatellites: number;
+  /** Reported horizontal position error (meters) above which the fix is unusable. */
+  maxPosAccuracyM: number;
+  /** Dilution of precision (HDOP/pDOP family) above which the fix is unusable. */
+  maxDop: number;
+}
+
+export const DEFAULT_GPS_QUALITY_THRESHOLDS: GpsQualityThresholds = {
+  minSatellites: 4,
+  maxSatellites: 99,
+  maxPosAccuracyM: 20,
+  maxDop: 10,
+};
+
+/** The quality signals a sample may carry. All optional — loggers vary. */
+export interface GpsQualityReading {
+  satellites?: number;
+  /** Horizontal position accuracy in meters. */
+  posAccuracyM?: number;
+  /** HDOP or pDOP — the thresholds work for either. */
+  dop?: number;
+}
+
+/** Multiplier to meters for the units position-accuracy channels ship in
+ *  (AiM writes `GPS PosAccuracy` in mm; canonical `h_acc` is meters). */
+export function accuracyUnitToMeters(unit: string | undefined): number {
+  const u = (unit ?? '').trim().toLowerCase();
+  if (u === 'mm') return 0.001;
+  if (u === 'cm') return 0.01;
+  if (u === 'km') return 1000;
+  if (u === 'ft') return 0.3048;
+  return 1; // meters (canonical) or unknown
+}
+
+/**
+ * True when any *provided* quality signal marks the fix unusable — either a
+ * physically impossible value (negative satellites/accuracy, DOP ≤ 0: the
+ * logger provably wrote garbage) or a weak fix past the thresholds. Signals
+ * that are absent or non-finite are skipped, so a reading with no signals
+ * never rejects (files without quality channels are untouched).
+ */
+export function isLowQualityFix(
+  q: GpsQualityReading,
+  th: GpsQualityThresholds = DEFAULT_GPS_QUALITY_THRESHOLDS,
+): boolean {
+  if (q.satellites !== undefined && Number.isFinite(q.satellites) &&
+    (q.satellites < th.minSatellites || q.satellites > th.maxSatellites)) return true;
+  if (q.posAccuracyM !== undefined && Number.isFinite(q.posAccuracyM) &&
+    (q.posAccuracyM < 0 || q.posAccuracyM > th.maxPosAccuracyM)) return true;
+  if (q.dop !== undefined && Number.isFinite(q.dop) &&
+    (q.dop <= 0 || q.dop > th.maxDop)) return true;
+  return false;
+}
+
 // ─── GPS coordinate validation ──────────────────────────────────────────────
 
 /** Why a coordinate pair was rejected, or null if it's valid. */
@@ -221,6 +339,7 @@ export interface RejectedCounts {
   speedCap: number;
   teleportation: number;
   incompleteRow: number;
+  lowQuality: number;
 }
 
 /** Create a zeroed rejection-reason counter. */
@@ -232,6 +351,7 @@ export function createRejectedCounter(): RejectedCounts {
     speedCap: 0,
     teleportation: 0,
     incompleteRow: 0,
+    lowQuality: 0,
   };
 }
 

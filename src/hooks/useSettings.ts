@@ -26,6 +26,7 @@ export interface AppSettings {
   deltaMethod: 'position' | 'distance'; // Lap delta algorithm (default: 'position')
   deltaSampleMeters: number;        // Arc-length resample spacing for position delta (default: 2)
   chartXAxis: 'time' | 'distance';  // Analysis chart X-axis scale (default: 'distance')
+  hardcoreGpsFiltering: boolean;    // Opt-in speed-based GPS filtering (teleport rejection + speed repair) on file load (default: false)
   language: SupportedLanguage;      // Display language (default: browser-detected, else 'en')
   mychronSsidPrefix: string;        // SSID prefix the Android Wi-Fi picker filters on for MyChron (default: 'MYCHRON5')
 }
@@ -55,6 +56,7 @@ const defaultSettings: AppSettings = {
   deltaMethod: 'position',
   deltaSampleMeters: 2,
   chartXAxis: 'distance',
+  hardcoreGpsFiltering: false,
   // Default to the language i18n resolved at boot (saved pref → browser → 'en'),
   // so a first-run user sees their browser language without an explicit choice.
   language: initialLanguage,

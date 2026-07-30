@@ -332,3 +332,56 @@ describe("parseAimFile — start date", () => {
     expect(parseAimFile(noDate).startDate).toBeUndefined();
   });
 });
+
+// ─── GPS quality channels + central filtering (plan 0014) ─────────────────────
+//
+// The parser exports the logger's quality channels and no longer applies its
+// own teleportation filter — position-jump rejection moved to the central
+// (opt-in, "hardcore") pass in gpsQualityFilter, applied by the datalog
+// router. The always-on quality gate works off the channels exported here.
+
+describe("parseAimFile — GPS quality channels", () => {
+  function aimWithQuality(rows: string[]): string {
+    return [
+      "Time,GPS_Speed,GPS_Lat,GPS_Long,GPS_Nsat,GPS_PosAccuracy,GPS_PosDOP",
+      "s,km/h,deg,deg, ,mm, ",
+      ...rows,
+    ].join("\n");
+  }
+
+  it("exports PosAccuracy converted to meters (H Accuracy) using the units row", () => {
+    const parsed = parseAimFile(aimWithQuality([
+      "0.0,60,28.401,-81.401,13,1630,1.2",
+      "0.1,61,28.40101,-81.40101,13,1650,1.2",
+    ]));
+    expect(parsed.samples[0].extraFields["H Accuracy"]).toBeCloseTo(1.63, 5);
+    expect(parsed.samples[0].extraFields["Satellites"]).toBe(13);
+  });
+
+  it("exports pDOP under its own name, never as HDOP", () => {
+    const parsed = parseAimFile(aimWithQuality([
+      "0.0,60,28.401,-81.401,13,1630,1.2",
+    ]));
+    expect(parsed.samples[0].extraFields["GPS pDOP"]).toBeCloseTo(1.2, 5);
+    expect(parsed.samples[0].extraFields["HDOP"]).toBeUndefined();
+  });
+
+  it("exports a real hdop column as HDOP", () => {
+    const parsed = parseAimFile([
+      "Time,GPS_Speed,GPS_Lat,GPS_Long,GPS_Hdop",
+      "0.0,60,28.401,-81.401,1.4",
+    ].join("\n"));
+    expect(parsed.samples[0].extraFields["HDOP"]).toBeCloseTo(1.4, 5);
+  });
+
+  it("no longer drops teleport spikes itself (moved to the opt-in hardcore filter)", () => {
+    const lines = [
+      "Time,GPS_Speed,GPS_Lat,GPS_Long",
+      "0.0,60,28.401,-81.401",
+      "0.1,61,28.501,-81.401", // ~11km jump — the old ad-hoc filter dropped this
+      "0.2,62,28.40101,-81.40101",
+    ];
+    const parsed = parseAimFile(lines.join("\n"));
+    expect(parsed.samples).toHaveLength(3);
+  });
+});

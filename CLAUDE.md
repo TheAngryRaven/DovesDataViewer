@@ -361,7 +361,11 @@ sample-data note in `docs/subsystems.md`.
 Other key settings: `gForceSmoothing(+Strength)`, `gForceSource`,
 `brakingZoneSettings`, `darkMode`,
 `deltaMethod` (`'position'` default | `'distance'`), `deltaSampleMeters`,
-`chartXAxis` (`'distance'` default | `'time'`).
+`chartXAxis` (`'distance'` default | `'time'`),
+`hardcoreGpsFiltering` (default false — opt-in speed-based GPS filtering:
+teleport rejection + speed repair at parse time via `lib/gpsQualityFilter.ts`;
+the quality gate on impossible/weak fixes is always on for every format and not
+a setting; flipping the toggle reparses the open session — plan 0014).
 
 The analysis charts, lap delta, multi-lap overlays, and the G-G diagram have their
 own design notes: **→ `docs/subsystems.md`**.

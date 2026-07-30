@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.3.0] - unreleased
+
+### Added
+- **GPS quality filtering for every file format.** Loggers that record their
+  own fix quality (satellites, position accuracy, HDOP/pDOP — e.g. the AiM
+  Solo 2) now have provably-invalid fixes (negative satellite counts or
+  accuracy, DOP ≤ 0) and weak fixes (fewer than 4 satellites, accuracy worse
+  than 20 m, DOP above 10) removed on load, so a poor-signal session no longer
+  corrupts the race line, lap detection, distance, or speed stats (user-
+  reported: a low-signal Solo 2 session showed a 735 mph top speed and a
+  134-mile race line). Removed fixes are counted on the map's rejected-rows
+  badge as `bad-fix`. Files without quality channels are untouched, and if an
+  entire session is weak-but-usable it loads anyway (only provable garbage is
+  dropped).
+- **"Hardcore data filtering" setting (off by default).** An opt-in pass for
+  badly degraded logs: rejects GPS teleportation jumps (with an anchor that
+  can't be poisoned by early garbage) and *repairs* errant speed readings from
+  neighboring positions instead of discarding otherwise-healthy packets
+  (badge: `N speeds repaired`). Thresholds are tuned for karts — leave it off
+  for cars. Flipping the toggle reparses the open session immediately.
+- **AiM quality channels on the charts.** AiM CSV imports now expose
+  `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
+  `.xrk` imports already carried.
+
+### Changed
+- **AiM `.xrk` quality channels no longer interpolate.** Satellite counts,
+  position/speed accuracy, and DOP resample by carrying the last real reading
+  forward instead of blending between fixes — interpolation across a corrupt
+  sample fabricated impossible values (e.g. "-1597 satellites" in tooltips)
+  and hid garbage from the new quality filter.
+- **AiM CSV teleport filtering moved to the hardcore setting.** The parser's
+  built-in 100 m/s implied-speed filter is now part of the opt-in hardcore
+  pass instead of always-on, so legitimately fast vehicles aren't clipped by
+  a kart-tuned threshold.
+
 ## [3.2.0] - 2026-07-28
 
 ### Added

@@ -1,7 +1,7 @@
 import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
 import { ensureDerivedGForcePair } from './gforceCalculation';
 import {
-  haversineDistance,
+  accuracyUnitToMeters,
   parseCsvLine,
   detectDelimiter,
   validateGpsCoords,
@@ -241,9 +241,26 @@ export function parseAimFile(content: string): ParsedData {
   const egtCol = colMap['t_egt'] ?? colMap['egt'] ?? colMap['exhaust_temp'] ?? -1;
   const throttleCol = colMap['throttle'] ?? colMap['tps'] ?? colMap['throttle_pos'] ?? -1;
   const satsCol = colMap['gps_nsat'] ?? colMap['satellites'] ?? colMap['nsat'] ?? -1;
-  
+  const posAccCol = colMap['gps_posaccuracy'] ?? colMap['gps_pos_accuracy'] ?? -1;
+  const dopCol = colMap['gps_pdop'] ?? colMap['gps_posdop'] ?? colMap['gps_hdop'] ?? colMap['hdop'] ?? -1;
+  const dopIsHdop = dopCol !== -1 && dopCol === (colMap['gps_hdop'] ?? colMap['hdop'] ?? -2);
+
   if (latCol === -1 || lonCol === -1) {
     throw new Error('AiM CSV missing required GPS coordinates (GPS_Lat, GPS_Long)');
+  }
+
+  // Position accuracy is exported canonically (H Accuracy, meters) so the GPS
+  // quality filter and charts see a uniform unit; AiM writes it in mm. Read
+  // the unit from the units row RaceStudio puts under the header.
+  let posAccMultiplier = 1;
+  if (posAccCol !== -1) {
+    for (let j = headerIndex + 1; j <= headerIndex + 2 && j < lines.length; j++) {
+      const cell = parseCsvLine(lines[j], delimiter)[posAccCol];
+      if (cell && isNaN(parseFloat(cell))) {
+        posAccMultiplier = accuracyUnitToMeters(cell);
+        break;
+      }
+    }
   }
   
   // Decide the speed unit once for the whole file: an explicit unit label
@@ -271,7 +288,6 @@ export function parseAimFile(content: string): ParsedData {
   // Parse data rows
   const samples: GpsSample[] = [];
   let baseTime: number | null = null;
-  let prevValidSample: GpsSample | null = null;
 
   // Detect time units from first valid data row
   let timeMultiplier = 1000; // default: seconds to ms
@@ -308,17 +324,6 @@ export function parseAimFile(content: string): ParsedData {
       const speedVal = parseFloat(values[speedCol]);
       if (!isNaN(speedVal)) {
         speedMps = speedVal * speedMultiplier;
-      }
-    }
-    
-    // Teleportation filter
-    if (prevValidSample) {
-      const dt = (timeMs - prevValidSample.t) / 1000;
-      if (dt > 0) {
-        const dist = haversineDistance(prevValidSample.lat, prevValidSample.lon, lat, lon);
-        const impliedSpeed = dist / dt;
-        // Max 100 m/s (360 km/h) - reasonable for karts
-        if (impliedSpeed > 100) continue;
       }
     }
     
@@ -367,7 +372,19 @@ export function parseAimFile(content: string): ParsedData {
       const sats = parseFloat(values[satsCol]);
       if (!isNaN(sats)) extraFields['Satellites'] = sats;
     }
-    
+
+    if (posAccCol !== -1) {
+      const acc = parseFloat(values[posAccCol]);
+      if (!isNaN(acc)) extraFields['H Accuracy'] = acc * posAccMultiplier;
+    }
+
+    // pDOP is not HDOP — only a real hdop column may claim the canonical
+    // HDOP channel; pDOP passes through under its own name.
+    if (dopCol !== -1) {
+      const dop = parseFloat(values[dopCol]);
+      if (!isNaN(dop)) extraFields[dopIsHdop ? 'HDOP' : 'GPS pDOP'] = dop;
+    }
+
     // Parse heading
     let heading: number | undefined;
     if (headingCol !== -1) {
@@ -385,7 +402,6 @@ export function parseAimFile(content: string): ParsedData {
     };
 
     samples.push(sample);
-    prevValidSample = sample;
   }
   
   if (samples.length === 0) {

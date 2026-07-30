@@ -29,6 +29,30 @@ export interface XrkWasmResult {
 // GPS position/speed channels, in preference order, used as the shared timebase.
 const TIMEBASE_PREFERENCE = ["GPS Latitude", "GPS Longitude", "GPS Speed"];
 
+// GPS fix-quality channels are discrete per-fix readings, not continuous
+// signals: linearly interpolating them between a good and a corrupt native
+// sample fabricates values no receiver ever reported (e.g. "-1597 satellites")
+// and can mask garbage behind plausible mid-ramp numbers, blinding the GPS
+// quality filter. Always forward-fill them, whatever the wasm flag says.
+const QUALITY_CHANNELS = new Set([
+  "gps nsat",
+  "gps satellites",
+  "gps posaccuracy",
+  "gps pos accuracy",
+  "gps position accuracy",
+  "gps spdaccuracy",
+  "gps spd accuracy",
+  "gps velocity accuracy",
+  "gps posdop",
+  "gps pdop",
+  "gps hdop",
+  "gps vdop",
+]);
+
+function isQualityChannel(name: string): boolean {
+  return QUALITY_CHANNELS.has(name.toLowerCase().replace(/[\s_]+/g, " ").trim());
+}
+
 /**
  * Choose the target timebase: the GPS fix timecodes when available (so every row
  * is one GPS fix, matching the app's model), else the longest channel.
@@ -109,7 +133,7 @@ export function wasmResultToRaw(result: XrkWasmResult): XrkRawResult {
     .filter((c) => c.timecodes.length > 0 && c.values.length === c.timecodes.length)
     .map((c) => {
       const out = new Float64Array(target.length);
-      if (c.interpolate) interpolateOnto(target, c.timecodes, c.values, out);
+      if (c.interpolate && !isQualityChannel(c.name)) interpolateOnto(target, c.timecodes, c.values, out);
       else forwardFillOnto(target, c.timecodes, c.values, out);
       return { name: c.name, unit: c.units, values: out };
     });
