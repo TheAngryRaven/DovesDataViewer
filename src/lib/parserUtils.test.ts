@@ -13,7 +13,6 @@ import {
   calculateBounds,
   createRejectedCounter,
   recordCoordRejection,
-  createTeleportGate,
   isLowQualityFix,
   accuracyUnitToMeters,
   speedTriple,
@@ -484,52 +483,33 @@ describe("isLowQualityFix", () => {
   });
 
   it("skips non-finite signals rather than rejecting on them", () => {
-    expect(isLowQualityFix({ satellites: NaN, posAccuracyM: NaN, dop: NaN })).toBe(false);
+    expect(isLowQualityFix({ satellites: NaN, posAccuracy: NaN, dop: NaN })).toBe(false);
   });
 
   it("accepts a healthy fix", () => {
-    expect(isLowQualityFix({ satellites: 13, posAccuracyM: 1.6, dop: 1.2 })).toBe(false);
+    expect(isLowQualityFix({ satellites: 13, posAccuracy: 1.6, dop: 1.2 })).toBe(false);
   });
 
-  it("rejects too few satellites for a 3D fix", () => {
-    expect(isLowQualityFix({ satellites: 3 })).toBe(true);
-    expect(isLowQualityFix({ satellites: 4 })).toBe(false); // boundary passes
-  });
-
-  it("rejects impossible satellite counts (corrupt/interpolated values)", () => {
+  it("rejects negative satellite counts (provably-invalid rows)", () => {
     expect(isLowQualityFix({ satellites: -1597.4 })).toBe(true); // from the user report
-    expect(isLowQualityFix({ satellites: 250 })).toBe(true);
-    expect(isLowQualityFix({ satellites: 99 })).toBe(false); // boundary passes
+    expect(isLowQualityFix({ satellites: 0 })).toBe(false); // low but not negative — kept
+    expect(isLowQualityFix({ satellites: 3 })).toBe(false);
   });
 
-  it("rejects weak and impossible position accuracy", () => {
-    expect(isLowQualityFix({ posAccuracyM: 25 })).toBe(true); // weak fix
-    expect(isLowQualityFix({ posAccuracyM: -612.1 })).toBe(true); // from the user report
-    expect(isLowQualityFix({ posAccuracyM: 20 })).toBe(false); // boundary passes
+  it("rejects negative position accuracy (any unit — only the sign matters)", () => {
+    expect(isLowQualityFix({ posAccuracy: -612.1 })).toBe(true); // from the user report
+    expect(isLowQualityFix({ posAccuracy: 50000 })).toBe(false); // weak but not provably invalid
   });
 
-  it("rejects weak and impossible DOP", () => {
+  it("rejects negative DOP and DOP above MAX_DOP", () => {
     expect(isLowQualityFix({ dop: 275.3 })).toBe(true); // from the user report
-    expect(isLowQualityFix({ dop: 0 })).toBe(true); // DOP of zero is not a real fix
     expect(isLowQualityFix({ dop: -1 })).toBe(true);
     expect(isLowQualityFix({ dop: 10 })).toBe(false); // boundary passes
+    expect(isLowQualityFix({ dop: 10.1 })).toBe(true);
   });
 
   it("any single bad signal rejects even when the others are healthy", () => {
-    expect(isLowQualityFix({ satellites: 13, posAccuracyM: 1.6, dop: 275.3 })).toBe(true);
-  });
-
-  it("honors custom thresholds", () => {
-    expect(isLowQualityFix({ posAccuracyM: 25 }, {
-      minSatellites: 4, maxSatellites: 99, maxPosAccuracyM: 30, maxDop: 10,
-    })).toBe(false);
-    // Impossible values reject under any thresholds
-    expect(isLowQualityFix({ posAccuracyM: -1 }, {
-      minSatellites: 0, maxSatellites: 99, maxPosAccuracyM: Infinity, maxDop: Infinity,
-    })).toBe(true);
-    expect(isLowQualityFix({ dop: 0 }, {
-      minSatellites: 0, maxSatellites: 99, maxPosAccuracyM: Infinity, maxDop: Infinity,
-    })).toBe(true);
+    expect(isLowQualityFix({ satellites: 13, posAccuracy: 1.6, dop: 275.3 })).toBe(true);
   });
 });
 
@@ -547,68 +527,5 @@ describe("accuracyUnitToMeters", () => {
     expect(accuracyUnitToMeters("m")).toBe(1);
     expect(accuracyUnitToMeters("furlongs")).toBe(1);
     expect(accuracyUnitToMeters(undefined)).toBe(1);
-  });
-});
-
-// ─── createTeleportGate ───────────────────────────────────────────────────────
-
-describe("createTeleportGate", () => {
-  // ~1 m of latitude in degrees
-  const M = 1 / 111195;
-
-  it("accepts the first sample unconditionally", () => {
-    const gate = createTeleportGate();
-    expect(gate.check(40, -74, 0)).toBe(false);
-  });
-
-  it("accepts normal racing motion", () => {
-    const gate = createTeleportGate();
-    expect(gate.check(40, -74, 0)).toBe(false);
-    expect(gate.check(40 + 1 * M, -74, 40)).toBe(false); // 1m in 40ms = 25 m/s
-    expect(gate.check(40 + 2 * M, -74, 80)).toBe(false);
-  });
-
-  it("rejects a large position jump (shared isTeleportation rule)", () => {
-    const gate = createTeleportGate();
-    gate.check(40, -74, 0);
-    expect(gate.check(40 + 500 * M, -74, 40)).toBe(true); // 500m in 40ms
-  });
-
-  it("rejects on implied speed above the cap even when the jump is under the teleport distance", () => {
-    const gate = createTeleportGate();
-    gate.check(40, -74, 0);
-    // 150m in 1s: isTeleportation allows 1250m at dt=1s, but 150 m/s > 100 m/s cap
-    expect(gate.check(40 + 150 * M, -74, 1000)).toBe(true);
-  });
-
-  it("honors a raised implied-speed cap (car formats)", () => {
-    const gate = createTeleportGate({ maxImpliedSpeedMps: 200 });
-    gate.check(40, -74, 0);
-    expect(gate.check(40 + 150 * M, -74, 1000)).toBe(false); // 150 m/s OK at 200 cap
-  });
-
-  it("does NOT advance the anchor on a rejected sample (glitch can't poison the next good fix)", () => {
-    const gate = createTeleportGate();
-    gate.check(40, -74, 0);
-    expect(gate.check(40 + 500 * M, -74, 40)).toBe(true); // spike rejected
-    // 1m from the ORIGINAL anchor — accepted. If the spike had become the
-    // anchor this would read as a 500m jump and be wrongly rejected.
-    expect(gate.check(40 + 1 * M, -74, 80)).toBe(false);
-  });
-
-  it("re-anchors after `resetAfter` consecutive rejections (early garbage can't poison the file)", () => {
-    const gate = createTeleportGate({ resetAfter: 3 });
-    gate.check(40, -74, 0); // garbage anchor far from the real track
-    const track = 40.1; // ~11km away — every real sample looks like a teleport
-    expect(gate.check(track, -74, 40)).toBe(true);
-    expect(gate.check(track + 1 * M, -74, 80)).toBe(true);
-    expect(gate.check(track + 2 * M, -74, 120)).toBe(true); // 3rd reject → re-anchor here
-    expect(gate.check(track + 3 * M, -74, 160)).toBe(false); // 1m from new anchor → accepted
-  });
-
-  it("accepts a jump after a 10s+ gap (parser pause / signal loss recovery)", () => {
-    const gate = createTeleportGate();
-    gate.check(40, -74, 0);
-    expect(gate.check(41, -74, 11000)).toBe(false); // 111km after 11s
   });
 });

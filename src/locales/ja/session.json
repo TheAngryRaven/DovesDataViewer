@@ -144,9 +144,7 @@
     "reasonOor": "OOR",
     "reasonSpeedCap": "speed-cap",
     "reasonShortRow": "short-row",
-    "reasonLowQuality": "bad-fix",
-    "speedsRepaired_one": "速度を補正",
-    "speedsRepaired_other": "速度を補正"
+    "reasonLowQuality": "bad-fix"
   },
   "stats": {
     "lapTime": "ラップタイム",

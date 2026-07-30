@@ -93,10 +93,5 @@
     "heading": "MyChron",
     "ssidPrefix": "Prefijo del nombre Wi-Fi",
     "ssidPrefixHint": "El inicio del nombre Wi-Fi de tu MyChron. Al descargar, el selector de Wi-Fi del sistema solo muestra las redes que empiezan por esto. Distingue mayúsculas de minúsculas: cámbialo solo si tu registrador emite un nombre distinto."
-  },
-  "gpsFiltering": {
-    "heading": "Filtrado de datos GPS",
-    "label": "Filtrado de datos estricto",
-    "hint": "Rechaza también los saltos de GPS (teletransporte) y repara lecturas de velocidad erróneas al cargar un archivo. Los umbrales están ajustados para karts — desactívalo para coches. Las posiciones inválidas (valores imposibles de satélites/precisión) siempre se filtran."
   }
 }

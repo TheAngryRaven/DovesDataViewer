@@ -93,10 +93,5 @@
     "heading": "MyChron",
     "ssidPrefix": "WLAN-Namenspräfix",
     "ssidPrefixHint": "Der Anfang des WLAN-Namens deines MyChron. Beim Herunterladen zeigt die WLAN-Auswahl des Systems nur Netzwerke an, die damit beginnen. Groß-/Kleinschreibung wird beachtet — ändere es nur, wenn dein Logger einen anderen Namen sendet."
-  },
-  "gpsFiltering": {
-    "heading": "GPS-Datenfilterung",
-    "label": "Strikte Datenfilterung",
-    "hint": "Verwirft beim Laden einer Datei zusätzlich GPS-Sprünge (Teleportation) und repariert fehlerhafte Geschwindigkeitswerte. Die Schwellwerte sind auf Karts abgestimmt — für Autos ausschalten. Ungültige Fixes (unmögliche Satelliten-/Genauigkeitswerte) werden immer gefiltert."
   }
 }

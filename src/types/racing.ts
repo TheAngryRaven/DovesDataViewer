@@ -163,9 +163,6 @@ export interface ParserStats {
     incompleteRow: number;
     lowQuality: number;
   };
-  /** Samples whose errant reported speed was recomputed from neighboring
-   *  positions instead of being dropped (hardcore filtering). */
-  repairedSpeeds?: number;
 }
 
 export interface ParsedData {

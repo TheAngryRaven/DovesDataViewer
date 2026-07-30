@@ -1,6 +1,6 @@
 import { ParsedData } from '@/types/racing';
 import { normalizeChannels } from './channels';
-import { filterGpsQuality, readHardcoreGpsFilteringSetting } from './gpsQualityFilter';
+import { filterGpsQuality } from './gpsQualityFilter';
 import { parseDatalog } from './nmeaParser';
 import { parseUbxFile, isUbxFormat } from './ubxParser';
 import { parseVboFile, isVboFormat } from './vboParser';
@@ -36,16 +36,9 @@ import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadi
  * screen while it works. Fast formats finish in the same tick (overlay never
  * paints); the slow XRK path streams its phase messages into the overlay.
  */
-export interface DatalogParseOptions {
-  /** Enable the opt-in "hardcore" speed-based GPS filtering pass. The always-on
-   *  quality gate (impossible/weak fixes) runs regardless of this flag. */
-  hardcoreGpsFiltering?: boolean;
-}
-
 export async function parseDatalogFile(
   file: File,
   onProgress?: XrkProgressCallback,
-  options?: DatalogParseOptions,
 ): Promise<ParsedData> {
   beginFileLoading("Loading telemetry…");
   try {
@@ -56,7 +49,6 @@ export async function parseDatalogFile(
           onProgress?.(progress);
         }),
       ),
-      { hardcore: options?.hardcoreGpsFiltering ?? readHardcoreGpsFilteringSetting() },
     );
   } finally {
     endFileLoading();
@@ -66,13 +58,8 @@ export async function parseDatalogFile(
 /**
  * Parse from raw content (for when you already have the data loaded).
  */
-export function parseDatalogContent(
-  content: string | ArrayBuffer,
-  options?: DatalogParseOptions,
-): ParsedData {
-  return filterGpsQuality(normalizeChannels(routeDatalogContent(content)), {
-    hardcore: options?.hardcoreGpsFiltering ?? readHardcoreGpsFilteringSetting(),
-  });
+export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
+  return filterGpsQuality(normalizeChannels(routeDatalogContent(content)));
 }
 
 async function routeDatalogFile(

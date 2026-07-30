@@ -88,11 +88,6 @@
     "label": "Force update & clear cache",
     "hint": "Clears cached app files and reloads the latest version. Your saved sessions and data in the Garage are not affected."
   },
-  "gpsFiltering": {
-    "heading": "GPS Data Filtering",
-    "label": "Hardcore data filtering",
-    "hint": "Also reject GPS teleport glitches and repair errant speed readings when loading a file. Thresholds are tuned for karts — leave off for cars. Invalid fixes (impossible satellite/accuracy values) are always filtered."
-  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Wi-Fi name prefix",

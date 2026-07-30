@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, Languages, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun, Wifi, Satellite } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, Languages, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun, Wifi } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -383,30 +383,6 @@ export function SettingsModal({
             </div>
           </div>
 
-          </div>
-
-          {/* GPS Data Filtering — opt-in speed-based pass; the quality gate
-              (impossible/weak fixes) is always on and not configurable */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Satellite className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-medium">{t("settings:gpsFiltering.heading")}</h3>
-            </div>
-            <div className="flex items-center justify-between pl-6">
-              <div>
-                <Label htmlFor="settings-hardcore-gps" className="text-sm text-muted-foreground">
-                  {t("settings:gpsFiltering.label")}
-                </Label>
-                <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  {t("settings:gpsFiltering.hint")}
-                </p>
-              </div>
-              <Switch
-                id="settings-hardcore-gps"
-                checked={settings.hardcoreGpsFiltering}
-                onCheckedChange={(checked) => onSettingsChange({ hardcoreGpsFiltering: checked })}
-              />
-            </div>
           </div>
 
           {/* MyChron Wi-Fi — native-only; the prefix the OS Wi-Fi picker filters on */}

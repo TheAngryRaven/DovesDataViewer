@@ -347,26 +347,22 @@ describe("parseDatalogFile — async File entry", () => {
 // ─── GPS quality filter integration (plan 0014) ──────────────────────────────
 //
 // The router runs filterGpsQuality after normalizeChannels for every format:
-// the always-on gate drops samples whose quality channels condemn them; the
-// hardcore (opt-in) pass adds teleport rejection + speed repair.
+// rows whose own quality channels condemn them (negative satellites/accuracy/
+// DOP, DOP > 10) are dropped while the dataset is rebuilt, so they are voided
+// from everything downstream.
 
 describe("parseDatalogContent — GPS quality filtering", () => {
-  function aimWithQuality(rows: string[]): string {
-    return [
+  it("drops rows with provably-invalid quality values and reports parserStats", () => {
+    const csv = [
       "Format,AiM CSV File", // signature so the router picks AiM over Alfano
       "Time,GPS_Speed,GPS_Lat,GPS_Long,GPS_Nsat,GPS_PosAccuracy",
       "s,km/h,deg,deg, ,mm",
-      ...rows,
-    ].join("\n");
-  }
-
-  it("always-on: drops rows with impossible quality values and reports parserStats", () => {
-    const parsed = parseDatalogContent(aimWithQuality([
       "0.0,60,28.401,-81.401,13,1630",
-      "0.1,61,28.40101,-81.40101,-1597,1630", // impossible satellite count
-      "0.2,62,28.40102,-81.40102,13,-612100", // impossible (negative) accuracy
+      "0.1,61,28.40101,-81.40101,-1597,1630", // negative satellite count
+      "0.2,62,28.40102,-81.40102,13,-612100", // negative accuracy
       "0.3,63,28.40103,-81.40103,13,1630",
-    ]));
+    ].join("\n");
+    const parsed = parseDatalogContent(csv);
     expect(parsed.samples).toHaveLength(2);
     expect(parsed.parserStats?.rejected.lowQuality).toBe(2);
     // Canonical keys after normalization: satellites + h_acc (meters).
@@ -374,31 +370,15 @@ describe("parseDatalogContent — GPS quality filtering", () => {
     expect(parsed.samples[0].extraFields["h_acc"]).toBeCloseTo(1.63, 5);
   });
 
-  it("hardcore off by default: teleport spikes survive routing", () => {
-    const spiky = [
+  it("leaves files without quality channels untouched", () => {
+    const csv = [
       "Format,AiM CSV File",
       "Time,GPS_Speed,GPS_Lat,GPS_Long",
       "0.0,60,28.401,-81.401",
-      "0.1,61,28.501,-81.401", // ~11km jump
-      "0.2,62,28.40101,-81.40101",
+      "0.1,61,28.40101,-81.40101",
     ].join("\n");
-    expect(parseDatalogContent(spiky).samples).toHaveLength(3);
-  });
-
-  it("hardcore on: rejects teleport spikes and repairs errant speeds", () => {
-    const spiky = [
-      "Format,AiM CSV File",
-      "Time,GPS_Speed,GPS_Lat,GPS_Long",
-      "0.0,60,28.401,-81.401",
-      "0.1,1182,28.40101,-81.40101", // 1182 km/h reported on a sane position
-      "0.2,62,28.501,-81.401", // ~11km jump
-      "0.3,63,28.40102,-81.40102",
-    ].join("\n");
-    const parsed = parseDatalogContent(spiky, { hardcoreGpsFiltering: true });
-    expect(parsed.samples).toHaveLength(3);
-    expect(parsed.parserStats?.rejected.teleportation).toBe(1);
-    expect(parsed.parserStats?.repairedSpeeds).toBe(1);
-    // The repaired sample's speed came from neighbor positions, not the 1182 km/h reading.
-    expect(parsed.samples[1].speedKph).toBeLessThan(100);
+    const parsed = parseDatalogContent(csv);
+    expect(parsed.samples).toHaveLength(2);
+    expect(parsed.parserStats).toBeUndefined();
   });
 });

@@ -109,6 +109,7 @@ src/
 │   └── use*Manager        # IndexedDB CRUD: File, Vehicle (←Kart compat), Engine, Template, Note, Setup
 ├── lib/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
+│   ├── gpsQualityFilter.ts # ★ Post-parse cleanup (plan 0014): rebuilds samples dropping rows whose own quality channels are provably invalid (negative sats/accuracy/DOP, DOP>10) — all formats
 │   ├── *Parser.ts         # nmea, ubx, iracing (.ibt), vbo, dove, dovex, alfano, aim, motec
 │   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk (Rust→WASM) in a Web Worker (→ docs/subsystems.md)
 │   ├── channels.ts        # ★ Canonical channel registry + normalizeChannels()
@@ -175,6 +176,8 @@ File Import (drag-drop / BLE download / file manager)
     → datalogParser.ts (auto-detect format, route to specific parser)
       → normalizeChannels() (channels.ts): rewrites every fieldMapping name + extraFields key to a
         canonical ChannelId (or `custom:` slug). Runs once for all formats.
+      → filterGpsQuality() (gpsQualityFilter.ts): drops rows whose quality channels are provably
+        invalid (negative sats/accuracy/DOP, DOP>10). Runs once for all formats (plan 0014).
       → returns ParsedData { samples, fieldMappings, bounds, duration, startDate, dovexMetadata?, parserStats? }
   → courseDetection.ts (auto-detect track, course, direction; waypoint fallback)
   → useLapManagement.ts (detect laps via lapCalculation.ts using the course's start/finish line)
@@ -361,11 +364,7 @@ sample-data note in `docs/subsystems.md`.
 Other key settings: `gForceSmoothing(+Strength)`, `gForceSource`,
 `brakingZoneSettings`, `darkMode`,
 `deltaMethod` (`'position'` default | `'distance'`), `deltaSampleMeters`,
-`chartXAxis` (`'distance'` default | `'time'`),
-`hardcoreGpsFiltering` (default false — opt-in speed-based GPS filtering:
-teleport rejection + speed repair at parse time via `lib/gpsQualityFilter.ts`;
-the quality gate on impossible/weak fixes is always on for every format and not
-a setting; flipping the toggle reparses the open session — plan 0014).
+`chartXAxis` (`'distance'` default | `'time'`).
 
 The analysis charts, lap delta, multi-lap overlays, and the G-G diagram have their
 own design notes: **→ `docs/subsystems.md`**.

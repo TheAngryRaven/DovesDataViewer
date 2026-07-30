@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, StepBack, StepForward, Eye, EyeOff, AlertCircle, Wrench, NotebookPen, SlidersHorizontal, Columns2, LifeBuoy } from "lucide-react";
@@ -402,18 +402,6 @@ export default function Index() {
       console.error("Failed to open session:", e);
     }
   }, [fileManager, handleDataLoaded]);
-
-  // Hardcore GPS filtering changes which samples the parse pipeline keeps, so
-  // flipping the setting reparses the open session immediately — same path as
-  // reopening the file. Read-only viewers (shares/leaderboards) are skipped:
-  // their laps are frozen against a prebuilt bundle, not recalculable here.
-  const prevHardcoreFiltering = useRef(settings.hardcoreGpsFiltering);
-  useEffect(() => {
-    if (prevHardcoreFiltering.current === settings.hardcoreGpsFiltering) return;
-    prevHardcoreFiltering.current = settings.hardcoreGpsFiltering;
-    if (!currentFileName || readOnly) return;
-    void handleOpenFile(currentFileName);
-  }, [settings.hardcoreGpsFiltering, currentFileName, readOnly, handleOpenFile]);
 
   // Lap snapshots: frozen "course fastest lap" captures, loaded as a comparison
   // overlay through the same external-reference slot (so they never auto-play or

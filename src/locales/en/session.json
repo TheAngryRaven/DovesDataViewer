@@ -143,9 +143,7 @@
     "reasonOor": "OOR",
     "reasonSpeedCap": "speed-cap",
     "reasonShortRow": "short-row",
-    "reasonLowQuality": "bad-fix",
-    "speedsRepaired_one": "speed repaired",
-    "speedsRepaired_other": "speeds repaired"
+    "reasonLowQuality": "bad-fix"
   },
   "stats": {
     "lapTime": "Lap Time",

@@ -2,6 +2,7 @@ import { ParsedData, GpsSample, FieldMapping } from '@/types/racing';
 import { ensureDerivedGForcePair } from './gforceCalculation';
 import {
   accuracyUnitToMeters,
+  haversineDistance,
   parseCsvLine,
   detectDelimiter,
   validateGpsCoords,
@@ -288,6 +289,7 @@ export function parseAimFile(content: string): ParsedData {
   // Parse data rows
   const samples: GpsSample[] = [];
   let baseTime: number | null = null;
+  let prevValidSample: GpsSample | null = null;
 
   // Detect time units from first valid data row
   let timeMultiplier = 1000; // default: seconds to ms
@@ -327,6 +329,17 @@ export function parseAimFile(content: string): ParsedData {
       }
     }
     
+    // Teleportation filter
+    if (prevValidSample) {
+      const dt = (timeMs - prevValidSample.t) / 1000;
+      if (dt > 0) {
+        const dist = haversineDistance(prevValidSample.lat, prevValidSample.lon, lat, lon);
+        const impliedSpeed = dist / dt;
+        // Max 100 m/s (360 km/h) - reasonable for karts
+        if (impliedSpeed > 100) continue;
+      }
+    }
+
     // Build extra fields
     const extraFields: Record<string, number> = {};
     
@@ -402,6 +415,7 @@ export function parseAimFile(content: string): ParsedData {
     };
 
     samples.push(sample);
+    prevValidSample = sample;
   }
   
   if (samples.length === 0) {

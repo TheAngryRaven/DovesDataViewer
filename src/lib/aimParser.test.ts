@@ -333,12 +333,11 @@ describe("parseAimFile — start date", () => {
   });
 });
 
-// ─── GPS quality channels + central filtering (plan 0014) ─────────────────────
+// ─── GPS quality channels (plan 0014) ─────────────────────────────────────────
 //
-// The parser exports the logger's quality channels and no longer applies its
-// own teleportation filter — position-jump rejection moved to the central
-// (opt-in, "hardcore") pass in gpsQualityFilter, applied by the datalog
-// router. The always-on quality gate works off the channels exported here.
+// The parser exports the logger's quality channels (Satellites, PosAccuracy,
+// pDOP/HDOP); the datalog router's post-parse cleanup (gpsQualityFilter) uses
+// them to drop provably-bad rows for every format.
 
 describe("parseAimFile — GPS quality channels", () => {
   function aimWithQuality(rows: string[]): string {
@@ -374,14 +373,14 @@ describe("parseAimFile — GPS quality channels", () => {
     expect(parsed.samples[0].extraFields["HDOP"]).toBeCloseTo(1.4, 5);
   });
 
-  it("no longer drops teleport spikes itself (moved to the opt-in hardcore filter)", () => {
+  it("still drops teleport spikes (implied speed above 100 m/s)", () => {
     const lines = [
       "Time,GPS_Speed,GPS_Lat,GPS_Long",
       "0.0,60,28.401,-81.401",
-      "0.1,61,28.501,-81.401", // ~11km jump — the old ad-hoc filter dropped this
+      "0.1,61,28.501,-81.401", // ~11km jump in 100ms
       "0.2,62,28.40101,-81.40101",
     ];
     const parsed = parseAimFile(lines.join("\n"));
-    expect(parsed.samples).toHaveLength(3);
+    expect(parsed.samples).toHaveLength(2);
   });
 });
