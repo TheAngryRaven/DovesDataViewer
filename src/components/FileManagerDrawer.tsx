@@ -12,7 +12,11 @@ import { DeviceSettingsTab } from "./drawer/DeviceSettingsTab";
 import { DeviceTracksTab } from "./drawer/DeviceTracksTab";
 import { ProfileTab } from "./tabs/ProfileTab";
 import { useDeviceContext } from "@/contexts/DeviceContext";
-import { isBleSupported, requestBatteryLevel, type BatteryInfo } from "@/lib/bleDatalogger";
+import { isBleSupported } from "@/lib/bleDatalogger";
+import { isNativeApp } from "@/lib/platform";
+import type { DeviceBattery } from "@/lib/loggers";
+import type { ScannedDevice } from "@/lib/loggers/doveslogger/ipc";
+import { toast } from "sonner";
 
 type TopTab = "garage" | "profile" | "device";
 type GarageTab = "files" | "vehicles" | "setups";
@@ -91,8 +95,14 @@ export function FileManagerDrawer({
   ];
 
   const device = useDeviceContext();
-  const bleAvailable = isBleSupported();
-  const [battery, setBattery] = useState<BatteryInfo | null>(null);
+  const native = isNativeApp();
+  // On the native app the webview has no Web Bluetooth — the Device tab rides
+  // the logger IPC instead, so it's available there too.
+  const deviceAvailable = isBleSupported() || native;
+  const [battery, setBattery] = useState<DeviceBattery | null>(null);
+  // Native BLE has no OS picker: scan → render this list → connect by id.
+  const [scannedDevices, setScannedDevices] = useState<ScannedDevice[] | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -100,26 +110,71 @@ export function FileManagerDrawer({
       setGarageTab(initialGarageTab);
       setDeviceTab("settings");
       setBattery(null);
+      setScannedDevices(null);
     }
   }, [isOpen, initialGarageTab, initialTopTab, showProfile]);
 
+  // The native connection is scoped to the drawer (the backend has ONE global
+  // connection slot, and the download dialogs need it back): closing the drawer
+  // disconnects. Web Bluetooth connections persist across closes as before.
+  useEffect(() => {
+    if (!isOpen && native && device.isConnected && !device.connection) {
+      device.disconnectDevice();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the drawer closes
+  }, [isOpen]);
+
   // Fetch battery on connect / when switching to device tab
   const fetchBattery = useCallback(async () => {
-    if (!device.connection) return;
+    if (!device.details) return;
     try {
-      const info = await requestBatteryLevel(device.connection);
+      const info = await device.details.battery();
       setBattery(info);
     } catch {
       // silent — device may not support BATT yet
     }
-  }, [device.connection]);
+  }, [device.details]);
 
   useEffect(() => {
-    if (device.connection && topTab === "device") {
+    if (device.isConnected && topTab === "device") {
       fetchBattery();
     }
-    if (!device.connection) setBattery(null);
-  }, [device.connection, topTab, fetchBattery]);
+    if (!device.isConnected) setBattery(null);
+  }, [device.isConnected, topTab, fetchBattery]);
+
+  const connectNativeTo = useCallback(async (deviceId?: string) => {
+    setScannedDevices(null);
+    try {
+      await device.connectNative(deviceId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(
+        msg.startsWith("native-connection-busy")
+          ? t("shell.nativeConnectionBusy")
+          : t("shell.nativeConnectFailed", { error: msg }),
+      );
+    }
+  }, [device, t]);
+
+  const scanNative = useCallback(async () => {
+    setScanning(true);
+    try {
+      const found = await device.scanNative();
+      if (found.length === 0) {
+        toast.error(t("shell.nativeNoDevices"));
+      } else if (found.length === 1) {
+        // Only one logger in range — skip the picker.
+        await connectNativeTo(found[0].id);
+      } else {
+        setScannedDevices(found);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(t("shell.nativeConnectFailed", { error: msg }));
+    } finally {
+      setScanning(false);
+    }
+  }, [device, connectNativeTo, t]);
 
   if (!isOpen) return null;
 
@@ -137,7 +192,7 @@ export function FileManagerDrawer({
             )}
           </div>
           <div className="flex items-center gap-1">
-            {topTab === "device" && device.connection && battery && (
+            {topTab === "device" && device.isConnected && battery && (
               <button
                 onClick={fetchBattery}
                 className={`flex items-center gap-1 h-7 px-2 rounded text-xs font-medium transition-colors hover:bg-muted/50 ${
@@ -152,7 +207,7 @@ export function FileManagerDrawer({
                 {battery.percent}%
               </button>
             )}
-            {topTab === "device" && device.connection && (
+            {topTab === "device" && device.isConnected && (
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={device.disconnectDevice}>{t("shell.disconnect")}</Button>
             )}
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}><X className="w-4 h-4" /></Button>
@@ -205,20 +260,39 @@ export function FileManagerDrawer({
         {/* Device Panel */}
         {topTab === "device" && (
           <>
-            {!bleAvailable ? (
+            {!deviceAvailable ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 text-center">
                 <BluetoothOff className="w-12 h-12 text-muted-foreground" />
                 <h3 className="font-semibold text-foreground">{t("shell.btNotAvailable")}</h3>
                 <p className="text-sm text-muted-foreground max-w-[260px]">{t("shell.btNotAvailableDesc")}</p>
               </div>
-            ) : !device.connection ? (
+            ) : !device.isConnected ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 text-center">
                 <Bluetooth className="w-12 h-12 text-muted-foreground" />
                 <h3 className="font-semibold text-foreground">{t("shell.connectTitle")}</h3>
                 <p className="text-sm text-muted-foreground max-w-[260px]">{t("shell.connectDesc")}</p>
-                <Button onClick={() => device.connect()} disabled={device.isConnecting} className="gap-2">
-                  {device.isConnecting ? (<><Loader2 className="w-4 h-4 animate-spin" /> {t("shell.connecting")}</>) : (<><Bluetooth className="w-4 h-4" /> {t("shell.connect")}</>)}
-                </Button>
+                {native && scannedDevices ? (
+                  // Native BLE has no OS picker — render the scan results in-app.
+                  <div className="w-full max-w-[280px] space-y-2">
+                    {scannedDevices.map((d) => (
+                      <Button key={d.id} variant="outline" className="w-full justify-start gap-2" onClick={() => connectNativeTo(d.id)} disabled={device.isConnecting}>
+                        <Bluetooth className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{d.name ?? d.id}</span>
+                      </Button>
+                    ))}
+                    <Button variant="ghost" size="sm" className="w-full" onClick={scanNative} disabled={scanning || device.isConnecting}>
+                      {t("shell.scanAgain")}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button onClick={native ? scanNative : () => device.connect()} disabled={device.isConnecting || scanning} className="gap-2">
+                    {device.isConnecting || scanning ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> {scanning ? t("shell.scanning") : t("shell.connecting")}</>
+                    ) : (
+                      <><Bluetooth className="w-4 h-4" /> {t("shell.connect")}</>
+                    )}
+                  </Button>
+                )}
               </div>
             ) : device.loggerKind && device.loggerKind !== "fledgling" ? (
               // Settings/tracks/firmware are Fledgling-only. Other loggers (MyChron,
@@ -237,8 +311,8 @@ export function FileManagerDrawer({
                     </button>
                   ))}
                 </div>
-                {deviceTab === "settings" && <DeviceSettingsTab connection={device.connection} onResetComplete={() => { device.disconnectDevice(); onClose(); }} />}
-                {deviceTab === "tracks" && <DeviceTracksTab connection={device.connection!} />}
+                {deviceTab === "settings" && device.details && <DeviceSettingsTab details={device.details} bleConnection={device.connection ?? undefined} onResetComplete={() => { device.disconnectDevice(); onClose(); }} />}
+                {deviceTab === "tracks" && device.details && <DeviceTracksTab details={device.details} />}
               </>
             )}
           </>

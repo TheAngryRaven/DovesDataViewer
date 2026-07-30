@@ -25,7 +25,12 @@
     "connecting": "Connexion…",
     "connect": "Connecter",
     "deviceFledglingOnlyTitle": "Fledgling uniquement",
-    "deviceFledglingOnlyDesc": "Les détails de l'appareil ne sont disponibles que pour le PerchWerks Fledgling. L'enregistreur connecté n'expose ni réglages, ni circuits, ni firmware ici."
+    "deviceFledglingOnlyDesc": "Les détails de l'appareil ne sont disponibles que pour le PerchWerks Fledgling. L'enregistreur connecté n'expose ni réglages, ni circuits, ni firmware ici.",
+    "scanning": "Recherche…",
+    "scanAgain": "Rechercher à nouveau",
+    "nativeNoDevices": "Aucun logger trouvé. Vérifiez que l'appareil est allumé et à proximité.",
+    "nativeConnectionBusy": "Le logger est utilisé par un écran de téléchargement — fermez-le d'abord.",
+    "nativeConnectFailed": "Échec de la connexion : {{error}}"
   },
   "files": {
     "cloudRowTitle": "{{name}} — dans le cloud, touchez pour télécharger",
@@ -270,7 +275,8 @@
     "toastReset": "Réglages réinitialisés — l'appareil redémarre",
     "toastResetFailed": "Échec de la réinitialisation : {{error}}",
     "readFailed": "Échec de la lecture des réglages",
-    "unknownError": "Erreur inconnue"
+    "unknownError": "Erreur inconnue",
+    "firmwareNativeHint": "Les mises à jour du firmware dans l'application se trouvent sur l'écran de téléchargement Fledgling (Télécharger depuis le logger)."
   },
   "firmware": {
     "readingVersion": "Lecture de la version…",

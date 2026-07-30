@@ -79,3 +79,74 @@ export async function loggerUpdateFirmware(
   channel.onmessage = onProgress;
   await invoke("logger_update_firmware", { image, onProgress: channel });
 }
+
+// --- Device tab (settings / tracks / battery) --------------------------------
+//
+// Fledgling-specific like the firmware command above: these back the native
+// `DeviceDetails` implementation (see `dovesloggerConnection.ts`). Older native
+// shells without these commands reject with an unknown-command error
+// (`isMissingCommandError`) or `unsupported:` — callers degrade gracefully.
+
+/** Battery reading reported by `logger_battery`. */
+export interface NativeBattery {
+  percent: number;
+  voltage: number;
+}
+
+/** Read the battery state of the connected logger. */
+export async function loggerBattery(): Promise<NativeBattery> {
+  const { invoke } = await api();
+  return invoke<NativeBattery>("logger_battery");
+}
+
+/** All device settings as key → value (both strings on the wire). */
+export async function loggerListSettings(): Promise<Record<string, string>> {
+  const { invoke } = await api();
+  return invoke<Record<string, string>>("logger_list_settings");
+}
+
+/** Write one device setting (the backend validates known keys first). */
+export async function loggerSetSetting(key: string, value: string): Promise<void> {
+  const { invoke } = await api();
+  await invoke("logger_set_setting", { key, value });
+}
+
+/**
+ * Factory-reset the device settings. On success the device REBOOTS and the
+ * backend drops its stored connection — treat the link as gone and return to
+ * the scan/connect screen.
+ */
+export async function loggerResetSettings(): Promise<void> {
+  const { invoke } = await api();
+  await invoke("logger_reset_settings");
+}
+
+/** List the track files stored on the device. */
+export async function loggerListTracks(): Promise<string[]> {
+  const { invoke } = await api();
+  return invoke<string[]>("logger_list_tracks");
+}
+
+/** Download one track file, streaming progress like `loggerDownloadFile`. */
+export async function loggerDownloadTrack(
+  name: string,
+  onProgress?: (p: DownloadProgress) => void,
+): Promise<Uint8Array> {
+  const { invoke, Channel } = await api();
+  const channel = new Channel<DownloadProgress>();
+  channel.onmessage = onProgress ?? (() => {});
+  const buf = await invoke<ArrayBuffer>("logger_download_track", { name, onProgress: channel });
+  return new Uint8Array(buf);
+}
+
+/** Upload a track file (small JSON documents — plain byte array over IPC). */
+export async function loggerUploadTrack(name: string, data: Uint8Array): Promise<void> {
+  const { invoke } = await api();
+  await invoke("logger_upload_track", { name, data });
+}
+
+/** Delete a track file by name. */
+export async function loggerDeleteTrack(name: string): Promise<void> {
+  const { invoke } = await api();
+  await invoke("logger_delete_track", { name });
+}
