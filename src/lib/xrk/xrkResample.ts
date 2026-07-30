@@ -55,6 +55,73 @@ function isQualityChannel(name: string): boolean {
   return QUALITY_CHANNELS.has(name.toLowerCase().replace(/[\s_]+/g, " ").trim());
 }
 
+// ─── Timecode repair (16-bit rollover decoder fault) ─────────────────────────
+//
+// Some Solo2 logs come out of the wasm with broken GPS timecodes: the decoder
+// mis-unwraps a 16-bit millisecond counter across interleaved sample blocks,
+// stamping rows with spurious ±k*65536ms offsets, out-of-order blocks, and
+// duplicated timestamps. A real 16-minute race then spans "64 hours", and
+// resampling against that clock EXTRAPOLATES other channels into fabricated
+// positions miles off track and impossible speeds (user-reported: a 735mph /
+// 134-mile Buttonwillow session whose native samples are all healthy and on
+// track). The values are real — only the clock is wrong.
+//
+// Repair (only for channels that provably exhibit the fault): remove the
+// spurious 65536ms multiples, order rows by their true recorded time, and skip
+// rows that still don't advance the clock. No values are altered or invented.
+
+const WRAP_MS = 65536;
+/** A fold only fires within this of an exact k*WRAP_MS — a real gap (pit
+ *  stop, logger pause) is nowhere near an exact 16-bit multiple and stays. */
+const WRAP_TOL_MS = 1000;
+
+function isWrapMultiple(delta: number): boolean {
+  const k = Math.round(delta / WRAP_MS);
+  return k !== 0 && Math.abs(delta - k * WRAP_MS) <= WRAP_TOL_MS;
+}
+
+/** True when the timecode stream shows the rollover fault: time running
+ *  backwards, or repeated deltas sitting exactly on 65536ms multiples. */
+function hasBrokenTimecodes(timecodes: number[]): boolean {
+  let wrapHits = 0;
+  for (let i = 1; i < timecodes.length; i++) {
+    const d = timecodes[i] - timecodes[i - 1];
+    if (d < 0) return true;
+    if (isWrapMultiple(d)) {
+      if (++wrapHits >= 3) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Rebuild a broken channel: unfold the spurious 65536ms offsets (tracking
+ * against the last true time, so out-of-order straggler rows resolve too),
+ * stable-sort rows by true time, and drop rows that don't advance the clock
+ * (two rows can't both be real at the same instant). Returns repaired copies.
+ */
+function repairTimecodes(timecodes: number[], values: number[]): { timecodes: number[]; values: number[] } {
+  const n = timecodes.length;
+  const trueT = new Float64Array(n);
+  trueT[0] = timecodes[0];
+  for (let i = 1; i < n; i++) {
+    const d = timecodes[i] - trueT[i - 1];
+    const k = Math.round(d / WRAP_MS);
+    trueT[i] = k !== 0 && Math.abs(d - k * WRAP_MS) <= WRAP_TOL_MS ? timecodes[i] - k * WRAP_MS : timecodes[i];
+  }
+  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => trueT[a] - trueT[b] || a - b);
+  const outT: number[] = [];
+  const outV: number[] = [];
+  let last = -Infinity;
+  for (const i of order) {
+    if (trueT[i] <= last) continue;
+    last = trueT[i];
+    outT.push(trueT[i]);
+    outV.push(values[i]);
+  }
+  return { timecodes: outT, values: outV };
+}
+
 /**
  * Choose the target timebase: the GPS fix timecodes when available (so every row
  * is one GPS fix, matching the app's model), else the longest channel.
@@ -94,7 +161,9 @@ function interpolateOnto(
     }
     while (k + 1 < n && xp[k + 1] < t) k++;
     const span = xp[k + 1] - xp[k];
-    const frac = span > 0 ? (t - xp[k]) / span : 0;
+    // Clamp to [0,1]: interpolation must never extrapolate, whatever the
+    // input ordering — out-of-range fractions fabricate data.
+    const frac = span > 0 ? Math.min(1, Math.max(0, (t - xp[k]) / span)) : 0;
     out[i] = fp[k] + frac * (fp[k + 1] - fp[k]);
   }
 }
@@ -150,10 +219,20 @@ function forwardFillOnto(
  * samples are dropped.
  */
 export function wasmResultToRaw(result: XrkWasmResult): XrkRawResult {
-  const target = pickTimebase(result.channels);
+  // Repair any channel whose timecodes exhibit the 16-bit rollover fault
+  // BEFORE resampling — every fill mode below assumes an ascending clock, and
+  // resampling against a broken one fabricates data.
+  const repaired = result.channels.map((c) => {
+    if (c.timecodes.length === 0 || c.values.length !== c.timecodes.length) return c;
+    if (!hasBrokenTimecodes(c.timecodes)) return c;
+    const fixed = repairTimecodes(c.timecodes, c.values);
+    return { ...c, timecodes: fixed.timecodes, values: fixed.values };
+  });
+
+  const target = pickTimebase(repaired);
   const timecodes = Float64Array.from(target);
 
-  const channels = result.channels
+  const channels = repaired
     .filter((c) => c.timecodes.length > 0 && c.values.length === c.timecodes.length)
     .map((c) => {
       const out = new Float64Array(target.length);

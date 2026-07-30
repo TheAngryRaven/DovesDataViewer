@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
   `.xrk` imports already carried.
 
+### Fixed
+- **Solo 2 `.xrk` logs with broken timecodes now load correctly.** Some Solo 2
+  files decode with a 16-bit rollover fault: rows stamped with spurious
+  ±65536 ms offsets, shuffled blocks, and duplicated timestamps, making a
+  16-minute race span "64 hours". Resampling against that clock fabricated
+  positions miles off track and impossible speeds (the user-reported 735 mph /
+  134-mile Buttonwillow session — whose actual GPS data is healthy and
+  entirely on track). The importer now detects the fault, removes the
+  spurious offsets, orders rows by their true recorded time, and skips rows
+  that don't advance the clock; the false "99% packets dropped" reading this
+  caused is gone too. Healthy files are untouched.
+
 ### Changed
 - **AiM `.xrk` quality channels are never fabricated.** Satellite counts,
   position/speed accuracy, and DOP now appear on a row only when the logger

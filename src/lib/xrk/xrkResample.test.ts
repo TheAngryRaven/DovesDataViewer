@@ -145,3 +145,55 @@ describe("wasmResultToRaw — quality channels", () => {
     expect(Array.from(raw.channels.find((c) => c.name === "GPS Speed")!.values)).toEqual([0, 20, 40]);
   });
 });
+
+// ─── Timecode repair: 16-bit rollover decoder fault (plan 0014) ───────────────
+//
+// Some Solo2 logs decode with spurious ±k*65536ms timecode offsets, shuffled
+// blocks, and duplicated timestamps (a 16-min race spanning "64 hours").
+// Resampling against that clock extrapolated other channels into fabricated
+// positions miles off track. The repair unfolds the offsets, orders rows by
+// true time, and skips rows that don't advance the clock — values untouched.
+
+describe("wasmResultToRaw — broken timecode repair", () => {
+  it("unfolds 65536ms offsets, restores order, and drops duplicate instants", () => {
+    // True clock: 0,40,80,120,160,200,240. The decoder stamped rows 3-4 with
+    // +65536, row 6 with +2*65536, and duplicated row 6's instant on row 7.
+    const raw = wasmResultToRaw(
+      wasm([
+        {
+          name: "GPS Latitude", units: "deg", interpolate: true,
+          timecodes: [0, 40, 80, 65656, 65696, 200, 131312, 131312],
+          values: [1, 2, 3, 4, 5, 6, 7, 8],
+        },
+      ]),
+    );
+    expect(Array.from(raw.timecodes)).toEqual([0, 40, 80, 120, 160, 200, 240]);
+    expect(Array.from(raw.channels[0].values)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it("repairs every broken channel consistently so cross-channel alignment survives", () => {
+    const broken = [0, 40, 80, 65656, 65696, 200, 131312, 131312];
+    const raw = wasmResultToRaw(
+      wasm([
+        { name: "GPS Latitude", units: "deg", interpolate: true, timecodes: [...broken], values: [1, 2, 3, 4, 5, 6, 7, 8] },
+        { name: "GPS Nsat", units: "", interpolate: true, timecodes: [...broken], values: [11, 12, 13, 14, 15, 16, 17, 18] },
+      ]),
+    );
+    // Quality channel exact-matches the repaired timebase row-for-row.
+    expect(Array.from(raw.channels.find((c) => c.name === "GPS Nsat")!.values)).toEqual([11, 12, 13, 14, 15, 16, 17]);
+  });
+
+  it("leaves a healthy channel with a genuine long recording gap untouched", () => {
+    // A real 2-minute pit gap is nowhere near an exact 65536 multiple.
+    const raw = wasmResultToRaw(
+      wasm([
+        {
+          name: "GPS Latitude", units: "deg", interpolate: true,
+          timecodes: [0, 40, 80, 120080, 120120],
+          values: [1, 2, 3, 4, 5],
+        },
+      ]),
+    );
+    expect(Array.from(raw.timecodes)).toEqual([0, 40, 80, 120080, 120120]);
+  });
+});

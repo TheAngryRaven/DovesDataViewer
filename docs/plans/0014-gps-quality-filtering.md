@@ -66,6 +66,33 @@ carries a signal under a new name):
 - position accuracy → `h_acc` (canonical) + `custom:gps_posaccuracy` /
   `gps_pos_accuracy` / `gps_position_accuracy` (covers MyChron/Solo2 spellings)
 
+### The actual root cause in the reported file: broken timecodes
+
+With the user's `.xrk` in hand, the "bad GPS" theory collapsed: **every native
+GPS sample in the file is healthy** — all 48k positions inside a ~1 km box at
+the track, 8–16 sats, pDOP ≤ 2.1, accuracy ≤ 0.77 m, speed ≤ 110 mph. What's
+corrupt is the **clock**: the wasm decoder mis-unwraps a 16-bit millisecond
+counter across interleaved sample blocks, stamping rows with spurious
+±k*65536 ms offsets, out-of-order blocks, and duplicated timestamps — a
+16-minute race spanning "64 hours". Resampling other channels against that
+non-monotonic clock *extrapolated* them (`interpolateOnto`'s unclamped
+fraction), fabricating positions miles off track (the map spikes), 735 mph
+speeds (native max: 110), and the impossible interpolated quality values.
+The "99.4% packets dropped" banner was the same artifact (25 Hz × 64 h).
+
+**Repair** (`xrkResample.ts`, applied per channel ONLY when the fault is
+provable — time running backwards, or ≥3 deltas sitting within 1 s of an
+exact 65536 multiple; a real pit-stop gap is nowhere near one):
+unfold the spurious multiples (tracked against the last true time so
+straggler rows resolve), stable-sort rows by true time, skip rows that don't
+advance the clock. Values are never altered or invented. `interpolateOnto`
+additionally clamps its fraction to [0,1] so it can never extrapolate again.
+
+Verified against the reported file: duration 64 h → 20 min, zero samples off
+track, zero inter-sample jumps > 500 m, max speed 110.2 mph (= native max),
+monotonic time; the remaining interleave stragglers are culled by the
+position-jump rule below.
+
 ### Supporting changes
 
 - `xrk/xrkResample.ts`: quality channels are **never fabricated** — a row
