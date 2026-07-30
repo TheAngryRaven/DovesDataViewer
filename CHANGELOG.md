@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [Unreleased]
+
+### Fixed
+- **Auth emails from the Android app now link to lapwingdata.com.** Inside the
+  native WebView, `window.location.origin` is the shell's synthetic
+  `http://tauri.localhost`, so registration-confirmation and password-reset
+  emails carried dead redirect links. On native those redirects now point at
+  the canonical site, and the Register/Forgot-Password success messages tell
+  the user to confirm via the email link in their browser, then return to the
+  app and sign in.
+- **Login no longer fails on a rate-check outage.** If the `check-login-rate`
+  pre-check itself errors (network, function down), the sign-in attempt now
+  proceeds (fail open) instead of showing a generic error; a genuine
+  rate-limit rejection still blocks with its message.
+
 ## [3.2.0] - 2026-07-28
 
 ### Added

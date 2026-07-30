@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { authRedirectOrigin } from '@/lib/platform';
 import type { User, Session } from '@supabase/supabase-js';
 
 export interface AuthStateListeners {
@@ -105,7 +106,7 @@ export async function logout(): Promise<void> {
 
 export async function resetPassword(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + '/reset-password',
+    redirectTo: authRedirectOrigin() + '/reset-password',
   });
   return { error };
 }
@@ -116,7 +117,7 @@ export async function signUp(email: string, password: string, displayName?: stri
     email,
     password,
     options: {
-      emailRedirectTo: window.location.origin + '/auth/callback',
+      emailRedirectTo: authRedirectOrigin() + '/auth/callback',
       // Picked up by the handle_new_user trigger; blank → a random name is
       // generated server-side. A taken name is auto-suffixed there too.
       data: trimmed ? { display_name: trimmed } : {},

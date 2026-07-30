@@ -3,6 +3,7 @@ import {
   isTauri,
   isNativeBuild,
   isNativeApp,
+  authRedirectOrigin,
   openExternal,
   interceptExternal,
   type NativeBridge,
@@ -46,6 +47,21 @@ describe("isNativeApp", () => {
   });
   it("is false on the plain web (no flag, no runtime)", () => {
     expect(isNativeApp({ VITE_IS_NATIVE: "false" }, fakeWindow())).toBe(false);
+  });
+});
+
+describe("authRedirectOrigin", () => {
+  const webWindow = () => fakeWindow({ location: { origin: "https://preview.example.com" } as Location });
+
+  it("is the canonical site for a native build (the WebView origin would break emailed links)", () => {
+    expect(authRedirectOrigin({ VITE_IS_NATIVE: "true" }, webWindow())).toBe("https://lapwingdata.com");
+  });
+  it("is the canonical site inside a Tauri runtime", () => {
+    const w = fakeWindow({ __TAURI_INTERNALS__: {}, location: { origin: "http://tauri.localhost" } as Location });
+    expect(authRedirectOrigin({ VITE_IS_NATIVE: "false" }, w)).toBe("https://lapwingdata.com");
+  });
+  it("is the current origin on the plain web", () => {
+    expect(authRedirectOrigin({ VITE_IS_NATIVE: "false" }, webWindow())).toBe("https://preview.example.com");
   });
 });
 
