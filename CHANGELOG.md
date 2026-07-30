@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [3.2.1] - unreleased
+
+### Fixed
+- **VBO files without a sats column no longer render as a straight line.**
+  A user-reported .vbo whose data rows start with `time` (no leading satellite
+  count) had every channel read one column off — latitude got the longitude
+  column, longitude got velocity, velocity got heading — producing a straight
+  speed-driven streak, a 100k+ "satellite count", and a near-zero session
+  duration. The parser now verifies the column mapping against the data shape
+  (a genuine sats column is a small integer, never a packed HHMMSS.SS time)
+  and realigns before parsing.
+
 ## [3.2.0] - 2026-07-28
 
 ### Added
