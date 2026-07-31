@@ -11,10 +11,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [3.2.1] - unreleased
+## [3.3.0] - unreleased
+
+### Added
+- **Bad GPS rows are dropped on load, for every file format.** The datalog is
+  rebuilt into a clean dataset as it loads: any row with a negative satellite
+  count, negative accuracy, or negative DOP (values that can never go
+  negative — that row is provably garbage), a DOP above 10, or a position
+  that implies moving faster than ~335 mph from the previous kept row (a GPS
+  glitch no ground vehicle can produce — catches corrupt fixes that carry no
+  quality data at all) is skipped before anything downstream sees it, so a
+  poor-signal session no longer corrupts the race line, lap detection,
+  distance, or speed stats (user-reported: a low-signal Solo 2 session showed
+  a 735 mph top speed and a 134-mile race line). Dropped rows are counted on
+  the map's rejected-rows badge (`bad-fix` / `teleport`).
+- **AiM quality channels on the charts.** AiM CSV imports now expose
+  `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
+  `.xrk` imports already carried.
+- **Real GPS heading for `.xrk` imports.** The decoder now exports the
+  receiver's course over ground (derived from its velocity vector), so the
+  map's direction arrow no longer falls back to noisy position-difference
+  bearings that pointed in random directions at low speed.
 
 ### Fixed
-- **VBO files without a sats column no longer render as a straight line.**
+- **Solo 2 `.xrk` logs with corrupt GPS timecodes now decode correctly.**
+  Newer Solo 2 firmware writes GPS records with jittered logger timestamps
+  and every epoch duplicated (two position solutions ~4 m apart); the
+  bundled libxrk decoder misread the jitter as thousands of 16-bit clock
+  rollovers, stretching a 16-minute race into "64 hours", weaving a ~4 m
+  square-wave through the track line, and (via resampling against that
+  clock) fabricating positions miles off track, 735 mph speeds, and a false
+  "99% packets dropped" reading — while the file's actual GPS data is
+  healthy and centimeter-smooth (RaceStudio shows it perfectly). The fix
+  lands in our libxrk fork's decoder: it rebuilds the GPS timeline from the
+  receiver's own clock (the NAV-SOL `itow` field, which the logger bug
+  cannot touch), keeps one record per epoch, and matches RaceStudio's
+  output (verified: same lap times, 18.99 mi vs the previous 95 mi
+  polyline). The importer additionally keeps a downstream safety net that
+  detects and repairs broken timecodes, orders rows by true recorded time,
+  and skips rows that don't advance the clock. Healthy files decode
+  byte-identically.
+ 
+ - **VBO files without a sats column no longer render as a straight line.**
   A user-reported .vbo whose data rows start with `time` (no leading satellite
   count) had every channel read one column off — latitude got the longitude
   column, longitude got velocity, velocity got heading — producing a straight
@@ -22,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   duration. The parser now verifies the column mapping against the data shape
   (a genuine sats column is a small integer, never a packed HHMMSS.SS time)
   and realigns before parsing.
+
+### Changed
+- **AiM `.xrk` quality channels are never fabricated.** Satellite counts,
+  position/speed accuracy, and DOP now appear on a row only when the logger
+  actually recorded them at that row's timestamp — no interpolation (which
+  invented impossible values like "-1597 satellites" in tooltips) and no
+  filling (which dressed garbage rows up with a neighbor's healthy readings
+  and hid them from the cleanup).
 
 ## [3.2.0] - 2026-07-28
 

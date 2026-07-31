@@ -844,6 +844,7 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
             const r = parserStats.rejected;
             const totalRejected = parserStats.totalRows - parserStats.acceptedRows;
             const reasons: string[] = [];
+            if ((r.lowQuality ?? 0) > 0) reasons.push(`${r.lowQuality} ${t('map.reasonLowQuality')}`);
             if (r.teleportation > 0) reasons.push(`${r.teleportation} ${t('map.reasonTeleport')}`);
             if (r.nanFields > 0) reasons.push(`${r.nanFields} ${t('map.reasonNan')}`);
             if (r.zeroCoords > 0) reasons.push(`${r.zeroCoords} ${t('map.reasonZeroCoord')}`);
