@@ -104,8 +104,6 @@
     "trigger": "File supportati",
     "title": "Formati di file supportati",
     "description": "Tutta l'analisi viene eseguita localmente nel tuo browser: nulla viene caricato.",
-    "experimental": "Sperimentale",
-    "validated": "Validato",
     "primary": {
       "dovex": {
         "name": "Dovex (Dove esteso)",
@@ -119,9 +117,13 @@
         "name": "Telemetria iRacing (binario)",
         "body": "Esportazione di telemetria binaria nativa di iRacing — gli stessi dati che l'API irsdk live del simulatore fornisce, senza conversioni CSV/MoTeC di terze parti. Letta direttamente nel tuo browser (completamente offline): posizione GPS, velocità e altitudine alimentano mappa e giri, insieme ad acceleratore, freno, marcia, sterzo, RPM, temperatura acqua/olio e g laterale/longitudinale nativa. Estensione: <code>.ibt</code>"
       },
-      "nmea": {
-        "name": "NMEA / CSV (delimitato da tabulazioni)",
-        "body": "CSV delimitato da tabulazioni con frasi NMEA — il formato legacy usato dai nostri precedenti datalogger personalizzati. Estensioni: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
+      "motecLd": {
+        "name": "MoTeC LD binario",
+        "body": "Dati binari dai logger MoTeC e dalle esportazioni di sim racing (ACC, iRacing, ecc.). Estensione: <code>.ld</code>"
+      },
+      "vbo": {
+        "name": "Racelogic VBO",
+        "body": "Formato di esportazione Racelogic VBOX e RaceBox. Estensione: <code>.vbo</code>"
       }
     },
     "secondary": {
@@ -129,13 +131,9 @@
         "name": "u-blox UBX binario",
         "body": "Messaggi binari NAV-PVT dai ricevitori GPS u-blox. Estensione: <code>.ubx</code>"
       },
-      "vbo": {
-        "name": "Racelogic VBO",
-        "body": "Formato di esportazione Racelogic VBOX e RaceBox. Estensione: <code>.vbo</code>"
-      },
-      "motecLd": {
-        "name": "MoTeC LD binario",
-        "body": "Dati binari dai logger MoTeC e dalle esportazioni di sim racing (ACC, iRacing, ecc.). Estensione: <code>.ld</code>"
+      "nmea": {
+        "name": "NMEA / CSV (delimitato da tabulazioni)",
+        "body": "CSV delimitato da tabulazioni con frasi NMEA — il formato legacy usato dai nostri precedenti datalogger personalizzati. Estensioni: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
       },
       "motecCsv": {
         "name": "MoTeC CSV",

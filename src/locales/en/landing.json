@@ -180,8 +180,6 @@
     "trigger": "Supported Files",
     "title": "Supported File Formats",
     "description": "All parsing is done locally in your browser — nothing is uploaded.",
-    "experimental": "Experimental",
-    "validated": "Validated",
     "primary": {
       "dovex": {
         "name": "Dovex (Extended Dove)",
@@ -195,9 +193,13 @@
         "name": "iRacing Telemetry (Binary)",
         "body": "iRacing's native binary telemetry export — the same data the sim's live irsdk API serves, no third-party CSV/MoTeC conversion needed. Read directly in your browser (fully offline): GPS position, speed and altitude drive the map and laps, with throttle, brake, gear, steering, RPM, water/oil temp and native lateral/longitudinal g along for the ride. Extension: <code>.ibt</code>"
       },
-      "nmea": {
-        "name": "NMEA / CSV (Tab-Delimited)",
-        "body": "Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
+      "motecLd": {
+        "name": "MoTeC LD Binary",
+        "body": "Binary data from MoTeC data loggers and sim racing exports (ACC, iRacing, etc.). Extension: <code>.ld</code>"
+      },
+      "vbo": {
+        "name": "Racelogic VBO",
+        "body": "Racelogic VBOX and RaceBox export format. Extension: <code>.vbo</code>"
       }
     },
     "secondary": {
@@ -205,13 +207,9 @@
         "name": "u-blox UBX Binary",
         "body": "Binary NAV-PVT messages from u-blox GPS receivers. Extension: <code>.ubx</code>"
       },
-      "vbo": {
-        "name": "Racelogic VBO",
-        "body": "Racelogic VBOX and RaceBox export format. Extension: <code>.vbo</code>"
-      },
-      "motecLd": {
-        "name": "MoTeC LD Binary",
-        "body": "Binary data from MoTeC data loggers and sim racing exports (ACC, iRacing, etc.). Extension: <code>.ld</code>"
+      "nmea": {
+        "name": "NMEA / CSV (Tab-Delimited)",
+        "body": "Tab-delimited CSV with NMEA sentences — the legacy format used by our earlier custom dataloggers. Extensions: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
       },
       "motecCsv": {
         "name": "MoTeC CSV",
