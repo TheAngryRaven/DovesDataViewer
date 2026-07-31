@@ -85,6 +85,7 @@ pub fn parse_xrk(data: &[u8]) -> Result<JsValue, JsValue> {
         push("GPS Latitude", "deg", g.latitude.clone());
         push("GPS Longitude", "deg", g.longitude.clone());
         push("GPS Speed", "m/s", g.speed.clone());
+        push("GPS Heading", "deg", g.heading.clone());
         push("GPS Altitude", "m", g.altitude.clone());
         push("GPS_Satellites", "", g.satellites.iter().map(|&x| x as f64).collect());
         push("GPS_pDOP", "", g.pdop.iter().map(|&x| x as f64).collect());

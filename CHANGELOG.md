@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AiM quality channels on the charts.** AiM CSV imports now expose
   `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
   `.xrk` imports already carried.
+- **Real GPS heading for `.xrk` imports.** The decoder now exports the
+  receiver's course over ground (derived from its velocity vector), so the
+  map's direction arrow no longer falls back to noisy position-difference
+  bearings that pointed in random directions at low speed.
 
 ### Fixed
 - **Solo 2 `.xrk` logs with corrupt GPS timecodes now decode correctly.**
