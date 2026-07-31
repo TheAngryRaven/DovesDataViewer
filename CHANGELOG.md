@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [3.3.0] - unreleased
+## [3.3.0] - 2026-07-31
 
 ### Added
 - **Bad GPS rows are dropped on load, for every file format.** The datalog is
@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AiM quality channels on the charts.** AiM CSV imports now expose
   `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
   `.xrk` imports already carried.
+- **Supported Files refresh.** Every listed format is now backed by automated
+  parser tests — several verified end-to-end against full real user-shared
+  sessions committed as regression fixtures (RaceBox and VBOX `.vbo`, an
+  Alfano 6 ADA export, a RaceStudio 3 CSV, and the corrupt-timecode Solo 2
+  `.xrk`) — so the "Experimental" labels are gone. Racelogic VBO and MoTeC
+  binary move up into the featured group, and the legacy Dove CSV entry is
+  retired from the list (the format still imports fine — it just doesn't
+  need advertising).
 - **Real GPS heading for `.xrk` imports.** The decoder now exports the
   receiver's course over ground (derived from its velocity vector), so the
   map's direction arrow no longer falls back to noisy position-difference
@@ -51,8 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   detects and repairs broken timecodes, orders rows by true recorded time,
   and skips rows that don't advance the clock. Healthy files decode
   byte-identically.
- 
- - **VBO files without a sats column no longer render as a straight line.**
+- **VBO files without a sats column no longer render as a straight line.**
   A user-reported .vbo whose data rows start with `time` (no leading satellite
   count) had every channel read one column off — latitude got the longitude
   column, longitude got velocity, velocity got heading — producing a straight

@@ -7,6 +7,8 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   isAlfanoFormat,
   parseAlfanoFile,
@@ -14,6 +16,7 @@ import {
   detectAlfanoDecimalComma,
   parseAlfanoNumber,
 } from "./alfanoParser";
+import { parseDatalogContent } from "./datalogParser";
 
 // ─── Synthetic fixtures ─────────────────────────────────────────────────────
 
@@ -312,5 +315,42 @@ describe("detectAlfanoTimeMultiplier", () => {
   it("falls back to seconds for empty or constant columns", () => {
     expect(detectAlfanoTimeMultiplier([])).toBe(1000);
     expect(detectAlfanoTimeMultiplier([5, 5, 5])).toBe(1000);
+  });
+});
+
+// ─── Real validated fixture (user-supplied session) ───────────────────────────
+//
+// Full real Alfano 6 ADA "classic Excel" export (Martensville Speedway),
+// shared by the reporting user as a validation fixture. Exercises the whole
+// ADA layout end-to-end: Absolute Time timeline, locale grouping separators,
+// centidegree Orientation, Lat./Lon. columns.
+
+describe("real Alfano 6 ADA export (Martensville)", () => {
+  const content = readFileSync(
+    resolve(__dirname, "__fixtures__/alfano6-ada-martensville.csv"),
+    "utf-8",
+  );
+
+  it("is detected as Alfano", () => {
+    expect(isAlfanoFormat(content)).toBe(true);
+  });
+
+  it("parses the full session end-to-end through the router", () => {
+    const parsed = parseDatalogContent(content);
+    expect(parsed.samples).toHaveLength(61390);
+    expect(parsed.duration / 1000).toBeCloseTo(614.1, 0);
+    // Martensville Speedway box
+    expect(parsed.bounds.minLat).toBeGreaterThan(52.29);
+    expect(parsed.bounds.maxLat).toBeLessThan(52.31);
+    expect(parsed.bounds.minLon).toBeGreaterThan(-106.66);
+    expect(parsed.bounds.maxLon).toBeLessThan(-106.64);
+    // Locale grouping separators: "4,120" must parse as 4120, never 4.12 or
+    // 4120000 — the session's RPM stays in kart range.
+    const rpms = parsed.samples
+      .map((s) => s.extraFields["rpm"])
+      .filter((v): v is number => v !== undefined);
+    expect(Math.max(...rpms)).toBe(5999);
+    const maxMph = Math.max(...parsed.samples.map((s) => s.speedMph));
+    expect(maxMph).toBeLessThan(60);
   });
 });
