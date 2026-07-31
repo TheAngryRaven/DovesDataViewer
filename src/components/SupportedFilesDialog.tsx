@@ -12,13 +12,14 @@ const LIBXRK_URL = "https://github.com/m3rlin45/libxrk";
 // Format ids in display order; their name/body text lives in the `landing`
 // locale (supportedFiles.primary.<id> / .secondary.<id>). Format names,
 // extensions and brand/library links stay literal inside the locale strings.
-const PRIMARY_IDS = ["dove", "dovex", "xrk", "iracing", "nmea"] as const;
+const PRIMARY_IDS = ["dovex", "xrk", "iracing", "nmea"] as const;
 const SECONDARY_IDS = ["ubx", "vbo", "motecLd", "motecCsv", "alfano", "aimCsv"] as const;
 const EXPERIMENTAL = new Set(["motecLd", "motecCsv"]);
-// Verified end-to-end against full real user-supplied sessions committed as
-// test fixtures (see src/lib/__fixtures__/): RaceBox+VBOX .vbo, Alfano 6 ADA
-// export, RaceStudio 3 CSV.
-const VALIDATED = new Set(["vbo", "alfano", "aimCsv"]);
+// Formats with automated parser test coverage (several against full real
+// user-supplied sessions committed as fixtures — see src/lib/__fixtures__/).
+// Every listed format currently qualifies; a newly added format stays off
+// this list until its Vitest suite lands.
+const VALIDATED = new Set([...PRIMARY_IDS, ...SECONDARY_IDS]);
 
 // Shared rich-text components for the format bodies. `<Trans>` only uses the
 // tags a given string references, so one map covers every format.
@@ -51,7 +52,14 @@ export function SupportedFilesDialog() {
         <div className="space-y-3 text-sm">
           {PRIMARY_IDS.map((id) => (
             <div key={id} className="p-3 rounded-md border border-primary/30 bg-primary/5">
-              <p className="font-semibold text-foreground">{t(`supportedFiles.primary.${id}.name`)}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-foreground">{t(`supportedFiles.primary.${id}.name`)}</p>
+                {VALIDATED.has(id) && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">
+                    {t("supportedFiles.validated")}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
                 <Trans t={t} i18nKey={`supportedFiles.primary.${id}.body`} components={FORMAT_COMPONENTS} />
               </p>

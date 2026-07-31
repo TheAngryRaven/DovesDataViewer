@@ -107,10 +107,6 @@
     "experimental": "実験的",
     "validated": "検証済み",
     "primary": {
-      "dove": {
-        "name": "Dove CSV",
-        "body": "ミリ秒の Unix タイムスタンプ、GPS データ、RPM、ハードウェア加速度センサーの値を含むシンプルな CSV。<logger>DovesDataLogger</logger> のネイティブ形式です。拡張子: <code>.dove</code>"
-      },
       "dovex": {
         "name": "Dovex（拡張 Dove）",
         "body": "セッション情報（ドライバー、コース、ラップタイム）を含む4096バイトのメタデータヘッダーに、標準的な Dove CSV の GPS データが続く拡張 Dove 形式。拡張子: <code>.dovex</code>"

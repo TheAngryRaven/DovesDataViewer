@@ -107,10 +107,6 @@
     "experimental": "Sperimentale",
     "validated": "Validato",
     "primary": {
-      "dove": {
-        "name": "Dove CSV",
-        "body": "CSV semplice con timestamp Unix in millisecondi, dati GPS, RPM e letture dell'accelerometro hardware. Il formato nativo di <logger>DovesDataLogger</logger>. Estensione: <code>.dove</code>"
-      },
       "dovex": {
         "name": "Dovex (Dove esteso)",
         "body": "Formato Dove esteso con un'intestazione di metadati di 4096 byte contenente le info di sessione (pilota, circuito, tempi sul giro) seguita da dati GPS in CSV Dove standard. Estensione: <code>.dovex</code>"
