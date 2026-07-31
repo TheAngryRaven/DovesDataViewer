@@ -1,5 +1,6 @@
 import { ParsedData } from '@/types/racing';
 import { normalizeChannels } from './channels';
+import { filterGpsQuality } from './gpsQualityFilter';
 import { parseDatalog } from './nmeaParser';
 import { parseUbxFile, isUbxFormat } from './ubxParser';
 import { parseVboFile, isVboFormat } from './vboParser';
@@ -41,11 +42,13 @@ export async function parseDatalogFile(
 ): Promise<ParsedData> {
   beginFileLoading("Loading telemetry…");
   try {
-    return normalizeChannels(
-      await routeDatalogFile(file, (progress) => {
-        updateFileLoading(progress.message);
-        onProgress?.(progress);
-      }),
+    return filterGpsQuality(
+      normalizeChannels(
+        await routeDatalogFile(file, (progress) => {
+          updateFileLoading(progress.message);
+          onProgress?.(progress);
+        }),
+      ),
     );
   } finally {
     endFileLoading();
@@ -56,7 +59,7 @@ export async function parseDatalogFile(
  * Parse from raw content (for when you already have the data loaded).
  */
 export function parseDatalogContent(content: string | ArrayBuffer): ParsedData {
-  return normalizeChannels(routeDatalogContent(content));
+  return filterGpsQuality(normalizeChannels(routeDatalogContent(content)));
 }
 
 async function routeDatalogFile(

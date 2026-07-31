@@ -92,3 +92,46 @@ describe("XRK parse (real fixture, wasm)", () => {
     expect(Object.keys(first).length).toBeGreaterThan(0);
   });
 });
+
+// ─── Solo 2 timecode-corruption regression (real fixture, wasm) ───────────────
+//
+// `__fixtures__/solo2-buttonwillow.xrk` — a full real Solo 2 motorcycle race
+// session (May 2026) whose GPS records carry the newer-firmware timecode
+// corruption: jittered logger timestamps and every epoch written twice. Shared
+// by the reporting user specifically as a validation fixture. Before the libxrk
+// timecode fix this decoded as a "64-hour" session with positions miles off
+// track and 735 mph speeds; it must now decode to RaceStudio-identical output.
+
+describe("XRK parse (Solo 2 corrupt-timecode fixture, wasm)", () => {
+  let parsed: ParsedData;
+
+  beforeAll(async () => {
+    const wasmBytes = readFileSync(resolve(here, "wasm/xrk_wasm_bg.wasm"));
+    await init({ module_or_path: wasmBytes });
+    const fileBytes = readFileSync(resolve(here, "__fixtures__/solo2-buttonwillow.xrk"));
+    const wasmResult = parse_xrk(new Uint8Array(fileBytes)) as XrkWasmResult;
+    parsed = mapXrkToParsedData(wasmResultToRaw(wasmResult), "solo2-buttonwillow.xrk");
+  });
+
+  it("recovers the true 16-minute timeline (one record per GPS epoch)", () => {
+    expect(parsed.samples).toHaveLength(24309);
+    expect(parsed.duration / 1000).toBeCloseTo(971.7, 0);
+    for (let i = 1; i < parsed.samples.length; i++) {
+      expect(parsed.samples[i].t).toBeGreaterThan(parsed.samples[i - 1].t);
+    }
+  });
+
+  it("keeps every position inside the Buttonwillow track box", () => {
+    expect(parsed.bounds.minLat).toBeGreaterThan(35.48);
+    expect(parsed.bounds.maxLat).toBeLessThan(35.50);
+    expect(parsed.bounds.minLon).toBeGreaterThan(-119.56);
+    expect(parsed.bounds.maxLon).toBeLessThan(-119.53);
+  });
+
+  it("reports sane speeds and a receiver-derived heading on every sample", () => {
+    const maxMph = Math.max(...parsed.samples.map((s) => s.speedMph));
+    expect(maxMph).toBeGreaterThan(100);
+    expect(maxMph).toBeLessThan(112); // native max 110.2 — never 735 again
+    expect(parsed.samples.every((s) => s.heading !== undefined && s.heading >= 0 && s.heading < 360)).toBe(true);
+  });
+});

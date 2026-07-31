@@ -142,7 +142,8 @@
     "reasonZeroCoord": "zero-coord",
     "reasonOor": "OOR",
     "reasonSpeedCap": "speed-cap",
-    "reasonShortRow": "short-row"
+    "reasonShortRow": "short-row",
+    "reasonLowQuality": "bad-fix"
   },
   "stats": {
     "lapTime": "Lap Time",

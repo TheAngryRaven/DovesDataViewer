@@ -145,6 +145,75 @@ describe("parseVboFile", () => {
   });
 });
 
+// ─── Shifted mapping: data rows missing the declared sats column ────────────
+//
+// User-reported (lignano.vbo): a VBO whose data rows start with `time` while
+// the mapping expects `sats` first. Every channel shifted one slot — sats read
+// packed time (satellite count "113457"), time read latitude (constant → 0s
+// duration), lat read longitude, lon read velocity — so the session rendered
+// as a straight horizontal line whose length tracked speed, with "velocity"
+// coming from the heading column (~350 km/h peaks). The parser must realign
+// from the data shape.
+
+describe("parseVboFile with a sats-shifted layout", () => {
+  // Lignano-ish coordinates in Racelogic decimal minutes, longitude
+  // positive-west (13.135°E → -00788.1'): time lat long velocity heading height
+  const shiftedRows = [
+    "113457.20 +02742.12000 -00788.10000 060.123 091.97 +0149.81",
+    "113457.30 +02742.12100 -00788.10100 061.450 092.10 +0149.85",
+    "113457.40 +02742.12200 -00788.10200 062.780 092.25 +0149.90",
+  ];
+
+  const withNames = [
+    "[column names]",
+    "sats time lat long velocity heading height",
+    "",
+    "[data]",
+    ...shiftedRows,
+  ].join("\n");
+
+  const withoutNames = ["[data]", ...shiftedRows].join("\n");
+
+  it("realigns when [column names] declares a sats column the data lacks", () => {
+    const parsed = parseVboFile(withNames);
+    expect(parsed.samples).toHaveLength(3);
+    expect(parsed.samples[0].lat).toBeCloseTo(2742.12 / 60, 5); // 45.702°N
+    expect(parsed.samples[0].lon).toBeCloseTo(788.1 / 60, 5); // 13.135°E
+  });
+
+  it("realigns when the positional fallback assumes a sats-first layout", () => {
+    const parsed = parseVboFile(withoutNames);
+    expect(parsed.samples).toHaveLength(3);
+    expect(parsed.samples[0].lat).toBeCloseTo(2742.12 / 60, 5);
+    expect(parsed.samples[0].lon).toBeCloseTo(788.1 / 60, 5);
+  });
+
+  it("reads time from the realigned column (10 Hz, first sample t=0)", () => {
+    const ts = parseVboFile(withNames).samples.map((s) => s.t);
+    expect(ts[0]).toBe(0);
+    expect(ts[1]).toBeCloseTo(100, 3);
+    expect(ts[2]).toBeCloseTo(200, 3);
+  });
+
+  it("reads velocity and heading from their realigned columns", () => {
+    const s = parseVboFile(withNames).samples[0];
+    expect(s.speedKph).toBeCloseTo(60.123, 3); // not 91.97 (heading)
+    expect(s.heading).toBeCloseTo(91.97, 2);
+    expect(s.extraFields["Altitude (m)"]).toBeCloseTo(149.81, 2);
+  });
+
+  it("drops the phantom Satellites mapping instead of reporting time as a sat count", () => {
+    const names = parseVboFile(withNames).fieldMappings.map((m) => m.name);
+    expect(names).not.toContain("Satellites");
+  });
+
+  it("leaves a genuine sats-first file untouched", () => {
+    const parsed = parseVboFile(makeVbo(4));
+    expect(parsed.samples[0].extraFields["Satellites"]).toBe(12);
+    expect(parsed.samples[0].lat).toBeCloseTo(28.401, 5);
+  });
+});
+
 // ─── parseVboTime (UTC packed HHMMSS.SS) ────────────────────────────────────
 
 describe("parseVboTime", () => {
@@ -281,5 +350,52 @@ describe("Racelogic-format VBO fixture", () => {
     expect(s.speedKph).toBeCloseTo(60.123, 3);
     expect(s.heading).toBeCloseTo(91.97, 2);
     expect(s.extraFields["Altitude (m)"]).toBeCloseTo(149.81, 2);
+  });
+});
+
+// ─── Real validated fixtures (user-supplied sessions) ─────────────────────────
+//
+// Two full real sessions covering both VBO layouts, kept as validation
+// fixtures: RaceBox export whose data rows carry no leading sats column
+// (the #368 column-realignment regression, user-reported at Lignano), and a
+// classic layout with the sats column first.
+
+describe("real RaceBox VBO (Lignano — data rows without a sats column)", () => {
+  const content = readFileSync(resolve(__dirname, "__fixtures__/racebox-lignano.vbo"), "utf-8");
+
+  it("is detected as VBO", () => {
+    expect(isVboFormat(content)).toBe(true);
+  });
+
+  it("parses the full session with realigned columns", () => {
+    const parsed = parseVboFile(content);
+    expect(parsed.samples).toHaveLength(31527);
+    // Regression: pre-realignment, lat got the lon column and the line drew a
+    // straight streak across the map. The whole session must sit inside the
+    // Lignano kart-track box.
+    expect(parsed.bounds.minLat).toBeGreaterThan(45.72);
+    expect(parsed.bounds.maxLat).toBeLessThan(45.74);
+    expect(parsed.bounds.minLon).toBeGreaterThan(13.06);
+    expect(parsed.bounds.maxLon).toBeLessThan(13.08);
+    expect(parsed.duration / 1000).toBeCloseTo(1261.1, 0);
+    const maxMph = Math.max(...parsed.samples.map((s) => s.speedMph));
+    expect(maxMph).toBeGreaterThan(40);
+    expect(maxMph).toBeLessThan(60); // no packed-time value misread as speed
+  });
+});
+
+describe("real VBO (Modena — classic layout, sats column first)", () => {
+  const content = readFileSync(resolve(__dirname, "__fixtures__/vbox-modena.vbo"), "utf-8");
+
+  it("parses the full session", () => {
+    expect(isVboFormat(content)).toBe(true);
+    const parsed = parseVboFile(content);
+    expect(parsed.samples).toHaveLength(10390);
+    expect(parsed.bounds.minLat).toBeGreaterThan(44.82);
+    expect(parsed.bounds.maxLat).toBeLessThan(44.84);
+    expect(parsed.bounds.minLon).toBeGreaterThan(11.21);
+    expect(parsed.bounds.maxLon).toBeLessThan(11.23);
+    const names = parsed.fieldMappings.map((m) => m.name);
+    expect(names).toContain("Satellites");
   });
 });
