@@ -28,6 +28,13 @@ import {
  * Third-party exporters (e.g. RaceBox) reuse the section layout but write
  * signed decimal degrees instead, so the coordinate encoding is detected once
  * per file (see detectVboCoordinateMode).
+ *
+ * Some exports also omit the leading `sats` column from the data rows (or
+ * lack a usable [column names] line for a time-first layout), leaving the
+ * column mapping one slot right of the data. The mapping is verified against
+ * the data shape and realigned before parsing (user-reported: such a file
+ * rendered as a straight line because `lat` read longitude and `lon` read
+ * velocity).
  */
 
 // Check if content is VBO format by looking for characteristic sections
@@ -103,6 +110,23 @@ export function parseVboTime(value: string): number {
 
   // Not valid packed HHMMSS — treat as seconds since midnight.
   return num * 1000;
+}
+
+/**
+ * A packed HHMMSS.SS time token as Racelogic writes it: unsigned, ≤6 integer
+ * digits with valid hour/minute/second pairs, and a short (≤3-digit) fraction.
+ * Coordinates never match — they are signed with a 5+ digit fraction — and a
+ * genuine sats value ("008") has no decimal point.
+ */
+function isPackedTimeToken(value: string): boolean {
+  const m = /^(\d{1,6})\.(\d{1,3})$/.exec(value.trim());
+  if (!m) return false;
+  const padded = m[1].padStart(6, '0');
+  return (
+    parseInt(padded.slice(0, 2), 10) < 24 &&
+    parseInt(padded.slice(2, 4), 10) < 60 &&
+    parseInt(padded.slice(4, 6), 10) < 60
+  );
 }
 
 /** How a VBO file encodes lat/long. Decided once per file, never per value. */
@@ -229,6 +253,34 @@ export function parseVboFile(content: string): ParsedData {
 
   if (columnMap['lat'] === undefined || columnMap['lon'] === undefined) {
     throw new Error('No valid GPS data found in VBO file');
+  }
+
+  // Verify the mapping against the data shape. Some exports declare a leading
+  // `sats` column (or the positional fallback assumes one) that the data rows
+  // don't actually contain, shifting every channel one slot: sats reads packed
+  // time, time reads latitude, lat reads longitude, lon reads velocity. The
+  // data is decisive — a genuine sats column is a small integer and never an
+  // HHMMSS.SS token — so when the sats column carries packed time and the time
+  // column doesn't, drop sats and pull the mapping one slot left.
+  if (columnMap['Satellites'] !== undefined && columnMap['time'] !== undefined) {
+    const satIdx = columnMap['Satellites'];
+    const timeIdx = columnMap['time'];
+    const probeRows: string[][] = [];
+    for (let i = dataStart + 1; i < lines.length && probeRows.length < 10; i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('[')) continue;
+      probeRows.push(line.split(/\s+/));
+    }
+    const satColIsPackedTime = probeRows.length > 0 &&
+      probeRows.every((f) => f[satIdx] !== undefined && isPackedTimeToken(f[satIdx]));
+    const timeColIsPackedTime =
+      probeRows.some((f) => f[timeIdx] !== undefined && isPackedTimeToken(f[timeIdx]));
+    if (satColIsPackedTime && !timeColIsPackedTime) {
+      delete columnMap['Satellites'];
+      for (const key of Object.keys(columnMap)) {
+        if (columnMap[key] > satIdx) columnMap[key] -= 1;
+      }
+    }
   }
 
   // Decide once per file how coordinates are encoded (Racelogic decimal

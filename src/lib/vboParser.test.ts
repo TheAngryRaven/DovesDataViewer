@@ -145,6 +145,75 @@ describe("parseVboFile", () => {
   });
 });
 
+// ─── Shifted mapping: data rows missing the declared sats column ────────────
+//
+// User-reported (lignano.vbo): a VBO whose data rows start with `time` while
+// the mapping expects `sats` first. Every channel shifted one slot — sats read
+// packed time (satellite count "113457"), time read latitude (constant → 0s
+// duration), lat read longitude, lon read velocity — so the session rendered
+// as a straight horizontal line whose length tracked speed, with "velocity"
+// coming from the heading column (~350 km/h peaks). The parser must realign
+// from the data shape.
+
+describe("parseVboFile with a sats-shifted layout", () => {
+  // Lignano-ish coordinates in Racelogic decimal minutes, longitude
+  // positive-west (13.135°E → -00788.1'): time lat long velocity heading height
+  const shiftedRows = [
+    "113457.20 +02742.12000 -00788.10000 060.123 091.97 +0149.81",
+    "113457.30 +02742.12100 -00788.10100 061.450 092.10 +0149.85",
+    "113457.40 +02742.12200 -00788.10200 062.780 092.25 +0149.90",
+  ];
+
+  const withNames = [
+    "[column names]",
+    "sats time lat long velocity heading height",
+    "",
+    "[data]",
+    ...shiftedRows,
+  ].join("\n");
+
+  const withoutNames = ["[data]", ...shiftedRows].join("\n");
+
+  it("realigns when [column names] declares a sats column the data lacks", () => {
+    const parsed = parseVboFile(withNames);
+    expect(parsed.samples).toHaveLength(3);
+    expect(parsed.samples[0].lat).toBeCloseTo(2742.12 / 60, 5); // 45.702°N
+    expect(parsed.samples[0].lon).toBeCloseTo(788.1 / 60, 5); // 13.135°E
+  });
+
+  it("realigns when the positional fallback assumes a sats-first layout", () => {
+    const parsed = parseVboFile(withoutNames);
+    expect(parsed.samples).toHaveLength(3);
+    expect(parsed.samples[0].lat).toBeCloseTo(2742.12 / 60, 5);
+    expect(parsed.samples[0].lon).toBeCloseTo(788.1 / 60, 5);
+  });
+
+  it("reads time from the realigned column (10 Hz, first sample t=0)", () => {
+    const ts = parseVboFile(withNames).samples.map((s) => s.t);
+    expect(ts[0]).toBe(0);
+    expect(ts[1]).toBeCloseTo(100, 3);
+    expect(ts[2]).toBeCloseTo(200, 3);
+  });
+
+  it("reads velocity and heading from their realigned columns", () => {
+    const s = parseVboFile(withNames).samples[0];
+    expect(s.speedKph).toBeCloseTo(60.123, 3); // not 91.97 (heading)
+    expect(s.heading).toBeCloseTo(91.97, 2);
+    expect(s.extraFields["Altitude (m)"]).toBeCloseTo(149.81, 2);
+  });
+
+  it("drops the phantom Satellites mapping instead of reporting time as a sat count", () => {
+    const names = parseVboFile(withNames).fieldMappings.map((m) => m.name);
+    expect(names).not.toContain("Satellites");
+  });
+
+  it("leaves a genuine sats-first file untouched", () => {
+    const parsed = parseVboFile(makeVbo(4));
+    expect(parsed.samples[0].extraFields["Satellites"]).toBe(12);
+    expect(parsed.samples[0].lat).toBeCloseTo(28.401, 5);
+  });
+});
+
 // ─── parseVboTime (UTC packed HHMMSS.SS) ────────────────────────────────────
 
 describe("parseVboTime", () => {
