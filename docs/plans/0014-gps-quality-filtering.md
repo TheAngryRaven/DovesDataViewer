@@ -93,6 +93,33 @@ track, zero inter-sample jumps > 500 m, max speed 110.2 mph (= native max),
 monotonic time; the remaining interleave stragglers are culled by the
 position-jump rule below.
 
+### The decoder-level fix (libxrk fork)
+
+The TS-side repair above is a mitigation; the true fix landed in the decoder
+(`TheAngryRaven/libxrk`, branch `fix/solo2-gps-timecode-corruption`,
+rev pinned in `xrk-wasm/Cargo.toml`; wasm rebuilt via
+`scripts/build-xrk-wasm.sh`):
+
+- `fix_timecodes` (the "old MXP firmware" unwrap) treated ANY backwards
+  logger-timestamp step as a 16-bit rollover (+65536 ms). Newer Solo 2
+  firmware writes small out-of-order jitter at block seams, so the unwrap
+  fired 3,500+ times → the "64-hour" session. Now phase-unwraps with
+  half-range hysteresis: only a masked step > 32768 ms is a rollover.
+- New `sanitize_gps_records`: when logger timecodes run backwards, rebuild
+  the GPS timeline from the receiver's own clock — the NAV-SOL `itow`
+  field, immune to the logger bug. The affected files also write EVERY
+  epoch twice (two solutions ~4 m apart sharing one `itow`; each stream is
+  centimeter-smooth alone, mixing them is the square-wave staircase), so
+  exactly one record is kept per epoch. Handles GPS week rollover; falls
+  back to unwrap+sort when `itow` is unusable; clean files untouched
+  byte-for-byte.
+
+Verified against the reported file with the rebuilt wasm: 24,309 epochs /
+972 s / 18.96 mi (≈ 7 × 2.68 mi laps), lap times matching RaceStudio
+(best 127.780 s = RS3's 2:07.800), zero off-track samples, 17 rows dropped
+total. With the decoder fixed, the TS-side timecode repair no longer
+triggers and remains as a dormant safety net.
+
 ### Supporting changes
 
 - `xrk/xrkResample.ts`: quality channels are **never fabricated** — a row

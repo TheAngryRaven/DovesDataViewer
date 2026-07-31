@@ -15,7 +15,7 @@ serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 # libxrk's pure-Rust core (no Python). Pinned by rev; bump in lockstep with the
 # committed artifacts in src/lib/xrk/wasm/ (see scripts/build-xrk-wasm.sh).
-libxrk = { git = "https://github.com/m3rlin45/libxrk", rev = "fc6ca43e5073b507868d15dac21198065fd7fa33", package = "libxrk" }
+libxrk = { git = "https://github.com/TheAngryRaven/libxrk", rev = "16b7fc89ed541b5c68474e717b0f039ab3f55b0c", package = "libxrk" }
 
 # Small, fast wasm: optimise for size, abort on panic (no unwinding tables).
 [profile.release]

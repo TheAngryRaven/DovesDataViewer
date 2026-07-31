@@ -30,16 +30,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `.xrk` imports already carried.
 
 ### Fixed
-- **Solo 2 `.xrk` logs with broken timecodes now load correctly.** Some Solo 2
-  files decode with a 16-bit rollover fault: rows stamped with spurious
-  ±65536 ms offsets, shuffled blocks, and duplicated timestamps, making a
-  16-minute race span "64 hours". Resampling against that clock fabricated
-  positions miles off track and impossible speeds (the user-reported 735 mph /
-  134-mile Buttonwillow session — whose actual GPS data is healthy and
-  entirely on track). The importer now detects the fault, removes the
-  spurious offsets, orders rows by their true recorded time, and skips rows
-  that don't advance the clock; the false "99% packets dropped" reading this
-  caused is gone too. Healthy files are untouched.
+- **Solo 2 `.xrk` logs with corrupt GPS timecodes now decode correctly.**
+  Newer Solo 2 firmware writes GPS records with jittered logger timestamps
+  and every epoch duplicated (two position solutions ~4 m apart); the
+  bundled libxrk decoder misread the jitter as thousands of 16-bit clock
+  rollovers, stretching a 16-minute race into "64 hours", weaving a ~4 m
+  square-wave through the track line, and (via resampling against that
+  clock) fabricating positions miles off track, 735 mph speeds, and a false
+  "99% packets dropped" reading — while the file's actual GPS data is
+  healthy and centimeter-smooth (RaceStudio shows it perfectly). The fix
+  lands in our libxrk fork's decoder: it rebuilds the GPS timeline from the
+  receiver's own clock (the NAV-SOL `itow` field, which the logger bug
+  cannot touch), keeps one record per epoch, and matches RaceStudio's
+  output (verified: same lap times, 18.99 mi vs the previous 95 mi
+  polyline). The importer additionally keeps a downstream safety net that
+  detects and repairs broken timecodes, orders rows by true recorded time,
+  and skips rows that don't advance the clock. Healthy files decode
+  byte-identically.
 
 ### Changed
 - **AiM `.xrk` quality channels are never fabricated.** Satellite counts,
