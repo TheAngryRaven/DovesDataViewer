@@ -105,6 +105,7 @@
     "title": "Unterstützte Dateiformate",
     "description": "Die gesamte Verarbeitung erfolgt lokal in deinem Browser — nichts wird hochgeladen.",
     "experimental": "Experimentell",
+    "validated": "Validiert",
     "primary": {
       "dove": {
         "name": "Dove CSV",

@@ -352,3 +352,50 @@ describe("Racelogic-format VBO fixture", () => {
     expect(s.extraFields["Altitude (m)"]).toBeCloseTo(149.81, 2);
   });
 });
+
+// ─── Real validated fixtures (user-supplied sessions) ─────────────────────────
+//
+// Two full real sessions covering both VBO layouts, kept as validation
+// fixtures: RaceBox export whose data rows carry no leading sats column
+// (the #368 column-realignment regression, user-reported at Lignano), and a
+// classic layout with the sats column first.
+
+describe("real RaceBox VBO (Lignano — data rows without a sats column)", () => {
+  const content = readFileSync(resolve(__dirname, "__fixtures__/racebox-lignano.vbo"), "utf-8");
+
+  it("is detected as VBO", () => {
+    expect(isVboFormat(content)).toBe(true);
+  });
+
+  it("parses the full session with realigned columns", () => {
+    const parsed = parseVboFile(content);
+    expect(parsed.samples).toHaveLength(31527);
+    // Regression: pre-realignment, lat got the lon column and the line drew a
+    // straight streak across the map. The whole session must sit inside the
+    // Lignano kart-track box.
+    expect(parsed.bounds.minLat).toBeGreaterThan(45.72);
+    expect(parsed.bounds.maxLat).toBeLessThan(45.74);
+    expect(parsed.bounds.minLon).toBeGreaterThan(13.06);
+    expect(parsed.bounds.maxLon).toBeLessThan(13.08);
+    expect(parsed.duration / 1000).toBeCloseTo(1261.1, 0);
+    const maxMph = Math.max(...parsed.samples.map((s) => s.speedMph));
+    expect(maxMph).toBeGreaterThan(40);
+    expect(maxMph).toBeLessThan(60); // no packed-time value misread as speed
+  });
+});
+
+describe("real VBO (Modena — classic layout, sats column first)", () => {
+  const content = readFileSync(resolve(__dirname, "__fixtures__/vbox-modena.vbo"), "utf-8");
+
+  it("parses the full session", () => {
+    expect(isVboFormat(content)).toBe(true);
+    const parsed = parseVboFile(content);
+    expect(parsed.samples).toHaveLength(10390);
+    expect(parsed.bounds.minLat).toBeGreaterThan(44.82);
+    expect(parsed.bounds.maxLat).toBeLessThan(44.84);
+    expect(parsed.bounds.minLon).toBeGreaterThan(11.21);
+    expect(parsed.bounds.maxLon).toBeLessThan(11.23);
+    const names = parsed.fieldMappings.map((m) => m.name);
+    expect(names).toContain("Satellites");
+  });
+});

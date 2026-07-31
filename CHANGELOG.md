@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AiM quality channels on the charts.** AiM CSV imports now expose
   `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
   `.xrk` imports already carried.
+- **Validated badges in Supported Files.** Racelogic VBO, Alfano 6, and AiM
+  CSV now carry a purple "Validated" badge: each format is verified
+  end-to-end against full real user-shared sessions (RaceBox and VBOX `.vbo`,
+  an Alfano 6 ADA export, a RaceStudio 3 CSV, plus the corrupt-timecode
+  Solo 2 `.xrk`), committed as regression fixtures in the test suite. Alfano
+  and AiM CSV shed their "Experimental" label.
 - **Real GPS heading for `.xrk` imports.** The decoder now exports the
   receiver's course over ground (derived from its velocity vector), so the
   map's direction arrow no longer falls back to noisy position-difference

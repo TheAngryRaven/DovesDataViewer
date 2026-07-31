@@ -14,7 +14,11 @@ const LIBXRK_URL = "https://github.com/m3rlin45/libxrk";
 // extensions and brand/library links stay literal inside the locale strings.
 const PRIMARY_IDS = ["dove", "dovex", "xrk", "iracing", "nmea"] as const;
 const SECONDARY_IDS = ["ubx", "vbo", "motecLd", "motecCsv", "alfano", "aimCsv"] as const;
-const EXPERIMENTAL = new Set(["motecLd", "motecCsv", "alfano", "aimCsv"]);
+const EXPERIMENTAL = new Set(["motecLd", "motecCsv"]);
+// Verified end-to-end against full real user-supplied sessions committed as
+// test fixtures (see src/lib/__fixtures__/): RaceBox+VBOX .vbo, Alfano 6 ADA
+// export, RaceStudio 3 CSV.
+const VALIDATED = new Set(["vbo", "alfano", "aimCsv"]);
 
 // Shared rich-text components for the format bodies. `<Trans>` only uses the
 // tags a given string references, so one map covers every format.
@@ -63,6 +67,11 @@ export function SupportedFilesDialog() {
                 {EXPERIMENTAL.has(id) && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-medium">
                     {t("supportedFiles.experimental")}
+                  </span>
+                )}
+                {VALIDATED.has(id) && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">
+                    {t("supportedFiles.validated")}
                   </span>
                 )}
               </div>

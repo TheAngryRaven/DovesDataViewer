@@ -105,6 +105,7 @@
     "title": "Formatos de arquivo suportados",
     "description": "Toda a análise é feita localmente no seu navegador — nada é enviado.",
     "experimental": "Experimental",
+    "validated": "Validado",
     "primary": {
       "dove": {
         "name": "Dove CSV",

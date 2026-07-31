@@ -181,6 +181,7 @@
     "title": "Supported File Formats",
     "description": "All parsing is done locally in your browser — nothing is uploaded.",
     "experimental": "Experimental",
+    "validated": "Validated",
     "primary": {
       "dove": {
         "name": "Dove CSV",

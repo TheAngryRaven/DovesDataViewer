@@ -105,6 +105,7 @@
     "title": "対応ファイル形式",
     "description": "すべての解析はブラウザ内でローカルに行われ、何もアップロードされません。",
     "experimental": "実験的",
+    "validated": "検証済み",
     "primary": {
       "dove": {
         "name": "Dove CSV",
