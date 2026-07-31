@@ -13,6 +13,8 @@ import {
   calculateBounds,
   createRejectedCounter,
   recordCoordRejection,
+  isLowQualityFix,
+  accuracyUnitToMeters,
   speedTriple,
   MPS_TO_MPH,
   MPS_TO_KPH,
@@ -426,7 +428,7 @@ describe("createRejectedCounter", () => {
   it("initializes all counters to zero", () => {
     expect(createRejectedCounter()).toEqual({
       nanFields: 0, zeroCoords: 0, outOfRange: 0,
-      speedCap: 0, teleportation: 0, incompleteRow: 0,
+      speedCap: 0, teleportation: 0, incompleteRow: 0, lowQuality: 0,
     });
   });
 
@@ -470,5 +472,60 @@ describe("recordCoordRejection", () => {
     recordCoordRejection(c, "zero");
     expect(c.nanFields).toBe(2);
     expect(c.zeroCoords).toBe(1);
+  });
+});
+
+// ─── isLowQualityFix ──────────────────────────────────────────────────────────
+
+describe("isLowQualityFix", () => {
+  it("never rejects a reading with no signals (files without quality channels)", () => {
+    expect(isLowQualityFix({})).toBe(false);
+  });
+
+  it("skips non-finite signals rather than rejecting on them", () => {
+    expect(isLowQualityFix({ satellites: NaN, posAccuracy: NaN, dop: NaN })).toBe(false);
+  });
+
+  it("accepts a healthy fix", () => {
+    expect(isLowQualityFix({ satellites: 13, posAccuracy: 1.6, dop: 1.2 })).toBe(false);
+  });
+
+  it("rejects negative satellite counts (provably-invalid rows)", () => {
+    expect(isLowQualityFix({ satellites: -1597.4 })).toBe(true); // from the user report
+    expect(isLowQualityFix({ satellites: 0 })).toBe(false); // low but not negative — kept
+    expect(isLowQualityFix({ satellites: 3 })).toBe(false);
+  });
+
+  it("rejects negative position accuracy (any unit — only the sign matters)", () => {
+    expect(isLowQualityFix({ posAccuracy: -612.1 })).toBe(true); // from the user report
+    expect(isLowQualityFix({ posAccuracy: 50000 })).toBe(false); // weak but not provably invalid
+  });
+
+  it("rejects negative DOP and DOP above MAX_DOP", () => {
+    expect(isLowQualityFix({ dop: 275.3 })).toBe(true); // from the user report
+    expect(isLowQualityFix({ dop: -1 })).toBe(true);
+    expect(isLowQualityFix({ dop: 10 })).toBe(false); // boundary passes
+    expect(isLowQualityFix({ dop: 10.1 })).toBe(true);
+  });
+
+  it("any single bad signal rejects even when the others are healthy", () => {
+    expect(isLowQualityFix({ satellites: 13, posAccuracy: 1.6, dop: 275.3 })).toBe(true);
+  });
+});
+
+// ─── accuracyUnitToMeters ─────────────────────────────────────────────────────
+
+describe("accuracyUnitToMeters", () => {
+  it("converts the units accuracy channels ship in", () => {
+    expect(accuracyUnitToMeters("mm")).toBe(0.001); // AiM GPS PosAccuracy
+    expect(accuracyUnitToMeters("cm")).toBe(0.01);
+    expect(accuracyUnitToMeters("ft")).toBeCloseTo(0.3048, 6);
+    expect(accuracyUnitToMeters("km")).toBe(1000);
+  });
+
+  it("treats meters, unknown, and missing units as meters", () => {
+    expect(accuracyUnitToMeters("m")).toBe(1);
+    expect(accuracyUnitToMeters("furlongs")).toBe(1);
+    expect(accuracyUnitToMeters(undefined)).toBe(1);
   });
 });

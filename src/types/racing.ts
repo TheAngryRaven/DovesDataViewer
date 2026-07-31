@@ -161,6 +161,7 @@ export interface ParserStats {
     speedCap: number;
     teleportation: number;
     incompleteRow: number;
+    lowQuality: number;
   };
 }
 

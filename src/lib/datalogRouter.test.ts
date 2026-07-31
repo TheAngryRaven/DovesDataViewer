@@ -343,3 +343,42 @@ describe("parseDatalogFile — async File entry", () => {
     expect(getFileLoading()).toBeNull();
   });
 });
+
+// ─── GPS quality filter integration (plan 0014) ──────────────────────────────
+//
+// The router runs filterGpsQuality after normalizeChannels for every format:
+// rows whose own quality channels condemn them (negative satellites/accuracy/
+// DOP, DOP > 10) are dropped while the dataset is rebuilt, so they are voided
+// from everything downstream.
+
+describe("parseDatalogContent — GPS quality filtering", () => {
+  it("drops rows with provably-invalid quality values and reports parserStats", () => {
+    const csv = [
+      "Format,AiM CSV File", // signature so the router picks AiM over Alfano
+      "Time,GPS_Speed,GPS_Lat,GPS_Long,GPS_Nsat,GPS_PosAccuracy",
+      "s,km/h,deg,deg, ,mm",
+      "0.0,60,28.401,-81.401,13,1630",
+      "0.1,61,28.40101,-81.40101,-1597,1630", // negative satellite count
+      "0.2,62,28.40102,-81.40102,13,-612100", // negative accuracy
+      "0.3,63,28.40103,-81.40103,13,1630",
+    ].join("\n");
+    const parsed = parseDatalogContent(csv);
+    expect(parsed.samples).toHaveLength(2);
+    expect(parsed.parserStats?.rejected.lowQuality).toBe(2);
+    // Canonical keys after normalization: satellites + h_acc (meters).
+    expect(parsed.samples[0].extraFields["satellites"]).toBe(13);
+    expect(parsed.samples[0].extraFields["h_acc"]).toBeCloseTo(1.63, 5);
+  });
+
+  it("leaves files without quality channels untouched", () => {
+    const csv = [
+      "Format,AiM CSV File",
+      "Time,GPS_Speed,GPS_Lat,GPS_Long",
+      "0.0,60,28.401,-81.401",
+      "0.1,61,28.40101,-81.40101",
+    ].join("\n");
+    const parsed = parseDatalogContent(csv);
+    expect(parsed.samples).toHaveLength(2);
+    expect(parsed.parserStats).toBeUndefined();
+  });
+});
