@@ -34,11 +34,17 @@ export default function Login() {
     try {
       // Pre-check only reports whether this IP is locked — it never counts an
       // attempt. The failure/success is recorded after the login resolves below.
-      const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', { body: { action: 'check' } });
-      if (rateCheck && !rateCheck.allowed) {
-        toast({ title: t('login.tooManyAttempts'), description: rateCheck.message || t('login.tooManyAttemptsDesc'), variant: 'destructive' });
-        setIsLoading(false);
-        return;
+      // A genuine "locked" answer blocks; if the check itself fails (network,
+      // function down) we fail open and still attempt the login.
+      try {
+        const { data: rateCheck } = await supabase.functions.invoke('check-login-rate', { body: { action: 'check' } });
+        if (rateCheck && !rateCheck.allowed) {
+          toast({ title: t('login.tooManyAttempts'), description: rateCheck.message || t('login.tooManyAttemptsDesc'), variant: 'destructive' });
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        // Rate-check infrastructure failure — proceed to the login attempt.
       }
       const { error } = await login(email, password);
       if (error) {
