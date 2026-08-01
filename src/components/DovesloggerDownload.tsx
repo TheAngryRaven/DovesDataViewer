@@ -7,6 +7,7 @@ import { DeviceListPanel, ErrorPanel, FileListPanel, ProgressPanel } from "@/com
 import { NativeFirmwarePanel } from "@/components/loggers/NativeFirmwarePanel";
 import { useNativeFirmwareUpdate, isFirmwareUpdateUnavailable } from "@/hooks/useNativeFirmwareUpdate";
 import { createDovesloggerConnection } from "@/lib/loggers/doveslogger/dovesloggerConnection";
+import { acquireNativeConnection, releaseNativeConnection } from "@/lib/loggers/native/owner";
 import {
   loggerScan,
   loggerConnect,
@@ -34,6 +35,18 @@ type DownloadState =
   | "downloading"
   | "firmware"
   | "error";
+
+
+/**
+ * Claim the single native connection slot for this download flow, or throw a
+ * classified, user-readable refusal (the Device tab holds the connection —
+ * that surface must disconnect first; no preemption).
+ */
+function claimNativeSlot(): void {
+  if (!acquireNativeConnection("download")) {
+    throw new Error("unsupported: the logger is connected in the Device tab — disconnect there first");
+  }
+}
 
 interface Failure {
   error: ClassifiedLoggerError;
@@ -77,6 +90,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
   const handleClose = useCallback(() => {
     loggerRef.current?.disconnect();
     loggerRef.current = null;
+    releaseNativeConnection("download");
     setState("idle");
     setDevices([]);
     setFiles([]);
@@ -92,6 +106,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
     // A fresh scan implies any prior connection is stale — drop it.
     loggerRef.current?.disconnect();
     loggerRef.current = null;
+    releaseNativeConnection("download");
     setDeviceInfo(null);
     setState("scanning");
     try {
@@ -109,6 +124,7 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
     setFailure(null);
     setState("connecting");
     try {
+      claimNativeSlot();
       const info = await loggerConnect({ host: device.id });
       const logger = createDovesloggerConnection(info);
       loggerRef.current = logger;
@@ -120,6 +136,9 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
       setState("file-list");
     } catch (err) {
       console.error("DovesLogger connect/list error:", err);
+      // Connect never landed → free the slot; if it did land (a later step
+      // failed), the connection is still live and keeps its claim.
+      if (!loggerRef.current) releaseNativeConnection("download");
       setFailure({ error: classifyLoggerError(err), stage: "connect", fileSaved: false });
       setState("error");
     }
@@ -135,7 +154,13 @@ export function DovesloggerDownload({ onDataLoaded, autoSave, autoSaveFile, auto
   }, [autoStart, handleScan]);
 
   // Always release the device when this flow unmounts.
-  useEffect(() => () => void loggerRef.current?.disconnect(), []);
+  useEffect(
+    () => () => {
+      loggerRef.current?.disconnect();
+      releaseNativeConnection("download");
+    },
+    [],
+  );
 
   const handleFileSelect = useCallback(
     async (file: LoggerFile) => {

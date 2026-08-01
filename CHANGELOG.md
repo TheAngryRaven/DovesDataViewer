@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [Unreleased]
+
+### Added
+- **Device tab works in the native Android app.** Settings, track management,
+  and battery now ride the native logger IPC when running inside LapWing —
+  previously the whole Device tab was dead there because the webview has no
+  Web Bluetooth. One transport-neutral `DeviceDetails` seam backs both paths
+  (Web Bluetooth on the web, `logger_*` commands in the app), the native
+  connect flow gets an in-app scan picker (BLE has no OS chooser), and the
+  single native connection slot is guarded so the Device tab and a download
+  screen can't silently steal the logger from each other. Firmware updates in
+  the app remain on the Fledgling download screen (the settings tab points
+  there).
 ## [3.3.0] - 2026-07-31
 
 ### Added

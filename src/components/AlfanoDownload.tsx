@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DeviceListPanel, ErrorPanel, FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
 import { createAlfanoConnection } from "@/lib/loggers/alfano/alfanoConnection";
 import { loggerScan, loggerConnect, type ScannedDevice } from "@/lib/loggers/alfano/ipc";
+import { acquireNativeConnection, releaseNativeConnection } from "@/lib/loggers/native/owner";
 import {
   classifyLoggerError,
   loggerErrorKey,
@@ -26,6 +27,18 @@ type DownloadState =
   | "file-list"
   | "downloading"
   | "error";
+
+
+/**
+ * Claim the single native connection slot for this download flow, or throw a
+ * classified, user-readable refusal (the Device tab holds the connection —
+ * that surface must disconnect first; no preemption).
+ */
+function claimNativeSlot(): void {
+  if (!acquireNativeConnection("download")) {
+    throw new Error("unsupported: the logger is connected in the Device tab — disconnect there first");
+  }
+}
 
 interface Failure {
   error: ClassifiedLoggerError;
@@ -70,6 +83,7 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
   const handleClose = useCallback(() => {
     loggerRef.current?.disconnect();
     loggerRef.current = null;
+    releaseNativeConnection("download");
     setState("idle");
     setDevices([]);
     setFiles([]);
@@ -84,6 +98,7 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
     // A fresh scan implies any prior connection is stale — drop it.
     loggerRef.current?.disconnect();
     loggerRef.current = null;
+    releaseNativeConnection("download");
     setState("scanning");
     try {
       const found = await loggerScan();
@@ -100,6 +115,7 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
     setFailure(null);
     setState("connecting");
     try {
+      claimNativeSlot();
       const info = await loggerConnect({ host: device.id });
       const logger = createAlfanoConnection(info);
       loggerRef.current = logger;
@@ -110,6 +126,9 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
       setState("file-list");
     } catch (err) {
       console.error("Alfano connect/list error:", err);
+      // Connect never landed → free the slot; if it did land (a later step
+      // failed), the connection is still live and keeps its claim.
+      if (!loggerRef.current) releaseNativeConnection("download");
       setFailure({ error: classifyLoggerError(err), stage: "connect", fileSaved: false });
       setState("error");
     }
@@ -125,7 +144,13 @@ export function AlfanoDownload({ onDataLoaded, autoSave, autoSaveFile, autoStart
   }, [autoStart, handleScan]);
 
   // Always release the device when this flow unmounts.
-  useEffect(() => () => void loggerRef.current?.disconnect(), []);
+  useEffect(
+    () => () => {
+      loggerRef.current?.disconnect();
+      releaseNativeConnection("download");
+    },
+    [],
+  );
 
   const handleFileSelect = useCallback(
     async (file: LoggerFile) => {

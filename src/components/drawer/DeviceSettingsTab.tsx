@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { type BleConnection } from "@/lib/bleDatalogger";
-import { requestSettingsList, setDeviceSetting, resetDeviceSettings } from "@/lib/bleDatalogger";
+import type { DeviceDetails } from "@/lib/loggers";
 import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
@@ -18,7 +18,15 @@ import { FirmwareUpdateSection } from "./FirmwareUpdateSection";
 const DEVICE_NAME_KEY = "device_name";
 
 interface DeviceSettingsTabProps {
-  connection: BleConnection;
+  /** Transport-neutral Device-tab surface (Web Bluetooth or native IPC). */
+  details: DeviceDetails;
+  /**
+   * The raw Web Bluetooth handle, present on the web only. The firmware OTA
+   * section still drives the BLE link directly, so it renders only when this
+   * is set; the native app points at the Fledgling download screen instead
+   * (where native firmware update already lives).
+   */
+  bleConnection?: BleConnection;
   onResetComplete?: () => void;
 }
 
@@ -30,7 +38,7 @@ interface SettingRow {
   saving: boolean;
 }
 
-export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSettingsTabProps) {
+export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: DeviceSettingsTabProps) {
   const { t } = useTranslation("drawer");
   const { user } = useAuth();
   const [rows, setRows] = useState<SettingRow[]>([]);
@@ -71,7 +79,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     setLoading(true);
     setFetchError(null);
     try {
-      const settings = await requestSettingsList(connection);
+      const settings = await details.listSettings();
       // Build rows: schema-defined keys first (in order), then unknown keys
       const knownKeys = DEVICE_SETTINGS_SCHEMA.map((s) => s.key);
       const orderedKeys = [
@@ -92,7 +100,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     } finally {
       setLoading(false);
     }
-  }, [connection, t]);
+  }, [details, t]);
 
   useEffect(() => {
     fetchSettings();
@@ -117,7 +125,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     );
 
     try {
-      await setDeviceSetting(connection, row.key, row.value);
+      await details.setSetting(row.key, row.value);
       setRows((prev) =>
         prev.map((r, i) =>
           i === index ? { ...r, originalValue: r.value, saving: false } : r
@@ -139,7 +147,7 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
     }
     setResetting(true);
     try {
-      await resetDeviceSettings(connection);
+      await details.resetSettings();
       toast.success(t("device.toastReset"));
       onResetComplete?.();
     } catch (err) {
@@ -252,7 +260,13 @@ export function DeviceSettingsTab({ connection, onResetComplete }: DeviceSetting
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      <FirmwareUpdateSection connection={connection} />
+      {bleConnection ? (
+        <FirmwareUpdateSection connection={bleConnection} />
+      ) : (
+        // Native app: firmware OTA lives in the Fledgling download flow
+        // (useNativeFirmwareUpdate) — point there instead of duplicating it.
+        <p className="text-xs text-muted-foreground">{t("device.firmwareNativeHint")}</p>
+      )}
       {settingsBody}
     </div>
   );

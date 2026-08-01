@@ -23,7 +23,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { BleConnection, requestTrackFileList, downloadTrackFile, uploadTrackFile, deleteTrackFile } from "@/lib/bleDatalogger";
+import type { DeviceDetails } from "@/lib/loggers";
 import {
   DeviceCourseJson,
   DeviceTrackFile,
@@ -43,12 +43,13 @@ import { Track } from "@/types/racing";
 import { toast } from "sonner";
 
 interface DeviceTracksTabProps {
-  connection: BleConnection;
+  /** Transport-neutral Device-tab surface (Web Bluetooth or native IPC). */
+  details: DeviceDetails;
 }
 
 type View = "loading" | "tracks" | "courses";
 
-export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
+export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   const { t } = useTranslation("drawer");
   const [view, setView] = useState<View>("loading");
   const [loadProgress, setLoadProgress] = useState({ current: 0, total: 0, label: "" });
@@ -70,7 +71,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     setSelectedTrack(null);
     try {
       setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.fetchingList") });
-      const filenames = await requestTrackFileList(connection);
+      const filenames = await details.listTracks();
 
       if (filenames.length === 0) {
         setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.noFilesOnDevice") });
@@ -81,7 +82,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         const fn = filenames[i];
         setLoadProgress({ current: i + 1, total: filenames.length, label: fn });
         try {
-          const raw = await downloadTrackFile(connection, fn);
+          const raw = await details.getTrack(fn);
           const text = new TextDecoder().decode(raw);
           const courses = parseDeviceCourseJson(text);
           files.push({ shortName: fn.replace(/\.json$/i, ""), courses });
@@ -100,7 +101,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       toast.error(t("deviceTracks.syncFailedToast"));
       setView("tracks");
     }
-  }, [connection, t]);
+  }, [details, t]);
 
   useEffect(() => {
     syncAll();
@@ -120,7 +121,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     try {
       const json = buildTrackJsonForUpload(entry.appTrack);
       const data = new TextEncoder().encode(json);
-      await uploadTrackFile(connection, entry.shortName + ".json", data);
+      await details.putTrack(entry.shortName + ".json", data);
       toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
       await syncAll();
     } catch (err) {
@@ -152,7 +153,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
   const handleDeleteTrackFromDevice = async (entry: MergedTrackEntry) => {
     setUploading(entry.shortName);
     try {
-      await deleteTrackFile(connection, entry.shortName + ".json");
+      await details.deleteTrack(entry.shortName + ".json");
       toast.success(t("deviceTracks.deletedToast", { name: entry.shortName }));
       setDeleteConfirm(null);
       await syncAll();
@@ -170,13 +171,13 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     try {
       if (remaining.length === 0) {
         // No courses left, delete the whole file
-        await deleteTrackFile(connection, trackEntry.shortName + ".json");
+        await details.deleteTrack(trackEntry.shortName + ".json");
         toast.success(t("deviceTracks.deletedNoCoursesToast", { name: trackEntry.shortName }));
       } else {
         // Re-upload without the deleted course
         const json = JSON.stringify(remaining, null, '\t');
         const data = new TextEncoder().encode(json);
-        await uploadTrackFile(connection, trackEntry.shortName + ".json", data);
+        await details.putTrack(trackEntry.shortName + ".json", data);
         toast.success(t("deviceTracks.removedCourseToast", { name: courseName }));
       }
       setDeleteConfirm(null);
@@ -214,7 +215,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     try {
       const json = JSON.stringify(allDeviceCourses, null, '\t');
       const data = new TextEncoder().encode(json);
-      await uploadTrackFile(connection, trackEntry.shortName + ".json", data);
+      await details.putTrack(trackEntry.shortName + ".json", data);
       toast.success(t("deviceTracks.sentCourseToast", { name: courseName }));
       setDiffCourse(null);
       await syncAll();
@@ -262,12 +263,12 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       try {
         // Delete from device if it exists there
         if (isOnDevice(entry)) {
-          await deleteTrackFile(connection, entry.shortName + ".json");
+          await details.deleteTrack(entry.shortName + ".json");
         }
         // Upload from app
         const json = buildTrackJsonForUpload(entry.appTrack!);
         const data = new TextEncoder().encode(json);
-        await uploadTrackFile(connection, entry.shortName + ".json", data);
+        await details.putTrack(entry.shortName + ".json", data);
       } catch (err) {
         console.error(`Resync failed for ${entry.shortName}:`, err);
         toast.error(t("deviceTracks.resyncFailedToast", { name: entry.shortName, error: err instanceof Error ? err.message : t("deviceTracks.unknownShort") }));

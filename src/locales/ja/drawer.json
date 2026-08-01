@@ -25,7 +25,12 @@
     "connecting": "接続中…",
     "connect": "接続",
     "deviceFledglingOnlyTitle": "Fledgling のみ",
-    "deviceFledglingOnlyDesc": "デバイスの詳細は PerchWerks Fledgling でのみ利用できます。接続中のロガーでは設定・コース・ファームウェアは利用できません。"
+    "deviceFledglingOnlyDesc": "デバイスの詳細は PerchWerks Fledgling でのみ利用できます。接続中のロガーでは設定・コース・ファームウェアは利用できません。",
+    "scanning": "スキャン中…",
+    "scanAgain": "再スキャン",
+    "nativeNoDevices": "ロガーが見つかりません。デバイスの電源が入っていて近くにあることを確認してください。",
+    "nativeConnectionBusy": "ロガーはダウンロード画面で使用中です。先に閉じてください。",
+    "nativeConnectFailed": "接続に失敗しました: {{error}}"
   },
   "files": {
     "cloudRowTitle": "{{name}} — クラウド上。タップしてダウンロード",
@@ -270,7 +275,8 @@
     "toastReset": "設定を既定値に戻しました — デバイスが再起動中です",
     "toastResetFailed": "リセットに失敗しました：{{error}}",
     "readFailed": "設定の読み込みに失敗しました",
-    "unknownError": "不明なエラー"
+    "unknownError": "不明なエラー",
+    "firmwareNativeHint": "アプリでのファームウェア更新は Fledgling のダウンロード画面（ロガーからダウンロード）にあります。"
   },
   "firmware": {
     "readingVersion": "バージョンを読み込み中…",
