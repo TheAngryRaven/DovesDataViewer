@@ -104,12 +104,7 @@
     "trigger": "Arquivos suportados",
     "title": "Formatos de arquivo suportados",
     "description": "Toda a análise é feita localmente no seu navegador — nada é enviado.",
-    "experimental": "Experimental",
     "primary": {
-      "dove": {
-        "name": "Dove CSV",
-        "body": "CSV simples com timestamps Unix em milissegundos, dados de GPS, RPM e leituras do acelerômetro de hardware. O formato nativo do <logger>DovesDataLogger</logger>. Extensão: <code>.dove</code>"
-      },
       "dovex": {
         "name": "Dovex (Dove estendido)",
         "body": "Formato Dove estendido com um cabeçalho de metadados de 4096 bytes contendo informações da sessão (piloto, circuito, tempos de volta) seguido de dados de GPS em CSV Dove padrão. Extensão: <code>.dovex</code>"
@@ -122,9 +117,13 @@
         "name": "Telemetria do iRacing (binário)",
         "body": "Exportação de telemetria binária nativa do iRacing — os mesmos dados que a API irsdk ao vivo do simulador fornece, sem conversão CSV/MoTeC de terceiros. Lida diretamente no seu navegador (totalmente offline): posição GPS, velocidade e altitude alimentam o mapa e as voltas, junto com acelerador, freio, marcha, direção, RPM, temperatura de água/óleo e g lateral/longitudinal nativo. Extensão: <code>.ibt</code>"
       },
-      "nmea": {
-        "name": "NMEA / CSV (delimitado por tabulação)",
-        "body": "CSV delimitado por tabulação com sentenças NMEA — o formato legado usado pelos nossos dataloggers personalizados anteriores. Extensões: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
+      "motecLd": {
+        "name": "MoTeC LD binário",
+        "body": "Dados binários de loggers MoTeC e exportações de sim racing (ACC, iRacing, etc.). Extensão: <code>.ld</code>"
+      },
+      "vbo": {
+        "name": "Racelogic VBO",
+        "body": "Formato de exportação Racelogic VBOX e RaceBox. Extensão: <code>.vbo</code>"
       }
     },
     "secondary": {
@@ -132,13 +131,9 @@
         "name": "u-blox UBX binário",
         "body": "Mensagens binárias NAV-PVT de receptores GPS u-blox. Extensão: <code>.ubx</code>"
       },
-      "vbo": {
-        "name": "Racelogic VBO",
-        "body": "Formato de exportação Racelogic VBOX e RaceBox. Extensão: <code>.vbo</code>"
-      },
-      "motecLd": {
-        "name": "MoTeC LD binário",
-        "body": "Dados binários de loggers MoTeC e exportações de sim racing (ACC, iRacing, etc.). Extensão: <code>.ld</code>"
+      "nmea": {
+        "name": "NMEA / CSV (delimitado por tabulação)",
+        "body": "CSV delimitado por tabulação com sentenças NMEA — o formato legado usado pelos nossos dataloggers personalizados anteriores. Extensões: <code>.nmea</code>, <code>.csv</code>, <code>.txt</code>"
       },
       "motecCsv": {
         "name": "MoTeC CSV",

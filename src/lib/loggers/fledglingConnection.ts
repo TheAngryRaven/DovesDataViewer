@@ -9,6 +9,7 @@
  */
 
 import { type BleConnection, requestFileList, downloadFile, disconnect } from "@/lib/ble";
+import { createBleDeviceDetails } from "./bleDetails";
 import type { LoggerConnection } from "./types";
 
 /** Adapt a live Fledgling BLE connection to the generic logger interface. */
@@ -17,6 +18,7 @@ export function createFledglingConnection(ble: BleConnection): LoggerConnection 
     kind: "fledgling",
     displayName: ble.device.name ?? "PerchWerks Fledgling",
     supportsDeviceDetails: true,
+    details: createBleDeviceDetails(ble),
     listLogs: (onStatus) => requestFileList(ble, onStatus),
     downloadLog: (name, onProgress, onStatus) => downloadFile(ble, name, onProgress, onStatus),
     disconnect: () => disconnect(ble),

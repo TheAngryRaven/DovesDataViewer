@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Device tab works in the native Android app.** Settings, track management,
+  and battery now ride the native logger IPC when running inside LapWing —
+  previously the whole Device tab was dead there because the webview has no
+  Web Bluetooth. One transport-neutral `DeviceDetails` seam backs both paths
+  (Web Bluetooth on the web, `logger_*` commands in the app), the native
+  connect flow gets an in-app scan picker (BLE has no OS chooser), and the
+  single native connection slot is guarded so the Device tab and a download
+  screen can't silently steal the logger from each other. Firmware updates in
+  the app remain on the Fledgling download screen (the settings tab points
+  there).
 - **Session dates in the native logger file lists.** The MyChron / Alfano /
   DovesLogger download dialogs now show each session's recorded date under its
   name when the device reports one — so Alfano sessions are no longer bare
@@ -29,6 +39,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Alfano downloads save/import as `.csv`.** Downloaded sessions (bare hex
   ids on the device, CSV payloads) now get a `.csv` extension so the importer
   and saved files are routed correctly.
+
+## [3.3.0] - 2026-07-31
+
+### Added
+- **Bad GPS rows are dropped on load, for every file format.** The datalog is
+  rebuilt into a clean dataset as it loads: any row with a negative satellite
+  count, negative accuracy, or negative DOP (values that can never go
+  negative — that row is provably garbage), a DOP above 10, or a position
+  that implies moving faster than ~335 mph from the previous kept row (a GPS
+  glitch no ground vehicle can produce — catches corrupt fixes that carry no
+  quality data at all) is skipped before anything downstream sees it, so a
+  poor-signal session no longer corrupts the race line, lap detection,
+  distance, or speed stats (user-reported: a low-signal Solo 2 session showed
+  a 735 mph top speed and a 134-mile race line). Dropped rows are counted on
+  the map's rejected-rows badge (`bad-fix` / `teleport`).
+- **AiM quality channels on the charts.** AiM CSV imports now expose
+  `H Accuracy` (converted to meters) and pDOP/HDOP as channels, matching what
+  `.xrk` imports already carried.
+- **Supported Files refresh.** Every listed format is now backed by automated
+  parser tests — several verified end-to-end against full real user-shared
+  sessions committed as regression fixtures (RaceBox and VBOX `.vbo`, an
+  Alfano 6 ADA export, a RaceStudio 3 CSV, and the corrupt-timecode Solo 2
+  `.xrk`) — so the "Experimental" labels are gone. Racelogic VBO and MoTeC
+  binary move up into the featured group, and the legacy Dove CSV entry is
+  retired from the list (the format still imports fine — it just doesn't
+  need advertising).
+- **Real GPS heading for `.xrk` imports.** The decoder now exports the
+  receiver's course over ground (derived from its velocity vector), so the
+  map's direction arrow no longer falls back to noisy position-difference
+  bearings that pointed in random directions at low speed.
+
+### Fixed
+- **Solo 2 `.xrk` logs with corrupt GPS timecodes now decode correctly.**
+  Newer Solo 2 firmware writes GPS records with jittered logger timestamps
+  and every epoch duplicated (two position solutions ~4 m apart); the
+  bundled libxrk decoder misread the jitter as thousands of 16-bit clock
+  rollovers, stretching a 16-minute race into "64 hours", weaving a ~4 m
+  square-wave through the track line, and (via resampling against that
+  clock) fabricating positions miles off track, 735 mph speeds, and a false
+  "99% packets dropped" reading — while the file's actual GPS data is
+  healthy and centimeter-smooth (RaceStudio shows it perfectly). The fix
+  lands in our libxrk fork's decoder: it rebuilds the GPS timeline from the
+  receiver's own clock (the NAV-SOL `itow` field, which the logger bug
+  cannot touch), keeps one record per epoch, and matches RaceStudio's
+  output (verified: same lap times, 18.99 mi vs the previous 95 mi
+  polyline). The importer additionally keeps a downstream safety net that
+  detects and repairs broken timecodes, orders rows by true recorded time,
+  and skips rows that don't advance the clock. Healthy files decode
+  byte-identically.
+- **VBO files without a sats column no longer render as a straight line.**
+  A user-reported .vbo whose data rows start with `time` (no leading satellite
+  count) had every channel read one column off — latitude got the longitude
+  column, longitude got velocity, velocity got heading — producing a straight
+  speed-driven streak, a 100k+ "satellite count", and a near-zero session
+  duration. The parser now verifies the column mapping against the data shape
+  (a genuine sats column is a small integer, never a packed HHMMSS.SS time)
+  and realigns before parsing.
+
+### Changed
+- **AiM `.xrk` quality channels are never fabricated.** Satellite counts,
+  position/speed accuracy, and DOP now appear on a row only when the logger
+  actually recorded them at that row's timestamp — no interpolation (which
+  invented impossible values like "-1597 satellites" in tooltips) and no
+  filling (which dressed garbage rows up with a neighbor's healthy readings
+  and hid them from the cleanup).
 
 ## [3.2.0] - 2026-07-28
 
