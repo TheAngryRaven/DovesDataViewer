@@ -17,10 +17,11 @@ describe("createDovesloggerConnection", () => {
     vi.clearAllMocks();
   });
 
-  it("reports a fledgling without in-app device details (native BLE)", () => {
+  it("reports a fledgling with the full in-app device-detail surface", () => {
     const conn = createDovesloggerConnection(info({ name: "BirdsEye-sense" }));
     expect(conn.kind).toBe("fledgling");
-    expect(conn.supportsDeviceDetails).toBe(false);
+    expect(conn.supportsDeviceDetails).toBe(true);
+    expect(conn.details).toBeDefined();
     expect(conn.displayName).toBe("BirdsEye-sense");
   });
 

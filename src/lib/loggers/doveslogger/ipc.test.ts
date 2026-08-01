@@ -11,7 +11,19 @@ const { invoke, ChannelMock } = vi.hoisted(() => {
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke, Channel: ChannelMock }));
 
-import { loggerScan, loggerConnect, loggerUpdateFirmware } from "./ipc";
+import {
+  loggerScan,
+  loggerConnect,
+  loggerUpdateFirmware,
+  loggerBattery,
+  loggerListSettings,
+  loggerSetSetting,
+  loggerResetSettings,
+  loggerListTracks,
+  loggerDownloadTrack,
+  loggerUploadTrack,
+  loggerDeleteTrack,
+} from "./ipc";
 
 // The kind-agnostic commands (list / download / disconnect) are covered by
 // ../native/ipc.test.ts; this suite asserts the DovesLogger-specific scan/connect.
@@ -74,5 +86,68 @@ describe("doveslogger ipc", () => {
     await expect(loggerUpdateFirmware(new Uint8Array(), vi.fn())).rejects.toBe(
       "unsupported: firmware update not available",
     );
+  });
+});
+
+// Device-tab commands (settings / tracks / battery) — thin wrappers, so the
+// contract under test is the command name + camelCase arg keys.
+describe("doveslogger device-tab ipc", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("reads the battery", async () => {
+    invoke.mockResolvedValue({ percent: 88, voltage: 4.01 });
+    await expect(loggerBattery()).resolves.toEqual({ percent: 88, voltage: 4.01 });
+    expect(invoke).toHaveBeenCalledWith("logger_battery");
+  });
+
+  it("lists settings as a key → value map", async () => {
+    invoke.mockResolvedValue({ driver_name: "Dove" });
+    await expect(loggerListSettings()).resolves.toEqual({ driver_name: "Dove" });
+    expect(invoke).toHaveBeenCalledWith("logger_list_settings");
+  });
+
+  it("writes a setting", async () => {
+    invoke.mockResolvedValue(undefined);
+    await loggerSetSetting("waypoint_speed", "20");
+    expect(invoke).toHaveBeenCalledWith("logger_set_setting", {
+      key: "waypoint_speed",
+      value: "20",
+    });
+  });
+
+  it("resets settings", async () => {
+    invoke.mockResolvedValue(undefined);
+    await loggerResetSettings();
+    expect(invoke).toHaveBeenCalledWith("logger_reset_settings");
+  });
+
+  it("lists tracks", async () => {
+    invoke.mockResolvedValue(["t.json"]);
+    await expect(loggerListTracks()).resolves.toEqual(["t.json"]);
+    expect(invoke).toHaveBeenCalledWith("logger_list_tracks");
+  });
+
+  it("downloads a track through a progress channel and returns bytes", async () => {
+    invoke.mockResolvedValue(new Uint8Array([123, 125]).buffer);
+    await expect(loggerDownloadTrack("t.json")).resolves.toEqual(new Uint8Array([123, 125]));
+    expect(invoke).toHaveBeenCalledWith("logger_download_track", {
+      name: "t.json",
+      onProgress: expect.any(ChannelMock),
+    });
+  });
+
+  it("uploads a track as raw bytes", async () => {
+    invoke.mockResolvedValue(undefined);
+    const data = new Uint8Array([1, 2]);
+    await loggerUploadTrack("t.json", data);
+    expect(invoke).toHaveBeenCalledWith("logger_upload_track", { name: "t.json", data });
+  });
+
+  it("deletes a track", async () => {
+    invoke.mockResolvedValue(undefined);
+    await loggerDeleteTrack("t.json");
+    expect(invoke).toHaveBeenCalledWith("logger_delete_track", { name: "t.json" });
   });
 });

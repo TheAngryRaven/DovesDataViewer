@@ -112,6 +112,45 @@ export function isTeleportation(
   return false;
 }
 
+// ─── GPS fix quality ────────────────────────────────────────────────────────
+
+/** The quality signals a sample may carry. All optional — loggers vary. */
+export interface GpsQualityReading {
+  satellites?: number;
+  /** Horizontal position accuracy (any unit — only the sign is checked). */
+  posAccuracy?: number;
+  /** HDOP or pDOP — the same bound works for either. */
+  dop?: number;
+}
+
+/** DOP (HDOP/pDOP family) above this is a junk fix. */
+export const MAX_DOP = 10;
+
+/** Multiplier to meters for the units position-accuracy channels ship in
+ *  (AiM writes `GPS PosAccuracy` in mm; canonical `h_acc` is meters). */
+export function accuracyUnitToMeters(unit: string | undefined): number {
+  const u = (unit ?? '').trim().toLowerCase();
+  if (u === 'mm') return 0.001;
+  if (u === 'cm') return 0.01;
+  if (u === 'km') return 1000;
+  if (u === 'ft') return 0.3048;
+  return 1; // meters (canonical) or unknown
+}
+
+/**
+ * True when any *provided* quality signal condemns the fix: a negative value
+ * (satellite counts, accuracies, and DOP can never go negative — the logger
+ * provably wrote garbage) or a DOP above `MAX_DOP`. Signals that are absent or
+ * non-finite are skipped, so a reading with no signals never rejects (files
+ * without quality channels are untouched).
+ */
+export function isLowQualityFix(q: GpsQualityReading): boolean {
+  if (q.satellites !== undefined && Number.isFinite(q.satellites) && q.satellites < 0) return true;
+  if (q.posAccuracy !== undefined && Number.isFinite(q.posAccuracy) && q.posAccuracy < 0) return true;
+  if (q.dop !== undefined && Number.isFinite(q.dop) && (q.dop < 0 || q.dop > MAX_DOP)) return true;
+  return false;
+}
+
 // ─── GPS coordinate validation ──────────────────────────────────────────────
 
 /** Why a coordinate pair was rejected, or null if it's valid. */
@@ -221,6 +260,7 @@ export interface RejectedCounts {
   speedCap: number;
   teleportation: number;
   incompleteRow: number;
+  lowQuality: number;
 }
 
 /** Create a zeroed rejection-reason counter. */
@@ -232,6 +272,7 @@ export function createRejectedCounter(): RejectedCounts {
     speedCap: 0,
     teleportation: 0,
     incompleteRow: 0,
+    lowQuality: 0,
   };
 }
 

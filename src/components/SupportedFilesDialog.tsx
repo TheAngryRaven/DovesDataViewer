@@ -12,9 +12,11 @@ const LIBXRK_URL = "https://github.com/m3rlin45/libxrk";
 // Format ids in display order; their name/body text lives in the `landing`
 // locale (supportedFiles.primary.<id> / .secondary.<id>). Format names,
 // extensions and brand/library links stay literal inside the locale strings.
-const PRIMARY_IDS = ["dove", "dovex", "xrk", "iracing", "nmea"] as const;
-const SECONDARY_IDS = ["ubx", "vbo", "motecLd", "motecCsv", "alfano", "aimCsv"] as const;
-const EXPERIMENTAL = new Set(["motecLd", "motecCsv", "alfano", "aimCsv"]);
+// Every listed format has automated parser test coverage (several against
+// full real user-supplied sessions committed as fixtures — see
+// src/lib/__fixtures__/), so the list carries no per-format status badges.
+const PRIMARY_IDS = ["dovex", "xrk", "iracing", "motecLd", "vbo"] as const;
+const SECONDARY_IDS = ["ubx", "nmea", "motecCsv", "alfano", "aimCsv"] as const;
 
 // Shared rich-text components for the format bodies. `<Trans>` only uses the
 // tags a given string references, so one map covers every format.
@@ -58,14 +60,7 @@ export function SupportedFilesDialog() {
 
           {SECONDARY_IDS.map((id) => (
             <div key={id} className="p-3 rounded-md border border-border bg-muted/30">
-              <div className="flex items-center gap-2">
-                <p className="font-semibold text-foreground">{t(`supportedFiles.secondary.${id}.name`)}</p>
-                {EXPERIMENTAL.has(id) && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 font-medium">
-                    {t("supportedFiles.experimental")}
-                  </span>
-                )}
-              </div>
+              <p className="font-semibold text-foreground">{t(`supportedFiles.secondary.${id}.name`)}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 <Trans t={t} i18nKey={`supportedFiles.secondary.${id}.body`} components={FORMAT_COMPONENTS} />
               </p>
