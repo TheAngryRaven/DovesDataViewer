@@ -55,6 +55,25 @@ export function isNativeApp(
   return isNativeBuild(env) || isTauri(w);
 }
 
+/** The canonical public site — where emailed auth links must land. */
+const CANONICAL_ORIGIN = "https://lapwingdata.com";
+
+/**
+ * The origin to embed in Supabase auth-email redirects (registration
+ * confirmation, password reset). Inside the native shell,
+ * `window.location.origin` is the WebView's synthetic origin
+ * (`http://tauri.localhost`), which would put dead links in the emails — and
+ * those links are opened from a mail client in a real browser anyway, so on
+ * native they must point at the canonical site. On the web, keep the current
+ * origin so previews and self-hosted deployments redirect to themselves.
+ */
+export function authRedirectOrigin(
+  env: { VITE_IS_NATIVE?: string } = import.meta.env,
+  w: Window | undefined = currentWindow(),
+): string {
+  return isNativeApp(env, w) ? CANONICAL_ORIGIN : (w?.location.origin ?? CANONICAL_ORIGIN);
+}
+
 /**
  * Open a URL outside the app shell. On native, hand it to the shell's bridge so
  * it lands in the system browser (a WebView would otherwise navigate the app

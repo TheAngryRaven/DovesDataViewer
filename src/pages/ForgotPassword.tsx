@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
 import { BrandLogo } from "@/components/BrandLogo";
 import { useDocumentHead } from '@/hooks/useDocumentHead';
+import { isNativeApp } from '@/lib/platform';
 
 export default function ForgotPassword() {
   const { t } = useTranslation('auth');
@@ -30,7 +31,9 @@ export default function ForgotPassword() {
     if (error) {
       toast({ title: t('forgot.failed'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: t('forgot.checkEmail'), description: t('forgot.linkSent') });
+      // The reset email links to the canonical site, so on native the user
+      // resets in their browser and comes back to the app to sign in.
+      toast({ title: t('forgot.checkEmail'), description: t(isNativeApp() ? 'forgot.linkSentNative' : 'forgot.linkSent') });
       navigate('/login');
     }
   };
