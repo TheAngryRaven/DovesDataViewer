@@ -199,7 +199,7 @@ export function DataloggerDownload({ onDataLoaded, autoSave, autoSaveFile, autoS
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md safe-area-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bluetooth className="w-5 h-5" />

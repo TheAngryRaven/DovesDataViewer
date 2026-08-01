@@ -35,7 +35,9 @@ describe("createDovesloggerConnection", () => {
       { name: "a_0217.dove", size: 1234, date: "2026-02-17", meta: { nlap: "12" } },
     ]);
     const conn = createDovesloggerConnection(info());
-    await expect(conn.listLogs()).resolves.toEqual([{ name: "a_0217.dove", size: 1234 }]);
+    await expect(conn.listLogs()).resolves.toEqual([
+      { name: "a_0217.dove", size: 1234, date: "2026-02-17", meta: { nlap: "12" } },
+    ]);
   });
 
   it("wraps raw {received,total} progress into a full LoggerDownloadProgress", async () => {

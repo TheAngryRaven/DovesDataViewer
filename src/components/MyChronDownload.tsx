@@ -14,6 +14,7 @@ import {
   type LoggerFlowStage,
 } from "@/lib/loggers/errors";
 import type { LoggerConnection, LoggerFile, LoggerDownloadProgress } from "@/lib/loggers";
+import { xrkFileName } from "@/lib/loggers/fileNaming";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { useSettings } from "@/hooks/useSettings";
 import { ParsedData } from "@/types/racing";
@@ -160,9 +161,9 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
       setProgress({ received: 0, total: file.size, percent: 0, speed: "0 B/s", eta: "--" });
       setFailure(null);
 
-      // Bytes are already-inflated XRK — name accordingly so the importer routes
-      // them to the async wasm path.
-      const fileName = file.name.toLowerCase().endsWith(".xrk") ? file.name : `${file.name}.xrk`;
+      // Bytes are already-inflated XRK — name accordingly (swapping the device's
+      // `.xrz` for `.xrk`) so the importer routes them to the async wasm path.
+      const fileName = xrkFileName(file.name);
 
       let saved = false;
       try {
@@ -218,7 +219,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md safe-area-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wifi className="w-5 h-5" />

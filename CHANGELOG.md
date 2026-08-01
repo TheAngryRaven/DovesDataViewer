@@ -24,6 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   screen can't silently steal the logger from each other. Firmware updates in
   the app remain on the Fledgling download screen (the settings tab points
   there).
+- **Session dates in the native logger file lists.** The MyChron / Alfano /
+  DovesLogger download dialogs now show each session's recorded date under its
+  name when the device reports one — so Alfano sessions are no longer bare
+  hex ids.
+
+### Fixed
+- **Download dialogs respect notches on Android.** The native logger download
+  dialogs (and the Fledgling BLE one) now pad for the device safe area, so
+  they aren't clipped by notches/status bars on edge-to-edge phones.
+- **MyChron downloads no longer double the extension.** A device session named
+  `a_0217.xrz` used to save as `a_0217.xrz.xrk`; the `.xrz` is now swapped for
+  `.xrk`.
+- **Alfano downloads save/import as `.csv`.** Downloaded sessions (bare hex
+  ids on the device, CSV payloads) now get a `.csv` extension so the importer
+  and saved files are routed correctly.
 
 ### Fixed
 - **Auth emails from the Android app now link to lapwingdata.com.** Inside the

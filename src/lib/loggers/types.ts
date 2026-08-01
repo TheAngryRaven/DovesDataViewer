@@ -18,6 +18,10 @@ export type LoggerKind = "fledgling" | "mychron" | "alfano";
 export interface LoggerFile {
   name: string;
   size: number;
+  /** Recording date as reported by the device (ISO-ish string), when known. */
+  date?: string;
+  /** Extra device-reported metadata (e.g. lap count), when available. */
+  meta?: Record<string, string>;
 }
 
 /** Progress for an in-flight download. */
