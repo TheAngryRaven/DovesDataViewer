@@ -15,7 +15,12 @@
     "title": "Ajouter un nouveau tracé",
     "courseName": "Nom du tracé",
     "courseNamePlaceholder": "p. ex., Tracé complet",
-    "create": "Créer le tracé"
+    "create": "Créer le tracé",
+    "courseType": "Type de parcours",
+    "typeCircuit": "Circuit",
+    "typeSprint": "Sprint",
+    "typeCircuitHint": "Tours — une seule ligne sert de départ et d’arrivée.",
+    "typeSprintHint": "Point à point (autocross, course de côte, spéciale) — ligne d'arrivée distincte, chronométré en manches."
   },
   "sectors": {
     "addSector": "Ajouter un secteur",
@@ -27,7 +32,13 @@
     "dragReorder": "Faites glisser pour réordonner",
     "markMajor": "Marquer comme secteur principal",
     "deleteSector": "Supprimer le secteur",
-    "resetStartFinish": "Réinitialiser la ligne de départ/arrivée"
+    "resetStartFinish": "Réinitialiser la ligne de départ/arrivée",
+    "startLineSprint": "Ligne de départ",
+    "finishLine": "Ligne d'arrivée",
+    "splitRow": "Intermédiaire {{label}}",
+    "sprintGuidance": "Un parcours sprint va de la ligne de départ à une ligne d'arrivée distincte. Ajoutez jusqu'à {{max}} lignes intermédiaires entre les deux (facultatif).",
+    "sprintSplitLimit": "Limite d'intermédiaires atteinte ({{max}} entre le départ et l'arrivée).",
+    "resetFinish": "Réinitialiser la ligne d'arrivée"
   },
   "visual": {
     "draw": "Dessiner",
@@ -67,7 +78,9 @@
     "drawingGenerated": "Tracé généré",
     "drawingGeneratedDesc": "{{label}} ({{count}} points).",
     "generatedFromLap": "Généré à partir du tour {{number}}",
-    "generatedFromSession": "Généré à partir de la session complète"
+    "generatedFromSession": "Généré à partir de la session complète",
+    "startLine": "Départ",
+    "finishLine": "Arrivée"
   },
   "prompt": {
     "selectCourse": "Sélectionner le tracé",

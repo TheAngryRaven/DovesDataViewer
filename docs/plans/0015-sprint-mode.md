@@ -127,11 +127,24 @@ handle alone, spread across four duplicated prop bags, and the repo's coverage
 config excludes `src/components/**/*.tsx`. Logic-first keeps the testable part
 testable (Golden Rule 3).
 
-- **PR 1 — model + validation + wire format (this PR).** All in `src/lib` and
+- ~~**PR 1 — model + validation + wire format.**~~ **Done** (#375). All in `src/lib` and
   `src/types`, all unit-tested, no UI. Nothing user-visible yet; it is the
   foundation the other three stand on.
-- **PR 2 — editor.** `LineId` gains a `'finish'` variant, the finish handle,
-  the sprint/circuit toggle, and the four prop bags.
+- ~~**PR 2 — editor.**~~ **Done.** `LineId` gained a `'finish'` variant, the
+  red finish handle (rendered last — driving order), the `CourseTypeToggle`,
+  the Finish row in `SectorListEditor`, and sprint state in
+  `useTrackEditorForm`. Two notes on what landed:
+  - The type picker is **create-only**. Retyping a course that already has
+    geometry would silently invalidate it, so editing keeps the saved type.
+  - `TrackPromptDialog` and the admin `CoursesTab` were left circuit-only.
+    Both keep their own copy of the editor state, and `courseType` defaults to
+    `'circuit'`, so they compile and behave exactly as before. Community
+    submission of sprint courses is already out of scope (see below), and the
+    log-import prompt can follow once the runs view exists.
+  - The save-time fork moved out of the hook into
+    `sprintCourse.finalizeCourseForSave` so it is unit-testable — this repo's
+    coverage config excludes `src/components/**/*.tsx` by design, so logic in
+    a `.tsx` is logic that cannot be tested.
 - **PR 3 — device sync.** `TS*` opcodes in `trackSync.ts`, sprint awareness in
   `deviceTrackSync.ts`'s merge, `DeviceTracksTab` UI. Note `MergedTrackEntry`
   keys on `shortName` alone today, so a sprint and a circuit track sharing a

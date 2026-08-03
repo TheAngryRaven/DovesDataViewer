@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useMemo, useRef } from 'react';
-import { Course, CourseSector, SectorLine, Lap, GpsSample } from '@/types/racing';
+import { Course, CourseSector, CourseType, SectorLine, Lap, GpsSample } from '@/types/racing';
 import { centeredSectorLine } from '@/lib/courseSectors';
 import { SectorListEditor } from './SectorListEditor';
 import type { GpsPoint, LineId } from './VisualEditor';
@@ -11,9 +11,14 @@ interface CourseSectorEditorProps {
   startFinishA: GpsPoint | null;
   startFinishB: GpsPoint | null;
   sectors: CourseSector[];
+  /** Timing model of the course being edited. Defaults to circuit. */
+  courseType?: CourseType;
+  /** Sprint only: the separate finish line. */
+  finish?: SectorLine | null;
   selectedLine: SelectedLine;
   onSelectLine: (id: SelectedLine) => void;
   onStartFinishChange: (a: GpsPoint, b: GpsPoint) => void;
+  onFinishChange?: (line: SectorLine) => void;
   onSectorLineChange: (index: number, line: SectorLine) => void;
   /** Add a sector; `center` (when provided) is the live map view center so the
    *  new line drops in the middle of what the user is looking at. */
@@ -37,8 +42,9 @@ interface CourseSectorEditorProps {
  * the control surface — selecting a row puts that line into drag-edit on the map.
  */
 export function CourseSectorEditor({
-  startFinishA, startFinishB, sectors, selectedLine, onSelectLine,
-  onStartFinishChange, onSectorLineChange,
+  startFinishA, startFinishB, sectors, courseType = 'circuit', finish = null,
+  selectedLine, onSelectLine,
+  onStartFinishChange, onFinishChange, onSectorLineChange,
   onAddSector, onRemoveSector, onToggleMajor, onReorder,
   isNewTrack, initialCenter, showDrawTool, showKnownDrawingToggle,
   layoutPoints, onLayoutChange, laps, samples,
@@ -58,6 +64,16 @@ export function CourseSectorEditor({
     onSelectLine('sf');
   }, [onStartFinishChange, onSelectLine]);
 
+  const isSprint = courseType === 'sprint';
+
+  // Re-drop the finish line at the current view center (sprint only).
+  const handleResetFinish = useCallback(() => {
+    const center = viewCenterRef.current;
+    if (!center || !onFinishChange) return;
+    onFinishChange(centeredSectorLine(center));
+    onSelectLine('finish');
+  }, [onFinishChange, onSelectLine]);
+
   // Selecting a line that has no geometry yet — the start/finish on a brand-new
   // course — drops one at the current view center instead of selecting an empty
   // line, so a tap is enough and the user never has to hunt for the reset button.
@@ -72,10 +88,12 @@ export function CourseSectorEditor({
   // Minimal course for the list's labels + validation (coords unused there).
   const course = useMemo<Course>(() => ({
     name: '',
+    type: courseType,
     startFinishA: startFinishA ?? { lat: 0, lon: 0 },
     startFinishB: startFinishB ?? { lat: 0, lon: 0 },
+    finish: finish ?? undefined,
     sectors,
-  }), [startFinishA, startFinishB, sectors]);
+  }), [courseType, startFinishA, startFinishB, finish, sectors]);
 
   return (
     <div className="space-y-3">
@@ -84,9 +102,12 @@ export function CourseSectorEditor({
           startFinishA={startFinishA}
           startFinishB={startFinishB}
           sectors={sectors}
+          finish={finish}
+          isSprint={isSprint}
           selectedLine={selectedLine as LineId | null}
           onSelectLine={handleSelectLine}
           onStartFinishChange={onStartFinishChange}
+          onFinishChange={onFinishChange}
           onSectorLineChange={onSectorLineChange}
           isNewTrack={isNewTrack}
           initialCenter={initialCenter}
@@ -109,6 +130,7 @@ export function CourseSectorEditor({
         onToggleMajor={onToggleMajor}
         onReorder={onReorder}
         onResetStartFinish={isNewTrack ? handleResetStartFinish : undefined}
+        onResetFinish={isSprint && onFinishChange ? handleResetFinish : undefined}
       />
     </div>
   );

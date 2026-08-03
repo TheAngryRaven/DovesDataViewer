@@ -15,7 +15,12 @@
     "title": "Añadir nuevo trazado",
     "courseName": "Nombre del trazado",
     "courseNamePlaceholder": "p. ej., Trazado completo",
-    "create": "Crear trazado"
+    "create": "Crear trazado",
+    "courseType": "Tipo de trazado",
+    "typeCircuit": "Circuito",
+    "typeSprint": "Sprint",
+    "typeCircuitHint": "Vueltas: una misma línea es salida y meta.",
+    "typeSprintHint": "Punto a punto (autocross, subida en cuesta, tramo): línea de meta independiente, cronometrado por mangas."
   },
   "sectors": {
     "addSector": "Añadir sector",
@@ -27,7 +32,13 @@
     "dragReorder": "Arrastra para reordenar",
     "markMajor": "Marcar como sector principal",
     "deleteSector": "Eliminar sector",
-    "resetStartFinish": "Restablecer línea de salida/meta"
+    "resetStartFinish": "Restablecer línea de salida/meta",
+    "startLineSprint": "Línea de salida",
+    "finishLine": "Línea de meta",
+    "splitRow": "Parcial {{label}}",
+    "sprintGuidance": "Un trazado sprint va de la línea de salida a una línea de meta independiente. Añade hasta {{max}} líneas parciales intermedias (opcional).",
+    "sprintSplitLimit": "Límite de parciales alcanzado ({{max}} entre salida y meta).",
+    "resetFinish": "Restablecer línea de meta"
   },
   "visual": {
     "draw": "Dibujar",
@@ -67,7 +78,9 @@
     "drawingGenerated": "Dibujo generado",
     "drawingGeneratedDesc": "{{label}} ({{count}} puntos).",
     "generatedFromLap": "Generado a partir de la vuelta {{number}}",
-    "generatedFromSession": "Generado a partir de la sesión completa"
+    "generatedFromSession": "Generado a partir de la sesión completa",
+    "startLine": "Salida",
+    "finishLine": "Meta"
   },
   "prompt": {
     "selectCourse": "Seleccionar trazado",

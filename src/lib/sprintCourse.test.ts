@@ -6,6 +6,7 @@ import {
   stampSprintDateCreated,
   newestSprintCourse,
   newestSprintCourseIndex,
+  finalizeCourseForSave,
 } from './sprintCourse';
 
 function sprint(name: string, dateCreated?: string): Course {
@@ -150,5 +151,43 @@ describe('newestSprintCourseIndex', () => {
   it('keeps the earlier course on a tie', () => {
     const courses = [sprint('First', '2026-09-05T08:00'), sprint('Second', '2026-09-05T08:00')];
     expect(newestSprintCourseIndex(courses)).toBe(0);
+  });
+});
+
+describe('finalizeCourseForSave', () => {
+  const split = { a: { lat: 2, lon: 0 }, b: { lat: 2, lon: 1 } };
+
+  it('normalizes a circuit course, writing the legacy mirror', () => {
+    const c: Course = {
+      ...circuit('Full Course'),
+      sectors: [
+        { line: { a: { lat: 1, lon: 0 }, b: { lat: 1, lon: 1 } }, major: true },
+        { line: split, major: true },
+      ],
+    };
+    const out = finalizeCourseForSave(c);
+    expect(out.sector2).toBeDefined();
+    expect(out.sector3).toEqual(split);
+  });
+
+  it('stamps a sprint course instead of normalizing it', () => {
+    const out = finalizeCourseForSave(sprint('Run 1'), new Date(2026, 8, 5, 7, 3));
+    expect(out.dateCreated).toBe('2026-09-05T07:03');
+  });
+
+  it('never writes a legacy mirror for a sprint course', () => {
+    // The mirror is derived from MAJORS, and sprint splits are unflagged, so
+    // normalizing would emit an empty mirror and imply a sector layout the
+    // course does not have.
+    const c: Course = { ...sprint('Run 1', '2026-09-05T07:03'), sectors: [{ line: split, major: false }] };
+    const out = finalizeCourseForSave(c);
+    expect(out.sector2).toBeUndefined();
+    expect(out.sector3).toBeUndefined();
+    expect(out.sectors).toEqual([{ line: split, major: false }]);
+  });
+
+  it('keeps a sprint course\'s splits unflagged', () => {
+    const c: Course = { ...sprint('Run 1'), sectors: [{ line: split, major: false }] };
+    expect(finalizeCourseForSave(c).sectors!.every((x) => !x.major)).toBe(true);
   });
 });

@@ -15,7 +15,12 @@
     "title": "新しいコースを追加",
     "courseName": "コース名",
     "courseNamePlaceholder": "例: フルコース",
-    "create": "コースを作成"
+    "create": "コースを作成",
+    "courseType": "コースの種類",
+    "typeCircuit": "サーキット",
+    "typeSprint": "スプリント",
+    "typeCircuitHint": "周回 — 1本のラインがスタートとフィニッシュを兼ねます。",
+    "typeSprintHint": "ポイント・トゥ・ポイント（オートクロス、ヒルクライム、SS）— フィニッシュラインが別にあり、走行ごとに計測します。"
   },
   "sectors": {
     "addSector": "セクターを追加",
@@ -27,7 +32,13 @@
     "dragReorder": "ドラッグして並べ替え",
     "markMajor": "メインセクターに指定",
     "deleteSector": "セクターを削除",
-    "resetStartFinish": "スタート/フィニッシュラインをリセット"
+    "resetStartFinish": "スタート/フィニッシュラインをリセット",
+    "startLineSprint": "スタートライン",
+    "finishLine": "フィニッシュライン",
+    "splitRow": "スプリット{{label}}",
+    "sprintGuidance": "スプリントコースはスタートラインから別のフィニッシュラインまで走ります。その間にスプリットラインを最大{{max}}本まで追加できます（任意）。",
+    "sprintSplitLimit": "スプリットの上限に達しました（スタートとフィニッシュの間に{{max}}本）。",
+    "resetFinish": "フィニッシュラインをリセット"
   },
   "visual": {
     "draw": "描画",
@@ -67,7 +78,9 @@
     "drawingGenerated": "描画を生成しました",
     "drawingGeneratedDesc": "{{label}}（{{count}}ポイント）。",
     "generatedFromLap": "ラップ{{number}}から生成",
-    "generatedFromSession": "セッション全体から生成"
+    "generatedFromSession": "セッション全体から生成",
+    "startLine": "スタート",
+    "finishLine": "フィニッシュ"
   },
   "prompt": {
     "selectCourse": "コースを選択",
