@@ -3,6 +3,7 @@ import { Course, SectorLine } from '@/types/racing';
 import {
   normalizeCourseSectors, majorSectorLines, legacyMirror, sectorLabels,
   validateCourseSectors, isAtSectorLimit, isAtMajorLimit, rollupMajorSectors, centeredSectorLine,
+  displayedSectorIndices,
   MAX_SECTOR_LINES, MAX_MAJOR_SECTORS, MAX_SPRINT_SPLITS, DEFAULT_SECTOR_HALF_LENGTH_DEG,
 } from './courseSectors';
 
@@ -242,5 +243,70 @@ describe('rollupMajorSectors', () => {
   it('returns undefined when there are fewer than three majors', () => {
     const c = baseCourse({ sectors: [{ line: line(1), major: true }] });
     expect(rollupMajorSectors(c, [1000, 2000])).toBeUndefined();
+  });
+
+  // Sprint splits are stored major:false on purpose, so the circuit rule would
+  // report every sprint run as sector-less. They are the sectors here.
+  describe('sprint courses', () => {
+    const sprint = (splits: number) =>
+      baseCourse({
+        type: 'sprint',
+        finish: line(9),
+        sectors: Array.from({ length: splits }, (_, i) => ({ line: line(i + 1), major: false })),
+      });
+
+    it('maps each split to a displayed sector', () => {
+      const roll = rollupMajorSectors(sprint(2), [1000, 2000, 3000])!;
+      expect(roll.s1).toBe(1000);
+      expect(roll.s2).toBe(2000);
+      expect(roll.s3).toBe(3000);
+    });
+
+    it('reports two sectors for a single split, leaving s3 unset', () => {
+      const roll = rollupMajorSectors(sprint(1), [1000, 2000])!;
+      expect(roll.s1).toBe(1000);
+      expect(roll.s2).toBe(2000);
+      expect(roll.s3).toBeUndefined();
+    });
+
+    it('returns undefined with no splits — the single segment IS the run', () => {
+      expect(rollupMajorSectors(sprint(0), [5000])).toBeUndefined();
+    });
+
+    it('marks a sector undefined when its segment is missing', () => {
+      const roll = rollupMajorSectors(sprint(2), [1000, undefined, 3000])!;
+      expect(roll.s1).toBe(1000);
+      expect(roll.s2).toBeUndefined();
+      expect(roll.s3).toBe(3000);
+    });
+  });
+});
+
+describe('displayedSectorIndices', () => {
+  it('lists the flagged majors on a circuit course, opening line first', () => {
+    const course = baseCourse({
+      sectors: [
+        { line: line(1), major: false },
+        { line: line(2), major: true },
+        { line: line(3), major: true },
+      ],
+    });
+    expect(displayedSectorIndices(course)).toEqual([0, 2, 3]);
+  });
+
+  it('lists every split on a sprint course regardless of the major flag', () => {
+    const course = baseCourse({
+      type: 'sprint',
+      finish: line(9),
+      sectors: [
+        { line: line(1), major: false },
+        { line: line(2), major: false },
+      ],
+    });
+    expect(displayedSectorIndices(course)).toEqual([0, 1, 2]);
+  });
+
+  it('is just the opening line for a course with no sectors', () => {
+    expect(displayedSectorIndices(baseCourse())).toEqual([0]);
   });
 });

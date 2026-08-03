@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { autoDetectCourse } from "./courseDetection";
+import { autoDetectCourse, tracksForRaceMode } from "./courseDetection";
 import type { GpsSample, Track, Course } from "@/types/racing";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -450,5 +450,64 @@ describe("autoDetectCourse - waypoint mode", () => {
     expect(course.startFinishA.lat).toBeCloseTo(origin.lat, 3);
     expect(course.startFinishB.lat).toBeCloseTo(origin.lat, 3);
     expect(course.startFinishA.lat).not.toBe(course.startFinishB.lat); // offsets differ
+  });
+});
+
+// ─── tracksForRaceMode ───────────────────────────────────────────────────────
+
+describe("tracksForRaceMode", () => {
+  const circuitCourse: Course = {
+    name: "Full CW",
+    lengthFt: 3383,
+    startFinishA: { lat: 0.0001, lon: 0 },
+    startFinishB: { lat: -0.0001, lon: 0 },
+  };
+  const sprintCourse: Course = {
+    name: "Cones AM",
+    type: "sprint",
+    startFinishA: { lat: 0.0001, lon: 0 },
+    startFinishB: { lat: -0.0001, lon: 0 },
+    finish: { a: { lat: 0.0001, lon: 0.006 }, b: { lat: -0.0001, lon: 0.006 } },
+  };
+
+  const circuitTrack: Track = { name: "Circuit venue", courses: [circuitCourse] };
+  const sprintTrack: Track = { name: "AX venue", courses: [sprintCourse] };
+  const mixedTrack: Track = { name: "Both", courses: [circuitCourse, sprintCourse] };
+
+  it("returns the list untouched when the mode is unknown", () => {
+    const tracks = [circuitTrack, sprintTrack];
+    expect(tracksForRaceMode(tracks, undefined)).toBe(tracks);
+  });
+
+  it("keeps only sprint tracks for a sprint log", () => {
+    const result = tracksForRaceMode([circuitTrack, sprintTrack], "sprint");
+    expect(result.map((t) => t.name)).toEqual(["AX venue"]);
+  });
+
+  it("keeps only circuit tracks for a circuit log", () => {
+    const result = tracksForRaceMode([circuitTrack, sprintTrack], "circuit");
+    expect(result.map((t) => t.name)).toEqual(["Circuit venue"]);
+  });
+
+  it("narrows a mixed track to the matching courses without dropping it", () => {
+    const [track] = tracksForRaceMode([mixedTrack], "sprint");
+    expect(track.name).toBe("Both");
+    expect(track.courses.map((c) => c.name)).toEqual(["Cones AM"]);
+  });
+
+  it("does not mutate the input tracks", () => {
+    tracksForRaceMode([mixedTrack], "sprint");
+    expect(mixedTrack.courses).toHaveLength(2);
+  });
+
+  it("falls back to the full list rather than filtering everything away", () => {
+    // A sprint log at a venue whose courses were never retyped still gets a
+    // best-effort detection instead of an empty track list.
+    const tracks = [circuitTrack];
+    expect(tracksForRaceMode(tracks, "sprint")).toBe(tracks);
+  });
+
+  it("treats a course with no type as circuit", () => {
+    expect(tracksForRaceMode([circuitTrack], "circuit")[0].courses).toHaveLength(1);
   });
 });

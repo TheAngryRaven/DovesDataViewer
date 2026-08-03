@@ -1,6 +1,6 @@
 import { Fragment, memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Lap, courseHasSectors, Course, GpsSample } from '@/types/racing';
+import { Lap, courseHasSectors, isSprintCourse, Course, GpsSample } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { normalizeCourseSectors, sectorLabels } from '@/lib/courseSectors';
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
@@ -58,6 +58,10 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
   const { useKph } = useSettingsContext();
 
   const showSectors = courseHasSectors(course);
+  // Point-to-point session: the rows are runs, not laps. The "lap" wording is
+  // kept on purpose (autocross drivers use it, and so does the logger) — only
+  // the labels that would be untrue for a run change.
+  const sprint = isSprintCourse(course);
   const [view, setView] = useState<'simple' | 'full'>('simple');
   // In Full view, an optional colored "S# Sum" column before each major group
   // showing that major sector's total time (the S1/S2/S3 rollup). Default on.
@@ -67,6 +71,10 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
   // has sub-sectors beyond the three majors.
   const full = useMemo(() => {
     if (!course) return null;
+    // A sprint course caps at two splits, so its three segments ARE the S1/S2/S3
+    // of the simple view — there is no finer breakdown to offer, and every split
+    // is stored unflagged so the sub-sector test below would wrongly say there is.
+    if (isSprintCourse(course)) return null;
     const sectors = normalizeCourseSectors(course).sectors ?? [];
     const hasSubSectors = sectors.some((s) => !s.major);
     if (!hasSubSectors) return null;
@@ -195,7 +203,9 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
       <div className="flex items-center justify-center h-full text-muted-foreground">
         <p className="text-center">
           {t('lapTable.noLaps')}<br />
-          <span className="text-sm">{t('lapTable.noLapsHint')}</span>
+          <span className="text-sm">
+            {sprint ? t('lapTable.noLapsHintSprint') : t('lapTable.noLapsHint')}
+          </span>
         </p>
       </div>
     );
@@ -460,7 +470,9 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
           )}
           {avgLapLength !== null && (
             <div>
-              <span className="text-muted-foreground">{t('lapTable.avgLapLength')}: </span>
+              <span className="text-muted-foreground">
+                {sprint ? t('lapTable.avgRunLength') : t('lapTable.avgLapLength')}:{' '}
+              </span>
               <span className="font-mono text-foreground font-semibold">
                 {t('lapTable.avgLapValue', {
                   feet: (avgLapLength * METERS_TO_FEET).toLocaleString(undefined, { maximumFractionDigits: 0 }),

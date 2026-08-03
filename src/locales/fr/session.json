@@ -28,6 +28,7 @@
   "lapTable": {
     "noLaps": "Aucun tour détecté.",
     "noLapsHint": "Sélectionnez un circuit avec une ligne d'arrivée",
+    "noLapsHintSprint": "Sélectionnez un parcours sprint avec des lignes de départ et d'arrivée",
     "sectorSums": "Sommes de secteur",
     "sectorSumsTitle": "Afficher un total cumulé S1/S2/S3 avant chaque secteur principal",
     "simple": "Simple",
@@ -44,6 +45,7 @@
     "optimal": "Optimal",
     "delta": "Delta",
     "avgLapLength": "Longueur moyenne du tour",
+    "avgRunLength": "Longueur moyenne de la manche",
     "avgLapValue": "{{feet}} ft / {{meters}} m"
   },
   "snapshots": {

@@ -101,12 +101,20 @@ export function isSprintCourse(course: Pick<Course, 'type'> | null | undefined):
 }
 
 /**
- * True when a course produces the classic three major sectors (start/finish +
- * two flagged majors). Reads the canonical `sectors` array, falling back to the
- * legacy `sector2`/`sector3` pair for un-normalized courses.
+ * True when a course produces sector times worth displaying.
+ *
+ * **Circuit** — the classic three majors (start/finish + two flagged). Reads
+ * the canonical `sectors` array, falling back to the legacy `sector2`/`sector3`
+ * pair for un-normalized courses.
+ *
+ * **Sprint** — any split at all. Splits are stored `major: false` (the flag is
+ * meaningless point-to-point), so the circuit rule would report every sprint
+ * course as sector-less and hide splits the driver deliberately placed. One
+ * split already divides the run into two timed segments.
  */
 export function courseHasSectors(course: Course | null): boolean {
   if (!course) return false;
+  if (isSprintCourse(course)) return (course.sectors?.length ?? 0) > 0;
   if (course.sectors && course.sectors.length > 0) {
     const majors = course.sectors.filter((s) => s.major).length;
     return majors >= 2; // + the implicit start/finish major = 3 total
@@ -184,6 +192,16 @@ export interface FieldMapping {
   enabled: boolean;
 }
 
+/**
+ * How a logged session was timed, from the DOVEX header's `race_mode` column.
+ *
+ * The device writes `CIRCUIT` / `SPRINT` (compared case-insensitively) and
+ * leaves it empty in circuit sessions; logs predating the column have no such
+ * field at all. Both cases surface as `undefined` — "unknown, assume circuit" —
+ * so a reader never has to distinguish "old log" from "circuit log".
+ */
+export type RaceMode = 'circuit' | 'sprint';
+
 export interface DovexMetadata {
   datetime?: string;
   driver?: string;
@@ -191,6 +209,14 @@ export interface DovexMetadata {
   shortName?: string;
   bestLapMs?: number;
   optimalMs?: number;
+  /** The logging device's name (`device_name`). Trailing column; older logs omit it. */
+  deviceName?: string;
+  /**
+   * Timing model the session was recorded in (`race_mode`). Trailing column;
+   * absent, empty or unrecognized ⇒ `undefined` (treat as circuit).
+   */
+  raceMode?: RaceMode;
+  /** Per-lap times from the header. In a sprint session these are run times. */
   lapTimesMs?: number[];
 }
 

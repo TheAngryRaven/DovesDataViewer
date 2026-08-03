@@ -1,4 +1,4 @@
-import { ParsedData, DovexMetadata } from '@/types/racing';
+import { ParsedData, DovexMetadata, RaceMode } from '@/types/racing';
 import { parseDoveFile, isDoveFormat } from './doveParser';
 
 /**
@@ -6,7 +6,8 @@ import { parseDoveFile, isDoveFormat } from './doveParser';
  *
  * Extended Dove format with a metadata preamble followed by standard .dove CSV.
  * Preamble usually includes:
- *   Line 1: session metadata column names (datetime,driver,course,short_name,best_lap_ms,optimal_ms)
+ *   Line 1: session metadata column names
+ *           (datetime,driver,course,short_name,best_lap_ms,optimal_ms,device_name,race_mode)
  *   Line 2: session metadata values
  *   Line 3: lap data column names (lap_times_ms / laps_ms)
  *   Line 4: lap data values (comma-separated ms values)
@@ -113,7 +114,28 @@ export function isDovexFormatBuffer(buffer: ArrayBuffer): boolean {
 }
 
 /**
+ * Normalize the DOVEX `race_mode` column.
+ *
+ * The firmware writes `CIRCUIT` / `SPRINT` and compares them case-insensitively
+ * (`BirdsEye/dovex_header.cpp`). Anything else — absent, empty, or a token this
+ * build doesn't know — returns `undefined` rather than defaulting to
+ * `'circuit'`: an unknown mode should leave downstream behaviour untouched, not
+ * assert a timing model the log never claimed.
+ */
+export function parseRaceMode(raw: string | undefined): RaceMode | undefined {
+  switch (raw?.trim().toLowerCase()) {
+    case 'circuit': return 'circuit';
+    case 'sprint': return 'sprint';
+    default: return undefined;
+  }
+}
+
+/**
  * Parse metadata header from the preamble section before Dove CSV starts.
+ *
+ * Fields are looked up BY COLUMN NAME, not by position — that is what makes the
+ * firmware's trailing `device_name` / `race_mode` columns readable from newer
+ * logs while six-column logs still parse. Don't make this positional.
  */
 function parseMetadataHeader(headerText: string): DovexMetadata {
   const meta: DovexMetadata = {};
@@ -146,6 +168,12 @@ function parseMetadataHeader(headerText: string): DovexMetadata {
     const v = parseInt(headerMap['optimal_ms'], 10);
     if (!isNaN(v)) meta.optimalMs = v;
   }
+
+  // Trailing columns, appended by the firmware after optimal_ms — absent in
+  // older logs, and race_mode is empty in circuit sessions.
+  if (headerMap['device_name']) meta.deviceName = headerMap['device_name'];
+  const raceMode = parseRaceMode(headerMap['race_mode']);
+  if (raceMode) meta.raceMode = raceMode;
 
   // Lines 3-4: lap data (header row + values row)
   // Line 3 is typically "lap_times_ms" or "laps_ms", line 4 is comma-separated lap times

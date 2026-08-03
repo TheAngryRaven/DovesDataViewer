@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Sprint sessions can finally be read back** (plan 0015). Load a log recorded
+  on a sprint course and the app now lists one row per run — start line to the
+  separate finish line — instead of showing nothing at all. Split times, the
+  fastest-run trophy, the map overlay, video sync and leaderboards all keep
+  working, because a run is still modelled as a lap. **This completes sprint
+  mode**: author a course, push it to the logger, drive it, review it.
+  - Runs are timed the way the logger times them: crossing the start line again
+    cancels and restarts the run, so a botched launch and re-run reads the same
+    on screen as it did on the dash.
+  - The **split lines** placed between start and finish now show up as sector
+    times. They previously never rendered at all — a sprint course's splits are
+    stored without the circuit "major sector" flag, and the sector display asked
+    for that flag.
+  - The logger's **`race_mode`** is finally read out of the log header (it was
+    being written and thrown away), along with the device name. It also steers
+    course detection: at a venue with both a circuit and a sprint track, a
+    sprint log no longer risks matching the circuit one and reporting zero runs.
+    Logs recorded before the column existed are unaffected.
+  - **"Lap" wording is kept** — autocross drivers call them laps, and so does
+    the logger. Only the two labels that would be untrue for a point-to-point
+    run change: the empty-state hint, and "Avg Lap Length" → "Avg Run Length".
 - **Sprint tracks appear in the Device tab and sync over Bluetooth** (plan
   0015). The tab now loads both folders off the logger, tags each track with
   its kind, and marks sprint tracks with a badge — a circuit and a sprint track

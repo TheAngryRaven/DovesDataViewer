@@ -73,8 +73,8 @@ names that `normalizeChannels` canonicalises.
 
 Extended Dove format with an 8192-byte (8 KB) metadata header:
 ```
-Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms
-Line 2: 2024-03-15 14:30:00,Mike,Full CW,OKC,62345,61200
+Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms,device_name,race_mode
+Line 2: 2024-03-15 14:30:00,Mike,Cones AM,AX1,62345,61200,ApexTurbo,SPRINT
 Line 3: lap_times_ms
 Line 4: 65432,64321,62345,63456   (lap times in ms, comma-separated)
 \n padding to byte 8192
@@ -83,6 +83,17 @@ Byte 8192+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
 
 GPS data is always parseable even if metadata is corrupted. Metadata is attached
 as `ParsedData.dovexMetadata`.
+
+**Columns are read by name, not by position** — that is what lets the firmware
+append columns without breaking older logs. `device_name` and `race_mode` are
+the two most recent; six-column logs simply leave them unset.
+
+**`race_mode`** is `CIRCUIT` / `SPRINT`, compared case-insensitively; empty,
+absent and unrecognized all surface as `undefined`, which every reader treats as
+circuit. It is the app's only signal that a log's "laps" are point-to-point runs
+(line 4 then lists run times), and it narrows auto-detection to matching courses
+via `courseDetection.tracksForRaceMode`, so a sprint log can't latch onto a
+circuit course at the same venue. See `docs/plans/0015-sprint-mode.md`.
 
 **Headerless files:** the logger only writes the metadata header on "end
 session", so an unclosed session leaves the reserved region as blank padding

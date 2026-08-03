@@ -1,8 +1,9 @@
 # Sprint Mode (Autocross / Point-to-Point) — DataViewer Side
 
-> Status: **IN PROGRESS** — the logger and the timing library already ship
-> sprint support; this plan is the app catching up. Phase 3 of the cross-repo
-> effort recorded in `DovesDataLogger/docs/plans/0002-sprint-mode.md`.
+> Status: **DONE** (bar the end-of-project Android IPC follow-up below) — the
+> logger and the timing library already shipped sprint support; this plan was
+> the app catching up. Phase 3 of the cross-repo effort recorded in
+> `DovesDataLogger/docs/plans/0002-sprint-mode.md`.
 
 ## Why this exists
 
@@ -178,17 +179,77 @@ need the `TS*` verbs to reach parity with Web Bluetooth:
 - Sequenced at the END of this plan on purpose: it is gated on another
   product's release, not on anything in this repo, and blocking sprint mode on
   it would have stalled work that is otherwise finished.
-- **PR 5 — reading runs back.** (Was PR 4; renumbered when the seam split out.)
-  `race_mode` in `dovexParser`, run derivation, and a run-oriented `LapTable`.
-  `calculateLaps` pairs *consecutive* start/finish crossings and wraps the last
-  segment back to start/finish — both assumptions are false for sprint.
+- ~~**PR 5 — reading runs back.**~~ **Done.** (Was PR 4; renumbered when the
+  seam split out.) `race_mode` in `dovexParser`, run derivation in
+  `calculateLaps`, and sprint-aware sector/label handling. Four things landed,
+  each with a decision worth keeping:
+
+  - **`race_mode` and `device_name` are parsed.** The firmware emits eight
+    metadata columns; the parser read six, so `race_mode` was on the wire and
+    silently dropped. Column names come from `BirdsEye/dovex_header.cpp`, not
+    the firmware's own docs (see the cross-repo note below). `parseRaceMode`
+    returns `undefined` — not `'circuit'` — for an absent, empty *or
+    unrecognized* value: an unknown mode should leave behaviour untouched
+    rather than assert a timing model the log never claimed.
+    `lib/gps/dovepWriter.ts` was deliberately **not** widened to emit the two
+    columns; the phone laptimer records circuit sessions only, and an absent
+    `race_mode` already means circuit.
+
+  - **Run derivation follows the device exactly.** `pairSprintRuns` implements
+    `DovesDataLogger` plan 0002 §7 Q4: a start crossing opens a run *and
+    cancels any run in progress* (the botched-course re-launch rule), a finish
+    crossing completes it, and a finish with no armed run is ignored —
+    i.e. each run opens at the **last** start crossing before its finish.
+    That rule is also what makes the derivation robust to a driver crossing the
+    start line on the way back to grid: the launch is always the last start-line
+    crossing before a finish.
+    The per-lap body (speed stats + the sector-boundary walk) was extracted into
+    a shared `buildLap`, since circuit and sprint differ only in *which*
+    crossings get paired. `calculateLaps` keeps its signature, so all six call
+    sites gained sprint for free. A sprint course with no finish line returns
+    `[]` rather than pairing runs off the start line alone.
+
+  - **Splits are the displayed sectors.** `rollupMajorSectors` returned
+    `undefined` for every sprint course (it required three flagged majors, and
+    sprint splits are stored `major: false` on purpose) — so splits the driver
+    placed in the editor rendered as em-dashes. A new
+    `displayedSectorIndices` makes the *reader* type-aware while the stored
+    flags stay untouched: circuit uses the flagged majors, sprint uses every
+    split. With `MAX_SPRINT_SPLITS = 2` a run has at most three segments, which
+    is exactly the S1/S2/S3 the lap table, video overlays and snapshots already
+    render. `courseHasSectors` gained the matching branch, and the lap table's
+    Simple/Full toggle is suppressed for sprint (all splits being unflagged, its
+    "has sub-sectors" test would otherwise say yes and label them "1 / 1.1 /
+    1.2").
+    **Left alone on purpose:** `sectorLabels` still numbers sprint splits
+    `1.1` / `1.2`. It also drives the track editor and `SectorCropSelect`, so
+    retyping it would touch PR 2's landed UI for a cosmetic gain — a follow-up,
+    not part of reading runs back.
+
+  - **`race_mode` narrows detection.** Parsing it was not enough: nothing in the
+    app read `dovexMetadata` at all. A venue can carry both a circuit and a
+    sprint track, so `findNearestTrack` could pick the wrong one outright and
+    the session would show zero runs. `tracksForRaceMode` drops the
+    non-matching courses (then the emptied tracks) before `autoDetectCourse`
+    runs, wired in `useDataLoader` only. It is conservative in both directions —
+    an unknown mode, or a filter that would leave nothing, returns the input
+    unchanged, so no log detects worse than it did before.
+
+  **Wording:** "lap" stays, per the section below. Only the two labels that are
+  factually untrue point-to-point fork on course type: the empty-state hint
+  (which told the user to pick a track with a start/finish line) and "Avg Lap
+  Length" → "Avg Run Length". The column header stays "Lap".
 
 ## Deliberately kept: "lap" wording
 
 The AX drivers call them laps. The firmware kept the wording on-device for the
 same reason. Runs are modelled as `Lap[]` so every existing consumer — the lap
-table, the overlay renderer, leaderboards, the video sync — keeps working. Only
-labels change, and only in PR 4.
+table, the overlay renderer, leaderboards, the video sync — keeps working.
+
+What landed in PR 5: the noun "Lap" is kept everywhere, in the code *and* on
+screen. Only strings that would be **factually untrue** for a point-to-point run
+fork on course type — the empty-state hint and "Avg Lap Length". The lap-number
+column header is still "Lap".
 
 ## Not in scope
 

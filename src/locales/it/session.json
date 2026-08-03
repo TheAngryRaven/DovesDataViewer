@@ -28,6 +28,7 @@
   "lapTable": {
     "noLaps": "Nessun giro rilevato.",
     "noLapsHint": "Seleziona una pista con linea del traguardo",
+    "noLapsHintSprint": "Seleziona un percorso sprint con linee di partenza e arrivo",
     "sectorSums": "Somme settore",
     "sectorSumsTitle": "Mostra un totale progressivo S1/S2/S3 prima di ogni settore principale",
     "simple": "Semplice",
@@ -44,6 +45,7 @@
     "optimal": "Ottimale",
     "delta": "Delta",
     "avgLapLength": "Lunghezza media del giro",
+    "avgRunLength": "Lunghezza media della manche",
     "avgLapValue": "{{feet}} ft / {{meters}} m"
   },
   "snapshots": {

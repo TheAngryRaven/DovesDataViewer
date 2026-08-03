@@ -166,23 +166,47 @@ export function isAtMajorLimit(course: Course): boolean {
 }
 
 /**
+ * Timing-line indices that open a displayed sector, the opening line first.
+ * Indices align to [startFinish, ...course.sectors].
+ *
+ * **Circuit** — the flagged majors, so S1/S2/S3 span major-to-major and any
+ * sub-sectors roll up inside them.
+ *
+ * **Sprint** — *every* split. `major` is meaningless point-to-point (the flag
+ * is stored `false` so a course retyped to circuit fails validation loudly
+ * instead of claiming a sector layout it never had), and there are at most
+ * `MAX_SPRINT_SPLITS` of them, so the run divides into at most three segments —
+ * exactly the S1/S2/S3 the rest of the app already renders. This is display
+ * only: the stored `major` flags are never touched.
+ */
+export function displayedSectorIndices(course: Course): number[] {
+  const indices = [0]; // the start (or start/finish) line always opens sector 1
+  (course.sectors ?? []).forEach((s, i) => {
+    if (s.major || isSprintCourse(course)) indices.push(i + 1);
+  });
+  return indices;
+}
+
+/**
  * Roll the fine-grained per-segment times up into the classic S1/S2/S3, where
- * each major sector spans from its major line to the next major line. A major
- * sector is `undefined` if any of its constituent segments is missing.
+ * each displayed sector spans from its opening line to the next one. A sector
+ * is `undefined` if any of its constituent segments is missing.
  *
  * `sectorTimes[k]` is the segment beginning at timing line k (index 0 = start/
  * finish), aligned to the order [startFinish, ...course.sectors].
+ *
+ * Circuit courses need all three majors before anything is reported — a partial
+ * layout has no meaningful S1/S2/S3. A sprint course reports as many sectors as
+ * it has splits (one split ⇒ `{s1, s2}`), and nothing at all with no splits,
+ * where the single segment IS the run.
  */
 export function rollupMajorSectors(
   course: Course,
   sectorTimes: (number | undefined)[],
 ): SectorTimes | undefined {
-  // Indices of the major timing lines (line 0 = start/finish is always major).
-  const majorIdx = [0];
-  (course.sectors ?? []).forEach((s, i) => {
-    if (s.major) majorIdx.push(i + 1);
-  });
-  if (majorIdx.length < MAX_MAJOR_SECTORS) return undefined;
+  const majorIdx = displayedSectorIndices(course);
+  const minSectors = isSprintCourse(course) ? 2 : MAX_MAJOR_SECTORS;
+  if (majorIdx.length < minSectors) return undefined;
 
   const n = sectorTimes.length;
   const groupTotal = (from: number, toExclusive: number): number | undefined => {
@@ -195,9 +219,11 @@ export function rollupMajorSectors(
     return sum;
   };
 
+  // A sprint course may open fewer than three sectors; the trailing ones stay
+  // undefined and render as the same em-dash a missed crossing produces.
   return {
-    s1: groupTotal(majorIdx[0], majorIdx[1]),
-    s2: groupTotal(majorIdx[1], majorIdx[2]),
-    s3: groupTotal(majorIdx[2], n),
+    s1: groupTotal(majorIdx[0], majorIdx[1] ?? n),
+    s2: majorIdx.length > 1 ? groupTotal(majorIdx[1], majorIdx[2] ?? n) : undefined,
+    s3: majorIdx.length > 2 ? groupTotal(majorIdx[2], n) : undefined,
   };
 }
