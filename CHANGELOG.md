@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Sprint courses can be created and edited** (plan 0015). The course editor
+  gained a **Circuit / Sprint** picker, and a sprint course gets a second,
+  separate **finish line** handle on the map — rendered in red after the splits,
+  because that is the order you cross them. The sector list grows a matching
+  Finish row at the bottom, drops the Major switch (meaningless point-to-point),
+  and relabels its rows Split 1/2. Selecting Sprint drops a finish line for you
+  north of the start rather than making you hunt for a button.
+  - The type is fixed once a course exists: retyping a course that already has
+    geometry would silently invalidate it, since a circuit's three majors are
+    not a sprint's splits.
+  - Still no device sync for sprint tracks (`TS*` opcodes) and no runs view —
+    those are the next two steps.
 - **Sprint (autocross / point-to-point) course model — foundation** (plan 0015).
   Courses can now be typed `circuit` or `sprint`. A sprint course is timed
   start-line → *separate* finish line rather than lap-to-lap, carries a required

@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import type { GpsPoint } from './VisualEditor';
 import type { SelectedLine } from '@/hooks/useTrackEditorForm';
-import type { CourseSector, SectorLine, Lap, GpsSample } from '@/types/racing';
+import type { CourseSector, CourseType, SectorLine, Lap, GpsSample } from '@/types/racing';
+import { CourseTypeToggle } from './CourseTypeToggle';
 
 // Lazy — CourseSectorEditor pulls in the Leaflet drawing map + the dnd-kit
 // sector list, neither of which belongs in the eager landing bundle.
@@ -32,9 +33,13 @@ interface AddCourseDialogProps {
   startFinishA: GpsPoint | null;
   startFinishB: GpsPoint | null;
   sectors: CourseSector[];
+  courseType?: CourseType;
+  onCourseTypeChange?: (type: CourseType) => void;
+  finish?: SectorLine | null;
   selectedLine: SelectedLine;
   onSelectLine: (id: SelectedLine) => void;
   onStartFinishChange: (a: GpsPoint, b: GpsPoint) => void;
+  onFinishChange?: (line: SectorLine) => void;
   onSectorLineChange: (index: number, line: SectorLine) => void;
   onAddSector: (insertIndex?: number, center?: GpsPoint) => void;
   onRemoveSector: (index: number) => void;
@@ -52,8 +57,10 @@ export function AddCourseDialog({
   open, onOpenChange,
   courseName, onCourseNameChange, canSubmit,
   onSubmit, onCancel,
-  startFinishA, startFinishB, sectors, selectedLine, onSelectLine,
-  onStartFinishChange, onSectorLineChange,
+  startFinishA, startFinishB, sectors,
+  courseType = 'circuit', onCourseTypeChange, finish = null,
+  selectedLine, onSelectLine,
+  onStartFinishChange, onFinishChange, onSectorLineChange,
   onAddSector, onRemoveSector, onToggleMajor, onReorder,
   initialCenter,
   layoutPoints, onLayoutChange, laps, samples,
@@ -67,14 +74,20 @@ export function AddCourseDialog({
           <DialogTitle>{t('addCourse.title')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {onCourseTypeChange && (
+            <CourseTypeToggle value={courseType} onChange={onCourseTypeChange} />
+          )}
           <Suspense fallback={null}>
           <CourseSectorEditor
             startFinishA={startFinishA}
             startFinishB={startFinishB}
             sectors={sectors}
+            courseType={courseType}
+            finish={finish}
             selectedLine={selectedLine}
             onSelectLine={onSelectLine}
             onStartFinishChange={onStartFinishChange}
+            onFinishChange={onFinishChange}
             onSectorLineChange={onSectorLineChange}
             onAddSector={onAddSector}
             onRemoveSector={onRemoveSector}

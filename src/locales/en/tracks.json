@@ -14,7 +14,12 @@
     "title": "Add New Course",
     "courseName": "Course Name",
     "courseNamePlaceholder": "e.g., Full Track",
-    "create": "Create Course"
+    "create": "Create Course",
+    "courseType": "Course type",
+    "typeCircuit": "Circuit",
+    "typeSprint": "Sprint",
+    "typeCircuitHint": "Laps — one line is both start and finish.",
+    "typeSprintHint": "Point-to-point (autocross, hillclimb, stage) — a separate finish line, timed as runs."
   },
   "sectors": {
     "addSector": "Add sector",
@@ -26,7 +31,13 @@
     "dragReorder": "Drag to reorder",
     "markMajor": "Mark as major sector",
     "deleteSector": "Delete sector",
-    "resetStartFinish": "Reset start/finish line"
+    "resetStartFinish": "Reset start/finish line",
+    "startLineSprint": "Start line",
+    "finishLine": "Finish line",
+    "splitRow": "Split {{label}}",
+    "sprintGuidance": "A sprint course runs from the start line to a separate finish line. Add up to {{max}} split lines in between (optional).",
+    "sprintSplitLimit": "Split limit reached ({{max}} between start and finish).",
+    "resetFinish": "Reset finish line"
   },
   "visual": {
     "draw": "Draw",
@@ -66,7 +77,9 @@
     "drawingGenerated": "Drawing generated",
     "drawingGeneratedDesc": "{{label}} ({{count}} points).",
     "generatedFromLap": "Generated from Lap {{number}}",
-    "generatedFromSession": "Generated from the full session"
+    "generatedFromSession": "Generated from the full session",
+    "startLine": "Start",
+    "finishLine": "Finish"
   },
   "prompt": {
     "selectCourse": "Select Course",

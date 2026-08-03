@@ -24,23 +24,42 @@ export interface GpsPoint {
   lon: number;
 }
 
-/** Identifies an editable timing line: 'sf' = start/finish, number = sectors[index]. */
-export type LineId = 'sf' | number;
+/**
+ * Identifies an editable timing line.
+ * - `'sf'` — start/finish on a circuit, the start line on a sprint course
+ * - `number` — `sectors[index]`
+ * - `'finish'` — the separate finish line, sprint courses only
+ */
+export type LineId = 'sf' | 'finish' | number;
 
-// Line colors: start/finish green, major sectors purple, sub-sectors sky-blue.
+// Line colors: start/finish green, major sectors purple, sub-sectors sky-blue,
+// and — sprint only — the separate finish line in red. Green-to-red reads as
+// start-to-end, which is the whole point of a point-to-point course.
 const COLOR_SF = '#22c55e';
 const COLOR_MAJOR = '#a855f7';
 const COLOR_SUB = '#38bdf8';
+const COLOR_FINISH = '#ef4444';
 
 interface VisualEditorProps {
   startFinishA: GpsPoint | null;
   startFinishB: GpsPoint | null;
   /** Ordered sector lines after start/finish. */
   sectors: CourseSector[];
+  /**
+   * Sprint courses only: the separate finish line. When set, the editor grows a
+   * fourth handle rendered after the sectors, since it is last in driving order.
+   */
+  finish?: SectorLine | null;
+  /**
+   * True when the course being edited is point-to-point. Drives the finish-line
+   * auto-drop; the finish handle itself only appears once `finish` is set.
+   */
+  isSprint?: boolean;
   /** Currently-selected line (controlled by the sector list), or null. */
   selectedLine: LineId | null;
   onSelectLine?: (id: LineId | null) => void;
   onStartFinishChange?: (a: GpsPoint, b: GpsPoint) => void;
+  onFinishChange?: (line: SectorLine) => void;
   onSectorLineChange?: (index: number, line: SectorLine) => void;
   isNewTrack?: boolean;
   /** Initial map center from loaded GPS data */
@@ -210,8 +229,9 @@ function VisualEditorToolbar({ drawMode, onToggleDraw, showDrawTool, drawPointCo
 }
 
 export function VisualEditor({
-  startFinishA, startFinishB, sectors, selectedLine, onSelectLine,
-  onStartFinishChange, onSectorLineChange,
+  startFinishA, startFinishB, sectors, finish = null, isSprint = false,
+  selectedLine, onSelectLine,
+  onStartFinishChange, onFinishChange, onSectorLineChange,
   isNewTrack = false, initialCenter: initialCenterProp = null,
   showDrawTool = false, layoutPoints: layoutPointsProp, showKnownDrawingToggle = false, onLayoutChange,
   laps, samples, viewCenterRef,
@@ -283,6 +303,7 @@ export function VisualEditor({
   // Color for a given line id.
   const colorFor = useCallback((id: LineId): string => {
     if (id === 'sf') return COLOR_SF;
+    if (id === 'finish') return COLOR_FINISH;
     return sectors[id]?.major ? COLOR_MAJOR : COLOR_SUB;
   }, [sectors]);
 
@@ -293,12 +314,18 @@ export function VisualEditor({
       if (startFinishA && startFinishB) return { a: startFinishA, b: startFinishB };
       return null;
     }
+    if (id === 'finish') return finish ? { a: finish.a, b: finish.b } : null;
     const sec = sectors[id];
     return sec ? { a: sec.line.a, b: sec.line.b } : null;
-  }, [pendingLine, startFinishA, startFinishB, sectors]);
+  }, [pendingLine, startFinishA, startFinishB, finish, sectors]);
 
-  // All line ids in course order (start/finish first).
-  const allLineIds = useMemo<LineId[]>(() => ['sf', ...sectors.map((_, i) => i)], [sectors]);
+  // All line ids in DRIVING order: start, then the splits, then — on a sprint
+  // course — the finish. The finish is last because that is the order a driver
+  // crosses them, and the same order the list editor renders.
+  const allLineIds = useMemo<LineId[]>(
+    () => ['sf', ...sectors.map((_, i) => i), ...(finish ? (['finish'] as LineId[]) : [])],
+    [sectors, finish],
+  );
 
   // For a brand-new course the start/finish line has no coordinates yet, so it
   // can't be rendered or dragged. Drop it in the center of the chosen view — when
@@ -311,6 +338,18 @@ export function VisualEditor({
     onStartFinishChange?.(line.a, line.b);
     onSelectLineRef.current?.('sf');
   }, [isNewTrack, startFinishA, startFinishB, onStartFinishChange]);
+
+  // A sprint course is unsavable without a finish line, so drop one as soon as
+  // the course is typed sprint rather than making the user hunt for a button.
+  // It lands north of start/finish (same fan-out as a new sector) so the two
+  // don't sit on top of each other; the user drags it to the real finish.
+  useEffect(() => {
+    if (!isSprint || finish || !onFinishChange) return;
+    if (!startFinishA || !startFinishB) return;   // wait for a start line to offset from
+    const midLat = (startFinishA.lat + startFinishB.lat) / 2;
+    const midLon = (startFinishA.lon + startFinishB.lon) / 2;
+    onFinishChange(centeredSectorLine({ lat: midLat + 0.0009, lon: midLon }));
+  }, [isSprint, finish, onFinishChange, startFinishA, startFinishB]);
 
   // Location search using Nominatim
   const handleLocationSearch = useCallback(async () => {
@@ -452,6 +491,7 @@ export function VisualEditor({
         // Save immediately on release — no separate "Done" step.
         setPendingLine({ id, coords: { a: newA, b: newB } });
         if (id === 'sf') onStartFinishChange?.(newA, newB);
+        else if (id === 'finish') onFinishChange?.({ a: newA, b: newB });
         else onSectorLineChange?.(id, { a: newA, b: newB });
       });
 
@@ -461,7 +501,7 @@ export function VisualEditor({
     const markerA = createMarker(coords.a, true);
     const markerB = createMarker(coords.b, false);
     markersRef.current = [markerA, markerB];
-  }, [colorFor, onStartFinishChange, onSectorLineChange]);
+  }, [colorFor, onStartFinishChange, onFinishChange, onSectorLineChange]);
 
   // --- Draw mode helpers ---
   const updateDrawPolyline = useCallback((points: Array<{ lat: number; lon: number }>) => {
@@ -738,7 +778,12 @@ export function VisualEditor({
         : t('visual.drawPoints', { count: drawPoints.length });
     }
     if (selectedLine === null) return '';
-    const name = selectedLine === 'sf' ? t('visual.startFinishLine') : t('sectors.sectorRow', { label: labels[selectedLine + 1] ?? '' });
+    // labels[0] is the start/finish line, so sectors[i] is labels[i + 1]. The
+    // finish line is not in that array at all — it is not a sector.
+    const name =
+      selectedLine === 'sf' ? (isSprint ? t('visual.startLine') : t('visual.startFinishLine'))
+      : selectedLine === 'finish' ? t('visual.finishLine')
+      : t('sectors.sectorRow', { label: labels[selectedLine + 1] ?? '' });
     const coords = coordsFor(selectedLine);
     if (!coords) return t('visual.noLineDefined', { name });
     return t('visual.dragMarkers', { name });

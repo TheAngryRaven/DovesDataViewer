@@ -14,6 +14,7 @@
  */
 
 import { Course, isSprintCourse } from '@/types/racing';
+import { normalizeCourseSectors } from '@/lib/courseSectors';
 
 /**
  * `YYYY-MM-DDTHH:MM` — sortable as a plain string, minute precision, local
@@ -98,4 +99,22 @@ export function newestSprintCourseIndex(courses: readonly Course[]): number {
 export function newestSprintCourse(courses: readonly Course[]): Course | undefined {
   const i = newestSprintCourseIndex(courses);
   return i === -1 ? undefined : courses[i];
+}
+
+/**
+ * Final pass over a course on its way to storage, branching on the timing model.
+ *
+ * Circuit courses are normalized so the legacy `sector2`/`sector3` mirror is
+ * written alongside the canonical array, exactly as before.
+ *
+ * Sprint courses deliberately **skip** that normalization. The mirror is derived
+ * from flagged MAJORS, and sprint splits are stored unflagged — normalizing
+ * would write an empty mirror and imply a sector layout the course does not
+ * have. Their splits reach the device positionally instead (see
+ * `deviceTrackSync.deviceSectorProjection`). They are stamped with a
+ * `date_created` here if they do not already carry one.
+ */
+export function finalizeCourseForSave(course: Course, now: Date = new Date()): Course {
+  if (!isSprintCourse(course)) return normalizeCourseSectors(course);
+  return stampSprintDateCreated(course, now);
 }
