@@ -28,6 +28,7 @@
   "lapTable": {
     "noLaps": "Nenhuma volta detectada.",
     "noLapsHint": "Selecione uma pista com linha de chegada",
+    "noLapsHintSprint": "Selecione um traçado sprint com linhas de largada e chegada",
     "sectorSums": "Somas de setor",
     "sectorSumsTitle": "Mostrar um total acumulado S1/S2/S3 antes de cada setor principal",
     "simple": "Simples",
@@ -44,6 +45,7 @@
     "optimal": "Ótima",
     "delta": "Delta",
     "avgLapLength": "Comprimento médio da volta",
+    "avgRunLength": "Comprimento médio da bateria",
     "avgLapValue": "{{feet}} ft / {{meters}} m"
   },
   "snapshots": {

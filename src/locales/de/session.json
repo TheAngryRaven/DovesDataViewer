@@ -28,6 +28,7 @@
   "lapTable": {
     "noLaps": "Keine Runden erkannt.",
     "noLapsHint": "Wähle eine Strecke mit Start-/Ziellinie",
+    "noLapsHintSprint": "Wähle einen Sprint-Kurs mit Start- und Ziellinie",
     "sectorSums": "Sektorsummen",
     "sectorSumsTitle": "Laufende S1/S2/S3-Summe vor jedem Hauptsektor anzeigen",
     "simple": "Einfach",
@@ -44,6 +45,7 @@
     "optimal": "Optimal",
     "delta": "Delta",
     "avgLapLength": "Durchschnittliche Rundenlänge",
+    "avgRunLength": "Durchschnittliche Lauflänge",
     "avgLapValue": "{{feet}} ft / {{meters}} m"
   },
   "snapshots": {
