@@ -1,4 +1,4 @@
-import { GpsSample, Course, Lap, LapCrossing, SectorTimes, SectorLine, CourseDirection } from '@/types/racing';
+import { GpsSample, Course, CourseSector, Lap, LapCrossing, SectorTimes, SectorLine, CourseDirection, isSprintCourse } from '@/types/racing';
 import { EARTH_RADIUS_M } from './parserUtils';
 import { normalizeCourseSectors, majorSectorLines, rollupMajorSectors } from './courseSectors';
 
@@ -142,17 +142,207 @@ function projectSectorLine(
   };
 }
 
+/**
+ * Pair start-line and finish-line crossings into point-to-point runs.
+ *
+ * Mirrors the device's `SprintTimer` (DovesDataLogger plan 0002 §7 Q4, decided):
+ * a start crossing opens a run **and cancels any run already in progress** — the
+ * botched-course re-launch rule — a finish crossing completes the open run, and
+ * a finish crossing with no open run is ignored. Equivalently, and this is how
+ * it's implemented: each run opens at the LAST start crossing falling after the
+ * previous run's finish and before this finish.
+ *
+ * That rule is also what makes the derivation robust to a driver crossing the
+ * start line on the way back to grid — the actual launch is always the last
+ * start-line crossing before a finish.
+ *
+ * Both lists must be in ascending time order, which `detectLineCrossings`
+ * guarantees.
+ */
+export function pairSprintRuns(
+  starts: LapCrossing[],
+  finishes: LapCrossing[],
+): Array<[LapCrossing, LapCrossing]> {
+  const runs: Array<[LapCrossing, LapCrossing]> = [];
+  let previousFinishTime = -Infinity;
+
+  for (const finish of finishes) {
+    let opener: LapCrossing | undefined;
+    for (const start of starts) {
+      if (start.crossingTime <= previousFinishTime) continue;
+      if (start.crossingTime >= finish.crossingTime) break;
+      opener = start; // keep walking: the last start before the finish wins
+    }
+    if (!opener) continue; // finish crossing with no armed run
+    runs.push([opener, finish]);
+    previousFinishTime = finish.crossingTime;
+  }
+
+  return runs;
+}
+
+/**
+ * Build one `Lap` from a delimited crossing pair: speed stats over the enclosed
+ * samples plus the per-segment sector walk.
+ *
+ * Shared by the circuit and sprint paths — they differ only in which crossings
+ * get paired, never in what a completed lap/run looks like.
+ */
+function buildLap(
+  lapNumber: number,
+  start: LapCrossing,
+  end: LapCrossing,
+  samples: GpsSample[],
+  course: Course,
+  courseSectors: CourseSector[],
+  sectorCrossings: LineCrossing[][],
+): Lap {
+  const lapTimeMs = end.crossingTime - start.crossingTime;
+
+  // Find max and min speed in this lap with glitch filtering
+  const MIN_SPEED_THRESHOLD_MPH = 1.0;
+  const MAX_GLITCH_SAMPLES = 3;
+
+  const glitchIndices = new Set<number>();
+  let runStart = -1;
+
+  for (let j = start.sampleIndex; j <= end.sampleIndex && j < samples.length; j++) {
+    const isLowSpeed = samples[j].speedMph < MIN_SPEED_THRESHOLD_MPH;
+
+    if (isLowSpeed && runStart === -1) {
+      runStart = j;
+    } else if (!isLowSpeed && runStart !== -1) {
+      const runLength = j - runStart;
+      if (runLength <= MAX_GLITCH_SAMPLES) {
+        for (let k = runStart; k < j; k++) {
+          glitchIndices.add(k);
+        }
+      }
+      runStart = -1;
+    }
+  }
+  if (runStart !== -1) {
+    const runLength = (end.sampleIndex + 1) - runStart;
+    if (runLength <= MAX_GLITCH_SAMPLES) {
+      for (let k = runStart; k <= end.sampleIndex && k < samples.length; k++) {
+        glitchIndices.add(k);
+      }
+    }
+  }
+
+  let maxSpeedMph = 0;
+  let maxSpeedKph = 0;
+  let minSpeedMph = Infinity;
+  let minSpeedKph = Infinity;
+
+  for (let j = start.sampleIndex; j <= end.sampleIndex && j < samples.length; j++) {
+    const sample = samples[j];
+
+    if (sample.speedMph > maxSpeedMph) {
+      maxSpeedMph = sample.speedMph;
+      maxSpeedKph = sample.speedKph;
+    }
+
+    if (!glitchIndices.has(j) && sample.speedMph < minSpeedMph) {
+      minSpeedMph = sample.speedMph;
+      minSpeedKph = sample.speedKph;
+    }
+  }
+
+  // Compute fine-grained per-segment times when the course defines sectors.
+  let sectors: SectorTimes | undefined;
+  let sectorTimes: (number | undefined)[] | undefined;
+  let sectorBoundaries: (number | undefined)[] | undefined;
+
+  // Number of timing lines = the opening line + course sectors. Segment k spans
+  // line k → line k+1; the last closes on `end` (the next start/finish crossing
+  // on a circuit lap, the finish-line crossing on a sprint run).
+  const lineCount = courseSectors.length + 1;
+
+  if (courseSectors.length > 0) {
+    // Walk every sector line in order, finding the crossing for this lap. Each
+    // must fall after the previously matched boundary so out-of-order/missed
+    // crossings leave a gap rather than corrupting later sectors.
+    const boundaryTimes: (number | undefined)[] = new Array(lineCount);
+    const boundaryIdx: (number | undefined)[] = new Array(lineCount);
+    boundaryTimes[0] = start.crossingTime; // line 0 = the lap/run's opening line
+    boundaryIdx[0] = start.sampleIndex;
+    let prevTime = start.crossingTime;
+
+    for (let j = 0; j < courseSectors.length; j++) {
+      const cross = sectorCrossings[j].find(
+        c => c.crossingTime > prevTime && c.crossingTime < end.crossingTime,
+      );
+      if (cross) {
+        boundaryTimes[j + 1] = cross.crossingTime;
+        boundaryIdx[j + 1] = cross.sampleIndex;
+        prevTime = cross.crossingTime;
+      } else {
+        boundaryTimes[j + 1] = undefined;
+        boundaryIdx[j + 1] = undefined;
+      }
+    }
+
+    sectorTimes = new Array(lineCount);
+    for (let k = 0; k < lineCount; k++) {
+      const tStart = boundaryTimes[k];
+      const tEnd = k + 1 < lineCount ? boundaryTimes[k + 1] : end.crossingTime;
+      sectorTimes[k] = tStart !== undefined && tEnd !== undefined ? tEnd - tStart : undefined;
+    }
+    sectorBoundaries = boundaryIdx;
+    sectors = rollupMajorSectors(course, sectorTimes);
+  }
+
+  return {
+    lapNumber,
+    startTime: start.crossingTime,
+    endTime: end.crossingTime,
+    lapTimeMs,
+    maxSpeedMph,
+    maxSpeedKph,
+    minSpeedMph: minSpeedMph === Infinity ? 0 : minSpeedMph,
+    minSpeedKph: minSpeedKph === Infinity ? 0 : minSpeedKph,
+    startIndex: start.sampleIndex,
+    endIndex: end.sampleIndex,
+    sectors,
+    sectorTimes,
+    sectorBoundaries,
+  };
+}
+
+/** Drop the detection-only fields, leaving the public crossing shape. */
+function toLapCrossing(c: LineCrossing): LapCrossing {
+  return { sampleIndex: c.sampleIndex, crossingTime: c.crossingTime, fraction: c.fraction };
+}
+
+/**
+ * Derive completed laps (circuit) or runs (sprint) from a GPS trace.
+ *
+ * The two timing models differ only in how crossings become pairs:
+ * - **circuit** — one line, crossed repeatedly; lap i spans crossing i → i+1.
+ * - **sprint** — two lines; a run spans a start-line crossing → a crossing of
+ *   the separate `course.finish` line (see `pairSprintRuns`).
+ *
+ * Runs are returned as `Lap[]` on purpose, so every consumer — the lap table,
+ * overlay renderer, leaderboards, video sync — keeps working unchanged.
+ */
 export function calculateLaps(samples: GpsSample[], inputCourse: Course): Lap[] {
   if (samples.length < 2) return [];
 
   // Operate on the canonical sector model regardless of how the course was stored.
   const course = normalizeCourseSectors(inputCourse);
+  const sprint = isSprintCourse(course);
+
+  // A sprint course with no finish line cannot be timed. Validation blocks
+  // saving one and the device ignores it too, so an empty list is the honest
+  // answer — far better than pairing runs off the start line alone.
+  if (sprint && !course.finish) return [];
 
   // Calculate center for projection
   const centerLat = (course.startFinishA.lat + course.startFinishB.lat) / 2;
   const centerLon = (course.startFinishA.lon + course.startFinishB.lon) / 2;
 
-  // Project start/finish line
+  // Project start/finish line (the start line in sprint)
   const sfA = projectToPlane(course.startFinishA.lat, course.startFinishA.lon, centerLat, centerLon);
   const sfB = projectToPlane(course.startFinishB.lat, course.startFinishB.lon, centerLat, centerLon);
 
@@ -160,11 +350,7 @@ export function calculateLaps(samples: GpsSample[], inputCourse: Course): Lap[] 
   const sfCrossings = detectLineCrossings(samples, sfA, sfB, centerLat, centerLon, 'sf', MIN_CROSSING_INTERVAL_MS);
 
   // Convert to LapCrossing format for backwards compatibility
-  const crossings: LapCrossing[] = sfCrossings.map(c => ({
-    sampleIndex: c.sampleIndex,
-    crossingTime: c.crossingTime,
-    fraction: c.fraction
-  }));
+  const crossings: LapCrossing[] = sfCrossings.map(toLapCrossing);
 
   // Detect crossings for every sector line in course order (index-tagged).
   const courseSectors = course.sectors ?? [];
@@ -172,127 +358,24 @@ export function calculateLaps(samples: GpsSample[], inputCourse: Course): Lap[] 
     const line = projectSectorLine(sec.line, centerLat, centerLon);
     return detectLineCrossings(samples, line.a, line.b, centerLat, centerLon, j, MIN_SECTOR_CROSSING_INTERVAL_MS);
   });
-  // Number of timing lines = start/finish + course sectors. Segment k spans
-  // line k → line k+1 (last segment wraps back to start/finish).
-  const lineCount = courseSectors.length + 1;
 
-  // Calculate laps from crossings
-  const laps: Lap[] = [];
-  
-  for (let i = 0; i < crossings.length - 1; i++) {
-    const start = crossings[i];
-    const end = crossings[i + 1];
-    
-    const lapTimeMs = end.crossingTime - start.crossingTime;
-    
-    // Find max and min speed in this lap with glitch filtering
-    const MIN_SPEED_THRESHOLD_MPH = 1.0;
-    const MAX_GLITCH_SAMPLES = 3;
-    
-    const glitchIndices = new Set<number>();
-    let runStart = -1;
-    
-    for (let j = start.sampleIndex; j <= end.sampleIndex && j < samples.length; j++) {
-      const isLowSpeed = samples[j].speedMph < MIN_SPEED_THRESHOLD_MPH;
-      
-      if (isLowSpeed && runStart === -1) {
-        runStart = j;
-      } else if (!isLowSpeed && runStart !== -1) {
-        const runLength = j - runStart;
-        if (runLength <= MAX_GLITCH_SAMPLES) {
-          for (let k = runStart; k < j; k++) {
-            glitchIndices.add(k);
-          }
-        }
-        runStart = -1;
-      }
+  let pairs: Array<[LapCrossing, LapCrossing]>;
+  if (sprint) {
+    const finishLine = projectSectorLine(course.finish!, centerLat, centerLon);
+    const finishCrossings = detectLineCrossings(
+      samples, finishLine.a, finishLine.b, centerLat, centerLon, 'sf', MIN_CROSSING_INTERVAL_MS,
+    ).map(toLapCrossing);
+    pairs = pairSprintRuns(crossings, finishCrossings);
+  } else {
+    pairs = [];
+    for (let i = 0; i < crossings.length - 1; i++) {
+      pairs.push([crossings[i], crossings[i + 1]]);
     }
-    if (runStart !== -1) {
-      const runLength = (end.sampleIndex + 1) - runStart;
-      if (runLength <= MAX_GLITCH_SAMPLES) {
-        for (let k = runStart; k <= end.sampleIndex && k < samples.length; k++) {
-          glitchIndices.add(k);
-        }
-      }
-    }
-    
-    let maxSpeedMph = 0;
-    let maxSpeedKph = 0;
-    let minSpeedMph = Infinity;
-    let minSpeedKph = Infinity;
-    
-    for (let j = start.sampleIndex; j <= end.sampleIndex && j < samples.length; j++) {
-      const sample = samples[j];
-      
-      if (sample.speedMph > maxSpeedMph) {
-        maxSpeedMph = sample.speedMph;
-        maxSpeedKph = sample.speedKph;
-      }
-      
-      if (!glitchIndices.has(j) && sample.speedMph < minSpeedMph) {
-        minSpeedMph = sample.speedMph;
-        minSpeedKph = sample.speedKph;
-      }
-    }
-    
-    // Compute fine-grained per-segment times when the course defines sectors.
-    let sectors: SectorTimes | undefined;
-    let sectorTimes: (number | undefined)[] | undefined;
-    let sectorBoundaries: (number | undefined)[] | undefined;
-
-    if (courseSectors.length > 0) {
-      // Walk every sector line in order, finding the crossing for this lap. Each
-      // must fall after the previously matched boundary so out-of-order/missed
-      // crossings leave a gap rather than corrupting later sectors.
-      const boundaryTimes: (number | undefined)[] = new Array(lineCount);
-      const boundaryIdx: (number | undefined)[] = new Array(lineCount);
-      boundaryTimes[0] = start.crossingTime; // line 0 = start/finish
-      boundaryIdx[0] = start.sampleIndex;
-      let prevTime = start.crossingTime;
-
-      for (let j = 0; j < courseSectors.length; j++) {
-        const cross = sectorCrossings[j].find(
-          c => c.crossingTime > prevTime && c.crossingTime < end.crossingTime,
-        );
-        if (cross) {
-          boundaryTimes[j + 1] = cross.crossingTime;
-          boundaryIdx[j + 1] = cross.sampleIndex;
-          prevTime = cross.crossingTime;
-        } else {
-          boundaryTimes[j + 1] = undefined;
-          boundaryIdx[j + 1] = undefined;
-        }
-      }
-
-      // Segment k = boundary k → boundary k+1 (last segment closes on start/finish).
-      sectorTimes = new Array(lineCount);
-      for (let k = 0; k < lineCount; k++) {
-        const tStart = boundaryTimes[k];
-        const tEnd = k + 1 < lineCount ? boundaryTimes[k + 1] : end.crossingTime;
-        sectorTimes[k] = tStart !== undefined && tEnd !== undefined ? tEnd - tStart : undefined;
-      }
-      sectorBoundaries = boundaryIdx;
-      sectors = rollupMajorSectors(course, sectorTimes);
-    }
-
-    laps.push({
-      lapNumber: i + 1,
-      startTime: start.crossingTime,
-      endTime: end.crossingTime,
-      lapTimeMs,
-      maxSpeedMph,
-      maxSpeedKph,
-      minSpeedMph: minSpeedMph === Infinity ? 0 : minSpeedMph,
-      minSpeedKph: minSpeedKph === Infinity ? 0 : minSpeedKph,
-      startIndex: start.sampleIndex,
-      endIndex: end.sampleIndex,
-      sectors,
-      sectorTimes,
-      sectorBoundaries
-    });
   }
-  
-  return laps;
+
+  return pairs.map(([start, end], i) =>
+    buildLap(i + 1, start, end, samples, course, courseSectors, sectorCrossings),
+  );
 }
 
 /**
