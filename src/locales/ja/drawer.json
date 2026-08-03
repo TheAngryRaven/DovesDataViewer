@@ -369,7 +369,8 @@
     "none": "なし",
     "startLineDistance": "スタートライン距離：",
     "sendToDevice": "デバイスに送信",
-    "downloadToApp": "アプリにダウンロード"
+    "downloadToApp": "アプリにダウンロード",
+    "sprintBadge": "スプリント"
   },
   "vehicleTypeEditor": {
     "title": "車両タイプを管理",

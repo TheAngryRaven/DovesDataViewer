@@ -11,6 +11,8 @@
  * the eager graph without pulling a protocol bundle in.
  */
 
+import type { TrackKind } from '@/lib/ble/trackOpcodes';
+
 /** Which physical logger a connection talks to. */
 export type LoggerKind = "fledgling" | "mychron" | "alfano";
 
@@ -58,14 +60,31 @@ export interface DeviceDetails {
    * connection is gone — callers must disconnect and reconnect.
    */
   resetSettings(): Promise<void>;
-  /** List the track files stored on the device. */
-  listTracks(): Promise<string[]>;
-  /** Download one track file. */
-  getTrack(name: string): Promise<Uint8Array>;
-  /** Upload a track file. */
-  putTrack(name: string, data: Uint8Array): Promise<void>;
-  /** Delete a track file. */
-  deleteTrack(name: string): Promise<void>;
+  /**
+   * List the track files stored on the device.
+   *
+   * `kind` selects the folder: circuit tracks (`/TRACKS`) or sprint tracks
+   * (`/TRACKS/SPRINT`). Omitted means circuit, which is what every caller
+   * meant before sprint mode existed.
+   *
+   * A transport that cannot reach the sprint folder returns an empty list for
+   * `'sprint'` rather than throwing — see `docs/plans/0015-sprint-mode.md`
+   * ("Android IPC — end-of-project follow-up"). Reporting nothing is honest:
+   * it genuinely cannot fetch them.
+   */
+  listTracks(kind?: TrackKind): Promise<string[]>;
+  /** Download one track file from the folder `kind` selects. */
+  getTrack(name: string, kind?: TrackKind): Promise<Uint8Array>;
+  /** Upload a track file into the folder `kind` selects. */
+  putTrack(name: string, data: Uint8Array, kind?: TrackKind): Promise<void>;
+  /** Delete a track file from the folder `kind` selects. */
+  deleteTrack(name: string, kind?: TrackKind): Promise<void>;
+  /**
+   * Whether this transport can reach the sprint track folder at all. The tab
+   * uses it to say so plainly instead of showing an empty sprint list that
+   * looks like "no sprint tracks on the device".
+   */
+  readonly supportsSprintTracks?: boolean;
 }
 
 /**

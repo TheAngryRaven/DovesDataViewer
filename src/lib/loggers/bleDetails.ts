@@ -28,9 +28,11 @@ export function createBleDeviceDetails(connection: BleConnection): DeviceDetails
     listSettings: () => requestSettingsList(connection),
     setSetting: (key, value) => setDeviceSetting(connection, key, value),
     resetSettings: () => resetDeviceSettings(connection),
-    listTracks: () => requestTrackFileList(connection),
-    getTrack: (name) => downloadTrackFile(connection, name),
-    putTrack: (name, data) => uploadTrackFile(connection, name, data),
-    deleteTrack: (name) => deleteTrackFile(connection, name),
+    listTracks: (kind) => requestTrackFileList(connection, kind),
+    getTrack: (name, kind) => downloadTrackFile(connection, name, undefined, kind),
+    putTrack: (name, data, kind) => uploadTrackFile(connection, name, data, kind),
+    deleteTrack: (name, kind) => deleteTrackFile(connection, name, kind),
+    // Web Bluetooth speaks the TS* verbs directly.
+    supportsSprintTracks: true,
   };
 }

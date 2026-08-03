@@ -369,7 +369,8 @@
     "none": "Aucun",
     "startLineDistance": "Distance de la ligne de départ :",
     "sendToDevice": "Envoyer à l'appareil",
-    "downloadToApp": "Télécharger dans l'app"
+    "downloadToApp": "Télécharger dans l'app",
+    "sprintBadge": "Sprint"
   },
   "vehicleTypeEditor": {
     "title": "Gérer les types de véhicule",
