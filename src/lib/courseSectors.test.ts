@@ -3,7 +3,7 @@ import { Course, SectorLine } from '@/types/racing';
 import {
   normalizeCourseSectors, majorSectorLines, legacyMirror, sectorLabels,
   validateCourseSectors, isAtSectorLimit, isAtMajorLimit, rollupMajorSectors, centeredSectorLine,
-  MAX_SECTOR_LINES, MAX_MAJOR_SECTORS, DEFAULT_SECTOR_HALF_LENGTH_DEG,
+  MAX_SECTOR_LINES, MAX_MAJOR_SECTORS, MAX_SPRINT_SPLITS, DEFAULT_SECTOR_HALF_LENGTH_DEG,
 } from './courseSectors';
 
 const line = (n: number): SectorLine => ({ a: { lat: n, lon: n }, b: { lat: n + 0.001, lon: n + 0.001 } });
@@ -109,6 +109,55 @@ describe('validateCourseSectors', () => {
     const many = Array.from({ length: MAX_SECTOR_LINES }, (_, i) => ({ line: line(i), major: i < MAX_MAJOR_SECTORS - 1 }));
     const c = baseCourse({ sectors: many });
     expect(validateCourseSectors(c).valid).toBe(false);
+  });
+
+  // Sprint courses are point-to-point: a required separate finish line, and
+  // 0-2 optional splits with no "major" concept. See docs/plans/0015-sprint-mode.md.
+  describe('sprint courses', () => {
+    const finish = line(9);
+    const sprintCourse = (partial: Partial<Course> = {}): Course =>
+      baseCourse({ type: 'sprint', finish, ...partial });
+
+    it('accepts a start and finish with no splits', () => {
+      expect(validateCourseSectors(sprintCourse()).valid).toBe(true);
+    });
+
+    it.each([1, MAX_SPRINT_SPLITS])('accepts %i split line(s)', (n) => {
+      const sectors = Array.from({ length: n }, (_, i) => ({ line: line(i), major: false }));
+      expect(validateCourseSectors(sprintCourse({ sectors })).valid).toBe(true);
+    });
+
+    it('rejects more splits than the cap', () => {
+      const sectors = Array.from({ length: MAX_SPRINT_SPLITS + 1 }, (_, i) => ({ line: line(i), major: false }));
+      const v = validateCourseSectors(sprintCourse({ sectors }));
+      expect(v.valid).toBe(false);
+      expect(v.reason).toMatch(/split lines/i);
+    });
+
+    it('rejects a sprint course with no finish line', () => {
+      const v = validateCourseSectors(sprintCourse({ finish: undefined }));
+      expect(v.valid).toBe(false);
+      expect(v.reason).toMatch(/finish line/i);
+    });
+
+    it('does not apply the circuit three-majors rule', () => {
+      // One unflagged split would be rejected outright on a circuit course.
+      const sectors = [{ line: line(1), major: false }];
+      expect(validateCourseSectors(sprintCourse({ sectors })).valid).toBe(true);
+      expect(validateCourseSectors(baseCourse({ sectors })).valid).toBe(false);
+    });
+
+    it('ignores the major flag entirely', () => {
+      const sectors = [{ line: line(1), major: true }, { line: line(2), major: true }];
+      expect(validateCourseSectors(sprintCourse({ sectors })).valid).toBe(true);
+    });
+
+    it('still applies the circuit rules when type is absent', () => {
+      // Absent type means circuit — a stray finish line must not opt a course
+      // into the sprint branch.
+      const c = baseCourse({ finish, sectors: [{ line: line(1), major: false }] });
+      expect(validateCourseSectors(c).valid).toBe(false);
+    });
   });
 });
 

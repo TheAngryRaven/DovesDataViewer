@@ -1,4 +1,4 @@
-import { Course, CourseSector, SectorLine, SectorTimes } from '@/types/racing';
+import { Course, CourseSector, SectorLine, SectorTimes, isSprintCourse } from '@/types/racing';
 
 /**
  * Sector model — the single source of truth for the "unlimited sectors" feature.
@@ -103,13 +103,36 @@ export interface SectorValidation {
   reason: string | null;
 }
 
+/** Max split lines between a sprint course's start and finish (plan 0015). */
+export const MAX_SPRINT_SPLITS = 2;
+
 /**
- * Save rule: a course must have EITHER zero additional sectors, OR exactly three
- * major sectors total (start/finish + two flagged). The total line count must
- * also stay within `MAX_SECTOR_LINES`.
+ * Save rule, by course type.
+ *
+ * **Circuit** — either zero additional sectors, or exactly three major sectors
+ * total (start/finish + two flagged), within `MAX_SECTOR_LINES` overall.
+ *
+ * **Sprint** — a finish line is REQUIRED (the logger cannot time a run without
+ * one, so saving a course it will ignore is worse than blocking), and there may
+ * be zero to `MAX_SPRINT_SPLITS` optional split lines. The `major` flag carries
+ * no meaning point-to-point and is not checked.
  */
 export function validateCourseSectors(course: Course): SectorValidation {
   const sectors = course.sectors ?? [];
+
+  if (isSprintCourse(course)) {
+    if (!course.finish) {
+      return { valid: false, reason: 'A sprint course needs a finish line — drag one onto the map.' };
+    }
+    if (sectors.length > MAX_SPRINT_SPLITS) {
+      return {
+        valid: false,
+        reason: `A sprint course can have at most ${MAX_SPRINT_SPLITS} split lines between start and finish.`,
+      };
+    }
+    return { valid: true, reason: null };
+  }
+
   if (sectors.length === 0) return { valid: true, reason: null };
 
   if (sectors.length > MAX_COURSE_SECTORS) {

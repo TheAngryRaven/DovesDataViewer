@@ -4,7 +4,7 @@
  * and determines sync status per track and per course.
  */
 
-import { Track, Course, SectorLine } from '@/types/racing';
+import { Track, Course, CourseSector, SectorLine, isSprintCourse } from '@/types/racing';
 import { haversineDistance } from '@/lib/parserUtils';
 import { legacyMirror, majorSectorLines, normalizeCourseSectors } from '@/lib/courseSectors';
 
@@ -26,6 +26,21 @@ export interface DeviceCourseJson {
   sector_3_a_lng?: number;
   sector_3_b_lat?: number;
   sector_3_b_lng?: number;
+  /**
+   * Sprint only, required there: the separate finish line. Circuit courses omit
+   * these — start and finish are the same line.
+   * See `docs/plans/0015-sprint-mode.md`.
+   */
+  finish_a_lat?: number;
+  finish_a_lng?: number;
+  finish_b_lat?: number;
+  finish_b_lng?: number;
+  /**
+   * Sprint only: sortable `YYYY-MM-DDTHH:MM` stamp. The logger picks the newest
+   * course by a plain STRING compare of this field, so the zero-padded shape is
+   * load-bearing.
+   */
+  date_created?: string;
 }
 
 export interface DeviceTrackFile {
@@ -91,9 +106,30 @@ function sectorLinesEqual(a?: SectorLine, b?: SectorLine): boolean {
 }
 
 /**
+ * The two timing lines this course projects into the device's `sector_2_*` /
+ * `sector_3_*` slots.
+ *
+ * Circuit takes the two flagged majors (app-only sub-sectors are never sent).
+ * Sprint takes its split lines positionally — `major` is meaningless
+ * point-to-point, so sprint splits are stored unflagged and `legacyMirror`
+ * would drop them.
+ */
+function deviceSectorProjection(course: Course): { sector2?: SectorLine; sector3?: SectorLine } {
+  if (isSprintCourse(course)) {
+    const splits = course.sectors ?? [];
+    return { sector2: splits[0]?.line, sector3: splits[1]?.line };
+  }
+  return legacyMirror(normalizeCourseSectors(course));
+}
+
+/**
  * Compare an app Course with a device course JSON. Only the device-visible
- * projection (start/finish + the two major lines) is compared — app-only
- * sub-sectors never flag a mismatch, since they're never sent to the device.
+ * projection is compared — app-only sub-sectors never flag a mismatch, since
+ * they're never sent to the device.
+ *
+ * For sprint courses that projection also covers the finish line and
+ * `date_created`: without them a moved finish line — the single most likely
+ * edit to a sprint course — would read as "synced".
  */
 export function coursesMatch(appCourse: Course, dc: DeviceCourseJson): boolean {
   // Compare start/finish
@@ -102,8 +138,22 @@ export function coursesMatch(appCourse: Course, dc: DeviceCourseJson): boolean {
   if (!coordsEqual(appCourse.startFinishB.lat, dc.start_b_lat)) return false;
   if (!coordsEqual(appCourse.startFinishB.lon, dc.start_b_lng)) return false;
 
-  // Compare the two major sectors (mirror) against the device's two sector lines.
-  const { sector2, sector3 } = legacyMirror(normalizeCourseSectors(appCourse));
+  // A course that changed kind is never a match, whichever way it went: the
+  // device stores the two kinds in different folders, so this is a different
+  // file, not an edit.
+  const deviceIsSprint = dc.finish_a_lat != null;
+  if (isSprintCourse(appCourse) !== deviceIsSprint) return false;
+
+  if (deviceIsSprint) {
+    const deviceFinish = sectorLineFromDevice(
+      dc.finish_a_lat, dc.finish_a_lng, dc.finish_b_lat, dc.finish_b_lng,
+    );
+    if (!sectorLinesEqual(appCourse.finish, deviceFinish)) return false;
+    if ((appCourse.dateCreated ?? undefined) !== (dc.date_created ?? undefined)) return false;
+  }
+
+  // Compare the projected sector lines against the device's two sector slots.
+  const { sector2, sector3 } = deviceSectorProjection(appCourse);
   const deviceS2 = sectorLineFromDevice(dc.sector_2_a_lat, dc.sector_2_a_lng, dc.sector_2_b_lat, dc.sector_2_b_lng);
   const deviceS3 = sectorLineFromDevice(dc.sector_3_a_lat, dc.sector_3_a_lng, dc.sector_3_b_lat, dc.sector_3_b_lng);
 
@@ -127,6 +177,24 @@ export function deviceCourseToAppCourse(dc: DeviceCourseJson): Course {
 
   const s2 = sectorLineFromDevice(dc.sector_2_a_lat, dc.sector_2_a_lng, dc.sector_2_b_lat, dc.sector_2_b_lng);
   const s3 = sectorLineFromDevice(dc.sector_3_a_lat, dc.sector_3_a_lng, dc.sector_3_b_lat, dc.sector_3_b_lng);
+
+  // A finish line is what makes it a sprint course — the device only ever emits
+  // these four fields for tracks out of /TRACKS/SPRINT.
+  const finish = sectorLineFromDevice(dc.finish_a_lat, dc.finish_a_lng, dc.finish_b_lat, dc.finish_b_lng);
+  if (finish) {
+    course.type = 'sprint';
+    course.finish = finish;
+    if (dc.date_created) course.dateCreated = dc.date_created;
+    // Splits are positional and unflagged: `major` has no meaning in a run, and
+    // flagging them would let a retype-to-circuit silently look like a valid
+    // three-major layout it never had.
+    const splits: CourseSector[] = [];
+    if (s2) splits.push({ line: s2, major: false });
+    if (s3) splits.push({ line: s3, major: false });
+    if (splits.length > 0) course.sectors = splits;
+    return course;
+  }
+
   if (s2 && s3) {
     course.sector2 = s2;
     course.sector3 = s3;
@@ -153,7 +221,7 @@ export function appCourseToDeviceJson(course: Course): DeviceCourseJson {
     dc.lengthFt = course.lengthFt;
   }
 
-  const { sector2, sector3 } = legacyMirror(normalizeCourseSectors(course));
+  const { sector2, sector3 } = deviceSectorProjection(course);
   if (sector2) {
     dc.sector_2_a_lat = sector2.a.lat;
     dc.sector_2_a_lng = sector2.a.lon;
@@ -165,6 +233,14 @@ export function appCourseToDeviceJson(course: Course): DeviceCourseJson {
     dc.sector_3_a_lng = sector3.a.lon;
     dc.sector_3_b_lat = sector3.b.lat;
     dc.sector_3_b_lng = sector3.b.lon;
+  }
+
+  if (isSprintCourse(course) && course.finish) {
+    dc.finish_a_lat = course.finish.a.lat;
+    dc.finish_a_lng = course.finish.a.lon;
+    dc.finish_b_lat = course.finish.b.lat;
+    dc.finish_b_lng = course.finish.b.lon;
+    if (course.dateCreated) dc.date_created = course.dateCreated;
   }
 
   return dc;

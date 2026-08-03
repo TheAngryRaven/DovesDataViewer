@@ -197,8 +197,9 @@ File Import (drag-drop / BLE download / file manager)
 | `ParserStats` | `totalRows`, `acceptedRows`, `rejected: { nanFields, zeroCoords, outOfRange, speedCap, teleportation, incompleteRow }` |
 | `DovexMetadata` | `datetime?`, `driver?`, `course?`, `shortName?`, `bestLapMs?`, `optimalMs?`, `lapTimesMs?[]` |
 | `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` (S1/S2/S3 major rollup), `sectorTimes?` (fine-grained), `sectorBoundaries?` (per-line sample indices) |
-| `Course` | `name`, `lengthFt?`, `startFinishA/B`, `sectors?: CourseSector[]`, deprecated `sector2/sector3` (legacy mirror), optional `layout?` (`{lat,lon}[]` outline) |
-| `CourseSector` | `{ line: SectorLine, major: boolean }` — one timing line after start/finish |
+| `Course` | `name`, `type?: CourseType` (absent = `circuit`), `lengthFt?`, `startFinishA/B`, `finish?`+`dateCreated?` (sprint only), `sectors?: CourseSector[]`, deprecated `sector2/sector3` (legacy mirror), optional `layout?` (`{lat,lon}[]` outline) |
+| `CourseSector` | `{ line: SectorLine, major: boolean }` — one timing line after start/finish. `major` is circuit-only; sprint splits are stored unflagged |
+| `CourseType` | `'circuit' \| 'sprint'` — lap-to-lap vs point-to-point (start line ≠ finish line). Read via `isSprintCourse()`; see `docs/plans/0015-sprint-mode.md` |
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug), `label?`, `unit?`, `enabled` |
