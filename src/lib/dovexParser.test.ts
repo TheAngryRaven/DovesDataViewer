@@ -13,6 +13,7 @@ import {
   isDovexFormat,
   isDovexFormatBuffer,
   parseDovexFile,
+  parseRaceMode,
 } from "./dovexParser";
 
 // A Unix ms timestamp inside the Dove parser's accepted window (≈2021-03).
@@ -50,6 +51,24 @@ function makeDovex(
   } = opts;
   const preamble = [metaHeader, metaValues, lapHeader, lapValues].join("\n");
   return preamble + "\n" + makeDoveCsv(rows);
+}
+
+/**
+ * Build a payload carrying the firmware's CURRENT eight-column metadata row —
+ * `device_name` and `race_mode` appended after `optimal_ms`
+ * (`BirdsEye/dovex_header.cpp`). `makeDovex` above keeps the six-column shape
+ * older loggers wrote, so both generations stay covered.
+ */
+function makeDovexV2(
+  opts: { deviceName?: string; raceMode?: string; lapValues?: string } = {}
+): string {
+  const { deviceName = "ApexTurbo", raceMode = "", lapValues } = opts;
+  return makeDovex({
+    metaHeader:
+      "datetime,driver,course,short_name,best_lap_ms,optimal_ms,device_name,race_mode",
+    metaValues: `2024-03-15 14:30:00,Mike,Cones AM,AX1,62345,61200,${deviceName},${raceMode}`,
+    lapValues,
+  });
 }
 
 // ─── isDovexFormat ──────────────────────────────────────────────────────────
@@ -199,6 +218,69 @@ describe("parseDovexFile — metadata", () => {
     // Other fields still come through.
     expect(m.driver).toBe("Mike");
   });
+});
+
+// ─── parseDovexFile: device_name + race_mode (trailing columns) ─────────────
+
+describe("parseDovexFile — device_name / race_mode", () => {
+  it("reads the trailing device_name and race_mode columns", () => {
+    const m = parseDovexFile(makeDovexV2({ raceMode: "SPRINT" })).dovexMetadata!;
+    expect(m.deviceName).toBe("ApexTurbo");
+    expect(m.raceMode).toBe("sprint");
+    // The columns before them are unaffected by the two extra fields.
+    expect(m.shortName).toBe("AX1");
+    expect(m.optimalMs).toBe(61200);
+  });
+
+  it("compares race_mode case-insensitively", () => {
+    expect(parseDovexFile(makeDovexV2({ raceMode: "sprint" })).dovexMetadata!.raceMode).toBe("sprint");
+    expect(parseDovexFile(makeDovexV2({ raceMode: "Circuit" })).dovexMetadata!.raceMode).toBe("circuit");
+  });
+
+  it("leaves race_mode undefined when the column is empty (circuit session)", () => {
+    const m = parseDovexFile(makeDovexV2({ raceMode: "" })).dovexMetadata!;
+    expect(m.raceMode).toBeUndefined();
+    expect(m.deviceName).toBe("ApexTurbo");
+  });
+
+  it("leaves race_mode undefined for an unrecognized mode", () => {
+    expect(parseDovexFile(makeDovexV2({ raceMode: "RALLY" })).dovexMetadata!.raceMode).toBeUndefined();
+  });
+
+  it("still parses a six-column log that predates both columns", () => {
+    const m = parseDovexFile(makeDovex()).dovexMetadata!;
+    expect(m.deviceName).toBeUndefined();
+    expect(m.raceMode).toBeUndefined();
+    expect(m.driver).toBe("Mike");
+    expect(m.lapTimesMs).toEqual([65432, 64321, 62345]);
+  });
+
+  it("keeps reading the lap-times line after the widened metadata row", () => {
+    const m = parseDovexFile(
+      makeDovexV2({ raceMode: "SPRINT", lapValues: "45120,44980,44980" })
+    ).dovexMetadata!;
+    // Identical consecutive run times are normal in sprint — they must not dedupe.
+    expect(m.lapTimesMs).toEqual([45120, 44980, 44980]);
+  });
+});
+
+// ─── parseRaceMode ──────────────────────────────────────────────────────────
+
+describe("parseRaceMode", () => {
+  it.each(["SPRINT", "sprint", " Sprint "])("accepts %j as sprint", (raw) => {
+    expect(parseRaceMode(raw)).toBe("sprint");
+  });
+
+  it.each(["CIRCUIT", "circuit"])("accepts %j as circuit", (raw) => {
+    expect(parseRaceMode(raw)).toBe("circuit");
+  });
+
+  it.each([undefined, "", "   ", "rally", "1"])(
+    "returns undefined for %j rather than defaulting to circuit",
+    (raw) => {
+      expect(parseRaceMode(raw)).toBeUndefined();
+    }
+  );
 });
 
 // ─── Legacy fixed 8192-byte header ──────────────────────────────────────────
