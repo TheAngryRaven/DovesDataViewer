@@ -9,6 +9,8 @@ import {
   countDeviceSectors,
   countAppSectors,
   startADistance,
+  trackKind,
+  isMixedKindTrack,
   type DeviceCourseJson,
   type DeviceTrackFile,
 } from "./deviceTrackSync";
@@ -548,5 +550,98 @@ describe("sprint course wire format", () => {
     const circuitJson = appCourseToDeviceJson(makeAppCourse());
     expect(coursesMatch(makeAppCourse(), sprintJson)).toBe(false);
     expect(coursesMatch(makeSprintCourse(), circuitJson)).toBe(false);
+  });
+});
+
+// ─── Track kind + merge namespacing (plan 0015) ──────────────────────────────
+
+describe("trackKind / isMixedKindTrack", () => {
+  const sprintCourse = (name: string): Course => ({
+    name,
+    type: "sprint",
+    startFinishA: { lat: 1, lon: 1 },
+    startFinishB: { lat: 1, lon: 2 },
+    finish: { a: { lat: 2, lon: 1 }, b: { lat: 2, lon: 2 } },
+  });
+
+  it("calls a track with no sprint courses circuit", () => {
+    expect(trackKind({ courses: [makeAppCourse()] })).toBe("circuit");
+  });
+
+  it("calls a track with a sprint course sprint", () => {
+    expect(trackKind({ courses: [sprintCourse("Run 1")] })).toBe("sprint");
+  });
+
+  it("treats an empty track as circuit", () => {
+    expect(trackKind({ courses: [] })).toBe("circuit");
+  });
+
+  it("flags a track carrying both kinds", () => {
+    // Unrepresentable on the device — the two kinds are separate files in
+    // separate folders, so such a track would have to be split.
+    expect(isMixedKindTrack({ courses: [makeAppCourse(), sprintCourse("Run 1")] })).toBe(true);
+  });
+
+  it("does not flag a single-kind track either way", () => {
+    expect(isMixedKindTrack({ courses: [makeAppCourse()] })).toBe(false);
+    expect(isMixedKindTrack({ courses: [sprintCourse("Run 1")] })).toBe(false);
+    expect(isMixedKindTrack({ courses: [] })).toBe(false);
+  });
+});
+
+describe("buildMergedTrackList — kind namespacing", () => {
+  const sprintCourse = (name: string): Course => ({
+    name,
+    type: "sprint",
+    startFinishA: { lat: 1, lon: 1 },
+    startFinishB: { lat: 1, lon: 2 },
+    finish: { a: { lat: 2, lon: 1 }, b: { lat: 2, lon: 2 } },
+    dateCreated: "2026-09-05T07:03",
+  });
+
+  it("keeps a circuit and a sprint track with the SAME shortName separate", () => {
+    // The device stores these as /TRACKS/OKC.json and /TRACKS/SPRINT/OKC.json —
+    // two distinct files. Keying on shortName alone collided them and reported
+    // one as a mismatch of the other.
+    const appTracks: Track[] = [
+      makeAppTrack("OKC", [makeAppCourse()]),
+      { ...makeAppTrack("OKC", [sprintCourse("Run 1")]), name: "OKC Autocross" },
+    ];
+    const deviceFiles: DeviceTrackFile[] = [
+      { shortName: "OKC", kind: "circuit", courses: [appCourseToDeviceJson(makeAppCourse())] },
+      { shortName: "OKC", kind: "sprint", courses: [appCourseToDeviceJson(sprintCourse("Run 1"))] },
+    ];
+
+    const merged = buildMergedTrackList(appTracks, deviceFiles);
+    expect(merged).toHaveLength(2);
+    expect(merged.every((e) => e.status === "synced")).toBe(true);
+    expect(merged.map((e) => e.kind).sort()).toEqual(["circuit", "sprint"]);
+  });
+
+  it("does not match an app sprint track against a circuit device file", () => {
+    const appTracks = [{ ...makeAppTrack("OKC", [sprintCourse("Run 1")]) }];
+    const deviceFiles: DeviceTrackFile[] = [
+      { shortName: "OKC", kind: "circuit", courses: [appCourseToDeviceJson(makeAppCourse())] },
+    ];
+    const merged = buildMergedTrackList(appTracks, deviceFiles);
+    expect(merged).toHaveLength(2);
+    expect(merged.find((e) => e.kind === "sprint")?.status).toBe("app_only");
+    expect(merged.find((e) => e.kind === "circuit")?.status).toBe("device_only");
+  });
+
+  it("treats a device file with no kind as circuit, so old callers still match", () => {
+    const appTracks = [makeAppTrack("OKC", [makeAppCourse()])];
+    const deviceFiles: DeviceTrackFile[] = [
+      { shortName: "OKC", courses: [appCourseToDeviceJson(makeAppCourse())] },
+    ];
+    const merged = buildMergedTrackList(appTracks, deviceFiles);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].status).toBe("synced");
+    expect(merged[0].kind).toBe("circuit");
+  });
+
+  it("tags every entry with a kind", () => {
+    const merged = buildMergedTrackList([makeAppTrack("OKC", [makeAppCourse()])], []);
+    expect(merged[0].kind).toBe("circuit");
   });
 });

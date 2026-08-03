@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Sprint track sync speaks the device's `TS*` verbs** (plan 0015). The BLE
+  client can now list, download, upload and delete tracks in the logger's
+  `/TRACKS/SPRINT` folder, alongside the existing `/TRACKS` ones. The folder is
+  chosen by the opcode rather than by a path in the filename, matching the
+  firmware — its validator deliberately rejects `/` and `..` to keep a client
+  jailed to the tracks folders.
+  - Track sync entries are now keyed on **(kind, short name)**, not the short
+    name alone. A circuit `OKC` and a sprint `OKC` are two separate files on the
+    device, and keying on the name alone collided them — one would have been
+    reported as a mismatched version of the other.
+  - Not yet reachable from the Device tab: that path runs through the
+    transport-neutral device seam shared with the native Android app, which
+    needs its own pass.
 - **Sprint courses can be created and edited** (plan 0015). The course editor
   gained a **Circuit / Sprint** picker, and a sprint course gets a second,
   separate **finish line** handle on the map — rendered in red after the splits,
