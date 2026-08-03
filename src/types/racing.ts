@@ -32,11 +32,44 @@ export interface CourseSector {
   major: boolean;
 }
 
+/**
+ * How a course is timed.
+ *
+ * - `circuit` — the classic model: one line that is both start and finish, laps
+ *   formed from consecutive crossings of it.
+ * - `sprint` — point-to-point (autocross, hillclimb, rally stage): a start line
+ *   and a SEPARATE finish line, timed as runs rather than laps.
+ *
+ * Absent means `circuit`. The field is optional because every course that
+ * existed before sprint mode is a circuit — requiring it would mean migrating
+ * data whose answer we already know. Read it through `isSprintCourse()` rather
+ * than comparing the literal. See `docs/plans/0015-sprint-mode.md`.
+ */
+export type CourseType = 'circuit' | 'sprint';
+
 export interface Course {
   name: string;
+  /** Timing model; absent means `circuit`. See {@link CourseType}. */
+  type?: CourseType;
   lengthFt?: number; // known course length in feet (from track database)
   startFinishA: { lat: number; lon: number };
   startFinishB: { lat: number; lon: number };
+  /**
+   * Sprint only, and REQUIRED there: the separate finish line. A sprint course
+   * without one cannot be timed by the logger, so validation rejects it rather
+   * than shipping a course the device will silently ignore. Unset on circuit
+   * courses, where start and finish are the same line.
+   */
+  finish?: SectorLine;
+  /**
+   * Sprint only: when this course's cone layout was walked, as a sortable
+   * `YYYY-MM-DDTHH:MM` local stamp. The logger loads the NEWEST course by this
+   * field and compares the stamps as plain strings, so the zero-padded ISO
+   * shape is load-bearing — a non-sortable format silently loads the wrong
+   * course. Stamped on first save and preserved across edits, so revising a
+   * course doesn't make it jump the queue on the device.
+   */
+  dateCreated?: string;
   /**
    * Ordered sector lines after start/finish (canonical model). Normalized in
    * from the legacy `sector2`/`sector3` fields at every load boundary via
@@ -55,6 +88,16 @@ export interface Course {
    * from public/drawings.json instead (see loadCourseDrawings).
    */
   layout?: Array<{ lat: number; lon: number }>;
+}
+
+/**
+ * True when a course is timed point-to-point (start line ≠ finish line).
+ *
+ * The single reader of `Course.type` — everything else asks this, so the
+ * "absent means circuit" default lives in exactly one place.
+ */
+export function isSprintCourse(course: Pick<Course, 'type'> | null | undefined): boolean {
+  return course?.type === 'sprint';
 }
 
 /**

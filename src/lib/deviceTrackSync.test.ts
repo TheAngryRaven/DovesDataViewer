@@ -445,3 +445,108 @@ describe("device export with sub-sectors", () => {
     expect(coursesMatch(sectorCourse, dev)).toBe(true);
   });
 });
+
+// ─── Sprint courses (plan 0015) ──────────────────────────────────────────────
+
+describe("sprint course wire format", () => {
+  const finish: SectorLine = {
+    a: { lat: 35.41000, lon: -97.31000 },
+    b: { lat: 35.41010, lon: -97.31010 },
+  };
+  const split = (n: number): SectorLine => ({
+    a: { lat: 35.405 + n / 1000, lon: -97.305 },
+    b: { lat: 35.405 + n / 1000, lon: -97.304 },
+  });
+
+  const makeSprintCourse = (overrides: Partial<Course> = {}): Course =>
+    makeAppCourse({ type: "sprint", finish, dateCreated: "2026-09-05T07:03", ...overrides });
+
+  it("round-trips a bare sprint course through the device JSON", () => {
+    const original = makeSprintCourse();
+    const back = deviceCourseToAppCourse(appCourseToDeviceJson(original));
+
+    expect(back.type).toBe("sprint");
+    expect(back.finish).toEqual(finish);
+    expect(back.dateCreated).toBe("2026-09-05T07:03");
+    expect(back.startFinishA).toEqual(original.startFinishA);
+    expect(back.startFinishB).toEqual(original.startFinishB);
+  });
+
+  it("round-trips split lines positionally, keeping them unflagged", () => {
+    const original = makeSprintCourse({
+      sectors: [{ line: split(1), major: false }, { line: split(2), major: false }],
+    });
+    const dc = appCourseToDeviceJson(original);
+
+    // Splits ride in the device's existing sector_2/sector_3 slots.
+    expect(dc.sector_2_a_lat).toBe(split(1).a.lat);
+    expect(dc.sector_3_a_lat).toBe(split(2).a.lat);
+
+    const back = deviceCourseToAppCourse(dc);
+    expect(back.sectors).toHaveLength(2);
+    expect(back.sectors!.map((s) => s.line)).toEqual([split(1), split(2)]);
+    // `major` is meaningless point-to-point and must not be set — a course
+    // retyped to circuit has to fail validation loudly, not look like a
+    // three-major layout it never had.
+    expect(back.sectors!.every((s) => !s.major)).toBe(true);
+  });
+
+  it("emits an unflagged single split, which legacyMirror would have dropped", () => {
+    const dc = appCourseToDeviceJson(makeSprintCourse({
+      sectors: [{ line: split(1), major: false }],
+    }));
+    expect(dc.sector_2_a_lat).toBe(split(1).a.lat);
+    expect(dc.sector_3_a_lat).toBeUndefined();
+  });
+
+  it("emits no sprint fields for a circuit course", () => {
+    const dc = appCourseToDeviceJson(makeAppCourse());
+    expect(dc.finish_a_lat).toBeUndefined();
+    expect(dc.date_created).toBeUndefined();
+  });
+
+  it("reads a device course with no finish line back as circuit", () => {
+    const back = deviceCourseToAppCourse(makeDeviceCourse());
+    expect(back.type).toBeUndefined();
+    expect(back.finish).toBeUndefined();
+  });
+
+  it("matches an unchanged sprint course", () => {
+    const course = makeSprintCourse();
+    expect(coursesMatch(course, appCourseToDeviceJson(course))).toBe(true);
+  });
+
+  it("flags a moved finish line as a mismatch", () => {
+    // The single most likely edit to a sprint course. Before the sprint branch
+    // in coursesMatch this compared only start/finish and reported "synced".
+    const course = makeSprintCourse();
+    const dc = appCourseToDeviceJson(course);
+    const moved = makeSprintCourse({
+      finish: { a: { lat: 35.42000, lon: -97.32000 }, b: finish.b },
+    });
+    expect(coursesMatch(moved, dc)).toBe(false);
+  });
+
+  it("flags a changed date_created as a mismatch", () => {
+    // It decides which course the device loads, so it is not cosmetic.
+    const dc = appCourseToDeviceJson(makeSprintCourse());
+    expect(coursesMatch(makeSprintCourse({ dateCreated: "2026-09-06T08:00" }), dc)).toBe(false);
+  });
+
+  it("flags a moved split as a mismatch", () => {
+    const dc = appCourseToDeviceJson(makeSprintCourse({
+      sectors: [{ line: split(1), major: false }],
+    }));
+    const moved = makeSprintCourse({ sectors: [{ line: split(5), major: false }] });
+    expect(coursesMatch(moved, dc)).toBe(false);
+  });
+
+  it("never matches across a kind change, in either direction", () => {
+    // The two kinds live in different folders on the device, so this is a
+    // different file rather than an edit.
+    const sprintJson = appCourseToDeviceJson(makeSprintCourse());
+    const circuitJson = appCourseToDeviceJson(makeAppCourse());
+    expect(coursesMatch(makeAppCourse(), sprintJson)).toBe(false);
+    expect(coursesMatch(makeSprintCourse(), circuitJson)).toBe(false);
+  });
+});

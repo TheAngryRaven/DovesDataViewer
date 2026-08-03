@@ -14,6 +14,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Sprint (autocross / point-to-point) course model — foundation** (plan 0015).
+  Courses can now be typed `circuit` or `sprint`. A sprint course is timed
+  start-line → *separate* finish line rather than lap-to-lap, carries a required
+  `finish` line and a `date_created` stamp, and allows 0–2 optional split lines
+  instead of the circuit model's all-or-nothing three majors. The logger and the
+  timing library have shipped sprint support for a while, but nothing could
+  author a sprint track — this is the app starting to close that loop.
+  **No UI yet**: this change is the data model, validation and device wire
+  format only. The course editor, `TS*` track sync and the runs view follow.
+  - `date_created` is stamped once and preserved across edits. The logger picks
+    which sprint course to load by comparing these stamps as plain **strings**,
+    so the format is a fixed sortable `YYYY-MM-DDTHH:MM` — an edit must not let
+    a course jump the queue on the device, and a non-sortable stamp would
+    silently load the wrong cone layout.
+  - Existing courses are unaffected. The type is optional and absent means
+    circuit, so every saved, bundled and cloud-synced course keeps working with
+    no migration.
+
+### Fixed
+- **Device sync could report a changed course as "synced".** `coursesMatch`
+  compared only start/finish and the two legacy sector lines, so a course
+  carrying data outside that projection looked unchanged — for a sprint course
+  that includes the finish line, the single most likely thing to be edited. It
+  now compares the full device-visible projection per course type, and treats a
+  course that changed type as a different file rather than an edit (the two
+  kinds live in separate folders on the device).
+
+### Added
 - **Device tab works in the native Android app.** Settings, track management,
   and battery now ride the native logger IPC when running inside LapWing —
   previously the whole Device tab was dead there because the webview has no
