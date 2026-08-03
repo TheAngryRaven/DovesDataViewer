@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Sprint tracks appear in the Device tab and sync over Bluetooth** (plan
+  0015). The tab now loads both folders off the logger, tags each track with
+  its kind, and marks sprint tracks with a badge — a circuit and a sprint track
+  can legitimately share a short name, so the list would otherwise show two
+  identical-looking rows. Upload, download and delete all target the folder the
+  track actually came from. **This closes the loop**: a sprint course authored
+  in the track editor can now be pushed to the logger and driven.
+  - **Sprint tracks are Bluetooth-only for now.** The native Android path
+    reports that it can't reach the sprint folder rather than showing an empty
+    list, because the bridge doesn't speak the `TS*` verbs yet. That work is
+    sequenced at the end of the plan — it's gated on the native app's release,
+    which isn't live.
 - **Sprint track sync speaks the device's `TS*` verbs** (plan 0015). The BLE
   client can now list, download, upload and delete tracks in the logger's
   `/TRACKS/SPRINT` folder, alongside the existing `/TRACKS` ones. The folder is

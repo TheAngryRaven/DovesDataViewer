@@ -368,7 +368,8 @@
     "none": "None",
     "startLineDistance": "Start line distance:",
     "sendToDevice": "Send to Device",
-    "downloadToApp": "Download to App"
+    "downloadToApp": "Download to App",
+    "sprintBadge": "Sprint"
   },
   "vehicleTypeEditor": {
     "title": "Manage Vehicle Types",

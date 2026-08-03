@@ -38,10 +38,20 @@ export function createNativeDeviceDetails(): DeviceDetails {
     listSettings: () => loggerListSettings(),
     setSetting: (key, value) => loggerSetSetting(key, value),
     resetSettings: () => loggerResetSettings(),
-    listTracks: () => loggerListTracks(),
+    // Sprint tracks live in a separate folder reached by the TS* BLE verbs,
+    // which the native bridge does not implement yet. Report nothing rather
+    // than throwing: it genuinely cannot fetch them, and the tab says so
+    // explicitly via supportsSprintTracks rather than showing an empty list
+    // that reads as "no sprint tracks on the device".
+    //
+    // Scheduled for the end of plan 0015 — it is gated on the native app's
+    // release, not on anything in this repo. See
+    // docs/plans/0015-sprint-mode.md, "Android IPC — end-of-project follow-up".
+    listTracks: (kind) => (kind === 'sprint' ? Promise.resolve([]) : loggerListTracks()),
     getTrack: (name) => loggerDownloadTrack(name),
     putTrack: (name, data) => loggerUploadTrack(name, data),
     deleteTrack: (name) => loggerDeleteTrack(name),
+    supportsSprintTracks: false,
   };
 }
 

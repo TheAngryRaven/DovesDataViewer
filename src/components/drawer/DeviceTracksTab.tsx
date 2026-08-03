@@ -85,9 +85,33 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
           const raw = await details.getTrack(fn);
           const text = new TextDecoder().decode(raw);
           const courses = parseDeviceCourseJson(text);
-          files.push({ shortName: fn.replace(/\.json$/i, ""), courses });
+          files.push({ shortName: fn.replace(/\.json$/i, ""), courses, kind: "circuit" });
         } catch (err) {
           console.error(`Failed to download ${fn}:`, err);
+        }
+      }
+
+      // Sprint tracks live in a second folder, reached by the TS* verbs. A
+      // transport that can't get there reports supportsSprintTracks: false and
+      // is skipped entirely, so a missing capability never looks like an empty
+      // folder. Failures here are logged and swallowed: the circuit list is
+      // already loaded and is worth showing on its own.
+      if (details.supportsSprintTracks) {
+        try {
+          const sprintNames = await details.listTracks("sprint");
+          for (let i = 0; i < sprintNames.length; i++) {
+            const fn = sprintNames[i];
+            setLoadProgress({ current: i + 1, total: sprintNames.length, label: fn });
+            try {
+              const raw = await details.getTrack(fn, "sprint");
+              const courses = parseDeviceCourseJson(new TextDecoder().decode(raw));
+              files.push({ shortName: fn.replace(/\.json$/i, ""), courses, kind: "sprint" });
+            } catch (err) {
+              console.error(`Failed to download sprint ${fn}:`, err);
+            }
+          }
+        } catch (err) {
+          console.error("Sprint track list failed:", err);
         }
       }
 
@@ -121,7 +145,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     try {
       const json = buildTrackJsonForUpload(entry.appTrack);
       const data = new TextEncoder().encode(json);
-      await details.putTrack(entry.shortName + ".json", data);
+      await details.putTrack(entry.shortName + ".json", data, entry.kind);
       toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
       await syncAll();
     } catch (err) {
@@ -153,7 +177,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   const handleDeleteTrackFromDevice = async (entry: MergedTrackEntry) => {
     setUploading(entry.shortName);
     try {
-      await details.deleteTrack(entry.shortName + ".json");
+      await details.deleteTrack(entry.shortName + ".json", entry.kind);
       toast.success(t("deviceTracks.deletedToast", { name: entry.shortName }));
       setDeleteConfirm(null);
       await syncAll();
@@ -171,13 +195,13 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     try {
       if (remaining.length === 0) {
         // No courses left, delete the whole file
-        await details.deleteTrack(trackEntry.shortName + ".json");
+        await details.deleteTrack(trackEntry.shortName + ".json", trackEntry.kind);
         toast.success(t("deviceTracks.deletedNoCoursesToast", { name: trackEntry.shortName }));
       } else {
         // Re-upload without the deleted course
         const json = JSON.stringify(remaining, null, '\t');
         const data = new TextEncoder().encode(json);
-        await details.putTrack(trackEntry.shortName + ".json", data);
+        await details.putTrack(trackEntry.shortName + ".json", data, trackEntry.kind);
         toast.success(t("deviceTracks.removedCourseToast", { name: courseName }));
       }
       setDeleteConfirm(null);
@@ -215,7 +239,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     try {
       const json = JSON.stringify(allDeviceCourses, null, '\t');
       const data = new TextEncoder().encode(json);
-      await details.putTrack(trackEntry.shortName + ".json", data);
+      await details.putTrack(trackEntry.shortName + ".json", data, trackEntry.kind);
       toast.success(t("deviceTracks.sentCourseToast", { name: courseName }));
       setDiffCourse(null);
       await syncAll();
@@ -237,7 +261,9 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
       const tracks = await loadTracks();
       setAppTracks(tracks);
       setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
-      const updated = buildMergedTrackList(tracks, deviceFiles).find(t => t.shortName === trackEntry.shortName);
+      // Match on kind too: a circuit and a sprint track can share a short name.
+      const updated = buildMergedTrackList(tracks, deviceFiles)
+        .find(t => t.shortName === trackEntry.shortName && t.kind === trackEntry.kind);
       if (updated) setSelectedTrack(updated);
     } catch (err) {
       toast.error(t("deviceTracks.downloadFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
@@ -263,12 +289,12 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
       try {
         // Delete from device if it exists there
         if (isOnDevice(entry)) {
-          await details.deleteTrack(entry.shortName + ".json");
+          await details.deleteTrack(entry.shortName + ".json", entry.kind);
         }
         // Upload from app
         const json = buildTrackJsonForUpload(entry.appTrack!);
         const data = new TextEncoder().encode(json);
-        await details.putTrack(entry.shortName + ".json", data);
+        await details.putTrack(entry.shortName + ".json", data, entry.kind);
       } catch (err) {
         console.error(`Resync failed for ${entry.shortName}:`, err);
         toast.error(t("deviceTracks.resyncFailedToast", { name: entry.shortName, error: err instanceof Error ? err.message : t("deviceTracks.unknownShort") }));
@@ -319,6 +345,11 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
           </Button>
           <StatusIcon status={selectedTrack.status} />
           <span className="font-medium text-sm text-foreground truncate">{selectedTrack.shortName}</span>
+          {selectedTrack.kind === 'sprint' && (
+            <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              {t("deviceTracks.sprintBadge")}
+            </span>
+          )}
           {selectedTrack.trackName && selectedTrack.trackName !== selectedTrack.shortName && (
             <span className="text-xs text-muted-foreground truncate">({selectedTrack.trackName})</span>
           )}
@@ -467,7 +498,9 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
         ) : (
           mergedTracks.map((entry) => (
             <div
-              key={entry.shortName}
+              // Keyed on kind too — a circuit and a sprint track can share a
+              // short name, and React would otherwise collapse them into one row.
+              key={`${entry.kind}:${entry.shortName}`}
               className="flex items-center gap-2 px-3 py-2.5 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
               onClick={() => { setSelectedTrack(entry); setView("courses"); }}
             >
@@ -475,6 +508,11 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
               <span className="flex-1 text-sm font-medium text-foreground truncate">
                 {entry.shortName}
               </span>
+              {entry.kind === 'sprint' && (
+                <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                  {t("deviceTracks.sprintBadge")}
+                </span>
+              )}
               {entry.trackName && entry.trackName !== entry.shortName && (
                 <span className="text-xs text-muted-foreground truncate max-w-[100px]">
                   {entry.trackName}

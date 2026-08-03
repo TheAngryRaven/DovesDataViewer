@@ -6,6 +6,14 @@ vi.mock("./ipc", () => ({
   loggerListFiles: vi.fn(),
   loggerDownloadFile: vi.fn(),
   loggerDisconnect: vi.fn(),
+  loggerBattery: vi.fn(),
+  loggerListSettings: vi.fn(),
+  loggerSetSetting: vi.fn(),
+  loggerResetSettings: vi.fn(),
+  loggerListTracks: vi.fn(),
+  loggerDownloadTrack: vi.fn(),
+  loggerUploadTrack: vi.fn(),
+  loggerDeleteTrack: vi.fn(),
 }));
 
 function info(overrides: Partial<ipc.LoggerDeviceInfo> = {}): ipc.LoggerDeviceInfo {
@@ -62,5 +70,31 @@ describe("createDovesloggerConnection", () => {
   it("delegates disconnect to the IPC teardown", () => {
     createDovesloggerConnection(info()).disconnect();
     expect(ipc.loggerDisconnect).toHaveBeenCalled();
+  });
+});
+
+// ─── Sprint tracks over the native bridge (plan 0015) ────────────────────────
+
+describe("native device details — sprint tracks", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("declares that it cannot reach the sprint folder", () => {
+    // The tab reads this to say so plainly, instead of rendering an empty
+    // sprint list that looks like "no sprint tracks on the device".
+    expect(createDovesloggerConnection(info()).details!.supportsSprintTracks).toBe(false);
+  });
+
+  it("returns an empty sprint list without touching the bridge", async () => {
+    const details = createDovesloggerConnection(info()).details!;
+    await expect(details.listTracks("sprint")).resolves.toEqual([]);
+    expect(ipc.loggerListTracks).not.toHaveBeenCalled();
+  });
+
+  it("still lists circuit tracks through the bridge", async () => {
+    vi.mocked(ipc.loggerListTracks).mockResolvedValue(["OKC.json"]);
+    const details = createDovesloggerConnection(info()).details!;
+    await expect(details.listTracks("circuit")).resolves.toEqual(["OKC.json"]);
+    await expect(details.listTracks()).resolves.toEqual(["OKC.json"]);
+    expect(ipc.loggerListTracks).toHaveBeenCalledTimes(2);
   });
 });

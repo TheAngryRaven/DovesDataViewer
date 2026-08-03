@@ -150,16 +150,34 @@ testable (Golden Rule 3).
   `trackSync.ts` function takes an optional `kind` defaulting to `'circuit'`;
   `buildMergedTrackList` keys on **(kind, shortName)**; `trackKind` /
   `isMixedKindTrack` decide which folder a track belongs in.
-- **PR 4 — device seam + Device tab.** The reason sync is not yet reachable
-  from the UI: `DeviceTracksTab` goes through the transport-neutral
-  `DeviceDetails` seam (`lib/loggers/types.ts`), which has **two**
-  implementations — Web Bluetooth (`bleDetails.ts`) and the native Android IPC
-  bridge (`dovesloggerConnection.ts`). Adding `kind` to `listTracks`/`getTrack`
-  is easy on the BLE side and blocked on the Android app for the native one, so
-  the seam needs a deliberate "native returns nothing for sprint until the app
-  catches up" decision rather than being smuggled in with the UI. Also needs a
-  kind indicator in the tab, since a circuit and a sprint track can now share a
-  short name.
+- ~~**PR 4 — device seam + Device tab (Web Bluetooth only).**~~ **Done.** `DeviceTracksTab`
+  goes through the transport-neutral `DeviceDetails` seam
+  (`lib/loggers/types.ts`), which has **two** implementations: Web Bluetooth
+  (`bleDetails.ts`) and the native Android IPC bridge
+  (`dovesloggerConnection.ts`). The seam gains `kind`; BLE implements it; the
+  tab gains a kind indicator, since a circuit and a sprint track can now share
+  a short name.
+
+  **Decided: the native side is deferred to the end of the project.** The
+  native app is not live yet and its release slipped, so there is nothing to
+  regress — the BLE path is the only one users have today. The native
+  implementation reports no sprint tracks until it is updated, which is honest
+  (it genuinely cannot fetch them) rather than a silent failure.
+
+### Android IPC — end-of-project follow-up
+
+When the native app ships, `dovesloggerConnection.ts` and its Android bridge
+need the `TS*` verbs to reach parity with Web Bluetooth:
+
+- `listTracks(kind)` / `getTrack(name, kind)` / `putTrack(name, data, kind)` /
+  `deleteTrack(name, kind)` must route to `TSLIST` / `TSGET:` / `TSPUT:` /
+  `TSDEL:` when `kind === 'sprint'`.
+- Until then the native path returns an empty sprint list. **This is deliberate
+  and must be revisited here, not patched over at a call site** — the seam is
+  the single place the two transports are supposed to agree.
+- Sequenced at the END of this plan on purpose: it is gated on another
+  product's release, not on anything in this repo, and blocking sprint mode on
+  it would have stalled work that is otherwise finished.
 - **PR 5 — reading runs back.** (Was PR 4; renumbered when the seam split out.)
   `race_mode` in `dovexParser`, run derivation, and a run-oriented `LapTable`.
   `calculateLaps` pairs *consecutive* start/finish crossings and wraps the last
