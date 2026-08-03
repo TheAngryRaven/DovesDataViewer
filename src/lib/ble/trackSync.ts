@@ -3,6 +3,7 @@
 import type { BleConnection, DownloadProgress } from "./types";
 import { bleLog } from "./internal";
 import { formatSpeed, formatTime } from "./format";
+import { trackOpcodes, type TrackKind } from "./trackOpcodes";
 
 /**
  * Track-File Protocol.
@@ -13,10 +14,18 @@ import { formatSpeed, formatTime } from "./format";
  *   TPUT:<name>      -> TREADY on `fileStatus`, then app sends chunks + TDONE,
  *                       device responds TOK or TERR:reason
  *   TDEL:<name>      -> TOK or TERR:reason on `fileStatus`
+ *
+ * Every command takes an optional `kind`. Sprint tracks live in a separate
+ * folder on the device and are addressed by the TS* twins of these verbs — the
+ * folder is chosen by the opcode, never by the filename. See `trackOpcodes.ts`.
  */
 
-/** Request list of track files on device via TLIST. Returns filenames (e.g. ["OKC.json"]). */
-export async function requestTrackFileList(connection: BleConnection): Promise<string[]> {
+/** Request list of track files on device. Returns filenames (e.g. ["OKC.json"]). */
+export async function requestTrackFileList(
+  connection: BleConnection,
+  kind: TrackKind = "circuit",
+): Promise<string[]> {
+  const ops = trackOpcodes(kind);
   // eslint-disable-next-line no-async-promise-executor -- inner try/catch handles rejection; preserve original semantics during the split
   return new Promise(async (resolve, reject) => {
     const files: string[] = [];
@@ -25,18 +34,18 @@ export async function requestTrackFileList(connection: BleConnection): Promise<s
     const handleNotification = (event: Event) => {
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       const raw = new TextDecoder().decode(target.value!);
-      bleLog("TLIST raw:", JSON.stringify(raw));
+      bleLog(`${ops.list} raw:`, JSON.stringify(raw));
 
       const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
 
       for (const line of lines) {
-        if (line === "TEND") {
+        if (line === ops.endToken) {
           cleanup();
           resolve(files);
           return;
         }
-        if (line.startsWith("TFILE:")) {
-          files.push(line.substring(6));
+        if (line.startsWith(ops.filePrefix)) {
+          files.push(line.substring(ops.filePrefix.length));
         }
       }
 
@@ -64,7 +73,7 @@ export async function requestTrackFileList(connection: BleConnection): Promise<s
       );
 
       const encoder = new TextEncoder();
-      await connection.characteristics.fileRequest.writeValue(encoder.encode("TLIST"));
+      await connection.characteristics.fileRequest.writeValue(encoder.encode(ops.list));
 
       setTimeout(() => {
         cleanup();
@@ -85,7 +94,9 @@ export async function downloadTrackFile(
   connection: BleConnection,
   filename: string,
   onProgress?: (progress: DownloadProgress) => void,
+  kind: TrackKind = "circuit",
 ): Promise<Uint8Array> {
+  const ops = trackOpcodes(kind);
   const updateProgress = onProgress || (() => {});
 
   // eslint-disable-next-line no-async-promise-executor -- inner try/catch handles rejection; preserve original semantics during the split
@@ -200,7 +211,7 @@ export async function downloadTrackFile(
       );
 
       const encoder = new TextEncoder();
-      await connection.characteristics.fileRequest.writeValue(encoder.encode("TGET:" + filename));
+      await connection.characteristics.fileRequest.writeValue(encoder.encode(ops.get + filename));
 
       setTimeout(() => {
         if (!resolved) {
@@ -233,7 +244,9 @@ export async function uploadTrackFile(
   connection: BleConnection,
   filename: string,
   data: Uint8Array,
+  kind: TrackKind = "circuit",
 ): Promise<void> {
+  const ops = trackOpcodes(kind);
   // eslint-disable-next-line no-async-promise-executor -- inner try/catch handles rejection; preserve original semantics during the split
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -305,7 +318,7 @@ export async function uploadTrackFile(
       );
 
       const encoder = new TextEncoder();
-      await connection.characteristics.fileRequest.writeValue(encoder.encode("TPUT:" + filename));
+      await connection.characteristics.fileRequest.writeValue(encoder.encode(ops.put + filename));
 
       // Timeout waiting for TREADY
       timeout = setTimeout(() => {
@@ -326,7 +339,9 @@ export async function uploadTrackFile(
 export async function deleteTrackFile(
   connection: BleConnection,
   filename: string,
+  kind: TrackKind = "circuit",
 ): Promise<void> {
+  const ops = trackOpcodes(kind);
   // eslint-disable-next-line no-async-promise-executor -- inner try/catch handles rejection; preserve original semantics during the split
   return new Promise(async (resolve, reject) => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -366,7 +381,7 @@ export async function deleteTrackFile(
       );
 
       const encoder = new TextEncoder();
-      await connection.characteristics.fileRequest.writeValue(encoder.encode("TDEL:" + filename));
+      await connection.characteristics.fileRequest.writeValue(encoder.encode(ops.del + filename));
 
       timeout = setTimeout(() => {
         cleanup();

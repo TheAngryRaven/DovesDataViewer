@@ -145,14 +145,25 @@ testable (Golden Rule 3).
     `sprintCourse.finalizeCourseForSave` so it is unit-testable — this repo's
     coverage config excludes `src/components/**/*.tsx` by design, so logic in
     a `.tsx` is logic that cannot be tested.
-- **PR 3 — device sync.** `TS*` opcodes in `trackSync.ts`, sprint awareness in
-  `deviceTrackSync.ts`'s merge, `DeviceTracksTab` UI. Note `MergedTrackEntry`
-  keys on `shortName` alone today, so a sprint and a circuit track sharing a
-  short name currently collide — that needs a kind in the key.
-- **PR 4 — reading runs back.** `race_mode` in `dovexParser`, run derivation
-  (`calculateLaps` pairs *consecutive* start/finish crossings and wraps the last
-  segment back to start/finish — both assumptions are false for sprint), and a
-  run-oriented `LapTable`.
+- ~~**PR 3 — protocol + merge.**~~ **Done.** `trackOpcodes.ts` owns the verb
+  table (verified against `bluetooth.ino`, not just the protocol doc); every
+  `trackSync.ts` function takes an optional `kind` defaulting to `'circuit'`;
+  `buildMergedTrackList` keys on **(kind, shortName)**; `trackKind` /
+  `isMixedKindTrack` decide which folder a track belongs in.
+- **PR 4 — device seam + Device tab.** The reason sync is not yet reachable
+  from the UI: `DeviceTracksTab` goes through the transport-neutral
+  `DeviceDetails` seam (`lib/loggers/types.ts`), which has **two**
+  implementations — Web Bluetooth (`bleDetails.ts`) and the native Android IPC
+  bridge (`dovesloggerConnection.ts`). Adding `kind` to `listTracks`/`getTrack`
+  is easy on the BLE side and blocked on the Android app for the native one, so
+  the seam needs a deliberate "native returns nothing for sprint until the app
+  catches up" decision rather than being smuggled in with the UI. Also needs a
+  kind indicator in the tab, since a circuit and a sprint track can now share a
+  short name.
+- **PR 5 — reading runs back.** (Was PR 4; renumbered when the seam split out.)
+  `race_mode` in `dovexParser`, run derivation, and a run-oriented `LapTable`.
+  `calculateLaps` pairs *consecutive* start/finish crossings and wraps the last
+  segment back to start/finish — both assumptions are false for sprint.
 
 ## Deliberately kept: "lap" wording
 

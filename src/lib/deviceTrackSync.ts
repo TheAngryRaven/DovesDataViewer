@@ -5,6 +5,7 @@
  */
 
 import { Track, Course, CourseSector, SectorLine, isSprintCourse } from '@/types/racing';
+import type { TrackKind } from '@/lib/ble/trackOpcodes';
 import { haversineDistance } from '@/lib/parserUtils';
 import { legacyMirror, majorSectorLines, normalizeCourseSectors } from '@/lib/courseSectors';
 
@@ -46,6 +47,13 @@ export interface DeviceCourseJson {
 export interface DeviceTrackFile {
   shortName: string;              // filename without .json
   courses: DeviceCourseJson[];
+  /**
+   * Which folder this file came out of. Circuit (`/TRACKS`) and sprint
+   * (`/TRACKS/SPRINT`) are separate namespaces on the device, so the same
+   * shortName can legitimately exist in both — the kind is part of a file's
+   * identity, not a property of its contents.
+   */
+  kind?: TrackKind;
 }
 
 export type TrackSyncStatus =
@@ -69,6 +77,8 @@ export interface MergedCourseEntry {
 
 export interface MergedTrackEntry {
   shortName: string;
+  /** Circuit or sprint. Entries are keyed on (kind, shortName), never shortName alone. */
+  kind: TrackKind;
   trackName?: string;              // full name from webapp (if known)
   status: TrackSyncStatus;
   appTrack?: Track;
@@ -264,6 +274,32 @@ export function parseDeviceCourseJson(raw: string): DeviceCourseJson[] {
   }
 }
 
+// ─── Track kind ───────────────────────────────────────────────────────────────
+
+/**
+ * Which device folder a track belongs in.
+ *
+ * A track file on the device is wholly one kind — it lives in `/TRACKS` or in
+ * `/TRACKS/SPRINT`, never both — so the kind is derived from the courses it
+ * carries. Any sprint course makes the whole track sprint.
+ */
+export function trackKind(track: Pick<Track, 'courses'>): TrackKind {
+  return track.courses.some(isSprintCourse) ? 'sprint' : 'circuit';
+}
+
+/**
+ * True when a track carries both circuit and sprint courses.
+ *
+ * This cannot be represented on the device: the two kinds are separate files in
+ * separate folders, so such a track would have to be split. Callers surface it
+ * rather than silently pushing half the courses — the editor has no way to
+ * create one today, but a cloud-synced or hand-edited track could be.
+ */
+export function isMixedKindTrack(track: Pick<Track, 'courses'>): boolean {
+  const sprint = track.courses.filter(isSprintCourse).length;
+  return sprint > 0 && sprint < track.courses.length;
+}
+
 // ─── Merge Logic ──────────────────────────────────────────────────────────────
 
 /** Build merged course list for a single track. */
@@ -307,21 +343,28 @@ export function buildMergedTrackList(
   deviceFiles: DeviceTrackFile[]
 ): MergedTrackEntry[] {
   const entries: MergedTrackEntry[] = [];
-  const deviceByShortName = new Map(deviceFiles.map(df => [df.shortName, df]));
-  const seenDeviceShortNames = new Set<string>();
+  // Keyed on (kind, shortName): the device keeps circuit and sprint tracks in
+  // different folders, so "OKC" in each is two distinct files. Keying on the
+  // short name alone would collide them and report one as a mismatch of the
+  // other.
+  const key = (kind: TrackKind, shortName: string) => `${kind}:${shortName}`;
+  const deviceByKey = new Map(deviceFiles.map(df => [key(df.kind ?? 'circuit', df.shortName), df]));
+  const seenDeviceKeys = new Set<string>();
 
   // Process app tracks first (ones with shortName)
   for (const track of appTracks) {
     const sn = track.shortName;
     if (!sn) continue; // Skip tracks without shortName — can't match to device
 
-    const df = deviceByShortName.get(sn);
+    const kind = trackKind(track);
+    const df = deviceByKey.get(key(kind, sn));
     if (df) {
-      seenDeviceShortNames.add(sn);
+      seenDeviceKeys.add(key(kind, sn));
       const mergedCourses = buildMergedCourses(track.courses, df.courses);
       const allSynced = mergedCourses.every(c => c.status === 'synced');
       entries.push({
         shortName: sn,
+        kind,
         trackName: track.name,
         status: allSynced ? 'synced' : 'mismatch',
         appTrack: track,
@@ -332,6 +375,7 @@ export function buildMergedTrackList(
     } else {
       entries.push({
         shortName: sn,
+        kind,
         trackName: track.name,
         status: 'app_only',
         appTrack: track,
@@ -348,9 +392,11 @@ export function buildMergedTrackList(
 
   // Device-only tracks
   for (const df of deviceFiles) {
-    if (!seenDeviceShortNames.has(df.shortName)) {
+    const dfKind = df.kind ?? 'circuit';
+    if (!seenDeviceKeys.has(key(dfKind, df.shortName))) {
       entries.push({
         shortName: df.shortName,
+        kind: dfKind,
         status: 'device_only',
         appCourses: [],
         deviceCourses: df.courses,
