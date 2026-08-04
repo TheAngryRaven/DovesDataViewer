@@ -16,6 +16,7 @@ import { Moon, Satellite } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { updatePositionMarker } from "@/components/map/positionArrowMarker";
 import type { Course, GpsSample } from "@/types/racing";
+import { COURSE_LINE_COLORS, finishLineOf, openingLineColor } from "@/lib/courseLineStyle";
 import "leaflet/dist/leaflet.css";
 
 const TILE_STYLES = {
@@ -45,6 +46,7 @@ export function SimMap({ samples, course, positionIndex }: SimMapProps) {
   const tilesRef = useRef<L.TileLayer | null>(null);
   const pathRef = useRef<L.Polyline | null>(null);
   const startFinishRef = useRef<L.Polyline | null>(null);
+  const finishRef = useRef<L.Polyline | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const [style, setStyle] = useState<TileStyle>("dark");
 
@@ -67,18 +69,32 @@ export function SimMap({ samples, course, positionIndex }: SimMapProps) {
     map.fitBounds(pathRef.current.getBounds(), { padding: [24, 24] });
 
     if (course) {
+      // Red on a circuit (one line doing both jobs); green on a sprint
+      // course, whose separate finish line is drawn red just below.
       startFinishRef.current = L.polyline(
         [
           [course.startFinishA.lat, course.startFinishA.lon],
           [course.startFinishB.lat, course.startFinishB.lon],
         ],
-        { color: "hsl(0, 84%, 60%)", weight: 4, opacity: 0.9 },
+        { color: openingLineColor(course), weight: 4, opacity: 0.9 },
       ).addTo(map);
+
+      const finish = finishLineOf(course);
+      if (finish) {
+        finishRef.current = L.polyline(
+          [
+            [finish.a.lat, finish.a.lon],
+            [finish.b.lat, finish.b.lon],
+          ],
+          { color: COURSE_LINE_COLORS.finish, weight: 4, opacity: 0.9 },
+        ).addTo(map);
+      }
     }
 
     return () => {
       markerRef.current = null;
       startFinishRef.current = null;
+      finishRef.current = null;
       pathRef.current = null;
       tilesRef.current = null;
       map.remove();

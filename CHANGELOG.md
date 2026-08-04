@@ -14,6 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **A course created on the logger now actually arrives when you sync it.**
+  Syncing a track the device authored itself brought the track across with
+  **no courses in it** — the walked course was on the card and simply
+  vanished on the way in. The device writes the same track-file shape this
+  app does (a track object with a `courses` list), but the device-sync
+  reader only understood the older bare-list format, so it parsed the file
+  fine, found no list where it expected one, and returned nothing without
+  a word. Both shapes are now read, matching what the logger's own parser
+  accepts.
+- **Sprint finish lines are drawn on the maps, not just in the track
+  editor.** A sprint course's separate finish line only ever appeared while
+  editing it — the session race-line map and the simulator map didn't know
+  the line existed, so a point-to-point course looked identical to a
+  circuit one everywhere it mattered. Both now draw it, and on a sprint
+  course the start line turns green so start and finish read as
+  green-to-end rather than two identical red lines. Circuit maps are
+  unchanged.
 - **A firmware update that fails with "SIZE" now says what to do about it.**
   The size limit lives in the firmware *already installed on the logger*, not
   in the image or in this app — anything older than v3.1.0 carved a smaller

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import { GpsSample, Course, ParserStats } from '@/types/racing';
 import { normalizeCourseSectors } from '@/lib/courseSectors';
+import { COURSE_LINE_COLORS, finishLineOf, openingLineColor } from '@/lib/courseLineStyle';
 import { findSpeedEvents, SpeedEvent } from '@/lib/speedEvents';
 import { computeHeatmapSpeedBoundsMph } from '@/lib/speedBounds';
 import { buildHeatmapSegments } from '@/lib/speedHeatmap';
@@ -470,23 +471,33 @@ export function RaceLineView({ samples, allSamples, referenceSamples = [], cours
 
     if (!course) return;
 
-    // Draw start/finish line (red)
+    // Opening line: red on a circuit (where it is the finish as well), green
+    // on a sprint course whose finish is the separate line drawn below.
     startFinishRef.current = L.polyline(
       [[course.startFinishA.lat, course.startFinishA.lon], [course.startFinishB.lat, course.startFinishB.lon]],
-      { color: 'hsl(0, 75%, 55%)', weight: 5, opacity: 1 }
+      { color: openingLineColor(course), weight: 5, opacity: 1 }
     ).addTo(map);
 
-    // Draw every sector line: majors purple, sub-sectors sky-blue (secondary).
+    // Sector lines (majors purple, sub-sectors sky-blue) plus — sprint only —
+    // the separate finish line. Both ride the same layer group so the cleanup
+    // above keeps working unchanged.
     const sectors = normalizeCourseSectors(course).sectors ?? [];
-    if (sectors.length > 0) {
+    const finish = finishLineOf(course);
+    if (sectors.length > 0 || finish) {
       const group = L.layerGroup();
       for (const sec of sectors) {
         const major = sec.major;
         L.polyline(
           [[sec.line.a.lat, sec.line.a.lon], [sec.line.b.lat, sec.line.b.lon]],
           major
-            ? { color: 'hsl(280, 70%, 55%)', weight: 4, opacity: 0.9 }
-            : { color: 'hsl(199, 89%, 60%)', weight: 3, opacity: 0.7, dashArray: '6 5' }
+            ? { color: COURSE_LINE_COLORS.major, weight: 4, opacity: 0.9 }
+            : { color: COURSE_LINE_COLORS.sub, weight: 3, opacity: 0.7, dashArray: '6 5' }
+        ).addTo(group);
+      }
+      if (finish) {
+        L.polyline(
+          [[finish.a.lat, finish.a.lon], [finish.b.lat, finish.b.lon]],
+          { color: COURSE_LINE_COLORS.finish, weight: 5, opacity: 1 }
         ).addTo(group);
       }
       group.addTo(map);
