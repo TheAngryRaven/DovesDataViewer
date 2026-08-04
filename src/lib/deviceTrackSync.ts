@@ -262,16 +262,44 @@ export function buildTrackJsonForUpload(track: Track): string {
   return JSON.stringify(courses, null, '\t');
 }
 
-/** Parse raw JSON string from device into course array. */
+/**
+ * Parse a track JSON file pulled off the device into its course array.
+ *
+ * BOTH on-disk shapes are accepted, matching the firmware's own
+ * `parseTrackFile()`:
+ *
+ * - **object** — `{longName, shortName, type, defaultCourse, courses:[…]}`,
+ *   the format this app's track files use and the one the **on-device course
+ *   creator writes**.
+ * - **bare array** — `[{…course…}]`, the legacy shape, and still what
+ *   `buildTrackJsonForUpload` sends.
+ *
+ * Accepting only the array was a silent data-loss bug the moment the device
+ * could author a track itself: the object parses fine, isn't an array, and
+ * fell through to `[]` — so a walked course synced back as a track with no
+ * courses at all, with nothing logged to say why.
+ */
 export function parseDeviceCourseJson(raw: string): DeviceCourseJson[] {
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-    return [];
+    parsed = JSON.parse(raw);
   } catch {
     console.error('Failed to parse device track JSON');
     return [];
   }
+
+  if (Array.isArray(parsed)) return parsed as DeviceCourseJson[];
+
+  if (parsed && typeof parsed === 'object') {
+    const courses = (parsed as { courses?: unknown }).courses;
+    if (Array.isArray(courses)) return courses as DeviceCourseJson[];
+    // A well-formed object with no course list is a real (if empty) track —
+    // distinct from unparseable, so don't shout about it.
+    return [];
+  }
+
+  console.error('Device track JSON is neither a course array nor a track object');
+  return [];
 }
 
 // ─── Track kind ───────────────────────────────────────────────────────────────

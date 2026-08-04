@@ -8,6 +8,7 @@ import { beginFirmwareUpdate, uploadFirmwareImage, applyFirmware } from "@/lib/b
 import {
   acquireFirmwareImage,
   evaluateFirmwareUpdate,
+  explainFirmwareFailure,
   fetchFirmwareManifest,
   readDeviceFirmwareInfo,
   type DeviceFirmwareInfo,
@@ -135,6 +136,9 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     setFlashingLocal(true);
     setFlashing(true);
     let installing = false;
+    // Kept for the failure path: a device that rejects on SIZE needs to be told
+    // how big the image was and which version unlocks it.
+    let imageBytes: number | null = null;
 
     try {
       // 0. Download the image (prefer the raw .bin), compute its CRC, and verify
@@ -144,6 +148,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
       setPhase("downloading");
       fwLog("downloading", build.name, build.appBin ?? build.dfuZip);
       const { image, crc } = await acquireFirmwareImage(build);
+      imageBytes = image.length;
       fwLog("image ready + verified vs manifest", { bytes: image.byteLength, crc });
 
       // 1–3. CRC handshake — verify the control channel, and declare the target
@@ -173,15 +178,23 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
       // tear down the "complete" dialog. The user acknowledges via finish().
     } catch (e) {
       fwLog("update failed", { installing, error: errorMessage(e) });
+      // A raw "SIZE" tells the user nothing — the cap lives in the firmware
+      // already on the device, and the remedy is a hop through an older
+      // release. Say that instead.
+      const explained = explainFirmwareFailure(e, {
+        installedVersion: info?.version,
+        imageBytes,
+      });
+      const message = explained?.message ?? errorMessage(e);
       setPhase("error");
-      setFlashError(errorMessage(e));
+      setFlashError(message);
       setNeedsDisconnect(installing);
       setFlashing(false);
-      toast.error(`Firmware update failed: ${errorMessage(e)}`);
+      toast.error(explained ? message : `Firmware update failed: ${message}`);
     } finally {
       setFlashingLocal(false);
     }
-  }, [connection, pendingBuild, setFlashing]);
+  }, [connection, pendingBuild, setFlashing, info]);
 
   /** Dismiss the error state; drops the connection if the device had rebooted. */
   const dismiss = useCallback(() => {

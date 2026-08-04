@@ -254,8 +254,39 @@ describe("parseDeviceCourseJson", () => {
     expect(parseDeviceCourseJson("not json {")).toEqual([]);
   });
 
-  it("returns [] when JSON is valid but not an array (e.g. wrapping object)", () => {
+  // The device's own course creator writes the OBJECT format — the same shape
+  // this app's track files use and that the firmware's parseTrackFile() reads.
+  // Accepting only the bare array meant a walked course synced back as a track
+  // with no courses in it, silently. An earlier test asserted exactly that
+  // behaviour, which is how it survived: it pinned the bug as the contract.
+  it("parses the object format the on-device course creator writes", () => {
+    const raw = JSON.stringify({
+      longName: "N260804_1432",
+      shortName: "08041432",
+      type: "sprint",
+      defaultCourse: "N260804_1432",
+      courses: [makeDeviceCourse()],
+    });
+    expect(parseDeviceCourseJson(raw)).toHaveLength(1);
+  });
+
+  it("keeps course order when the object holds several", () => {
+    const raw = JSON.stringify({
+      longName: "Venue",
+      courses: [makeDeviceCourse({ name: "first" }), makeDeviceCourse({ name: "second" })],
+    });
+    expect(parseDeviceCourseJson(raw).map((c) => c.name)).toEqual(["first", "second"]);
+  });
+
+  it("returns [] for an object with an empty or missing course list", () => {
     expect(parseDeviceCourseJson('{"courses": []}')).toEqual([]);
+    expect(parseDeviceCourseJson('{"longName":"Venue"}')).toEqual([]);
+  });
+
+  it("returns [] for a JSON scalar", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(parseDeviceCourseJson("42")).toEqual([]);
+    expect(parseDeviceCourseJson("null")).toEqual([]);
   });
 
   it("returns [] for empty array", () => {

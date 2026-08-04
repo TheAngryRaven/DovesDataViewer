@@ -25,6 +25,23 @@ const encoder = new TextEncoder();
 const decode = (v: DataView | null | undefined) => new TextDecoder().decode(v!);
 const lines = (raw: string) => raw.split("\n").map((l) => l.trim()).filter(Boolean);
 
+/**
+ * A device-side `FWERR:<reason>` rejection, carrying the raw protocol token so
+ * callers can act on it instead of re-parsing an English sentence.
+ *
+ * The tokens are the firmware's: `CRC`, `SIZE`, `WRITE`, `BATTERY`, `VARIANT`,
+ * `STATE`, `FLASH`.
+ */
+export class FirmwareProtocolError extends Error {
+  readonly reason: string;
+
+  constructor(stage: string, reason: string) {
+    super(`${stage}: ${reason}`);
+    this.name = "FirmwareProtocolError";
+    this.reason = reason;
+  }
+}
+
 export interface FirmwareUploadProgress {
   /** Image bytes written so far. */
   sent: number;
@@ -89,7 +106,7 @@ export async function beginFirmwareUpdate(
         }
         if (line.startsWith("FWERR:")) {
           cleanup();
-          reject(new Error(`Firmware handshake failed: ${line.substring(6)}`));
+          reject(new FirmwareProtocolError("Firmware handshake failed", line.substring(6).trim()));
           return;
         }
       }
@@ -184,7 +201,7 @@ export async function uploadFirmwareImage(
         }
         if (line.startsWith("FWERR:")) {
           cleanup();
-          reject(new Error(`Firmware upload failed: ${line.substring(6)}`));
+          reject(new FirmwareProtocolError("Firmware upload failed", line.substring(6).trim()));
           return;
         }
       }
@@ -272,7 +289,7 @@ export async function applyFirmware(
         }
         if (line.startsWith("FWERR:")) {
           cleanup();
-          reject(new Error(`Firmware install failed: ${line.substring(6)}`));
+          reject(new FirmwareProtocolError("Firmware install failed", line.substring(6).trim()));
           return;
         }
       }
