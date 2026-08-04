@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A firmware update that fails with "SIZE" now says what to do about it.**
+  The size limit lives in the firmware *already installed on the logger*, not
+  in the image or in this app — anything older than v3.1.0 carved a smaller
+  staging region out of flash and refuses a larger image before the upload
+  even starts. The app relayed the device's bare `SIZE` token, which gave no
+  hint that the fix is to install v3.1.0 first (it fits under the old limit,
+  and carries the bigger region) and then retry. It now says exactly that,
+  naming the version the device reported. Devices that report v3.1.0 or newer
+  and still refuse are pointed at USB instead, rather than sent on a
+  pointless staged upgrade.
+  - Groundwork, not yet surfaced: the check is a pure helper, so the update
+    dialog can warn *before* the download rather than after the handshake.
+
 ### Added
 - **Sprint sessions can finally be read back** (plan 0015). Load a log recorded
   on a sprint course and the app now lists one row per run — start line to the
