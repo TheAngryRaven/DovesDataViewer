@@ -298,6 +298,7 @@
     "li3": "Don't close this tab or power off the device until it finishes.",
     "interrupting": "Interrupting an update can require a manual recovery.",
     "cancel": "Cancel",
+    "remindTomorrow": "Remind me tomorrow",
     "upload": "Upload",
     "phaseDownloading": "Downloading firmware…",
     "phaseUploading": "Uploading to device…",

@@ -299,6 +299,7 @@
     "li3": "Ne fermez pas cet onglet et n'éteignez pas l'appareil avant la fin.",
     "interrupting": "Interrompre une mise à jour peut nécessiter une récupération manuelle.",
     "cancel": "Annuler",
+    "remindTomorrow": "Me le rappeler demain",
     "upload": "Envoyer",
     "phaseDownloading": "Téléchargement du firmware…",
     "phaseUploading": "Envoi vers l'appareil…",

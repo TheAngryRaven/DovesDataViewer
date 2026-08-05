@@ -299,6 +299,7 @@
     "li3": "No cierres esta pestaña ni apagues el dispositivo hasta que termine.",
     "interrupting": "Interrumpir una actualización puede requerir una recuperación manual.",
     "cancel": "Cancelar",
+    "remindTomorrow": "Recordármelo mañana",
     "upload": "Subir",
     "phaseDownloading": "Descargando firmware…",
     "phaseUploading": "Subiendo al dispositivo…",
