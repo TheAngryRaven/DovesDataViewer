@@ -30,7 +30,6 @@ import {
   MergedTrackEntry,
   MergedCourseEntry,
   buildMergedTrackList,
-  deviceTrackFileFrom,
   buildTrackJsonForUpload,
   rebuildDeviceTrackJson,
   deviceCourseToAppCourse,
@@ -39,6 +38,7 @@ import {
   countDeviceSectors,
   startADistance,
 } from "@/lib/deviceTrackSync";
+import { fetchDeviceTrackFiles } from "@/lib/deviceSyncFetch";
 import { loadTracks, addTrack, addCourse } from "@/lib/trackStorage";
 import { Track } from "@/types/racing";
 import { toast } from "sonner";
@@ -83,45 +83,12 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     setSelectedTrack(null);
     try {
       setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.fetchingList") });
-      const filenames = await details.listTracks();
+      // Both folders, with the identity rule applied — shared with the sync
+      // wizard so there is only one place that knows how a file is keyed.
+      const files = await fetchDeviceTrackFiles(details, setLoadProgress);
 
-      if (filenames.length === 0) {
+      if (files.length === 0) {
         setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.noFilesOnDevice") });
-      }
-
-      const files: DeviceTrackFile[] = [];
-      for (let i = 0; i < filenames.length; i++) {
-        const fn = filenames[i];
-        setLoadProgress({ current: i + 1, total: filenames.length, label: fn });
-        try {
-          const raw = await details.getTrack(fn);
-          files.push(deviceTrackFileFrom(fn, new TextDecoder().decode(raw), "circuit"));
-        } catch (err) {
-          console.error(`Failed to download ${fn}:`, err);
-        }
-      }
-
-      // Sprint tracks live in a second folder, reached by the TS* verbs. A
-      // transport that can't get there reports supportsSprintTracks: false and
-      // is skipped entirely, so a missing capability never looks like an empty
-      // folder. Failures here are logged and swallowed: the circuit list is
-      // already loaded and is worth showing on its own.
-      if (details.supportsSprintTracks) {
-        try {
-          const sprintNames = await details.listTracks("sprint");
-          for (let i = 0; i < sprintNames.length; i++) {
-            const fn = sprintNames[i];
-            setLoadProgress({ current: i + 1, total: sprintNames.length, label: fn });
-            try {
-              const raw = await details.getTrack(fn, "sprint");
-              files.push(deviceTrackFileFrom(fn, new TextDecoder().decode(raw), "sprint"));
-            } catch (err) {
-              console.error(`Failed to download sprint ${fn}:`, err);
-            }
-          }
-        } catch (err) {
-          console.error("Sprint track list failed:", err);
-        }
       }
 
       setDeviceFiles(files);
