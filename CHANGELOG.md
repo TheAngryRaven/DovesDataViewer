@@ -64,6 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     dialog can warn *before* the download rather than after the handshake.
 
 ### Added
+- **Connecting a logger now offers what it needs, instead of waiting to be
+  asked** (plan 0016). Connect, and the app checks for a firmware update and
+  then whether any tracks differ between the app and the device — no digging
+  through the drawer for either.
+  - The firmware prompt gains a **Remind me tomorrow** button that defers it for
+    24 hours. It's remembered per logger and per version, so two loggers don't
+    shadow each other and a brand-new release still asks straight away rather
+    than inheriting yesterday's "tomorrow".
+  - The automatic check no longer announces itself when there's nothing to do —
+    the "you're up to date" and "check failed" messages are for when *you*
+    pressed the button. Offline, the check is skipped rather than reported as a
+    failure.
+  - The track prompt only appears when something actually differs, and saying no
+    to it lasts for that connection.
 - **Name the courses you walked on the logger, without a laptop** (plan 0016).
   A course created on the device is named from its GPS clock — `N260803_1432` —
   because the logger has no way to type on it. A new sync wizard lists
