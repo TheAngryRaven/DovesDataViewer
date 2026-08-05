@@ -8,6 +8,7 @@ import { Track, Course, CourseSector, SectorLine, isSprintCourse } from '@/types
 import type { TrackKind } from '@/lib/ble/trackOpcodes';
 import { haversineDistance } from '@/lib/parserUtils';
 import { legacyMirror, majorSectorLines, normalizeCourseSectors } from '@/lib/courseSectors';
+import { deriveShortName } from '@/lib/trackUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,13 @@ export interface DeviceTrackFile {
   shortName: string;              // filename without .json
   courses: DeviceCourseJson[];
   /**
+   * `longName` out of the object wrapper, when the file had one. Distinct from
+   * `shortName` above, which is the FILENAME base — for a track the on-device
+   * course creator wrote those differ (`N260803_1432.json` carrying
+   * `shortName: "08031432"`), and the rename flow needs the human-facing one.
+   */
+  longName?: string;
+  /**
    * Which folder this file came out of. Circuit (`/TRACKS`) and sprint
    * (`/TRACKS/SPRINT`) are separate namespaces on the device, so the same
    * shortName can legitimately exist in both — the kind is part of a file's
@@ -80,6 +88,8 @@ export interface MergedTrackEntry {
   /** Circuit or sprint. Entries are keyed on (kind, shortName), never shortName alone. */
   kind: TrackKind;
   trackName?: string;              // full name from webapp (if known)
+  /** `longName` the device file carries, when it has one. */
+  deviceLongName?: string;
   status: TrackSyncStatus;
   appTrack?: Track;
   appCourses: Course[];
@@ -256,14 +266,50 @@ export function appCourseToDeviceJson(course: Course): DeviceCourseJson {
   return dc;
 }
 
-/** Build the full track JSON string the device expects (flat array of courses). */
-export function buildTrackJsonForUpload(track: Track): string {
-  const courses = track.courses.map(appCourseToDeviceJson);
-  return JSON.stringify(courses, null, '\t');
+/**
+ * The object-form track file, as the firmware writes it and parses it back
+ * (`BirdsEye/sd_functions.ino` `parseTrackFile()`).
+ *
+ * Everything outside `courses` is optional because the legacy bare-array shape
+ * carries none of it — the firmware blanks all four fields for an array file.
+ */
+export interface DeviceTrackFileJson {
+  longName?: string;
+  shortName?: string;
+  /** `"sprint"` marks a sprint track. The folder is authoritative; this is a hint. */
+  type?: string;
+  defaultCourse?: string;
+  courses: DeviceCourseJson[];
 }
 
 /**
- * Parse a track JSON file pulled off the device into its course array.
+ * Build the full track JSON string the device expects.
+ *
+ * Emits the **object** form. This used to emit a bare array, which the firmware
+ * still parses — but its array branch explicitly blanks `longName`, `shortName`
+ * and `defaultCourse`, and every course then falls back to `lengthFt = 0`. That
+ * costs real behaviour on the device: `lengthFt` is what CourseDetector ranks
+ * courses by, so an array-uploaded track could never be detected and dropped
+ * straight to Lap Anything, and the blank `shortName` reached the DOVEX header's
+ * `short_name` column. The object form is what the app's own track files and the
+ * on-device course creator already write, so nothing new is being asked of the
+ * firmware — the array writer was simply lossy.
+ */
+export function buildTrackJsonForUpload(track: Track): string {
+  const file: DeviceTrackFileJson = {
+    longName: track.name,
+    // Never emit an empty shortName: it lands in the log header, and it is the
+    // key this app's own merge uses to recognise the file on the next connect.
+    shortName: track.shortName || deriveShortName(track.name),
+    type: trackKind(track),
+    defaultCourse: track.courses[0]?.name ?? '',
+    courses: track.courses.map(appCourseToDeviceJson),
+  };
+  return JSON.stringify(file, null, '\t');
+}
+
+/**
+ * Parse a track JSON file pulled off the device, keeping the wrapper metadata.
  *
  * BOTH on-disk shapes are accepted, matching the firmware's own
  * `parseTrackFile()`:
@@ -279,27 +325,45 @@ export function buildTrackJsonForUpload(track: Track): string {
  * fell through to `[]` — so a walked course synced back as a track with no
  * courses at all, with nothing logged to say why.
  */
-export function parseDeviceCourseJson(raw: string): DeviceCourseJson[] {
+export function parseDeviceTrackFile(raw: string): DeviceTrackFileJson | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     console.error('Failed to parse device track JSON');
-    return [];
+    return null;
   }
 
-  if (Array.isArray(parsed)) return parsed as DeviceCourseJson[];
+  // Legacy bare array: courses only, no metadata to recover.
+  if (Array.isArray(parsed)) return { courses: parsed as DeviceCourseJson[] };
 
   if (parsed && typeof parsed === 'object') {
-    const courses = (parsed as { courses?: unknown }).courses;
-    if (Array.isArray(courses)) return courses as DeviceCourseJson[];
+    const obj = parsed as Record<string, unknown>;
+    const courses = Array.isArray(obj.courses) ? (obj.courses as DeviceCourseJson[]) : [];
+    const str = (v: unknown): string | undefined =>
+      typeof v === 'string' && v !== '' ? v : undefined;
     // A well-formed object with no course list is a real (if empty) track —
     // distinct from unparseable, so don't shout about it.
-    return [];
+    return {
+      longName: str(obj.longName),
+      shortName: str(obj.shortName),
+      type: str(obj.type),
+      defaultCourse: str(obj.defaultCourse),
+      courses,
+    };
   }
 
   console.error('Device track JSON is neither a course array nor a track object');
-  return [];
+  return null;
+}
+
+/**
+ * Course array only — the shape most callers want. See `parseDeviceTrackFile`
+ * for the wrapper metadata (`longName` / `shortName`), which the rename flow
+ * needs and which this deliberately drops.
+ */
+export function parseDeviceCourseJson(raw: string): DeviceCourseJson[] {
+  return parseDeviceTrackFile(raw)?.courses ?? [];
 }
 
 // ─── Track kind ───────────────────────────────────────────────────────────────
@@ -394,6 +458,7 @@ export function buildMergedTrackList(
         shortName: sn,
         kind,
         trackName: track.name,
+        deviceLongName: df.longName,
         status: allSynced ? 'synced' : 'mismatch',
         appTrack: track,
         appCourses: track.courses,
@@ -425,6 +490,7 @@ export function buildMergedTrackList(
       entries.push({
         shortName: df.shortName,
         kind: dfKind,
+        deviceLongName: df.longName,
         status: 'device_only',
         appCourses: [],
         deviceCourses: df.courses,

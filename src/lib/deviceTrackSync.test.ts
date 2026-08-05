@@ -5,6 +5,8 @@ import {
   appCourseToDeviceJson,
   buildTrackJsonForUpload,
   parseDeviceCourseJson,
+  parseDeviceTrackFile,
+  type DeviceTrackFileJson,
   buildMergedTrackList,
   countDeviceSectors,
   countAppSectors,
@@ -214,13 +216,53 @@ describe("appCourseToDeviceJson", () => {
 // ─── buildTrackJsonForUpload ──────────────────────────────────────────────────
 
 describe("buildTrackJsonForUpload", () => {
-  it("emits a JSON array of courses (not a wrapping object)", () => {
+  // This writer used to emit a bare array, and a test asserted that shape as the
+  // contract. The firmware parses an array, but its array branch blanks
+  // longName/shortName/defaultCourse and defaults every course to lengthFt 0 —
+  // and lengthFt is what CourseDetector ranks by, so an array-uploaded track
+  // could never be detected. The object form is what both the app's own track
+  // files and the on-device course creator already write.
+  it("emits the object form, not a bare array", () => {
     const track = makeAppTrack("OKC", [makeAppCourse()]);
-    const json = buildTrackJsonForUpload(track);
-    const parsed = JSON.parse(json);
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.length).toBe(1);
-    expect(parsed[0].name).toBe("Full CW");
+    const parsed = JSON.parse(buildTrackJsonForUpload(track));
+    expect(Array.isArray(parsed)).toBe(false);
+    expect(parsed.longName).toBe("Track-OKC");
+    expect(parsed.shortName).toBe("OKC");
+    expect(parsed.courses).toHaveLength(1);
+    expect(parsed.courses[0].name).toBe("Full CW");
+  });
+
+  it("keeps lengthFt on the emitted courses (CourseDetector ranks by it)", () => {
+    const track = makeAppTrack("OKC", [makeAppCourse({ lengthFt: 1500 })]);
+    const parsed: DeviceTrackFileJson = JSON.parse(buildTrackJsonForUpload(track));
+    expect(parsed.courses[0].lengthFt).toBe(1500);
+  });
+
+  it("marks the track type so the firmware's isSprint flag agrees with the folder", () => {
+    const circuit = makeAppTrack("OKC", [makeAppCourse()]);
+    const sprint = makeAppTrack("OKC", [
+      makeAppCourse({
+        type: "sprint",
+        finish: { a: { lat: 35.41, lon: -97.31 }, b: { lat: 35.41, lon: -97.32 } },
+      }),
+    ]);
+    expect(JSON.parse(buildTrackJsonForUpload(circuit)).type).toBe("circuit");
+    expect(JSON.parse(buildTrackJsonForUpload(sprint)).type).toBe("sprint");
+  });
+
+  it("names the first course as the default", () => {
+    const track = makeAppTrack("OKC", [
+      makeAppCourse({ name: "A" }),
+      makeAppCourse({ name: "B" }),
+    ]);
+    expect(JSON.parse(buildTrackJsonForUpload(track)).defaultCourse).toBe("A");
+  });
+
+  // An empty shortName reaches the DOVEX header's short_name column AND is the
+  // key the next connect's merge looks the file up by, so it can never ship blank.
+  it("derives a shortName when the app track has none", () => {
+    const track: Track = { name: "Sunset Park", courses: [makeAppCourse()], isUserDefined: true };
+    expect(JSON.parse(buildTrackJsonForUpload(track)).shortName).toBe("SP");
   });
 
   it("emits all courses in order", () => {
@@ -229,13 +271,80 @@ describe("buildTrackJsonForUpload", () => {
       makeAppCourse({ name: "B" }),
       makeAppCourse({ name: "C" }),
     ]);
-    const parsed: DeviceCourseJson[] = JSON.parse(buildTrackJsonForUpload(track));
-    expect(parsed.map((c) => c.name)).toEqual(["A", "B", "C"]);
+    const parsed: DeviceTrackFileJson = JSON.parse(buildTrackJsonForUpload(track));
+    expect(parsed.courses.map((c) => c.name)).toEqual(["A", "B", "C"]);
   });
 
   it("uses tab indentation (matches device expectation)", () => {
     const json = buildTrackJsonForUpload(makeAppTrack("OKC", [makeAppCourse()]));
     expect(json).toContain("\t");
+  });
+
+  // The round trip that decides whether the sync wizard re-prompts forever.
+  it("round-trips through parseDeviceTrackFile", () => {
+    const track = makeAppTrack("OKC", [makeAppCourse()]);
+    const back = parseDeviceTrackFile(buildTrackJsonForUpload(track));
+    expect(back?.longName).toBe("Track-OKC");
+    expect(back?.shortName).toBe("OKC");
+    expect(back?.courses).toHaveLength(1);
+  });
+});
+
+// ─── parseDeviceTrackFile ─────────────────────────────────────────────────────
+
+describe("parseDeviceTrackFile", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // The metadata parseDeviceCourseJson drops. The rename flow needs longName to
+  // show "what this track is currently called", and shortName because for a
+  // device-authored file the FILENAME is the 12-char longName, not the 8-char
+  // shortName the merge keys on.
+  it("keeps the object wrapper's metadata", () => {
+    const raw = JSON.stringify({
+      longName: "N260804_1432",
+      shortName: "08041432",
+      type: "sprint",
+      defaultCourse: "N260804_1432",
+      courses: [makeDeviceCourse()],
+    });
+    const file = parseDeviceTrackFile(raw);
+    expect(file).toEqual({
+      longName: "N260804_1432",
+      shortName: "08041432",
+      type: "sprint",
+      defaultCourse: "N260804_1432",
+      courses: [makeDeviceCourse()],
+    });
+  });
+
+  it("reports a bare array as courses with no metadata", () => {
+    const file = parseDeviceTrackFile(JSON.stringify([makeDeviceCourse()]));
+    expect(file?.courses).toHaveLength(1);
+    expect(file?.longName).toBeUndefined();
+    expect(file?.shortName).toBeUndefined();
+  });
+
+  it("treats empty-string metadata as absent", () => {
+    const raw = JSON.stringify({ longName: "", shortName: "", courses: [] });
+    const file = parseDeviceTrackFile(raw);
+    expect(file?.longName).toBeUndefined();
+    expect(file?.shortName).toBeUndefined();
+  });
+
+  it("returns null for malformed JSON without throwing", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(parseDeviceTrackFile("not json {")).toBeNull();
+  });
+
+  it("returns null for a JSON scalar", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(parseDeviceTrackFile("42")).toBeNull();
+  });
+
+  it("survives a non-array courses field", () => {
+    const file = parseDeviceTrackFile(JSON.stringify({ longName: "X", courses: "nope" }));
+    expect(file?.courses).toEqual([]);
+    expect(file?.longName).toBe("X");
   });
 });
 
