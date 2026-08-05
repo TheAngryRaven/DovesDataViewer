@@ -46,7 +46,22 @@ export interface DeviceCourseJson {
 }
 
 export interface DeviceTrackFile {
-  shortName: string;              // filename without .json
+  /**
+   * The track's IDENTITY — what the merge keys on, matched against app
+   * `Track.shortName`. Prefer the file's declared `shortName`; fall back to the
+   * filename base for legacy bare-array files that declare nothing.
+   *
+   * This is NOT necessarily the filename. For a track the on-device course
+   * creator wrote they differ: `N260803_1432.json` declares `shortName:
+   * "08031432"`. Keying on the filename there meant the imported track could
+   * never match its own device file again, so the sync re-offered it forever.
+   */
+  shortName: string;
+  /**
+   * Where the track LIVES on the device — the actual `*.json` to overwrite or
+   * delete. Absent for entries that exist only in the app.
+   */
+  fileName?: string;
   courses: DeviceCourseJson[];
   /**
    * `longName` out of the object wrapper, when the file had one. Distinct from
@@ -90,6 +105,11 @@ export interface MergedTrackEntry {
   trackName?: string;              // full name from webapp (if known)
   /** `longName` the device file carries, when it has one. */
   deviceLongName?: string;
+  /**
+   * The device file backing this entry. Absent for `app_only`. Always write and
+   * delete through this, never `shortName + '.json'` — see `DeviceTrackFile`.
+   */
+  deviceFileName?: string;
   status: TrackSyncStatus;
   appTrack?: Track;
   appCourses: Course[];
@@ -296,7 +316,7 @@ export interface DeviceTrackFileJson {
  * firmware — the array writer was simply lossy.
  */
 export function buildTrackJsonForUpload(track: Track): string {
-  const file: DeviceTrackFileJson = {
+  return serializeDeviceTrackFile({
     longName: track.name,
     // Never emit an empty shortName: it lands in the log header, and it is the
     // key this app's own merge uses to recognise the file on the next connect.
@@ -304,8 +324,34 @@ export function buildTrackJsonForUpload(track: Track): string {
     type: trackKind(track),
     defaultCourse: track.courses[0]?.name ?? '',
     courses: track.courses.map(appCourseToDeviceJson),
-  };
+  });
+}
+
+/** Serialize an object-form track file the way the device expects it. */
+export function serializeDeviceTrackFile(file: DeviceTrackFileJson): string {
   return JSON.stringify(file, null, '\t');
+}
+
+/**
+ * Rebuild an existing device file around a new course list, keeping its wrapper
+ * metadata intact.
+ *
+ * Callers that edit a single course used to re-serialize the course array on its
+ * own, which quietly stripped `longName`/`shortName`/`defaultCourse` off the file
+ * and reset every `lengthFt` — the same loss the bare-array uploader caused, just
+ * reached from a different button.
+ */
+export function rebuildDeviceTrackJson(
+  entry: Pick<MergedTrackEntry, 'deviceLongName' | 'trackName' | 'shortName' | 'kind'>,
+  courses: DeviceCourseJson[],
+): string {
+  return serializeDeviceTrackFile({
+    longName: entry.deviceLongName || entry.trackName || entry.shortName,
+    shortName: entry.shortName,
+    type: entry.kind,
+    defaultCourse: courses[0]?.name ?? '',
+    courses,
+  });
 }
 
 /**
@@ -355,6 +401,31 @@ export function parseDeviceTrackFile(raw: string): DeviceTrackFileJson | null {
 
   console.error('Device track JSON is neither a course array nor a track object');
   return null;
+}
+
+/**
+ * Turn one file pulled off the device into a merge-ready `DeviceTrackFile`.
+ *
+ * This owns the identity rule: a track is keyed by the `shortName` it declares,
+ * and only falls back to the filename base when it declares none (legacy
+ * bare-array files). Keeping that here rather than at the call site is the
+ * point — it is the rule that decides whether an imported track ever matches
+ * its own device file again.
+ */
+export function deviceTrackFileFrom(
+  fileName: string,
+  raw: string,
+  kind: TrackKind,
+): DeviceTrackFile {
+  const base = fileName.replace(/\.json$/i, '');
+  const parsed = parseDeviceTrackFile(raw);
+  return {
+    shortName: parsed?.shortName || base,
+    fileName,
+    longName: parsed?.longName,
+    courses: parsed?.courses ?? [],
+    kind,
+  };
 }
 
 /**
@@ -459,6 +530,7 @@ export function buildMergedTrackList(
         kind,
         trackName: track.name,
         deviceLongName: df.longName,
+        deviceFileName: df.fileName ?? `${df.shortName}.json`,
         status: allSynced ? 'synced' : 'mismatch',
         appTrack: track,
         appCourses: track.courses,
@@ -491,6 +563,7 @@ export function buildMergedTrackList(
         shortName: df.shortName,
         kind: dfKind,
         deviceLongName: df.longName,
+        deviceFileName: df.fileName ?? `${df.shortName}.json`,
         status: 'device_only',
         appCourses: [],
         deviceCourses: df.courses,

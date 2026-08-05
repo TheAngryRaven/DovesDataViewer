@@ -6,6 +6,8 @@ import {
   buildTrackJsonForUpload,
   parseDeviceCourseJson,
   parseDeviceTrackFile,
+  deviceTrackFileFrom,
+  rebuildDeviceTrackJson,
   type DeviceTrackFileJson,
   buildMergedTrackList,
   countDeviceSectors,
@@ -287,6 +289,144 @@ describe("buildTrackJsonForUpload", () => {
     expect(back?.longName).toBe("Track-OKC");
     expect(back?.shortName).toBe("OKC");
     expect(back?.courses).toHaveLength(1);
+  });
+});
+
+// ─── rebuildDeviceTrackJson ───────────────────────────────────────────────────
+
+describe("rebuildDeviceTrackJson", () => {
+  it("keeps the wrapper metadata when a single course is rewritten", () => {
+    const entry = {
+      deviceLongName: "Orlando Kart Center",
+      trackName: "Orlando Kart Center",
+      shortName: "OKC",
+      kind: "circuit" as const,
+    };
+    const parsed: DeviceTrackFileJson = JSON.parse(
+      rebuildDeviceTrackJson(entry, [makeDeviceCourse({ name: "B" })]),
+    );
+    expect(parsed.longName).toBe("Orlando Kart Center");
+    expect(parsed.shortName).toBe("OKC");
+    expect(parsed.type).toBe("circuit");
+    expect(parsed.defaultCourse).toBe("B");
+    expect(parsed.courses[0].lengthFt).toBe(1500);
+  });
+
+  it("falls back to the app track name, then the shortName, for longName", () => {
+    const fromApp = JSON.parse(
+      rebuildDeviceTrackJson({ trackName: "From App", shortName: "FA", kind: "circuit" }, []),
+    );
+    expect(fromApp.longName).toBe("From App");
+    const bare = JSON.parse(rebuildDeviceTrackJson({ shortName: "FA", kind: "circuit" }, []));
+    expect(bare.longName).toBe("FA");
+  });
+});
+
+// ─── deviceTrackFileFrom ──────────────────────────────────────────────────────
+
+describe("deviceTrackFileFrom", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // The identity rule. A track the on-device course creator wrote is stored at
+  // N260803_1432.json but declares shortName "08031432" — 8 chars, chosen by the
+  // firmware precisely because that is this app's Track.shortName budget. Keying
+  // the merge on the filename meant the imported track could never match the file
+  // it came from, so the sync re-offered it on every connect forever.
+  it("keys on the declared shortName, not the filename", () => {
+    const raw = JSON.stringify({
+      longName: "N260803_1432",
+      shortName: "08031432",
+      type: "sprint",
+      courses: [makeDeviceCourse()],
+    });
+    const file = deviceTrackFileFrom("N260803_1432.json", raw, "sprint");
+    expect(file.shortName).toBe("08031432");
+    expect(file.fileName).toBe("N260803_1432.json");
+    expect(file.longName).toBe("N260803_1432");
+    expect(file.kind).toBe("sprint");
+  });
+
+  it("falls back to the filename base when the file declares no shortName", () => {
+    const file = deviceTrackFileFrom("OKC.json", JSON.stringify([makeDeviceCourse()]), "circuit");
+    expect(file.shortName).toBe("OKC");
+    expect(file.fileName).toBe("OKC.json");
+    expect(file.longName).toBeUndefined();
+  });
+
+  it("strips the extension case-insensitively", () => {
+    expect(deviceTrackFileFrom("OKC.JSON", "[]", "circuit").shortName).toBe("OKC");
+  });
+
+  it("yields an empty course list for an unreadable file rather than throwing", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const file = deviceTrackFileFrom("BAD.json", "not json {", "circuit");
+    expect(file.shortName).toBe("BAD");
+    expect(file.courses).toEqual([]);
+  });
+});
+
+// ─── round trip: does the sync settle? ────────────────────────────────────────
+
+describe("device round trip", () => {
+  // The load-bearing property of the whole sync flow: after a track has been
+  // imported and pushed back, the next connect must see `synced`. Anything else
+  // means the on-connect prompt re-fires forever.
+  it("settles to 'synced' after an app track is uploaded and re-listed", () => {
+    const track = makeAppTrack("OKC", [makeAppCourse()]);
+    const onDevice = deviceTrackFileFrom(
+      "OKC.json",
+      buildTrackJsonForUpload(track),
+      "circuit",
+    );
+    const merged = buildMergedTrackList([track], [onDevice]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].status).toBe("synced");
+  });
+
+  // The rename case: the file moves from N260803_1432.json to SUNSET.json, and
+  // the app track carries name "Sunset Park" / shortName "SUNSET".
+  it("settles to 'synced' after a device-authored track is renamed", () => {
+    const renamed: Track = {
+      name: "Sunset Park",
+      shortName: "SUNSET",
+      courses: [makeAppCourse({ name: "Sunset Park" })],
+      isUserDefined: true,
+    };
+    const onDevice = deviceTrackFileFrom(
+      "SUNSET.json",
+      buildTrackJsonForUpload(renamed),
+      "circuit",
+    );
+    const merged = buildMergedTrackList([renamed], [onDevice]);
+    expect(merged[0].status).toBe("synced");
+    expect(merged[0].deviceFileName).toBe("SUNSET.json");
+  });
+
+  // Before the identity split this was the nag: the app track (shortName from
+  // the file) and the device file (keyed by filename) never met.
+  it("matches a device-authored file to the track imported from it", () => {
+    const deviceRaw = JSON.stringify({
+      longName: "N260803_1432",
+      shortName: "08031432",
+      defaultCourse: "N260803_1432",
+      courses: [makeDeviceCourse({ name: "N260803_1432" })],
+    });
+    const onDevice = deviceTrackFileFrom("N260803_1432.json", deviceRaw, "circuit");
+    // What handleDownloadToApp now stores: longName as the name, the file's
+    // DECLARED shortName as the key. Both are spelled out literally rather than
+    // read back off `onDevice` — deriving them from the value under test made
+    // this pass either way, which is exactly the bug it is meant to catch.
+    const imported: Track = {
+      name: "N260803_1432",
+      shortName: "08031432",
+      courses: onDevice.courses.map(deviceCourseToAppCourse),
+      isUserDefined: true,
+    };
+    const merged = buildMergedTrackList([imported], [onDevice]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].status).toBe("synced");
+    // …and writes still go to the real file, not "08031432.json".
+    expect(merged[0].deviceFileName).toBe("N260803_1432.json");
   });
 });
 

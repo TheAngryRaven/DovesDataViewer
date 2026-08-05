@@ -30,8 +30,9 @@ import {
   MergedTrackEntry,
   MergedCourseEntry,
   buildMergedTrackList,
-  parseDeviceCourseJson,
+  deviceTrackFileFrom,
   buildTrackJsonForUpload,
+  rebuildDeviceTrackJson,
   deviceCourseToAppCourse,
   appCourseToDeviceJson,
   countAppSectors,
@@ -48,6 +49,17 @@ interface DeviceTracksTabProps {
 }
 
 type View = "loading" | "tracks" | "courses";
+
+/**
+ * The device file to write or delete for an entry.
+ *
+ * Never `shortName + ".json"`: for a track the on-device course creator wrote,
+ * the identity (`08031432`) and the filename (`N260803_1432.json`) are different
+ * strings, and writing to the identity would orphan the real file.
+ * `app_only` entries have no file yet, so the identity names the new one.
+ */
+const deviceFileOf = (entry: MergedTrackEntry): string =>
+  entry.deviceFileName ?? `${entry.shortName}.json`;
 
 export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   const { t } = useTranslation("drawer");
@@ -83,9 +95,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
         setLoadProgress({ current: i + 1, total: filenames.length, label: fn });
         try {
           const raw = await details.getTrack(fn);
-          const text = new TextDecoder().decode(raw);
-          const courses = parseDeviceCourseJson(text);
-          files.push({ shortName: fn.replace(/\.json$/i, ""), courses, kind: "circuit" });
+          files.push(deviceTrackFileFrom(fn, new TextDecoder().decode(raw), "circuit"));
         } catch (err) {
           console.error(`Failed to download ${fn}:`, err);
         }
@@ -104,8 +114,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
             setLoadProgress({ current: i + 1, total: sprintNames.length, label: fn });
             try {
               const raw = await details.getTrack(fn, "sprint");
-              const courses = parseDeviceCourseJson(new TextDecoder().decode(raw));
-              files.push({ shortName: fn.replace(/\.json$/i, ""), courses, kind: "sprint" });
+              files.push(deviceTrackFileFrom(fn, new TextDecoder().decode(raw), "sprint"));
             } catch (err) {
               console.error(`Failed to download sprint ${fn}:`, err);
             }
@@ -145,7 +154,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     try {
       const json = buildTrackJsonForUpload(entry.appTrack);
       const data = new TextEncoder().encode(json);
-      await details.putTrack(entry.shortName + ".json", data, entry.kind);
+      await details.putTrack(deviceFileOf(entry), data, entry.kind);
       toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
       await syncAll();
     } catch (err) {
@@ -158,12 +167,19 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   // ── Download device track to app ──
   const handleDownloadToApp = async (entry: MergedTrackEntry) => {
     try {
-      const trackName = entry.shortName;
+      // Prefer the file's own longName — for a track the on-device course
+      // creator wrote that is the human-facing "N260803_1432", not the 8-char
+      // shortName the merge keys on.
+      const trackName = entry.deviceLongName || entry.shortName;
       for (const dc of entry.deviceCourses) {
         const course = deviceCourseToAppCourse(dc);
         await addCourse(trackName, course);
       }
-      await addTrack(trackName);
+      // The shortName MUST be carried over: buildMergedTrackList skips app
+      // tracks that have none, so a track imported without one could never be
+      // matched to the device file it came from — it stayed "device_only"
+      // forever and the sync kept re-offering it.
+      await addTrack(trackName, undefined, entry.shortName);
       toast.success(t("deviceTracks.downloadedToast", { name: trackName }));
       const tracks = await loadTracks();
       setAppTracks(tracks);
@@ -177,7 +193,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   const handleDeleteTrackFromDevice = async (entry: MergedTrackEntry) => {
     setUploading(entry.shortName);
     try {
-      await details.deleteTrack(entry.shortName + ".json", entry.kind);
+      await details.deleteTrack(deviceFileOf(entry), entry.kind);
       toast.success(t("deviceTracks.deletedToast", { name: entry.shortName }));
       setDeleteConfirm(null);
       await syncAll();
@@ -195,13 +211,14 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     try {
       if (remaining.length === 0) {
         // No courses left, delete the whole file
-        await details.deleteTrack(trackEntry.shortName + ".json", trackEntry.kind);
+        await details.deleteTrack(deviceFileOf(trackEntry), trackEntry.kind);
         toast.success(t("deviceTracks.deletedNoCoursesToast", { name: trackEntry.shortName }));
       } else {
-        // Re-upload without the deleted course
-        const json = JSON.stringify(remaining, null, '\t');
-        const data = new TextEncoder().encode(json);
-        await details.putTrack(trackEntry.shortName + ".json", data, trackEntry.kind);
+        // Re-upload without the deleted course, keeping the file's wrapper
+        // metadata — a bare array would strip longName/shortName and reset
+        // every lengthFt on the device.
+        const data = new TextEncoder().encode(rebuildDeviceTrackJson(trackEntry, remaining));
+        await details.putTrack(deviceFileOf(trackEntry), data, trackEntry.kind);
         toast.success(t("deviceTracks.removedCourseToast", { name: courseName }));
       }
       setDeleteConfirm(null);
@@ -237,9 +254,8 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
 
     setUploading(trackEntry.shortName);
     try {
-      const json = JSON.stringify(allDeviceCourses, null, '\t');
-      const data = new TextEncoder().encode(json);
-      await details.putTrack(trackEntry.shortName + ".json", data, trackEntry.kind);
+      const data = new TextEncoder().encode(rebuildDeviceTrackJson(trackEntry, allDeviceCourses));
+      await details.putTrack(deviceFileOf(trackEntry), data, trackEntry.kind);
       toast.success(t("deviceTracks.sentCourseToast", { name: courseName }));
       setDiffCourse(null);
       await syncAll();
