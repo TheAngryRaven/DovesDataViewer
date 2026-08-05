@@ -76,6 +76,8 @@ import { useDataLoader } from "@/hooks/useDataLoader";
 import { ensureSampleFile } from "@/lib/sampleData";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
+import { FirmwareUpdateProvider } from "@/contexts/FirmwareUpdateContext";
+import { DeviceConnectFlow } from "@/components/DeviceConnectFlow";
 import { SessionProvider, type SessionContextValue } from "@/contexts/SessionContext";
 import { PlaybackProvider, type PlaybackContextValue } from "@/contexts/PlaybackContext";
 import { VideoTimeProvider, type VideoTimeContextValue } from "@/contexts/VideoTimeContext";
@@ -779,7 +781,9 @@ export default function Index() {
   if (!data) {
     return (
       <DeviceProvider>
+        <FirmwareUpdateProvider>
         <>
+          <DeviceConnectFlow />
           <InstallPrompt />
           <LandingPage
             onDataLoaded={handleDataLoaded}
@@ -809,6 +813,7 @@ export default function Index() {
             <FileManagerDrawer {...fileManagerProps} setupsTab={<SetupsTab {...setupsTabProps} />} />
           </Suspense>
         </>
+        </FirmwareUpdateProvider>
       </DeviceProvider>
     );
   }
@@ -817,6 +822,7 @@ export default function Index() {
   // Data loaded - show main view
     return (
     <DeviceProvider>
+    <FirmwareUpdateProvider>
     <SettingsProvider value={settingsContextValue}>
     <SessionProvider value={sessionContextValue}>
     <PlaybackProvider value={playbackContextValue}>
@@ -993,6 +999,7 @@ export default function Index() {
         </div>
       </main>
       <InstallPrompt />
+      <DeviceConnectFlow />
       <Suspense fallback={null}>
         <FileManagerDrawer {...fileManagerProps} />
       </Suspense>
@@ -1017,6 +1024,7 @@ export default function Index() {
     </PlaybackProvider>
     </SessionProvider>
     </SettingsProvider>
+    </FirmwareUpdateProvider>
     </DeviceProvider>
   );
 }
