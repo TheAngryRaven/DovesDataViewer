@@ -5,6 +5,10 @@ import {
   appCourseToDeviceJson,
   buildTrackJsonForUpload,
   parseDeviceCourseJson,
+  parseDeviceTrackFile,
+  deviceTrackFileFrom,
+  rebuildDeviceTrackJson,
+  type DeviceTrackFileJson,
   buildMergedTrackList,
   countDeviceSectors,
   countAppSectors,
@@ -214,13 +218,53 @@ describe("appCourseToDeviceJson", () => {
 // ─── buildTrackJsonForUpload ──────────────────────────────────────────────────
 
 describe("buildTrackJsonForUpload", () => {
-  it("emits a JSON array of courses (not a wrapping object)", () => {
+  // This writer used to emit a bare array, and a test asserted that shape as the
+  // contract. The firmware parses an array, but its array branch blanks
+  // longName/shortName/defaultCourse and defaults every course to lengthFt 0 —
+  // and lengthFt is what CourseDetector ranks by, so an array-uploaded track
+  // could never be detected. The object form is what both the app's own track
+  // files and the on-device course creator already write.
+  it("emits the object form, not a bare array", () => {
     const track = makeAppTrack("OKC", [makeAppCourse()]);
-    const json = buildTrackJsonForUpload(track);
-    const parsed = JSON.parse(json);
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.length).toBe(1);
-    expect(parsed[0].name).toBe("Full CW");
+    const parsed = JSON.parse(buildTrackJsonForUpload(track));
+    expect(Array.isArray(parsed)).toBe(false);
+    expect(parsed.longName).toBe("Track-OKC");
+    expect(parsed.shortName).toBe("OKC");
+    expect(parsed.courses).toHaveLength(1);
+    expect(parsed.courses[0].name).toBe("Full CW");
+  });
+
+  it("keeps lengthFt on the emitted courses (CourseDetector ranks by it)", () => {
+    const track = makeAppTrack("OKC", [makeAppCourse({ lengthFt: 1500 })]);
+    const parsed: DeviceTrackFileJson = JSON.parse(buildTrackJsonForUpload(track));
+    expect(parsed.courses[0].lengthFt).toBe(1500);
+  });
+
+  it("marks the track type so the firmware's isSprint flag agrees with the folder", () => {
+    const circuit = makeAppTrack("OKC", [makeAppCourse()]);
+    const sprint = makeAppTrack("OKC", [
+      makeAppCourse({
+        type: "sprint",
+        finish: { a: { lat: 35.41, lon: -97.31 }, b: { lat: 35.41, lon: -97.32 } },
+      }),
+    ]);
+    expect(JSON.parse(buildTrackJsonForUpload(circuit)).type).toBe("circuit");
+    expect(JSON.parse(buildTrackJsonForUpload(sprint)).type).toBe("sprint");
+  });
+
+  it("names the first course as the default", () => {
+    const track = makeAppTrack("OKC", [
+      makeAppCourse({ name: "A" }),
+      makeAppCourse({ name: "B" }),
+    ]);
+    expect(JSON.parse(buildTrackJsonForUpload(track)).defaultCourse).toBe("A");
+  });
+
+  // An empty shortName reaches the DOVEX header's short_name column AND is the
+  // key the next connect's merge looks the file up by, so it can never ship blank.
+  it("derives a shortName when the app track has none", () => {
+    const track: Track = { name: "Sunset Park", courses: [makeAppCourse()], isUserDefined: true };
+    expect(JSON.parse(buildTrackJsonForUpload(track)).shortName).toBe("SP");
   });
 
   it("emits all courses in order", () => {
@@ -229,13 +273,218 @@ describe("buildTrackJsonForUpload", () => {
       makeAppCourse({ name: "B" }),
       makeAppCourse({ name: "C" }),
     ]);
-    const parsed: DeviceCourseJson[] = JSON.parse(buildTrackJsonForUpload(track));
-    expect(parsed.map((c) => c.name)).toEqual(["A", "B", "C"]);
+    const parsed: DeviceTrackFileJson = JSON.parse(buildTrackJsonForUpload(track));
+    expect(parsed.courses.map((c) => c.name)).toEqual(["A", "B", "C"]);
   });
 
   it("uses tab indentation (matches device expectation)", () => {
     const json = buildTrackJsonForUpload(makeAppTrack("OKC", [makeAppCourse()]));
     expect(json).toContain("\t");
+  });
+
+  // The round trip that decides whether the sync wizard re-prompts forever.
+  it("round-trips through parseDeviceTrackFile", () => {
+    const track = makeAppTrack("OKC", [makeAppCourse()]);
+    const back = parseDeviceTrackFile(buildTrackJsonForUpload(track));
+    expect(back?.longName).toBe("Track-OKC");
+    expect(back?.shortName).toBe("OKC");
+    expect(back?.courses).toHaveLength(1);
+  });
+});
+
+// ─── rebuildDeviceTrackJson ───────────────────────────────────────────────────
+
+describe("rebuildDeviceTrackJson", () => {
+  it("keeps the wrapper metadata when a single course is rewritten", () => {
+    const entry = {
+      deviceLongName: "Orlando Kart Center",
+      trackName: "Orlando Kart Center",
+      shortName: "OKC",
+      kind: "circuit" as const,
+    };
+    const parsed: DeviceTrackFileJson = JSON.parse(
+      rebuildDeviceTrackJson(entry, [makeDeviceCourse({ name: "B" })]),
+    );
+    expect(parsed.longName).toBe("Orlando Kart Center");
+    expect(parsed.shortName).toBe("OKC");
+    expect(parsed.type).toBe("circuit");
+    expect(parsed.defaultCourse).toBe("B");
+    expect(parsed.courses[0].lengthFt).toBe(1500);
+  });
+
+  it("falls back to the app track name, then the shortName, for longName", () => {
+    const fromApp = JSON.parse(
+      rebuildDeviceTrackJson({ trackName: "From App", shortName: "FA", kind: "circuit" }, []),
+    );
+    expect(fromApp.longName).toBe("From App");
+    const bare = JSON.parse(rebuildDeviceTrackJson({ shortName: "FA", kind: "circuit" }, []));
+    expect(bare.longName).toBe("FA");
+  });
+});
+
+// ─── deviceTrackFileFrom ──────────────────────────────────────────────────────
+
+describe("deviceTrackFileFrom", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // The identity rule. A track the on-device course creator wrote is stored at
+  // N260803_1432.json but declares shortName "08031432" — 8 chars, chosen by the
+  // firmware precisely because that is this app's Track.shortName budget. Keying
+  // the merge on the filename meant the imported track could never match the file
+  // it came from, so the sync re-offered it on every connect forever.
+  it("keys on the declared shortName, not the filename", () => {
+    const raw = JSON.stringify({
+      longName: "N260803_1432",
+      shortName: "08031432",
+      type: "sprint",
+      courses: [makeDeviceCourse()],
+    });
+    const file = deviceTrackFileFrom("N260803_1432.json", raw, "sprint");
+    expect(file.shortName).toBe("08031432");
+    expect(file.fileName).toBe("N260803_1432.json");
+    expect(file.longName).toBe("N260803_1432");
+    expect(file.kind).toBe("sprint");
+  });
+
+  it("falls back to the filename base when the file declares no shortName", () => {
+    const file = deviceTrackFileFrom("OKC.json", JSON.stringify([makeDeviceCourse()]), "circuit");
+    expect(file.shortName).toBe("OKC");
+    expect(file.fileName).toBe("OKC.json");
+    expect(file.longName).toBeUndefined();
+  });
+
+  it("strips the extension case-insensitively", () => {
+    expect(deviceTrackFileFrom("OKC.JSON", "[]", "circuit").shortName).toBe("OKC");
+  });
+
+  it("yields an empty course list for an unreadable file rather than throwing", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const file = deviceTrackFileFrom("BAD.json", "not json {", "circuit");
+    expect(file.shortName).toBe("BAD");
+    expect(file.courses).toEqual([]);
+  });
+});
+
+// ─── round trip: does the sync settle? ────────────────────────────────────────
+
+describe("device round trip", () => {
+  // The load-bearing property of the whole sync flow: after a track has been
+  // imported and pushed back, the next connect must see `synced`. Anything else
+  // means the on-connect prompt re-fires forever.
+  it("settles to 'synced' after an app track is uploaded and re-listed", () => {
+    const track = makeAppTrack("OKC", [makeAppCourse()]);
+    const onDevice = deviceTrackFileFrom(
+      "OKC.json",
+      buildTrackJsonForUpload(track),
+      "circuit",
+    );
+    const merged = buildMergedTrackList([track], [onDevice]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].status).toBe("synced");
+  });
+
+  // The rename case: the file moves from N260803_1432.json to SUNSET.json, and
+  // the app track carries name "Sunset Park" / shortName "SUNSET".
+  it("settles to 'synced' after a device-authored track is renamed", () => {
+    const renamed: Track = {
+      name: "Sunset Park",
+      shortName: "SUNSET",
+      courses: [makeAppCourse({ name: "Sunset Park" })],
+      isUserDefined: true,
+    };
+    const onDevice = deviceTrackFileFrom(
+      "SUNSET.json",
+      buildTrackJsonForUpload(renamed),
+      "circuit",
+    );
+    const merged = buildMergedTrackList([renamed], [onDevice]);
+    expect(merged[0].status).toBe("synced");
+    expect(merged[0].deviceFileName).toBe("SUNSET.json");
+  });
+
+  // Before the identity split this was the nag: the app track (shortName from
+  // the file) and the device file (keyed by filename) never met.
+  it("matches a device-authored file to the track imported from it", () => {
+    const deviceRaw = JSON.stringify({
+      longName: "N260803_1432",
+      shortName: "08031432",
+      defaultCourse: "N260803_1432",
+      courses: [makeDeviceCourse({ name: "N260803_1432" })],
+    });
+    const onDevice = deviceTrackFileFrom("N260803_1432.json", deviceRaw, "circuit");
+    // What handleDownloadToApp now stores: longName as the name, the file's
+    // DECLARED shortName as the key. Both are spelled out literally rather than
+    // read back off `onDevice` — deriving them from the value under test made
+    // this pass either way, which is exactly the bug it is meant to catch.
+    const imported: Track = {
+      name: "N260803_1432",
+      shortName: "08031432",
+      courses: onDevice.courses.map(deviceCourseToAppCourse),
+      isUserDefined: true,
+    };
+    const merged = buildMergedTrackList([imported], [onDevice]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].status).toBe("synced");
+    // …and writes still go to the real file, not "08031432.json".
+    expect(merged[0].deviceFileName).toBe("N260803_1432.json");
+  });
+});
+
+// ─── parseDeviceTrackFile ─────────────────────────────────────────────────────
+
+describe("parseDeviceTrackFile", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // The metadata parseDeviceCourseJson drops. The rename flow needs longName to
+  // show "what this track is currently called", and shortName because for a
+  // device-authored file the FILENAME is the 12-char longName, not the 8-char
+  // shortName the merge keys on.
+  it("keeps the object wrapper's metadata", () => {
+    const raw = JSON.stringify({
+      longName: "N260804_1432",
+      shortName: "08041432",
+      type: "sprint",
+      defaultCourse: "N260804_1432",
+      courses: [makeDeviceCourse()],
+    });
+    const file = parseDeviceTrackFile(raw);
+    expect(file).toEqual({
+      longName: "N260804_1432",
+      shortName: "08041432",
+      type: "sprint",
+      defaultCourse: "N260804_1432",
+      courses: [makeDeviceCourse()],
+    });
+  });
+
+  it("reports a bare array as courses with no metadata", () => {
+    const file = parseDeviceTrackFile(JSON.stringify([makeDeviceCourse()]));
+    expect(file?.courses).toHaveLength(1);
+    expect(file?.longName).toBeUndefined();
+    expect(file?.shortName).toBeUndefined();
+  });
+
+  it("treats empty-string metadata as absent", () => {
+    const raw = JSON.stringify({ longName: "", shortName: "", courses: [] });
+    const file = parseDeviceTrackFile(raw);
+    expect(file?.longName).toBeUndefined();
+    expect(file?.shortName).toBeUndefined();
+  });
+
+  it("returns null for malformed JSON without throwing", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(parseDeviceTrackFile("not json {")).toBeNull();
+  });
+
+  it("returns null for a JSON scalar", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(parseDeviceTrackFile("42")).toBeNull();
+  });
+
+  it("survives a non-array courses field", () => {
+    const file = parseDeviceTrackFile(JSON.stringify({ longName: "X", courses: "nope" }));
+    expect(file?.courses).toEqual([]);
+    expect(file?.longName).toBe("X");
   });
 });
 

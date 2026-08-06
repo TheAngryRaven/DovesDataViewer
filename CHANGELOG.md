@@ -14,6 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Tracks sent to the logger keep their name and course lengths** (plan 0016).
+  Uploading a track wrote it in the older bare-list format, which the logger
+  reads but which carries no track name, no short name, and no course length.
+  The length is what the logger ranks courses by when it works out which one
+  you're on — so a track sent from this app could never be recognised and fell
+  back to timing "anything", and the blank short name ended up in the log
+  header. Uploads now use the same full format the app's own track files and
+  the logger's course creator already use, so nothing new is asked of any
+  device already in the field. Editing a single course preserves it too — that
+  path stripped the same information from a file that had it.
+- **A track downloaded from the logger can now be sent back to it** (plan 0016).
+  Importing a track from the device dropped its short name, and the sync
+  matches the two sides by short name — so an imported track was invisible to
+  every later sync. It stayed listed as "on device only" forever, and the
+  device kept re-offering it. Two things were wrong: the short name wasn't
+  carried across on import, and the sync matched on the *filename* rather than
+  the short name the file declares. Those differ for a course walked on the
+  device, which is stored as `N260803_1432.json` but names itself `08031432`.
+  Writes still go to the real file, so nothing is orphaned on the card.
 - **A course created on the logger now actually arrives when you sync it.**
   Syncing a track the device authored itself brought the track across with
   **no courses in it** — the walked course was on the card and simply
