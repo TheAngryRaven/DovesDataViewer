@@ -3,6 +3,13 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { type BleConnection } from "@/lib/bleDatalogger";
 import type { DeviceDetails } from "@/lib/loggers";
@@ -191,13 +198,31 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Input
-                value={row.value}
-                onChange={(e) => handleChange(i, e.target.value)}
-                className="h-9 text-sm flex-1"
-                type={def?.type === "number" ? "number" : "text"}
-                maxLength={def?.maxLength}
-              />
+              {def?.type === "enum" && def.options?.length ? (
+                <Select value={row.value} onValueChange={(v) => handleChange(i, v)}>
+                  <SelectTrigger className="h-9 flex-1 text-sm">
+                    {/* A device can hold a value this build doesn't know — an
+                        older or newer firmware, or a hand-edited SETTINGS.json.
+                        Show it verbatim rather than an empty box. */}
+                    <SelectValue placeholder={row.value || undefined} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {def.options.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={row.value}
+                  onChange={(e) => handleChange(i, e.target.value)}
+                  className="h-9 text-sm flex-1"
+                  type={def?.type === "number" ? "number" : "text"}
+                  maxLength={def?.maxLength}
+                />
+              )}
               <Button
                 variant="outline"
                 size="icon"
