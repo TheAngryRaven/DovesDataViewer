@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Settings with a fixed set of choices are now dropdowns** (plan 0003).
+  Device settings only knew about text and numbers, so anything with a fixed
+  set of values was a free-text box where a typo silently reverted the logger
+  to its default — which reads as the setting not working at all.
+  - **Race Mode** is affected today: it lives on the logger but was never in
+    the settings list, so it showed as a raw text field. It's now a proper
+    Circuit / Sprint picker with an explanation of what it actually does (it
+    only breaks a tie when both a circuit and a sprint track are in range).
+  - **Spark Mode** and **Cylinders** are listed ready for the firmware that
+    adds them; they stay hidden until your logger reports them.
+  - A value the app doesn't recognise — from older or newer firmware, or a
+    hand-edited settings file — is shown as-is rather than silently displayed
+    as one of the choices it does know.
+
 ### Fixed
 - **The sync wizard's course screen no longer pre-fills the track's name**
   (plan 0016). Naming a track and moving to the course step put that same name
