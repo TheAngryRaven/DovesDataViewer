@@ -1,8 +1,8 @@
 # Device Track Sync — renaming walked courses, and prompting on connect
 
-> Status: **IN PROGRESS**. Three stacked PRs: foundations (this repo's sync
-> model + four bugs), the rename wizard, and the on-connect prompts. No firmware
-> changes — see *No capability gate is needed* below.
+> Status: **DONE**, across three stacked PRs: foundations (the sync model + four
+> bugs), the rename wizard, and the on-connect prompts. No firmware changes —
+> see *No capability gate is needed* below.
 
 ## Why this exists
 
@@ -156,14 +156,38 @@ ever *add* — they backfill a short name only when absent and never remove a
 course. A partial write leaves the two sides disagreeing, which is the loop this
 is all trying to end.
 
-## Still to come
+## The on-connect prompts (PR C — landed)
 
-- **PR C — the on-connect prompts.** Firmware check first, with a "remind me
-  tomorrow" suppressing for 24 h; then a yes/no track sync, only when the plan
-  has actionable rows. `checkForUpdates` needs a `silent` option — today every
-  non-update outcome toasts unconditionally, which is wrong for an auto-check.
-  Suppression goes in a standalone `src/lib/` module in the
-  `pendingCheckout.ts` shape, **not** `AppSettings`, which is cloud-synced.
+`src/components/DeviceConnectFlow.tsx`, mounted once per `DeviceProvider`, runs
+two questions in order on every new connection:
+
+1. **Firmware**, because accepting it reboots the device and drops the link —
+   anything queued behind it would be thrown away. It is also the rarer of the
+   two, and the snooze keeps it rare.
+2. **Tracks**, and only when `planHasWork`. A prompt that appears on every
+   connect to say "nothing to sync" is worse than silence.
+
+Declining the track prompt is scoped to the connection — no stored suppression,
+and the flow only re-runs when a *new* connection appears. Being asked again
+after deliberately reconnecting is expected; twice on one connection is nagging.
+
+**The dialog had to be hoisted.** `useFirmwareUpdate` lived inside
+`FirmwareUpdateSection`, which mounts only with the drawer open, on the Device
+tab, on the settings sub-tab, over BLE — so an on-connect check had nowhere to
+render. `FirmwareUpdateProvider` (`src/contexts/`) now owns the single instance
+and renders `FirmwareUpdateDialog` once. A second hook instance was the
+alternative and is worse: two GATT version reads and two dialogs racing.
+
+**`checkForUpdates` gained `silent` and `suppress`.** It toasted on every
+non-update outcome, which is right for a button press and wrong for an automatic
+check. It also now returns whether an update was offered, so the flow knows
+whether it still owns the screen.
+
+**The snooze is keyed by device *and* version** (`src/lib/firmwareUpdateReminder.ts`),
+checked against the version actually on offer rather than up front — so two
+loggers snooze independently and a new release asks again immediately instead of
+inheriting yesterday's "tomorrow". A future timestamp counts as live, so winding
+the clock back can't un-snooze everything.
 
 ## Deliberately not done
 

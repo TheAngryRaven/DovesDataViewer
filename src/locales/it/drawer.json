@@ -299,6 +299,7 @@
     "li3": "Non chiudere questa scheda né spegnere il dispositivo finché non finisce.",
     "interrupting": "Interrompere un aggiornamento può richiedere un ripristino manuale.",
     "cancel": "Annulla",
+    "remindTomorrow": "Ricordamelo domani",
     "upload": "Carica",
     "phaseDownloading": "Download del firmware…",
     "phaseUploading": "Caricamento sul dispositivo…",

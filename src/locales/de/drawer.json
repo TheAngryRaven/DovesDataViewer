@@ -299,6 +299,7 @@
     "li3": "Schließe diesen Tab nicht und schalte das Gerät nicht aus, bis es fertig ist.",
     "interrupting": "Ein abgebrochenes Update kann eine manuelle Wiederherstellung erfordern.",
     "cancel": "Abbrechen",
+    "remindTomorrow": "Morgen erinnern",
     "upload": "Hochladen",
     "phaseDownloading": "Firmware wird heruntergeladen…",
     "phaseUploading": "Wird auf das Gerät hochgeladen…",

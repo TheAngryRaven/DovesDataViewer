@@ -261,7 +261,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {bleConnection ? (
-        <FirmwareUpdateSection connection={bleConnection} />
+        <FirmwareUpdateSection />
       ) : (
         // Native app: firmware OTA lives in the Fledgling download flow
         // (useNativeFirmwareUpdate) — point there instead of duplicating it.
