@@ -5,8 +5,8 @@
  *
  * 1. **The edit rules.** A short name follows the long name until the user
  *    takes it over — and, by explicit decision, editing the long name after
- *    that takes it back. A course name follows its track's new name the same
- *    way. Simple and predictable beats clever here.
+ *    that takes it back. Course names are independent: a course is not its
+ *    track. Simple and predictable beats clever here.
  * 2. **The save gate.** A name that reaches the device has to be legal there,
  *    unique, and actually chosen by a human rather than left as a date stamp.
  */
@@ -35,7 +35,7 @@ export interface TrackNameDraft {
 
 export interface CourseNameDraft {
   name: string;
-  /** True once the user has typed here; stops the track name overwriting it. */
+  /** True once the user has typed here. */
   touched: boolean;
 }
 
@@ -97,29 +97,29 @@ export function editTrackShortName(draft: TrackNameDraft, shortName: string): Tr
 /**
  * The starting state for a course's name field.
  *
- * A generated course name follows the track's new name — the firmware gives a
- * new track and its first course the same stamp, so they are the same thing
- * named twice.
+ * The box always starts holding **what would be saved if you touched nothing**,
+ * so nothing is ever written that the user never saw:
+ *
+ * - a name the user already chose is kept;
+ * - a **sprint** course keeps its generated stamp — that is a valid final
+ *   answer, since a sprint venue re-lays its course every event;
+ * - a **circuit** course starts EMPTY, because the stamp is not a valid answer
+ *   there and pre-filling anything invites clicking straight past the one thing
+ *   this screen exists to ask.
+ *
+ * It deliberately does NOT copy the track's new name. That was an earlier
+ * reading of "auto-populated by the name" and it was wrong: a course is not its
+ * track, and silently pre-filling the track name made the screen read as broken.
  */
-export function initialCourseDraft(row: SyncCourseRow, trackName: string): CourseNameDraft {
-  if (isDeviceGeneratedName(row.name)) return { name: trackName, touched: false };
+export function initialCourseDraft(row: SyncCourseRow): CourseNameDraft {
+  if (isDeviceGeneratedName(row.name)) {
+    return { name: row.kind === 'sprint' ? row.name : '', touched: false };
+  }
   return { name: row.name, touched: false };
 }
 
 export function editCourseName(draft: CourseNameDraft, name: string): CourseNameDraft {
   return { name, touched: true };
-}
-
-/**
- * Re-point an untouched course name at a track name that just changed — the
- * user went Back, renamed the track, and came forward again. A course name they
- * typed themselves is left alone.
- */
-export function retargetCourseDraft(
-  draft: CourseNameDraft,
-  trackName: string,
-): CourseNameDraft {
-  return draft.touched ? draft : { name: trackName, touched: false };
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
