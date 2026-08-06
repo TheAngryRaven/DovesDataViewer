@@ -64,6 +64,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     dialog can warn *before* the download rather than after the handshake.
 
 ### Added
+- **Name the courses you walked on the logger, without a laptop** (plan 0016).
+  A course created on the device is named from its GPS clock — `N260803_1432` —
+  because the logger has no way to type on it. A new sync wizard lists
+  everything that differs between the app and the logger, marks each row
+  **Upload** or **Download**, and gives every device-named track a name box
+  with a short-name box beside it that fills itself in as you type. A second
+  screen does the same for course names. Circuit courses must be named; sprint
+  courses can keep the date they were walked, since a sprint venue re-lays its
+  course every event and the date is genuinely the useful label. Track names
+  are always required.
+  - **The new names are written back to the logger**, not just kept here — the
+    whole point, since otherwise the two sides disagree and the same prompt
+    returns on every connect.
+  - Tracks that could never sync are listed with the reason instead of being
+    retried forever: a track mixing circuit and sprint courses (the logger
+    stores those separately), one with more courses than the logger can read
+    back, or a sprint track on a connection that can't reach the sprint folder.
+  - The existing Device → Tracks tab is unchanged for per-track work.
 - **Sprint sessions can finally be read back** (plan 0015). Load a log recorded
   on a sprint course and the app now lists one row per run — start line to the
   separate finish line — instead of showing nothing at all. Split times, the

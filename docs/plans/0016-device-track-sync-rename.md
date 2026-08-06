@@ -127,14 +127,37 @@ The same discipline caught the original bug surviving review: a test named
 *"emits a JSON array of courses (not a wrapping object)"* had pinned the lossy
 shape as the contract.
 
+## The wizard (PR B — landed)
+
+| Module | Owns |
+|---|---|
+| `src/lib/deviceSyncWizard.ts` | Two-screen state, selection, and the save gate |
+| `src/lib/deviceSyncRunner.ts` | Walking the operation list, with injected executors |
+| `src/lib/deviceSyncFetch.ts` | Reading both device folders; `buildDeviceSyncSnapshot` |
+| `src/components/drawer/DeviceSyncWizard.tsx` | One `useState` and the markup |
+
+Three behaviours worth knowing before changing anything here:
+
+- **Unchecking a row stops it being validated.** Otherwise one track you don't
+  want to name blocks the whole sync with no way past it.
+- **A course name follows its track's name until the user types in it**, and
+  going Back to rename the track re-points every course still following. A name
+  they typed is never overwritten.
+- **`canSave` re-checks the track screen**, not just the course screen — going
+  forward, then back, then clearing a track name must not leave Save live.
+
+`runSyncOperations` keeps going after a failure, but a failed track **abandons
+its own remaining operations**: once the new file didn't write, deleting the old
+one destroys the only copy. Other tracks still run, which the contiguous
+per-track ordering from `planOperations` makes safe.
+
+`trackStorage.saveSyncedTrack` was added because `addTrack`/`addCourse` only
+ever *add* — they backfill a short name only when absent and never remove a
+course. A partial write leaves the two sides disagreeing, which is the loop this
+is all trying to end.
+
 ## Still to come
 
-- **PR B — the wizard.** Two screens: tracks (checkbox, upload/download bubble,
-  name + short-name boxes on device-named rows), then courses (same, plus a
-  circuit/sprint bubble). Back / Next, then Back / Save & import. Needs two
-  additions to `src/lib/trackStorage.ts` it doesn't have: setting a `shortName`
-  (`updateTrackName` exists, has zero callers, and doesn't touch it) and a real
-  course rename (`TrackEditor` fakes one with `deleteCourse` + `addCourse`).
 - **PR C — the on-connect prompts.** Firmware check first, with a "remind me
   tomorrow" suppressing for 24 h; then a yes/no track sync, only when the plan
   has actionable rows. `checkForUpdates` needs a `silent` option — today every

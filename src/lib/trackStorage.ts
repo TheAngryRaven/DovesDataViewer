@@ -411,6 +411,38 @@ export async function addCourse(trackName: string, course: Course): Promise<Trac
 }
 
 /**
+ * Upsert a whole track exactly as a device sync resolved it — name, short name
+ * and course list together.
+ *
+ * `addTrack` / `addCourse` deliberately only ever *add*: they backfill a short
+ * name only when there isn't one, and never remove a course. That is right for
+ * "add this one thing", and wrong here. The sync has already worked out what
+ * the track must look like for both sides to agree, so anything less than a
+ * wholesale write leaves them disagreeing — and the next connect re-offers the
+ * same track, which is the exact loop the sync flow exists to end.
+ *
+ * Courses are marked user-defined because `saveUserTracks` drops any that
+ * aren't, which would silently discard a course walked on the device.
+ */
+export async function saveSyncedTrack(track: Track): Promise<Track[]> {
+  const tracks = await loadTracks();
+  const resolved: Track = {
+    ...track,
+    isUserDefined: true,
+    courses: track.courses.map((c) => ({ ...c, isUserDefined: true })),
+  };
+
+  const i = tracks.findIndex((t) => t.name === track.name);
+  if (i >= 0) tracks[i] = { ...tracks[i], ...resolved };
+  else tracks.push(resolved);
+
+  stampTrack(tracks, track.name);
+  saveUserTracks(tracks);
+  emitTrackChange(track.name);
+  return tracks;
+}
+
+/**
  * Update a track's name.
  */
 export async function updateTrackName(oldName: string, newName: string): Promise<Track[]> {
