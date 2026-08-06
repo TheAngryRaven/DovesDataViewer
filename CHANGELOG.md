@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **The sync wizard's course screen no longer pre-fills the track's name**
+  (plan 0016). Naming a track and moving to the course step put that same name
+  into every course box, which is not what a course is called. Each course now
+  shows its original name, which track it belongs to, and the date it was
+  walked in readable form — the same layout as the track step. The box starts
+  with whatever would be saved if you changed nothing: a sprint course keeps
+  the date it was walked, since a sprint venue re-lays its course every event,
+  and a circuit course starts empty because it needs a real name.
 - **Tracks sent to the logger keep their name and course lengths** (plan 0016).
   Uploading a track wrote it in the older bare-list format, which the logger
   reads but which carries no track name, no short name, and no course length.

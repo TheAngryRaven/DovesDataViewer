@@ -48,11 +48,16 @@ function plan(rows: SyncTrackRow[]): SyncPlan {
   return { rows, skipped: [] };
 }
 
-/** The common case: one walked track, renamed properly. */
+/** One walked track, renamed properly, sitting on the course screen. */
 function named(): WizardState {
   let s = initWizard(plan([trackRow()]));
   s = setTrackName(s, "circuit:08031432", "Sunset Park");
   return goToCourses(s);
+}
+
+/** …and with its circuit course named too, so the plan is actually saveable. */
+function fullyNamed(): WizardState {
+  return setCourseName(named(), "circuit:08031432::N260803_1432", "Full CW");
 }
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
@@ -118,31 +123,39 @@ describe("selection", () => {
   });
 });
 
-// ─── Navigation and the follow-the-track-name rule ───────────────────────────
+// ─── Navigation ──────────────────────────────────────────────────────────────
 
 describe("navigation", () => {
-  it("carries the track's new name onto its course", () => {
-    const s = named();
-    expect(s.step).toBe("courses");
-    expect(s.courseDrafts["circuit:08031432::N260803_1432"].name).toBe("Sunset Park");
-  });
-
-  // Back, rename, forward again — the course name should follow.
-  it("re-points an untouched course name after the track is renamed", () => {
+  it("moves between the two screens", () => {
     let s = named();
+    expect(s.step).toBe("courses");
     s = goToTracks(s);
-    s = setTrackName(s, "circuit:08031432", "Sunset Park North");
-    s = goToCourses(s);
-    expect(s.courseDrafts["circuit:08031432::N260803_1432"].name).toBe("Sunset Park North");
+    expect(s.step).toBe("tracks");
   });
 
-  it("never overwrites a course name the user typed", () => {
+  // A course is not its track. This used to copy the track's new name into
+  // every generated course box, which read as a bug on the course screen.
+  it("never copies the track name into a course box", () => {
+    const s = named();
+    expect(s.courseDrafts["circuit:08031432::N260803_1432"].name).not.toBe("Sunset Park");
+    expect(s.courseDrafts["circuit:08031432::N260803_1432"].name).toBe("");
+  });
+
+  it("leaves course names alone when the track is renamed", () => {
     let s = named();
     s = setCourseName(s, "circuit:08031432::N260803_1432", "Morning Run");
     s = goToTracks(s);
     s = setTrackName(s, "circuit:08031432", "Anything Else");
     s = goToCourses(s);
     expect(s.courseDrafts["circuit:08031432::N260803_1432"].name).toBe("Morning Run");
+  });
+
+  it("does not resurrect a course name the user cleared", () => {
+    let s = named();
+    s = setCourseName(s, "circuit:08031432::N260803_1432", "");
+    s = goToTracks(s);
+    s = goToCourses(s);
+    expect(s.courseDrafts["circuit:08031432::N260803_1432"].name).toBe("");
   });
 });
 
@@ -230,20 +243,26 @@ describe("courseProblems", () => {
 
 describe("canSave", () => {
   it("is true for a fully named plan", () => {
-    expect(canSave(named())).toBe(true);
+    expect(canSave(fullyNamed())).toBe(true);
+  });
+
+  // The circuit course box now starts empty rather than inheriting the track
+  // name, so naming only the track is no longer enough to save.
+  it("is false while a circuit course is still unnamed", () => {
+    expect(canSave(named())).toBe(false);
   });
 
   // Going forward, then back and clearing the track name, must not leave Save
   // live just because the course screen looks fine.
   it("re-checks the track screen, not just the course screen", () => {
-    let s = named();
+    let s = fullyNamed();
     expect(canSave(s)).toBe(true);
     s = setTrackName(s, "circuit:08031432", "");
     expect(canSave(s)).toBe(false);
   });
 
   it("is false with nothing selected", () => {
-    let s = named();
+    let s = fullyNamed();
     s = toggleRow(s, "circuit:08031432");
     expect(canSave(s)).toBe(false);
   });

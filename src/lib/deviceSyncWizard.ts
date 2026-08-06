@@ -17,7 +17,6 @@ import {
   editTrackShortName,
   initialCourseDraft,
   initialTrackDraft,
-  retargetCourseDraft,
   validateCourseDraft,
   validateTrackDraft,
   type CourseNameDraft,
@@ -59,7 +58,7 @@ export function initWizard(
     const draft = initialTrackDraft(row);
     trackDrafts[row.key] = draft;
     for (const course of row.courses) {
-      courseDrafts[course.key] = initialCourseDraft(course, draft.name);
+      courseDrafts[course.key] = initialCourseDraft(course);
     }
   }
 
@@ -131,19 +130,13 @@ export function setCourseName(
 // ─── Navigation ──────────────────────────────────────────────────────────────
 
 /**
- * Move to the course screen, re-pointing any course name still following its
- * track — the user may have gone Back and renamed the track since.
+ * Move to the course screen.
+ *
+ * Course names are independent of the track name — renaming the track and
+ * coming forward again does not touch them, because a course is not its track.
  */
 export function goToCourses(state: WizardState): WizardState {
-  const courseDrafts = { ...state.courseDrafts };
-  for (const row of state.plan.rows) {
-    const trackName = state.trackDrafts[row.key]?.name ?? row.name;
-    for (const course of row.courses) {
-      const draft = courseDrafts[course.key];
-      if (draft) courseDrafts[course.key] = retargetCourseDraft(draft, trackName);
-    }
-  }
-  return { ...state, step: 'courses', courseDrafts };
+  return { ...state, step: 'courses' };
 }
 
 export function goToTracks(state: WizardState): WizardState {

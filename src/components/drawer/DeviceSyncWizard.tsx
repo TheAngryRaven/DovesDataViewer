@@ -300,12 +300,14 @@ export function DeviceSyncWizard({
               row.courses.map((course) => {
                 const draft = state.courseDrafts[course.key];
                 const problem = courseIssues[course.key];
+                const walked = parseDeviceGeneratedName(course.name);
+                const trackLabel = state.trackDrafts[row.key]?.name || row.name;
                 return (
-                  <div key={course.key} className="space-y-1">
+                  <div key={course.key} className="space-y-1.5">
+                    {/* Same shape as a track row: the ORIGINAL name, then the
+                        badges, then when it was walked, then the box. */}
                     <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">
-                        {state.trackDrafts[row.key]?.name || row.name}
-                      </span>
+                      <span className="text-foreground">{course.name}</span>
                       <span
                         className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                           course.kind === "sprint"
@@ -317,7 +319,18 @@ export function DeviceSyncWizard({
                           ? t("deviceTracks.sprintBadge")
                           : t("deviceTracks.wizard.circuitBadge")}
                       </span>
+                      {/* Which track this course belongs to — several tracks can
+                          be on this screen at once, and a bare course name is
+                          ambiguous between them. */}
+                      <span className="text-xs text-muted-foreground">{trackLabel}</span>
                     </div>
+                    {walked && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("deviceTracks.wizard.walkedOn", {
+                          date: formatWalkedOn(walked, i18n.language),
+                        })}
+                      </p>
+                    )}
                     <Input
                       value={draft?.name ?? course.name}
                       onChange={(e) => setState((s) => setCourseName(s, course.key, e.target.value))}

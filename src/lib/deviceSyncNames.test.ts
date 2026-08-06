@@ -6,7 +6,6 @@ import {
   editTrackShortName,
   initialCourseDraft,
   editCourseName,
-  retargetCourseDraft,
   validateTrackDraft,
   validateCourseDraft,
 } from "./deviceSyncNames";
@@ -125,29 +124,42 @@ describe("editTrackShortName", () => {
 // ─── Course name editing ─────────────────────────────────────────────────────
 
 describe("course name drafts", () => {
-  // The firmware gives a new track and its first course the same stamp, so the
-  // course is the track named twice — following the track name is the right default.
-  it("follows the track's new name when generated", () => {
-    expect(initialCourseDraft(courseRow(), "Sunset Park")).toEqual({
-      name: "Sunset Park",
+  // The box always starts holding what would be saved if you touched nothing, so
+  // nothing is ever written that the user never saw.
+  //
+  // It used to copy the TRACK's new name — an earlier reading of "auto-populated
+  // by the name". That was wrong: a course is not its track, and the screen read
+  // as broken because every course came up pre-filled with the track's name.
+  it("does not copy the track name", () => {
+    expect(initialCourseDraft(courseRow()).name).not.toBe("Sunset Park");
+  });
+
+  // The stamp is not a valid answer for a circuit course, and pre-filling
+  // anything invites clicking straight past the one thing this screen asks.
+  it("starts empty for a generated circuit course", () => {
+    expect(initialCourseDraft(courseRow({ kind: "circuit" }))).toEqual({
+      name: "",
+      touched: false,
+    });
+  });
+
+  // A sprint venue re-lays its course every event, so the walked date IS a valid
+  // final answer — showing it means the user can see what will be saved.
+  it("keeps the stamp for a generated sprint course", () => {
+    expect(initialCourseDraft(courseRow({ kind: "sprint" }))).toEqual({
+      name: "N260803_1432",
       touched: false,
     });
   });
 
   it("keeps a real course name", () => {
-    const d = initialCourseDraft(courseRow({ name: "Full CW", needsRename: false }), "Sunset Park");
+    const d = initialCourseDraft(courseRow({ name: "Full CW", needsRename: false }));
     expect(d.name).toBe("Full CW");
   });
 
-  it("re-points an untouched draft when the track is renamed", () => {
-    const d = initialCourseDraft(courseRow(), "Sunset Park");
-    expect(retargetCourseDraft(d, "Sunset Park North").name).toBe("Sunset Park North");
-  });
-
-  it("never overwrites a course name the user typed", () => {
-    let d = initialCourseDraft(courseRow(), "Sunset Park");
-    d = editCourseName(d, "Sunset Park - Reverse");
-    expect(retargetCourseDraft(d, "Anything Else").name).toBe("Sunset Park - Reverse");
+  it("marks the draft touched once the user types", () => {
+    const d = editCourseName(initialCourseDraft(courseRow()), "Morning Run");
+    expect(d).toEqual({ name: "Morning Run", touched: true });
   });
 });
 

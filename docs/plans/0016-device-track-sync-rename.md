@@ -140,9 +140,12 @@ Three behaviours worth knowing before changing anything here:
 
 - **Unchecking a row stops it being validated.** Otherwise one track you don't
   want to name blocks the whole sync with no way past it.
-- **A course name follows its track's name until the user types in it**, and
-  going Back to rename the track re-points every course still following. A name
-  they typed is never overwritten.
+- **Course names are independent of the track name.** The box starts holding
+  what would be saved if you touched nothing: a sprint course keeps its date
+  stamp (valid there — the venue re-lays its course every event), a circuit
+  course starts empty. An earlier build copied the track's new name into every
+  generated course box, which read as a bug on the course screen; a course is
+  not its track.
 - **`canSave` re-checks the track screen**, not just the course screen — going
   forward, then back, then clearing a track name must not leave Save live.
 
