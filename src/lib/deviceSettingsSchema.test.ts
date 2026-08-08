@@ -167,6 +167,8 @@ describe("validateSettingValue — string fields", () => {
 
 describe("validateSettingValue — enum fields", () => {
   it("accepts every declared option", () => {
+    expect(validateSettingValue("display_invert", "normal")).toBeNull();
+    expect(validateSettingValue("display_invert", "inverted")).toBeNull();
     expect(validateSettingValue("race_mode", "circuit")).toBeNull();
     expect(validateSettingValue("race_mode", "sprint")).toBeNull();
     expect(validateSettingValue("spark_mode", "wasted")).toBeNull();
@@ -242,5 +244,20 @@ describe("cylinder_count", () => {
 
   it("rejects a fractional count", () => {
     expect(validateSettingValue("cylinder_count", "1.5")).toBe("Must be a whole number");
+  });
+});
+
+describe("display_invert", () => {
+  // The firmware treats anything that is not an exact "inverted" as normal, so
+  // a value this app lets through unchecked would read as the setting silently
+  // doing nothing.
+  it("rejects near misses the firmware would ignore", () => {
+    expect(validateSettingValue("display_invert", "invert")).not.toBeNull();
+    expect(validateSettingValue("display_invert", "Inverted")).not.toBeNull();
+    expect(validateSettingValue("display_invert", "1")).not.toBeNull();
+  });
+
+  it("labels the stored values for display", () => {
+    expect(settingDisplayValue("display_invert", "inverted")).toBe("Inverted (black on white)");
   });
 });
