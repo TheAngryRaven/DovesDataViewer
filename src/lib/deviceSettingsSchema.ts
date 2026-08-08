@@ -101,6 +101,16 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
       'Tiebreak when both a circuit and a sprint track are in range. Never overrides a single match',
   },
   {
+    key: 'display_invert',
+    label: 'Display Colours',
+    type: 'enum',
+    options: [
+      { value: 'normal', label: 'Normal (white on black)' },
+      { value: 'inverted', label: 'Inverted (black on white)' },
+    ],
+    description: "Inverting can be easier to read in direct sun. Normal is how the logger has always looked",
+  },
+  {
     key: 'spark_mode',
     label: 'Spark Mode',
     type: 'enum',
