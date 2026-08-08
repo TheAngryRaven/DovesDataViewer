@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Display Colours** — a new logger setting that inverts the screen, so it
+  shows black on a lit background instead of white on black. Easier to read in
+  direct sun. Appears once your logger has the firmware that supports it; the
+  default matches how the screen has always looked.
 - **Settings with a fixed set of choices are now dropdowns** (plan 0003).
   Device settings only knew about text and numbers, so anything with a fixed
   set of values was a free-text box where a typo silently reverted the logger
