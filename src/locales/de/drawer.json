@@ -342,6 +342,26 @@
     "progressUnitFiles": "Dateien",
     "noCourses": "Keine Kurse",
     "send": "Senden",
+    "picker": {
+      "button": "Kurse",
+      "buttonHint": "Auswählen, welche Kurse auf den Logger kommen",
+      "title": "Kurse auf dem Logger – {{name}}",
+      "descriptionSprint": "Diese Strecke bekommt bei jedem Event einen Kurs dazu, und der Logger kann eine Datei nur bis zu einer bestimmten Größe lesen. Nicht angehakte Kurse bleiben in der App und in deinem Konto – nur der Logger hält eine Auswahl.",
+      "descriptionCircuit": "Wähle aus, welche Kurse auf den Logger kommen. Nicht angehakte bleiben in der App und in deinem Konto.",
+      "newestBadge": "neuester",
+      "withinBudget": "{{bytes}} von {{budget}} Bytes auf dem Logger belegt",
+      "overBudget": "{{over}} Bytes zu viel – der Logger kann nur {{budget}} lesen",
+      "needOne": "Behalte mindestens einen Kurs, sonst erkennt der Logger die Strecke nicht.",
+      "cancel": "Abbrechen",
+      "confirm": "Auf Logger speichern"
+    },
+    "bulk": {
+      "selected": "{{count}} ausgewählt",
+      "clear": "Auswahl aufheben",
+      "send": "An Logger senden",
+      "sent": "{{count}} Strecken an den Logger gesendet",
+      "someFailed": "{{count}} Strecken konnten nicht gesendet werden"
+    },
     "get": "Holen",
     "compare": "Vergleichen",
     "resyncAll": "Alle neu synchronisieren",

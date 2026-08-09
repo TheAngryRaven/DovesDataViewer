@@ -341,6 +341,26 @@
     "progressUnitFiles": "files",
     "noCourses": "No courses",
     "send": "Send",
+    "picker": {
+      "button": "Courses",
+      "buttonHint": "Choose which courses go on the logger",
+      "title": "Courses on the logger — {{name}}",
+      "descriptionSprint": "This track gains a course every event, and the logger can only read a file so big. Unchecked courses stay in the app and in your account — only the logger holds a subset.",
+      "descriptionCircuit": "Choose which courses go on the logger. Unchecked ones stay in the app and in your account.",
+      "newestBadge": "newest",
+      "withinBudget": "{{bytes}} of {{budget}} bytes used on the logger",
+      "overBudget": "{{over}} bytes too many — the logger can only read {{budget}}",
+      "needOne": "Keep at least one course, or the logger won't recognise the track.",
+      "cancel": "Cancel",
+      "confirm": "Save to logger"
+    },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "clear": "Clear",
+      "send": "Send to logger",
+      "sent": "Sent {{count}} tracks to the logger",
+      "someFailed": "{{count}} tracks failed to send"
+    },
     "get": "Get",
     "compare": "Compare",
     "resyncAll": "Resync All",
