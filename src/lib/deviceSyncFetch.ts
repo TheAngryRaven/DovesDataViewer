@@ -18,6 +18,8 @@ import {
 } from '@/lib/deviceTrackSync';
 import { buildSyncPlan, type SyncPlan } from '@/lib/deviceSyncPlan';
 import type { ReservedShortName } from '@/lib/deviceSyncWizard';
+import { loadTrackOverrides } from '@/lib/deviceCourseOverrides';
+import { deviceTrackBudget, supportsLargeTrackBuffer } from '@/lib/deviceTrackBudget';
 
 export interface FetchProgress {
   current: number;
@@ -80,16 +82,37 @@ export interface DeviceSyncSnapshot {
   files: DeviceTrackFile[];
 }
 
+/**
+ * What this particular logger is, for the parts of the plan that depend on it
+ * (plan 0017).
+ *
+ * Both fields are optional and both degrade safely: an unknown logger reads no
+ * curation and gets the default rule, and an unknown firmware is assumed to
+ * have the SMALLER track buffer — see `supportsLargeTrackBuffer` for why
+ * conservative is the right direction when the cost of guessing high is a track
+ * that stops being detected at the venue.
+ */
+export interface DeviceSyncContext {
+  /** BLE device name — keys the per-logger curation store. */
+  deviceName?: string | null;
+  /** Firmware version as reported over DIS. */
+  firmwareVersion?: string | null;
+}
+
 /** Read the device and work out what a sync would do, in one call. */
 export async function buildDeviceSyncSnapshot(
   details: DeviceDetails,
   appTracks: Track[],
   onProgress?: (p: FetchProgress) => void,
+  context: DeviceSyncContext = {},
 ): Promise<DeviceSyncSnapshot> {
   const files = await fetchDeviceTrackFiles(details, onProgress);
-  const merged = buildMergedTrackList(appTracks, files);
+  const merged = buildMergedTrackList(appTracks, files, (kind, shortName) =>
+    loadTrackOverrides(context.deviceName, kind, shortName),
+  );
   const plan = buildSyncPlan(merged, {
     supportsSprintTracks: details.supportsSprintTracks,
+    trackBudgetBytes: deviceTrackBudget(supportsLargeTrackBuffer(context.firmwareVersion)),
   });
 
   const inPlan = new Set(plan.rows.map((r) => r.key));

@@ -393,6 +393,7 @@
       "skippedTitle": "同期しません",
       "skippedMixedKind": "{{name}} にはサーキットとスプリントのコースが混在しています。ロガーはこれらを別々に保存します。",
       "skippedTooManyCourses": "{{name}} のコース数が、ロガーが読み戻せる上限を超えています。",
+      "skippedTooManyBytes": "{{name}} は、最新のコースだけを残してもロガーが読み込めないほど大きくなっています。トラック一覧で開き、残すコースを選んでください。",
       "skippedSprintUnsupported": "{{name}} はスプリントのトラックで、この接続からはアクセスできません。",
       "problemRequired": "名前を入力してください",
       "problemStillGenerated": "正式な名前を付けてください",

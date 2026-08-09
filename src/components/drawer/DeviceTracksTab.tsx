@@ -24,6 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import type { DeviceDetails } from "@/lib/loggers";
+import type { TrackKind } from "@/lib/ble/trackOpcodes";
 import {
   DeviceCourseJson,
   DeviceTrackFile,
@@ -39,6 +40,9 @@ import {
   startADistance,
 } from "@/lib/deviceTrackSync";
 import { fetchDeviceTrackFiles } from "@/lib/deviceSyncFetch";
+import { loadTrackOverrides } from "@/lib/deviceCourseOverrides";
+import { selectedDeviceCourses } from "@/lib/deviceCourseSelection";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import { loadTracks, addTrack, addCourse } from "@/lib/trackStorage";
 import { Track } from "@/types/racing";
 import { toast } from "sonner";
@@ -63,6 +67,7 @@ const deviceFileOf = (entry: MergedTrackEntry): string =>
 
 export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   const { t } = useTranslation("drawer");
+  const { deviceName } = useDeviceContext();
   const [view, setView] = useState<View>("loading");
   const [loadProgress, setLoadProgress] = useState({ current: 0, total: 0, label: "" });
   const [mergedTracks, setMergedTracks] = useState<MergedTrackEntry[]>([]);
@@ -77,6 +82,27 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
 
   const [deviceFiles, setDeviceFiles] = useState<DeviceTrackFile[]>([]);
   const [appTracks, setAppTracks] = useState<Track[]>([]);
+
+  // The user's curation for THIS logger. Every merge goes through it, so a
+  // course deliberately kept off the card reads as settled rather than as work
+  // outstanding — otherwise the track sits at `mismatch` and re-prompts on
+  // every connect (plan 0017).
+  const overridesFor = useCallback(
+    (kind: TrackKind, shortName: string) => loadTrackOverrides(deviceName, kind, shortName),
+    [deviceName],
+  );
+
+  // What we actually write for a track: the app's copy, carrying only the
+  // courses bound for the card. The app keeps the rest — they are already
+  // cloud-synced, so nothing is lost by the device holding a subset.
+  const deviceJsonFor = useCallback(
+    (entry: MergedTrackEntry, track: Track) =>
+      buildTrackJsonForUpload({
+        ...track,
+        courses: selectedDeviceCourses(track.courses, overridesFor(entry.kind, entry.shortName)),
+      }),
+    [overridesFor],
+  );
 
   const syncAll = useCallback(async () => {
     setView("loading");
@@ -94,14 +120,14 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
       setDeviceFiles(files);
       const tracks = await loadTracks();
       setAppTracks(tracks);
-      setMergedTracks(buildMergedTrackList(tracks, files));
+      setMergedTracks(buildMergedTrackList(tracks, files, overridesFor));
       setView("tracks");
     } catch (err) {
       console.error("Track sync failed:", err);
       toast.error(t("deviceTracks.syncFailedToast"));
       setView("tracks");
     }
-  }, [details, t]);
+  }, [details, t, overridesFor]);
 
   useEffect(() => {
     syncAll();
@@ -119,7 +145,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     if (!entry.appTrack) return;
     setUploading(entry.shortName);
     try {
-      const json = buildTrackJsonForUpload(entry.appTrack);
+      const json = deviceJsonFor(entry, entry.appTrack);
       const data = new TextEncoder().encode(json);
       await details.putTrack(deviceFileOf(entry), data, entry.kind);
       toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
@@ -150,7 +176,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
       toast.success(t("deviceTracks.downloadedToast", { name: trackName }));
       const tracks = await loadTracks();
       setAppTracks(tracks);
-      setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
+      setMergedTracks(buildMergedTrackList(tracks, deviceFiles, overridesFor));
     } catch (err) {
       toast.error(t("deviceTracks.downloadFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     }
@@ -243,9 +269,9 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
       setDiffCourse(null);
       const tracks = await loadTracks();
       setAppTracks(tracks);
-      setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
+      setMergedTracks(buildMergedTrackList(tracks, deviceFiles, overridesFor));
       // Match on kind too: a circuit and a sprint track can share a short name.
-      const updated = buildMergedTrackList(tracks, deviceFiles)
+      const updated = buildMergedTrackList(tracks, deviceFiles, overridesFor)
         .find(t => t.shortName === trackEntry.shortName && t.kind === trackEntry.kind);
       if (updated) setSelectedTrack(updated);
     } catch (err) {
@@ -275,7 +301,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
           await details.deleteTrack(deviceFileOf(entry), entry.kind);
         }
         // Upload from app
-        const json = buildTrackJsonForUpload(entry.appTrack!);
+        const json = deviceJsonFor(entry, entry.appTrack!);
         const data = new TextEncoder().encode(json);
         await details.putTrack(deviceFileOf(entry), data, entry.kind);
       } catch (err) {

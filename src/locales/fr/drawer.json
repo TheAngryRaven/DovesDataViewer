@@ -393,6 +393,7 @@
       "skippedTitle": "Non synchronisé",
       "skippedMixedKind": "{{name}} mélange des parcours circuit et sprint, que l'enregistreur stocke séparément.",
       "skippedTooManyCourses": "{{name}} a plus de parcours que l'enregistreur ne peut relire.",
+      "skippedTooManyBytes": "{{name}} est trop volumineux pour que l'enregistreur le lise, même en ne gardant que son parcours le plus récent. Ouvre-le dans la liste des circuits pour choisir les parcours à conserver.",
       "skippedSprintUnsupported": "{{name}} est un circuit sprint, inaccessible via cette connexion.",
       "problemRequired": "Saisissez un nom",
       "problemStillGenerated": "Donnez-lui un vrai nom",

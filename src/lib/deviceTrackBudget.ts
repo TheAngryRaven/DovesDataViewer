@@ -10,6 +10,36 @@
 
 import { Course, Track } from '@/types/racing';
 import { buildTrackJsonForUpload } from '@/lib/deviceTrackSync';
+import { compareVersions } from '@/lib/ble/dfu/firmwareManifest';
+
+/**
+ * First firmware release whose track JSON buffer is
+ * {@link DEVICE_TRACK_BYTES_LARGE}. Everything at or below `3.1.0` — the last
+ * release before this one — parses tracks in half that.
+ */
+export const TRACK_BUFFER_MIN_VERSION = '3.2.0';
+
+/**
+ * Whether this firmware has the larger track buffer.
+ *
+ * The ONE place a firmware version is turned into this capability; everything
+ * downstream takes the boolean. Mirrors `needsOtaLayoutUpgrade`.
+ *
+ * **An unknown version returns `false`, which is the opposite of what
+ * `needsOtaLayoutUpgrade` does with one — deliberately.** That function must
+ * never nag a user without certainty, so uncertainty means "don't". Here
+ * uncertainty must never overfill a card, because a track file past the buffer
+ * is not a degraded track: it fails to parse, gets no manifest entry, and
+ * stops being detected at the venue. So uncertainty means "assume the smaller
+ * buffer" — at worst the user keeps one course fewer than they could have.
+ *
+ * `compareVersions` ignores prerelease suffixes, so a beta build stamped
+ * `3.2.0-beta.<sha>` counts as `3.2.0` and reads as capable.
+ */
+export function supportsLargeTrackBuffer(version: string | null | undefined): boolean {
+  if (!version) return false;
+  return compareVersions(version, TRACK_BUFFER_MIN_VERSION) >= 0;
+}
 
 /**
  * `JSON_BUFFER_SIZE` on firmware from the release that raised it.

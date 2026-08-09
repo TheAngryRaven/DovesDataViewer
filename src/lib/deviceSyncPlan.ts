@@ -12,10 +12,12 @@ import type { TrackKind } from '@/lib/ble/trackOpcodes';
 import type { Course, Track } from '@/types/racing';
 import { isSprintCourse } from '@/types/racing';
 import {
+  deviceCourseToAppCourse,
   isMixedKindTrack,
   type DeviceCourseJson,
   type MergedTrackEntry,
 } from '@/lib/deviceTrackSync';
+import { fitsDeviceBudget } from '@/lib/deviceTrackBudget';
 import { isDeviceGeneratedName, isDeviceGeneratedShortName } from '@/lib/deviceGeneratedNames';
 
 /**
@@ -38,6 +40,20 @@ export type SkipReason =
   | 'mixed_kind'
   /** More courses than the firmware will read back. */
   | 'too_many_courses'
+  /**
+   * The file would be bigger than the firmware's parse buffer, even after the
+   * curation rule has had its say (plan 0017).
+   *
+   * Distinct from `too_many_courses` because neither guard subsumes the other:
+   * on the larger buffer the course cap binds first, and on the smaller one a
+   * sprint track overflows at about SEVEN courses — under the cap, which is why
+   * the cap alone never caught it.
+   *
+   * Reported, never prompted. On a browser with nothing stored the default rule
+   * alone has to settle, so a track that still doesn't fit is surfaced here to
+   * be curated deliberately rather than raised as a dialog on every connect.
+   */
+  | 'too_many_bytes'
   /** A sprint track on a transport that can't reach the sprint folder. */
   | 'sprint_unsupported';
 
@@ -96,6 +112,15 @@ export interface SyncPlanOptions {
    * would silently land among the circuit tracks.
    */
   supportsSprintTracks?: boolean;
+  /**
+   * Bytes one track file may occupy on this device — `deviceTrackBudget()` of
+   * the firmware's capability (plan 0017).
+   *
+   * Omitted means "don't check", so a caller that doesn't know the firmware
+   * keeps the pre-curation behaviour rather than guessing a limit and skipping
+   * tracks that were fine.
+   */
+  trackBudgetBytes?: number;
 }
 
 /** The display name for an entry, preferring whichever side actually has one. */
@@ -164,14 +189,38 @@ export function buildSyncPlan(
       continue;
     }
 
-    // Count what the file would end up holding, not just what one side has.
+    // Count what the file would end up holding, not just what one side has —
+    // and only the courses actually bound for the device. A sprint track keeps
+    // its newest course by default, so counting every app course skipped an
+    // eleven-course venue that would have fitted comfortably.
     const deviceOnlyCourses = entry.mergedCourses
       .filter((mc) => mc.status === 'device_only' && mc.deviceCourse)
       .map((mc) => mc.deviceCourse!);
-    const resultingCourseCount = entry.appCourses.length + deviceOnlyCourses.length;
+    // Read the curation off the merge, but count `appCourses` — an `app_only`
+    // entry carries no merged courses at all, and deriving the list from the
+    // merge would silently count it as empty and wave through a track that
+    // cannot fit. Anything the merge has no opinion on stays planned.
+    const plannedByName = new Map(
+      entry.mergedCourses
+        .filter((mc) => mc.appCourse)
+        .map((mc) => [mc.name, mc.plannedOnDevice ?? true] as const),
+    );
+    const plannedAppCourses = entry.appCourses.filter((c) => plannedByName.get(c.name) ?? true);
+    const resultingCourseCount = plannedAppCourses.length + deviceOnlyCourses.length;
     if (resultingCourseCount > DEVICE_MAX_COURSES) {
       skip('too_many_courses');
       continue;
+    }
+
+    // Then the wall the count guard never saw: on the smaller buffer a sprint
+    // track overflows below the course cap. Measured through the real writer,
+    // over the courses the file would actually end up with.
+    if (options.trackBudgetBytes != null && entry.appTrack) {
+      const resulting = [...plannedAppCourses, ...deviceOnlyCourses.map(deviceCourseToAppCourse)];
+      if (!fitsDeviceBudget(entry.appTrack, resulting, options.trackBudgetBytes)) {
+        skip('too_many_bytes');
+        continue;
+      }
     }
 
     // The app's own reference tracks are not "unknown tracks the device is
