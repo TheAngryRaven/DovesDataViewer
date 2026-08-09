@@ -327,9 +327,23 @@ export function buildTrackJsonForUpload(track: Track): string {
   });
 }
 
-/** Serialize an object-form track file the way the device expects it. */
+/**
+ * Serialize an object-form track file for the device.
+ *
+ * Compact, with no indentation. The device reads a whole track file into a
+ * fixed buffer and parses it there; a file past that buffer is cut mid-JSON,
+ * the parse fails, no manifest entry is built, and the track stops being
+ * detected at the venue entirely rather than merely losing its tail. In a file
+ * of this shape the tabs and newlines were roughly a quarter of the bytes,
+ * spent on whitespace nothing reads — the device parses with ArduinoJson,
+ * which is whitespace-insensitive, and a human wanting to read one has a
+ * formatter.
+ *
+ * This is the single choke point every upload writer funnels through, so it is
+ * also what any size projection must measure.
+ */
 export function serializeDeviceTrackFile(file: DeviceTrackFileJson): string {
-  return JSON.stringify(file, null, '\t');
+  return JSON.stringify(file);
 }
 
 /**

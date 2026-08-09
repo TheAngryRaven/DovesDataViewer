@@ -277,9 +277,20 @@ describe("buildTrackJsonForUpload", () => {
     expect(parsed.courses.map((c) => c.name)).toEqual(["A", "B", "C"]);
   });
 
-  it("uses tab indentation (matches device expectation)", () => {
+  // Bytes are the constraint: the device parses a whole track file inside a
+  // fixed buffer, and one byte past it takes the track out of detection
+  // altogether. Indentation was about a quarter of the file.
+  it("emits compact JSON, with no indentation to spend the budget on", () => {
     const json = buildTrackJsonForUpload(makeAppTrack("OKC", [makeAppCourse()]));
-    expect(json).toContain("\t");
+    expect(json).not.toContain("\t");
+    expect(json).not.toContain("\n");
+  });
+
+  it("is meaningfully smaller than the indented form it replaced", () => {
+    const track = makeAppTrack("OKC", [makeAppCourse(), makeAppCourse({ name: "B" })]);
+    const compact = buildTrackJsonForUpload(track);
+    const indented = JSON.stringify(JSON.parse(compact), null, "\t");
+    expect(compact.length).toBeLessThan(indented.length * 0.85);
   });
 
   // The round trip that decides whether the sync wizard re-prompts forever.
