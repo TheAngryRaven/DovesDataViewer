@@ -272,12 +272,12 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
       try {
         // Delete from device if it exists there
         if (isOnDevice(entry)) {
-          await details.deleteTrack(entry.shortName + ".json", entry.kind);
+          await details.deleteTrack(deviceFileOf(entry), entry.kind);
         }
         // Upload from app
         const json = buildTrackJsonForUpload(entry.appTrack!);
         const data = new TextEncoder().encode(json);
-        await details.putTrack(entry.shortName + ".json", data, entry.kind);
+        await details.putTrack(deviceFileOf(entry), data, entry.kind);
       } catch (err) {
         console.error(`Resync failed for ${entry.shortName}:`, err);
         toast.error(t("deviceTracks.resyncFailedToast", { name: entry.shortName, error: err instanceof Error ? err.message : t("deviceTracks.unknownShort") }));
