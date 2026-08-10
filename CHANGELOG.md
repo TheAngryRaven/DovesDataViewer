@@ -44,6 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   overflowing** (plan 0017). The app knows how much room your logger's firmware
   has and says which track doesn't fit, rather than sending a file that comes
   back unreadable.
+- **You can choose which courses go on the logger** (plan 0017). A new
+  **Courses** button on any track with more than one course opens a checklist,
+  with a live count of how much of the logger's room the selection uses and how
+  much there is. Unchecked courses stay in the app and in your account — only
+  the logger holds a subset. Use it to keep an older sprint course on the card,
+  or to trim a track that doesn't fit.
+- **Tracks can be selected and sent in one go** (plan 0017). Tick any number of
+  tracks in the list and send them all to the logger together. Each is sent as
+  whatever you chose above, so a bulk send never undoes your course picks.
 
 ### Changed
 - **Tracks are sent to the logger without formatting whitespace** (plan 0017).

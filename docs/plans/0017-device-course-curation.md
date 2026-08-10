@@ -1,9 +1,14 @@
 # Device course curation — fitting a season of courses on the card
 
-> Status: **IN PROGRESS.** Stacked PRs: (1) the two size/correctness fixes below,
-> (2) the pure curation model, (3) the capability gate + sync wiring, (4) the
-> picker modal and the tracks list. Firmware side is
-> `DovesDataLogger/docs/plans/0005-*`.
+> Status: **DONE**, across four stacked PRs: (1) the two size/correctness fixes
+> below, (2) the pure curation model, (3) the capability gate + sync wiring,
+> (4) the course picker and the tracks list. Firmware side is
+> `DovesDataLogger/docs/plans/0005-sprint-course-prune.md`.
+>
+> **The picker lives in the tracks list, not in the sync wizard.** The wizard
+> reports an oversized track as a skip whose message points at the list, which
+> keeps the rule that curation is only ever reached by a deliberate action —
+> a dialog that appeared mid-sync would be the nag this plan exists to end.
 
 ## Why this exists
 

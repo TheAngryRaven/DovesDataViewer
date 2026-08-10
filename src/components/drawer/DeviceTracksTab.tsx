@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Trash2,
   RotateCcw,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +42,11 @@ import {
 } from "@/lib/deviceTrackSync";
 import { fetchDeviceTrackFiles } from "@/lib/deviceSyncFetch";
 import { loadTrackOverrides } from "@/lib/deviceCourseOverrides";
-import { selectedDeviceCourses } from "@/lib/deviceCourseSelection";
+import { selectedDeviceCourses, type TrackCourseOverrides } from "@/lib/deviceCourseSelection";
+import { loadTrackOverrides as _loadOverrides, saveTrackOverrides } from "@/lib/deviceCourseOverrides";
+import { deviceTrackBudget, supportsLargeTrackBuffer } from "@/lib/deviceTrackBudget";
+import { useFirmwareUpdateApi } from "@/contexts/FirmwareUpdateContext";
+import { DeviceCoursePickerDialog } from "./DeviceCoursePickerDialog";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { loadTracks, addTrack, addCourse } from "@/lib/trackStorage";
 import { Track } from "@/types/racing";
@@ -68,6 +73,10 @@ const deviceFileOf = (entry: MergedTrackEntry): string =>
 export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   const { t } = useTranslation("drawer");
   const { deviceName } = useDeviceContext();
+  const fw = useFirmwareUpdateApi();
+  // One boolean, derived once from the firmware version the shared context
+  // already read. Unknown firmware assumes the smaller buffer (plan 0017).
+  const trackBudget = deviceTrackBudget(supportsLargeTrackBuffer(fw.info?.version));
   const [view, setView] = useState<View>("loading");
   const [loadProgress, setLoadProgress] = useState({ current: 0, total: 0, label: "" });
   const [mergedTracks, setMergedTracks] = useState<MergedTrackEntry[]>([]);
@@ -78,6 +87,10 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   // Confirmation dialogs
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'track' | 'course'; trackEntry: MergedTrackEntry; courseName?: string } | null>(null);
   const [resyncConfirm, setResyncConfirm] = useState(false);
+  const [pickerEntry, setPickerEntry] = useState<MergedTrackEntry | null>(null);
+  // Bulk selection, keyed the same way the merge is — a circuit and a sprint
+  // track can share a short name and must not collapse into one.
+  const [checkedTracks, setCheckedTracks] = useState<Set<string>>(new Set());
   const [resyncProgress, setResyncProgress] = useState<{ current: number; total: number; label: string } | null>(null);
 
   const [deviceFiles, setDeviceFiles] = useState<DeviceTrackFile[]>([]);
@@ -155,6 +168,80 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
     } finally {
       setUploading(null);
     }
+  };
+
+  const trackKeyOf = (entry: MergedTrackEntry) => `${entry.kind}:${entry.shortName}`;
+
+  const toggleChecked = (entry: MergedTrackEntry) => {
+    const key = trackKeyOf(entry);
+    setCheckedTracks((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // ── Send the checked tracks ──
+  //
+  // Each one goes through deviceJsonFor(), so a track the user has curated is
+  // sent as its curated subset rather than whole — a bulk action that quietly
+  // undid the curation would be worse than no bulk action.
+  const handleSendChecked = async () => {
+    const targets = mergedTracks.filter((e) => e.appTrack && checkedTracks.has(trackKeyOf(e)));
+    if (targets.length === 0) return;
+
+    let failed = 0;
+    for (const entry of targets) {
+      setUploading(entry.shortName);
+      try {
+        const data = new TextEncoder().encode(deviceJsonFor(entry, entry.appTrack!));
+        await details.putTrack(deviceFileOf(entry), data, entry.kind);
+      } catch (err) {
+        failed++;
+        console.error(`Send failed for ${entry.shortName}:`, err);
+      }
+    }
+    setUploading(null);
+    setCheckedTracks(new Set());
+    if (failed > 0) {
+      toast.error(t("deviceTracks.bulk.someFailed", { count: failed }));
+    } else {
+      toast.success(t("deviceTracks.bulk.sent", { count: targets.length }));
+    }
+    await syncAll();
+  };
+
+  // ── Choose which courses live on the logger (plan 0017) ──
+  const handlePickerConfirm = async (
+    entry: MergedTrackEntry,
+    overrides: TrackCourseOverrides,
+  ) => {
+    if (!entry.appTrack) return;
+    // Store the choice first, so deviceJsonFor() below and every later merge
+    // read the new curation rather than the one being replaced.
+    saveTrackOverrides(deviceName, entry.kind, entry.shortName, overrides);
+    setPickerEntry(null);
+
+    // Only push when the track is already on the card. For one that isn't,
+    // the choice simply applies the next time it's sent — writing a file the
+    // user never asked for would be a surprise.
+    if (!isOnDevice(entry)) {
+      await syncAll();
+      return;
+    }
+
+    setUploading(entry.shortName);
+    try {
+      const data = new TextEncoder().encode(deviceJsonFor(entry, entry.appTrack));
+      await details.putTrack(deviceFileOf(entry), data, entry.kind);
+      toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
+    } catch (err) {
+      toast.error(t("deviceTracks.sendFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
+    } finally {
+      setUploading(null);
+    }
+    await syncAll();
   };
 
   // ── Download device track to app ──
@@ -498,6 +585,33 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
         </div>
       </div>
 
+      {/* Bulk action bar — only present once something is checked, so the list
+          stays uncluttered for the common case of touching one track. */}
+      {checkedTracks.size > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
+          <span className="flex-1 text-xs text-muted-foreground">
+            {t("deviceTracks.bulk.selected", { count: checkedTracks.size })}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setCheckedTracks(new Set())}
+          >
+            {t("deviceTracks.bulk.clear")}
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 px-2 text-xs gap-1"
+            disabled={uploading !== null}
+            onClick={handleSendChecked}
+          >
+            {uploading !== null ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {t("deviceTracks.bulk.send")}
+          </Button>
+        </div>
+      )}
+
       {/* Track list */}
       <div className="flex-1 overflow-y-auto">
         {mergedTracks.length === 0 ? (
@@ -513,6 +627,24 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
               className="flex items-center gap-2 px-3 py-2.5 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
               onClick={() => { setSelectedTrack(entry); setView("courses"); }}
             >
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={checkedTracks.has(`${entry.kind}:${entry.shortName}`)}
+                aria-label={entry.shortName}
+                onClick={(e) => { e.stopPropagation(); toggleChecked(entry); }}
+                className="shrink-0"
+              >
+                <span
+                  className={`flex h-4 w-4 items-center justify-center rounded border ${
+                    checkedTracks.has(`${entry.kind}:${entry.shortName}`)
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : "border-input"
+                  }`}
+                >
+                  {checkedTracks.has(`${entry.kind}:${entry.shortName}`) && <Check className="w-3 h-3" />}
+                </span>
+              </button>
               <StatusIcon status={entry.status} />
               <span className="flex-1 text-sm font-medium text-foreground truncate">
                 {entry.shortName}
@@ -529,6 +661,17 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
               )}
 
               {/* Action buttons — stop propagation so click doesn't drill into courses */}
+              {entry.appTrack && entry.appTrack.courses.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1 shrink-0"
+                  title={t("deviceTracks.picker.buttonHint")}
+                  onClick={(e) => { e.stopPropagation(); setPickerEntry(entry); }}
+                >
+                  <ListChecks className="w-3.5 h-3.5" /> {t("deviceTracks.picker.button")}
+                </Button>
+              )}
               {entry.status === 'app_only' && (
                 <Button
                   variant="ghost"
@@ -538,7 +681,7 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
                   onClick={(e) => { e.stopPropagation(); handleSendToDevice(entry); }}
                 >
                   {uploading === entry.shortName ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  Send
+                  {t("deviceTracks.send")}
                 </Button>
               )}
               {entry.status === 'device_only' && (
@@ -606,6 +749,18 @@ export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
           loading={false}
           onConfirm={handleResyncAll}
           onClose={() => setResyncConfirm(false)}
+        />
+      )}
+
+      {pickerEntry?.appTrack && (
+        <DeviceCoursePickerDialog
+          open
+          onOpenChange={(o) => { if (!o) setPickerEntry(null); }}
+          track={pickerEntry.appTrack}
+          budget={trackBudget}
+          overrides={overridesFor(pickerEntry.kind, pickerEntry.shortName)}
+          saving={uploading === pickerEntry.shortName}
+          onConfirm={(overrides) => handlePickerConfirm(pickerEntry, overrides)}
         />
       )}
     </div>

@@ -342,6 +342,26 @@
     "progressUnitFiles": "fichiers",
     "noCourses": "Aucun parcours",
     "send": "Envoyer",
+    "picker": {
+      "button": "Parcours",
+      "buttonHint": "Choisir les parcours à mettre sur l'enregistreur",
+      "title": "Parcours sur l'enregistreur — {{name}}",
+      "descriptionSprint": "Ce circuit gagne un parcours à chaque événement, et l'enregistreur ne peut lire un fichier que jusqu'à une certaine taille. Les parcours décochés restent dans l'app et dans ton compte : seul l'enregistreur n'en garde qu'une partie.",
+      "descriptionCircuit": "Choisis les parcours à mettre sur l'enregistreur. Ceux qui ne sont pas cochés restent dans l'app et dans ton compte.",
+      "newestBadge": "le plus récent",
+      "withinBudget": "{{bytes}} sur {{budget}} octets utilisés sur l'enregistreur",
+      "overBudget": "{{over}} octets de trop — l'enregistreur ne peut lire que {{budget}}",
+      "needOne": "Garde au moins un parcours, sinon l'enregistreur ne reconnaîtra pas le circuit.",
+      "cancel": "Annuler",
+      "confirm": "Enregistrer sur l'appareil"
+    },
+    "bulk": {
+      "selected": "{{count}} sélectionné(s)",
+      "clear": "Tout désélectionner",
+      "send": "Envoyer à l'enregistreur",
+      "sent": "{{count}} circuits envoyés à l'enregistreur",
+      "someFailed": "Échec de l'envoi de {{count}} circuits"
+    },
     "get": "Obtenir",
     "compare": "Comparer",
     "resyncAll": "Tout resynchroniser",

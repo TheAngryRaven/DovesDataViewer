@@ -342,6 +342,26 @@
     "progressUnitFiles": "file",
     "noCourses": "Nessun percorso",
     "send": "Invia",
+    "picker": {
+      "button": "Percorsi",
+      "buttonHint": "Scegli quali percorsi mettere sul logger",
+      "title": "Percorsi sul logger — {{name}}",
+      "descriptionSprint": "Questa pista guadagna un percorso a ogni evento, e il logger può leggere un file solo fino a una certa dimensione. I percorsi non selezionati restano nell'app e nel tuo account: solo il logger ne tiene una parte.",
+      "descriptionCircuit": "Scegli quali percorsi mettere sul logger. Quelli non selezionati restano nell'app e nel tuo account.",
+      "newestBadge": "più recente",
+      "withinBudget": "{{bytes}} di {{budget}} byte usati sul logger",
+      "overBudget": "{{over}} byte di troppo — il logger può leggerne solo {{budget}}",
+      "needOne": "Tieni almeno un percorso, altrimenti il logger non riconoscerà la pista.",
+      "cancel": "Annulla",
+      "confirm": "Salva sul logger"
+    },
+    "bulk": {
+      "selected": "{{count}} selezionate",
+      "clear": "Deseleziona",
+      "send": "Invia al logger",
+      "sent": "{{count}} piste inviate al logger",
+      "someFailed": "Invio non riuscito per {{count}} piste"
+    },
     "get": "Ottieni",
     "compare": "Confronta",
     "resyncAll": "Risincronizza tutto",

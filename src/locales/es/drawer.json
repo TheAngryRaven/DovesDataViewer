@@ -342,6 +342,26 @@
     "progressUnitFiles": "archivos",
     "noCourses": "Sin recorridos",
     "send": "Enviar",
+    "picker": {
+      "button": "Recorridos",
+      "buttonHint": "Elige qué recorridos van al registrador",
+      "title": "Recorridos en el registrador: {{name}}",
+      "descriptionSprint": "Esta pista suma un recorrido en cada evento, y el registrador solo puede leer un archivo hasta cierto tamaño. Los recorridos sin marcar siguen en la app y en tu cuenta; solo el registrador guarda una parte.",
+      "descriptionCircuit": "Elige qué recorridos van al registrador. Los que no marques siguen en la app y en tu cuenta.",
+      "newestBadge": "más reciente",
+      "withinBudget": "{{bytes}} de {{budget}} bytes usados en el registrador",
+      "overBudget": "{{over}} bytes de más: el registrador solo puede leer {{budget}}",
+      "needOne": "Conserva al menos un recorrido o el registrador no reconocerá la pista.",
+      "cancel": "Cancelar",
+      "confirm": "Guardar en el registrador"
+    },
+    "bulk": {
+      "selected": "{{count}} seleccionadas",
+      "clear": "Quitar selección",
+      "send": "Enviar al registrador",
+      "sent": "{{count}} pistas enviadas al registrador",
+      "someFailed": "No se pudieron enviar {{count}} pistas"
+    },
     "get": "Obtener",
     "compare": "Comparar",
     "resyncAll": "Resincronizar todo",
