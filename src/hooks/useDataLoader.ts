@@ -8,7 +8,7 @@ import {
 import { getFileMetadata, updateFileMetadata, type FileMetadata } from "@/lib/fileStorage";
 import { loadTracks } from "@/lib/trackStorage";
 import { findNearestTrack } from "@/lib/trackUtils";
-import { autoDetectCourse } from "@/lib/courseDetection";
+import { autoDetectCourse, tracksForRaceMode } from "@/lib/courseDetection";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ensureSampleFile, SAMPLE_FILE_NAME } from "@/lib/sampleData";
 import type { useSessionData } from "@/hooks/useSessionData";
@@ -156,7 +156,13 @@ export function useDataLoader({
 
       setGpsCenter({ lat: validSample.lat, lon: validSample.lon });
 
-      const detection = autoDetectCourse(parsedData.samples, tracks);
+      // Detection only sees the courses matching the log's own race_mode — a
+      // sprint log must not match a circuit course at the same venue. The full
+      // list stays available everywhere else (allTracks, the prompt fallback).
+      const detection = autoDetectCourse(
+        parsedData.samples,
+        tracksForRaceMode(tracks, parsedData.dovexMetadata?.raceMode),
+      );
       setDetectionResult(detection);
 
       if (detection && !detection.isWaypointMode) {

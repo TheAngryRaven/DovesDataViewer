@@ -1,11 +1,18 @@
 import { useState, useCallback } from 'react';
-import { Course, CourseSector, SectorLine } from '@/types/racing';
+import { Course, CourseSector, CourseType, SectorLine } from '@/types/racing';
 import { deriveShortName, MAX_SHORT_NAME_LENGTH } from '@/lib/trackUtils';
-import { normalizeCourseSectors, isAtSectorLimit, centeredSectorLine, MAX_MAJOR_SECTORS } from '@/lib/courseSectors';
+import {
+  normalizeCourseSectors, isAtSectorLimit, centeredSectorLine,
+  MAX_MAJOR_SECTORS, MAX_SPRINT_SPLITS,
+} from '@/lib/courseSectors';
+import { finalizeCourseForSave } from '@/lib/sprintCourse';
 import type { GpsPoint } from '@/components/track-editor/VisualEditor';
 
-/** Selection in the visual editor: 'sf' = start/finish, a number = sectors[index]. */
-export type SelectedLine = 'sf' | number | null;
+/**
+ * Selection in the visual editor: 'sf' = start/finish (the start line on a
+ * sprint course), a number = sectors[index], 'finish' = the sprint finish line.
+ */
+export type SelectedLine = 'sf' | 'finish' | number | null;
 
 export function useTrackEditorForm() {
   const [formTrackName, setFormTrackName] = useState('');
@@ -20,6 +27,13 @@ export function useTrackEditorForm() {
   const [formLonB, setFormLonB] = useState('');
   // Ordered sector lines after start/finish (canonical model).
   const [formSectors, setFormSectors] = useState<CourseSector[]>([]);
+  // Timing model. Circuit is the default; sprint adds the separate finish line
+  // below and switches the save rules (see validateCourseSectors).
+  const [formCourseType, setFormCourseType] = useState<CourseType>('circuit');
+  const [formFinish, setFormFinish] = useState<SectorLine | null>(null);
+  // Preserved across edits so revising a course can't make it jump the queue on
+  // the device, which loads the NEWEST sprint course by this stamp.
+  const [formDateCreated, setFormDateCreated] = useState<string | undefined>(undefined);
   // Which line the map is currently editing (driven by the sector list).
   const [selectedLine, setSelectedLine] = useState<SelectedLine>(null);
   // The drawn/generated course outline (polyline). Travels into the created
@@ -32,6 +46,9 @@ export function useTrackEditorForm() {
     setFormCourseName('');
     setFormLatA(''); setFormLonA(''); setFormLatB(''); setFormLonB('');
     setFormSectors([]);
+    setFormCourseType('circuit');
+    setFormFinish(null);
+    setFormDateCreated(undefined);
     setSelectedLine(null);
     setFormLayout([]);
   }, []);
@@ -62,9 +79,18 @@ export function useTrackEditorForm() {
     };
     if (formSectors.length > 0) course.sectors = formSectors;
     if (formLayout.length >= 2) course.layout = formLayout;
-    // Normalize so the legacy mirror (sector2/sector3) is written alongside.
-    return normalizeCourseSectors(course);
-  }, [formCourseName, formLatA, formLonA, formLatB, formLonB, formSectors, formLayout]);
+
+    if (formCourseType === 'sprint') {
+      course.type = 'sprint';
+      if (formFinish) course.finish = formFinish;
+      if (formDateCreated) course.dateCreated = formDateCreated;
+    }
+
+    // Branches on the type: circuit normalizes (writing the legacy
+    // sector2/sector3 mirror alongside), sprint stamps date_created instead.
+    return finalizeCourseForSave(course);
+  }, [formCourseName, formLatA, formLonA, formLatB, formLonB, formSectors, formLayout,
+      formCourseType, formFinish, formDateCreated]);
 
   const openEditCourse = useCallback((trackName: string, course: Course) => {
     const norm = normalizeCourseSectors(course);
@@ -76,6 +102,9 @@ export function useTrackEditorForm() {
     setFormLatB(course.startFinishB.lat.toString());
     setFormLonB(course.startFinishB.lon.toString());
     setFormSectors(norm.sectors ?? []);
+    setFormCourseType(course.type ?? 'circuit');
+    setFormFinish(course.finish ?? null);
+    setFormDateCreated(course.dateCreated);
     setSelectedLine(null);
     setFormLayout(course.layout ?? []);
   }, []);
@@ -95,21 +124,26 @@ export function useTrackEditorForm() {
       startFinishB: { lat: parseFloat(formLatB), lon: parseFloat(formLonB) },
       sectors: formSectors,
     };
-    if (isAtSectorLimit(course)) return;
+    const isSprint = formCourseType === 'sprint';
+    if (isSprint ? formSectors.length >= MAX_SPRINT_SPLITS : isAtSectorLimit(course)) return;
     const line = center
       ? centeredSectorLine(center)
       : defaultSectorLine(formLatA, formLonA, formLatB, formLonB, formSectors.length);
     const at = insertIndex === undefined ? formSectors.length : Math.max(0, Math.min(insertIndex, formSectors.length));
-    // Default a new line to "major" while there's still room under the cap
-    // (start/finish is the implicit first major, so MAX_MAJOR_SECTORS - 1 more
-    // are allowed). This makes the common 3-sector course valid after just two
-    // adds with no Major toggling; further lines default to sub-sectors, which
-    // the user can promote if needed.
+    // Circuit: default a new line to "major" while there's still room under the
+    // cap (start/finish is the implicit first major, so MAX_MAJOR_SECTORS - 1
+    // more are allowed). This makes the common 3-sector course valid after just
+    // two adds with no Major toggling; further lines default to sub-sectors,
+    // which the user can promote if needed.
+    //
+    // Sprint: never flag a split. `major` has no meaning point-to-point, and
+    // flagging would let a course retyped to circuit silently look like a valid
+    // three-major layout it never had.
     const flaggedMajors = formSectors.filter((s) => s.major).length;
-    const major = flaggedMajors < MAX_MAJOR_SECTORS - 1;
+    const major = !isSprint && flaggedMajors < MAX_MAJOR_SECTORS - 1;
     setFormSectors([...formSectors.slice(0, at), { line, major }, ...formSectors.slice(at)]);
     setSelectedLine(at);
-  }, [formCourseName, formLatA, formLonA, formLatB, formLonB, formSectors]);
+  }, [formCourseName, formLatA, formLonA, formLatB, formLonB, formSectors, formCourseType]);
 
   const removeSector = useCallback((index: number) => {
     setFormSectors((prev) => prev.filter((_, i) => i !== index));
@@ -140,6 +174,10 @@ export function useTrackEditorForm() {
     setFormLonB(b.lon.toString());
   }, []);
 
+  const handleVisualFinishChange = useCallback((line: SectorLine) => {
+    setFormFinish(line);
+  }, []);
+
   const handleVisualSectorLineChange = useCallback((index: number, line: SectorLine) => {
     setFormSectors((prev) => prev.map((s, i) => (i === index ? { ...s, line } : s)));
   }, []);
@@ -160,6 +198,9 @@ export function useTrackEditorForm() {
     formCourseName, setFormCourseName,
     formLatA, formLonA, formLatB, formLonB,
     formSectors,
+    formCourseType, setFormCourseType,
+    formFinish, setFormFinish,
+    formDateCreated,
     selectedLine, setSelectedLine,
     formLayout,
     editingCourse, setEditingCourse,
@@ -171,6 +212,7 @@ export function useTrackEditorForm() {
     toggleSectorMajor,
     reorderSectors,
     handleVisualStartFinishChange,
+    handleVisualFinishChange,
     handleVisualSectorLineChange,
     handleVisualLayoutChange,
     visualEditorStartFinishA,

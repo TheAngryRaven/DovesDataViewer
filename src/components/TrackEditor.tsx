@@ -426,9 +426,12 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     startFinishA: form.visualEditorStartFinishA,
     startFinishB: form.visualEditorStartFinishB,
     sectors: form.formSectors,
+    courseType: form.formCourseType,
+    finish: form.formFinish,
     selectedLine: form.selectedLine,
     onSelectLine: form.setSelectedLine,
     onStartFinishChange: form.handleVisualStartFinishChange,
+    onFinishChange: form.handleVisualFinishChange,
     onSectorLineChange: form.handleVisualSectorLineChange,
     onAddSector: form.addSector,
     onRemoveSector: form.removeSector,
@@ -436,11 +439,24 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     onReorder: form.reorderSectors,
   } as const;
 
-  // Save is blocked unless the sector layout is valid (0 sectors or 3 majors).
+  // The type picker is offered only when creating a course. Retyping one that
+  // already has geometry would silently invalidate it — a circuit's three
+  // majors are not a sprint's splits — so editing keeps the type it was saved
+  // with.
+  const courseTypeProps = {
+    courseType: form.formCourseType,
+    onCourseTypeChange: form.setFormCourseType,
+  } as const;
+
+  // Save is blocked unless the line layout is valid for the course type:
+  // circuit wants 0 sectors or 3 majors, sprint wants a finish line and at most
+  // MAX_SPRINT_SPLITS splits.
   const sectorsValid = validateCourseSectors({
     name: form.formCourseName,
+    type: form.formCourseType,
     startFinishA: form.visualEditorStartFinishA ?? { lat: 0, lon: 0 },
     startFinishB: form.visualEditorStartFinishB ?? { lat: 0, lon: 0 },
+    finish: form.formFinish ?? undefined,
     sectors: form.formSectors,
   }).valid;
 
@@ -458,6 +474,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     onSubmit: handleAddCourse,
     onCancel: () => { setIsAddCourseOpen(false); form.resetForm(); },
     ...sectorEditorProps,
+    ...courseTypeProps,
     layoutPoints: form.formLayout,
     onLayoutChange: form.handleVisualLayoutChange,
     laps,

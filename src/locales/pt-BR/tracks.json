@@ -15,7 +15,12 @@
     "title": "Adicionar novo traçado",
     "courseName": "Nome do traçado",
     "courseNamePlaceholder": "ex.: Traçado completo",
-    "create": "Criar traçado"
+    "create": "Criar traçado",
+    "courseType": "Tipo de traçado",
+    "typeCircuit": "Circuito",
+    "typeSprint": "Sprint",
+    "typeCircuitHint": "Voltas — uma mesma linha é largada e chegada.",
+    "typeSprintHint": "Ponto a ponto (autocross, subida de montanha, especial) — linha de chegada separada, cronometrado por baterias."
   },
   "sectors": {
     "addSector": "Adicionar setor",
@@ -27,7 +32,13 @@
     "dragReorder": "Arraste para reordenar",
     "markMajor": "Marcar como setor principal",
     "deleteSector": "Excluir setor",
-    "resetStartFinish": "Redefinir linha de largada/chegada"
+    "resetStartFinish": "Redefinir linha de largada/chegada",
+    "startLineSprint": "Linha de largada",
+    "finishLine": "Linha de chegada",
+    "splitRow": "Parcial {{label}}",
+    "sprintGuidance": "Um traçado sprint vai da linha de largada até uma linha de chegada separada. Adicione até {{max}} linhas parciais entre elas (opcional).",
+    "sprintSplitLimit": "Limite de parciais atingido ({{max}} entre largada e chegada).",
+    "resetFinish": "Redefinir linha de chegada"
   },
   "visual": {
     "draw": "Desenhar",
@@ -67,7 +78,9 @@
     "drawingGenerated": "Desenho gerado",
     "drawingGeneratedDesc": "{{label}} ({{count}} pontos).",
     "generatedFromLap": "Gerado a partir da volta {{number}}",
-    "generatedFromSession": "Gerado a partir da sessão completa"
+    "generatedFromSession": "Gerado a partir da sessão completa",
+    "startLine": "Largada",
+    "finishLine": "Chegada"
   },
   "prompt": {
     "selectCourse": "Selecionar traçado",

@@ -5,8 +5,9 @@ import {
   formatLapTime,
   formatSectorTime,
   calculateOptimalLap,
+  pairSprintRuns,
 } from "./lapCalculation";
-import type { GpsSample, Course, Lap } from "@/types/racing";
+import type { GpsSample, Course, Lap, LapCrossing } from "@/types/racing";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -534,5 +535,169 @@ describe("calculateOptimalLap", () => {
     const result = calculateOptimalLap(laps)!;
     expect(result.optimalTimeMs).toBe(60000);
     expect(result.deltaToFastest).toBe(50000 - 60000); // negative — fastest beats theoretical optimal
+  });
+});
+
+// ─── calculateLaps: sprint (point-to-point) ──────────────────────────────────
+
+/**
+ * Sprint geometry, all lines vertical and lat ∈ [-0.0001, 0.0001]:
+ *   start at lon=0 · split 1 at lon=0.002 · split 2 at lon=0.004 · finish at lon=0.006
+ *
+ * A run drives east through all four; the return to grid loops far north
+ * (lat=0.01), well outside every line's lat range, so it registers nothing.
+ */
+const SPRINT_LINES = {
+  start: { a: { lat: 0.0001, lon: 0 }, b: { lat: -0.0001, lon: 0 } },
+  finish: { a: { lat: 0.0001, lon: 0.006 }, b: { lat: -0.0001, lon: 0.006 } },
+  split1: { a: { lat: 0.0001, lon: 0.002 }, b: { lat: -0.0001, lon: 0.002 } },
+  split2: { a: { lat: 0.0001, lon: 0.004 }, b: { lat: -0.0001, lon: 0.004 } },
+};
+
+const sprintCourse: Course = {
+  name: "TestSprintCourse",
+  type: "sprint",
+  startFinishA: SPRINT_LINES.start.a,
+  startFinishB: SPRINT_LINES.start.b,
+  finish: SPRINT_LINES.finish,
+};
+
+/** The same course with the two optional splits — stored `major: false`, as the editor writes them. */
+const sprintSplitCourse: Course = {
+  ...sprintCourse,
+  name: "TestSprintSplitCourse",
+  sectors: [
+    { line: SPRINT_LINES.split1, major: false },
+    { line: SPRINT_LINES.split2, major: false },
+  ],
+};
+
+/**
+ * One run of duration `d`: start crossed at +0.05d, splits at +0.15d / +0.25d,
+ * finish at +0.35d (so the run itself takes 0.3d), then a northern return leg.
+ */
+function makeSprintRun(startT: number, d: number, speedMps = 20): GpsSample[] {
+  return [
+    makeSample(startT, 0, -0.001, speedMps),
+    makeSample(startT + d * 0.1, 0, 0.001, speedMps), // cross start
+    makeSample(startT + d * 0.2, 0, 0.003, speedMps), // cross split 1
+    makeSample(startT + d * 0.3, 0, 0.005, speedMps), // cross split 2
+    makeSample(startT + d * 0.4, 0, 0.007, speedMps), // cross finish
+    makeSample(startT + d * 0.5, 0.01, 0.007, speedMps), // north, clear of every line
+    makeSample(startT + d * 0.7, 0.01, -0.001, speedMps), // west at high lat
+    makeSample(startT + d * 0.9, 0, -0.001, speedMps), // back on grid
+  ];
+}
+
+const RUN_D = 60000;
+
+describe("calculateLaps - sprint runs", () => {
+  it("pairs each start crossing with the following finish crossing", () => {
+    const samples = [0, 1, 2].flatMap((i) => makeSprintRun(i * RUN_D, RUN_D));
+    const runs = calculateLaps(samples, sprintCourse);
+
+    expect(runs).toHaveLength(3);
+    expect(runs.map((r) => r.lapNumber)).toEqual([1, 2, 3]);
+    runs.forEach((run, i) => {
+      // Run = start (+0.05d) → finish (+0.35d), i.e. 0.3d — NOT the full lap of grid-to-grid.
+      expect(run.lapTimeMs).toBeCloseTo(RUN_D * 0.3, -1);
+      expect(run.startTime).toBeCloseTo(i * RUN_D + RUN_D * 0.05, -1);
+      expect(run.endTime).toBeCloseTo(i * RUN_D + RUN_D * 0.35, -1);
+      expect(run.startIndex).toBeLessThan(run.endIndex);
+    });
+  });
+
+  it("returns no runs when the sprint course has no finish line", () => {
+    const samples = [0, 1].flatMap((i) => makeSprintRun(i * RUN_D, RUN_D));
+    expect(calculateLaps(samples, { ...sprintCourse, finish: undefined })).toEqual([]);
+  });
+
+  it("opens the run at the LAST start crossing before the finish (re-launch rule)", () => {
+    // Launch, abort back over the start line, re-launch, then finish. The device
+    // cancels and restarts the run on the second start crossing, so must we.
+    const samples = [
+      makeSample(0, 0, -0.001),
+      makeSample(1000, 0, 0.001), // first launch — crosses start at t=500
+      makeSample(2000, 0, 0.003),
+      makeSample(8000, 0, -0.001), // aborts back west (reverse crossing at t=6500)
+      makeSample(14000, 0, 0.001), // re-launch — crosses start at t=11000
+      makeSample(20000, 0, 0.007), // crosses finish at t=19000
+      makeSample(26000, 0.01, 0.007),
+      makeSample(32000, 0.01, -0.001),
+    ];
+    const runs = calculateLaps(samples, sprintCourse);
+
+    expect(runs).toHaveLength(1);
+    expect(runs[0].startTime).toBeCloseTo(11000, -1);
+    expect(runs[0].endTime).toBeCloseTo(19000, -1);
+    expect(runs[0].lapTimeMs).toBeCloseTo(8000, -1);
+  });
+
+  it("splits the run at every split line, closing the last segment on the finish", () => {
+    const samples = [0, 1].flatMap((i) => makeSprintRun(i * RUN_D, RUN_D));
+    const runs = calculateLaps(samples, sprintSplitCourse);
+
+    expect(runs).toHaveLength(2);
+    const run = runs[0];
+    // 2 splits ⇒ 3 segments: start→s1, s1→s2, s2→finish.
+    expect(run.sectorTimes).toHaveLength(3);
+    expect(run.sectorTimes!.every((t) => t !== undefined && t > 0)).toBe(true);
+    const total = run.sectorTimes!.reduce((a, b) => a! + b!, 0)!;
+    expect(total).toBeCloseTo(run.lapTimeMs, -1);
+    // Each leg of this fixture is a tenth of the run duration apart.
+    run.sectorTimes!.forEach((t) => expect(t).toBeCloseTo(RUN_D * 0.1, -1));
+  });
+
+  it("still produces circuit laps for a course of the same geometry typed as circuit", () => {
+    // Guard against the sprint branch leaking: with no `type`, the start line is
+    // crossed once per run, so consecutive crossings pair into grid-to-grid laps.
+    const samples = [0, 1, 2].flatMap((i) => makeSprintRun(i * RUN_D, RUN_D));
+    const laps = calculateLaps(samples, {
+      ...sprintCourse,
+      type: undefined,
+      finish: undefined,
+      name: "AsCircuit",
+    });
+    expect(laps).toHaveLength(2);
+    expect(laps[0].lapTimeMs).toBeCloseTo(RUN_D, -1);
+  });
+});
+
+// ─── pairSprintRuns ──────────────────────────────────────────────────────────
+
+describe("pairSprintRuns", () => {
+  const at = (crossingTime: number): LapCrossing => ({
+    sampleIndex: crossingTime,
+    crossingTime,
+    fraction: 0.5,
+  });
+  const times = (runs: Array<[LapCrossing, LapCrossing]>) =>
+    runs.map(([s, f]) => [s.crossingTime, f.crossingTime]);
+
+  it("pairs alternating start/finish crossings in order", () => {
+    expect(times(pairSprintRuns([at(10), at(100)], [at(50), at(150)]))).toEqual([
+      [10, 50],
+      [100, 150],
+    ]);
+  });
+
+  it("ignores a finish crossing with no armed run", () => {
+    // The car rolls over the finish line on its way to grid before ever starting.
+    expect(times(pairSprintRuns([at(100)], [at(10), at(150)]))).toEqual([[100, 150]]);
+  });
+
+  it("takes the last start crossing when several precede one finish", () => {
+    expect(times(pairSprintRuns([at(10), at(20), at(30)], [at(50)]))).toEqual([[30, 50]]);
+  });
+
+  it("never reuses a start crossing from a completed run", () => {
+    // The second finish has no start after the first finish — it is dropped
+    // rather than re-pairing with the already-consumed start.
+    expect(times(pairSprintRuns([at(10)], [at(50), at(90)]))).toEqual([[10, 50]]);
+  });
+
+  it("returns nothing when either line was never crossed", () => {
+    expect(pairSprintRuns([], [at(50)])).toEqual([]);
+    expect(pairSprintRuns([at(10)], [])).toEqual([]);
   });
 });

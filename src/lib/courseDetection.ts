@@ -20,7 +20,7 @@
  * - Divide lap distance by 3 for approximate sectors
  */
 
-import { GpsSample, Track, Course, Lap, CourseDirection, CourseDetectionResult } from '@/types/racing';
+import { GpsSample, Track, Course, Lap, CourseDirection, CourseDetectionResult, RaceMode, isSprintCourse } from '@/types/racing';
 import { calculateLaps, detectSectorOrder } from './lapCalculation';
 import { findNearestTrack, DEFAULT_TRACK_SEARCH_RADIUS_M } from './trackUtils';
 import { haversineDistance, METERS_TO_FEET } from './parserUtils';
@@ -71,6 +71,33 @@ function calculateAverageLapDistanceFt(samples: GpsSample[], laps: Lap[]): numbe
 function detectDirection(samples: GpsSample[], course: Course, laps: Lap[]): CourseDirection | undefined {
   if (laps.length === 0) return undefined;
   return detectSectorOrder(samples, course);
+}
+
+/**
+ * Narrow a track list to the timing model a log says it was recorded in.
+ *
+ * A venue can carry both a circuit layout and a sprint one — they are separate
+ * tracks that may even share a short name. Left unfiltered, `findNearestTrack`
+ * can pick the wrong one outright and the session shows zero laps, so the
+ * DOVEX header's `race_mode` column is used to drop the courses (and then the
+ * tracks) that cannot be what was driven.
+ *
+ * Deliberately conservative in both directions: an unknown mode (every log
+ * predating the column) and a filter that would leave nothing both return the
+ * input unchanged, so no log detects worse than it did before this existed.
+ */
+export function tracksForRaceMode(tracks: Track[], raceMode?: RaceMode): Track[] {
+  if (!raceMode) return tracks;
+
+  const wantSprint = raceMode === 'sprint';
+  const narrowed = tracks
+    .map((track) => ({
+      ...track,
+      courses: track.courses.filter((c) => isSprintCourse(c) === wantSprint),
+    }))
+    .filter((track) => track.courses.length > 0);
+
+  return narrowed.length > 0 ? narrowed : tracks;
 }
 
 /**

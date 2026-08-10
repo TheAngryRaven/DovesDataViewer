@@ -10,14 +10,50 @@
  * `createMychronConnection` takes a connected device's `info`.
  */
 
-import type { LoggerConnection } from "../types";
+import type { DeviceDetails, LoggerConnection } from "../types";
 import { computeProgress } from "../progress";
 import {
   type LoggerDeviceInfo,
   loggerListFiles,
   loggerDownloadFile,
   loggerDisconnect,
+  loggerBattery,
+  loggerListSettings,
+  loggerSetSetting,
+  loggerResetSettings,
+  loggerListTracks,
+  loggerDownloadTrack,
+  loggerUploadTrack,
+  loggerDeleteTrack,
 } from "./ipc";
+
+/**
+ * The Device-tab surface over the native `logger_*` IPC. Stateless — the
+ * backend operates on whichever logger the last `logger_connect` bound (one
+ * global connection slot), so no handle is threaded through.
+ */
+export function createNativeDeviceDetails(): DeviceDetails {
+  return {
+    battery: () => loggerBattery(),
+    listSettings: () => loggerListSettings(),
+    setSetting: (key, value) => loggerSetSetting(key, value),
+    resetSettings: () => loggerResetSettings(),
+    // Sprint tracks live in a separate folder reached by the TS* BLE verbs,
+    // which the native bridge does not implement yet. Report nothing rather
+    // than throwing: it genuinely cannot fetch them, and the tab says so
+    // explicitly via supportsSprintTracks rather than showing an empty list
+    // that reads as "no sprint tracks on the device".
+    //
+    // Scheduled for the end of plan 0015 — it is gated on the native app's
+    // release, not on anything in this repo. See
+    // docs/plans/0015-sprint-mode.md, "Android IPC — end-of-project follow-up".
+    listTracks: (kind) => (kind === 'sprint' ? Promise.resolve([]) : loggerListTracks()),
+    getTrack: (name) => loggerDownloadTrack(name),
+    putTrack: (name, data) => loggerUploadTrack(name, data),
+    deleteTrack: (name) => loggerDeleteTrack(name),
+    supportsSprintTracks: false,
+  };
+}
 
 /** Adapt a connected DovesLogger (described by `info`) to the generic logger interface. */
 export function createDovesloggerConnection(info: LoggerDeviceInfo): LoggerConnection {
@@ -25,12 +61,13 @@ export function createDovesloggerConnection(info: LoggerDeviceInfo): LoggerConne
     // Same physical logger family as the Web Bluetooth Fledgling.
     kind: "fledgling",
     displayName: info.name ?? info.model ?? "PerchWerks Fledgling",
-    // Settings / tracks / firmware OTA stay on the Web Bluetooth path for now, so
-    // the native BLE connection exposes only the download surface.
-    supportsDeviceDetails: false,
+    // The full Device-tab surface (settings / tracks / battery) rides the
+    // native IPC; firmware OTA has its own flow (useNativeFirmwareUpdate).
+    supportsDeviceDetails: true,
+    details: createNativeDeviceDetails(),
     listLogs: async () => {
       const files = await loggerListFiles();
-      return files.map((f) => ({ name: f.name, size: f.size }));
+      return files.map((f) => ({ name: f.name, size: f.size, date: f.date, meta: f.meta }));
     },
     downloadLog: (name, onProgress) => {
       const start = Date.now();

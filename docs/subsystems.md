@@ -73,8 +73,8 @@ names that `normalizeChannels` canonicalises.
 
 Extended Dove format with an 8192-byte (8 KB) metadata header:
 ```
-Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms
-Line 2: 2024-03-15 14:30:00,Mike,Full CW,OKC,62345,61200
+Line 1: datetime,driver,course,short_name,best_lap_ms,optimal_ms,device_name,race_mode
+Line 2: 2024-03-15 14:30:00,Mike,Cones AM,AX1,62345,61200,ApexTurbo,SPRINT
 Line 3: lap_times_ms
 Line 4: 65432,64321,62345,63456   (lap times in ms, comma-separated)
 \n padding to byte 8192
@@ -83,6 +83,17 @@ Byte 8192+: standard .dove CSV (timestamp,sats,hdop,lat,lng,...)
 
 GPS data is always parseable even if metadata is corrupted. Metadata is attached
 as `ParsedData.dovexMetadata`.
+
+**Columns are read by name, not by position** — that is what lets the firmware
+append columns without breaking older logs. `device_name` and `race_mode` are
+the two most recent; six-column logs simply leave them unset.
+
+**`race_mode`** is `CIRCUIT` / `SPRINT`, compared case-insensitively; empty,
+absent and unrecognized all surface as `undefined`, which every reader treats as
+circuit. It is the app's only signal that a log's "laps" are point-to-point runs
+(line 4 then lists run times), and it narrows auto-detection to matching courses
+via `courseDetection.tracksForRaceMode`, so a sprint log can't latch onto a
+circuit course at the same venue. See `docs/plans/0015-sprint-mode.md`.
 
 **Headerless files:** the logger only writes the metadata header on "end
 session", so an unclosed session leaves the reserved region as blank padding
@@ -141,6 +152,12 @@ never reasons about sector geometry directly.
   numbering (`sectorLabels`: `1, 1.1, 2, 2.1, 3`). Save is blocked unless there
   are 0 sectors or exactly 3 majors (`validateCourseSectors`). Three line colors
   on every map: S/F green, major purple, sub sky-blue.
+- **Sprint courses opt out of the majors rule.** A `type: 'sprint'` course is
+  point-to-point: a required separate `finish` line and 0–`MAX_SPRINT_SPLITS`
+  optional splits, with `major` ignored (splits are stored unflagged so a
+  retype to circuit fails validation loudly). `validateCourseSectors` branches
+  on the type rather than growing a second validator. See
+  `docs/plans/0015-sprint-mode.md`.
 - **The logger only ever sees the 3 majors.** `majorSectorLines`/`legacyMirror`
   project the course down to start/finish + `sector2`/`sector3` —
   **byte-identical** to the pre-overhaul device JSON, submission payload, and

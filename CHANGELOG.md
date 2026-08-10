@@ -11,6 +11,279 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [4.0.0] - 2026-08-10
+
+### Added
+- **Debug Pages** — a new logger setting controlling the two diagnostic pages
+  at the front of the race rotation (GPS/RF counters and the stats page). The
+  firmware now hides them by default so a driver only sees speed, RPM and lap
+  pages; flip this to Shown for development or tuning. Appears once your
+  logger has the firmware that supports it.
+- **Display Colours** — a new logger setting that inverts the screen, so it
+  shows black on a lit background instead of white on black. Easier to read in
+  direct sun. Appears once your logger has the firmware that supports it; the
+  default matches how the screen has always looked.
+- **Settings with a fixed set of choices are now dropdowns** (plan 0003).
+  Device settings only knew about text and numbers, so anything with a fixed
+  set of values was a free-text box where a typo silently reverted the logger
+  to its default — which reads as the setting not working at all.
+  - **Race Mode** is affected today: it lives on the logger but was never in
+    the settings list, so it showed as a raw text field. It's now a proper
+    Circuit / Sprint picker with an explanation of what it actually does (it
+    only breaks a tie when both a circuit and a sprint track are in range).
+  - **Spark Mode** and **Cylinders** are listed ready for the firmware that
+    adds them; they stay hidden until your logger reports them.
+  - A value the app doesn't recognise — from older or newer firmware, or a
+    hand-edited settings file — is shown as-is rather than silently displayed
+    as one of the choices it does know.
+- **Sprint tracks now send only their newest course to the logger** (plan 0017).
+  A sprint venue re-lays its course every event, so the courses pile up in one
+  track file — and once that file is bigger than the logger can read, the track
+  isn't recognised at the venue at all. Only the most recently walked course is
+  written to the logger now. **Every course stays in the app and in your
+  account**; only what lives on the card is trimmed. Circuit tracks are
+  unaffected — those layouts are all still driven, so they all stay on.
+- **A track too big for the logger is now reported instead of silently
+  overflowing** (plan 0017). The app knows how much room your logger's firmware
+  has and says which track doesn't fit, rather than sending a file that comes
+  back unreadable.
+- **You can choose which courses go on the logger** (plan 0017). A new
+  **Courses** button on any track with more than one course opens a checklist,
+  with a live count of how much of the logger's room the selection uses and how
+  much there is. Unchecked courses stay in the app and in your account — only
+  the logger holds a subset. Use it to keep an older sprint course on the card,
+  or to trim a track that doesn't fit.
+- **Tracks can be selected and sent in one go** (plan 0017). Tick any number of
+  tracks in the list and send them all to the logger together. Each is sent as
+  whatever you chose above, so a bulk send never undoes your course picks.
+- **Connecting a logger now offers what it needs, instead of waiting to be
+  asked** (plan 0016). Connect, and the app checks for a firmware update and
+  then whether any tracks differ between the app and the device — no digging
+  through the drawer for either.
+  - The firmware prompt gains a **Remind me tomorrow** button that defers it for
+    24 hours. It's remembered per logger and per version, so two loggers don't
+    shadow each other and a brand-new release still asks straight away rather
+    than inheriting yesterday's "tomorrow".
+  - The automatic check no longer announces itself when there's nothing to do —
+    the "you're up to date" and "check failed" messages are for when *you*
+    pressed the button. Offline, the check is skipped rather than reported as a
+    failure.
+  - The track prompt only appears when something actually differs, and saying no
+    to it lasts for that connection.
+- **Name the courses you walked on the logger, without a laptop** (plan 0016).
+  A course created on the device is named from its GPS clock — `N260803_1432` —
+  because the logger has no way to type on it. A new sync wizard lists
+  everything that differs between the app and the logger, marks each row
+  **Upload** or **Download**, and gives every device-named track a name box
+  with a short-name box beside it that fills itself in as you type. A second
+  screen does the same for course names. Circuit courses must be named; sprint
+  courses can keep the date they were walked, since a sprint venue re-lays its
+  course every event and the date is genuinely the useful label. Track names
+  are always required.
+  - **The new names are written back to the logger**, not just kept here — the
+    whole point, since otherwise the two sides disagree and the same prompt
+    returns on every connect.
+  - Tracks that could never sync are listed with the reason instead of being
+    retried forever: a track mixing circuit and sprint courses (the logger
+    stores those separately), one with more courses than the logger can read
+    back, or a sprint track on a connection that can't reach the sprint folder.
+  - The existing Device → Tracks tab is unchanged for per-track work.
+- **Sprint sessions can finally be read back** (plan 0015). Load a log recorded
+  on a sprint course and the app now lists one row per run — start line to the
+  separate finish line — instead of showing nothing at all. Split times, the
+  fastest-run trophy, the map overlay, video sync and leaderboards all keep
+  working, because a run is still modelled as a lap. **This completes sprint
+  mode**: author a course, push it to the logger, drive it, review it.
+  - Runs are timed the way the logger times them: crossing the start line again
+    cancels and restarts the run, so a botched launch and re-run reads the same
+    on screen as it did on the dash.
+  - The **split lines** placed between start and finish now show up as sector
+    times. They previously never rendered at all — a sprint course's splits are
+    stored without the circuit "major sector" flag, and the sector display asked
+    for that flag.
+  - The logger's **`race_mode`** is finally read out of the log header (it was
+    being written and thrown away), along with the device name. It also steers
+    course detection: at a venue with both a circuit and a sprint track, a
+    sprint log no longer risks matching the circuit one and reporting zero runs.
+    Logs recorded before the column existed are unaffected.
+  - **"Lap" wording is kept** — autocross drivers call them laps, and so does
+    the logger. Only the two labels that would be untrue for a point-to-point
+    run change: the empty-state hint, and "Avg Lap Length" → "Avg Run Length".
+- **Sprint tracks appear in the Device tab and sync over Bluetooth** (plan
+  0015). The tab now loads both folders off the logger, tags each track with
+  its kind, and marks sprint tracks with a badge — a circuit and a sprint track
+  can legitimately share a short name, so the list would otherwise show two
+  identical-looking rows. Upload, download and delete all target the folder the
+  track actually came from. **This closes the loop**: a sprint course authored
+  in the track editor can now be pushed to the logger and driven.
+  - **Sprint tracks are Bluetooth-only for now.** The native Android path
+    reports that it can't reach the sprint folder rather than showing an empty
+    list, because the bridge doesn't speak the `TS*` verbs yet. That work is
+    sequenced at the end of the plan — it's gated on the native app's release,
+    which isn't live.
+- **Sprint track sync speaks the device's `TS*` verbs** (plan 0015). The BLE
+  client can now list, download, upload and delete tracks in the logger's
+  `/TRACKS/SPRINT` folder, alongside the existing `/TRACKS` ones. The folder is
+  chosen by the opcode rather than by a path in the filename, matching the
+  firmware — its validator deliberately rejects `/` and `..` to keep a client
+  jailed to the tracks folders.
+  - Track sync entries are now keyed on **(kind, short name)**, not the short
+    name alone. A circuit `OKC` and a sprint `OKC` are two separate files on the
+    device, and keying on the name alone collided them — one would have been
+    reported as a mismatched version of the other.
+  - Not yet reachable from the Device tab: that path runs through the
+    transport-neutral device seam shared with the native Android app, which
+    needs its own pass.
+- **Sprint courses can be created and edited** (plan 0015). The course editor
+  gained a **Circuit / Sprint** picker, and a sprint course gets a second,
+  separate **finish line** handle on the map — rendered in red after the splits,
+  because that is the order you cross them. The sector list grows a matching
+  Finish row at the bottom, drops the Major switch (meaningless point-to-point),
+  and relabels its rows Split 1/2. Selecting Sprint drops a finish line for you
+  north of the start rather than making you hunt for a button.
+  - The type is fixed once a course exists: retyping a course that already has
+    geometry would silently invalidate it, since a circuit's three majors are
+    not a sprint's splits.
+  - Still no device sync for sprint tracks (`TS*` opcodes) and no runs view —
+    those are the next two steps.
+- **Sprint (autocross / point-to-point) course model — foundation** (plan 0015).
+  Courses can now be typed `circuit` or `sprint`. A sprint course is timed
+  start-line → *separate* finish line rather than lap-to-lap, carries a required
+  `finish` line and a `date_created` stamp, and allows 0–2 optional split lines
+  instead of the circuit model's all-or-nothing three majors. The logger and the
+  timing library have shipped sprint support for a while, but nothing could
+  author a sprint track — this is the app starting to close that loop.
+  **No UI yet**: this change is the data model, validation and device wire
+  format only. The course editor, `TS*` track sync and the runs view follow.
+  - `date_created` is stamped once and preserved across edits. The logger picks
+    which sprint course to load by comparing these stamps as plain **strings**,
+    so the format is a fixed sortable `YYYY-MM-DDTHH:MM` — an edit must not let
+    a course jump the queue on the device, and a non-sortable stamp would
+    silently load the wrong cone layout.
+  - Existing courses are unaffected. The type is optional and absent means
+    circuit, so every saved, bundled and cloud-synced course keeps working with
+    no migration.
+- **Device tab works in the native Android app.** Settings, track management,
+  and battery now ride the native logger IPC when running inside LapWing —
+  previously the whole Device tab was dead there because the webview has no
+  Web Bluetooth. One transport-neutral `DeviceDetails` seam backs both paths
+  (Web Bluetooth on the web, `logger_*` commands in the app), the native
+  connect flow gets an in-app scan picker (BLE has no OS chooser), and the
+  single native connection slot is guarded so the Device tab and a download
+  screen can't silently steal the logger from each other. Firmware updates in
+  the app remain on the Fledgling download screen (the settings tab points
+  there).
+- **Session dates in the native logger file lists.** The MyChron / Alfano /
+  DovesLogger download dialogs now show each session's recorded date under its
+  name when the device reports one — so Alfano sessions are no longer bare
+  hex ids.
+
+### Changed
+- **Tracks are sent to the logger without formatting whitespace** (plan 0017).
+  The logger reads a whole track file into a fixed buffer and parses it there;
+  a file past that buffer is cut mid-file, fails to parse, and the track then
+  isn't recognised at the venue at all rather than just losing its tail. The
+  indentation was about a quarter of every file and nothing reads it, so it's
+  gone — which is roughly a quarter more courses per track before the limit
+  bites. Nothing changes on your logger or in your own track files.
+
+### Fixed
+- **A logger holding fewer courses than the app no longer asks to sync on every
+  connect** (plan 0017). The check treated any course in the app but not on the
+  logger as work outstanding, so once a track carried a subset — which is now
+  the normal state for sprint tracks — it could never read as synced and the
+  prompt returned every single time you connected.
+- **"Resync All" no longer leaves a duplicate track on the logger** (plan 0017).
+  For a course you created on the logger itself, the track's short name and its
+  filename are different — so Resync All deleted nothing and wrote a *second*
+  copy alongside the original. Every resync added another, filling the card and
+  pushing tracks toward the size limit above. It now writes to the file that is
+  actually there, which is what every other button in the tracks list already
+  did.
+- **The sync wizard's course screen no longer pre-fills the track's name**
+  (plan 0016). Naming a track and moving to the course step put that same name
+  into every course box, which is not what a course is called. Each course now
+  shows its original name, which track it belongs to, and the date it was
+  walked in readable form — the same layout as the track step. The box starts
+  with whatever would be saved if you changed nothing: a sprint course keeps
+  the date it was walked, since a sprint venue re-lays its course every event,
+  and a circuit course starts empty because it needs a real name.
+- **Tracks sent to the logger keep their name and course lengths** (plan 0016).
+  Uploading a track wrote it in the older bare-list format, which the logger
+  reads but which carries no track name, no short name, and no course length.
+  The length is what the logger ranks courses by when it works out which one
+  you're on — so a track sent from this app could never be recognised and fell
+  back to timing "anything", and the blank short name ended up in the log
+  header. Uploads now use the same full format the app's own track files and
+  the logger's course creator already use, so nothing new is asked of any
+  device already in the field. Editing a single course preserves it too — that
+  path stripped the same information from a file that had it.
+- **A track downloaded from the logger can now be sent back to it** (plan 0016).
+  Importing a track from the device dropped its short name, and the sync
+  matches the two sides by short name — so an imported track was invisible to
+  every later sync. It stayed listed as "on device only" forever, and the
+  device kept re-offering it. Two things were wrong: the short name wasn't
+  carried across on import, and the sync matched on the *filename* rather than
+  the short name the file declares. Those differ for a course walked on the
+  device, which is stored as `N260803_1432.json` but names itself `08031432`.
+  Writes still go to the real file, so nothing is orphaned on the card.
+- **A course created on the logger now actually arrives when you sync it.**
+  Syncing a track the device authored itself brought the track across with
+  **no courses in it** — the walked course was on the card and simply
+  vanished on the way in. The device writes the same track-file shape this
+  app does (a track object with a `courses` list), but the device-sync
+  reader only understood the older bare-list format, so it parsed the file
+  fine, found no list where it expected one, and returned nothing without
+  a word. Both shapes are now read, matching what the logger's own parser
+  accepts.
+- **Sprint finish lines are drawn on the maps, not just in the track
+  editor.** A sprint course's separate finish line only ever appeared while
+  editing it — the session race-line map and the simulator map didn't know
+  the line existed, so a point-to-point course looked identical to a
+  circuit one everywhere it mattered. Both now draw it, and on a sprint
+  course the start line turns green so start and finish read as
+  green-to-end rather than two identical red lines. Circuit maps are
+  unchanged.
+- **A firmware update that fails with "SIZE" now says what to do about it.**
+  The size limit lives in the firmware *already installed on the logger*, not
+  in the image or in this app — anything older than v3.1.0 carved a smaller
+  staging region out of flash and refuses a larger image before the upload
+  even starts. The app relayed the device's bare `SIZE` token, which gave no
+  hint that the fix is to install v3.1.0 first (it fits under the old limit,
+  and carries the bigger region) and then retry. It now says exactly that,
+  naming the version the device reported. Devices that report v3.1.0 or newer
+  and still refuse are pointed at USB instead, rather than sent on a
+  pointless staged upgrade.
+  - Groundwork, not yet surfaced: the check is a pure helper, so the update
+    dialog can warn *before* the download rather than after the handshake.
+- **Device sync could report a changed course as "synced".** `coursesMatch`
+  compared only start/finish and the two legacy sector lines, so a course
+  carrying data outside that projection looked unchanged — for a sprint course
+  that includes the finish line, the single most likely thing to be edited. It
+  now compares the full device-visible projection per course type, and treats a
+  course that changed type as a different file rather than an edit (the two
+  kinds live in separate folders on the device).
+- **Download dialogs respect notches on Android.** The native logger download
+  dialogs (and the Fledgling BLE one) now pad for the device safe area, so
+  they aren't clipped by notches/status bars on edge-to-edge phones.
+- **MyChron downloads no longer double the extension.** A device session named
+  `a_0217.xrz` used to save as `a_0217.xrz.xrk`; the `.xrz` is now swapped for
+  `.xrk`.
+- **Alfano downloads save/import as `.csv`.** Downloaded sessions (bare hex
+  ids on the device, CSV payloads) now get a `.csv` extension so the importer
+  and saved files are routed correctly.
+- **Auth emails from the Android app now link to lapwingdata.com.** Inside the
+  native WebView, `window.location.origin` is the shell's synthetic
+  `http://tauri.localhost`, so registration-confirmation and password-reset
+  emails carried dead redirect links. On native those redirects now point at
+  the canonical site, and the Register/Forgot-Password success messages tell
+  the user to confirm via the email link in their browser, then return to the
+  app and sign in.
+- **Login no longer fails on a rate-check outage.** If the `check-login-rate`
+  pre-check itself errors (network, function down), the sign-in attempt now
+  proceeds (fail open) instead of showing a generic error; a genuine
+  rate-limit rejection still blocks with its message.
+
 ## [3.3.0] - 2026-07-31
 
 ### Added

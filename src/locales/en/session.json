@@ -27,6 +27,7 @@
   "lapTable": {
     "noLaps": "No laps detected.",
     "noLapsHint": "Select a track with a start/finish line",
+    "noLapsHintSprint": "Select a sprint course with start and finish lines",
     "sectorSums": "Sector sums",
     "sectorSumsTitle": "Show a running S1/S2/S3 total before each major sector",
     "simple": "Simple",
@@ -43,6 +44,7 @@
     "optimal": "Optimal",
     "delta": "Delta",
     "avgLapLength": "Avg Lap Length",
+    "avgRunLength": "Avg Run Length",
     "avgLapValue": "{{feet}} ft / {{meters}} m"
   },
   "snapshots": {

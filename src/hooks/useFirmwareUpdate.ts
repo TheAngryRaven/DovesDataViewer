@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { BleConnection } from "@/lib/bleDatalogger";
 import { useDeviceContext } from "@/contexts/DeviceContext";
+import { snoozeFirmwareUpdate } from "@/lib/firmwareUpdateReminder";
 import { isPreviewBuild } from "@/lib/buildInfo";
 import { isDebugEnabled } from "@/lib/debugConsole";
 import { beginFirmwareUpdate, uploadFirmwareImage, applyFirmware } from "@/lib/ble";
 import {
   acquireFirmwareImage,
   evaluateFirmwareUpdate,
+  explainFirmwareFailure,
   fetchFirmwareManifest,
   readDeviceFirmwareInfo,
   type DeviceFirmwareInfo,
@@ -44,7 +46,7 @@ function fwLog(...args: unknown[]): void {
  * firmware) doesn't tear down the UI mid-update.
  */
 export function useFirmwareUpdate(connection: BleConnection | null) {
-  const { setFlashing, disconnectDevice } = useDeviceContext();
+  const { setFlashing, disconnectDevice, deviceName } = useDeviceContext();
 
   const [info, setInfo] = useState<DeviceFirmwareInfo | null>(null);
   const [loadingVersion, setLoadingVersion] = useState(false);
@@ -83,48 +85,75 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     };
   }, [connection]);
 
-  const checkForUpdates = useCallback(async () => {
-    if (!connection) return;
-    setChecking(true);
-    try {
-      const current = info ?? (await readDeviceFirmwareInfo(connection.server));
-      if (current !== info) setInfo(current);
-      const manifest = await fetchFirmwareManifest();
-      setLatestVersion(manifest.version);
-      // On beta/preview builds the version check is bypassed so testers can
-      // always re-flash (same as our other non-main behaviors).
-      const evaluation = evaluateFirmwareUpdate(current, manifest, {
-        force: isPreviewBuild(),
-      });
-      if (evaluation.available && evaluation.build) {
-        setPendingBuild(evaluation.build);
-        setForced(evaluation.reason === "forced");
-        setConfirmOpen(true);
-        return;
+  /**
+   * Check the OTA manifest and, if there's something newer, open the confirm
+   * dialog. Returns whether an update was actually offered, so an automatic
+   * caller knows whether it still owns the screen.
+   *
+   * `silent` suppresses the "you're up to date" / "check failed" toasts. An
+   * automatic check on every connect must not narrate itself — the user didn't
+   * ask, and being told nothing happened is worse than being told nothing.
+   * `suppress` gets the offered version and can decline the dialog, which is
+   * how "remind me tomorrow" survives a reconnect without skipping a *newer*
+   * release.
+   */
+  const checkForUpdates = useCallback(
+    async (options: { silent?: boolean; suppress?: (version: string) => boolean } = {}) => {
+      if (!connection) return false;
+      const { silent = false, suppress } = options;
+      setChecking(true);
+      try {
+        const current = info ?? (await readDeviceFirmwareInfo(connection.server));
+        if (current !== info) setInfo(current);
+        const manifest = await fetchFirmwareManifest();
+        setLatestVersion(manifest.version);
+        // On beta/preview builds the version check is bypassed so testers can
+        // always re-flash (same as our other non-main behaviors).
+        const evaluation = evaluateFirmwareUpdate(current, manifest, {
+          force: isPreviewBuild(),
+        });
+        if (evaluation.available && evaluation.build) {
+          if (suppress?.(manifest.version)) return false;
+          setPendingBuild(evaluation.build);
+          setForced(evaluation.reason === "forced");
+          setConfirmOpen(true);
+          return true;
+        }
+        if (!silent) {
+          switch (evaluation.reason) {
+            case "up-to-date":
+              toast.success(`Firmware is up to date (v${current.version})`);
+              break;
+            case "no-version":
+              toast.error("Couldn't read the device's firmware version");
+              break;
+            case "no-build":
+              toast.error("No firmware build is available for this device");
+              break;
+          }
+        }
+        return false;
+      } catch (e) {
+        if (!silent) toast.error(`Update check failed: ${errorMessage(e)}`);
+        return false;
+      } finally {
+        setChecking(false);
       }
-      switch (evaluation.reason) {
-        case "up-to-date":
-          toast.success(`Firmware is up to date (v${current.version})`);
-          break;
-        case "no-version":
-          toast.error("Couldn't read the device's firmware version");
-          break;
-        case "no-build":
-          toast.error("No firmware build is available for this device");
-          break;
-      }
-    } catch (e) {
-      toast.error(`Update check failed: ${errorMessage(e)}`);
-    } finally {
-      setChecking(false);
-    }
-  }, [connection, info]);
+    },
+    [connection, info],
+  );
 
   const cancel = useCallback(() => {
     setConfirmOpen(false);
     setPendingBuild(null);
     setForced(false);
   }, []);
+
+  /** Decline for 24 hours. Same as cancel, plus a note so we don't re-ask. */
+  const snooze = useCallback(() => {
+    snoozeFirmwareUpdate(deviceName, latestVersion);
+    cancel();
+  }, [cancel, deviceName, latestVersion]);
 
   const startUpdate = useCallback(async () => {
     if (!connection || !pendingBuild) return;
@@ -135,6 +164,9 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     setFlashingLocal(true);
     setFlashing(true);
     let installing = false;
+    // Kept for the failure path: a device that rejects on SIZE needs to be told
+    // how big the image was and which version unlocks it.
+    let imageBytes: number | null = null;
 
     try {
       // 0. Download the image (prefer the raw .bin), compute its CRC, and verify
@@ -144,6 +176,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
       setPhase("downloading");
       fwLog("downloading", build.name, build.appBin ?? build.dfuZip);
       const { image, crc } = await acquireFirmwareImage(build);
+      imageBytes = image.length;
       fwLog("image ready + verified vs manifest", { bytes: image.byteLength, crc });
 
       // 1–3. CRC handshake — verify the control channel, and declare the target
@@ -173,15 +206,23 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
       // tear down the "complete" dialog. The user acknowledges via finish().
     } catch (e) {
       fwLog("update failed", { installing, error: errorMessage(e) });
+      // A raw "SIZE" tells the user nothing — the cap lives in the firmware
+      // already on the device, and the remedy is a hop through an older
+      // release. Say that instead.
+      const explained = explainFirmwareFailure(e, {
+        installedVersion: info?.version,
+        imageBytes,
+      });
+      const message = explained?.message ?? errorMessage(e);
       setPhase("error");
-      setFlashError(errorMessage(e));
+      setFlashError(message);
       setNeedsDisconnect(installing);
       setFlashing(false);
-      toast.error(`Firmware update failed: ${errorMessage(e)}`);
+      toast.error(explained ? message : `Firmware update failed: ${message}`);
     } finally {
       setFlashingLocal(false);
     }
-  }, [connection, pendingBuild, setFlashing]);
+  }, [connection, pendingBuild, setFlashing, info]);
 
   /** Dismiss the error state; drops the connection if the device had rebooted. */
   const dismiss = useCallback(() => {
@@ -221,6 +262,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     flashError,
     checkForUpdates,
     cancel,
+    snooze,
     startUpdate,
     dismiss,
     finish,

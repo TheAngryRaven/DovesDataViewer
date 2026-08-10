@@ -15,7 +15,12 @@
     "title": "Aggiungi nuovo tracciato",
     "courseName": "Nome del tracciato",
     "courseNamePlaceholder": "es., Tracciato completo",
-    "create": "Crea tracciato"
+    "create": "Crea tracciato",
+    "courseType": "Tipo di percorso",
+    "typeCircuit": "Circuito",
+    "typeSprint": "Sprint",
+    "typeCircuitHint": "Giri — un’unica linea è sia partenza sia arrivo.",
+    "typeSprintHint": "Punto a punto (autocross, cronoscalata, prova speciale) — linea di arrivo separata, cronometrato a manche."
   },
   "sectors": {
     "addSector": "Aggiungi settore",
@@ -27,7 +32,13 @@
     "dragReorder": "Trascina per riordinare",
     "markMajor": "Contrassegna come settore principale",
     "deleteSector": "Elimina settore",
-    "resetStartFinish": "Reimposta linea di partenza/arrivo"
+    "resetStartFinish": "Reimposta linea di partenza/arrivo",
+    "startLineSprint": "Linea di partenza",
+    "finishLine": "Linea di arrivo",
+    "splitRow": "Intermedio {{label}}",
+    "sprintGuidance": "Un percorso sprint va dalla linea di partenza a una linea di arrivo separata. Aggiungi fino a {{max}} linee intermedie (opzionale).",
+    "sprintSplitLimit": "Limite di intermedi raggiunto ({{max}} tra partenza e arrivo).",
+    "resetFinish": "Reimposta linea di arrivo"
   },
   "visual": {
     "draw": "Disegna",
@@ -67,7 +78,9 @@
     "drawingGenerated": "Disegno generato",
     "drawingGeneratedDesc": "{{label}} ({{count}} punti).",
     "generatedFromLap": "Generato dal giro {{number}}",
-    "generatedFromSession": "Generato dall'intera sessione"
+    "generatedFromSession": "Generato dall'intera sessione",
+    "startLine": "Partenza",
+    "finishLine": "Arrivo"
   },
   "prompt": {
     "selectCourse": "Seleziona tracciato",

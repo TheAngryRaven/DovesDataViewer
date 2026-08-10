@@ -1,4 +1,4 @@
-import { Course, CourseSector, SectorLine, SectorTimes } from '@/types/racing';
+import { Course, CourseSector, SectorLine, SectorTimes, isSprintCourse } from '@/types/racing';
 
 /**
  * Sector model — the single source of truth for the "unlimited sectors" feature.
@@ -103,13 +103,36 @@ export interface SectorValidation {
   reason: string | null;
 }
 
+/** Max split lines between a sprint course's start and finish (plan 0015). */
+export const MAX_SPRINT_SPLITS = 2;
+
 /**
- * Save rule: a course must have EITHER zero additional sectors, OR exactly three
- * major sectors total (start/finish + two flagged). The total line count must
- * also stay within `MAX_SECTOR_LINES`.
+ * Save rule, by course type.
+ *
+ * **Circuit** — either zero additional sectors, or exactly three major sectors
+ * total (start/finish + two flagged), within `MAX_SECTOR_LINES` overall.
+ *
+ * **Sprint** — a finish line is REQUIRED (the logger cannot time a run without
+ * one, so saving a course it will ignore is worse than blocking), and there may
+ * be zero to `MAX_SPRINT_SPLITS` optional split lines. The `major` flag carries
+ * no meaning point-to-point and is not checked.
  */
 export function validateCourseSectors(course: Course): SectorValidation {
   const sectors = course.sectors ?? [];
+
+  if (isSprintCourse(course)) {
+    if (!course.finish) {
+      return { valid: false, reason: 'A sprint course needs a finish line — drag one onto the map.' };
+    }
+    if (sectors.length > MAX_SPRINT_SPLITS) {
+      return {
+        valid: false,
+        reason: `A sprint course can have at most ${MAX_SPRINT_SPLITS} split lines between start and finish.`,
+      };
+    }
+    return { valid: true, reason: null };
+  }
+
   if (sectors.length === 0) return { valid: true, reason: null };
 
   if (sectors.length > MAX_COURSE_SECTORS) {
@@ -143,23 +166,47 @@ export function isAtMajorLimit(course: Course): boolean {
 }
 
 /**
+ * Timing-line indices that open a displayed sector, the opening line first.
+ * Indices align to [startFinish, ...course.sectors].
+ *
+ * **Circuit** — the flagged majors, so S1/S2/S3 span major-to-major and any
+ * sub-sectors roll up inside them.
+ *
+ * **Sprint** — *every* split. `major` is meaningless point-to-point (the flag
+ * is stored `false` so a course retyped to circuit fails validation loudly
+ * instead of claiming a sector layout it never had), and there are at most
+ * `MAX_SPRINT_SPLITS` of them, so the run divides into at most three segments —
+ * exactly the S1/S2/S3 the rest of the app already renders. This is display
+ * only: the stored `major` flags are never touched.
+ */
+export function displayedSectorIndices(course: Course): number[] {
+  const indices = [0]; // the start (or start/finish) line always opens sector 1
+  (course.sectors ?? []).forEach((s, i) => {
+    if (s.major || isSprintCourse(course)) indices.push(i + 1);
+  });
+  return indices;
+}
+
+/**
  * Roll the fine-grained per-segment times up into the classic S1/S2/S3, where
- * each major sector spans from its major line to the next major line. A major
- * sector is `undefined` if any of its constituent segments is missing.
+ * each displayed sector spans from its opening line to the next one. A sector
+ * is `undefined` if any of its constituent segments is missing.
  *
  * `sectorTimes[k]` is the segment beginning at timing line k (index 0 = start/
  * finish), aligned to the order [startFinish, ...course.sectors].
+ *
+ * Circuit courses need all three majors before anything is reported — a partial
+ * layout has no meaningful S1/S2/S3. A sprint course reports as many sectors as
+ * it has splits (one split ⇒ `{s1, s2}`), and nothing at all with no splits,
+ * where the single segment IS the run.
  */
 export function rollupMajorSectors(
   course: Course,
   sectorTimes: (number | undefined)[],
 ): SectorTimes | undefined {
-  // Indices of the major timing lines (line 0 = start/finish is always major).
-  const majorIdx = [0];
-  (course.sectors ?? []).forEach((s, i) => {
-    if (s.major) majorIdx.push(i + 1);
-  });
-  if (majorIdx.length < MAX_MAJOR_SECTORS) return undefined;
+  const majorIdx = displayedSectorIndices(course);
+  const minSectors = isSprintCourse(course) ? 2 : MAX_MAJOR_SECTORS;
+  if (majorIdx.length < minSectors) return undefined;
 
   const n = sectorTimes.length;
   const groupTotal = (from: number, toExclusive: number): number | undefined => {
@@ -172,9 +219,11 @@ export function rollupMajorSectors(
     return sum;
   };
 
+  // A sprint course may open fewer than three sectors; the trailing ones stay
+  // undefined and render as the same em-dash a missed crossing produces.
   return {
-    s1: groupTotal(majorIdx[0], majorIdx[1]),
-    s2: groupTotal(majorIdx[1], majorIdx[2]),
-    s3: groupTotal(majorIdx[2], n),
+    s1: groupTotal(majorIdx[0], majorIdx[1] ?? n),
+    s2: majorIdx.length > 1 ? groupTotal(majorIdx[1], majorIdx[2] ?? n) : undefined,
+    s3: majorIdx.length > 2 ? groupTotal(majorIdx[2], n) : undefined,
   };
 }

@@ -85,7 +85,12 @@ export default function Register() {
           description: t('register.accountCreatedCheckout'),
         });
       } else {
-        toast({ title: t('register.accountCreated'), description: t('register.accountCreatedConfirm') });
+        // The confirmation email links to the canonical site, so on native the
+        // user confirms in their browser and comes back to the app to sign in.
+        toast({
+          title: t('register.accountCreated'),
+          description: t(native ? 'register.accountCreatedConfirmNative' : 'register.accountCreatedConfirm'),
+        });
       }
       navigate('/login');
     }

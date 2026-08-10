@@ -35,7 +35,10 @@ export function FileListPanel({ files, onSelect, instructions, emptyText }: File
               onClick={() => onSelect(file)}
               className="w-full text-left px-3 py-2 rounded-md bg-muted/50 hover:bg-muted transition-colors flex justify-between items-center"
             >
-              <span className="font-mono text-sm">{file.name}</span>
+              <span className="flex flex-col">
+                <span className="font-mono text-sm">{file.name}</span>
+                {file.date && <span className="text-xs text-muted-foreground">{file.date}</span>}
+              </span>
               <span className="text-xs text-muted-foreground">{formatBytes(file.size)}</span>
             </button>
           ))

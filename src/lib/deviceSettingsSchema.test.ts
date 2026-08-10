@@ -3,6 +3,7 @@ import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
   validateSettingValue,
+  settingDisplayValue,
 } from "./deviceSettingsSchema";
 
 // ─── schema shape ─────────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@ describe("DEVICE_SETTINGS_SCHEMA", () => {
   it("every def has a non-empty label and a valid type", () => {
     for (const d of DEVICE_SETTINGS_SCHEMA) {
       expect(d.label.length).toBeGreaterThan(0);
-      expect(["string", "number"]).toContain(d.type);
+      expect(["string", "number", "enum"]).toContain(d.type);
     }
   });
 
@@ -159,5 +160,121 @@ describe("validateSettingValue — string fields", () => {
   it("does not apply numeric validation to string fields", () => {
     // bluetooth_name is a string — non-numeric content is fine
     expect(validateSettingValue("bluetooth_name", "My Logger!")).toBeNull();
+  });
+});
+
+// ─── enum fields ──────────────────────────────────────────────────────────────
+
+describe("validateSettingValue — enum fields", () => {
+  it("accepts every declared option", () => {
+    expect(validateSettingValue("display_invert", "normal")).toBeNull();
+    expect(validateSettingValue("display_invert", "inverted")).toBeNull();
+    expect(validateSettingValue("debug_pages", "hide")).toBeNull();
+    expect(validateSettingValue("debug_pages", "show")).toBeNull();
+    expect(validateSettingValue("race_mode", "circuit")).toBeNull();
+    expect(validateSettingValue("race_mode", "sprint")).toBeNull();
+    expect(validateSettingValue("spark_mode", "wasted")).toBeNull();
+    expect(validateSettingValue("spark_mode", "single")).toBeNull();
+  });
+
+  // The whole point of the type: as a free-text field a typo reached the device
+  // and the firmware silently fell back to its default, which reads as the
+  // setting simply not working.
+  it("rejects a value that isn't an option", () => {
+    expect(validateSettingValue("race_mode", "Circuit")).toBe(
+      "Must be one of: circuit, sprint",
+    );
+    expect(validateSettingValue("spark_mode", "wastedd")).toBe(
+      "Must be one of: wasted, single",
+    );
+  });
+
+  it("rejects an empty value", () => {
+    expect(validateSettingValue("race_mode", "")).toBe("Must be one of: circuit, sprint");
+  });
+
+  it("is case-sensitive, because the device compares the literal", () => {
+    expect(validateSettingValue("spark_mode", "WASTED")).not.toBeNull();
+  });
+});
+
+describe("enum schema entries", () => {
+  it("gives every enum at least one option", () => {
+    for (const def of DEVICE_SETTINGS_SCHEMA.filter((d) => d.type === "enum")) {
+      expect(def.options, `${def.key} needs options`).toBeTruthy();
+      expect(def.options!.length, `${def.key} needs options`).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps option values unique within a setting", () => {
+    for (const def of DEVICE_SETTINGS_SCHEMA.filter((d) => d.type === "enum")) {
+      const values = def.options!.map((o) => o.value);
+      expect(new Set(values).size, `${def.key} has duplicate values`).toBe(values.length);
+    }
+  });
+});
+
+describe("settingDisplayValue", () => {
+  it("maps a known enum value to its label", () => {
+    expect(settingDisplayValue("race_mode", "sprint")).toBe("Sprint");
+  });
+
+  // A device can hold a value this build doesn't know — older/newer firmware, or
+  // a hand-edited SETTINGS.json. Showing it verbatim keeps that visible instead
+  // of silently rendering it as an option we do know.
+  it("passes an unrecognised value through untouched", () => {
+    expect(settingDisplayValue("race_mode", "drag")).toBe("drag");
+  });
+
+  it("leaves non-enum settings alone", () => {
+    expect(settingDisplayValue("driver_name", "Mike")).toBe("Mike");
+    expect(settingDisplayValue("unknown_key", "whatever")).toBe("whatever");
+  });
+});
+
+// ─── the new plan-0003 settings ───────────────────────────────────────────────
+
+describe("cylinder_count", () => {
+  it("accepts a plausible cylinder count", () => {
+    expect(validateSettingValue("cylinder_count", "1")).toBeNull();
+    expect(validateSettingValue("cylinder_count", "2")).toBeNull();
+  });
+
+  it("rejects zero — it would divide RPM by nothing", () => {
+    expect(validateSettingValue("cylinder_count", "0")).toBe("Minimum value is 1");
+  });
+
+  it("rejects a fractional count", () => {
+    expect(validateSettingValue("cylinder_count", "1.5")).toBe("Must be a whole number");
+  });
+});
+
+describe("display_invert", () => {
+  // The firmware treats anything that is not an exact "inverted" as normal, so
+  // a value this app lets through unchecked would read as the setting silently
+  // doing nothing.
+  it("rejects near misses the firmware would ignore", () => {
+    expect(validateSettingValue("display_invert", "invert")).not.toBeNull();
+    expect(validateSettingValue("display_invert", "Inverted")).not.toBeNull();
+    expect(validateSettingValue("display_invert", "1")).not.toBeNull();
+  });
+
+  it("labels the stored values for display", () => {
+    expect(settingDisplayValue("display_invert", "inverted")).toBe("Inverted (black on white)");
+  });
+});
+
+describe("debug_pages", () => {
+  // The firmware shows the diagnostic pages only on an exact "show" — any
+  // other value silently means hidden, so near misses must be rejected here.
+  it("rejects near misses the firmware would ignore", () => {
+    expect(validateSettingValue("debug_pages", "Show")).not.toBeNull();
+    expect(validateSettingValue("debug_pages", "hidden")).not.toBeNull();
+    expect(validateSettingValue("debug_pages", "1")).not.toBeNull();
+  });
+
+  it("labels the stored values for display", () => {
+    expect(settingDisplayValue("debug_pages", "hide")).toBe("Hidden (racing pages only)");
+    expect(settingDisplayValue("debug_pages", "show")).toBe("Shown (GPS/RF diagnostics first)");
   });
 });

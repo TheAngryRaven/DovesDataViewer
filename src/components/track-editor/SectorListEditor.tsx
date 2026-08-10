@@ -13,9 +13,10 @@ import { Flag, GripVertical, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { CourseSector, Course } from '@/types/racing';
+import { CourseSector, Course, isSprintCourse } from '@/types/racing';
 import {
-  sectorLabels, validateCourseSectors, isAtSectorLimit, isAtMajorLimit, MAX_SECTOR_LINES,
+  sectorLabels, validateCourseSectors, isAtSectorLimit, isAtMajorLimit,
+  MAX_SECTOR_LINES, MAX_SPRINT_SPLITS,
 } from '@/lib/courseSectors';
 import type { SelectedLine } from '@/hooks/useTrackEditorForm';
 
@@ -32,6 +33,8 @@ interface SectorListEditorProps {
   /** Re-drop the start/finish line in the center of the current map view.
    *  Drives the reset button on the start/finish row. */
   onResetStartFinish?: () => void;
+  /** Re-drop the sprint finish line. Drives the reset button on its row. */
+  onResetFinish?: () => void;
 }
 
 function sortableId(index: number): string {
@@ -43,12 +46,15 @@ function indexFromId(id: string): number {
 
 export function SectorListEditor({
   course, sectors, selectedLine, onSelectLine, onAddSector, onRemoveSector, onToggleMajor, onReorder,
-  onResetStartFinish,
+  onResetStartFinish, onResetFinish,
 }: SectorListEditorProps) {
   const { t } = useTranslation('tracks');
   const labels = useMemo(() => sectorLabels(course), [course]);
   const validation = useMemo(() => validateCourseSectors(course), [course]);
-  const atLimit = isAtSectorLimit(course);
+  const sprint = isSprintCourse(course);
+  // Sprint caps the splits far lower than the circuit line budget, and has no
+  // major concept at all.
+  const atLimit = sprint ? sectors.length >= MAX_SPRINT_SPLITS : isAtSectorLimit(course);
   // Once all three majors are taken, only existing majors keep their toggle (so
   // they can be un-flagged); non-major rows hide it since none can be promoted.
   const atMajorLimit = isAtMajorLimit(course);
@@ -97,9 +103,11 @@ export function SectorListEditor({
         <span className="w-4" />
         <Flag className="h-4 w-4 shrink-0" style={{ color: '#22c55e' }} />
         <button type="button" onClick={() => onSelectLine('sf')} className="flex-1 text-left text-sm font-semibold">
-          {t('sectors.startFinish', { label: labels[0] })}
+          {sprint ? t('sectors.startLineSprint') : t('sectors.startFinish', { label: labels[0] })}
         </button>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('sectors.major')}</span>
+        {!sprint && (
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('sectors.major')}</span>
+        )}
         {onResetStartFinish && (
           <Button
             variant="ghost"
@@ -124,12 +132,14 @@ export function SectorListEditor({
               <div key={sortableId(i)} className="space-y-1.5">
                 <SectorRow
                   index={i}
-                  label={labels[i + 1] ?? ''}
+                  label={sprint ? String(i + 1) : (labels[i + 1] ?? '')}
+                  labelKey={sprint ? 'sectors.splitRow' : 'sectors.sectorRow'}
                   sector={sec}
                   selected={selectedLine === i}
                   // Hide the major toggle on non-major rows once the 3-major cap
                   // is hit; major rows always keep it so they can be un-flagged.
-                  showMajorToggle={sec.major || !atMajorLimit}
+                  // Sprint has no majors at all.
+                  showMajorToggle={!sprint && (sec.major || !atMajorLimit)}
                   onSelect={() => onSelectLine(i)}
                   onToggleMajor={() => onToggleMajor(i)}
                   onRemove={() => onRemoveSector(i)}
@@ -141,18 +151,52 @@ export function SectorListEditor({
         </SortableContext>
       </DndContext>
 
+      {/* Sprint only: the finish line, LAST because that is driving order. */}
+      {sprint && (
+        <div
+          className={cn(
+            'flex w-full items-center gap-2 rounded-md border px-2 py-2 text-left transition-colors',
+            selectedLine === 'finish' ? 'border-primary bg-primary/10' : 'border-border bg-card hover:bg-accent/40',
+          )}
+        >
+          <span className="w-4" />
+          <Flag className="h-4 w-4 shrink-0" style={{ color: '#ef4444' }} />
+          <button
+            type="button"
+            onClick={() => onSelectLine('finish')}
+            className="flex-1 text-left text-sm font-semibold"
+          >
+            {t('sectors.finishLine')}
+          </button>
+          {onResetFinish && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              aria-label={t('sectors.resetFinish')}
+              title={t('sectors.resetFinish')}
+              onClick={onResetFinish}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Validation / guidance note (kept off the line items per the spec). */}
       {!validation.valid && validation.reason && (
         <p className="pt-1 text-xs text-warning">{validation.reason}</p>
       )}
       {atLimit && (
         <p className="pt-1 text-xs text-muted-foreground">
-          {t('sectors.limitReached', { max: MAX_SECTOR_LINES })}
+          {sprint
+            ? t('sectors.sprintSplitLimit', { max: MAX_SPRINT_SPLITS })
+            : t('sectors.limitReached', { max: MAX_SECTOR_LINES })}
         </p>
       )}
       {validation.valid && sectors.length === 0 && (
         <p className="pt-1 text-xs text-muted-foreground">
-          {t('sectors.guidance')}
+          {sprint ? t('sectors.sprintGuidance', { max: MAX_SPRINT_SPLITS }) : t('sectors.guidance')}
         </p>
       )}
     </div>
@@ -162,6 +206,8 @@ export function SectorListEditor({
 interface SectorRowProps {
   index: number;
   label: string;
+  /** i18n key for the row title — sprint rows read "Split n", circuit "Sector n". */
+  labelKey: 'sectors.sectorRow' | 'sectors.splitRow';
   sector: CourseSector;
   selected: boolean;
   /** Whether the "major" toggle is shown — hidden on non-major rows once the
@@ -172,7 +218,7 @@ interface SectorRowProps {
   onRemove: () => void;
 }
 
-function SectorRow({ index, label, sector, selected, showMajorToggle, onSelect, onToggleMajor, onRemove }: SectorRowProps) {
+function SectorRow({ index, label, labelKey, sector, selected, showMajorToggle, onSelect, onToggleMajor, onRemove }: SectorRowProps) {
   const { t } = useTranslation('tracks');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sortableId(index) });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -200,7 +246,7 @@ function SectorRow({ index, label, sector, selected, showMajorToggle, onSelect, 
       </button>
       <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color }} />
       <button type="button" onClick={onSelect} className="flex-1 text-left text-sm">
-        {t('sectors.sectorRow', { label })}
+        {t(labelKey, { label })}
       </button>
       {showMajorToggle && (
         <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">

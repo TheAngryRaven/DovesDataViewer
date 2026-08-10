@@ -28,7 +28,7 @@ export function createMychronConnection(info: LoggerDeviceInfo): LoggerConnectio
     supportsDeviceDetails: false,
     listLogs: async () => {
       const files = await loggerListFiles();
-      return files.map((f) => ({ name: f.name, size: f.size }));
+      return files.map((f) => ({ name: f.name, size: f.size, date: f.date, meta: f.meta }));
     },
     downloadLog: (name, onProgress) => {
       const start = Date.now();

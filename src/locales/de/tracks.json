@@ -15,7 +15,12 @@
     "title": "Neuen Kurs hinzufügen",
     "courseName": "Kursname",
     "courseNamePlaceholder": "z. B. Vollständiger Kurs",
-    "create": "Kurs erstellen"
+    "create": "Kurs erstellen",
+    "courseType": "Kursart",
+    "typeCircuit": "Rundkurs",
+    "typeSprint": "Sprint",
+    "typeCircuitHint": "Runden — eine Linie ist zugleich Start und Ziel.",
+    "typeSprintHint": "Punkt zu Punkt (Autocross, Bergrennen, Wertungsprüfung) — separate Ziellinie, als Läufe gewertet."
   },
   "sectors": {
     "addSector": "Sektor hinzufügen",
@@ -27,7 +32,13 @@
     "dragReorder": "Zum Umordnen ziehen",
     "markMajor": "Als Hauptsektor markieren",
     "deleteSector": "Sektor löschen",
-    "resetStartFinish": "Start-/Ziellinie zurücksetzen"
+    "resetStartFinish": "Start-/Ziellinie zurücksetzen",
+    "startLineSprint": "Startlinie",
+    "finishLine": "Ziellinie",
+    "splitRow": "Zwischenzeit {{label}}",
+    "sprintGuidance": "Ein Sprint-Kurs führt von der Startlinie zu einer separaten Ziellinie. Füge dazwischen bis zu {{max}} Zwischenlinien hinzu (optional).",
+    "sprintSplitLimit": "Limit für Zwischenlinien erreicht ({{max}} zwischen Start und Ziel).",
+    "resetFinish": "Ziellinie zurücksetzen"
   },
   "visual": {
     "draw": "Zeichnen",
@@ -67,7 +78,9 @@
     "drawingGenerated": "Zeichnung generiert",
     "drawingGeneratedDesc": "{{label}} ({{count}} Punkte).",
     "generatedFromLap": "Generiert aus Runde {{number}}",
-    "generatedFromSession": "Generiert aus der gesamten Sitzung"
+    "generatedFromSession": "Generiert aus der gesamten Sitzung",
+    "startLine": "Start",
+    "finishLine": "Ziel"
   },
   "prompt": {
     "selectCourse": "Kurs auswählen",

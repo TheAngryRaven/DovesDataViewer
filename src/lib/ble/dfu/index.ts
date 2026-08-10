@@ -35,6 +35,18 @@ export type {
   FirmwareUpdateReason,
 } from "./firmwareManifest";
 
+export {
+  OTA_LAYOUT_MIN_VERSION,
+  OTA_LEGACY_MAX_BYTES,
+  needsOtaLayoutUpgrade,
+  exceedsLegacyOtaCap,
+  explainFirmwareFailure,
+} from "./firmwareUpdateError";
+export type {
+  FirmwareFailureContext,
+  FirmwareFailureExplanation,
+} from "./firmwareUpdateError";
+
 export { parseDfuPackage } from "./dfuPackage";
 
 export { acquireFirmwareImage } from "./firmwareImage";

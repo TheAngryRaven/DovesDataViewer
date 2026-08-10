@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Trash2,
   RotateCcw,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,33 +24,59 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { BleConnection, requestTrackFileList, downloadTrackFile, uploadTrackFile, deleteTrackFile } from "@/lib/bleDatalogger";
+import type { DeviceDetails } from "@/lib/loggers";
+import type { TrackKind } from "@/lib/ble/trackOpcodes";
 import {
   DeviceCourseJson,
   DeviceTrackFile,
   MergedTrackEntry,
   MergedCourseEntry,
   buildMergedTrackList,
-  parseDeviceCourseJson,
   buildTrackJsonForUpload,
+  rebuildDeviceTrackJson,
   deviceCourseToAppCourse,
   appCourseToDeviceJson,
   countAppSectors,
   countDeviceSectors,
   startADistance,
 } from "@/lib/deviceTrackSync";
+import { fetchDeviceTrackFiles } from "@/lib/deviceSyncFetch";
+import { loadTrackOverrides } from "@/lib/deviceCourseOverrides";
+import { selectedDeviceCourses, type TrackCourseOverrides } from "@/lib/deviceCourseSelection";
+import { loadTrackOverrides as _loadOverrides, saveTrackOverrides } from "@/lib/deviceCourseOverrides";
+import { deviceTrackBudget, supportsLargeTrackBuffer } from "@/lib/deviceTrackBudget";
+import { useFirmwareUpdateApi } from "@/contexts/FirmwareUpdateContext";
+import { DeviceCoursePickerDialog } from "./DeviceCoursePickerDialog";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import { loadTracks, addTrack, addCourse } from "@/lib/trackStorage";
 import { Track } from "@/types/racing";
 import { toast } from "sonner";
 
 interface DeviceTracksTabProps {
-  connection: BleConnection;
+  /** Transport-neutral Device-tab surface (Web Bluetooth or native IPC). */
+  details: DeviceDetails;
 }
 
 type View = "loading" | "tracks" | "courses";
 
-export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
+/**
+ * The device file to write or delete for an entry.
+ *
+ * Never `shortName + ".json"`: for a track the on-device course creator wrote,
+ * the identity (`08031432`) and the filename (`N260803_1432.json`) are different
+ * strings, and writing to the identity would orphan the real file.
+ * `app_only` entries have no file yet, so the identity names the new one.
+ */
+const deviceFileOf = (entry: MergedTrackEntry): string =>
+  entry.deviceFileName ?? `${entry.shortName}.json`;
+
+export function DeviceTracksTab({ details }: DeviceTracksTabProps) {
   const { t } = useTranslation("drawer");
+  const { deviceName } = useDeviceContext();
+  const fw = useFirmwareUpdateApi();
+  // One boolean, derived once from the firmware version the shared context
+  // already read. Unknown firmware assumes the smaller buffer (plan 0017).
+  const trackBudget = deviceTrackBudget(supportsLargeTrackBuffer(fw.info?.version));
   const [view, setView] = useState<View>("loading");
   const [loadProgress, setLoadProgress] = useState({ current: 0, total: 0, label: "" });
   const [mergedTracks, setMergedTracks] = useState<MergedTrackEntry[]>([]);
@@ -60,47 +87,60 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
   // Confirmation dialogs
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'track' | 'course'; trackEntry: MergedTrackEntry; courseName?: string } | null>(null);
   const [resyncConfirm, setResyncConfirm] = useState(false);
+  const [pickerEntry, setPickerEntry] = useState<MergedTrackEntry | null>(null);
+  // Bulk selection, keyed the same way the merge is — a circuit and a sprint
+  // track can share a short name and must not collapse into one.
+  const [checkedTracks, setCheckedTracks] = useState<Set<string>>(new Set());
   const [resyncProgress, setResyncProgress] = useState<{ current: number; total: number; label: string } | null>(null);
 
   const [deviceFiles, setDeviceFiles] = useState<DeviceTrackFile[]>([]);
   const [appTracks, setAppTracks] = useState<Track[]>([]);
+
+  // The user's curation for THIS logger. Every merge goes through it, so a
+  // course deliberately kept off the card reads as settled rather than as work
+  // outstanding — otherwise the track sits at `mismatch` and re-prompts on
+  // every connect (plan 0017).
+  const overridesFor = useCallback(
+    (kind: TrackKind, shortName: string) => loadTrackOverrides(deviceName, kind, shortName),
+    [deviceName],
+  );
+
+  // What we actually write for a track: the app's copy, carrying only the
+  // courses bound for the card. The app keeps the rest — they are already
+  // cloud-synced, so nothing is lost by the device holding a subset.
+  const deviceJsonFor = useCallback(
+    (entry: MergedTrackEntry, track: Track) =>
+      buildTrackJsonForUpload({
+        ...track,
+        courses: selectedDeviceCourses(track.courses, overridesFor(entry.kind, entry.shortName)),
+      }),
+    [overridesFor],
+  );
 
   const syncAll = useCallback(async () => {
     setView("loading");
     setSelectedTrack(null);
     try {
       setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.fetchingList") });
-      const filenames = await requestTrackFileList(connection);
+      // Both folders, with the identity rule applied — shared with the sync
+      // wizard so there is only one place that knows how a file is keyed.
+      const files = await fetchDeviceTrackFiles(details, setLoadProgress);
 
-      if (filenames.length === 0) {
+      if (files.length === 0) {
         setLoadProgress({ current: 0, total: 0, label: t("deviceTracks.noFilesOnDevice") });
-      }
-
-      const files: DeviceTrackFile[] = [];
-      for (let i = 0; i < filenames.length; i++) {
-        const fn = filenames[i];
-        setLoadProgress({ current: i + 1, total: filenames.length, label: fn });
-        try {
-          const raw = await downloadTrackFile(connection, fn);
-          const text = new TextDecoder().decode(raw);
-          const courses = parseDeviceCourseJson(text);
-          files.push({ shortName: fn.replace(/\.json$/i, ""), courses });
-        } catch (err) {
-          console.error(`Failed to download ${fn}:`, err);
-        }
       }
 
       setDeviceFiles(files);
       const tracks = await loadTracks();
       setAppTracks(tracks);
-      setMergedTracks(buildMergedTrackList(tracks, files));
+      setMergedTracks(buildMergedTrackList(tracks, files, overridesFor));
       setView("tracks");
     } catch (err) {
       console.error("Track sync failed:", err);
       toast.error(t("deviceTracks.syncFailedToast"));
       setView("tracks");
     }
-  }, [connection, t]);
+  }, [details, t, overridesFor]);
 
   useEffect(() => {
     syncAll();
@@ -118,9 +158,9 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     if (!entry.appTrack) return;
     setUploading(entry.shortName);
     try {
-      const json = buildTrackJsonForUpload(entry.appTrack);
+      const json = deviceJsonFor(entry, entry.appTrack);
       const data = new TextEncoder().encode(json);
-      await uploadTrackFile(connection, entry.shortName + ".json", data);
+      await details.putTrack(deviceFileOf(entry), data, entry.kind);
       toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
       await syncAll();
     } catch (err) {
@@ -130,19 +170,100 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     }
   };
 
+  const trackKeyOf = (entry: MergedTrackEntry) => `${entry.kind}:${entry.shortName}`;
+
+  const toggleChecked = (entry: MergedTrackEntry) => {
+    const key = trackKeyOf(entry);
+    setCheckedTracks((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // ── Send the checked tracks ──
+  //
+  // Each one goes through deviceJsonFor(), so a track the user has curated is
+  // sent as its curated subset rather than whole — a bulk action that quietly
+  // undid the curation would be worse than no bulk action.
+  const handleSendChecked = async () => {
+    const targets = mergedTracks.filter((e) => e.appTrack && checkedTracks.has(trackKeyOf(e)));
+    if (targets.length === 0) return;
+
+    let failed = 0;
+    for (const entry of targets) {
+      setUploading(entry.shortName);
+      try {
+        const data = new TextEncoder().encode(deviceJsonFor(entry, entry.appTrack!));
+        await details.putTrack(deviceFileOf(entry), data, entry.kind);
+      } catch (err) {
+        failed++;
+        console.error(`Send failed for ${entry.shortName}:`, err);
+      }
+    }
+    setUploading(null);
+    setCheckedTracks(new Set());
+    if (failed > 0) {
+      toast.error(t("deviceTracks.bulk.someFailed", { count: failed }));
+    } else {
+      toast.success(t("deviceTracks.bulk.sent", { count: targets.length }));
+    }
+    await syncAll();
+  };
+
+  // ── Choose which courses live on the logger (plan 0017) ──
+  const handlePickerConfirm = async (
+    entry: MergedTrackEntry,
+    overrides: TrackCourseOverrides,
+  ) => {
+    if (!entry.appTrack) return;
+    // Store the choice first, so deviceJsonFor() below and every later merge
+    // read the new curation rather than the one being replaced.
+    saveTrackOverrides(deviceName, entry.kind, entry.shortName, overrides);
+    setPickerEntry(null);
+
+    // Only push when the track is already on the card. For one that isn't,
+    // the choice simply applies the next time it's sent — writing a file the
+    // user never asked for would be a surprise.
+    if (!isOnDevice(entry)) {
+      await syncAll();
+      return;
+    }
+
+    setUploading(entry.shortName);
+    try {
+      const data = new TextEncoder().encode(deviceJsonFor(entry, entry.appTrack));
+      await details.putTrack(deviceFileOf(entry), data, entry.kind);
+      toast.success(t("deviceTracks.sentToast", { name: entry.shortName }));
+    } catch (err) {
+      toast.error(t("deviceTracks.sendFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
+    } finally {
+      setUploading(null);
+    }
+    await syncAll();
+  };
+
   // ── Download device track to app ──
   const handleDownloadToApp = async (entry: MergedTrackEntry) => {
     try {
-      const trackName = entry.shortName;
+      // Prefer the file's own longName — for a track the on-device course
+      // creator wrote that is the human-facing "N260803_1432", not the 8-char
+      // shortName the merge keys on.
+      const trackName = entry.deviceLongName || entry.shortName;
       for (const dc of entry.deviceCourses) {
         const course = deviceCourseToAppCourse(dc);
         await addCourse(trackName, course);
       }
-      await addTrack(trackName);
+      // The shortName MUST be carried over: buildMergedTrackList skips app
+      // tracks that have none, so a track imported without one could never be
+      // matched to the device file it came from — it stayed "device_only"
+      // forever and the sync kept re-offering it.
+      await addTrack(trackName, undefined, entry.shortName);
       toast.success(t("deviceTracks.downloadedToast", { name: trackName }));
       const tracks = await loadTracks();
       setAppTracks(tracks);
-      setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
+      setMergedTracks(buildMergedTrackList(tracks, deviceFiles, overridesFor));
     } catch (err) {
       toast.error(t("deviceTracks.downloadFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
     }
@@ -152,7 +273,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
   const handleDeleteTrackFromDevice = async (entry: MergedTrackEntry) => {
     setUploading(entry.shortName);
     try {
-      await deleteTrackFile(connection, entry.shortName + ".json");
+      await details.deleteTrack(deviceFileOf(entry), entry.kind);
       toast.success(t("deviceTracks.deletedToast", { name: entry.shortName }));
       setDeleteConfirm(null);
       await syncAll();
@@ -170,13 +291,14 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
     try {
       if (remaining.length === 0) {
         // No courses left, delete the whole file
-        await deleteTrackFile(connection, trackEntry.shortName + ".json");
+        await details.deleteTrack(deviceFileOf(trackEntry), trackEntry.kind);
         toast.success(t("deviceTracks.deletedNoCoursesToast", { name: trackEntry.shortName }));
       } else {
-        // Re-upload without the deleted course
-        const json = JSON.stringify(remaining, null, '\t');
-        const data = new TextEncoder().encode(json);
-        await uploadTrackFile(connection, trackEntry.shortName + ".json", data);
+        // Re-upload without the deleted course, keeping the file's wrapper
+        // metadata — a bare array would strip longName/shortName and reset
+        // every lengthFt on the device.
+        const data = new TextEncoder().encode(rebuildDeviceTrackJson(trackEntry, remaining));
+        await details.putTrack(deviceFileOf(trackEntry), data, trackEntry.kind);
         toast.success(t("deviceTracks.removedCourseToast", { name: courseName }));
       }
       setDeleteConfirm(null);
@@ -212,9 +334,8 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
 
     setUploading(trackEntry.shortName);
     try {
-      const json = JSON.stringify(allDeviceCourses, null, '\t');
-      const data = new TextEncoder().encode(json);
-      await uploadTrackFile(connection, trackEntry.shortName + ".json", data);
+      const data = new TextEncoder().encode(rebuildDeviceTrackJson(trackEntry, allDeviceCourses));
+      await details.putTrack(deviceFileOf(trackEntry), data, trackEntry.kind);
       toast.success(t("deviceTracks.sentCourseToast", { name: courseName }));
       setDiffCourse(null);
       await syncAll();
@@ -235,8 +356,10 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       setDiffCourse(null);
       const tracks = await loadTracks();
       setAppTracks(tracks);
-      setMergedTracks(buildMergedTrackList(tracks, deviceFiles));
-      const updated = buildMergedTrackList(tracks, deviceFiles).find(t => t.shortName === trackEntry.shortName);
+      setMergedTracks(buildMergedTrackList(tracks, deviceFiles, overridesFor));
+      // Match on kind too: a circuit and a sprint track can share a short name.
+      const updated = buildMergedTrackList(tracks, deviceFiles, overridesFor)
+        .find(t => t.shortName === trackEntry.shortName && t.kind === trackEntry.kind);
       if (updated) setSelectedTrack(updated);
     } catch (err) {
       toast.error(t("deviceTracks.downloadFailedToast", { error: err instanceof Error ? err.message : t("deviceTracks.unknownError") }));
@@ -262,12 +385,12 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
       try {
         // Delete from device if it exists there
         if (isOnDevice(entry)) {
-          await deleteTrackFile(connection, entry.shortName + ".json");
+          await details.deleteTrack(deviceFileOf(entry), entry.kind);
         }
         // Upload from app
-        const json = buildTrackJsonForUpload(entry.appTrack!);
+        const json = deviceJsonFor(entry, entry.appTrack!);
         const data = new TextEncoder().encode(json);
-        await uploadTrackFile(connection, entry.shortName + ".json", data);
+        await details.putTrack(deviceFileOf(entry), data, entry.kind);
       } catch (err) {
         console.error(`Resync failed for ${entry.shortName}:`, err);
         toast.error(t("deviceTracks.resyncFailedToast", { name: entry.shortName, error: err instanceof Error ? err.message : t("deviceTracks.unknownShort") }));
@@ -318,6 +441,11 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
           </Button>
           <StatusIcon status={selectedTrack.status} />
           <span className="font-medium text-sm text-foreground truncate">{selectedTrack.shortName}</span>
+          {selectedTrack.kind === 'sprint' && (
+            <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              {t("deviceTracks.sprintBadge")}
+            </span>
+          )}
           {selectedTrack.trackName && selectedTrack.trackName !== selectedTrack.shortName && (
             <span className="text-xs text-muted-foreground truncate">({selectedTrack.trackName})</span>
           )}
@@ -457,6 +585,33 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         </div>
       </div>
 
+      {/* Bulk action bar — only present once something is checked, so the list
+          stays uncluttered for the common case of touching one track. */}
+      {checkedTracks.size > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
+          <span className="flex-1 text-xs text-muted-foreground">
+            {t("deviceTracks.bulk.selected", { count: checkedTracks.size })}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setCheckedTracks(new Set())}
+          >
+            {t("deviceTracks.bulk.clear")}
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 px-2 text-xs gap-1"
+            disabled={uploading !== null}
+            onClick={handleSendChecked}
+          >
+            {uploading !== null ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {t("deviceTracks.bulk.send")}
+          </Button>
+        </div>
+      )}
+
       {/* Track list */}
       <div className="flex-1 overflow-y-auto">
         {mergedTracks.length === 0 ? (
@@ -466,14 +621,39 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
         ) : (
           mergedTracks.map((entry) => (
             <div
-              key={entry.shortName}
+              // Keyed on kind too — a circuit and a sprint track can share a
+              // short name, and React would otherwise collapse them into one row.
+              key={`${entry.kind}:${entry.shortName}`}
               className="flex items-center gap-2 px-3 py-2.5 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
               onClick={() => { setSelectedTrack(entry); setView("courses"); }}
             >
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={checkedTracks.has(`${entry.kind}:${entry.shortName}`)}
+                aria-label={entry.shortName}
+                onClick={(e) => { e.stopPropagation(); toggleChecked(entry); }}
+                className="shrink-0"
+              >
+                <span
+                  className={`flex h-4 w-4 items-center justify-center rounded border ${
+                    checkedTracks.has(`${entry.kind}:${entry.shortName}`)
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : "border-input"
+                  }`}
+                >
+                  {checkedTracks.has(`${entry.kind}:${entry.shortName}`) && <Check className="w-3 h-3" />}
+                </span>
+              </button>
               <StatusIcon status={entry.status} />
               <span className="flex-1 text-sm font-medium text-foreground truncate">
                 {entry.shortName}
               </span>
+              {entry.kind === 'sprint' && (
+                <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                  {t("deviceTracks.sprintBadge")}
+                </span>
+              )}
               {entry.trackName && entry.trackName !== entry.shortName && (
                 <span className="text-xs text-muted-foreground truncate max-w-[100px]">
                   {entry.trackName}
@@ -481,6 +661,17 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
               )}
 
               {/* Action buttons — stop propagation so click doesn't drill into courses */}
+              {entry.appTrack && entry.appTrack.courses.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs gap-1 shrink-0"
+                  title={t("deviceTracks.picker.buttonHint")}
+                  onClick={(e) => { e.stopPropagation(); setPickerEntry(entry); }}
+                >
+                  <ListChecks className="w-3.5 h-3.5" /> {t("deviceTracks.picker.button")}
+                </Button>
+              )}
               {entry.status === 'app_only' && (
                 <Button
                   variant="ghost"
@@ -490,7 +681,7 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
                   onClick={(e) => { e.stopPropagation(); handleSendToDevice(entry); }}
                 >
                   {uploading === entry.shortName ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  Send
+                  {t("deviceTracks.send")}
                 </Button>
               )}
               {entry.status === 'device_only' && (
@@ -558,6 +749,18 @@ export function DeviceTracksTab({ connection }: DeviceTracksTabProps) {
           loading={false}
           onConfirm={handleResyncAll}
           onClose={() => setResyncConfirm(false)}
+        />
+      )}
+
+      {pickerEntry?.appTrack && (
+        <DeviceCoursePickerDialog
+          open
+          onOpenChange={(o) => { if (!o) setPickerEntry(null); }}
+          track={pickerEntry.appTrack}
+          budget={trackBudget}
+          overrides={overridesFor(pickerEntry.kind, pickerEntry.shortName)}
+          saving={uploading === pickerEntry.shortName}
+          onConfirm={(overrides) => handlePickerConfirm(pickerEntry, overrides)}
         />
       )}
     </div>

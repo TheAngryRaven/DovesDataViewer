@@ -28,6 +28,7 @@
   "lapTable": {
     "noLaps": "No se detectaron vueltas.",
     "noLapsHint": "Selecciona un circuito con línea de meta",
+    "noLapsHintSprint": "Selecciona un trazado sprint con líneas de salida y meta",
     "sectorSums": "Sumas de sector",
     "sectorSumsTitle": "Mostrar un total acumulado S1/S2/S3 antes de cada sector principal",
     "simple": "Simple",
@@ -44,6 +45,7 @@
     "optimal": "Óptima",
     "delta": "Delta",
     "avgLapLength": "Longitud media de vuelta",
+    "avgRunLength": "Longitud media de manga",
     "avgLapValue": "{{feet}} ft / {{meters}} m"
   },
   "snapshots": {

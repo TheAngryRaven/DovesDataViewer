@@ -150,6 +150,10 @@ channel and terminator differ per command.
 | `TGET:<name>` | `0x2A40` then `0x2A3F` | `SIZE:<n>` → data chunks → `DONE` | `TERR:<reason>` / `ERROR` |
 | `TPUT:<name>` | `0x2A40` | `TREADY` → (client uploads) → `TDONE`* → `TOK` | `TERR:<reason>` |
 | `TDEL:<name>` | `0x2A40` | `TOK` | `TERR:<reason>` |
+| `TSLIST` | `0x2A40` | `TSFILE:<name>` … → `TSEND` | — |
+| `TSGET:<name>` | `0x2A40` then `0x2A3F` | `SIZE:<n>` → data chunks → `DONE` | `TERR:<reason>` / `ERROR` |
+| `TSPUT:<name>` | `0x2A40` | `TREADY` → (client uploads) → `TDONE`* → `TOK` | `TERR:<reason>` |
+| `TSDEL:<name>` | `0x2A40` | `TOK` | `TERR:<reason>` |
 | `FWBEGIN:<size>,<crc32>,<variant>` | `0x2A40` | `FWCRC:<crc32>` (echo) | `FWERR:<reason>` (`FWERR:VARIANT`) |
 | `FWPUT:<size>` | `0x2A40` | `FWREADY` → (client uploads) → `FWDONE`* → `FWOK:<crc32>` | `FWERR:<reason>` |
 | `FWAPPLY` | `0x2A40` | `FWSTAGE:<pct>` … → `FWAPPLIED` (or disconnect) | `FWERR:<reason>` |
@@ -304,11 +308,35 @@ Unknown keys are treated as untyped strings with no validation.
 
 ---
 
-## 9. Track-file protocol (`T*`)
+## 9. Track-file protocol (`T*`, `TS*`)
 
 Track files are JSON describing tracks/courses the logger uses for on-device lap
 detection. All control tokens are on `0x2A40`; downloads reuse the `0x2A3F` data
 channel.
+
+### 9.0 Two folders, two verb sets
+
+The logger keeps **circuit** tracks in `/TRACKS` and **sprint** (point-to-point /
+autocross) tracks in `/TRACKS/SPRINT`. The folder is selected by the **opcode**,
+never parsed from the filename: the firmware's filename validator rejects `/` and
+`..` so a BLE client stays jailed to the tracks folders, and a path-carrying
+filename would have punched a hole in that.
+
+So every verb below has a `TS`-prefixed twin — `TSLIST`, `TSGET:`, `TSPUT:`,
+`TSDEL:` — with identical semantics against the sprint folder. **Only the list
+replies differ**: `TSFILE:` / `TSEND` instead of `TFILE:` / `TEND`, so a sprint
+enumeration can never be mistaken for a circuit one. Get/put/delete reuse the
+circuit replies (`SIZE:`/`DONE`, `TREADY`/`TOK`, `TERR:`) verbatim.
+
+A sprint course JSON carries two extra things a circuit course does not:
+`finish_a_lat` / `finish_a_lng` / `finish_b_lat` / `finish_b_lng` (the separate
+finish line, required) and `date_created` (a sortable `YYYY-MM-DDTHH:MM` stamp —
+the device loads the **newest** sprint course by a plain *string* compare of it).
+Its optional split lines ride in the existing `sector_2_*` / `sector_3_*` slots,
+positionally.
+
+Client side: `src/lib/ble/trackOpcodes.ts` owns the verb table; every function in
+`trackSync.ts` takes an optional `kind` that defaults to `'circuit'`.
 
 ### 9.1 List (`TLIST`)
 

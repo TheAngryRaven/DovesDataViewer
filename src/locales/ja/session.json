@@ -28,6 +28,7 @@
   "lapTable": {
     "noLaps": "ラップが検出されませんでした。",
     "noLapsHint": "スタート／フィニッシュラインのあるコースを選択してください",
+    "noLapsHintSprint": "スタートラインとフィニッシュラインのあるスプリントコースを選択してください",
     "sectorSums": "セクター合計",
     "sectorSumsTitle": "各メジャーセクターの前に S1/S2/S3 の累計を表示",
     "simple": "シンプル",
@@ -44,6 +45,7 @@
     "optimal": "最適ラップ",
     "delta": "デルタ",
     "avgLapLength": "平均ラップ長",
+    "avgRunLength": "平均走行距離",
     "avgLapValue": "{{feet}} ft / {{meters}} m"
   },
   "snapshots": {

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ErrorPanel, FileListPanel, ProgressPanel } from "@/components/loggers/DownloadPanels";
 import { createMychronConnection } from "@/lib/loggers/mychron/mychronConnection";
 import { MYCHRON_SSID_PREFIX, loggerConnect } from "@/lib/loggers/mychron/ipc";
+import { acquireNativeConnection, releaseNativeConnection } from "@/lib/loggers/native/owner";
 import {
   classifyLoggerError,
   loggerErrorKey,
@@ -13,6 +14,7 @@ import {
   type LoggerFlowStage,
 } from "@/lib/loggers/errors";
 import type { LoggerConnection, LoggerFile, LoggerDownloadProgress } from "@/lib/loggers";
+import { xrkFileName } from "@/lib/loggers/fileNaming";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { useSettings } from "@/hooks/useSettings";
 import { ParsedData } from "@/types/racing";
@@ -25,6 +27,18 @@ type DownloadState =
   | "file-list"
   | "downloading"
   | "error";
+
+
+/**
+ * Claim the single native connection slot for this download flow, or throw a
+ * classified, user-readable refusal (the Device tab holds the connection —
+ * that surface must disconnect first; no preemption).
+ */
+function claimNativeSlot(): void {
+  if (!acquireNativeConnection("download")) {
+    throw new Error("unsupported: the logger is connected in the Device tab — disconnect there first");
+  }
+}
 
 interface Failure {
   error: ClassifiedLoggerError;
@@ -70,6 +84,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
   const handleClose = useCallback(() => {
     loggerRef.current?.disconnect();
     loggerRef.current = null;
+    releaseNativeConnection("download");
     setState("idle");
     setFiles([]);
     setProgress(null);
@@ -81,6 +96,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
   const handleConnect = useCallback(async () => {
     setFailure(null);
     try {
+      claimNativeSlot();
       // Connect — on Android this drives the OS Wi-Fi picker (join + bind). The
       // picker only lists networks whose SSID starts with this prefix, so it's
       // user-configurable (Settings → MyChron) with the constant as the fallback.
@@ -100,6 +116,9 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
       setState("file-list");
     } catch (err) {
       console.error("MyChron connect/list error:", err);
+      // Connect never landed → free the slot; if it did land (a later step
+      // failed), the connection is still live and keeps its claim.
+      if (!loggerRef.current) releaseNativeConnection("download");
       setFailure({ error: classifyLoggerError(err), stage: "connect", fileSaved: false });
       setState("error");
     }
@@ -115,7 +134,13 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
   }, [autoStart, handleConnect]);
 
   // Always release the device + Wi-Fi binding when this flow unmounts.
-  useEffect(() => () => void loggerRef.current?.disconnect(), []);
+  useEffect(
+    () => () => {
+      loggerRef.current?.disconnect();
+      releaseNativeConnection("download");
+    },
+    [],
+  );
 
   const handleFileSelect = useCallback(
     async (file: LoggerFile) => {
@@ -136,9 +161,9 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
       setProgress({ received: 0, total: file.size, percent: 0, speed: "0 B/s", eta: "--" });
       setFailure(null);
 
-      // Bytes are already-inflated XRK — name accordingly so the importer routes
-      // them to the async wasm path.
-      const fileName = file.name.toLowerCase().endsWith(".xrk") ? file.name : `${file.name}.xrk`;
+      // Bytes are already-inflated XRK — name accordingly (swapping the device's
+      // `.xrz` for `.xrk`) so the importer routes them to the async wasm path.
+      const fileName = xrkFileName(file.name);
 
       let saved = false;
       try {
@@ -170,6 +195,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
   const handleReconnect = useCallback(() => {
     loggerRef.current?.disconnect();
     loggerRef.current = null;
+    releaseNativeConnection("download");
     setFailure(null);
     void handleConnect();
   }, [handleConnect]);
@@ -193,7 +219,7 @@ export function MyChronDownload({ onDataLoaded, autoSave, autoSaveFile, autoStar
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md safe-area-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wifi className="w-5 h-5" />
