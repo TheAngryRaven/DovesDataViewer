@@ -9,6 +9,11 @@ import type { TrackKind } from '@/lib/ble/trackOpcodes';
 import { haversineDistance } from '@/lib/parserUtils';
 import { legacyMirror, majorSectorLines, normalizeCourseSectors } from '@/lib/courseSectors';
 import { deriveShortName } from '@/lib/trackUtils';
+import {
+  NO_OVERRIDES,
+  selectedDeviceCourses,
+  type TrackCourseOverrides,
+} from '@/lib/deviceCourseSelection';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,6 +101,35 @@ export interface MergedCourseEntry {
   status: CourseSyncStatus;
   appCourse?: Course;
   deviceCourse?: DeviceCourseJson;
+  /**
+   * Whether this course is MEANT to be on the device (plan 0017).
+   *
+   * The device holds a subset — a sprint track keeps only its newest course
+   * unless the user says otherwise — so "in the app but not on the device" is
+   * often the correct state rather than work outstanding. Absent means "yes",
+   * so a caller that predates curation behaves exactly as it did.
+   *
+   * Only meaningful for courses the app knows about; a `device_only` course is
+   * never planned, because the selection can only speak about courses it has.
+   */
+  plannedOnDevice?: boolean;
+}
+
+/**
+ * True when a course needs nothing done to it.
+ *
+ * Not the same as `status === 'synced'`: a course deliberately kept OFF the
+ * device is settled precisely by being absent from it, and one the user
+ * excluded that is still ON the device is unsettled until it's removed. Getting
+ * this wrong in the "not settled" direction is what makes a track sit at
+ * `mismatch` forever and re-prompt on every connect.
+ */
+export function courseIsSettled(entry: MergedCourseEntry): boolean {
+  // A course only the device has is always outstanding — it wants importing or
+  // renaming, which is what the sync wizard is for.
+  if (!entry.appCourse) return false;
+  const planned = entry.plannedOnDevice ?? true;
+  return planned ? entry.status === 'synced' : entry.status === 'app_only';
 }
 
 export interface MergedTrackEntry {
@@ -482,15 +516,18 @@ export function isMixedKindTrack(track: Pick<Track, 'courses'>): boolean {
 /** Build merged course list for a single track. */
 function buildMergedCourses(
   appCourses: Course[],
-  deviceCourses: DeviceCourseJson[]
+  deviceCourses: DeviceCourseJson[],
+  overrides: TrackCourseOverrides = NO_OVERRIDES,
 ): MergedCourseEntry[] {
   const entries: MergedCourseEntry[] = [];
   const deviceByName = new Map(deviceCourses.map(dc => [dc.name, dc]));
   const seenDeviceNames = new Set<string>();
+  const planned = new Set(selectedDeviceCourses(appCourses, overrides).map(c => c.name));
 
   // Process app courses first
   for (const ac of appCourses) {
     const dc = deviceByName.get(ac.name);
+    const plannedOnDevice = planned.has(ac.name);
     if (dc) {
       seenDeviceNames.add(ac.name);
       entries.push({
@@ -498,26 +535,36 @@ function buildMergedCourses(
         status: coursesMatch(ac, dc) ? 'synced' : 'mismatch',
         appCourse: ac,
         deviceCourse: dc,
+        plannedOnDevice,
       });
     } else {
-      entries.push({ name: ac.name, status: 'app_only', appCourse: ac });
+      entries.push({ name: ac.name, status: 'app_only', appCourse: ac, plannedOnDevice });
     }
   }
 
   // Device-only courses
   for (const dc of deviceCourses) {
     if (!seenDeviceNames.has(dc.name)) {
-      entries.push({ name: dc.name, status: 'device_only', deviceCourse: dc });
+      entries.push({ name: dc.name, status: 'device_only', deviceCourse: dc, plannedOnDevice: false });
     }
   }
 
   return entries;
 }
 
-/** Build merged track list from app tracks and device files. */
+/**
+ * Build merged track list from app tracks and device files.
+ *
+ * `overridesFor` supplies the user's per-track curation (plan 0017). It is a
+ * lookup rather than a value so this stays pure and the caller owns the
+ * storage. Omitting it means "no overrides", which is the default rule — the
+ * behaviour every caller had before curation existed.
+ */
 export function buildMergedTrackList(
   appTracks: Track[],
-  deviceFiles: DeviceTrackFile[]
+  deviceFiles: DeviceTrackFile[],
+  overridesFor: (kind: TrackKind, shortName: string) => TrackCourseOverrides =
+    () => NO_OVERRIDES,
 ): MergedTrackEntry[] {
   const entries: MergedTrackEntry[] = [];
   // Keyed on (kind, shortName): the device keeps circuit and sprint tracks in
@@ -537,8 +584,11 @@ export function buildMergedTrackList(
     const df = deviceByKey.get(key(kind, sn));
     if (df) {
       seenDeviceKeys.add(key(kind, sn));
-      const mergedCourses = buildMergedCourses(track.courses, df.courses);
-      const allSynced = mergedCourses.every(c => c.status === 'synced');
+      const mergedCourses = buildMergedCourses(track.courses, df.courses, overridesFor(kind, sn));
+      // Settled, not "synced": a course deliberately kept off the device is
+      // settled by being absent. Comparing against every app course is what
+      // made a curated track sit at `mismatch` and re-prompt on every connect.
+      const allSynced = mergedCourses.every(courseIsSettled);
       entries.push({
         shortName: sn,
         kind,

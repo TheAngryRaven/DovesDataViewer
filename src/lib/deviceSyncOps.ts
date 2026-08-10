@@ -16,6 +16,11 @@ import {
   type DeviceCourseJson,
 } from '@/lib/deviceTrackSync';
 import type { SyncTrackRow } from '@/lib/deviceSyncPlan';
+import {
+  NO_OVERRIDES,
+  selectedDeviceCourses,
+  type TrackCourseOverrides,
+} from '@/lib/deviceCourseSelection';
 
 /** A track row plus the names the user settled on for it. */
 export interface SyncResolution {
@@ -94,7 +99,11 @@ function deviceCoursesFor(courses: Course[]): DeviceCourseJson[] {
  *   renamed app track next to its old device file, and the user sees the same
  *   track twice.
  */
-export function planOperations(resolutions: SyncResolution[]): SyncOperation[] {
+export function planOperations(
+  resolutions: SyncResolution[],
+  overridesFor: (kind: TrackKind, shortName: string) => TrackCourseOverrides =
+    () => NO_OVERRIDES,
+): SyncOperation[] {
   const ops: SyncOperation[] = [];
 
   for (const resolution of resolutions) {
@@ -103,6 +112,16 @@ export function planOperations(resolutions: SyncResolution[]): SyncOperation[] {
     const shortName = resolution.shortName.trim();
     const courses = finalCourses(resolution);
     const fileName = `${shortName}.json`;
+
+    // The app keeps every course; the DEVICE gets the subset (plan 0017). Two
+    // deliberately different lists — writing `courses` to the card is what made
+    // accepting the wizard silently undo the user's curation and put the file
+    // straight back over the firmware's parse buffer.
+    //
+    // A renamed track or course falls back to the default rule, since the
+    // overrides are keyed by names it no longer has. That is the safe
+    // direction: the default keeps a sprint track's newest course only.
+    const deviceCourses = selectedDeviceCourses(courses, overridesFor(row.kind, shortName));
 
     ops.push({
       type: 'device_put',
@@ -113,8 +132,8 @@ export function planOperations(resolutions: SyncResolution[]): SyncOperation[] {
         longName: name,
         shortName,
         type: row.kind,
-        defaultCourse: courses[0]?.name ?? '',
-        courses: deviceCoursesFor(courses),
+        defaultCourse: deviceCourses[0]?.name ?? '',
+        courses: deviceCoursesFor(deviceCourses),
       }),
     });
 

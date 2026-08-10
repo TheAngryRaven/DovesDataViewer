@@ -392,6 +392,7 @@
       "skippedTitle": "Not synced",
       "skippedMixedKind": "{{name}} mixes circuit and sprint courses, which the logger stores separately.",
       "skippedTooManyCourses": "{{name}} has more courses than the logger can read back.",
+      "skippedTooManyBytes": "{{name}} is too large for the logger to read, even keeping only its newest course. Open it in the tracks list to choose which courses to keep.",
       "skippedSprintUnsupported": "{{name}} is a sprint track, which this connection cannot reach.",
       "problemRequired": "Enter a name",
       "problemStillGenerated": "Give this a real name",

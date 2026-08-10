@@ -393,6 +393,7 @@
       "skippedTitle": "Sin sincronizar",
       "skippedMixedKind": "{{name}} mezcla recorridos de circuito y de sprint, que el registrador guarda por separado.",
       "skippedTooManyCourses": "{{name}} tiene más recorridos de los que el registrador puede releer.",
+      "skippedTooManyBytes": "{{name}} es demasiado grande para que el registrador lo lea, incluso conservando solo su recorrido más reciente. Ábrelo en la lista de pistas para elegir qué recorridos conservar.",
       "skippedSprintUnsupported": "{{name}} es una pista de sprint, a la que esta conexión no puede acceder.",
       "problemRequired": "Introduce un nombre",
       "problemStillGenerated": "Dale un nombre real",

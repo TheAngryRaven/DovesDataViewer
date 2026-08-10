@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   DEVICE_TRACK_BYTES_LARGE,
   DEVICE_TRACK_BYTES_SMALL,
+  TRACK_BUFFER_MIN_VERSION,
   bytesOverBudget,
   deviceTrackBudget,
   fitsDeviceBudget,
   projectDeviceTrackBytes,
+  supportsLargeTrackBuffer,
 } from "./deviceTrackBudget";
 import { buildTrackJsonForUpload } from "./deviceTrackSync";
 import type { Course, Track } from "@/types/racing";
@@ -75,6 +77,47 @@ describe("deviceTrackBudget", () => {
 
   it("the large buffer really is larger", () => {
     expect(DEVICE_TRACK_BYTES_LARGE).toBeGreaterThan(DEVICE_TRACK_BYTES_SMALL);
+  });
+});
+
+// ─── supportsLargeTrackBuffer ────────────────────────────────────────────────
+
+describe("supportsLargeTrackBuffer", () => {
+  it("is true at and above the release that raised the buffer", () => {
+    expect(supportsLargeTrackBuffer(TRACK_BUFFER_MIN_VERSION)).toBe(true);
+    expect(supportsLargeTrackBuffer("3.2.1")).toBe(true);
+    expect(supportsLargeTrackBuffer("4.0.0")).toBe(true);
+  });
+
+  it("is false below it", () => {
+    expect(supportsLargeTrackBuffer("3.1.0")).toBe(false);
+    expect(supportsLargeTrackBuffer("3.0.1")).toBe(false);
+    expect(supportsLargeTrackBuffer("2.9.9")).toBe(false);
+  });
+
+  // A track file past the buffer isn't a degraded track — it fails to parse and
+  // stops being detected at the venue. So not knowing has to mean "assume the
+  // small buffer", which is the opposite of how needsOtaLayoutUpgrade treats an
+  // unknown version.
+  it("assumes the small buffer when the version is unknown", () => {
+    expect(supportsLargeTrackBuffer(null)).toBe(false);
+    expect(supportsLargeTrackBuffer(undefined)).toBe(false);
+    expect(supportsLargeTrackBuffer("")).toBe(false);
+  });
+
+  // The beta channel stamps `<base>-beta.<gitsha>`, and compareVersions reads
+  // the numeric core only. A beta of the capable release is capable.
+  it("reads a beta build of a capable release as capable", () => {
+    expect(supportsLargeTrackBuffer("3.2.0-beta.abc1234")).toBe(true);
+  });
+
+  it("reads a beta build of an older release as not capable", () => {
+    expect(supportsLargeTrackBuffer("3.1.0-beta.abc1234")).toBe(false);
+  });
+
+  it("feeds the budget directly", () => {
+    expect(deviceTrackBudget(supportsLargeTrackBuffer("3.2.0"))).toBe(DEVICE_TRACK_BYTES_LARGE);
+    expect(deviceTrackBudget(supportsLargeTrackBuffer("3.1.0"))).toBe(DEVICE_TRACK_BYTES_SMALL);
   });
 });
 

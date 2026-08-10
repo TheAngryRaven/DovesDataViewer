@@ -393,6 +393,7 @@
       "skippedTitle": "Nicht synchronisiert",
       "skippedMixedKind": "{{name}} mischt Rundkurs- und Sprint-Kurse, die der Logger getrennt speichert.",
       "skippedTooManyCourses": "{{name}} hat mehr Kurse, als der Logger zurücklesen kann.",
+      "skippedTooManyBytes": "{{name}} ist zu groß, als dass der Logger es lesen könnte – selbst wenn nur der neueste Kurs behalten wird. Öffne die Strecke in der Streckenliste, um auszuwählen, welche Kurse bleiben.",
       "skippedSprintUnsupported": "{{name}} ist eine Sprint-Strecke, die über diese Verbindung nicht erreichbar ist.",
       "problemRequired": "Namen eingeben",
       "problemStillGenerated": "Gib dem einen echten Namen",

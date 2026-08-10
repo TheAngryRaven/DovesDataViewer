@@ -18,6 +18,8 @@ import { parseDeviceGeneratedName } from "@/lib/deviceGeneratedNames";
 import type { NameProblem } from "@/lib/deviceSyncNames";
 import type { SkipReason, SyncDirection, SyncPlan } from "@/lib/deviceSyncPlan";
 import { planOperations } from "@/lib/deviceSyncOps";
+import { loadTrackOverrides } from "@/lib/deviceCourseOverrides";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import { runSyncOperations, type SyncExecutors } from "@/lib/deviceSyncRunner";
 import {
   canAdvance,
@@ -77,6 +79,7 @@ export function DeviceSyncWizard({
   onDone?: () => void;
 }) {
   const { t, i18n } = useTranslation("drawer");
+  const { deviceName } = useDeviceContext();
   const [state, setState] = useState(() => initWizard(plan, reserved));
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -128,6 +131,8 @@ export function DeviceSyncWizard({
           return t("deviceTracks.wizard.skippedMixedKind", { name });
         case "too_many_courses":
           return t("deviceTracks.wizard.skippedTooManyCourses", { name });
+        case "too_many_bytes":
+          return t("deviceTracks.wizard.skippedTooManyBytes", { name });
         case "sprint_unsupported":
           return t("deviceTracks.wizard.skippedSprintUnsupported", { name });
       }
@@ -136,7 +141,12 @@ export function DeviceSyncWizard({
   );
 
   const handleSave = async () => {
-    const operations = planOperations(resolutions(state));
+    // The device gets the curated subset; the app keeps every course. Without
+    // this lookup, accepting the wizard would write them all back and undo the
+    // curation the user did in the tracks list (plan 0017).
+    const operations = planOperations(resolutions(state), (kind, shortName) =>
+      loadTrackOverrides(deviceName, kind, shortName),
+    );
     const executors: SyncExecutors = {
       devicePut: (folder, fileName, data) => details.putTrack(fileName, data, folder),
       deviceDelete: (folder, fileName) => details.deleteTrack(fileName, folder),

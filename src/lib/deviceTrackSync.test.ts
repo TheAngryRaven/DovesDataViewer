@@ -394,6 +394,103 @@ describe("device round trip", () => {
     expect(merged[0].status).toBe("synced");
   });
 
+  // Curation reopens the same trap from a new direction: the device now holds a
+  // SUBSET on purpose, and comparing against every app course would leave the
+  // track at `mismatch` forever — prompting on every single connect.
+  it("settles to 'synced' when a sprint track keeps only its newest course", () => {
+    const sprintCourse = (name: string, dateCreated: string): Course =>
+      makeAppCourse({
+        name,
+        type: "sprint",
+        dateCreated,
+        finish: { a: { lat: 35.41, lon: -97.31 }, b: { lat: 35.41, lon: -97.32 } },
+      });
+
+    const track: Track = {
+      name: "Autocross Lot",
+      shortName: "LOT",
+      courses: [
+        sprintCourse("Run Jan", "2026-01-04T09:00"),
+        sprintCourse("Run Aug", "2026-08-09T14:32"),
+      ],
+      isUserDefined: true,
+    };
+
+    // The device carries only the newest, which is exactly what we upload.
+    const onDevice = deviceTrackFileFrom(
+      "LOT.json",
+      buildTrackJsonForUpload({ ...track, courses: [track.courses[1]] }),
+      "sprint",
+    );
+
+    const merged = buildMergedTrackList([track], [onDevice]);
+    expect(merged[0].status).toBe("synced");
+  });
+
+  it("still reports a mismatch when the course that IS wanted is missing", () => {
+    const sprintCourse = (name: string, dateCreated: string): Course =>
+      makeAppCourse({
+        name,
+        type: "sprint",
+        dateCreated,
+        finish: { a: { lat: 35.41, lon: -97.31 }, b: { lat: 35.41, lon: -97.32 } },
+      });
+
+    const track: Track = {
+      name: "Autocross Lot",
+      shortName: "LOT",
+      courses: [
+        sprintCourse("Run Jan", "2026-01-04T09:00"),
+        sprintCourse("Run Aug", "2026-08-09T14:32"),
+      ],
+      isUserDefined: true,
+    };
+
+    // The device has the OLD course; the newest one is the one that belongs.
+    const onDevice = deviceTrackFileFrom(
+      "LOT.json",
+      buildTrackJsonForUpload({ ...track, courses: [track.courses[0]] }),
+      "sprint",
+    );
+
+    expect(buildMergedTrackList([track], [onDevice])[0].status).toBe("mismatch");
+  });
+
+  it("settles when the user has explicitly kept an older sprint course too", () => {
+    const sprintCourse = (name: string, dateCreated: string): Course =>
+      makeAppCourse({
+        name,
+        type: "sprint",
+        dateCreated,
+        finish: { a: { lat: 35.41, lon: -97.31 }, b: { lat: 35.41, lon: -97.32 } },
+      });
+
+    const track: Track = {
+      name: "Autocross Lot",
+      shortName: "LOT",
+      courses: [
+        sprintCourse("Run Jan", "2026-01-04T09:00"),
+        sprintCourse("Run Aug", "2026-08-09T14:32"),
+      ],
+      isUserDefined: true,
+    };
+    const onDevice = deviceTrackFileFrom(
+      "LOT.json",
+      buildTrackJsonForUpload(track),
+      "sprint",
+    );
+
+    // Default rule alone: the device has one course too many.
+    expect(buildMergedTrackList([track], [onDevice])[0].status).toBe("mismatch");
+
+    // With the user's explicit include, both belong and it settles.
+    const merged = buildMergedTrackList([track], [onDevice], () => ({
+      include: ["Run Jan"],
+      exclude: [],
+    }));
+    expect(merged[0].status).toBe("synced");
+  });
+
   // The rename case: the file moves from N260803_1432.json to SUNSET.json, and
   // the app track carries name "Sunset Park" / shortName "SUNSET".
   it("settles to 'synced' after a device-authored track is renamed", () => {

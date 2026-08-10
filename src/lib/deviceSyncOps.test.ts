@@ -261,3 +261,111 @@ describe("planOperations settles the sync", () => {
     expect(merged[0].status).toBe("synced");
   });
 });
+
+// ─── Curation survives the sync (plan 0017) ──────────────────────────────────
+
+describe("planOperations — device subset", () => {
+  function sprintCourse(name: string, dateCreated: string): Course {
+    return makeCourse({
+      name,
+      type: "sprint",
+      dateCreated,
+      finish: { a: { lat: 35.41, lon: -97.31 }, b: { lat: 35.41, lon: -97.32 } },
+    });
+  }
+
+  const appTrack = (): Track => ({
+    name: "Autocross Lot",
+    shortName: "LOT",
+    courses: [
+      sprintCourse("Run Jan", "2026-01-04T09:00"),
+      sprintCourse("Run Aug", "2026-08-09T14:32"),
+    ],
+    isUserDefined: true,
+  });
+
+  function sprintResolution(): SyncResolution {
+    return resolve({
+      row: row({
+        kind: "sprint",
+        key: "sprint:LOT",
+        shortName: "LOT",
+        name: "Autocross Lot",
+        needsRename: false,
+        deviceFileName: "LOT.json",
+        deviceOnlyCourses: [],
+        appTrack: appTrack(),
+      }),
+      name: "Autocross Lot",
+      shortName: "LOT",
+    });
+  }
+
+  // The failure this closes: accepting the wizard re-uploaded every course and
+  // silently undid the curation, putting the file straight back over the
+  // firmware's parse buffer.
+  it("writes only the newest sprint course to the device", () => {
+    const ops = planOperations([sprintResolution()]);
+    const written: DeviceTrackFileJson = JSON.parse(put(ops).json);
+    expect(written.courses.map((c) => c.name)).toEqual(["Run Aug"]);
+  });
+
+  // ...while the app keeps everything. Nothing is lost; only the card holds a
+  // subset. These are deliberately two different lists.
+  it("keeps every course in the app", () => {
+    const ops = planOperations([sprintResolution()]);
+    expect(appPut(ops).track.courses.map((c) => c.name)).toEqual(["Run Jan", "Run Aug"]);
+  });
+
+  it("names a default course the device actually has", () => {
+    const ops = planOperations([sprintResolution()]);
+    const written: DeviceTrackFileJson = JSON.parse(put(ops).json);
+    expect(written.defaultCourse).toBe("Run Aug");
+  });
+
+  it("honours an explicit include, writing the older course too", () => {
+    const ops = planOperations([sprintResolution()], () => ({
+      include: ["Run Jan"],
+      exclude: [],
+    }));
+    const written: DeviceTrackFileJson = JSON.parse(put(ops).json);
+    expect(written.courses.map((c) => c.name)).toEqual(["Run Jan", "Run Aug"]);
+  });
+
+  it("leaves circuit tracks carrying every course", () => {
+    const circuit: Track = {
+      name: "Orlando Kart Center",
+      shortName: "OKC",
+      courses: [makeCourse({ name: "CW" }), makeCourse({ name: "CCW" })],
+      isUserDefined: true,
+    };
+    const ops = planOperations([
+      resolve({
+        row: row({
+          kind: "circuit",
+          key: "circuit:OKC",
+          shortName: "OKC",
+          name: "Orlando Kart Center",
+          needsRename: false,
+          deviceFileName: "OKC.json",
+          deviceOnlyCourses: [],
+          appTrack: circuit,
+        }),
+        name: "Orlando Kart Center",
+        shortName: "OKC",
+      }),
+    ]);
+    const written: DeviceTrackFileJson = JSON.parse(put(ops).json);
+    expect(written.courses.map((c) => c.name)).toEqual(["CW", "CCW"]);
+  });
+
+  // The property that has to hold end to end: write the subset, read it back,
+  // and the merge must say `synced` rather than re-offering the work.
+  it("round-trips to 'synced' with the subset on the card", () => {
+    const ops = planOperations([sprintResolution()]);
+    const written = put(ops);
+    const onDevice = deviceTrackFileFrom(written.fileName, written.json, "sprint");
+    const merged = buildMergedTrackList([appPut(ops).track], [onDevice]);
+    expect(merged[0].status).toBe("synced");
+  });
+});

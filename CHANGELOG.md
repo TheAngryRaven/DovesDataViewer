@@ -32,6 +32,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     hand-edited settings file — is shown as-is rather than silently displayed
     as one of the choices it does know.
 
+### Added
+- **Sprint tracks now send only their newest course to the logger** (plan 0017).
+  A sprint venue re-lays its course every event, so the courses pile up in one
+  track file — and once that file is bigger than the logger can read, the track
+  isn't recognised at the venue at all. Only the most recently walked course is
+  written to the logger now. **Every course stays in the app and in your
+  account**; only what lives on the card is trimmed. Circuit tracks are
+  unaffected — those layouts are all still driven, so they all stay on.
+- **A track too big for the logger is now reported instead of silently
+  overflowing** (plan 0017). The app knows how much room your logger's firmware
+  has and says which track doesn't fit, rather than sending a file that comes
+  back unreadable.
+
 ### Changed
 - **Tracks are sent to the logger without formatting whitespace** (plan 0017).
   The logger reads a whole track file into a fixed buffer and parses it there;
@@ -42,6 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bites. Nothing changes on your logger or in your own track files.
 
 ### Fixed
+- **A logger holding fewer courses than the app no longer asks to sync on every
+  connect** (plan 0017). The check treated any course in the app but not on the
+  logger as work outstanding, so once a track carried a subset — which is now
+  the normal state for sprint tracks — it could never read as synced and the
+  prompt returned every single time you connected.
 - **"Resync All" no longer leaves a duplicate track on the logger** (plan 0017).
   For a course you created on the logger itself, the track's short name and its
   filename are different — so Resync All deleted nothing and wrote a *second*

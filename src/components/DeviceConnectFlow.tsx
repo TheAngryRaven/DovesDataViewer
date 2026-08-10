@@ -98,7 +98,10 @@ export function DeviceConnectFlow() {
     (async () => {
       try {
         const tracks = await loadTracks();
-        const next = await buildDeviceSyncSnapshot(details, tracks);
+        const next = await buildDeviceSyncSnapshot(details, tracks, undefined, {
+          deviceName,
+          firmwareVersion: fw.info?.version,
+        });
         if (cancelled) return;
         // Only interrupt when there is something to do. A prompt that appears
         // on every connect to say "nothing to sync" is worse than silence.
@@ -116,7 +119,7 @@ export function DeviceConnectFlow() {
     return () => {
       cancelled = true;
     };
-  }, [phase, details]);
+  }, [phase, details, deviceName, fw.info?.version]);
 
   const handleAccept = useCallback(() => {
     setPromptOpen(false);
