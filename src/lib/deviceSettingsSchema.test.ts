@@ -169,6 +169,8 @@ describe("validateSettingValue — enum fields", () => {
   it("accepts every declared option", () => {
     expect(validateSettingValue("display_invert", "normal")).toBeNull();
     expect(validateSettingValue("display_invert", "inverted")).toBeNull();
+    expect(validateSettingValue("debug_pages", "hide")).toBeNull();
+    expect(validateSettingValue("debug_pages", "show")).toBeNull();
     expect(validateSettingValue("race_mode", "circuit")).toBeNull();
     expect(validateSettingValue("race_mode", "sprint")).toBeNull();
     expect(validateSettingValue("spark_mode", "wasted")).toBeNull();
@@ -259,5 +261,20 @@ describe("display_invert", () => {
 
   it("labels the stored values for display", () => {
     expect(settingDisplayValue("display_invert", "inverted")).toBe("Inverted (black on white)");
+  });
+});
+
+describe("debug_pages", () => {
+  // The firmware shows the diagnostic pages only on an exact "show" — any
+  // other value silently means hidden, so near misses must be rejected here.
+  it("rejects near misses the firmware would ignore", () => {
+    expect(validateSettingValue("debug_pages", "Show")).not.toBeNull();
+    expect(validateSettingValue("debug_pages", "hidden")).not.toBeNull();
+    expect(validateSettingValue("debug_pages", "1")).not.toBeNull();
+  });
+
+  it("labels the stored values for display", () => {
+    expect(settingDisplayValue("debug_pages", "hide")).toBe("Hidden (racing pages only)");
+    expect(settingDisplayValue("debug_pages", "show")).toBe("Shown (GPS/RF diagnostics first)");
   });
 });
