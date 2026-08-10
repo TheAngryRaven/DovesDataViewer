@@ -32,7 +32,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     hand-edited settings file — is shown as-is rather than silently displayed
     as one of the choices it does know.
 
+### Changed
+- **Tracks are sent to the logger without formatting whitespace** (plan 0017).
+  The logger reads a whole track file into a fixed buffer and parses it there;
+  a file past that buffer is cut mid-file, fails to parse, and the track then
+  isn't recognised at the venue at all rather than just losing its tail. The
+  indentation was about a quarter of every file and nothing reads it, so it's
+  gone — which is roughly a quarter more courses per track before the limit
+  bites. Nothing changes on your logger or in your own track files.
+
 ### Fixed
+- **"Resync All" no longer leaves a duplicate track on the logger** (plan 0017).
+  For a course you created on the logger itself, the track's short name and its
+  filename are different — so Resync All deleted nothing and wrote a *second*
+  copy alongside the original. Every resync added another, filling the card and
+  pushing tracks toward the size limit above. It now writes to the file that is
+  actually there, which is what every other button in the tracks list already
+  did.
 - **The sync wizard's course screen no longer pre-fills the track's name**
   (plan 0016). Naming a track and moving to the course step put that same name
   into every course box, which is not what a course is called. Each course now
