@@ -36,8 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - A value the app doesn't recognise — from older or newer firmware, or a
     hand-edited settings file — is shown as-is rather than silently displayed
     as one of the choices it does know.
-
-### Added
 - **Sprint tracks now send only their newest course to the logger** (plan 0017).
   A sprint venue re-lays its course every event, so the courses pile up in one
   track file — and once that file is bigger than the logger can read, the track
@@ -58,87 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tracks can be selected and sent in one go** (plan 0017). Tick any number of
   tracks in the list and send them all to the logger together. Each is sent as
   whatever you chose above, so a bulk send never undoes your course picks.
-
-### Changed
-- **Tracks are sent to the logger without formatting whitespace** (plan 0017).
-  The logger reads a whole track file into a fixed buffer and parses it there;
-  a file past that buffer is cut mid-file, fails to parse, and the track then
-  isn't recognised at the venue at all rather than just losing its tail. The
-  indentation was about a quarter of every file and nothing reads it, so it's
-  gone — which is roughly a quarter more courses per track before the limit
-  bites. Nothing changes on your logger or in your own track files.
-
-### Fixed
-- **A logger holding fewer courses than the app no longer asks to sync on every
-  connect** (plan 0017). The check treated any course in the app but not on the
-  logger as work outstanding, so once a track carried a subset — which is now
-  the normal state for sprint tracks — it could never read as synced and the
-  prompt returned every single time you connected.
-- **"Resync All" no longer leaves a duplicate track on the logger** (plan 0017).
-  For a course you created on the logger itself, the track's short name and its
-  filename are different — so Resync All deleted nothing and wrote a *second*
-  copy alongside the original. Every resync added another, filling the card and
-  pushing tracks toward the size limit above. It now writes to the file that is
-  actually there, which is what every other button in the tracks list already
-  did.
-- **The sync wizard's course screen no longer pre-fills the track's name**
-  (plan 0016). Naming a track and moving to the course step put that same name
-  into every course box, which is not what a course is called. Each course now
-  shows its original name, which track it belongs to, and the date it was
-  walked in readable form — the same layout as the track step. The box starts
-  with whatever would be saved if you changed nothing: a sprint course keeps
-  the date it was walked, since a sprint venue re-lays its course every event,
-  and a circuit course starts empty because it needs a real name.
-- **Tracks sent to the logger keep their name and course lengths** (plan 0016).
-  Uploading a track wrote it in the older bare-list format, which the logger
-  reads but which carries no track name, no short name, and no course length.
-  The length is what the logger ranks courses by when it works out which one
-  you're on — so a track sent from this app could never be recognised and fell
-  back to timing "anything", and the blank short name ended up in the log
-  header. Uploads now use the same full format the app's own track files and
-  the logger's course creator already use, so nothing new is asked of any
-  device already in the field. Editing a single course preserves it too — that
-  path stripped the same information from a file that had it.
-- **A track downloaded from the logger can now be sent back to it** (plan 0016).
-  Importing a track from the device dropped its short name, and the sync
-  matches the two sides by short name — so an imported track was invisible to
-  every later sync. It stayed listed as "on device only" forever, and the
-  device kept re-offering it. Two things were wrong: the short name wasn't
-  carried across on import, and the sync matched on the *filename* rather than
-  the short name the file declares. Those differ for a course walked on the
-  device, which is stored as `N260803_1432.json` but names itself `08031432`.
-  Writes still go to the real file, so nothing is orphaned on the card.
-- **A course created on the logger now actually arrives when you sync it.**
-  Syncing a track the device authored itself brought the track across with
-  **no courses in it** — the walked course was on the card and simply
-  vanished on the way in. The device writes the same track-file shape this
-  app does (a track object with a `courses` list), but the device-sync
-  reader only understood the older bare-list format, so it parsed the file
-  fine, found no list where it expected one, and returned nothing without
-  a word. Both shapes are now read, matching what the logger's own parser
-  accepts.
-- **Sprint finish lines are drawn on the maps, not just in the track
-  editor.** A sprint course's separate finish line only ever appeared while
-  editing it — the session race-line map and the simulator map didn't know
-  the line existed, so a point-to-point course looked identical to a
-  circuit one everywhere it mattered. Both now draw it, and on a sprint
-  course the start line turns green so start and finish read as
-  green-to-end rather than two identical red lines. Circuit maps are
-  unchanged.
-- **A firmware update that fails with "SIZE" now says what to do about it.**
-  The size limit lives in the firmware *already installed on the logger*, not
-  in the image or in this app — anything older than v3.1.0 carved a smaller
-  staging region out of flash and refuses a larger image before the upload
-  even starts. The app relayed the device's bare `SIZE` token, which gave no
-  hint that the fix is to install v3.1.0 first (it fits under the old limit,
-  and carries the bigger region) and then retry. It now says exactly that,
-  naming the version the device reported. Devices that report v3.1.0 or newer
-  and still refuse are pointed at USB instead, rather than sent on a
-  pointless staged upgrade.
-  - Groundwork, not yet surfaced: the check is a pure helper, so the update
-    dialog can warn *before* the download rather than after the handshake.
-
-### Added
 - **Connecting a logger now offers what it needs, instead of waiting to be
   asked** (plan 0016). Connect, and the app checks for a firmware update and
   then whether any tracks differ between the app and the device — no digging
@@ -246,7 +163,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Existing courses are unaffected. The type is optional and absent means
     circuit, so every saved, bundled and cloud-synced course keeps working with
     no migration.
-
 - **Device tab works in the native Android app.** Settings, track management,
   and battery now ride the native logger IPC when running inside LapWing —
   previously the whole Device tab was dead there because the webview has no
@@ -262,7 +178,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   name when the device reports one — so Alfano sessions are no longer bare
   hex ids.
 
+### Changed
+- **Tracks are sent to the logger without formatting whitespace** (plan 0017).
+  The logger reads a whole track file into a fixed buffer and parses it there;
+  a file past that buffer is cut mid-file, fails to parse, and the track then
+  isn't recognised at the venue at all rather than just losing its tail. The
+  indentation was about a quarter of every file and nothing reads it, so it's
+  gone — which is roughly a quarter more courses per track before the limit
+  bites. Nothing changes on your logger or in your own track files.
+
 ### Fixed
+- **A logger holding fewer courses than the app no longer asks to sync on every
+  connect** (plan 0017). The check treated any course in the app but not on the
+  logger as work outstanding, so once a track carried a subset — which is now
+  the normal state for sprint tracks — it could never read as synced and the
+  prompt returned every single time you connected.
+- **"Resync All" no longer leaves a duplicate track on the logger** (plan 0017).
+  For a course you created on the logger itself, the track's short name and its
+  filename are different — so Resync All deleted nothing and wrote a *second*
+  copy alongside the original. Every resync added another, filling the card and
+  pushing tracks toward the size limit above. It now writes to the file that is
+  actually there, which is what every other button in the tracks list already
+  did.
 - **The sync wizard's course screen no longer pre-fills the track's name**
   (plan 0016). Naming a track and moving to the course step put that same name
   into every course box, which is not what a course is called. Each course now
@@ -319,7 +256,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pointless staged upgrade.
   - Groundwork, not yet surfaced: the check is a pure helper, so the update
     dialog can warn *before* the download rather than after the handshake.
-
 - **Device sync could report a changed course as "synced".** `coursesMatch`
   compared only start/finish and the two legacy sector lines, so a course
   carrying data outside that projection looked unchanged — for a sprint course
@@ -327,7 +263,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now compares the full device-visible projection per course type, and treats a
   course that changed type as a different file rather than an edit (the two
   kinds live in separate folders on the device).
-
 - **Download dialogs respect notches on Android.** The native logger download
   dialogs (and the Fledgling BLE one) now pad for the device safe area, so
   they aren't clipped by notches/status bars on edge-to-edge phones.
@@ -337,7 +272,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Alfano downloads save/import as `.csv`.** Downloaded sessions (bare hex
   ids on the device, CSV payloads) now get a `.csv` extension so the importer
   and saved files are routed correctly.
-
 - **Auth emails from the Android app now link to lapwingdata.com.** Inside the
   native WebView, `window.location.origin` is the shell's synthetic
   `http://tauri.localhost`, so registration-confirmation and password-reset
