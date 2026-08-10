@@ -111,6 +111,17 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     description: "Inverting can be easier to read in direct sun. Normal is how the logger has always looked",
   },
   {
+    key: 'debug_pages',
+    label: 'Debug Pages',
+    type: 'enum',
+    options: [
+      { value: 'hide', label: 'Hidden (racing pages only)' },
+      { value: 'show', label: 'Shown (GPS/RF diagnostics first)' },
+    ],
+    description:
+      'The two diagnostic pages at the front of the race rotation. Hidden is the factory default — show them for development or tuning',
+  },
+  {
     key: 'spark_mode',
     label: 'Spark Mode',
     type: 'enum',

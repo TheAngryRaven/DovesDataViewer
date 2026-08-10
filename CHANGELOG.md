@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Debug Pages** — a new logger setting controlling the two diagnostic pages
+  at the front of the race rotation (GPS/RF counters and the stats page). The
+  firmware now hides them by default so a driver only sees speed, RPM and lap
+  pages; flip this to Shown for development or tuning. Appears once your
+  logger has the firmware that supports it.
 - **Display Colours** — a new logger setting that inverts the screen, so it
   shows black on a lit background instead of white on black. Easier to read in
   direct sun. Appears once your logger has the firmware that supports it; the
