@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw, UserRound } from "lucide-react";
+import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw, UserRound, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,12 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { type BleConnection } from "@/lib/bleDatalogger";
 import type { DeviceDetails } from "@/lib/loggers";
 import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
+  isAdvancedSetting,
   validateSettingValue,
 } from "@/lib/deviceSettingsSchema";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +55,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   // The signed-in user's account name, used by the "use profile name" shortcut
   // on the Device Name field. Loaded lazily so the Supabase client never lands
   // on the offline-first eager graph; null when signed out or unavailable.
@@ -113,35 +116,35 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     fetchSettings();
   }, [fetchSettings]);
 
-  const handleChange = (index: number, newValue: string) => {
+  const handleChange = (key: string, newValue: string) => {
     setRows((prev) =>
-      prev.map((r, i) =>
-        i === index
+      prev.map((r) =>
+        r.key === key
           ? { ...r, value: newValue, error: validateSettingValue(r.key, newValue) }
           : r
       )
     );
   };
 
-  const handleSave = async (index: number) => {
-    const row = rows[index];
-    if (row.error || row.value === row.originalValue) return;
+  const handleSave = async (key: string) => {
+    const row = rows.find((r) => r.key === key);
+    if (!row || row.error || row.value === row.originalValue) return;
 
     setRows((prev) =>
-      prev.map((r, i) => (i === index ? { ...r, saving: true } : r))
+      prev.map((r) => (r.key === key ? { ...r, saving: true } : r))
     );
 
     try {
       await details.setSetting(row.key, row.value);
       setRows((prev) =>
-        prev.map((r, i) =>
-          i === index ? { ...r, originalValue: r.value, saving: false } : r
+        prev.map((r) =>
+          r.key === key ? { ...r, originalValue: r.value, saving: false } : r
         )
       );
       toast.success(t("device.toastSaved", { name: getSettingDef(row.key)?.label ?? row.key }));
     } catch (err) {
       setRows((prev) =>
-        prev.map((r, i) => (i === index ? { ...r, saving: false } : r))
+        prev.map((r) => (r.key === key ? { ...r, saving: false } : r))
       );
       toast.error(t("device.toastSaveFailed", { error: err instanceof Error ? err.message : t("device.unknownError") }));
     }
@@ -164,6 +167,85 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     }
   };
 
+  // Advanced settings (detection thresholds, debug toggles) live under a
+  // collapsed section; anything unflagged — including unknown keys from a
+  // newer firmware — stays in the main list.
+  const normalRows = rows.filter((r) => !isAdvancedSetting(r.key));
+  const advancedRows = rows.filter((r) => isAdvancedSetting(r.key));
+
+  const renderRow = (row: SettingRow) => {
+    const def = getSettingDef(row.key);
+    const isDirty = row.value !== row.originalValue;
+    return (
+      <div key={row.key} className="space-y-1">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <label className="text-sm font-medium text-foreground">
+              {def?.label ?? row.key}
+            </label>
+            {def?.description && (
+              <p className="text-xs text-muted-foreground">{def.description}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {def?.type === "enum" && def.options?.length ? (
+            <Select value={row.value} onValueChange={(v) => handleChange(row.key, v)}>
+              <SelectTrigger className="h-9 flex-1 text-sm">
+                {/* A device can hold a value this build doesn't know — an
+                    older or newer firmware, or a hand-edited SETTINGS.json.
+                    Show it verbatim rather than an empty box. */}
+                <SelectValue placeholder={row.value || undefined} />
+              </SelectTrigger>
+              <SelectContent>
+                {def.options.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              value={row.value}
+              onChange={(e) => handleChange(row.key, e.target.value)}
+              className="h-9 text-sm flex-1"
+              type={def?.type === "number" ? "number" : "text"}
+              maxLength={def?.maxLength}
+            />
+          )}
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            disabled={!isDirty || !!row.error || row.saving}
+            onClick={() => handleSave(row.key)}
+          >
+            {row.saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+        {row.key === DEVICE_NAME_KEY && profileName && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+            onClick={() => handleChange(row.key, profileName.slice(0, def?.maxLength ?? profileName.length))}
+          >
+            <UserRound className="w-3.5 h-3.5" />
+            {t("device.useProfileName")}
+          </Button>
+        )}
+        {row.error && (
+          <p className="text-xs text-destructive">{row.error}</p>
+        )}
+      </div>
+    );
+  };
+
   const settingsBody = loading ? (
     <div className="flex items-center justify-center py-8">
       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -182,78 +264,23 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
       {rows.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">{t("device.noSettings")}</p>
       )}
-      {rows.map((row, i) => {
-        const def = getSettingDef(row.key);
-        const isDirty = row.value !== row.originalValue;
-        return (
-          <div key={row.key} className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 min-w-0">
-                <label className="text-sm font-medium text-foreground">
-                  {def?.label ?? row.key}
-                </label>
-                {def?.description && (
-                  <p className="text-xs text-muted-foreground">{def.description}</p>
-                )}
-              </div>
+      {normalRows.map(renderRow)}
+      {advancedRows.length > 0 && (
+        <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced} className="border border-border rounded-md">
+          <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-1 text-left">
+              {t("device.advanced")}
+            </span>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-3 pb-3 pt-1 space-y-3">
+              {advancedRows.map(renderRow)}
             </div>
-            <div className="flex items-center gap-2">
-              {def?.type === "enum" && def.options?.length ? (
-                <Select value={row.value} onValueChange={(v) => handleChange(i, v)}>
-                  <SelectTrigger className="h-9 flex-1 text-sm">
-                    {/* A device can hold a value this build doesn't know — an
-                        older or newer firmware, or a hand-edited SETTINGS.json.
-                        Show it verbatim rather than an empty box. */}
-                    <SelectValue placeholder={row.value || undefined} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {def.options.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={row.value}
-                  onChange={(e) => handleChange(i, e.target.value)}
-                  className="h-9 text-sm flex-1"
-                  type={def?.type === "number" ? "number" : "text"}
-                  maxLength={def?.maxLength}
-                />
-              )}
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0"
-                disabled={!isDirty || !!row.error || row.saving}
-                onClick={() => handleSave(i)}
-              >
-                {row.saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-            {row.key === DEVICE_NAME_KEY && profileName && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
-                onClick={() => handleChange(i, profileName.slice(0, def?.maxLength ?? profileName.length))}
-              >
-                <UserRound className="w-3.5 h-3.5" />
-                {t("device.useProfileName")}
-              </Button>
-            )}
-            {row.error && (
-              <p className="text-xs text-destructive">{row.error}</p>
-            )}
-          </div>
-        );
-      })}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
       {rows.length > 0 && (
         <div className="pt-4 border-t border-border">
           <Button

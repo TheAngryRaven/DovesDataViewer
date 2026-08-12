@@ -265,6 +265,7 @@
     "readingSettings": "Reading settings…",
     "retry": "Retry",
     "noSettings": "No settings found on device.",
+    "advanced": "Advanced",
     "useProfileName": "Use profile name",
     "reset": "Reset Settings to Default",
     "resetConfirm": "Confirm Reset — Device Will Reboot",

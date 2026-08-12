@@ -266,6 +266,7 @@
     "readingSettings": "Lecture des réglages…",
     "retry": "Réessayer",
     "noSettings": "Aucun réglage trouvé sur l'appareil.",
+    "advanced": "Avancé",
     "useProfileName": "Utiliser le nom du profil",
     "reset": "Réinitialiser les réglages par défaut",
     "resetConfirm": "Confirmer la réinitialisation — l'appareil va redémarrer",

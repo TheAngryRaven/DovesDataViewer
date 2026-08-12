@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
+  isAdvancedSetting,
   validateSettingValue,
   settingDisplayValue,
 } from "./deviceSettingsSchema";
@@ -211,6 +212,36 @@ describe("enum schema entries", () => {
       const values = def.options!.map((o) => o.value);
       expect(new Set(values).size, `${def.key} has duplicate values`).toBe(values.length);
     }
+  });
+});
+
+// ─── isAdvancedSetting ────────────────────────────────────────────────────────
+
+describe("isAdvancedSetting", () => {
+  it("flags detection thresholds, debug pages and the legacy-CSV switch", () => {
+    expect(isAdvancedSetting("lap_detection_distance")).toBe(true);
+    expect(isAdvancedSetting("waypoint_detection_distance")).toBe(true);
+    expect(isAdvancedSetting("waypoint_speed")).toBe(true);
+    expect(isAdvancedSetting("debug_pages")).toBe(true);
+    expect(isAdvancedSetting("use_legacy_csv")).toBe(true);
+  });
+
+  it("keeps everyday settings in the normal list", () => {
+    expect(isAdvancedSetting("device_name")).toBe(false);
+    expect(isAdvancedSetting("bluetooth_name")).toBe(false);
+    expect(isAdvancedSetting("bluetooth_pin")).toBe(false);
+    expect(isAdvancedSetting("driver_name")).toBe(false);
+    expect(isAdvancedSetting("race_mode")).toBe(false);
+    expect(isAdvancedSetting("display_invert")).toBe(false);
+    expect(isAdvancedSetting("spark_mode")).toBe(false);
+    expect(isAdvancedSetting("cylinder_count")).toBe(false);
+  });
+
+  // A newer firmware can send keys this build has no schema for. The default is
+  // "normal unless flagged", so an unknown key must stay visible in the main
+  // list, not vanish into a collapsed section.
+  it("treats unknown keys as normal", () => {
+    expect(isAdvancedSetting("some_future_setting")).toBe(false);
   });
 });
 
