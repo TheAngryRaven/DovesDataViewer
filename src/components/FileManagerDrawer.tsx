@@ -185,8 +185,10 @@ export function FileManagerDrawer({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {topTab === "garage" ? <Gauge className="w-5 h-5 text-primary" /> : topTab === "profile" ? <User className="w-5 h-5 text-primary" /> : <Cpu className="w-5 h-5 text-primary" />}
-            <h2 className="font-semibold text-foreground">{topTab === "garage" ? t("shell.tabs.garage") : topTab === "profile" ? t("shell.tabs.profile") : t("shell.tabs.device")}</h2>
+            {/* The whole panel is "the garage" — the title stays put while the
+                tabs below (Garage / Profile / Device) switch its contents. */}
+            <Gauge className="w-5 h-5 text-primary" />
+            <h2 className="font-semibold text-foreground">{t("shell.tabs.garage")}</h2>
             {topTab === "device" && device.deviceName && (
               <span className="text-xs text-muted-foreground truncate max-w-[120px]">— {device.deviceName}</span>
             )}
