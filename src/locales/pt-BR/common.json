@@ -2,7 +2,6 @@
   "_machine": true,
   "appName": "LapWing",
   "actions": {
-    "signIn": "Entrar",
     "signOut": "Sair",
     "profile": "Perfil",
     "sponsor": "Apoiar",

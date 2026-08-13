@@ -1,7 +1,6 @@
 {
   "appName": "LapWing",
   "actions": {
-    "signIn": "Sign in",
     "signOut": "Sign out",
     "profile": "Profile",
     "backToHome": "Back to home",

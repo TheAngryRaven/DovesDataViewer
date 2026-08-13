@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.1.0] - unreleased
 
 ### Changed
+- **One Profile button** — the header's Sign-in button is gone: everyone gets
+  the same Profile button, which opens the garage's Profile tab where signing
+  in (or creating an account) is offered instead of forced. The side panel is
+  now titled **Garage** throughout, no matter which tab is open.
 - **Tidier Device Settings** — the garage's device settings panel now tucks
   its expert knobs (lap/waypoint detection distances, waypoint speed, debug
   pages, the legacy CSV switch) under a collapsed **Advanced** section, so

@@ -1,6 +1,5 @@
 import { type ReactNode } from "react";
-import { Heart, LogIn, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Heart, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ interface SiteHeaderProps {
   /** The settings modal (trigger + dialog), rendered just left of the account button. */
   settingsButton: ReactNode;
   enableCloud: boolean;
-  /** Opens the Profile (account) surface. */
+  /** Opens the garage panel on its Profile (account) tab. */
   onOpenProfile: () => void;
   /** Show the "Supported files" reference dialog button (default true). */
   showSupportedFiles?: boolean;
@@ -37,7 +36,6 @@ export function SiteHeader({
   showAbout = true,
   children,
 }: SiteHeaderProps) {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation(["common"]);
   const native = isNativeApp();
@@ -67,18 +65,13 @@ export function SiteHeader({
           {showSupportedFiles && <SupportedFilesDialog />}
           {showAbout && <AboutDialog />}
           {settingsButton}
+          {/* One profile button for everyone — it opens the garage's Profile
+              tab, which offers sign-in when signed out (no forced /login). */}
           {enableCloud && (
-            user ? (
-              <Button size="sm" className="gap-2" onClick={onOpenProfile} title={user.email ?? undefined}>
-                <User className="w-4 h-4" />
-                <span className="hidden sm:inline">{t("common:actions.profile")}</span>
-              </Button>
-            ) : (
-              <Button size="sm" className="gap-2" onClick={() => navigate('/login')}>
-                <LogIn className="w-4 h-4" />
-                <span className="hidden sm:inline">{t("common:actions.signIn")}</span>
-              </Button>
-            )
+            <Button size="sm" className="gap-2" onClick={onOpenProfile} title={user?.email ?? undefined}>
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("common:actions.profile")}</span>
+            </Button>
           )}
         </div>
       </div>
