@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [4.1.0] - unreleased
+
+### Changed
+- **Tidier Device Settings** — the garage's device settings panel now tucks
+  its expert knobs (lap/waypoint detection distances, waypoint speed, debug
+  pages, the legacy CSV switch) under a collapsed **Advanced** section, so
+  the everyday settings — names, display, RPM setup — stand alone up top.
+  New settings appear in the main list unless deliberately marked advanced.
+
 ## [4.0.0] - 2026-08-10
 
 ### Added

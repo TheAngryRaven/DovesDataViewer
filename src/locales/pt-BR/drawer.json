@@ -266,6 +266,7 @@
     "readingSettings": "Lendo configurações…",
     "retry": "Tentar novamente",
     "noSettings": "Nenhuma configuração encontrada no dispositivo.",
+    "advanced": "Avançado",
     "useProfileName": "Usar nome do perfil",
     "reset": "Restaurar configurações padrão",
     "resetConfirm": "Confirmar restauração — o dispositivo vai reiniciar",
