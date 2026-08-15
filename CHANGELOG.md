@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [4.1.0] - unreleased
+## [4.0.1] - 2026-08-15
 
 ### Changed
 - **One Profile button** — the header's Sign-in button is gone: everyone gets
