@@ -22,6 +22,12 @@ export interface DeviceSettingDef {
    */
   options?: DeviceSettingOption[];
   description?: string;
+  /**
+   * Tucks the setting under the collapsed "Advanced" section of the Device
+   * Settings tab (detection thresholds, debug toggles, legacy switches).
+   * Absent = normal: a new setting shows in the main list unless flagged.
+   */
+  advanced?: boolean;
 }
 
 export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
@@ -62,6 +68,7 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     min: 1,
     max: 50,
     description: 'Start/finish crossing threshold in meters',
+    advanced: true,
   },
   {
     key: 'waypoint_detection_distance',
@@ -70,6 +77,7 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     min: 5,
     max: 100,
     description: 'Waypoint / course detector proximity zone in meters',
+    advanced: true,
   },
   {
     key: 'waypoint_speed',
@@ -78,6 +86,7 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     min: 5,
     max: 100,
     description: 'Minimum speed (MPH) to activate lap/waypoint detection',
+    advanced: true,
   },
   {
     key: 'use_legacy_csv',
@@ -86,6 +95,7 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     min: 0,
     max: 1,
     description: 'Save as .dove instead of .dovex (0 = off, 1 = on)',
+    advanced: true,
   },
   {
     // Exists on the device already, but was never in this schema — so it showed
@@ -120,6 +130,7 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     ],
     description:
       'The two diagnostic pages at the front of the race rotation. Hidden is the factory default — show them for development or tuning',
+    advanced: true,
   },
   {
     key: 'spark_mode',
@@ -146,6 +157,15 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
 /** Look up schema definition for a key, or return null for unknown keys */
 export function getSettingDef(key: string): DeviceSettingDef | null {
   return DEVICE_SETTINGS_SCHEMA.find((s) => s.key === key) ?? null;
+}
+
+/**
+ * Whether a setting belongs under the collapsed "Advanced" section. Unknown
+ * keys (newer firmware than this build) count as normal — same default as an
+ * unflagged schema entry — so they stay visible rather than tucked away.
+ */
+export function isAdvancedSetting(key: string): boolean {
+  return getSettingDef(key)?.advanced === true;
 }
 
 /** Validate a value against its schema definition. Returns error string or null if valid. */

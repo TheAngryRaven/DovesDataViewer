@@ -2,7 +2,6 @@
   "_machine": true,
   "appName": "LapWing",
   "actions": {
-    "signIn": "Se connecter",
     "signOut": "Se déconnecter",
     "profile": "Profil",
     "sponsor": "Soutenir",
