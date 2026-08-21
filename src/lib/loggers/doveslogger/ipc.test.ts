@@ -123,10 +123,10 @@ describe("doveslogger device-tab ipc", () => {
     expect(invoke).toHaveBeenCalledWith("logger_reset_settings");
   });
 
-  it("lists tracks", async () => {
+  it("lists tracks, defaulting to the circuit folder", async () => {
     invoke.mockResolvedValue(["t.json"]);
     await expect(loggerListTracks()).resolves.toEqual(["t.json"]);
-    expect(invoke).toHaveBeenCalledWith("logger_list_tracks");
+    expect(invoke).toHaveBeenCalledWith("logger_list_tracks", { kind: "circuit" });
   });
 
   it("downloads a track through a progress channel and returns bytes", async () => {
@@ -134,6 +134,7 @@ describe("doveslogger device-tab ipc", () => {
     await expect(loggerDownloadTrack("t.json")).resolves.toEqual(new Uint8Array([123, 125]));
     expect(invoke).toHaveBeenCalledWith("logger_download_track", {
       name: "t.json",
+      kind: "circuit",
       onProgress: expect.any(ChannelMock),
     });
   });
@@ -142,12 +143,50 @@ describe("doveslogger device-tab ipc", () => {
     invoke.mockResolvedValue(undefined);
     const data = new Uint8Array([1, 2]);
     await loggerUploadTrack("t.json", data);
-    expect(invoke).toHaveBeenCalledWith("logger_upload_track", { name: "t.json", data });
+    expect(invoke).toHaveBeenCalledWith("logger_upload_track", {
+      name: "t.json",
+      data,
+      kind: "circuit",
+    });
   });
 
   it("deletes a track", async () => {
     invoke.mockResolvedValue(undefined);
     await loggerDeleteTrack("t.json");
-    expect(invoke).toHaveBeenCalledWith("logger_delete_track", { name: "t.json" });
+    expect(invoke).toHaveBeenCalledWith("logger_delete_track", {
+      name: "t.json",
+      kind: "circuit",
+    });
+  });
+
+  // The sprint folder is reached by the backend's TS* verbs, selected by this
+  // `kind` — never by a path in the filename (the firmware rejects `/` and `..`).
+  it("forwards the sprint kind on every track command", async () => {
+    invoke.mockResolvedValue(["a.json"]);
+    await loggerListTracks("sprint");
+    expect(invoke).toHaveBeenCalledWith("logger_list_tracks", { kind: "sprint" });
+
+    invoke.mockResolvedValue(new Uint8Array([1]).buffer);
+    await loggerDownloadTrack("a.json", "sprint");
+    expect(invoke).toHaveBeenCalledWith("logger_download_track", {
+      name: "a.json",
+      kind: "sprint",
+      onProgress: expect.any(ChannelMock),
+    });
+
+    invoke.mockResolvedValue(undefined);
+    const data = new Uint8Array([1, 2]);
+    await loggerUploadTrack("a.json", data, "sprint");
+    expect(invoke).toHaveBeenCalledWith("logger_upload_track", {
+      name: "a.json",
+      data,
+      kind: "sprint",
+    });
+
+    await loggerDeleteTrack("a.json", "sprint");
+    expect(invoke).toHaveBeenCalledWith("logger_delete_track", {
+      name: "a.json",
+      kind: "sprint",
+    });
   });
 });

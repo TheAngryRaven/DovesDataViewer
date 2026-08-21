@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [Unreleased]
+
+### Added
+- **Sprint tracks in the native app** — the Android/native Device tab can now
+  list, download, upload and delete **sprint** courses, not just circuit ones.
+  It previously showed an empty sprint list and said the transport couldn't
+  reach that folder, because the native bridge had no `TS*` verbs; LapWing now
+  implements them, so the seam forwards the track kind straight through and
+  the native path reaches parity with Web Bluetooth.
+
 ## [4.0.1] - 2026-08-15
 
 ### Changed
