@@ -17,6 +17,7 @@
  */
 
 import { api, type DownloadProgress, type LoggerDeviceInfo } from "../native/ipc";
+import type { TrackKind } from "@/lib/ble/trackOpcodes";
 
 // Re-export the shared native surface so DovesLogger callers import it all from here.
 export {
@@ -121,32 +122,53 @@ export async function loggerResetSettings(): Promise<void> {
   await invoke("logger_reset_settings");
 }
 
-/** List the track files stored on the device. */
-export async function loggerListTracks(): Promise<string[]> {
+// The four track commands take a `kind` selecting the on-device folder:
+// "circuit" (/TRACKS) or "sprint" (/TRACKS/SPRINT). The backend routes to the
+// T* or TS* BLE verbs accordingly — the folder is never encoded in the
+// filename, because the firmware's filename validator rejects `/` and `..`.
+//
+// `kind` is optional on the wire (the backend defaults it to circuit), but we
+// always send it: an explicit value costs nothing and makes the intent legible
+// in the IPC log.
+
+/** List the track files stored on the device, in the folder `kind` selects. */
+export async function loggerListTracks(kind: TrackKind = "circuit"): Promise<string[]> {
   const { invoke } = await api();
-  return invoke<string[]>("logger_list_tracks");
+  return invoke<string[]>("logger_list_tracks", { kind });
 }
 
 /** Download one track file, streaming progress like `loggerDownloadFile`. */
 export async function loggerDownloadTrack(
   name: string,
+  kind: TrackKind = "circuit",
   onProgress?: (p: DownloadProgress) => void,
 ): Promise<Uint8Array> {
   const { invoke, Channel } = await api();
   const channel = new Channel<DownloadProgress>();
   channel.onmessage = onProgress ?? (() => {});
-  const buf = await invoke<ArrayBuffer>("logger_download_track", { name, onProgress: channel });
+  const buf = await invoke<ArrayBuffer>("logger_download_track", {
+    name,
+    kind,
+    onProgress: channel,
+  });
   return new Uint8Array(buf);
 }
 
 /** Upload a track file (small JSON documents — plain byte array over IPC). */
-export async function loggerUploadTrack(name: string, data: Uint8Array): Promise<void> {
+export async function loggerUploadTrack(
+  name: string,
+  data: Uint8Array,
+  kind: TrackKind = "circuit",
+): Promise<void> {
   const { invoke } = await api();
-  await invoke("logger_upload_track", { name, data });
+  await invoke("logger_upload_track", { name, data, kind });
 }
 
-/** Delete a track file by name. */
-export async function loggerDeleteTrack(name: string): Promise<void> {
+/** Delete a track file by name from the folder `kind` selects. */
+export async function loggerDeleteTrack(
+  name: string,
+  kind: TrackKind = "circuit",
+): Promise<void> {
   const { invoke } = await api();
-  await invoke("logger_delete_track", { name });
+  await invoke("logger_delete_track", { name, kind });
 }

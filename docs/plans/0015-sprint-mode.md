@@ -1,8 +1,9 @@
 # Sprint Mode (Autocross / Point-to-Point) — DataViewer Side
 
-> Status: **DONE** (bar the end-of-project Android IPC follow-up below) — the
-> logger and the timing library already shipped sprint support; this plan was
-> the app catching up. Phase 3 of the cross-repo effort recorded in
+> Status: **DONE** — including the end-of-project Android IPC follow-up, now
+> that LapWing implements the `TS*` verbs. The logger and the timing library
+> already shipped sprint support; this plan was the app catching up. Phase 3 of
+> the cross-repo effort recorded in
 > `DovesDataLogger/docs/plans/0002-sprint-mode.md`.
 
 ## Why this exists
@@ -165,18 +166,21 @@ testable (Golden Rule 3).
   implementation reports no sprint tracks until it is updated, which is honest
   (it genuinely cannot fetch them) rather than a silent failure.
 
-### Android IPC — end-of-project follow-up
+### ~~Android IPC — end-of-project follow-up~~ — **Done.**
 
-When the native app ships, `dovesloggerConnection.ts` and its Android bridge
-need the `TS*` verbs to reach parity with Web Bluetooth:
+LapWing now implements the `TS*` verbs behind its `logger_*_track` commands
+(`TrackKind` + a single opcode table in `loggers/doveslogger/tracks.rs`,
+mirroring `trackOpcodes.ts`), so the seam reaches parity with Web Bluetooth:
 
 - `listTracks(kind)` / `getTrack(name, kind)` / `putTrack(name, data, kind)` /
-  `deleteTrack(name, kind)` must route to `TSLIST` / `TSGET:` / `TSPUT:` /
-  `TSDEL:` when `kind === 'sprint'`.
-- Until then the native path returns an empty sprint list. **This is deliberate
-  and must be revisited here, not patched over at a call site** — the seam is
-  the single place the two transports are supposed to agree.
-- Sequenced at the END of this plan on purpose: it is gated on another
+  `deleteTrack(name, kind)` now forward `kind` straight through to the bridge,
+  which routes to `TSLIST` / `TSGET:` / `TSPUT:` / `TSDEL:` for `'sprint'`.
+  `supportsSprintTracks` is `true`.
+- Fixed **in the seam**, as this section required — not patched at a call site.
+  `dovesloggerConnection.ts` is still the single place the two transports agree.
+- The `kind` argument is optional on LapWing's side of the IPC (it defaults to
+  circuit), but this repo always sends it explicitly.
+- Sequenced at the END of this plan on purpose: it was gated on another
   product's release, not on anything in this repo, and blocking sprint mode on
   it would have stalled work that is otherwise finished.
 - ~~**PR 5 — reading runs back.**~~ **Done.** (Was PR 4; renumbered when the
