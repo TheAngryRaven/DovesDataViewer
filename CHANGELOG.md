@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the native path reaches parity with Web Bluetooth.
 
 ### Fixed
+- **No "which logger?" prompt when one is already connected** — pressing
+  *Download from logger* while the garage holds a live connection now opens that
+  logger's download flow straight away. The picker only ever asked which logger
+  you have, and the connection had already answered; the Fledgling flow was
+  reusing that same connection anyway.
 - **An empty number in the device settings is now rejected** rather than being
   written to the logger as an empty string — it validated as 0 wherever 0 was in
   range, which included the Bluetooth PIN.

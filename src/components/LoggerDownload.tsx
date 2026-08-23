@@ -4,6 +4,9 @@ import { Bluetooth } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoggerPicker } from "@/components/LoggerPicker";
 import { useDeviceContext } from "@/contexts/DeviceContext";
+// Direct path, not the `@/lib/loggers` barrel: that re-exports
+// `createFledglingConnection`, which drags `lib/ble/*` onto this eager host.
+import { resolveDownloadFlow } from "@/lib/loggers/downloadFlow";
 import { isNativeApp } from "@/lib/platform";
 import type { ParsedData } from "@/types/racing";
 
@@ -52,10 +55,14 @@ interface LoggerDownloadProps {
  * Fledgling mounts the lazy Bluetooth download flow. MyChron (Wi-Fi) and Alfano
  * (Bluetooth serial) mount their native download flows on the native shell, and
  * fall back to explanatory dialogs inside the picker on the web.
+ *
+ * When a logger is already connected (the Device tab), the picker is skipped
+ * entirely — its only question is "which logger?", and the live connection has
+ * answered it. See `resolveDownloadFlow`.
  */
 export function LoggerDownload({ onDataLoaded, autoSave, autoSaveFile, renderTrigger }: LoggerDownloadProps) {
   const { t } = useTranslation("logger");
-  const { bleSupported } = useDeviceContext();
+  const { bleSupported, isConnected, loggerKind } = useDeviceContext();
   // On the native app the webview has no Web Bluetooth, so we route the Fledgling
   // through native BLE IPC instead — which means the tile must be enabled there.
   const native = isNativeApp();
@@ -64,7 +71,24 @@ export function LoggerDownload({ onDataLoaded, autoSave, autoSaveFile, renderTri
   const [mychronActive, setMychronActive] = useState(false);
   const [alfanoActive, setAlfanoActive] = useState(false);
 
-  const openPicker = useCallback(() => setPickerOpen(true), []);
+  // Already talking to a logger → open that logger's flow, no picker.
+  const connectedFlow = resolveDownloadFlow({ isConnected, loggerKind, native });
+
+  const openPicker = useCallback(() => {
+    switch (connectedFlow) {
+      case "fledgling":
+        setFledglingActive(true);
+        return;
+      case "mychron":
+        setMychronActive(true);
+        return;
+      case "alfano":
+        setAlfanoActive(true);
+        return;
+      default:
+        setPickerOpen(true);
+    }
+  }, [connectedFlow]);
 
   return (
     <>
