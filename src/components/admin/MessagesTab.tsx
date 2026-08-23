@@ -22,6 +22,11 @@ interface Message {
   file_size: number | null;
   storage_path: string | null;
   compression: string | null;
+  // Optional track bundle sent with the datalog (plan 0019)
+  track_file_name: string | null;
+  track_file_size: number | null;
+  track_storage_path: string | null;
+  track_compression: string | null;
 }
 
 type FilterMode = "all" | "unread" | "read";
@@ -81,9 +86,10 @@ export function MessagesTab({ onUnreadCount }: { onUnreadCount?: (count: number)
   };
 
   const deleteMessage = async (msg: Message) => {
-    // Attachment first; a failed removal keeps the row so nothing orphans.
-    if (msg.storage_path) {
-      const storageError = await removeSupportAttachment(msg.storage_path);
+    // Attachments first; a failed removal keeps the row so nothing orphans.
+    for (const path of [msg.storage_path, msg.track_storage_path]) {
+      if (!path) continue;
+      const storageError = await removeSupportAttachment(path);
       if (storageError) {
         toast({ title: t("support.deleteFileError"), description: storageError, variant: "destructive" });
         return;
@@ -101,11 +107,14 @@ export function MessagesTab({ onUnreadCount }: { onUnreadCount?: (count: number)
     }
   };
 
-  const downloadAttachment = async (msg: Message) => {
-    if (!msg.storage_path || !msg.file_name) return;
-    setDownloadingId(msg.id);
+  const downloadAttachment = async (msg: Message, kind: "datalog" | "track" = "datalog") => {
+    const path = kind === "track" ? msg.track_storage_path : msg.storage_path;
+    const name = kind === "track" ? msg.track_file_name : msg.file_name;
+    const compression = kind === "track" ? msg.track_compression : msg.compression;
+    if (!path || !name) return;
+    setDownloadingId(`${msg.id}:${kind}`);
     try {
-      await downloadSupportAttachment(msg.storage_path, msg.compression, msg.file_name);
+      await downloadSupportAttachment(path, compression, name);
     } catch (e) {
       toast({
         title: t("support.downloadError"),
@@ -173,7 +182,7 @@ export function MessagesTab({ onUnreadCount }: { onUnreadCount?: (count: number)
                     ? t(`messages.categories.${categoryKeys[msg.category as keyof typeof categoryKeys]}`)
                     : msg.category}
                 </Badge>
-                {msg.storage_path && <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                {(msg.storage_path || msg.track_storage_path) && <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                 <span className="text-sm truncate flex-1">
                   {msg.message.length > 80 ? msg.message.slice(0, 80) + "…" : msg.message}
                 </span>
@@ -193,13 +202,25 @@ export function MessagesTab({ onUnreadCount }: { onUnreadCount?: (count: number)
                   </div>
                   <div className="flex items-center gap-2">
                     {msg.storage_path && msg.file_name && (
-                      <Button size="sm" variant="outline" className="h-7" disabled={downloadingId === msg.id} onClick={() => downloadAttachment(msg)}>
-                        {downloadingId === msg.id
+                      <Button size="sm" variant="outline" className="h-7" disabled={downloadingId === `${msg.id}:datalog`} onClick={() => downloadAttachment(msg)}>
+                        {downloadingId === `${msg.id}:datalog`
                           ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                           : <Download className="w-3 h-3 mr-1" />}
                         {t("support.download")}
                         <span className="ml-1 font-mono text-[10px] text-muted-foreground">
                           {t("support.fileLine", { name: msg.file_name, size: formatReportFileSize(msg.file_size ?? 0) })}
+                        </span>
+                      </Button>
+                    )}
+                    {/* Track geometry the session was analysed against (plan 0019). */}
+                    {msg.track_storage_path && msg.track_file_name && (
+                      <Button size="sm" variant="outline" className="h-7" disabled={downloadingId === `${msg.id}:track`} onClick={() => downloadAttachment(msg, "track")}>
+                        {downloadingId === `${msg.id}:track`
+                          ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          : <Download className="w-3 h-3 mr-1" />}
+                        {t("support.downloadTrack")}
+                        <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                          {t("support.fileLine", { name: msg.track_file_name, size: formatReportFileSize(msg.track_file_size ?? 0) })}
                         </span>
                       </Button>
                     )}

@@ -42,7 +42,7 @@ const FileManagerDrawer = lazy(() =>
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ParsedData } from "@/types/racing";
+import { Course, ParsedData } from "@/types/racing";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { calculateDistanceArray } from "@/lib/referenceUtils";
 import { formatAxisDistance } from "@/lib/chartAxis";
@@ -51,6 +51,7 @@ import { usePanelsForSlot, PanelSlot } from "@/plugins/panels";
 import { TrackPromptDialog } from "@/components/TrackPromptDialog";
 import { ContactDialog } from "@/components/ContactDialog";
 import { getFile as getStoredFile } from "@/lib/fileStorage";
+import { collectSessionTrackAttachment } from "@/lib/supportTrackData";
 import { useSettings } from "@/hooks/useSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePlayback } from "@/hooks/usePlayback";
@@ -950,7 +951,7 @@ export default function Index() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showCoach={showCoach && !readOnly} showTools={showTools && !readOnly} readOnly={readOnly} setupIndicator={readOnly ? null : setupIndicator} onSetupIndicatorClick={() => setupIndicator && navigateToManage(setupIndicator.target)} overlayLines={overlayLines} splitActive={splitActive} onStartSplit={startSplit} onCombineSplit={combineSplit} currentFileName={readOnly ? undefined : currentFileName} />
+        <TabBar topPanelView={topPanelView} setTopPanelView={setTopPanelView} laps={laps} showOverlays={showOverlays} onToggleOverlays={() => setShowOverlays(v => !v)} showCoach={showCoach && !readOnly} showTools={showTools && !readOnly} readOnly={readOnly} setupIndicator={readOnly ? null : setupIndicator} onSetupIndicatorClick={() => setupIndicator && navigateToManage(setupIndicator.target)} overlayLines={overlayLines} splitActive={splitActive} onStartSplit={startSplit} onCombineSplit={combineSplit} currentFileName={readOnly ? undefined : currentFileName} sessionTrackName={readOnly ? undefined : selection?.trackName} sessionCourse={readOnly ? undefined : selectedCourse} />
 
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -1030,7 +1031,7 @@ export default function Index() {
 }
 
 /** Tab navigation bar for the main data view */
-function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showCoach, showTools, readOnly, setupIndicator, onSetupIndicatorClick, overlayLines, splitActive, onStartSplit, onCombineSplit, currentFileName }: {
+function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOverlays, showCoach, showTools, readOnly, setupIndicator, onSetupIndicatorClick, overlayLines, splitActive, onStartSplit, onCombineSplit, currentFileName, sessionTrackName, sessionCourse }: {
   topPanelView: TopPanelView;
   setTopPanelView: (view: TopPanelView) => void;
   laps: { lapNumber: number }[];
@@ -1047,6 +1048,10 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
   onCombineSplit: () => void;
   /** The loaded session's stored file name — lets the help dialog attach it. */
   currentFileName?: string | null;
+  /** Track the session was analysed against — attached with the log (plan 0019). */
+  sessionTrackName?: string | null;
+  /** Course in use, sent alongside the track so support sees the exact geometry. */
+  sessionCourse?: Course | null;
 }) {
   const { t } = useTranslation("session");
   const isMobile = useIsMobile();
@@ -1140,7 +1145,20 @@ function TabBar({ topPanelView, setTopPanelView, laps, showOverlays, onToggleOve
         <ContactDialog
           sessionFile={
             currentFileName
-              ? { name: currentFileName, getBlob: () => getStoredFile(currentFileName) }
+              ? {
+                  name: currentFileName,
+                  getBlob: () => getStoredFile(currentFileName),
+                  // Course geometry lives in localStorage, not in the datalog —
+                  // without it a "my laps are wrong" report can't be reproduced.
+                  getTrackData: sessionTrackName
+                    ? () =>
+                        collectSessionTrackAttachment({
+                          sessionFileName: currentFileName,
+                          trackName: sessionTrackName,
+                          course: sessionCourse,
+                        })
+                    : undefined,
+                }
               : undefined
           }
           trigger={

@@ -275,6 +275,7 @@
     "filterRead": "Lette",
     "refresh": "Aggiorna",
     "download": "Scarica file",
+    "downloadTrack": "Scarica pista",
     "downloadError": "Download non riuscito",
     "deleteFileError": "Impossibile eliminare il file archiviato",
     "errorLabel": "Errore del parser",

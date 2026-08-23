@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shows no section.
 - **Device settings LapWing had never labelled** — the RPM filter mode and the
   paired Insta360 serial join the Advanced section as real fields.
+- **Support messages include your track** — when you attach the loaded
+  session's datalog to a message from the in-session help button, LapWing now
+  sends the track and course that session was analysed against alongside it.
+  Lap and sector times come from *your* start/finish and sector lines, which
+  the datalog doesn't contain, so a "my laps look wrong" report can finally be
+  reproduced on our side. One toggle still covers both; sessions without a
+  track (waypoint mode) simply send the log as before.
 - **Sprint tracks in the native app** — the Android/native Device tab can now
   list, download, upload and delete **sprint** courses, not just circuit ones.
   It previously showed an empty sprint list and said the transport couldn't

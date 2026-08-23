@@ -183,7 +183,8 @@
     "errorNetwork": "Impossible d'envoyer le message. Veuillez réessayer.",
     "sent": "Message envoyé !",
     "sentDesc": "Merci pour votre retour.",
-    "attachSession": "Joindre le datalog de la session en cours :",
+    "attachSession": "Joindre le datalog et le circuit de la session en cours :",
+    "attachTrackHint": "Inclut le circuit et le tracé utilisés pour analyser cette session, afin que nous puissions reproduire vos temps au tour.",
     "attachMissing": "Impossible de lire le fichier de session depuis le stockage local."
   },
   "browserCompat": {

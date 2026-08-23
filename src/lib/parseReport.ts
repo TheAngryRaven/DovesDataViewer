@@ -73,12 +73,21 @@ export async function prepareAttachment(file: File | Blob, name: string): Promis
   };
 }
 
-/** Append a prepared attachment's fields to a multipart body. */
-export function appendAttachment(form: FormData, attachment: PreparedAttachment): void {
-  form.set("fileName", attachment.fileName);
-  form.set("fileSize", String(attachment.fileSize));
-  form.set("compression", attachment.compression);
-  form.set("file", attachment.payload, attachment.uploadName);
+/**
+ * Append a prepared attachment's fields to a multipart body.
+ *
+ * `prefix` namespaces the field group so one request can carry more than one
+ * attachment: the datalog goes up unprefixed (`file`, `fileName`, …) and the
+ * session's track bundle as `trackFile`, `trackFileName`, … (plan 0019). The
+ * edge functions read the same names.
+ */
+export function appendAttachment(form: FormData, attachment: PreparedAttachment, prefix = ""): void {
+  const field = (base: string) =>
+    prefix ? `${prefix}${base[0].toUpperCase()}${base.slice(1)}` : base;
+  form.set(field("fileName"), attachment.fileName);
+  form.set(field("fileSize"), String(attachment.fileSize));
+  form.set(field("compression"), attachment.compression);
+  form.set(field("file"), attachment.payload, attachment.uploadName);
 }
 
 export interface ParseReportInput {

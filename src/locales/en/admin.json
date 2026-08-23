@@ -274,6 +274,7 @@
     "filterRead": "Read",
     "refresh": "Refresh",
     "download": "Download file",
+    "downloadTrack": "Download track",
     "downloadError": "Download failed",
     "deleteFileError": "Failed to delete stored file",
     "errorLabel": "Parser error",
