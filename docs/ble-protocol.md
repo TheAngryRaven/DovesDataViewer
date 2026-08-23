@@ -248,6 +248,13 @@ and validation live in `src/lib/deviceSettingsSchema.ts`; **unknown keys are
 forward-compatible** — a client should display/round-trip any key the device sends,
 not just the known set.
 
+Every value is a bare string on the wire, and the firmware **silently keeps its
+compiled-in default** for anything it can't parse or that falls outside the key's
+band, so a client that doesn't range-check reads as "the setting doesn't work".
+Two bands are easy to get wrong: `utc_offset_min` is **minutes** east of UTC
+(±840 — `-360`, `+330`, `+345`, not hours), and `overrev_limit` accepts `0`
+(disabled) *or* 1000-20000, with nothing in between.
+
 ### 8.1 List all (`SLIST`)
 
 ```

@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   DEVICE_SETTINGS_SCHEMA,
+  DEVICE_SETTING_GROUPS,
   getSettingDef,
+  getSettingGroup,
+  groupSettingRows,
   isAdvancedSetting,
   validateSettingValue,
   settingDisplayValue,
@@ -18,7 +21,7 @@ describe("DEVICE_SETTINGS_SCHEMA", () => {
   it("every def has a non-empty label and a valid type", () => {
     for (const d of DEVICE_SETTINGS_SCHEMA) {
       expect(d.label.length).toBeGreaterThan(0);
-      expect(["string", "number", "enum"]).toContain(d.type);
+      expect(["string", "number", "enum", "timezone"]).toContain(d.type);
     }
   });
 
@@ -29,6 +32,29 @@ describe("DEVICE_SETTINGS_SCHEMA", () => {
     expect(keys).toContain("bluetooth_pin");
     expect(keys).toContain("lap_detection_distance");
     expect(keys).toContain("use_legacy_csv");
+  });
+
+  // Firmware 4.1.0 ships the NeoPixel strip and the local-timezone offset on
+  // every build (logger plans 0006/0007/0010). Without schema entries they
+  // rendered as raw text boxes with no range checking at all.
+  it("covers the LED strip and timezone keys the logger ships", () => {
+    const keys = DEVICE_SETTINGS_SCHEMA.map((d) => d.key);
+    expect(keys).toContain("utc_offset_min");
+    expect(keys).toContain("led_brightness");
+    expect(keys).toContain("led_brightness_night");
+    expect(keys).toContain("led_day_start_hour");
+    expect(keys).toContain("led_night_start_hour");
+    expect(keys).toContain("rev_limit");
+    expect(keys).toContain("overrev_limit");
+    expect(keys).toContain("temp1_alert_c");
+    expect(keys).toContain("tach_filter");
+  });
+
+  it("only files settings under a declared group", () => {
+    const groupIds = DEVICE_SETTING_GROUPS.map((g) => g.id);
+    for (const d of DEVICE_SETTINGS_SCHEMA) {
+      if (d.group) expect(groupIds, `${d.key}`).toContain(d.group);
+    }
   });
 
   it("defines device_name as a 32-character string field", () => {
@@ -129,11 +155,17 @@ describe("validateSettingValue — number fields", () => {
     );
   });
 
-  it("treats empty string as 0 (Number('') === 0) and applies range", () => {
-    // Number("") is 0, which is an integer; for lap_detection_distance min 1 → fails
+  // Number("") is 0, so an empty box used to validate as a real zero — fine
+  // for lap_detection_distance (min 1 caught it) but NOT for the fields whose
+  // range includes 0: an empty bluetooth_pin or led_brightness sailed through
+  // and was written to the device verbatim. The firmware's own
+  // setting_parse::parseIntSetting rejects "" too.
+  it("rejects an empty value rather than reading it as 0", () => {
     expect(validateSettingValue("lap_detection_distance", "")).toBe(
-      "Minimum value is 1"
+      "Must be a whole number"
     );
+    expect(validateSettingValue("bluetooth_pin", "")).toBe("Must be a whole number");
+    expect(validateSettingValue("led_brightness", "")).toBe("Must be a whole number");
   });
 });
 
@@ -235,6 +267,13 @@ describe("isAdvancedSetting", () => {
     expect(isAdvancedSetting("display_invert")).toBe(false);
     expect(isAdvancedSetting("spark_mode")).toBe(false);
     expect(isAdvancedSetting("cylinder_count")).toBe(false);
+    expect(isAdvancedSetting("utc_offset_min")).toBe(false);
+  });
+
+  it("does not call the LED settings advanced — they have their own section", () => {
+    expect(isAdvancedSetting("led_brightness")).toBe(false);
+    expect(isAdvancedSetting("led_night_start_hour")).toBe(false);
+    expect(getSettingGroup("led_brightness")).toBe("leds");
   });
 
   // A newer firmware can send keys this build has no schema for. The default is
@@ -307,5 +346,108 @@ describe("debug_pages", () => {
   it("labels the stored values for display", () => {
     expect(settingDisplayValue("debug_pages", "hide")).toBe("Hidden (racing pages only)");
     expect(settingDisplayValue("debug_pages", "show")).toBe("Shown (GPS/RF diagnostics first)");
+  });
+});
+
+// ─── grouping ─────────────────────────────────────────────────────────────────
+
+describe("groupSettingRows", () => {
+  const rowsFor = (...keys: string[]) => keys.map((key) => ({ key }));
+
+  it("keeps unfiled and unknown keys in the main list", () => {
+    const { main, groups } = groupSettingRows(
+      rowsFor("device_name", "utc_offset_min", "some_future_setting"),
+      (r) => r.key,
+    );
+    expect(main.map((r) => r.key)).toEqual([
+      "device_name",
+      "utc_offset_min",
+      "some_future_setting",
+    ]);
+    expect(groups).toEqual([]);
+  });
+
+  it("buckets rows into their groups, in DEVICE_SETTING_GROUPS order", () => {
+    const { main, groups } = groupSettingRows(
+      rowsFor("waypoint_speed", "led_brightness", "device_name", "led_day_start_hour"),
+      (r) => r.key,
+    );
+    expect(main.map((r) => r.key)).toEqual(["device_name"]);
+    expect(groups.map((g) => g.group.id)).toEqual(["leds", "advanced"]);
+    expect(groups[0].rows.map((r) => r.key)).toEqual([
+      "led_brightness",
+      "led_day_start_hour",
+    ]);
+    expect(groups[1].rows.map((r) => r.key)).toEqual(["waypoint_speed"]);
+  });
+
+  // A firmware built without BIRDSEYE_ENABLE_NEOPIXEL never sends the LED keys;
+  // an empty section would be a collapsible that opens onto nothing.
+  it("drops a group with no rows", () => {
+    const { groups } = groupSettingRows(rowsFor("device_name", "waypoint_speed"), (r) => r.key);
+    expect(groups.map((g) => g.group.id)).toEqual(["advanced"]);
+  });
+});
+
+// ─── the plan-0006/0007/0010 device settings ─────────────────────────────────
+
+describe("LED strip settings", () => {
+  it("accepts the full 0-255 brightness band, including the off/blank 0", () => {
+    expect(validateSettingValue("led_brightness", "0")).toBeNull();
+    expect(validateSettingValue("led_brightness", "255")).toBeNull();
+    expect(validateSettingValue("led_brightness", "256")).toBe("Maximum value is 255");
+    expect(validateSettingValue("led_brightness_night", "0")).toBeNull();
+    expect(validateSettingValue("led_brightness_night", "-1")).toBe("Minimum value is 0");
+  });
+
+  it("offers the day/night start hours as 24 local-hour choices", () => {
+    const def = getSettingDef("led_day_start_hour");
+    expect(def?.type).toBe("enum");
+    expect(def?.options).toHaveLength(24);
+    expect(def?.options?.[0]).toEqual({ value: "0", label: "12:00 AM" });
+    expect(def?.options?.[19]).toEqual({ value: "19", label: "7:00 PM" });
+    expect(validateSettingValue("led_night_start_hour", "19")).toBeNull();
+    expect(validateSettingValue("led_night_start_hour", "24")).not.toBeNull();
+  });
+
+  it("mirrors the firmware rev bands", () => {
+    expect(validateSettingValue("rev_limit", "15000")).toBeNull();
+    expect(validateSettingValue("rev_limit", "999")).toBe("Minimum value is 1000");
+    expect(validateSettingValue("rev_limit", "20001")).toBe("Maximum value is 20000");
+  });
+
+  // overrev_limit is 0 (disabled) OR 1000-20000 — the firmware special-cases
+  // the sentinel below its own floor.
+  it("accepts 0 as the over-rev disable sentinel but nothing else below the floor", () => {
+    expect(validateSettingValue("overrev_limit", "0")).toBeNull();
+    expect(validateSettingValue("overrev_limit", "500")).toBe("Minimum value is 1000");
+    expect(validateSettingValue("overrev_limit", "16000")).toBeNull();
+  });
+
+  it("mirrors the firmware temperature-alert band", () => {
+    expect(validateSettingValue("temp1_alert_c", "650")).toBeNull();
+    expect(validateSettingValue("temp1_alert_c", "49")).toBe("Minimum value is 50");
+    expect(validateSettingValue("temp1_alert_c", "1201")).toBe("Maximum value is 1200");
+  });
+});
+
+describe("utc_offset_min", () => {
+  it("is a timezone field validated against the firmware's ±14 h band", () => {
+    expect(getSettingDef("utc_offset_min")?.type).toBe("timezone");
+    expect(validateSettingValue("utc_offset_min", "-360")).toBeNull();
+    expect(validateSettingValue("utc_offset_min", "345")).toBeNull();
+    expect(validateSettingValue("utc_offset_min", "0")).toBeNull();
+    expect(validateSettingValue("utc_offset_min", "841")).toBe("Maximum value is 840");
+    expect(validateSettingValue("utc_offset_min", "-841")).toBe("Minimum value is -840");
+    expect(validateSettingValue("utc_offset_min", "-5:30")).toBe("Must be a whole number");
+  });
+});
+
+describe("tach_filter", () => {
+  it("accepts the three firmware modes and rejects near misses", () => {
+    expect(validateSettingValue("tach_filter", "smooth")).toBeNull();
+    expect(validateSettingValue("tach_filter", "legacy")).toBeNull();
+    expect(validateSettingValue("tach_filter", "raw")).toBeNull();
+    expect(validateSettingValue("tach_filter", "Raw")).not.toBeNull();
   });
 });
