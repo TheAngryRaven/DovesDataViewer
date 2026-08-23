@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw, UserRound, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw, UserRound, ChevronDown, SlidersHorizontal, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,14 +17,22 @@ import type { DeviceDetails } from "@/lib/loggers";
 import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
-  isAdvancedSetting,
+  groupSettingRows,
   validateSettingValue,
+  type DeviceSettingGroupId,
 } from "@/lib/deviceSettingsSchema";
+import { DeviceTimezoneField } from "./DeviceTimezoneField";
 import { useAuth } from "@/contexts/AuthContext";
 import { FirmwareUpdateSection } from "./FirmwareUpdateSection";
 
 /** The setting whose field offers a "use profile name" shortcut. */
 const DEVICE_NAME_KEY = "device_name";
+
+/** Icon per collapsible group, so the sections read at a glance. */
+const GROUP_ICON: Record<DeviceSettingGroupId, typeof SlidersHorizontal> = {
+  leds: Lightbulb,
+  advanced: SlidersHorizontal,
+};
 
 interface DeviceSettingsTabProps {
   /** Transport-neutral Device-tab surface (Web Bluetooth or native IPC). */
@@ -55,7 +63,9 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Collapsible groups, all closed on open: the main list is the short answer
+  // and a section only costs a tap when the user came for it.
+  const [openGroups, setOpenGroups] = useState<Partial<Record<DeviceSettingGroupId, boolean>>>({});
   // The signed-in user's account name, used by the "use profile name" shortcut
   // on the Device Name field. Loaded lazily so the Supabase client never lands
   // on the offline-first eager graph; null when signed out or unavailable.
@@ -167,11 +177,16 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     }
   };
 
-  // Advanced settings (detection thresholds, debug toggles) live under a
-  // collapsed section; anything unflagged — including unknown keys from a
-  // newer firmware — stays in the main list.
-  const normalRows = rows.filter((r) => !isAdvancedSetting(r.key));
-  const advancedRows = rows.filter((r) => isAdvancedSetting(r.key));
+  // Grouped settings (the LED strip, then the advanced thresholds and debug
+  // toggles) live under collapsed sections; anything unfiled — including
+  // unknown keys from a newer firmware — stays in the main list.
+  const { main: mainRows, groups: settingGroups } = groupSettingRows(rows, (r) => r.key);
+
+  /** Section titles are chrome, so they translate; the schema's own labels don't. */
+  const groupTitle: Record<DeviceSettingGroupId, string> = {
+    leds: t("device.groupLeds"),
+    advanced: t("device.advanced"),
+  };
 
   const renderRow = (row: SettingRow) => {
     const def = getSettingDef(row.key);
@@ -188,8 +203,13 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {def?.type === "enum" && def.options?.length ? (
+        <div className="flex items-start gap-2">
+          {def?.type === "timezone" ? (
+            <DeviceTimezoneField
+              value={row.value}
+              onChange={(v) => handleChange(row.key, v)}
+            />
+          ) : def?.type === "enum" && def.options?.length ? (
             <Select value={row.value} onValueChange={(v) => handleChange(row.key, v)}>
               <SelectTrigger className="h-9 flex-1 text-sm">
                 {/* A device can hold a value this build doesn't know — an
@@ -264,23 +284,35 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
       {rows.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">{t("device.noSettings")}</p>
       )}
-      {normalRows.map(renderRow)}
-      {advancedRows.length > 0 && (
-        <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced} className="border border-border rounded-md">
-          <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-1 text-left">
-              {t("device.advanced")}
-            </span>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="px-3 pb-3 pt-1 space-y-3">
-              {advancedRows.map(renderRow)}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+      {mainRows.map(renderRow)}
+      {settingGroups.map(({ group, rows: groupRows }) => {
+        const Icon = GROUP_ICON[group.id];
+        const open = openGroups[group.id] ?? false;
+        return (
+          <Collapsible
+            key={group.id}
+            open={open}
+            onOpenChange={(next) => setOpenGroups((prev) => ({ ...prev, [group.id]: next }))}
+            className="border border-border rounded-md"
+          >
+            <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
+              <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-1 text-left">
+                {groupTitle[group.id]}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-3 pb-3 pt-1 space-y-3">
+                {group.description && (
+                  <p className="text-xs text-muted-foreground">{group.description}</p>
+                )}
+                {groupRows.map(renderRow)}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
       {rows.length > 0 && (
         <div className="pt-4 border-t border-border">
           <Button

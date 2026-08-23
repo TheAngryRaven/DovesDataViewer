@@ -64,7 +64,10 @@ either pulling the other's protocol bundle.
 → DONE.
 
 **Settings** (schema in `src/lib/deviceSettingsSchema.ts` — maps keys to labels/
-types/validation; unknown keys display as raw string fields, forward-compatible):
+types/validation, and files them into the Device tab's collapsible sections via
+`groupSettingRows()`; unknown keys display as raw string fields in the main list,
+forward-compatible. `utc_offset_min` renders as the timezone picker built on
+`src/lib/deviceTimezones.ts` — see `docs/plans/0018-device-settings-groups-timezone.md`):
 - `SLIST` → device sends `SVAL:key=value` per setting on fileStatus, ends with `SEND`
 - `SGET:key` → `SVAL:key=value` or `SERR:NOT_FOUND`
 - `SSET:key=value` → `SOK:key` or `SERR:WRITE_FAIL`

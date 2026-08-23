@@ -14,12 +14,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Pick your logger's timezone from a list** — the Device tab's Timezone
+  setting is now a picker of real UTC offsets ("UTC-06:00 · US Central
+  (winter), Mexico City") instead of a box wanting minutes east of UTC, with a
+  one-tap **use this device's timezone** shortcut and a running clock so a wrong
+  pick is obvious before you save it. The logger keeps no daylight-saving rules,
+  so the shortcut uses your offset *right now* — pick again when your clocks
+  change. Logged data stays UTC either way.
+- **An LED Strip section in the device settings** — brightness (day and night),
+  the hours the night dimming starts and ends, and the rev / over-rev /
+  temperature alert thresholds now sit in their own collapsible section with
+  proper labels, ranges and hour pickers, instead of as raw text boxes at the
+  bottom of the list. Requires logger firmware 4.1.0; a logger without the strip
+  shows no section.
+- **Device settings LapWing had never labelled** — the RPM filter mode and the
+  paired Insta360 serial join the Advanced section as real fields.
 - **Sprint tracks in the native app** — the Android/native Device tab can now
   list, download, upload and delete **sprint** courses, not just circuit ones.
   It previously showed an empty sprint list and said the transport couldn't
   reach that folder, because the native bridge had no `TS*` verbs; LapWing now
   implements them, so the seam forwards the track kind straight through and
   the native path reaches parity with Web Bluetooth.
+
+### Fixed
+- **No "which logger?" prompt when one is already connected** — pressing
+  *Download from logger* while the garage holds a live connection now opens that
+  logger's download flow straight away. The picker only ever asked which logger
+  you have, and the connection had already answered; the Fledgling flow was
+  reusing that same connection anyway.
+- **An empty number in the device settings is now rejected** rather than being
+  written to the logger as an empty string — it validated as 0 wherever 0 was in
+  range, which included the Bluetooth PIN.
 
 ## [4.0.1] - 2026-08-15
 
