@@ -16,14 +16,22 @@ import { type BleConnection } from "@/lib/bleDatalogger";
 import type { DeviceDetails } from "@/lib/loggers";
 import {
   DEVICE_SETTINGS_SCHEMA,
+  availableOptions,
+  fromDisplayUnits,
   getSettingDef,
   groupSettingRows,
   settingNotice,
+  settingUnitLabel,
+  toDisplayUnits,
   validateSettingValue,
+  type DeviceSettingDef,
   type DeviceSettingGroupId,
+  type UnitPrefs,
 } from "@/lib/deviceSettingsSchema";
 import { DeviceTimezoneField } from "./DeviceTimezoneField";
+import { LedModeHelpDialog } from "./LedModeHelpDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOptionalSettingsContext } from "@/contexts/SettingsContext";
 import { FirmwareUpdateSection } from "./FirmwareUpdateSection";
 
 /** The setting whose field offers a "use profile name" shortcut. */
@@ -59,6 +67,14 @@ interface SettingRow {
 export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: DeviceSettingsTabProps) {
   const { t } = useTranslation("drawer");
   const { user } = useAuth();
+  // Optional, not required: this tab renders from the drawer, which can sit
+  // outside the settings provider (the Profile tab on the landing page does).
+  // Imperial is the app's own default, so that is the fallback.
+  const appSettings = useOptionalSettingsContext();
+  const unitPrefs: UnitPrefs = {
+    useKph: appSettings?.useKph ?? false,
+    useMetricWeather: appSettings?.useMetricWeather ?? false,
+  };
   const [rows, setRows] = useState<SettingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -127,6 +143,31 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     fetchSettings();
   }, [fetchSettings]);
 
+  // Which keys this device actually reports. Feature flags are per-firmware-
+  // channel, so an option can require a key the device must also have (see
+  // availableOptions) rather than offering a mode it cannot render.
+  const deviceKeys = new Set(rows.map((r) => r.key));
+
+  /**
+   * The two directions a unit-bearing setting travels. Everything in `rows`
+   * is stored in DEVICE units — mph, Celsius — exactly as it came off the
+   * wire and exactly as it goes back; only the input box shows the viewer's
+   * preferred unit. Keeping the row in device units is what lets validation
+   * enforce the firmware's own clamp rather than a converted copy of it.
+   */
+  const displayValue = (def: DeviceSettingDef | null, value: string): string => {
+    if (!def?.unit || value === "") return value;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return value;
+    return String(toDisplayUnits(def.unit, n, unitPrefs));
+  };
+  const deviceValue = (def: DeviceSettingDef | null, shown: string): string => {
+    if (!def?.unit || shown === "") return shown;
+    const n = Number(shown);
+    if (!Number.isFinite(n)) return shown;
+    return String(fromDisplayUnits(def.unit, n, unitPrefs));
+  };
+
   const handleChange = (key: string, newValue: string) => {
     setRows((prev) =>
       prev.map((r) =>
@@ -135,6 +176,11 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
           : r
       )
     );
+  };
+
+  /** Edit handler for a field shown in a converted unit. */
+  const handleDisplayChange = (key: string, shown: string) => {
+    handleChange(key, deviceValue(getSettingDef(key), shown));
   };
 
   const handleSave = async (key: string) => {
@@ -206,6 +252,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
               <p className="text-xs text-muted-foreground">{def.description}</p>
             )}
           </div>
+          {def?.helpTopic === "ledStatusModes" && <LedModeHelpDialog />}
         </div>
         <div className="flex items-start gap-2">
           {def?.type === "timezone" ? (
@@ -222,13 +269,28 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
                 <SelectValue placeholder={row.value || undefined} />
               </SelectTrigger>
               <SelectContent>
-                {def.options.map((o) => (
+                {availableOptions(def, deviceKeys, row.value).map((o) => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          ) : def?.unit ? (
+            // Shown in the viewer's unit, stored in the device's. The suffix
+            // is not decoration: without it a "60" that becomes "97" when the
+            // KPH toggle flips reads as the setting having changed itself.
+            <div className="relative flex-1">
+              <Input
+                value={displayValue(def, row.value)}
+                onChange={(e) => handleDisplayChange(row.key, e.target.value)}
+                className="h-9 pr-12 text-sm"
+                type="number"
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                {settingUnitLabel(def.unit, unitPrefs)}
+              </span>
+            </div>
           ) : (
             <Input
               value={row.value}

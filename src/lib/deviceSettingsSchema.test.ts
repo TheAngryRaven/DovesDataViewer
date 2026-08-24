@@ -2,6 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   DEVICE_SETTINGS_SCHEMA,
   DEVICE_SETTING_GROUPS,
+  LED_STATUS_MODE_OPTIONS,
+  availableOptions,
+  fromDisplayUnits,
+  needsUnitConversion,
+  settingUnitLabel,
+  toDisplayUnits,
   getSettingDef,
   getSettingGroup,
   groupSettingRows,
@@ -486,5 +492,175 @@ describe("tach_filter", () => {
     expect(validateSettingValue("tach_filter", "legacy")).toBeNull();
     expect(validateSettingValue("tach_filter", "raw")).toBeNull();
     expect(validateSettingValue("tach_filter", "Raw")).not.toBeNull();
+  });
+});
+
+// ─── status LED modes (logger plan 0012) ──────────────────────────────────────
+
+describe("led_status_left / led_status_right", () => {
+  it("offer the same eight modes on both pixels, inside the LED group", () => {
+    for (const key of ["led_status_left", "led_status_right"]) {
+      const def = getSettingDef(key);
+      expect(def?.type).toBe("enum");
+      expect(def?.group).toBe("leds");
+      expect(def?.helpTopic).toBe("ledStatusModes");
+      expect(def?.options?.map((o) => o.value)).toEqual([
+        "off",
+        "rpm",
+        "speed",
+        "gps",
+        "camera",
+        "lap",
+        "sector",
+        "egt",
+      ]);
+    }
+  });
+
+  it("accepts every mode token the firmware stores and rejects near misses", () => {
+    for (const o of LED_STATUS_MODE_OPTIONS) {
+      expect(validateSettingValue("led_status_left", o.value)).toBeNull();
+    }
+    expect(validateSettingValue("led_status_left", "laps")).toContain("Must be one of");
+    expect(validateSettingValue("led_status_left", "RPM")).toContain("Must be one of");
+    expect(validateSettingValue("led_status_left", "")).not.toBeNull();
+  });
+
+  it("shows friendly labels, and a newer firmware's token verbatim", () => {
+    expect(settingDisplayValue("led_status_left", "sector")).toBe("Last Sector");
+    expect(settingDisplayValue("led_status_right", "gps")).toBe("GPS Status");
+    expect(settingDisplayValue("led_status_right", "shiftlight")).toBe("shiftlight");
+  });
+});
+
+describe("availableOptions", () => {
+  const def = getSettingDef("led_status_left")!;
+
+  it("hides EGT on a device that reports no EGT alert setting", () => {
+    // temp1_alert_c ships on exactly the firmware builds that can render the
+    // EGT mode, so its absence means the mode would be a dark LED.
+    const values = availableOptions(def, new Set(["led_status_left"])).map((o) => o.value);
+    expect(values).not.toContain("egt");
+    expect(values).toContain("lap");
+  });
+
+  it("offers EGT on a device that does report it", () => {
+    const values = availableOptions(
+      def,
+      new Set(["led_status_left", "temp1_alert_c"]),
+    ).map((o) => o.value);
+    expect(values).toContain("egt");
+  });
+
+  it("never hides the value the device is currently storing", () => {
+    // Otherwise the select could not display the user's own setting — worse
+    // than offering a mode that happens to render dark.
+    const values = availableOptions(def, new Set(["led_status_left"]), "egt").map(
+      (o) => o.value,
+    );
+    expect(values).toContain("egt");
+  });
+
+  it("leaves unrestricted options alone and returns [] for a non-enum", () => {
+    expect(availableOptions(def, new Set(["temp1_alert_c"])).length).toBe(
+      LED_STATUS_MODE_OPTIONS.length,
+    );
+    expect(availableOptions(getSettingDef("device_name")!, new Set())).toEqual([]);
+  });
+});
+
+describe("target_rpm and the rev_limit it replaced", () => {
+  it("labels both as Target RPM, so either firmware reads the same", () => {
+    // The tab renders only keys the device reports, so exactly one of the two
+    // ever appears — a 4.1.x logger sends rev_limit, a 4.2+ one target_rpm.
+    expect(getSettingDef("target_rpm")?.label).toBe("Target RPM");
+    expect(getSettingDef("rev_limit")?.label).toBe("Target RPM");
+    expect(getSettingDef("target_rpm")?.group).toBe("leds");
+  });
+
+  it("clamps target_rpm to the firmware's 1000-20000 band", () => {
+    expect(validateSettingValue("target_rpm", "7550")).toBeNull();
+    expect(validateSettingValue("target_rpm", "1000")).toBeNull();
+    expect(validateSettingValue("target_rpm", "20000")).toBeNull();
+    expect(validateSettingValue("target_rpm", "999")).toBe("Minimum value is 1000");
+    expect(validateSettingValue("target_rpm", "20001")).toBe("Maximum value is 20000");
+    // 0 is NOT a disable sentinel here — unlike overrev_limit.
+    expect(validateSettingValue("target_rpm", "0")).toBe("Minimum value is 1000");
+  });
+});
+
+// ─── unit-aware device settings ───────────────────────────────────────────────
+
+describe("unit-aware device settings", () => {
+  const imperial = { useKph: false, useMetricWeather: false };
+  const metric = { useKph: true, useMetricWeather: true };
+
+  it("declares the unit the DEVICE stores, not the one shown", () => {
+    expect(getSettingDef("target_speed_mph")?.unit).toBe("speedMph");
+    expect(getSettingDef("temp1_alert_c")?.unit).toBe("tempC");
+  });
+
+  it("converts on opposite sides of the imperial/metric line", () => {
+    // The device stores mph (imperial) and Celsius (metric), so "needs
+    // conversion" is true for opposite settings of the same toggle. This is
+    // the symmetry that looks right and is not.
+    expect(needsUnitConversion("speedMph", imperial)).toBe(false);
+    expect(needsUnitConversion("speedMph", metric)).toBe(true);
+    expect(needsUnitConversion("tempC", metric)).toBe(false);
+    expect(needsUnitConversion("tempC", imperial)).toBe(true);
+  });
+
+  it("passes values straight through when the viewer prefers device units", () => {
+    expect(toDisplayUnits("speedMph", 60, imperial)).toBe(60);
+    expect(fromDisplayUnits("speedMph", 60, imperial)).toBe(60);
+    expect(toDisplayUnits("tempC", 650, metric)).toBe(650);
+    expect(fromDisplayUnits("tempC", 650, metric)).toBe(650);
+  });
+
+  it("converts speed on the useKph axis and temperature on useMetricWeather", () => {
+    expect(toDisplayUnits("speedMph", 60, metric)).toBe(97);
+    expect(fromDisplayUnits("speedMph", 97, metric)).toBe(60);
+    expect(toDisplayUnits("tempC", 650, imperial)).toBe(1202);
+    expect(fromDisplayUnits("tempC", 1202, imperial)).toBe(650);
+  });
+
+  it("keeps the two unit axes independent", () => {
+    const kphAndFahrenheit = { useKph: true, useMetricWeather: false };
+    expect(toDisplayUnits("speedMph", 60, kphAndFahrenheit)).toBe(97);
+    expect(toDisplayUnits("tempC", 650, kphAndFahrenheit)).toBe(1202);
+    const mphAndCelsius = { useKph: false, useMetricWeather: true };
+    expect(toDisplayUnits("speedMph", 60, mphAndCelsius)).toBe(60);
+    expect(toDisplayUnits("tempC", 650, mphAndCelsius)).toBe(650);
+  });
+
+  it("labels the field with the unit actually on screen", () => {
+    expect(settingUnitLabel("speedMph", imperial)).toBe("MPH");
+    expect(settingUnitLabel("speedMph", metric)).toBe("KPH");
+    expect(settingUnitLabel("tempC", imperial)).toBe("°F");
+    expect(settingUnitLabel("tempC", metric)).toBe("°C");
+  });
+
+  it("round-trips every in-range device value to within one device unit", () => {
+    // Editing integers in a converted unit cannot be exactly reversible; what
+    // matters is that it never drifts further than that, so repeatedly opening
+    // and saving an untouched field cannot walk the value.
+    for (let mph = 5; mph <= 250; mph++) {
+      const back = fromDisplayUnits("speedMph", toDisplayUnits("speedMph", mph, metric), metric);
+      expect(Math.abs(back - mph)).toBeLessThanOrEqual(1);
+    }
+    for (let c = 50; c <= 1200; c++) {
+      const back = fromDisplayUnits("tempC", toDisplayUnits("tempC", c, imperial), imperial);
+      expect(Math.abs(back - c)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("validates in DEVICE units, so the firmware's clamp is what is enforced", () => {
+    expect(validateSettingValue("target_speed_mph", "60")).toBeNull();
+    expect(validateSettingValue("target_speed_mph", "5")).toBeNull();
+    expect(validateSettingValue("target_speed_mph", "250")).toBeNull();
+    // 4 mph would blank the LED bar on the device; 0 especially so.
+    expect(validateSettingValue("target_speed_mph", "4")).toBe("Minimum value is 5");
+    expect(validateSettingValue("target_speed_mph", "0")).toBe("Minimum value is 5");
+    expect(getSettingDef("target_speed_mph")?.group).toBe("leds");
   });
 });
