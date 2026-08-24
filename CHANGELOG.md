@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [Unreleased]
+## [4.1.0] - 2026-08-24
 
 ### Added
 - **Choose what each status LED shows** — the strip's two end LEDs can each be
