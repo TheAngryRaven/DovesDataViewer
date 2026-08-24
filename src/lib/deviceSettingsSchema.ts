@@ -290,7 +290,7 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     group: 'leds',
   },
   {
-    // The pre-4.2 name for target_rpm. Kept so a logger on older firmware
+    // The pre-4.1.0 name for target_rpm. Kept so a logger on older firmware
     // still gets a labelled field rather than the raw-key fallback — the tab
     // renders only keys the device actually reports, so exactly one of the two
     // ever appears.
@@ -300,7 +300,7 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     min: 1000,
     max: 20000,
     description:
-      'Your shift point — the top of the LED rev bar, and where the strip starts flashing. Renamed to Target RPM on logger firmware 4.2 and later',
+      'Your shift point — the top of the LED rev bar, and where the strip starts flashing. Renamed to Target RPM on logger firmware 4.1.0 and later',
     group: 'leds',
   },
   {

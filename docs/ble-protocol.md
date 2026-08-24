@@ -324,8 +324,8 @@ and expect the link to drop. Timeout ~10 s. Errors as `SERR:<reason>`.
 | `utc_offset_min` | number | −840…840 | Minutes east of UTC, presentation only |
 | `led_status_left` | enum | `off` \| `rpm` \| `speed` \| `gps` \| `camera` \| `lap` \| `sector` \| `egt` | What the left status LED shows |
 | `led_status_right` | enum | same as above | What the right status LED shows |
-| `target_rpm` | number | 1000–20000 | Shift point: LED rev-bar top + rev flasher. Was `rev_limit` before logger 4.2 |
-| `rev_limit` | number | 1000–20000 | The pre-4.2 name for `target_rpm` |
+| `target_rpm` | number | 1000–20000 | Shift point: LED rev-bar top + rev flasher. Was `rev_limit` before logger 4.1.0 |
+| `rev_limit` | number | 1000–20000 | The pre-4.1.0 name for `target_rpm` |
 | `target_speed_mph` | number | 5–250 (**MPH**) | LED bar ceiling on a tach-less session + speed flasher |
 | `overrev_limit` | number | **0 or** 1000–20000 | Whole-strip red flash; 0 disables |
 | `temp1_alert_c` | number | 50–1200 (**°C**) | EGT alert threshold. SensorEgg firmware only |
@@ -339,7 +339,7 @@ Three things this table does not show but a client must handle:
   compiled-in default for anything out of band.
 - **Not every key exists on every device.** Feature flags differ by firmware
   channel: `temp1_alert_c` ships only where the SensorEgg probe is compiled in,
-  and a device on pre-4.2 firmware reports `rev_limit` instead of `target_rpm`.
+  and a device on pre-4.1.0 firmware reports `rev_limit` instead of `target_rpm`.
   Enumerate what `SLIST` actually returns rather than assuming this list.
 - **`overrev_limit`'s range has a hole in it.** 0 means disabled and the working
   band starts at 1000; the firmware discards anything between.

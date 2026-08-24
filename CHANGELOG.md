@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   set to Off, Target RPM, Target Speed, GPS Status, Camera Sync, Last Lap, Last
   Sector or EGT, with a **help button** next to each that explains what every
   colour means. EGT is only offered on loggers built with SensorEgg support,
-  since elsewhere it just renders as a dark LED. Requires logger firmware 4.2.
+  since elsewhere it just renders as a dark LED. Requires logger firmware 4.1.0.
 - **Target Speed** — the ceiling for the LED bar on a session with no
   tachometer, so the strip does something useful before the first lap lands.
 - **Target Speed and EGT Alert follow your units** — both are stored on the
@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Rev Limit is now Target RPM.** It always was the shift point — Over-rev
-  Limit is the real limit — and logger firmware 4.2 renames the underlying
+  Limit is the real limit — and logger firmware 4.1.0 renames the underlying
   setting to match. Loggers on older firmware still show a properly labelled
   Target RPM field, so nothing changes for them.
 - **The Cylinders setting means your engine's cylinders again.** It was

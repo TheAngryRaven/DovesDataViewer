@@ -41,7 +41,7 @@ Only three things travelled.
 
 `rev_limit` stays alongside `target_rpm` with the **same** `'Target RPM'`
 label. The tab renders only keys the device reports, so exactly one of the two
-ever appears — a 4.1.x logger sends `rev_limit`, a 4.2+ one `target_rpm` — and
+ever appears — a pre-4.1.0 logger sends `rev_limit`, a 4.1.0+ one `target_rpm` — and
 either way the field reads the same.
 
 **`requiresKey` on an option**, with `availableOptions()`. EGT is compiled out
