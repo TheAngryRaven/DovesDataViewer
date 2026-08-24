@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Choose what each status LED shows** — the strip's two end LEDs can each be
+  set to Off, Target RPM, Target Speed, GPS Status, Camera Sync, Last Lap, Last
+  Sector or EGT, with a **help button** next to each that explains what every
+  colour means. EGT is only offered on loggers built with SensorEgg support,
+  since elsewhere it just renders as a dark LED. Requires logger firmware 4.2.
+- **Target Speed** — the ceiling for the LED bar on a session with no
+  tachometer, so the strip does something useful before the first lap lands.
+- **Target Speed and EGT Alert follow your units** — both are stored on the
+  logger in MPH and Celsius but shown in whichever unit you have selected, with
+  the unit printed in the field. Device settings were previously unit-blind.
+  Values convert back before being written, and are still checked against the
+  firmware's own limits.
 - **Pick your logger's timezone from a list** — the Device tab's Timezone
   setting is now a picker of real UTC offsets ("UTC-06:00 · US Central
   (winter), Mexico City") instead of a box wanting minutes east of UTC, with a
@@ -44,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the native path reaches parity with Web Bluetooth.
 
 ### Changed
+- **Rev Limit is now Target RPM.** It always was the shift point — Over-rev
+  Limit is the real limit — and logger firmware 4.2 renames the underlying
+  setting to match. Loggers on older firmware still show a properly labelled
+  Target RPM field, so nothing changes for them.
 - **The Cylinders setting means your engine's cylinders again.** It was
   labelled "cylinders the pickup SEES", which asked a V8 owner to type `1` in a
   field called Cylinders — and anyone who read it literally and typed `8` got an

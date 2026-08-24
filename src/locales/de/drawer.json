@@ -280,7 +280,47 @@
     "toastResetFailed": "Zurücksetzen fehlgeschlagen: {{error}}",
     "readFailed": "Einstellungen konnten nicht gelesen werden",
     "unknownError": "Unbekannter Fehler",
-    "firmwareNativeHint": "Firmware-Updates in der App findest du im Fledgling-Download-Bildschirm (Vom Logger herunterladen)."
+    "firmwareNativeHint": "Firmware-Updates in der App findest du im Fledgling-Download-Bildschirm (Vom Logger herunterladen).",
+    "ledHelp": {
+      "open": "Was machen die Status-LED-Modi?",
+      "title": "Status-LED-Modi",
+      "intro": "Dein Logger hat zwei Status-LEDs, je eine an jedem Ende des Streifens. Jede lässt sich unabhängig einstellen.",
+      "modes": {
+        "off": {
+          "name": "Aus",
+          "body": "Dunkel. Nutze das, wenn dir eine Anzeige reicht."
+        },
+        "rpm": {
+          "name": "Ziel-Drehzahl",
+          "body": "Blinkt rot ab deiner Ziel-Drehzahl und hört auf, sobald die Drehzahl rund 3 % darunter fällt. Das ist ein Schaltblitz, kein Alarm."
+        },
+        "speed": {
+          "name": "Zielgeschwindigkeit",
+          "body": "Blinkt rot ab deiner Zielgeschwindigkeit. Dunkel ohne GPS-Fix, weil der Streifen dir das bereits anzeigt."
+        },
+        "gps": {
+          "name": "GPS-Status",
+          "body": "Rot: noch keine Satelliten. Gelb: Satelliten, aber keine Position. Blau: Position steht, wartet noch auf die Uhr — Runden werden gestoppt, die Logdatei lässt sich aber nicht öffnen. Grün: vollständig eingerastet und am Aufzeichnen. Bleibt im Hauptmenü an, damit du vor dem Losfahren nachsehen kannst."
+        },
+        "camera": {
+          "name": "Kamera-Sync",
+          "body": "Dunkel, wenn keine Kamera gekoppelt ist. Gelb: Session läuft, aber die Kamera ist nicht hochgekommen. Blau blinkend: verbunden, hat unsere Fernbedienung aber nicht angenommen — Start und Stopp erreichen sie nicht. Blau konstant: verbunden und bereit. Rot: Aufnahme läuft. Bleibt ebenfalls im Hauptmenü an."
+        },
+        "lap": {
+          "name": "Letzte Runde",
+          "body": "Grün, wenn deine letzte Runde die davor geschlagen hat, rot, wenn sie langsamer war, violett bei deiner besten Runde der Session. In der ersten Runde dunkel, weil es nichts zu vergleichen gibt. Verglichen wird bewusst mit deiner VORHERIGEN Runde statt mit der besten — nur das sagt dir, ob du dich steigerst."
+        },
+        "sector": {
+          "name": "Letzter Sektor",
+          "body": "Dasselbe je Sektor: sobald du in Sektor 2 einfährst, zeigt sie, wie Sektor 1 gegen Sektor 1 der letzten Runde ausgefallen ist, und hält das bis zum Ende des nächsten Sektors. Setzt eine Strecke mit Sektorlinien voraus."
+        },
+        "egt": {
+          "name": "EGT (SensorEgg)",
+          "body": "Blinkt rot ab deiner EGT-Warntemperatur und geht 20 C darunter aus. Konstant blau, wenn das Sondensignal ausfällt — ein Ausfall ist eine Information. Nur auf Loggern verfügbar, die mit SensorEgg-Unterstützung gebaut wurden."
+        }
+      },
+      "footer": "Die neun LEDs zwischen den beiden Statuslichtern sind die Pace-Leiste; sie wird hier nicht konfiguriert."
+    }
   },
   "firmware": {
     "readingVersion": "Version wird gelesen…",
