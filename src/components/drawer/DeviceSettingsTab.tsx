@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Save, AlertCircle, RefreshCw, RotateCcw, UserRound, ChevronDown, SlidersHorizontal, Lightbulb } from "lucide-react";
+import { Loader2, Save, AlertCircle, AlertTriangle, RefreshCw, RotateCcw, UserRound, ChevronDown, SlidersHorizontal, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +18,7 @@ import {
   DEVICE_SETTINGS_SCHEMA,
   getSettingDef,
   groupSettingRows,
+  settingNotice,
   validateSettingValue,
   type DeviceSettingGroupId,
 } from "@/lib/deviceSettingsSchema";
@@ -191,6 +192,9 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
   const renderRow = (row: SettingRow) => {
     const def = getSettingDef(row.key);
     const isDirty = row.value !== row.originalValue;
+    // Follows the edited value, not the saved one, so the consequence of
+    // typing 8 is visible before the save rather than after it.
+    const notice = settingNotice(row.key, row.value);
     return (
       <div key={row.key} className="space-y-1">
         <div className="flex items-center gap-2">
@@ -261,6 +265,16 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
         )}
         {row.error && (
           <p className="text-xs text-destructive">{row.error}</p>
+        )}
+        {/* Advisory, not a rejection: the value is fine, but it changes what
+            the reading MEANS (see settingNotice). Rendered under the field so
+            it lands next to the number that caused it, and only while that
+            value is set. */}
+        {!row.error && notice && (
+          <p className="flex items-start gap-1.5 text-xs text-warning">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>{notice}</span>
+          </p>
         )}
       </div>
     );
