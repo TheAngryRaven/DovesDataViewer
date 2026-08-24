@@ -8,6 +8,7 @@ import {
   isAdvancedSetting,
   validateSettingValue,
   settingDisplayValue,
+  settingNotice,
 } from "./deviceSettingsSchema";
 
 // ─── schema shape ─────────────────────────────────────────────────────────────
@@ -308,14 +309,50 @@ describe("cylinder_count", () => {
   it("accepts a plausible cylinder count", () => {
     expect(validateSettingValue("cylinder_count", "1")).toBeNull();
     expect(validateSettingValue("cylinder_count", "2")).toBeNull();
+    // A V8 is entered as a V8 (logger plan 0012). Before it, the field meant
+    // "cylinders the pickup sees" and this user was told to type 1.
+    expect(validateSettingValue("cylinder_count", "8")).toBeNull();
   });
 
-  it("rejects zero — it would divide RPM by nothing", () => {
+  it("rejects zero — not a describable engine", () => {
     expect(validateSettingValue("cylinder_count", "0")).toBe("Minimum value is 1");
   });
 
   it("rejects a fractional count", () => {
     expect(validateSettingValue("cylinder_count", "1.5")).toBe("Must be a whole number");
+  });
+
+  it("no longer claims to scale RPM — spark_mode is the only thing that does", () => {
+    // Guards the copy, because the wrong copy here IS the bug: it is what sent
+    // a V8 owner to type 1 in a field labelled Cylinders.
+    expect(getSettingDef("cylinder_count")?.description).not.toMatch(/pickup sees/i);
+    expect(getSettingDef("spark_mode")?.description).toMatch(/only setting that scales RPM/i);
+  });
+});
+
+describe("settingNotice", () => {
+  it("warns that multi-cylinder RPM is inferred from ignition pulses", () => {
+    const notice = settingNotice("cylinder_count", "8");
+    expect(notice).toMatch(/8 cylinders/);
+    expect(notice).toMatch(/inferred/i);
+  });
+
+  it("says nothing on a single — its every firing IS the crank turning", () => {
+    expect(settingNotice("cylinder_count", "1")).toBeNull();
+  });
+
+  it("says nothing for a value it cannot read, rather than guessing", () => {
+    expect(settingNotice("cylinder_count", "")).toBeNull();
+    expect(settingNotice("cylinder_count", "  ")).toBeNull();
+    expect(settingNotice("cylinder_count", "eight")).toBeNull();
+    expect(settingNotice("cylinder_count", "2.5")).toBeNull();
+    expect(settingNotice("cylinder_count", "0")).toBeNull();
+  });
+
+  it("has nothing to say about any other key", () => {
+    expect(settingNotice("spark_mode", "single")).toBeNull();
+    expect(settingNotice("rev_limit", "15000")).toBeNull();
+    expect(settingNotice("not_a_real_key", "8")).toBeNull();
   });
 });
 

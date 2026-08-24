@@ -36,6 +36,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   implements them, so the seam forwards the track kind straight through and
   the native path reaches parity with Web Bluetooth.
 
+### Changed
+- **The Cylinders setting means your engine's cylinders again.** It was
+  labelled "cylinders the pickup SEES", which asked a V8 owner to type `1` in a
+  field called Cylinders — and anyone who read it literally and typed `8` got an
+  eighth of their real RPM, because the logger divided by it. The next firmware
+  drops that division: the pickup is one clamp on one plug wire, so **Spark
+  Mode** alone converts pulses to RPM. Enter what the engine has. Above one
+  cylinder the field now shows a notice that crank RPM is *inferred* from that
+  one wire's ignition pulses — between firings it is an estimate, and a cylinder
+  that stops firing reads as a stopped engine, which is normal for any clamp-on
+  tach. Needs the matching firmware; on older firmware the divider is still
+  there.
+- **Spark Mode says what it is for** — it is now labelled as the only setting
+  that scales RPM, and its options name the ignition types ("Wasted spark /
+  2-stroke", "Single fire / magneto") rather than just the ratio.
+
 ### Fixed
 - **No "which logger?" prompt when one is already connected** — pressing
   *Download from logger* while the garage holds a live connection now opens that

@@ -126,24 +126,32 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     description: "Inverting can be easier to read in direct sun. Normal is how the logger has always looked",
   },
   {
+    // The ONLY setting that scales RPM (logger plan 0012). The pickup is one
+    // clamp on one plug wire, so how often THAT plug fires is the whole
+    // conversion; the engine's cylinder count is not a term.
     key: 'spark_mode',
     label: 'Spark Mode',
     type: 'enum',
     options: [
-      { value: 'wasted', label: 'Wasted spark (1 per rev)' },
-      { value: 'single', label: 'Single fire (1 per 2 revs)' },
+      { value: 'wasted', label: 'Wasted spark / 2-stroke (1 per rev)' },
+      { value: 'single', label: 'Single fire / magneto (1 per 2 revs)' },
     ],
     description:
-      'How often the ignition fires per revolution. 2-stroke and wasted-spark 4-stroke fire every rev',
+      'How often the plug on the clamped wire fires. 2-stroke and wasted-spark 4-stroke fire every revolution; a traditional distributor or magneto fires every other one. This is the only setting that scales RPM',
   },
   {
+    // Descriptive since logger plan 0012 — it does NOT scale RPM. It used to,
+    // which meant a V8 entered honestly as 8 read an eighth of its real crank
+    // speed, and the fix at the time was to redefine the field as "cylinders
+    // the pickup sees" and tell V8 owners to enter 1. Enter what the engine
+    // has; the notice below says what that costs.
     key: 'cylinder_count',
     label: 'Cylinders',
     type: 'number',
     min: 1,
     max: 16,
     description:
-      'Cylinders the pickup SEES — a clamp around one plug wire of a twin sees one, so leave it at 1',
+      "The engine's actual cylinder count — enter 8 for a V8. It does not scale RPM: the pickup clamps one plug wire, so Spark Mode above does that on its own",
   },
   {
     // Minutes east of UTC. Presentation only: logged timestamps are UTC by
@@ -363,6 +371,27 @@ export function validateSettingValue(key: string, value: string): string | null 
   }
 
   return null;
+}
+
+/**
+ * A non-blocking notice about the value a setting currently holds — shown
+ * alongside the field, unlike `validateSettingValue`, which rejects.
+ *
+ * Today there is exactly one: above a single cylinder, crank RPM is INFERRED
+ * from one cylinder's ignition pulses, because there is one sense wire and one
+ * clamp. Between firings the reading is an assumption, and a cylinder that
+ * drops out reads as a stopped engine. That is how every clamp-on inductive
+ * tach behaves — known and accepted, not a fault — but a driver who sees it in
+ * a trace and hasn't been told will file it as one.
+ *
+ * Returns null when there is nothing to say (unknown key, unparseable value,
+ * or a value with no notice attached).
+ */
+export function settingNotice(key: string, value: string): string | null {
+  if (key !== 'cylinder_count') return null;
+  const num = Number(value);
+  if (value.trim() === '' || !Number.isInteger(num) || num <= 1) return null;
+  return `With ${num} cylinders, RPM is inferred from the ignition pulses on the one plug wire the pickup clamps. Between firings it is an estimate, and a cylinder that stops firing reads as a stopped engine — normal for any clamp-on tach.`;
 }
 
 /**
