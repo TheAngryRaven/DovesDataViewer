@@ -37,6 +37,19 @@ describe("needsOtaLayoutUpgrade", () => {
     expect(needsOtaLayoutUpgrade(undefined)).toBe(false);
     expect(needsOtaLayoutUpgrade("")).toBe(false);
   });
+
+  // This is a CAPABILITY gate, so it must stay on `compareVersions` (numeric
+  // core only) and never move to `compareReleases`. A beta cut from the release
+  // that introduced the larger staging region already has that region — telling
+  // its owner to install the release first would be a hop to nowhere.
+  it("reads a beta of the capable release as already capable", () => {
+    expect(needsOtaLayoutUpgrade(`${OTA_LAYOUT_MIN_VERSION}-beta.abc1234`)).toBe(false);
+    expect(needsOtaLayoutUpgrade("3.2.0-beta.abc1234")).toBe(false);
+  });
+
+  it("still flags a beta of a pre-layout release", () => {
+    expect(needsOtaLayoutUpgrade("3.0.0-beta.abc1234")).toBe(true);
+  });
 });
 
 describe("exceedsLegacyOtaCap", () => {

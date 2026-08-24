@@ -48,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the datalog doesn't contain, so a "my laps look wrong" report can finally be
   reproduced on our side. One toggle still covers both; sessions without a
   track (waypoint mode) simply send the log as before.
+- **Force a firmware update, when you want one** — a **Force update…** button
+  in the Firmware section, and an **Install anyway** action on the "firmware is
+  up to date" message, both of which skip the version comparison and offer the
+  published build anyway. Installing the version you already have reinstalls it;
+  installing an older one is a downgrade — the logger takes either. It is the
+  way off a build the comparison won't move you from, like a beta that is ahead
+  of the current release. Asking for it also ignores any "remind me tomorrow"
+  you took earlier. Do note that going *backwards* takes your logger's settings
+  back to that firmware's shape — 4.1.0 is where Rev Limit became Target RPM.
 - **Sprint tracks in the native app** — the Android/native Device tab can now
   list, download, upload and delete **sprint** courses, not just circuit ones.
   It previously showed an empty sprint list and said the transport couldn't
@@ -76,6 +85,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2-stroke", "Single fire / magneto") rather than just the ratio.
 
 ### Fixed
+- **A logger on beta firmware can install the official release.** The update
+  check compared only the numeric part of a version, so a logger running
+  `4.1.0-beta.<build>` looked identical to one running `4.1.0` and was told it
+  was already up to date — with no way to move onto the official build. Beta
+  firmware now correctly ranks below the release it was cut from, so the release
+  is offered as the upgrade it is.
 - **No "which logger?" prompt when one is already connected** — pressing
   *Download from logger* while the garage holds a live connection now opens that
   logger's download flow straight away. The picker only ever asked which logger

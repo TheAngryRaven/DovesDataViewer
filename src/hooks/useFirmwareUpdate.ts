@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import i18n from "@/lib/i18n";
 import type { BleConnection } from "@/lib/bleDatalogger";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { snoozeFirmwareUpdate } from "@/lib/firmwareUpdateReminder";
@@ -10,10 +11,12 @@ import {
   acquireFirmwareImage,
   evaluateFirmwareUpdate,
   explainFirmwareFailure,
+  forceKindFor,
   fetchFirmwareManifest,
   readDeviceFirmwareInfo,
   type DeviceFirmwareInfo,
   type FirmwareBuild,
+  type FirmwareForceKind,
 } from "@/lib/ble/dfu";
 
 /** Coarse phase shown in the update dialog. */
@@ -33,6 +36,11 @@ function errorMessage(e: unknown): string {
 function fwLog(...args: unknown[]): void {
   if (isDebugEnabled()) console.info("[firmware]", ...args);
 }
+
+/** Fixed id so repeated checks replace the toast instead of stacking it. */
+const UP_TO_DATE_TOAST_ID = "firmware-up-to-date";
+/** Long enough to read the line and reach for the action on it. */
+const UP_TO_DATE_TOAST_MS = 15_000;
 
 /**
  * Orchestrates the SD-staged firmware-update flow for a connected logger:
@@ -55,7 +63,13 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   const [checking, setChecking] = useState(false);
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [pendingBuild, setPendingBuild] = useState<FirmwareBuild | null>(null);
-  const [forced, setForced] = useState(false);
+  /**
+   * Why the version check was bypassed, or `null` when it wasn't. The dialog
+   * shows different copy for each: a preview build always pushes updates
+   * through for testers, whereas a user-initiated force is a deliberate
+   * reinstall or downgrade and should say so.
+   */
+  const [forceKind, setForceKind] = useState<FirmwareForceKind>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [flashing, setFlashingLocal] = useState(false);
@@ -67,7 +81,18 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   const [needsDisconnect, setNeedsDisconnect] = useState(false);
 
   // Read the installed firmware version whenever a connection appears.
+  //
+  // Everything about the PREVIOUS device's offer is cleared here too. It used
+  // to clear only `info`, so a swap left `latestVersion` and `pendingBuild`
+  // behind — and `snooze()` keys on `deviceName` + `latestVersion`, so it could
+  // write a snooze for a device/version pair that never existed. The force path
+  // makes that easier to reach, because it populates the same state without any
+  // update actually being available.
   useEffect(() => {
+    setLatestVersion(null);
+    setPendingBuild(null);
+    setForceKind(null);
+    setConfirmOpen(false);
     if (!connection) {
       setInfo(null);
       setVersionError(null);
@@ -96,11 +121,23 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
    * `suppress` gets the offered version and can decline the dialog, which is
    * how "remind me tomorrow" survives a reconnect without skipping a *newer*
    * release.
+   *
+   * `force` skips the version comparison entirely, so the manifest's build is
+   * always offered — a reinstall of the same version, or a downgrade. It is how
+   * a user gets off a build the comparison won't move them from (a beta ahead
+   * of the release, or a suspect flash), and it deliberately ignores `suppress`
+   * too: someone who just asked for this is not being reminded tomorrow.
    */
   const checkForUpdates = useCallback(
-    async (options: { silent?: boolean; suppress?: (version: string) => boolean } = {}) => {
+    async (
+      options: {
+        silent?: boolean;
+        suppress?: (version: string) => boolean;
+        force?: boolean;
+      } = {},
+    ) => {
       if (!connection) return false;
-      const { silent = false, suppress } = options;
+      const { silent = false, suppress, force = false } = options;
       setChecking(true);
       try {
         const current = info ?? (await readDeviceFirmwareInfo(connection.server));
@@ -108,33 +145,62 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
         const manifest = await fetchFirmwareManifest();
         setLatestVersion(manifest.version);
         // On beta/preview builds the version check is bypassed so testers can
-        // always re-flash (same as our other non-main behaviors).
+        // always re-flash (same as our other non-main behaviors). An explicit
+        // `force` does the same thing on any build, at the user's request.
         const evaluation = evaluateFirmwareUpdate(current, manifest, {
-          force: isPreviewBuild(),
+          force: force || isPreviewBuild(),
         });
         if (evaluation.available && evaluation.build) {
-          if (suppress?.(manifest.version)) return false;
+          if (!force && suppress?.(manifest.version)) return false;
           setPendingBuild(evaluation.build);
-          setForced(evaluation.reason === "forced");
+          setForceKind(forceKindFor(evaluation.reason, force, current.version));
           setConfirmOpen(true);
           return true;
         }
         if (!silent) {
           switch (evaluation.reason) {
-            case "up-to-date":
-              toast.success(`Firmware is up to date (v${current.version})`);
+            case "up-to-date": {
+              // Offer the way out right here. The manifest and the matched
+              // build are already in hand, so this opens the confirm dialog
+              // directly rather than re-running the whole check.
+              //
+              // A fixed id de-dupes repeated checks, and the longer duration is
+              // the point: this toast carries the ONLY escape hatch a user who
+              // just hit the wall is looking at, and sonner's ~4 s default is
+              // not long enough to read a sentence and then decide.
+              const build = evaluation.build;
+              toast.success(
+                i18n.t("drawer:firmware.upToDateToast", { version: current.version ?? "?" }),
+                {
+                  id: UP_TO_DATE_TOAST_ID,
+                  duration: UP_TO_DATE_TOAST_MS,
+                  action: build
+                    ? {
+                        label: i18n.t("drawer:firmware.installAnyway"),
+                        onClick: () => {
+                          setPendingBuild(build);
+                          setForceKind("user");
+                          setConfirmOpen(true);
+                        },
+                      }
+                    : undefined,
+                },
+              );
               break;
+            }
             case "no-version":
-              toast.error("Couldn't read the device's firmware version");
+              toast.error(i18n.t("drawer:firmware.checkNoVersion"));
               break;
             case "no-build":
-              toast.error("No firmware build is available for this device");
+              toast.error(i18n.t("drawer:firmware.checkNoBuild"));
               break;
           }
         }
         return false;
       } catch (e) {
-        if (!silent) toast.error(`Update check failed: ${errorMessage(e)}`);
+        if (!silent) {
+          toast.error(i18n.t("drawer:firmware.checkFailed", { error: errorMessage(e) }));
+        }
         return false;
       } finally {
         setChecking(false);
@@ -146,7 +212,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   const cancel = useCallback(() => {
     setConfirmOpen(false);
     setPendingBuild(null);
-    setForced(false);
+    setForceKind(null);
   }, []);
 
   /** Decline for 24 hours. Same as cancel, plus a note so we don't re-ask. */
@@ -156,7 +222,14 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   }, [cancel, deviceName, latestVersion]);
 
   const startUpdate = useCallback(async () => {
-    if (!connection || !pendingBuild) return;
+    if (!connection || !pendingBuild) {
+      // Reachable now that the confirm can be opened from a toast action the
+      // user may sit on: the link can drop in between. Saying nothing would
+      // read as a dead button.
+      setConfirmOpen(false);
+      toast.error(i18n.t("drawer:firmware.startNoConnection"));
+      return;
+    }
     const build = pendingBuild;
     setConfirmOpen(false);
     setFlashError(null);
@@ -229,6 +302,9 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     setPhase(null);
     setFlashError(null);
     setPercent(0);
+    // The offer is spent either way — leaving `forceKind` set would carry the
+    // amber bypass note into whatever the next dialog turns out to be.
+    setForceKind(null);
     if (needsDisconnect) {
       setNeedsDisconnect(false);
       disconnectDevice();
@@ -243,6 +319,7 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
   const finish = useCallback(() => {
     setPhase(null);
     setPercent(0);
+    setForceKind(null);
     setFlashing(false);
     disconnectDevice();
   }, [setFlashing, disconnectDevice]);
@@ -254,7 +331,9 @@ export function useFirmwareUpdate(connection: BleConnection | null) {
     checking,
     latestVersion,
     pendingBuild,
-    forced,
+    /** True when the version check was bypassed, whatever the reason. */
+    forced: forceKind !== null,
+    forceKind,
     confirmOpen,
     flashing,
     phase,
