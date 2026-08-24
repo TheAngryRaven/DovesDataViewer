@@ -277,47 +277,7 @@
     "toastResetFailed": "Ripristino non riuscito: {{error}}",
     "readFailed": "Lettura delle impostazioni non riuscita",
     "unknownError": "Errore sconosciuto",
-    "firmwareNativeHint": "Gli aggiornamenti del firmware nell'app si trovano nella schermata di download del Fledgling (Scarica dal logger).",
-    "ledHelp": {
-      "open": "Cosa fanno le modalità dei LED di stato?",
-      "title": "Modalità dei LED di stato",
-      "intro": "Il tuo logger ha due LED di stato, uno a ciascuna estremità della striscia. Ognuno si imposta in modo indipendente.",
-      "modes": {
-        "off": {
-          "name": "Spento",
-          "body": "Spento. Usalo quando ti basta un solo indicatore."
-        },
-        "rpm": {
-          "name": "RPM obiettivo",
-          "body": "Lampeggia in rosso al raggiungimento degli RPM obiettivo e si spegne quando i giri scendono circa il 3% sotto. È una spia di cambiata, non un allarme."
-        },
-        "speed": {
-          "name": "Velocità obiettivo",
-          "body": "Lampeggia in rosso al raggiungimento della velocità obiettivo. Spento senza fix GPS, perché la striscia te lo sta già segnalando."
-        },
-        "gps": {
-          "name": "Stato GPS",
-          "body": "Rosso: nessun satellite. Giallo: satelliti ma nessuna posizione. Blu: posizione acquisita, in attesa dell'orologio — i giri vengono cronometrati ma il file di log non si apre. Verde: agganciato e in registrazione. Resta acceso nel menu principale così puoi controllare prima di partire."
-        },
-        "camera": {
-          "name": "Sincronizzazione camera",
-          "body": "Spento se nessuna camera è associata. Giallo: sessione in corso ma camera non avviata. Blu lampeggiante: connessa, ma non ha accettato il nostro telecomando — avvio e stop non le arrivano. Blu fisso: connessa e pronta. Rosso: in registrazione. Resta acceso anche nel menu principale."
-        },
-        "lap": {
-          "name": "Ultimo giro",
-          "body": "Verde se l'ultimo giro ha battuto il precedente, rosso se è stato più lento, viola se è il migliore della sessione. Spento al primo giro, quando non c'è nulla con cui confrontare. Il confronto è volutamente con il giro PRECEDENTE e non con il migliore: è questo che ti dice se stai migliorando."
-        },
-        "sector": {
-          "name": "Ultimo settore",
-          "body": "Stessa logica per settore: appena entri nel settore 2 mostra com'è andato il settore 1 rispetto al settore 1 del giro precedente, e lo mantiene fino alla chiusura del settore successivo. Richiede un tracciato con linee di settore."
-        },
-        "egt": {
-          "name": "EGT (SensorEgg)",
-          "body": "Lampeggia in rosso al raggiungimento della temperatura di allarme EGT e si azzera 20 C sotto. Blu fisso quando il segnale della sonda cade — una caduta è un'informazione utile. Disponibile solo sui logger compilati con supporto SensorEgg."
-        }
-      },
-      "footer": "I nove LED tra le due spie di stato sono la barra del passo, che non si configura qui."
-    }
+    "firmwareNativeHint": "Gli aggiornamenti del firmware nell'app si trovano nella schermata di download del Fledgling (Scarica dal logger)."
   },
   "firmware": {
     "readingVersion": "Lettura versione…",

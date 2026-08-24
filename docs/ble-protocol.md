@@ -303,39 +303,6 @@ and expect the link to drop. Timeout ~10 s. Errors as `SERR:<reason>`.
 | `waypoint_detection_distance` | number | 5–100 (m) | Waypoint/course detector proximity zone |
 | `waypoint_speed` | number | 5–100 (MPH) | Minimum speed to arm lap/waypoint detection |
 | `use_legacy_csv` | number | 0–1 | Save `.dove` (1) instead of `.dovex` (0) |
-| `camera_serial` | string | ≤6 chars | Paired Insta360 serial; empty = unpaired |
-| `race_mode` | enum | `circuit` \| `sprint` | Tiebreak when both kinds of track are in range |
-| `display_invert` | enum | `normal` \| `inverted` | OLED colours |
-| `debug_pages` | enum | `hide` \| `show` | Diagnostic pages at the front of the race rotation |
-| `spark_mode` | enum | `wasted` \| `single` | Ignition events per revolution |
-| `cylinder_count` | number | 1–16 | Cylinders the tach pickup SEES |
-| `tach_filter` | enum | `smooth` \| `legacy` \| `raw` | RPM estimator |
-| `led_brightness` | number | 0–255 | Global LED cap; 0 disables the strip and its 5 V rail |
-| `led_status_left` | enum | `off` \| `rpm` \| `speed` \| `gps` \| `camera` \| `lap` \| `sector` \| `egt` | What the left status LED shows |
-| `led_status_right` | enum | same as above | What the right status LED shows |
-| `target_rpm` | number | 1000–20000 | Shift point: LED rev-bar top + rev flasher. Was `rev_limit` before firmware 4.2 |
-| `target_speed_mph` | number | 5–250 (**MPH**) | LED bar ceiling on a tach-less session + speed flasher |
-| `overrev_limit` | number | **0 or** 1000–20000 | Whole-strip red flash; 0 disables |
-| `temp1_alert_c` | number | 50–1200 (**°C**) | EGT alert threshold. SensorEgg firmware only |
-| `led_brightness_night` | number | 0–255 | Cap inside the night window |
-| `led_day_start_hour` | number | 0–23 | Local hour day brightness starts |
-| `led_night_start_hour` | number | 0–23 | Local hour night brightness starts |
-| `utc_offset_min` | number | −840…840 | Minutes east of UTC, presentation only |
-
-Three things this table does not show but a client must handle:
-
-- **Values are stored in DEVICE units.** `target_speed_mph` is mph and
-  `temp1_alert_c` is Celsius whatever the user's display preference; convert
-  back before `SSET`, and validate against the ranges above rather than
-  against converted bounds — the firmware clamps in its own units and silently
-  keeps its compiled-in default for anything out of band.
-- **Not every key exists on every device.** Feature flags differ by firmware
-  channel: `temp1_alert_c` ships only where the SensorEgg probe is compiled
-  in, and a device on pre-4.2 firmware reports `rev_limit` instead of
-  `target_rpm`. Enumerate what `SLIST` actually returns rather than assuming
-  this list.
-- **`overrev_limit`'s range has a hole in it.** 0 means disabled and the
-  working band starts at 1000; the firmware discards anything between.
 
 Unknown keys are treated as untyped strings with no validation.
 
