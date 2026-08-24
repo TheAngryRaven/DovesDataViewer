@@ -275,6 +275,7 @@
     "filterRead": "Lidos",
     "refresh": "Atualizar",
     "download": "Baixar arquivo",
+    "downloadTrack": "Baixar pista",
     "downloadError": "Falha no download",
     "deleteFileError": "Falha ao excluir o arquivo armazenado",
     "errorLabel": "Erro do analisador",

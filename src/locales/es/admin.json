@@ -275,6 +275,7 @@
     "filterRead": "Leídos",
     "refresh": "Actualizar",
     "download": "Descargar archivo",
+    "downloadTrack": "Descargar pista",
     "downloadError": "Error en la descarga",
     "deleteFileError": "No se pudo eliminar el archivo almacenado",
     "errorLabel": "Error del analizador",

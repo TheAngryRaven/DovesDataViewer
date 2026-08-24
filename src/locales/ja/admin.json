@@ -275,6 +275,7 @@
     "filterRead": "既読",
     "refresh": "更新",
     "download": "ファイルをダウンロード",
+    "downloadTrack": "コースをダウンロード",
     "downloadError": "ダウンロードに失敗しました",
     "deleteFileError": "保存ファイルの削除に失敗しました",
     "errorLabel": "パーサーエラー",

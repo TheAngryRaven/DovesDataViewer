@@ -63,4 +63,34 @@ describe("buildContactBody", () => {
     });
     expect(built).toBe("too-large");
   });
+
+  it("carries the session's track bundle as a second, track-prefixed attachment", async () => {
+    const trackJson = JSON.stringify({ kind: "lapwing-support-track", track: { name: "Test Raceway" } });
+    const built = await buildContactBody({
+      category: "Bug Report",
+      message: "sector 2 never triggers",
+      attachment: { blob: new Blob(["t,lat,lon\n"]), name: "run.dovex" },
+      trackAttachment: { blob: new Blob([trackJson]), name: "run.track.json" },
+    });
+    const { body } = built as { body: FormData };
+    expect(body.get("fileName")).toBe("run.dovex");
+    expect(body.get("trackFileName")).toBe("run.track.json");
+    expect(Number(body.get("trackFileSize"))).toBe(trackJson.length);
+    expect((body.get("trackFile") as File).size).toBeGreaterThan(0);
+    // The two groups stay independent — neither overwrites the other.
+    expect((body.get("file") as File).name).toMatch(/^run\.dovex/);
+    expect((body.get("trackFile") as File).name).toMatch(/^run\.track\.json/);
+  });
+
+  it("goes multipart for a track bundle even without a datalog", async () => {
+    const built = await buildContactBody({
+      category: "Comment",
+      message: "just the track",
+      trackAttachment: { blob: new Blob(["{}"]), name: "run.track.json" },
+    });
+    const { body, contentType } = built as { body: FormData; contentType?: string };
+    expect(contentType).toBeUndefined();
+    expect(body.get("trackFileName")).toBe("run.track.json");
+    expect(body.get("file")).toBeNull();
+  });
 });

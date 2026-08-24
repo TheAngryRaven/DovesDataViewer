@@ -17,6 +17,40 @@ function sanitizeFileName(name: string): string {
   return (base.replace(/[^\w.\- ()]/g, '_').slice(0, 120)) || 'datalog';
 }
 
+interface Upload {
+  file: File;
+  fileName: string;
+  fileSize: number;
+  compression: string | null;
+}
+
+function tooLarge(): Response {
+  return new Response(JSON.stringify({ error: 'File too large' }), {
+    status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * Read one `prefix`-namespaced attachment group out of the multipart body.
+ * Returns null when the group is absent, 'too-large' when it blows the cap.
+ */
+function readUpload(form: FormData, prefix: string): Upload | null | 'too-large' {
+  const field = (base: string) =>
+    prefix ? `${prefix}${base[0].toUpperCase()}${base.slice(1)}` : base;
+  const upload = form.get(field('file'));
+  if (!(upload instanceof File) || upload.size === 0) return null;
+  if (upload.size > MAX_UPLOAD_BYTES) return 'too-large';
+  const claimedSize = Number(form.get(field('fileSize')));
+  return {
+    file: upload,
+    fileName: sanitizeFileName(String(form.get(field('fileName')) ?? upload.name)),
+    fileSize: Number.isFinite(claimedSize) && claimedSize > 0
+      ? Math.min(claimedSize, 1024 * 1024 * 1024)
+      : upload.size,
+    compression: String(form.get(field('compression')) ?? '') === 'gzip' ? 'gzip' : null,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,32 +58,24 @@ Deno.serve(async (req) => {
 
   try {
     // Plain messages arrive as JSON (the original contract); messages with a
-    // session-file attachment arrive as multipart form data (plan 0013).
+    // session-file attachment arrive as multipart form data (plan 0013) —
+    // optionally carrying the session's track bundle too (plan 0019).
     let category: unknown, email: unknown, message: unknown;
-    let file: File | null = null;
-    let compression: string | null = null;
-    let fileName = '';
-    let fileSize = 0;
+    let datalog: Upload | null = null;
+    let trackFile: Upload | null = null;
     if ((req.headers.get('content-type') ?? '').includes('multipart/form-data')) {
       const form = await req.formData();
       category = form.get('category');
       email = form.get('email');
       message = form.get('message');
-      const upload = form.get('file');
-      if (upload instanceof File && upload.size > 0) {
-        if (upload.size > MAX_UPLOAD_BYTES) {
-          return new Response(JSON.stringify({ error: 'File too large' }), {
-            status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        file = upload;
-        compression = String(form.get('compression') ?? '') === 'gzip' ? 'gzip' : null;
-        fileName = sanitizeFileName(String(form.get('fileName') ?? upload.name));
-        const claimedSize = Number(form.get('fileSize'));
-        fileSize = Number.isFinite(claimedSize) && claimedSize > 0
-          ? Math.min(claimedSize, 1024 * 1024 * 1024)
-          : upload.size;
-      }
+      // The datalog goes up unprefixed; the session's track bundle as
+      // `trackFile`/`trackFileName`/… (plan 0019 — see src/lib/parseReport.ts).
+      const parsed = readUpload(form, '');
+      if (parsed === 'too-large') return tooLarge();
+      datalog = parsed;
+      const parsedTrack = readUpload(form, 'track');
+      if (parsedTrack === 'too-large') return tooLarge();
+      trackFile = parsedTrack;
     } else {
       ({ category, email, message } = await req.json());
     }
@@ -127,16 +153,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Optional session-file attachment → private support-files bucket (shared
-    // with parse-error reports; admin-only read/delete).
-    let storagePath: string | null = null;
-    if (file) {
-      storagePath = `${crypto.randomUUID()}/${fileName}${compression ? '.gz' : ''}`;
-      const bytes = await file.arrayBuffer();
+    // Optional session attachments → private support-files bucket (shared with
+    // parse-error reports; admin-only read/delete). The datalog and the track
+    // bundle are separate objects so each downloads under its own name.
+    const store = async (upload: Upload): Promise<string> => {
+      const path = `${crypto.randomUUID()}/${upload.fileName}${upload.compression ? '.gz' : ''}`;
+      const bytes = await upload.file.arrayBuffer();
       const { error: uploadError } = await supabase.storage
         .from('support-files')
-        .upload(storagePath, bytes, { contentType: 'application/octet-stream' });
+        .upload(path, bytes, { contentType: 'application/octet-stream' });
       if (uploadError) throw uploadError;
+      return path;
+    };
+
+    const uploaded: string[] = [];
+    let storagePath: string | null = null;
+    let trackStoragePath: string | null = null;
+    try {
+      if (datalog) {
+        storagePath = await store(datalog);
+        uploaded.push(storagePath);
+      }
+      if (trackFile) {
+        trackStoragePath = await store(trackFile);
+        uploaded.push(trackStoragePath);
+      }
+    } catch (uploadError) {
+      // Don't strand half an upload pair.
+      if (uploaded.length > 0) await supabase.storage.from('support-files').remove(uploaded);
+      throw uploadError;
     }
 
     // Insert message
@@ -145,15 +190,19 @@ Deno.serve(async (req) => {
       email: emailStr || null,
       message: messageStr,
       submitted_by_ip: ip,
-      file_name: file ? fileName : null,
-      file_size: file ? fileSize : null,
+      file_name: datalog?.fileName ?? null,
+      file_size: datalog?.fileSize ?? null,
       storage_path: storagePath,
-      compression: file ? compression : null,
+      compression: datalog?.compression ?? null,
+      track_file_name: trackFile?.fileName ?? null,
+      track_file_size: trackFile?.fileSize ?? null,
+      track_storage_path: trackStoragePath,
+      track_compression: trackFile?.compression ?? null,
     });
 
     if (error) {
-      // Don't strand an orphan object if the row failed.
-      if (storagePath) await supabase.storage.from('support-files').remove([storagePath]);
+      // Don't strand orphan objects if the row failed.
+      if (uploaded.length > 0) await supabase.storage.from('support-files').remove(uploaded);
       throw error;
     }
 

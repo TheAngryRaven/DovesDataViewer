@@ -275,6 +275,7 @@
     "filterRead": "Gelesen",
     "refresh": "Aktualisieren",
     "download": "Datei herunterladen",
+    "downloadTrack": "Strecke herunterladen",
     "downloadError": "Download fehlgeschlagen",
     "deleteFileError": "Gespeicherte Datei konnte nicht gelöscht werden",
     "errorLabel": "Parser-Fehler",

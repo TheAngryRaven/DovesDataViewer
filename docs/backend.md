@@ -230,12 +230,24 @@ Retention: `purge_expired_personal_data()` covers `parse_error_reports` like
 `messages` (IP nulled at 90 d, rows at 1 y) and deletes the attached
 `support-files` objects together with their rows.
 
+**…and the track that session was analysed against** (plan 0019): the same
+toggle uploads a second attachment — a JSON bundle of the local `Track` +
+the session's `Course` (`src/lib/supportTrackData.ts`), the geometry lap and
+sector times actually come from. It rides the same request under a `track`
+field prefix (`trackFile`/`trackFileName`/`trackFileSize`/`trackCompression`,
+built by `appendAttachment(form, prepared, "track")` and read back by the edge
+function's `readUpload(form, prefix)`), lands as its own object in the same
+bucket, and is recorded in `messages.track_file_name`/`track_file_size`/
+`track_storage_path`/`track_compression` — purged with the row like the log.
+Collecting it is best-effort: no track (waypoint mode) or a storage failure
+just sends the datalog.
+
 Client pieces: `src/lib/parseReport.ts` + `src/lib/contactMessage.ts` (plain
-`fetch`, keeps Supabase off the eager graph), lazy `ParseErrorReportDialog`,
-the ContactDialog attach toggle (session file fetched from IndexedDB on
-submit), admin `SupportTab`/`MessagesTab` sharing
-`admin/supportAttachment.ts` (download via admin storage RLS, client-side
-gunzip, object-then-row delete).
+`fetch`, keeps Supabase off the eager graph) + `src/lib/supportTrackData.ts`,
+lazy `ParseErrorReportDialog`, the ContactDialog attach toggle (session file
+fetched from IndexedDB on submit, track from localStorage), admin
+`SupportTab`/`MessagesTab` sharing `admin/supportAttachment.ts` (download via
+admin storage RLS, client-side gunzip, object-then-row delete).
 
 ---
 
