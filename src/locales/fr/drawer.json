@@ -277,47 +277,7 @@
     "toastResetFailed": "Échec de la réinitialisation : {{error}}",
     "readFailed": "Échec de la lecture des réglages",
     "unknownError": "Erreur inconnue",
-    "firmwareNativeHint": "Les mises à jour du firmware dans l'application se trouvent sur l'écran de téléchargement Fledgling (Télécharger depuis le logger).",
-    "ledHelp": {
-      "open": "À quoi servent les modes des LED d'état ?",
-      "title": "Modes des LED d'état",
-      "intro": "Votre enregistreur possède deux LED d'état, une à chaque extrémité du bandeau. Chacune se règle indépendamment.",
-      "modes": {
-        "off": {
-          "name": "Éteint",
-          "body": "Éteinte. À utiliser quand un seul indicateur vous suffit."
-        },
-        "rpm": {
-          "name": "Régime cible",
-          "body": "Clignote en rouge à partir de votre régime cible et s'arrête quand le régime redescend d'environ 3 % en dessous. C'est un shift light, pas une alarme."
-        },
-        "speed": {
-          "name": "Vitesse cible",
-          "body": "Clignote en rouge à partir de votre vitesse cible. Éteinte sans fix GPS, puisque le bandeau vous le signale déjà."
-        },
-        "gps": {
-          "name": "État GPS",
-          "body": "Rouge : aucun satellite. Jaune : satellites mais pas de position. Bleu : position acquise, en attente de l'horloge — les tours sont chronométrés mais le fichier ne peut pas s'ouvrir. Vert : verrouillé et enregistrement en cours. Reste allumée dans le menu principal pour vérifier avant de partir."
-        },
-        "camera": {
-          "name": "Synchro caméra",
-          "body": "Éteinte si aucune caméra n'est appairée. Jaune : session en cours mais caméra non démarrée. Bleu clignotant : connectée, mais elle n'a pas accepté notre télécommande — démarrage et arrêt ne lui parviendront pas. Bleu fixe : connectée et prête. Rouge : enregistrement. Reste également allumée dans le menu principal."
-        },
-        "lap": {
-          "name": "Dernier tour",
-          "body": "Vert si votre dernier tour a battu le précédent, rouge s'il était plus lent, violet s'il s'agit du meilleur de la session. Éteinte au premier tour, faute de comparaison. La comparaison se fait volontairement avec le tour PRÉCÉDENT et non avec le meilleur : c'est ce qui vous dit si vous progressez."
-        },
-        "sector": {
-          "name": "Dernier secteur",
-          "body": "Même principe par secteur : dès l'entrée dans le secteur 2, elle indique comment le secteur 1 s'est comparé au secteur 1 du tour précédent, et le conserve jusqu'à la fermeture du secteur suivant. Nécessite un circuit avec des lignes de secteur."
-        },
-        "egt": {
-          "name": "EGT (SensorEgg)",
-          "body": "Clignote en rouge à partir de votre température d'alerte EGT et s'éteint 20 C en dessous. Bleu fixe en cas de perte du signal de la sonde — une coupure mérite d'être signalée. Proposé uniquement sur les enregistreurs compilés avec la prise en charge SensorEgg."
-        }
-      },
-      "footer": "Les neuf LED entre les deux témoins d'état forment la barre de rythme, qui ne se configure pas ici."
-    }
+    "firmwareNativeHint": "Les mises à jour du firmware dans l'application se trouvent sur l'écran de téléchargement Fledgling (Télécharger depuis le logger)."
   },
   "firmware": {
     "readingVersion": "Lecture de la version…",

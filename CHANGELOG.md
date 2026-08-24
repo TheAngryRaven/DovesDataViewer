@@ -11,39 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [Unreleased]
-
-### Added
-- **Every LED setting is now a real field.** The logger has shipped LED
-  brightness, rev limit, over-rev, EGT alert, night brightness, the day/night
-  hours and the UTC offset for a while, and this app showed all of them as
-  unlabelled raw text boxes with no range checking — a typo silently reverted
-  the logger to its default. They now have proper names, descriptions and
-  bounds, along with the paired-camera serial and the RPM filter.
-- **Status LED assignment.** The logger's two status LEDs can each be set to
-  one of eight modes — Off, Target RPM, Target Speed, GPS Status, Camera Sync,
-  Last Lap, Last Sector or EGT — with a **help button** next to each that
-  explains what every colour means. EGT is offered only on loggers built with
-  SensorEgg support, since elsewhere it renders as a dark LED.
-- **Target Speed**, the new ceiling for the logger's LED bar on a session with
-  no tachometer.
-- **Unit-aware device settings.** Target Speed and EGT Alert are stored on the
-  device in MPH and Celsius but shown in whichever unit you have selected,
-  with the unit printed in the field. Device settings were previously
-  unit-blind. Values are converted back before being written, and are still
-  validated against the firmware's own limits.
-
-### Changed
-- **Rev Limit is now Target RPM.** It always was the shift point rather than a
-  limiter — Over-Rev Limit is the real limit — and firmware 4.2 renames the
-  underlying setting to match. Loggers on older firmware still show a properly
-  labelled Target RPM field.
-- **Over-Rev Limit accepts 0 again.** Its valid values are 0 (disabled) or
-  1000–20000 with nothing in between, which the settings form previously could
-  not express.
-- `docs/ble-protocol.md`'s known-settings table was several releases stale and
-  is now current.
-
 ## [4.0.1] - 2026-08-15
 
 ### Changed
