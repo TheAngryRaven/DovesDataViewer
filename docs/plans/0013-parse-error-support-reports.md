@@ -105,3 +105,6 @@ so support artifacts follow the standard 90 d IP / 1 y content retention.
 - [x] Admin SupportTab
 - [x] i18n (en + all shipped languages), docs, changelog
 - [x] Follow-up: session-file attachment on contact messages + retention wiring
+
+> The attached session now also carries the track it was analysed against —
+> see [plan 0019](0019-support-track-attachment.md).

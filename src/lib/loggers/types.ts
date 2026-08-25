@@ -67,10 +67,11 @@ export interface DeviceDetails {
    * (`/TRACKS/SPRINT`). Omitted means circuit, which is what every caller
    * meant before sprint mode existed.
    *
-   * A transport that cannot reach the sprint folder returns an empty list for
-   * `'sprint'` rather than throwing — see `docs/plans/0015-sprint-mode.md`
-   * ("Android IPC — end-of-project follow-up"). Reporting nothing is honest:
-   * it genuinely cannot fetch them.
+   * Both shipped transports reach both folders: Web Bluetooth via `bleDetails`
+   * and the native bridge via the `logger_*_track` IPC. A transport that
+   * cannot reach the sprint folder must return an empty list for `'sprint'`
+   * rather than throwing, and flag `supportsSprintTracks: false` so the tab
+   * says so plainly — reporting nothing is honest, but only if it's labelled.
    */
   listTracks(kind?: TrackKind): Promise<string[]>;
   /** Download one track file from the folder `kind` selects. */

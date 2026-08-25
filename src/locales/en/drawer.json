@@ -266,7 +266,10 @@
     "retry": "Retry",
     "noSettings": "No settings found on device.",
     "advanced": "Advanced",
+    "groupLeds": "LED Strip",
     "useProfileName": "Use profile name",
+    "timezoneUseLocal": "Use this device's timezone",
+    "timezoneClock": "Logger clock: {{time}}",
     "reset": "Reset Settings to Default",
     "resetConfirm": "Confirm Reset — Device Will Reboot",
     "cancel": "Cancel",
@@ -276,7 +279,47 @@
     "toastResetFailed": "Reset failed: {{error}}",
     "readFailed": "Failed to read settings",
     "unknownError": "Unknown error",
-    "firmwareNativeHint": "Firmware updates in the app live on the Fledgling download screen (Download from logger)."
+    "firmwareNativeHint": "Firmware updates in the app live on the Fledgling download screen (Download from logger).",
+    "ledHelp": {
+      "open": "What do the status LED modes do?",
+      "title": "Status LED modes",
+      "intro": "Your logger has two status LEDs, one at each end of the strip. Each can be set to any of these independently.",
+      "modes": {
+        "off": {
+          "name": "Off",
+          "body": "Dark. Use it when one indicator is all you want."
+        },
+        "rpm": {
+          "name": "Target RPM",
+          "body": "Flashes red at or above your Target RPM, and stops once revs drop about 3% below it. This is a shift light, not an alarm."
+        },
+        "speed": {
+          "name": "Target Speed",
+          "body": "Flashes red at or above your Target Speed. Dark when there is no GPS fix, since the strip is already showing you that."
+        },
+        "gps": {
+          "name": "GPS Status",
+          "body": "Red: no satellites yet. Yellow: satellites but no position fix. Blue: fixed, still waiting on the clock — laps time, but the log file cannot open. Green: fully locked and logging. Stays lit on the main menu so you can check before you roll out."
+        },
+        "camera": {
+          "name": "Camera Sync",
+          "body": "Dark when no camera is paired. Yellow: session running but the camera has not come up. Flashing blue: connected, but it has not accepted our remote — start/stop will not reach it. Steady blue: connected and ready. Red: recording. Also stays lit on the main menu."
+        },
+        "lap": {
+          "name": "Last Lap",
+          "body": "Green if your last lap beat the one before it, red if it was slower, purple if it was your best of the session. Dark on lap one, when there is nothing to compare against. It is deliberately measured against your PREVIOUS lap rather than your best — that is what tells you whether you are improving."
+        },
+        "sector": {
+          "name": "Last Sector",
+          "body": "The same idea per sector: once you cross into sector 2 it shows how sector 1 compared to sector 1 of your last lap, and holds until the next sector closes. Needs a track with sector lines."
+        },
+        "egt": {
+          "name": "EGT (SensorEgg)",
+          "body": "Flashes red at or above your EGT Alert temperature and clears 20 C below it. Solid blue when the probe signal drops out — a dropout is worth knowing about. Only offered on loggers built with SensorEgg support."
+        }
+      },
+      "footer": "The nine LEDs between the two status lights are the pace bar, which is not configurable here."
+    }
   },
   "firmware": {
     "readingVersion": "Reading version…",
@@ -285,6 +328,12 @@
     "versionUnknown": "Version unknown",
     "firmware": "Firmware",
     "checkForUpdates": "Check for updates",
+    "forceUpdate": "Force update…",
+    "upToDateToast": "Firmware is up to date (v{{version}})",
+    "installAnyway": "Install anyway",
+    "checkNoVersion": "Couldn't read the device's firmware version",
+    "checkNoBuild": "No firmware build is available for this device",
+    "checkFailed": "Update check failed: {{error}}",
     "updateTitle": "Update firmware",
     "flashingForced": "Flashing firmware v{{version}} (current: v{{current}}).",
     "flashingForcedNoCurrent": "Flashing firmware v{{version}}.",
@@ -293,6 +342,8 @@
     "availableNoCurrent": "A new firmware version (v{{version}}) is available.",
     "availableNoVersion": "A new firmware version is available.",
     "betaNote": "On beta branches updates always push through for testing.",
+    "forcedUserNote": "You asked for this, so the version check was skipped. The same version reinstalls; an older one is a downgrade — the logger accepts both.",
+    "forcedUnknownNote": "The installed version couldn't be read, so there was nothing to compare against.",
     "beforeStart": "Before you start:",
     "li1": "Make sure the logger's battery is well charged.",
     "li2": "Keep the device close and powered on.",
@@ -301,6 +352,7 @@
     "cancel": "Cancel",
     "remindTomorrow": "Remind me tomorrow",
     "upload": "Upload",
+    "startNoConnection": "The logger disconnected — reconnect and try again",
     "phaseDownloading": "Downloading firmware…",
     "phaseUploading": "Uploading to device…",
     "phaseVerifying": "Verifying on device…",

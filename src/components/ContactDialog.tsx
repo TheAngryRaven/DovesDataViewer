@@ -45,8 +45,16 @@ export function ContactDialog({
    * The currently-loaded session's datalog (plan 0013): when set, the dialog
    * offers a toggle to attach it to the message. The blob is fetched lazily
    * on submit so merely opening the dialog never touches IndexedDB.
+   *
+   * `getTrackData` (plan 0019) rides along on the same toggle: the track and
+   * course the session was analysed against, which the datalog itself doesn't
+   * carry. Also lazy, and optional — a session with no track just sends the log.
    */
-  sessionFile?: { name: string; getBlob: () => Promise<Blob | null> };
+  sessionFile?: {
+    name: string;
+    getBlob: () => Promise<Blob | null>;
+    getTrackData?: () => Promise<{ blob: Blob; name: string } | null>;
+  };
 }) {
   const { t } = useTranslation("landing");
   const [open, setOpen] = useState(false);
@@ -75,6 +83,7 @@ export function ContactDialog({
     setSubmitting(true);
     try {
       let attachment: { blob: Blob; name: string } | undefined;
+      let trackAttachment: { blob: Blob; name: string } | undefined;
       if (attachSession && sessionFile) {
         const blob = await sessionFile.getBlob();
         if (!blob) {
@@ -82,9 +91,12 @@ export function ContactDialog({
           return;
         }
         attachment = { blob, name: sessionFile.name };
+        // The track is best-effort: a missing or unreadable one must never
+        // block the report the user is actually trying to send.
+        trackAttachment = (await sessionFile.getTrackData?.().catch(() => null)) ?? undefined;
       }
 
-      const result = await submitContactMessage({ category, email, message, attachment });
+      const result = await submitContactMessage({ category, email, message, attachment, trackAttachment });
       if (!result.ok) {
         if (result.reason === "too-large") {
           toast({
@@ -178,6 +190,9 @@ export function ContactDialog({
                 <span className="min-w-0">
                   {t("contact.attachSession")}{" "}
                   <span className="break-all font-mono text-xs text-muted-foreground">{sessionFile.name}</span>
+                  {sessionFile.getTrackData && (
+                    <span className="block text-xs text-muted-foreground">{t("contact.attachTrackHint")}</span>
+                  )}
                 </span>
               </Label>
               <Switch id="attach-session" checked={attachSession} onCheckedChange={setAttachSession} />

@@ -24,13 +24,16 @@ export {
   parseFirmwareManifest,
   pickBuildForVariant,
   compareVersions,
+  compareReleases,
   isUpdateAvailable,
   evaluateFirmwareUpdate,
+  forceKindFor,
   assertImageMatchesBuild,
   fetchFirmwareManifest,
   fetchFirmwarePackage,
 } from "./firmwareManifest";
 export type {
+  FirmwareForceKind,
   FirmwareUpdateEvaluation,
   FirmwareUpdateReason,
 } from "./firmwareManifest";

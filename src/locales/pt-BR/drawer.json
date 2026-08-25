@@ -267,7 +267,10 @@
     "retry": "Tentar novamente",
     "noSettings": "Nenhuma configuração encontrada no dispositivo.",
     "advanced": "Avançado",
+    "groupLeds": "Fita de LED",
     "useProfileName": "Usar nome do perfil",
+    "timezoneUseLocal": "Usar o fuso horário deste aparelho",
+    "timezoneClock": "Relógio do logger: {{time}}",
     "reset": "Restaurar configurações padrão",
     "resetConfirm": "Confirmar restauração — o dispositivo vai reiniciar",
     "cancel": "Cancelar",
@@ -277,7 +280,47 @@
     "toastResetFailed": "Falha ao restaurar: {{error}}",
     "readFailed": "Falha ao ler as configurações",
     "unknownError": "Erro desconhecido",
-    "firmwareNativeHint": "As atualizações de firmware no app ficam na tela de download do Fledgling (Baixar do logger)."
+    "firmwareNativeHint": "As atualizações de firmware no app ficam na tela de download do Fledgling (Baixar do logger).",
+    "ledHelp": {
+      "open": "O que fazem os modos do LED de status?",
+      "title": "Modos do LED de status",
+      "intro": "Seu registrador tem dois LEDs de status, um em cada ponta da fita. Cada um pode ser ajustado de forma independente.",
+      "modes": {
+        "off": {
+          "name": "Desligado",
+          "body": "Apagado. Use quando um indicador só já basta."
+        },
+        "rpm": {
+          "name": "RPM alvo",
+          "body": "Pisca em vermelho ao atingir seu RPM alvo e para quando o giro cai cerca de 3% abaixo dele. É uma luz de troca de marcha, não um alarme."
+        },
+        "speed": {
+          "name": "Velocidade alvo",
+          "body": "Pisca em vermelho ao atingir sua velocidade alvo. Apagado sem sinal de GPS, já que a fita está mostrando isso."
+        },
+        "gps": {
+          "name": "Status do GPS",
+          "body": "Vermelho: nenhum satélite ainda. Amarelo: satélites, mas sem posição. Azul: posição travada, ainda esperando o relógio — as voltas são cronometradas, mas o arquivo de log não abre. Verde: travado e gravando. Fica aceso no menu principal para você conferir antes de sair."
+        },
+        "camera": {
+          "name": "Sincronia da câmera",
+          "body": "Apagado quando não há câmera pareada. Amarelo: sessão rodando, mas a câmera não subiu. Azul piscando: conectada, mas não aceitou nosso controle — iniciar e parar não chegam nela. Azul fixo: conectada e pronta. Vermelho: gravando. Também fica aceso no menu principal."
+        },
+        "lap": {
+          "name": "Última volta",
+          "body": "Verde se sua última volta superou a anterior, vermelho se foi mais lenta, roxo se foi a melhor da sessão. Apagado na primeira volta, quando não há com o que comparar. A comparação é propositalmente com a volta ANTERIOR e não com a melhor: é isso que mostra se você está evoluindo."
+        },
+        "sector": {
+          "name": "Último setor",
+          "body": "A mesma ideia por setor: ao entrar no setor 2 ele mostra como o setor 1 se saiu em relação ao setor 1 da volta anterior, e mantém até o próximo setor fechar. Exige uma pista com linhas de setor."
+        },
+        "egt": {
+          "name": "EGT (SensorEgg)",
+          "body": "Pisca em vermelho ao atingir sua temperatura de alerta de EGT e desliga 20 C abaixo. Azul fixo quando o sinal da sonda cai — uma queda vale ser sinalizada. Só aparece em registradores compilados com suporte a SensorEgg."
+        }
+      },
+      "footer": "Os nove LEDs entre as duas luzes de status são a barra de ritmo, que não é configurada aqui."
+    }
   },
   "firmware": {
     "readingVersion": "Lendo versão…",
@@ -286,6 +329,12 @@
     "versionUnknown": "Versão desconhecida",
     "firmware": "Firmware",
     "checkForUpdates": "Verificar atualizações",
+    "forceUpdate": "Forçar atualização…",
+    "upToDateToast": "O firmware está atualizado (v{{version}})",
+    "installAnyway": "Instalar mesmo assim",
+    "checkNoVersion": "Não foi possível ler a versão do firmware do dispositivo",
+    "checkNoBuild": "Nenhuma versão de firmware está disponível para este dispositivo",
+    "checkFailed": "Falha na verificação de atualizações: {{error}}",
     "updateTitle": "Atualizar firmware",
     "flashingForced": "Instalando firmware v{{version}} (atual: v{{current}}).",
     "flashingForcedNoCurrent": "Instalando firmware v{{version}}.",
@@ -294,6 +343,8 @@
     "availableNoCurrent": "Uma nova versão do firmware (v{{version}}) está disponível.",
     "availableNoVersion": "Uma nova versão do firmware está disponível.",
     "betaNote": "Em branches beta, as atualizações sempre são aplicadas para testes.",
+    "forcedUserNote": "Você pediu, então a verificação de versão foi ignorada. A mesma versão é reinstalada; uma anterior é um downgrade — o registrador aceita as duas.",
+    "forcedUnknownNote": "Não foi possível ler a versão instalada, então não havia nada para comparar.",
     "beforeStart": "Antes de começar:",
     "li1": "Certifique-se de que a bateria do registrador esteja bem carregada.",
     "li2": "Mantenha o dispositivo por perto e ligado.",
@@ -302,6 +353,7 @@
     "cancel": "Cancelar",
     "remindTomorrow": "Lembrar amanhã",
     "upload": "Enviar",
+    "startNoConnection": "O registrador desconectou — reconecte e tente novamente",
     "phaseDownloading": "Baixando firmware…",
     "phaseUploading": "Enviando ao dispositivo…",
     "phaseVerifying": "Verificando no dispositivo…",

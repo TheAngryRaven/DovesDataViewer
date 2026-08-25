@@ -183,7 +183,8 @@
     "errorNetwork": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
     "sent": "¡Mensaje enviado!",
     "sentDesc": "Gracias por tus comentarios.",
-    "attachSession": "Adjuntar el datalog de la sesión actual:",
+    "attachSession": "Adjuntar el datalog y la pista de la sesión actual:",
+    "attachTrackHint": "Incluye la pista y el trazado con los que se analizó esta sesión, para que podamos reproducir tus tiempos por vuelta.",
     "attachMissing": "No se pudo leer el archivo de la sesión desde el almacenamiento local."
   },
   "browserCompat": {

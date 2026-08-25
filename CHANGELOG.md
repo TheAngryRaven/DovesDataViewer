@@ -11,6 +11,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [4.1.0] - 2026-08-24
+
+### Added
+- **Choose what each status LED shows** — the strip's two end LEDs can each be
+  set to Off, Target RPM, Target Speed, GPS Status, Camera Sync, Last Lap, Last
+  Sector or EGT, with a **help button** next to each that explains what every
+  colour means. EGT is only offered on loggers built with SensorEgg support,
+  since elsewhere it just renders as a dark LED. Requires logger firmware 4.1.0.
+- **Target Speed** — the ceiling for the LED bar on a session with no
+  tachometer, so the strip does something useful before the first lap lands.
+- **Target Speed and EGT Alert follow your units** — both are stored on the
+  logger in MPH and Celsius but shown in whichever unit you have selected, with
+  the unit printed in the field. Device settings were previously unit-blind.
+  Values convert back before being written, and are still checked against the
+  firmware's own limits.
+- **Pick your logger's timezone from a list** — the Device tab's Timezone
+  setting is now a picker of real UTC offsets ("UTC-06:00 · US Central
+  (winter), Mexico City") instead of a box wanting minutes east of UTC, with a
+  one-tap **use this device's timezone** shortcut and a running clock so a wrong
+  pick is obvious before you save it. The logger keeps no daylight-saving rules,
+  so the shortcut uses your offset *right now* — pick again when your clocks
+  change. Logged data stays UTC either way.
+- **An LED Strip section in the device settings** — brightness (day and night),
+  the hours the night dimming starts and ends, and the rev / over-rev /
+  temperature alert thresholds now sit in their own collapsible section with
+  proper labels, ranges and hour pickers, instead of as raw text boxes at the
+  bottom of the list. Requires logger firmware 4.1.0; a logger without the strip
+  shows no section.
+- **Device settings LapWing had never labelled** — the RPM filter mode and the
+  paired Insta360 serial join the Advanced section as real fields.
+- **Support messages include your track** — when you attach the loaded
+  session's datalog to a message from the in-session help button, LapWing now
+  sends the track and course that session was analysed against alongside it.
+  Lap and sector times come from *your* start/finish and sector lines, which
+  the datalog doesn't contain, so a "my laps look wrong" report can finally be
+  reproduced on our side. One toggle still covers both; sessions without a
+  track (waypoint mode) simply send the log as before.
+- **Force a firmware update, when you want one** — a **Force update…** button
+  in the Firmware section, and an **Install anyway** action on the "firmware is
+  up to date" message, both of which skip the version comparison and offer the
+  published build anyway. Installing the version you already have reinstalls it;
+  installing an older one is a downgrade — the logger takes either. It is the
+  way off a build the comparison won't move you from, like a beta that is ahead
+  of the current release. Asking for it also ignores any "remind me tomorrow"
+  you took earlier. Do note that going *backwards* takes your logger's settings
+  back to that firmware's shape — 4.1.0 is where Rev Limit became Target RPM.
+- **Sprint tracks in the native app** — the Android/native Device tab can now
+  list, download, upload and delete **sprint** courses, not just circuit ones.
+  It previously showed an empty sprint list and said the transport couldn't
+  reach that folder, because the native bridge had no `TS*` verbs; LapWing now
+  implements them, so the seam forwards the track kind straight through and
+  the native path reaches parity with Web Bluetooth.
+
+### Changed
+- **Rev Limit is now Target RPM.** It always was the shift point — Over-rev
+  Limit is the real limit — and logger firmware 4.1.0 renames the underlying
+  setting to match. Loggers on older firmware still show a properly labelled
+  Target RPM field, so nothing changes for them.
+- **The Cylinders setting means your engine's cylinders again.** It was
+  labelled "cylinders the pickup SEES", which asked a V8 owner to type `1` in a
+  field called Cylinders — and anyone who read it literally and typed `8` got an
+  eighth of their real RPM, because the logger divided by it. The next firmware
+  drops that division: the pickup is one clamp on one plug wire, so **Spark
+  Mode** alone converts pulses to RPM. Enter what the engine has. Above one
+  cylinder the field now shows a notice that crank RPM is *inferred* from that
+  one wire's ignition pulses — between firings it is an estimate, and a cylinder
+  that stops firing reads as a stopped engine, which is normal for any clamp-on
+  tach. Needs the matching firmware; on older firmware the divider is still
+  there.
+- **Spark Mode says what it is for** — it is now labelled as the only setting
+  that scales RPM, and its options name the ignition types ("Wasted spark /
+  2-stroke", "Single fire / magneto") rather than just the ratio.
+
+### Fixed
+- **A logger on beta firmware can install the official release.** The update
+  check compared only the numeric part of a version, so a logger running
+  `4.1.0-beta.<build>` looked identical to one running `4.1.0` and was told it
+  was already up to date — with no way to move onto the official build. Beta
+  firmware now correctly ranks below the release it was cut from, so the release
+  is offered as the upgrade it is.
+- **No "which logger?" prompt when one is already connected** — pressing
+  *Download from logger* while the garage holds a live connection now opens that
+  logger's download flow straight away. The picker only ever asked which logger
+  you have, and the connection had already answered; the Fledgling flow was
+  reusing that same connection anyway.
+- **An empty number in the device settings is now rejected** rather than being
+  written to the logger as an empty string — it validated as 0 wherever 0 was in
+  range, which included the Bluetooth PIN.
+
 ## [4.0.1] - 2026-08-15
 
 ### Changed

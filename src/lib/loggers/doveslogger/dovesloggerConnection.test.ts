@@ -78,23 +78,41 @@ describe("createDovesloggerConnection", () => {
 describe("native device details — sprint tracks", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("declares that it cannot reach the sprint folder", () => {
-    // The tab reads this to say so plainly, instead of rendering an empty
-    // sprint list that looks like "no sprint tracks on the device".
-    expect(createDovesloggerConnection(info()).details!.supportsSprintTracks).toBe(false);
+  it("declares that it can reach the sprint folder", () => {
+    // The native bridge implements the TS* verbs, so the tab shows the sprint
+    // list for real rather than explaining that this transport can't fetch it.
+    expect(createDovesloggerConnection(info()).details!.supportsSprintTracks).toBe(true);
   });
 
-  it("returns an empty sprint list without touching the bridge", async () => {
+  it("lists sprint tracks through the bridge", async () => {
+    vi.mocked(ipc.loggerListTracks).mockResolvedValue(["autocross.json"]);
     const details = createDovesloggerConnection(info()).details!;
-    await expect(details.listTracks("sprint")).resolves.toEqual([]);
-    expect(ipc.loggerListTracks).not.toHaveBeenCalled();
+    await expect(details.listTracks("sprint")).resolves.toEqual(["autocross.json"]);
+    expect(ipc.loggerListTracks).toHaveBeenCalledWith("sprint");
   });
 
-  it("still lists circuit tracks through the bridge", async () => {
+  it("lists circuit tracks through the bridge", async () => {
     vi.mocked(ipc.loggerListTracks).mockResolvedValue(["OKC.json"]);
     const details = createDovesloggerConnection(info()).details!;
     await expect(details.listTracks("circuit")).resolves.toEqual(["OKC.json"]);
     await expect(details.listTracks()).resolves.toEqual(["OKC.json"]);
     expect(ipc.loggerListTracks).toHaveBeenCalledTimes(2);
+  });
+
+  // Every verb has to carry the kind, not just the listing: a sprint upload
+  // that silently landed in /TRACKS would be the worst kind of wrong.
+  it("forwards the kind on get / put / delete", async () => {
+    const details = createDovesloggerConnection(info()).details!;
+    const data = new Uint8Array([1, 2]);
+
+    vi.mocked(ipc.loggerDownloadTrack).mockResolvedValue(data);
+    await details.getTrack("autocross.json", "sprint");
+    expect(ipc.loggerDownloadTrack).toHaveBeenCalledWith("autocross.json", "sprint");
+
+    await details.putTrack("autocross.json", data, "sprint");
+    expect(ipc.loggerUploadTrack).toHaveBeenCalledWith("autocross.json", data, "sprint");
+
+    await details.deleteTrack("autocross.json", "sprint");
+    expect(ipc.loggerDeleteTrack).toHaveBeenCalledWith("autocross.json", "sprint");
   });
 });

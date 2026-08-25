@@ -183,7 +183,8 @@
     "errorNetwork": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.",
     "sent": "Nachricht gesendet!",
     "sentDesc": "Danke für dein Feedback.",
-    "attachSession": "Datalog der aktuellen Sitzung anhängen:",
+    "attachSession": "Datalog und Strecke der aktuellen Sitzung anhängen:",
+    "attachTrackHint": "Enthält die Strecke und den Kurs, mit denen diese Sitzung ausgewertet wurde, damit wir deine Rundenzeiten nachvollziehen können.",
     "attachMissing": "Die Sitzungsdatei konnte nicht aus dem lokalen Speicher gelesen werden."
   },
   "browserCompat": {

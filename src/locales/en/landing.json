@@ -143,7 +143,8 @@
     "errorNetwork": "Could not send message. Please try again.",
     "sent": "Message sent!",
     "sentDesc": "Thanks for your feedback.",
-    "attachSession": "Attach the current session's datalog:",
+    "attachSession": "Attach the current session's datalog and track:",
+    "attachTrackHint": "Includes the track and course this session was analysed against, so we can reproduce your lap times.",
     "attachMissing": "Could not read the session file from local storage."
   },
   "browserCompat": {

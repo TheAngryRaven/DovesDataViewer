@@ -267,7 +267,10 @@
     "retry": "Reintentar",
     "noSettings": "No se encontraron ajustes en el dispositivo.",
     "advanced": "Avanzado",
+    "groupLeds": "Tira LED",
     "useProfileName": "Usar nombre de perfil",
+    "timezoneUseLocal": "Usar la zona horaria de este dispositivo",
+    "timezoneClock": "Reloj del registrador: {{time}}",
     "reset": "Restablecer ajustes predeterminados",
     "resetConfirm": "Confirmar restablecimiento: el dispositivo se reiniciará",
     "cancel": "Cancelar",
@@ -277,7 +280,47 @@
     "toastResetFailed": "Error al restablecer: {{error}}",
     "readFailed": "Error al leer los ajustes",
     "unknownError": "Error desconocido",
-    "firmwareNativeHint": "Las actualizaciones de firmware en la app están en la pantalla de descarga del Fledgling (Descargar del logger)."
+    "firmwareNativeHint": "Las actualizaciones de firmware en la app están en la pantalla de descarga del Fledgling (Descargar del logger).",
+    "ledHelp": {
+      "open": "¿Qué hacen los modos del LED de estado?",
+      "title": "Modos del LED de estado",
+      "intro": "Tu registrador tiene dos LED de estado, uno en cada extremo de la tira. Cada uno se puede configurar de forma independiente.",
+      "modes": {
+        "off": {
+          "name": "Apagado",
+          "body": "Apagado. Úsalo cuando solo quieras un indicador."
+        },
+        "rpm": {
+          "name": "RPM objetivo",
+          "body": "Parpadea en rojo al alcanzar tus RPM objetivo y se apaga cuando las vueltas bajan un 3% por debajo. Es una luz de cambio, no una alarma."
+        },
+        "speed": {
+          "name": "Velocidad objetivo",
+          "body": "Parpadea en rojo al alcanzar tu velocidad objetivo. Apagado si no hay señal GPS, porque la tira ya te lo está indicando."
+        },
+        "gps": {
+          "name": "Estado del GPS",
+          "body": "Rojo: aún sin satélites. Amarillo: satélites pero sin posición. Azul: posición fijada, esperando el reloj — las vueltas se cronometran, pero el archivo de registro no puede abrirse. Verde: enganchado y registrando. Permanece encendido en el menú principal para que puedas comprobarlo antes de salir."
+        },
+        "camera": {
+          "name": "Sincronización de cámara",
+          "body": "Apagado si no hay cámara emparejada. Amarillo: sesión en curso pero la cámara no ha arrancado. Azul parpadeante: conectada, pero no ha aceptado nuestro mando — iniciar y detener no le llegarán. Azul fijo: conectada y lista. Rojo: grabando. También permanece encendido en el menú principal."
+        },
+        "lap": {
+          "name": "Última vuelta",
+          "body": "Verde si tu última vuelta mejoró la anterior, rojo si fue más lenta, morado si fue la mejor de la sesión. Apagado en la primera vuelta, cuando no hay con qué comparar. Se mide a propósito contra tu vuelta ANTERIOR y no contra la mejor: eso es lo que te dice si estás mejorando."
+        },
+        "sector": {
+          "name": "Último sector",
+          "body": "La misma idea por sectores: al entrar en el sector 2 muestra cómo fue el sector 1 frente al sector 1 de tu vuelta anterior, y lo mantiene hasta que cierre el siguiente sector. Requiere un circuito con líneas de sector."
+        },
+        "egt": {
+          "name": "EGT (SensorEgg)",
+          "body": "Parpadea en rojo al alcanzar tu temperatura de alerta EGT y se apaga 20 C por debajo. Azul fijo cuando se pierde la señal de la sonda — conviene saberlo. Solo disponible en registradores compilados con soporte SensorEgg."
+        }
+      },
+      "footer": "Los nueve LED entre las dos luces de estado son la barra de ritmo, que no se configura aquí."
+    }
   },
   "firmware": {
     "readingVersion": "Leyendo versión…",
@@ -286,6 +329,12 @@
     "versionUnknown": "Versión desconocida",
     "firmware": "Firmware",
     "checkForUpdates": "Buscar actualizaciones",
+    "forceUpdate": "Forzar actualización…",
+    "upToDateToast": "El firmware está actualizado (v{{version}})",
+    "installAnyway": "Instalar igualmente",
+    "checkNoVersion": "No se pudo leer la versión del firmware del dispositivo",
+    "checkNoBuild": "No hay ninguna versión de firmware disponible para este dispositivo",
+    "checkFailed": "Error al buscar actualizaciones: {{error}}",
     "updateTitle": "Actualizar firmware",
     "flashingForced": "Instalando firmware v{{version}} (actual: v{{current}}).",
     "flashingForcedNoCurrent": "Instalando firmware v{{version}}.",
@@ -294,6 +343,8 @@
     "availableNoCurrent": "Hay una nueva versión de firmware (v{{version}}) disponible.",
     "availableNoVersion": "Hay una nueva versión de firmware disponible.",
     "betaNote": "En las ramas beta las actualizaciones siempre se aplican para pruebas.",
+    "forcedUserNote": "Tú lo pediste, así que se omitió la comprobación de versión. La misma versión se reinstala; una anterior es una vuelta atrás — el registrador acepta ambas.",
+    "forcedUnknownNote": "No se pudo leer la versión instalada, así que no había nada con qué compararla.",
     "beforeStart": "Antes de empezar:",
     "li1": "Asegúrate de que la batería del registrador esté bien cargada.",
     "li2": "Mantén el dispositivo cerca y encendido.",
@@ -302,6 +353,7 @@
     "cancel": "Cancelar",
     "remindTomorrow": "Recordármelo mañana",
     "upload": "Subir",
+    "startNoConnection": "El registrador se desconectó: vuelve a conectarlo e inténtalo de nuevo",
     "phaseDownloading": "Descargando firmware…",
     "phaseUploading": "Subiendo al dispositivo…",
     "phaseVerifying": "Verificando en el dispositivo…",

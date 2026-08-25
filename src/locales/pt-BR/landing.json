@@ -183,7 +183,8 @@
     "errorNetwork": "Não foi possível enviar a mensagem. Tente novamente.",
     "sent": "Mensagem enviada!",
     "sentDesc": "Obrigado pelo seu feedback.",
-    "attachSession": "Anexar o datalog da sessão atual:",
+    "attachSession": "Anexar o datalog e a pista da sessão atual:",
+    "attachTrackHint": "Inclui a pista e o traçado com os quais esta sessão foi analisada, para que possamos reproduzir seus tempos de volta.",
     "attachMissing": "Não foi possível ler o arquivo da sessão do armazenamento local."
   },
   "browserCompat": {

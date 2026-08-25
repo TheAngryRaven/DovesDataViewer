@@ -275,6 +275,7 @@
     "filterRead": "Lus",
     "refresh": "Actualiser",
     "download": "Télécharger le fichier",
+    "downloadTrack": "Télécharger le circuit",
     "downloadError": "Échec du téléchargement",
     "deleteFileError": "Impossible de supprimer le fichier stocké",
     "errorLabel": "Erreur du parseur",

@@ -183,7 +183,8 @@
     "errorNetwork": "Impossibile inviare il messaggio. Riprova.",
     "sent": "Messaggio inviato!",
     "sentDesc": "Grazie per il tuo feedback.",
-    "attachSession": "Allega il datalog della sessione corrente:",
+    "attachSession": "Allega il datalog e la pista della sessione corrente:",
+    "attachTrackHint": "Include la pista e il tracciato con cui è stata analizzata questa sessione, così possiamo riprodurre i tuoi tempi sul giro.",
     "attachMissing": "Impossibile leggere il file della sessione dall'archiviazione locale."
   },
   "browserCompat": {
