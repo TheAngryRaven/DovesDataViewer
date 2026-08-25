@@ -4,8 +4,10 @@ import {
   acquireFirmwareImage,
   evaluateFirmwareUpdate,
   fetchFirmwareManifest,
+  forceKindFor,
   pickBuildForVariant,
   type FirmwareBuild,
+  type FirmwareForceKind,
   type FirmwareManifest,
 } from "@/lib/ble/dfu";
 import {
@@ -63,8 +65,12 @@ export function useNativeFirmwareUpdate(deviceInfo: LoggerDeviceInfo | null) {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [variants, setVariants] = useState<string[]>([]);
   const [pendingBuild, setPendingBuild] = useState<FirmwareBuild | null>(null);
-  /** True when the version check was bypassed (preview build / unknown version). */
-  const [forced, setForced] = useState(false);
+  /**
+   * Why the version check was bypassed, or `null` when it wasn't. Three things
+   * can bypass it here and they are not the same message: a preview build of
+   * the app, an unreadable installed version, and the user asking outright.
+   */
+  const [forceKind, setForceKind] = useState<FirmwareForceKind>(null);
   const [percent, setPercent] = useState(0);
   const [failure, setFailure] = useState<ClassifiedLoggerError | null>(null);
   const manifestRef = useRef<FirmwareManifest | null>(null);
@@ -75,12 +81,19 @@ export function useNativeFirmwareUpdate(deviceInfo: LoggerDeviceInfo | null) {
     setPhase("unavailable");
   }, []);
 
-  /** Kick off the manifest check. Call when the firmware screen opens. */
-  const begin = useCallback(async () => {
+  /**
+   * Kick off the manifest check. Call when the firmware screen opens.
+   *
+   * `force` skips the version comparison, so the published build is offered
+   * whatever the device reports — the way off a build the comparison won't move
+   * (a beta ahead of the release, or a reinstall of the same version).
+   */
+  const begin = useCallback(async (options: { force?: boolean } = {}) => {
+    const { force = false } = options;
     if (!deviceInfo) return;
     setFailure(null);
     setPendingBuild(null);
-    setForced(false);
+    setForceKind(null);
     setPercent(0);
     setPhase("checking");
 
@@ -104,19 +117,21 @@ export function useNativeFirmwareUpdate(deviceInfo: LoggerDeviceInfo | null) {
       }
 
       // Preview builds bypass the version compare (same as the web flow) so
-      // testers can always re-flash.
-      const evaluation = evaluateFirmwareUpdate(fwInfo, manifest, { force: isPreviewBuild() });
+      // testers can always re-flash; an explicit `force` does it on any build.
+      const evaluation = evaluateFirmwareUpdate(fwInfo, manifest, {
+        force: force || isPreviewBuild(),
+      });
       if (!evaluation.build) {
         setPhase("no-build");
       } else if (evaluation.available) {
         setPendingBuild(evaluation.build);
-        setForced(evaluation.reason === "forced");
+        setForceKind(forceKindFor(evaluation.reason, force, fwInfo.version));
         setPhase("confirm");
       } else if (evaluation.reason === "no-version") {
         // Version unreadable but the variant matched — offer the latest build
         // behind an explicit confirm.
         setPendingBuild(evaluation.build);
-        setForced(true);
+        setForceKind("unknown");
         setPhase("confirm");
       } else {
         setPhase("up-to-date");
@@ -138,7 +153,7 @@ export function useNativeFirmwareUpdate(deviceInfo: LoggerDeviceInfo | null) {
       return;
     }
     setPendingBuild(build);
-    setForced(true); // no installed version to compare against
+    setForceKind("unknown"); // no installed version to compare against
     setPhase("confirm");
   }, []);
 
@@ -186,7 +201,7 @@ export function useNativeFirmwareUpdate(deviceInfo: LoggerDeviceInfo | null) {
   const reset = useCallback(() => {
     setPhase("idle");
     setPendingBuild(null);
-    setForced(false);
+    setForceKind(null);
     setPercent(0);
     setFailure(null);
   }, []);
@@ -197,7 +212,9 @@ export function useNativeFirmwareUpdate(deviceInfo: LoggerDeviceInfo | null) {
     latestVersion,
     variants,
     pendingBuild,
-    forced,
+    /** True when the version check was bypassed, whatever the reason. */
+    forced: forceKind !== null,
+    forceKind,
     percent,
     failure,
     begin,

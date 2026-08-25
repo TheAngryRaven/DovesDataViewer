@@ -136,8 +136,14 @@ investigation: [`plans/0001-firmware-bluetooth-dfu.md`](plans/0001-firmware-blue
   `getManifestUrl()` — `VITE_FIRMWARE_MANIFEST_URL` override > the **beta channel**
   (`.../DovesDataLogger/beta/manifest.json`) on non-`main`/preview builds
   (`isPreviewBuild()`) > production (`.../DovesDataLogger/manifest.json`) — + pure
-  `compareVersions`/`isUpdateAvailable`/`pickBuildForVariant`/
-  `evaluateFirmwareUpdate`. Each build carries `appBin` (raw `.bin` URL) +
+  `compareVersions`/`compareReleases`/`isUpdateAvailable`/`pickBuildForVariant`/
+  `evaluateFirmwareUpdate`. **Two comparators on purpose** (plan 0021):
+  `compareVersions` reads the numeric core only and answers *"does this build
+  carry feature X"*, so `4.1.0-beta.<sha>` equals `4.1.0` — the capability gates
+  (`supportsLargeTrackBuffer`, `needsOtaLayoutUpgrade`) depend on that.
+  `compareReleases` is full semver precedence, so a prerelease sorts **below**
+  its release, and it is what `isUpdateAvailable` uses: the official 4.1.0 is an
+  upgrade from the beta it was cut from. Each build carries `appBin` (raw `.bin` URL) +
   `appCrc32` + `appSize`; `assertImageMatchesBuild` verifies a download against them
   (first link of the full-circle CRC chain, pure). Online-only.
 - **Package** — `dfu/dfuPackage.ts`: `jszip` unzip of a `dfuZip` → `{ image (.bin),
@@ -159,11 +165,24 @@ version + **Check for updates** → confirm dialog (battery warnings) → progre
 (`isFlashing`/`setFlashing`) so the expected BLE drop when the device reboots into
 the new firmware doesn't tear down the UI mid-update.
 
-On **beta/preview builds** (`isPreviewBuild()`, any non-`main` branch),
-`evaluateFirmwareUpdate(…, { force: true })` **bypasses the version check** so a
-matching build is always offered (testers can re-flash the same/older version); the
-confirm dialog shows an amber "on beta branches updates always push through for
-testing" note.
+`evaluateFirmwareUpdate(…, { force: true })` **bypasses the version check**, so a
+variant-matching build is offered whatever the device reports — a reinstall of the
+same version, or a downgrade. Three things reach it, and the confirm dialog's amber
+note says which (`FirmwareForceKind`, `forceKind` on both hooks; `forced` remains
+as a derived boolean):
+
+| `forceKind` | Set when | Note shown |
+|---|---|---|
+| `"preview"` | `isPreviewBuild()` — any non-`main` branch, so testers can always re-flash | "on beta branches updates always push through for testing" |
+| `"user"` | `checkForUpdates({ force: true })` / `begin({ force: true })` — the **Force update…** button under *Check for updates*, or the **Install anyway** action on the up-to-date toast | "you asked for this, so the version check was skipped…" |
+| `"unknown"` | the installed version couldn't be read, so there was nothing to compare (either hook), or the user picked a variant by hand (native) | "the installed version couldn't be read…" |
+
+A user-initiated force also **ignores the "remind me tomorrow" snooze**
+(`checkForUpdates` skips `suppress` when `force` is set) — someone who just pressed
+the button is not being reminded tomorrow. Note that on a preview build
+`force || isPreviewBuild()` is always true, so the up-to-date branch is
+unreachable there and the toast action can only be exercised on a production
+build.
 
 **Native (Tauri) path:** the same `dfu/` layer (manifest, variant pick, version
 evaluate, CRC-verified download — now shared via `dfu/firmwareImage.ts`

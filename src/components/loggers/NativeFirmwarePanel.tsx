@@ -28,13 +28,25 @@ export function NativeFirmwarePanel({ update, onDone, onBack }: NativeFirmwarePa
     latestVersion,
     variants,
     pendingBuild,
-    forced,
+    forceKind,
     percent,
     failure,
     begin,
     chooseVariant,
     install,
   } = update;
+
+  // Why the version check was skipped decides what the note says: the beta-branch
+  // note is only true on a preview build, and it explained the wrong thing when
+  // the real reason was an unreadable version.
+  const forcedNote =
+    forceKind === "preview"
+      ? t("drawer:firmware.betaNote")
+      : forceKind === "user"
+        ? t("drawer:firmware.forcedUserNote")
+        : forceKind === "unknown"
+          ? t("drawer:firmware.forcedUnknownNote")
+          : null;
 
   // Start the manifest check as soon as the screen opens (once per mount).
   const startedRef = useRef(false);
@@ -60,9 +72,16 @@ export function NativeFirmwarePanel({ update, onDone, onBack }: NativeFirmwarePa
         <p className="text-sm text-center text-muted-foreground">
           {t("logger:doveslogger.firmware.upToDate", { version: update.installedVersion ?? "?" })}
         </p>
-        <Button variant="outline" onClick={onBack}>
-          {t("logger:doveslogger.firmware.back")}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onBack}>
+            {t("logger:doveslogger.firmware.back")}
+          </Button>
+          {/* The way off a build the comparison won't move — a beta ahead of
+              the published release, or a reinstall of the same version. */}
+          <Button variant="ghost" onClick={() => void begin({ force: true })}>
+            {t("drawer:firmware.installAnyway")}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -110,7 +129,7 @@ export function NativeFirmwarePanel({ update, onDone, onBack }: NativeFirmwarePa
             variant: pendingBuild.variant,
           })}
         </p>
-        {forced && <p className="text-xs text-muted-foreground">{t("drawer:firmware.betaNote")}</p>}
+        {forcedNote && <p className="text-xs text-muted-foreground">{forcedNote}</p>}
         <div className="text-sm text-muted-foreground">
           <p>{t("drawer:firmware.beforeStart")}</p>
           <ul className="list-disc pl-5 mt-1 space-y-1">

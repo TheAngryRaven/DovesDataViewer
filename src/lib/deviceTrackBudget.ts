@@ -33,8 +33,12 @@ export const TRACK_BUFFER_MIN_VERSION = '3.2.0';
  * stops being detected at the venue. So uncertainty means "assume the smaller
  * buffer" — at worst the user keeps one course fewer than they could have.
  *
+ * **Stays on `compareVersions`, never `compareReleases`** (plan 0021).
  * `compareVersions` ignores prerelease suffixes, so a beta build stamped
- * `3.2.0-beta.<sha>` counts as `3.2.0` and reads as capable.
+ * `3.2.0-beta.<sha>` counts as `3.2.0` and reads as capable — which it is: it
+ * was cut from 3.2.0 and has 3.2.0's buffer. `compareReleases` orders a
+ * prerelease BELOW its release (right for "is there an update", wrong here),
+ * and swapping it in would quietly drop every beta device to the small buffer.
  */
 export function supportsLargeTrackBuffer(version: string | null | undefined): boolean {
   if (!version) return false;

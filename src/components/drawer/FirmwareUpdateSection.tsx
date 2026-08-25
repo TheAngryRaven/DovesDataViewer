@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Cpu, Loader2, RefreshCw } from "lucide-react";
+import { Cpu, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFirmwareUpdateApi } from "@/contexts/FirmwareUpdateContext";
 
@@ -50,6 +50,25 @@ export function FirmwareUpdateSection() {
           <RefreshCw className="w-4 h-4" />
         )}
         {t("firmware.checkForUpdates")}
+      </Button>
+
+      {/*
+        The escape hatch, and it has to be a permanent control rather than only
+        the action on the "up to date" toast: the check above answers "nothing
+        newer" for a device that is ahead of the published build — a beta of the
+        next release, or the same version flashed badly — and a toast the user
+        blinked past is not a way out of that. Ghost + small keeps it out of the
+        way of the everyday button.
+      */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full gap-2 text-muted-foreground"
+        disabled={fw.checking || fw.flashing}
+        onClick={() => void fw.checkForUpdates({ force: true })}
+      >
+        <RotateCcw className="w-4 h-4" />
+        {t("firmware.forceUpdate")}
       </Button>
     </div>
   );

@@ -46,6 +46,18 @@ export function FirmwareUpdateDialog({ fw }: { fw: FirmwareUpdateApi }) {
       ? cur ? t("firmware.available", { version: ver, current: cur }) : t("firmware.availableNoCurrent", { version: ver })
       : t("firmware.availableNoVersion");
 
+  // Why the version check was skipped decides what the warning says. Showing
+  // the beta note for a user-initiated force would explain the wrong thing to
+  // the person who pressed the button.
+  const forcedNote =
+    fw.forceKind === "preview"
+      ? t("firmware.betaNote")
+      : fw.forceKind === "user"
+        ? t("firmware.forcedUserNote")
+        : fw.forceKind === "unknown"
+          ? t("firmware.forcedUnknownNote")
+          : null;
+
   const isError = fw.phase === "error";
   const isDone = fw.phase === "done";
   const dialogOpen = fw.confirmOpen || fw.flashing || isError || isDone;
@@ -79,9 +91,9 @@ export function FirmwareUpdateDialog({ fw }: { fw: FirmwareUpdateApi }) {
               <DialogDescription asChild>
                 <div className="space-y-2 pt-1 text-left">
                   <p>{confirmBlurb}</p>
-                  {fw.forced && (
+                  {forcedNote && (
                     <p className="rounded-md bg-warning/10 px-2 py-1 text-xs text-warning">
-                      {t("firmware.betaNote")}
+                      {forcedNote}
                     </p>
                   )}
                   <p className="font-medium text-foreground">{t("firmware.beforeStart")}</p>
