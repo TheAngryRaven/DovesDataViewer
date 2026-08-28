@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [4.2.0] - unreleased
+
+### Added
+- **Drag mode** — drop in a log from a drag strip (or any venue the app doesn't
+  know) and standing-start runs are detected automatically: pick 1/8 mile,
+  1000 ft or 1/4 mile and every pass gets a time-slip style breakdown — ET at
+  the scoring distance plus 60 ft / 330 ft / 660 ft / 1000 ft splits. Passes
+  that lifted early stay listed as incomplete with the splits they did reach,
+  and your chosen distance is remembered per file and switchable from the
+  session header.
+
 ## [4.1.0] - 2026-08-24
 
 ### Added
