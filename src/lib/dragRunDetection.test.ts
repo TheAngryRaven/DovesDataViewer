@@ -1,10 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
   detectDragRuns,
+  dragRunsToLaps,
+  dragTimeSlipTimes,
+  isDragDistanceFt,
   DRAG_MARKS_FT,
   LAUNCH_MOTION_MPH,
   MIN_RUN_PEAK_MPH,
 } from "./dragRunDetection";
+import { fastestRankedLap } from "./lapCalculation";
 import { autoDetectCourse } from "./courseDetection";
 import { speedTriple, EARTH_RADIUS_M } from "./parserUtils";
 import type { GpsSample, Track } from "@/types/racing";
@@ -348,5 +352,104 @@ describe("detectDragRuns - gate", () => {
     tr.decelerate(3, 0.1);
     tr.idle(10);
     expect(detectDragRuns(tr.samples)).toBeNull();
+  });
+});
+
+// ─── Run → Lap mapping ───────────────────────────────────────────────────────
+
+describe("dragRunsToLaps", () => {
+  // One complete quarter pass + one pass aborted around 500 ft.
+  const tr = makeTrace();
+  quarterPass(tr);
+  tr.idle(10);
+  tr.accelerate(4, 152);
+  tr.decelerate(3, 0.1);
+  tr.idle(3);
+  const result = detectDragRuns(tr.samples)!;
+
+  it("maps a complete quarter with the full timing-line contract", () => {
+    const laps = dragRunsToLaps(tr.samples, result.runs, 1320);
+    const lap = laps[0];
+    const run = result.runs[0];
+    const final = run.marks.find((m) => m.markFt === 1320)!;
+
+    expect(lap.lapNumber).toBe(1);
+    expect(lap.incomplete).toBeUndefined();
+    expect(lap.startIndex).toBe(run.launchIndex);
+    expect(lap.startTime).toBe(run.t0);
+    expect(lap.lapTimeMs).toBe(final.elapsedMs);
+    expect(lap.endIndex).toBe(final.sampleIndex);
+    expect(lap.sectorTimes).toHaveLength(5);
+    expect(lap.sectorBoundaries).toHaveLength(5);
+    expect(lap.sectorBoundaries![0]).toBe(run.launchIndex);
+    // Segments sum back to the ET.
+    const sum = lap.sectorTimes!.reduce<number>((a, b) => a + (b ?? 0), 0);
+    expect(sum).toBeCloseTo(lap.lapTimeMs, 6);
+    // The window ends at the stripe, so top speed is the trap-style readout.
+    expect(lap.maxSpeedMph).toBeGreaterThan(120);
+  });
+
+  it("marks a short run incomplete and keeps its reached splits", () => {
+    const laps = dragRunsToLaps(tr.samples, result.runs, 1320);
+    const aborted = laps[1];
+    const run = result.runs[1];
+
+    expect(aborted.incomplete).toBe(true);
+    expect(aborted.endIndex).toBe(run.endIndex);
+    expect(aborted.lapTimeMs).toBe(tr.samples[run.endIndex].t - run.t0);
+    expect(aborted.sectorTimes).toHaveLength(5);
+    expect(aborted.sectorTimes!.slice(0, 2).every((t) => typeof t === "number")).toBe(true);
+    expect(aborted.sectorTimes!.slice(2)).toEqual([undefined, undefined, undefined]);
+    expect(aborted.sectorBoundaries).toEqual([
+      run.launchIndex,
+      run.marks[0].sampleIndex,
+      run.marks[1].sampleIndex,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it("re-scoring at the eighth completes the aborted pass with a shorter ET", () => {
+    const quarter = dragRunsToLaps(tr.samples, result.runs, 1320);
+    const eighth = dragRunsToLaps(tr.samples, result.runs, 660);
+
+    expect(eighth[0].sectorTimes).toHaveLength(3);
+    expect(eighth[0].lapTimeMs).toBeLessThan(quarter[0].lapTimeMs);
+    expect(eighth[0].lapTimeMs).toBe(result.runs[0].marks.find((m) => m.markFt === 660)!.elapsedMs);
+    // The 500 ft abort still misses the 660, so it stays incomplete either way.
+    expect(eighth[1].incomplete).toBe(true);
+  });
+
+  it("dragTimeSlipTimes returns cumulative mark times, undefined past the lift", () => {
+    const laps = dragRunsToLaps(tr.samples, result.runs, 1320);
+    const complete = dragTimeSlipTimes(laps[0]);
+    const run = result.runs[0];
+    expect(complete).toHaveLength(5);
+    for (let k = 0; k < 5; k++) {
+      expect(complete[k]).toBeCloseTo(run.marks[k].elapsedMs, 6);
+    }
+    const aborted = dragTimeSlipTimes(laps[1]);
+    expect(aborted.slice(2)).toEqual([undefined, undefined, undefined]);
+  });
+
+  it("fastestRankedLap never picks the incomplete run, even when its window is shorter", () => {
+    const laps = dragRunsToLaps(tr.samples, result.runs, 1320);
+    // The abort's data window can genuinely be shorter than the real ET…
+    const ranked = fastestRankedLap(laps);
+    expect(ranked).toBe(laps[0]);
+    // …and with only incomplete laps there is no fastest at all.
+    expect(fastestRankedLap(laps.filter((l) => l.incomplete))).toBeNull();
+  });
+});
+
+describe("isDragDistanceFt", () => {
+  it("accepts exactly the three scoring distances", () => {
+    expect(isDragDistanceFt(660)).toBe(true);
+    expect(isDragDistanceFt(1000)).toBe(true);
+    expect(isDragDistanceFt(1320)).toBe(true);
+    expect(isDragDistanceFt(60)).toBe(false);
+    expect(isDragDistanceFt("1320")).toBe(false);
+    expect(isDragDistanceFt(undefined)).toBe(false);
+    expect(isDragDistanceFt(null)).toBe(false);
   });
 });

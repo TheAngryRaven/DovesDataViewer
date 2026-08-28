@@ -19,7 +19,7 @@
  * time slip; it is not sanctioned timing.
  */
 
-import type { GpsSample } from "@/types/racing";
+import type { GpsSample, Lap } from "@/types/racing";
 import { calculateDistanceArray, interpolateSampleByDistance } from "./referenceUtils";
 import { haversineDistance } from "./parserUtils";
 import { METERS_PER_FOOT, FEET_PER_METER } from "./units";
@@ -310,4 +310,98 @@ export function detectDragRuns(samples: GpsSample[]): DragDetectionResult | null
     })),
     suggestedDistanceFt: suggested,
   };
+}
+
+// ─── Run → Lap mapping ───────────────────────────────────────────────────────
+
+/**
+ * Score detected runs at a distance and express them as ordinary `Lap`s, so the
+ * whole lap UI (table, map, charts, playback) works unchanged.
+ *
+ * Timing lines follow the circuit `buildLap` contract: line 0 is the launch
+ * (boundary 0 = lap start), lines 1..n-1 are the intermediate marks, and the
+ * last segment closes on the scoring mark — so for a 1/4-mile session
+ * `sectorTimes`/`sectorBoundaries` have 5 entries (launch→60, 60→330, 330→660,
+ * 660→1000, 1000→1320).
+ *
+ * A run that scored the final mark is complete: `lapTimeMs` is its ET and
+ * `endIndex` the sample at the stripe — which also makes the window's top speed
+ * the trap-style speed at the mark. A run that lifted early keeps its detector
+ * window and reached splits (`undefined` past the lift, which the optimal-lap
+ * calc already skips) and is flagged `incomplete` so nothing ranks it fastest.
+ *
+ * Marks are scored once at detection; switching distance is just re-mapping.
+ */
+export function dragRunsToLaps(samples: GpsSample[], runs: DragRun[], distanceFt: DragDistanceFt): Lap[] {
+  const markFts = DRAG_MARKS_FT.filter((m) => m <= distanceFt);
+  const laps: Lap[] = [];
+
+  for (const run of runs) {
+    // Marks score strictly in ascending-prefix order (scoring stops at the lift).
+    const scored = markFts.map((ft) => run.marks.find((m) => m.markFt === ft));
+    const finalMark = scored[markFts.length - 1];
+
+    const sectorTimes: (number | undefined)[] = [];
+    const sectorBoundaries: (number | undefined)[] = [];
+    sectorBoundaries.push(run.launchIndex);
+    for (let k = 0; k < markFts.length; k++) {
+      const prevElapsed = k === 0 ? 0 : scored[k - 1]?.elapsedMs;
+      const mark = scored[k];
+      sectorTimes.push(mark !== undefined && prevElapsed !== undefined ? mark.elapsedMs - prevElapsed : undefined);
+      if (k < markFts.length - 1) sectorBoundaries.push(mark?.sampleIndex);
+    }
+
+    const endIndex = finalMark ? finalMark.sampleIndex : run.endIndex;
+    const endTime = finalMark ? run.t0 + finalMark.elapsedMs : samples[run.endIndex].t;
+
+    let maxSpeedMph = 0;
+    let maxSpeedKph = 0;
+    let minSpeedMph = Infinity;
+    let minSpeedKph = Infinity;
+    for (let i = run.launchIndex; i <= endIndex; i++) {
+      const s = samples[i];
+      if (s.speedMph > maxSpeedMph) {
+        maxSpeedMph = s.speedMph;
+        maxSpeedKph = s.speedKph;
+      }
+      if (s.speedMph < minSpeedMph) {
+        minSpeedMph = s.speedMph;
+        minSpeedKph = s.speedKph;
+      }
+    }
+
+    laps.push({
+      lapNumber: run.runNumber,
+      startTime: run.t0,
+      endTime,
+      lapTimeMs: endTime - run.t0,
+      maxSpeedMph,
+      maxSpeedKph,
+      minSpeedMph,
+      minSpeedKph,
+      startIndex: run.launchIndex,
+      endIndex,
+      sectorTimes,
+      sectorBoundaries,
+      ...(finalMark ? {} : { incomplete: true as const }),
+    });
+  }
+
+  return laps;
+}
+
+/**
+ * Cumulative time at each mark of a drag lap (prefix sums of `sectorTimes`) —
+ * the numbers a time slip prints. The last entry equals the ET for a complete
+ * run; entries past an incomplete run's lift are `undefined`.
+ */
+export function dragTimeSlipTimes(lap: Lap): (number | undefined)[] {
+  const times = lap.sectorTimes ?? [];
+  const out: (number | undefined)[] = [];
+  let cum: number | undefined = 0;
+  for (const t of times) {
+    cum = cum !== undefined && t !== undefined ? cum + t : undefined;
+    out.push(cum);
+  }
+  return out;
 }
