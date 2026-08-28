@@ -99,7 +99,17 @@
     "detectedLaps_other": "<b>{{count}} Runden</b> vom Wegpunkt erkannt.",
     "createTrack": "Strecke erstellen",
     "useWaypoint": "Wegpunkt verwenden",
-    "noTrackNotice": "Keine bekannte Strecke passt zu diesen GPS-Daten. Erstelle eine neue Strecke und füge dann einen Kurs hinzu, um die Rundenzeitmessung zu aktivieren."
+    "noTrackNotice": "Keine bekannte Strecke passt zu diesen GPS-Daten. Erstelle eine neue Strecke und füge dann einen Kurs hinzu, um die Rundenzeitmessung zu aktivieren.",
+    "dragTitle": "Drag-Läufe erkannt",
+    "dragTiming": "Drag-Zeitmessung",
+    "dragNotice": "Keine bekannte Strecke passt zu diesen Daten, aber sie sehen nach Drag-Strip-Läufen aus: stehende Starts gefolgt von Beschleunigung auf gerader Linie.",
+    "dragRunsFound_one": "<b>{{count}} Lauf aus dem Stand</b> erkannt.",
+    "dragRunsFound_other": "<b>{{count}} Läufe aus dem Stand</b> erkannt.",
+    "dragDistance": "Wertungsdistanz",
+    "dragApply": "Drag-Zeitmessung verwenden",
+    "dragEighth": "1/8 Meile (660 ft)",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 Meile (1320 ft)"
   },
   "submit": {
     "toastCouldNotRead": "Deine Strecken konnten nicht gelesen werden",

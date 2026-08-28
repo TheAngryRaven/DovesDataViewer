@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Lap, courseHasSectors, isSprintCourse, Course, GpsSample } from '@/types/racing';
 import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
 import { normalizeCourseSectors, sectorLabels } from '@/lib/courseSectors';
+import { DRAG_MARKS_FT, dragTimeSlipTimes, type DragDistanceFt } from '@/lib/dragRunDetection';
 import { Trophy, Zap, Snail, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExternalRefBar } from '@/components/ExternalRefBar';
@@ -51,12 +52,17 @@ interface LapTableProps {
   // course/engine/weight (leaderboard) or course/driver/date (share) descriptor.
   lapLabels?: Record<number, string>;
   readOnlyDescriptor?: LeaderboardDescriptor;
+  // Drag mode (plan 0022): rows are standing-start runs scored at this distance.
+  // The sector columns become cumulative time-slip marks, Min Speed is hidden
+  // (~0 at every launch), and incomplete runs show a badge instead of an ET.
+  dragDistanceFt?: DragDistanceFt | null;
 }
 
-export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot, overlayLines = [], onToggleOverlay, lapLabels, readOnlyDescriptor }: LapTableProps) {
+export const LapTable = memo(function LapTable({ laps, course, samples, onLapSelect, selectedLapNumber, referenceLapNumber, onSetReference, externalRefLabel, savedFiles, onLoadFileForRef, onSelectExternalLap, onClearExternalRef, onRefreshSavedFiles, snapshotsForCourse, activeSnapshotId, canSnapshot, onLoadSnapshot, onClearSnapshot, onSaveSnapshot, overlayLines = [], onToggleOverlay, lapLabels, readOnlyDescriptor, dragDistanceFt }: LapTableProps) {
   const { t } = useTranslation('session');
   const { useKph } = useSettingsContext();
 
+  const drag = dragDistanceFt != null;
   const showSectors = courseHasSectors(course);
   // Point-to-point session: the rows are runs, not laps. The "lap" wording is
   // kept on purpose (autocross drivers use it, and so does the logger) — only
@@ -129,12 +135,39 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
   const showFull = view === 'full' && full !== null;
   const showSums = showFull && showSectorSums;
 
+  // Drag mode: cumulative time at each intermediate mark (the classic time
+  // slip), plus the fastest run per mark for highlighting. The scoring mark
+  // itself is the Time column, so it's excluded from the columns here.
+  const dragCols = useMemo(() => {
+    if (dragDistanceFt == null) return null;
+    const markFts = DRAG_MARKS_FT.filter((m) => m <= dragDistanceFt).slice(0, -1);
+    const slips = laps.map((lap) => dragTimeSlipTimes(lap));
+    const fastestIdx: (number | null)[] = markFts.map((_, k) => {
+      let best: number | null = null;
+      let bestVal = Infinity;
+      for (let idx = 0; idx < slips.length; idx++) {
+        const v = slips[idx][k];
+        if (v !== undefined && v < bestVal) {
+          bestVal = v;
+          best = idx;
+        }
+      }
+      return best;
+    });
+    return { markFts, slips, fastestIdx };
+  }, [dragDistanceFt, laps]);
+
   // Memoize expensive lap statistics computation
   const lapStats = useMemo(() => {
     if (laps.length === 0) return null;
 
-    const fastestLapIdx = laps.reduce((minIdx, lap, idx, arr) =>
-      lap.lapTimeMs < arr[minIdx].lapTimeMs ? idx : minIdx, 0);
+    // Incomplete drag runs are never "fastest" — their lapTimeMs is a data
+    // window, not a comparable time. null when every row is incomplete.
+    let fastestLapIdx: number | null = null;
+    for (let i = 0; i < laps.length; i++) {
+      if (laps[i].incomplete) continue;
+      if (fastestLapIdx === null || laps[i].lapTimeMs < laps[fastestLapIdx].lapTimeMs) fastestLapIdx = i;
+    }
 
     const fastestSpeedIdx = laps.reduce((maxIdx, lap, idx, arr) => {
       const currentMax = useKph ? arr[maxIdx].maxSpeedKph : arr[maxIdx].maxSpeedMph;
@@ -172,10 +205,12 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
       });
     }
 
-    const optimalLap = showSectors ? calculateOptimalLap(laps) : null;
+    // Drag laps carry sectorTimes without a course, and the optimal ET (best
+    // splits of the day, incomplete runs included) is exactly what racers want.
+    const optimalLap = showSectors || drag ? calculateOptimalLap(laps) : null;
 
     return { fastestLapIdx, fastestSpeedIdx, slowestMinSpeedIdx, fastestS1Idx, fastestS2Idx, fastestS3Idx, optimalLap };
-  }, [laps, useKph, showSectors]);
+  }, [laps, useKph, showSectors, drag]);
 
   // Calculate average lap distance
   const avgLapLength = useMemo(() => {
@@ -215,6 +250,13 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
   const speedUnit = useKph ? 'kph' : 'mph';
   const getMaxSpeed = (lap: Lap) => useKph ? lap.maxSpeedKph : lap.maxSpeedMph;
   const getMinSpeed = (lap: Lap) => useKph ? lap.minSpeedKph : lap.minSpeedMph;
+  // Static per-key calls keep the typed t() happy (no dynamic key strings).
+  const dragMarkLabel = (ft: number): string =>
+    ft === 60 ? t('drag.mark60')
+    : ft === 330 ? t('drag.mark330')
+    : ft === 660 ? t('drag.markEighth')
+    : ft === 1000 ? t('drag.mark1000')
+    : t('drag.markQuarter');
 
   const hasExternalRefProps = savedFiles && onLoadFileForRef && onSelectExternalLap && onClearExternalRef;
   const hasSnapshotProps = onLoadSnapshot && onClearSnapshot && onSaveSnapshot;
@@ -301,9 +343,15 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
         <thead className="sticky top-0 bg-card">
           <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
             <th className="px-2 py-3 font-medium w-16">{t('lapTable.colRef')}</th>
-            <th className="px-4 py-3 font-medium">{t('lapTable.colLap')}</th>
+            <th className="px-4 py-3 font-medium">{drag ? t('lapTable.colRun') : t('lapTable.colLap')}</th>
             <th className="px-4 py-3 font-medium">{t('lapTable.colTime')}</th>
-            {showFull ? (
+            {dragCols ? (
+              dragCols.markFts.map((ft) => (
+                <th key={ft} className="px-3 py-3 font-medium text-center whitespace-nowrap">
+                  {dragMarkLabel(ft)}
+                </th>
+              ))
+            ) : showFull ? (
               full.labels.map((label, k) => (
                 <Fragment key={k}>
                   {showSums && full.isGroupStart[k] && (
@@ -326,7 +374,7 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
               </>
             )}
             <th className="px-4 py-3 font-medium">{t('lapTable.colTopSpeed')}</th>
-            <th className="px-4 py-3 font-medium">{t('lapTable.colMinSpeed')}</th>
+            {!drag && <th className="px-4 py-3 font-medium">{t('lapTable.colMinSpeed')}</th>}
           </tr>
         </thead>
         <tbody>
@@ -377,9 +425,31 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                   </div>
                 </td>
                 <td className={`px-4 py-3 font-mono text-sm ${isFastest ? 'text-racing-lapBest font-semibold' : ''}`}>
-                  {formatLapTime(lap.lapTimeMs)}
+                  {lap.incomplete ? (
+                    <span className="text-muted-foreground">
+                      —{' '}
+                      <span className="rounded bg-muted px-1 py-0.5 text-[10px] uppercase tracking-wide">
+                        {t('lapTable.incomplete')}
+                      </span>
+                    </span>
+                  ) : (
+                    formatLapTime(lap.lapTimeMs)
+                  )}
                 </td>
-                {showFull ? (
+                {dragCols ? (
+                  dragCols.markFts.map((ft, k) => {
+                    const v = dragCols.slips[idx][k];
+                    const isFastestMark = dragCols.fastestIdx[k] === idx;
+                    return (
+                      <td
+                        key={ft}
+                        className={`px-3 py-3 font-mono text-xs text-center whitespace-nowrap ${isFastestMark ? 'text-purple-400 font-semibold bg-purple-500/10' : ''}`}
+                      >
+                        {v !== undefined ? formatSectorTime(v) : '—'}
+                      </td>
+                    );
+                  })
+                ) : showFull ? (
                   full.labels.map((_, k) => {
                     const t = lap.sectorTimes?.[k];
                     const isFastestSeg = full.fastestIdx[k] === idx;
@@ -427,16 +497,18 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`font-mono text-sm ${hasSlowestMinSpeed ? 'text-orange-500' : ''}`}>
-                      {getMinSpeed(lap).toFixed(1)} {speedUnit}
-                    </span>
-                    {hasSlowestMinSpeed && (
-                      <Snail className="w-4 h-4 text-orange-500" />
-                    )}
-                  </div>
-                </td>
+                {!drag && (
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-mono text-sm ${hasSlowestMinSpeed ? 'text-orange-500' : ''}`}>
+                        {getMinSpeed(lap).toFixed(1)} {speedUnit}
+                      </span>
+                      {hasSlowestMinSpeed && (
+                        <Snail className="w-4 h-4 text-orange-500" />
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             );
           })}
@@ -446,12 +518,14 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
       {/* Summary */}
       <div className="sticky bottom-0 bg-card border-t border-border px-4 py-3">
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">{t('lapTable.bestLap')}: </span>
-            <span className="font-mono text-racing-lapBest font-semibold">
-              {formatLapTime(laps[fastestLapIdx].lapTimeMs)}
-            </span>
-          </div>
+          {fastestLapIdx !== null && (
+            <div>
+              <span className="text-muted-foreground">{drag ? t('lapTable.bestEt') : t('lapTable.bestLap')}: </span>
+              <span className="font-mono text-racing-lapBest font-semibold">
+                {formatLapTime(laps[fastestLapIdx].lapTimeMs)}
+              </span>
+            </div>
+          )}
           {optimalLap && (
             <>
               <div>
@@ -471,7 +545,7 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
           {avgLapLength !== null && (
             <div>
               <span className="text-muted-foreground">
-                {sprint ? t('lapTable.avgRunLength') : t('lapTable.avgLapLength')}:{' '}
+                {sprint || drag ? t('lapTable.avgRunLength') : t('lapTable.avgLapLength')}:{' '}
               </span>
               <span className="font-mono text-foreground font-semibold">
                 {t('lapTable.avgLapValue', {

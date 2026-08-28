@@ -110,12 +110,17 @@ Distance switching is a pure re-map of the held `DragRun[]` — no re-detection.
 
 `TrackPromptDialog` precedence: course-step > drag > waypoint > no-track (title
 forks too). Header gets a distance `Select` next to the compact TrackEditor,
-visible only in drag mode. `LapTable` renders cumulative time-slip columns
-(via `dragTimeSlipTimes`), an Incomplete badge, Run labels through the
-existing `lapLabels` plumbing, Min Speed hidden (always ~0 at launch), footer
-Best ET. `SessionContext` carries `dragSession` + `onSetDragDistance`.
-Mark labels stay imperial in v1 — drag increments are defined in feet; a
-metric follow-up can localize them.
+visible only in drag mode (the switcher lives in `Index.tsx`, which already
+holds the `useDataLoader` handle — so `SessionContext` only carries the
+read-only `dragDistanceFt`, leaner than the originally planned
+`dragSession`/`onSetDragDistance` pair). `LapTable` renders cumulative
+time-slip columns (via `dragTimeSlipTimes`), an Incomplete badge, Run labels
+through the existing `lapLabels` plumbing, Min Speed hidden (always ~0 at
+launch), footer Best ET. `SectorCropSelect` self-derives drag mode — a null
+course with `sectorBoundaries` only ever comes from drag laps, and the
+boundary count encodes the distance — so the crop dropdown needed no prop
+threading through `GraphViewPanel`. Mark labels stay imperial in v1 — drag
+increments are defined in feet; a metric follow-up can localize them.
 
 ## Follow-ups (out of scope for v1)
 
