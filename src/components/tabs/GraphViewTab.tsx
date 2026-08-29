@@ -13,6 +13,7 @@ export const GraphViewTab = memo(function GraphViewTab() {
       fieldMappings={s.fieldMappings}
       course={s.course}
       lapTimeMs={s.selectedLapTimeMs}
+      lapLabels={s.lapLabels}
       paceDiff={s.paceDiff}
       paceDiffLabel={s.paceDiffLabel}
       deltaTopSpeed={s.deltaTopSpeed}

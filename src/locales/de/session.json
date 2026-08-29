@@ -23,7 +23,13 @@
     "setupNotConfigured": "Session-Setup nicht konfiguriert",
     "setupNoneRed": "Noch kein Fahrzeug oder Setup gespeichert — zum Hinzufügen klicken",
     "setupNoneOrange": "Kein Setup für diese Session gespeichert — zum Konfigurieren klicken",
-    "help": "Hilfe"
+    "help": "Hilfe",
+    "run": "Lauf {{number}}",
+    "allRuns": "Alle Läufe",
+    "dragEighth": "1/8 mi",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 mi",
+    "dragDistanceTitle": "Wertungsdistanz"
   },
   "lapTable": {
     "noLaps": "Keine Runden erkannt.",
@@ -46,7 +52,10 @@
     "delta": "Delta",
     "avgLapLength": "Durchschnittliche Rundenlänge",
     "avgRunLength": "Durchschnittliche Lauflänge",
-    "avgLapValue": "{{feet}} ft / {{meters}} m"
+    "avgLapValue": "{{feet}} ft / {{meters}} m",
+    "colRun": "Lauf",
+    "bestEt": "Beste ET",
+    "incomplete": "Unvollständig"
   },
   "snapshots": {
     "trigger": "Snapshots",
@@ -219,5 +228,17 @@
     "noSetup": "Kein Setup",
     "saveSelection": "Auswahl speichern",
     "openGarage": "Garage öffnen"
+  },
+  "drag": {
+    "mark60": "60 ft",
+    "mark330": "330 ft",
+    "markEighth": "1/8",
+    "mark1000": "1000 ft",
+    "markQuarter": "1/4",
+    "segLaunchTo60": "Start–60 ft",
+    "seg60To330": "60–330 ft",
+    "seg330To660": "330–660 ft",
+    "seg660To1000": "660–1000 ft",
+    "seg1000To1320": "1000–1320 ft"
   }
 }

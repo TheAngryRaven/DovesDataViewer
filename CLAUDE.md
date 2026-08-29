@@ -115,7 +115,8 @@ src/
 │   ├── channels.ts        # ★ Canonical channel registry + normalizeChannels()
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode (→ docs/subsystems.md)
 │   ├── courseSectors.ts   # ★ Pure sector model: caps, normalizeCourseSectors, majorSectorLines (→ docs/subsystems.md)
-│   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[]
+│   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[]; fastestRankedLap = the ONLY way to pick "fastest" (skips incomplete drag runs)
+│   ├── dragRunDetection.ts # ★ Drag mode (plan 0022): standing-start run detection at unknown venues (staged→launch state machine, marks at 60/330/660/1000/1320 ft, straightness+speed gate) + run→Lap mapping. useDataLoader consults it BEFORE accepting a waypoint result (a strip's return road fools waypoint mode); distance choice persists as FileMetadata.dragDistanceFt
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy (→ docs/subsystems.md)
 │   ├── sampleData.ts      # ★ Bundled sample log seeded as an ordinary file (→ docs/subsystems.md)
@@ -196,14 +197,14 @@ File Import (drag-drop / BLE download / file manager)
 | `ParsedData` | `samples[]`, `fieldMappings[]`, `bounds`, `duration`, `startDate?`, `dovexMetadata?`, `parserStats?` |
 | `ParserStats` | `totalRows`, `acceptedRows`, `rejected: { nanFields, zeroCoords, outOfRange, speedCap, teleportation, incompleteRow }` |
 | `DovexMetadata` | `datetime?`, `driver?`, `course?`, `shortName?`, `bestLapMs?`, `optimalMs?`, `lapTimesMs?[]` |
-| `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` (S1/S2/S3 major rollup), `sectorTimes?` (fine-grained), `sectorBoundaries?` (per-line sample indices) |
+| `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` (S1/S2/S3 major rollup), `sectorTimes?` (fine-grained), `sectorBoundaries?` (per-line sample indices), `incomplete?` (drag: lapTimeMs is a data window, never rank as fastest — use `fastestRankedLap`) |
 | `Course` | `name`, `type?: CourseType` (absent = `circuit`), `lengthFt?`, `startFinishA/B`, `finish?`+`dateCreated?` (sprint only), `sectors?: CourseSector[]`, deprecated `sector2/sector3` (legacy mirror), optional `layout?` (`{lat,lon}[]` outline) |
 | `CourseSector` | `{ line: SectorLine, major: boolean }` — one timing line after start/finish. `major` is circuit-only; sprint splits are stored unflagged |
 | `CourseType` | `'circuit' \| 'sprint'` — lap-to-lap vs point-to-point (start line ≠ finish line). Read via `isSprintCourse()`; see `docs/plans/0015-sprint-mode.md` |
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug), `label?`, `unit?`, `enabled` |
-| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — the bundled sample), `isSample?` (marks the sample so the browser can hide it), `postSession?` (`PostSessionData`: post-session tire pressures — single/halves/quarters — + a single weight, entered on the Notes tab; cloud-synced via metadata, held for later processing). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — the bundled sample), `isSample?` (marks the sample so the browser can hide it), `postSession?` (`PostSessionData`: post-session tire pressures — single/halves/quarters — + a single weight, entered on the Notes tab; cloud-synced via metadata, held for later processing), `dragDistanceFt?` (drag-mode scoring distance in feet — plan 0022; presence marks a drag session, cleared when a real course is assigned). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
 
 ---
 

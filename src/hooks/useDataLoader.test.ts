@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectionMetadataPatch } from "./useDataLoader";
+import { detectionMetadataPatch, dragMetadataPatch } from "./useDataLoader";
 
 const laps = [
   { lapNumber: 1, lapTimeMs: 65000 },
@@ -30,5 +30,38 @@ describe("detectionMetadataPatch (auto-detect tagging)", () => {
     expect(patch.fastestLapMs).toBeUndefined();
     expect(patch.fastestLapNumber).toBeUndefined();
     expect(patch).toMatchObject({ trackName: "OKC", courseName: "CW", sessionStartTime: 0 });
+  });
+});
+
+describe("dragMetadataPatch (drag-session tagging)", () => {
+  const runs = [
+    { lapNumber: 1, lapTimeMs: 13400 },
+    { lapNumber: 2, lapTimeMs: 12900 },
+    { lapNumber: 3, lapTimeMs: 4200, incomplete: true }, // short window, aborted pass
+  ];
+
+  it("stores the distance, start time, and fastest complete run", () => {
+    const start = new Date(2026, 7, 28, 19, 30);
+    expect(dragMetadataPatch(1320, runs, start)).toEqual({
+      dragDistanceFt: 1320,
+      sessionStartTime: start.getTime(),
+      fastestLapMs: 12900,
+      fastestLapNumber: 2,
+    });
+  });
+
+  it("never caches an incomplete run's window as the fastest lap", () => {
+    const patch = dragMetadataPatch(1320, runs);
+    expect(patch.fastestLapNumber).toBe(2);
+    expect(patch.fastestLapMs).toBe(12900);
+    expect(patch.sessionStartTime).toBeUndefined();
+  });
+
+  it("clears the fastest-lap badge when no run completes the distance", () => {
+    const patch = dragMetadataPatch(1320, [{ lapNumber: 1, lapTimeMs: 4200, incomplete: true }]);
+    expect(patch.dragDistanceFt).toBe(1320);
+    expect("fastestLapMs" in patch).toBe(true);
+    expect(patch.fastestLapMs).toBeUndefined();
+    expect(patch.fastestLapNumber).toBeUndefined();
   });
 });

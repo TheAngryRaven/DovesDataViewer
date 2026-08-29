@@ -99,7 +99,17 @@
     "detectedLaps_other": "Rilevati <b>{{count}} giri</b> dal waypoint.",
     "createTrack": "Crea pista",
     "useWaypoint": "Usa waypoint",
-    "noTrackNotice": "Nessuna pista nota corrisponde a questi dati GPS. Crea una nuova pista, poi aggiungi un tracciato per abilitare il cronometraggio dei giri."
+    "noTrackNotice": "Nessuna pista nota corrisponde a questi dati GPS. Crea una nuova pista, poi aggiungi un tracciato per abilitare il cronometraggio dei giri.",
+    "dragTitle": "Rilevate prove di accelerazione",
+    "dragTiming": "Cronometraggio drag",
+    "dragNotice": "Nessuna pista conosciuta corrisponde a questi dati, ma sembrano passaggi su una pista di accelerazione: partenze da fermo seguite da tirate in rettilineo.",
+    "dragRunsFound_one": "Rilevata <b>{{count}} prova con partenza da fermo</b>.",
+    "dragRunsFound_other": "Rilevate <b>{{count}} prove con partenza da fermo</b>.",
+    "dragDistance": "Distanza di cronometraggio",
+    "dragApply": "Usa cronometraggio drag",
+    "dragEighth": "1/8 di miglio (660 ft)",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 di miglio (1320 ft)"
   },
   "submit": {
     "toastCouldNotRead": "Impossibile leggere le tue piste",

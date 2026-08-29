@@ -30,6 +30,7 @@ export const LapTimesTab = memo(function LapTimesTab() {
         onToggleOverlay={s.onToggleOverlay}
         lapLabels={s.lapLabels}
         readOnlyDescriptor={s.readOnlyDescriptor}
+        dragDistanceFt={s.dragDistanceFt}
       />
     </div>
   );

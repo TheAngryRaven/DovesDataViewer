@@ -98,7 +98,17 @@
     "detectedLaps_other": "Detected <b>{{count}} laps</b> from waypoint.",
     "createTrack": "Create Track",
     "useWaypoint": "Use Waypoint",
-    "noTrackNotice": "No known track matches this GPS data. Create a new track, then add a course to enable lap timing."
+    "noTrackNotice": "No known track matches this GPS data. Create a new track, then add a course to enable lap timing.",
+    "dragTitle": "Drag Runs Detected",
+    "dragTiming": "Drag Timing",
+    "dragNotice": "No known track matched this data, but it looks like drag-strip passes: standing starts followed by straight-line pulls.",
+    "dragRunsFound_one": "Detected <b>{{count}} standing-start run</b>.",
+    "dragRunsFound_other": "Detected <b>{{count}} standing-start runs</b>.",
+    "dragDistance": "Scoring distance",
+    "dragApply": "Use Drag Timing",
+    "dragEighth": "1/8 mile (660 ft)",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 mile (1320 ft)"
   },
   "submit": {
     "toastCouldNotRead": "Could not read your tracks",
