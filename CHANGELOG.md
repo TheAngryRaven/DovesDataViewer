@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.2.0] - unreleased
 
+### Changed
+- **One overlay renderer for preview and export.** The video-overlay preview
+  and the export pipeline previously drew with two separate implementations
+  that had drifted apart: exported videos were missing the graph grid lines,
+  the needle/dot glow, the bubble's center dot and the pace bar's SLOW/FAST
+  labels, stacked the pace bar's center line differently, and printed every
+  label in English whatever the app language. Both now go through the same
+  per-type draw functions (`lib/overlayCanvasRenderer.ts`), so what you see
+  while scrubbing is what the export burns in — including your language's
+  labels. The sector widget's completion sparkle is now driven by the data
+  timeline instead of the wall clock, which also means it finally appears in
+  exported videos, on the exact frames where the sector completed. This is
+  phase 0 of the native video-overlay work (plan 0023): the native app's
+  burn-in export will call this same renderer, so all three outputs match by
+  construction.
+
 ### Added
 - **Drag mode** — drop in a log from a drag strip (or any venue the app doesn't
   know) and standing-start runs are detected automatically: pick 1/8 mile,

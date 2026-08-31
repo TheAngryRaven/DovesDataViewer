@@ -20,7 +20,7 @@
 import { Muxer, ArrayBufferTarget, StreamTarget } from "mp4-muxer";
 import type { ExportOptions } from "@/components/video-overlays/VideoExportDialog";
 import type { OverlayInstance, OverlayRenderContext } from "@/components/video-overlays/types";
-import { renderOverlaysToCanvas } from "@/lib/overlayCanvasRenderer";
+import { renderOverlaysToCanvas, DEFAULT_OVERLAY_LABELS, type OverlayLabels } from "@/lib/overlayCanvasRenderer";
 import { shouldStreamExport, writeStreamChunk, type StreamedPart } from "@/lib/videoExportTarget";
 import { virtualToLocal, planAudioSegments, type Playlist } from "@/lib/videoPlaylist";
 
@@ -55,6 +55,8 @@ export interface ExportCallbacks {
 export interface ExportContext {
   overlays: OverlayInstance[];
   buildRenderCtx: (videoCurrentTime: number) => OverlayRenderContext | null;
+  /** Translated widget strings; English defaults when the caller has no i18n. */
+  labels?: OverlayLabels;
 }
 
 /** One chunk of the source recording on the virtual timeline. */
@@ -470,7 +472,7 @@ async function runWebCodecsExport(
       if (options.includeOverlays && exportCtx) {
         const renderCtx = exportCtx.buildRenderCtx(t);
         if (renderCtx) {
-          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories);
+          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories, exportCtx.labels ?? DEFAULT_OVERLAY_LABELS);
         }
       }
 
@@ -605,7 +607,7 @@ async function runFallbackExport(
       if (options.includeOverlays && exportCtx) {
         const renderCtx = exportCtx.buildRenderCtx(video.currentTime);
         if (renderCtx) {
-          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories);
+          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories, exportCtx.labels ?? DEFAULT_OVERLAY_LABELS);
         }
       }
       callbacks.onProgress(1);
@@ -634,7 +636,7 @@ async function runFallbackExport(
       if (options.includeOverlays && exportCtx) {
         const renderCtx = exportCtx.buildRenderCtx(video.currentTime);
         if (renderCtx) {
-          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories);
+          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories, exportCtx.labels ?? DEFAULT_OVERLAY_LABELS);
         }
       }
       callbacks.onProgress(Math.min(1, (video.currentTime - startTime) / duration));

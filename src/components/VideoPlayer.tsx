@@ -17,15 +17,7 @@ import type { OverlayPosition, OverlayInstance, OverlayRenderContext, OverlaySet
 import { buildDataSources, resolveValue } from "@/components/video-overlays/dataSourceResolver";
 import { OverlaySettingsPanel } from "@/components/video-overlays/OverlaySettingsPanel";
 import { VideoExportDialog, ExportOptions } from "@/components/video-overlays/VideoExportDialog";
-import { DigitalOverlay } from "@/components/video-overlays/DigitalOverlay";
-import { AnalogOverlay } from "@/components/video-overlays/AnalogOverlay";
-import { GraphOverlay } from "@/components/video-overlays/GraphOverlay";
-import { BarOverlay } from "@/components/video-overlays/BarOverlay";
-import { BubbleOverlay } from "@/components/video-overlays/BubbleOverlay";
-import { MapOverlay } from "@/components/video-overlays/MapOverlay";
-import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
-import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
-import { LapTimeOverlay } from "@/components/video-overlays/LapTimeOverlay";
+import { OverlayCanvas } from "@/components/video-overlays/OverlayCanvas";
 import { startVideoExport, downloadBlob, ExportContext, ExportSource } from "@/lib/videoExport";
 import { computeBrakingGSeriesSG, gToBrakePercent } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
@@ -210,20 +202,9 @@ function DraggableOverlay({
   );
 }
 
-/** Render the appropriate overlay component for an instance */
+/** Render an overlay instance through the unified scene renderer (plan 0023). */
 function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstance; ctx: OverlayRenderContext; fontSize: number }) {
-  switch (instance.type) {
-    case "digital": return <DigitalOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "analog": return <AnalogOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "graph": return <GraphOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "bar": return <BarOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "bubble": return <BubbleOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "map": return <MapOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "pace": return <PaceOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "sector": return <SectorOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "laptime": return <LapTimeOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    default: return null;
-  }
+  return <OverlayCanvas instance={instance} ctx={ctx} fontSize={fontSize} />;
 }
 
 /**
@@ -508,6 +489,13 @@ export const VideoPlayer = memo(function VideoPlayer({
     const exportContext: ExportContext = {
       overlays: overlays.filter(o => o.visible),
       buildRenderCtx: buildExportRenderCtx,
+      labels: {
+        slow: t("widgets.slow"),
+        fast: t("widgets.fast"),
+        lapTime: t("widgets.lapTime"),
+        delta: t("widgets.delta"),
+        best: (lapLabel: string) => t("widgets.best", { lap: lapLabel }),
+      },
     };
 
     const destination = options.destination;
