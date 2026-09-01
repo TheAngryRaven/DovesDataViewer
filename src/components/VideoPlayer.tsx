@@ -19,6 +19,7 @@ import { OverlaySettingsPanel } from "@/components/video-overlays/OverlaySetting
 import { VideoExportDialog, ExportOptions } from "@/components/video-overlays/VideoExportDialog";
 import { OverlayCanvas } from "@/components/video-overlays/OverlayCanvas";
 import { startVideoExport, downloadBlob, ExportContext, ExportSource } from "@/lib/videoExport";
+import { startNativeVideoExport } from "@/lib/nativeVideoExport";
 import { computeBrakingGSeriesSG, gToBrakePercent } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
@@ -506,7 +507,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       : [{ url: video.currentSrc || video.src, startOffsetSec: 0, durationSec: totalDuration }];
     const exportSource: ExportSource = { liveVideo: video, chunks, totalDuration };
 
-    startVideoExport(exportSource, exportContext, exportOptions, {
+    const exportCallbacks = {
       onProgress: (p) => setExportProgress(p),
       onComplete: (blob) => {
         setIsExporting(false);
@@ -535,7 +536,16 @@ export const VideoPlayer = memo(function VideoPlayer({
         setIsExporting(false);
         console.error("Export error:", err);
       },
-    });
+    } satisfies Parameters<typeof startVideoExport>[3];
+
+    // In the native shell, the hardware pipeline does the transcode (plan
+    // 0024); it resolves null when this shell can't (web, desktop stub, old
+    // app), and then the in-WebView exporter takes over unchanged.
+    void startNativeVideoExport(exportSource, exportContext, exportOptions, exportCallbacks).then(
+      (native) => {
+        if (!native) startVideoExport(exportSource, exportContext, exportOptions, exportCallbacks);
+      },
+    );
     // `actions.videoRef` is a stable RefObject from useVideoSync; depending on
     // the whole `actions` object would invalidate handleExport on every parent
     // render, defeating the memoization.

@@ -9,6 +9,7 @@
 import { describe, it, expect } from "vitest";
 import {
   measureOverlay,
+  drawAnalog,
   drawDigital,
   drawGraph,
   drawPace,
@@ -299,5 +300,34 @@ describe("renderOverlaysToCanvas", () => {
     renderOverlaysToCanvas(c, 640, 360, overlays, makeRenderCtx(), new Map());
     // Only the visible digital overlay drew its value.
     expect(texts.filter((t) => t === "72.0")).toHaveLength(1);
+  });
+});
+
+// ─── per-session memo caches ────────────────────────────────────────────────
+
+describe("range memoization", () => {
+  it("scans a source's range once per session arrays, not once per frame", () => {
+    let minCalls = 0;
+    let maxCalls = 0;
+    const counting: DataSourceDef = {
+      ...speedSource,
+      getMin: () => { minCalls++; return 0; },
+      getMax: () => { maxCalls++; return 180; },
+    };
+    const ctx = makeRenderCtx({ dataSources: [counting] });
+    const inst = makeInstance({ type: "analog" });
+    for (let i = 0; i < 5; i++) {
+      const { c } = makeStubCtx();
+      drawAnalog(c, inst, ctx, L);
+    }
+    expect(minCalls).toBe(1);
+    expect(maxCalls).toBe(1);
+
+    // A different session (new sample arrays) misses the cache and rescans.
+    const ctx2 = makeRenderCtx({ dataSources: [counting] });
+    const { c } = makeStubCtx();
+    drawAnalog(c, inst, ctx2, L);
+    expect(minCalls).toBe(2);
+    expect(maxCalls).toBe(2);
   });
 });

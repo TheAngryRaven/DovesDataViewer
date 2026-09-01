@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.2.0] - unreleased
 
+### Added
+- **Hardware-speed export in the Android app.** Inside the LapWing shell,
+  *Export with overlays* now hands the whole job to the phone's hardware:
+  the shell transcodes with the platform codecs and composites the overlays
+  on the GPU, with audio copied through untouched — seconds instead of
+  minutes for a typical clip (the in-app exporter previously stepped the
+  video one frame at a time and couldn't keep up). The overlay layers are
+  drawn by the same renderer as the preview, so the burned-in widgets match
+  what you scrubbed, in your language. Web and desktop exports are
+  unchanged, and an older shell (or a multi-file recording) falls back to
+  the previous exporter automatically. Requires a LapWing build with the
+  `video_export_*` pipeline (plan 0024).
+
 ### Changed
 - **One overlay renderer for preview and export.** The video-overlay preview
   and the export pipeline previously drew with two separate implementations

@@ -36,6 +36,7 @@ import {
 } from "@/components/video-overlays/sectorUtils";
 import { courseHasSectors } from "@/types/racing";
 import { findCurrentLap, formatOverlayLapTime, getOverlayLapStartTime } from "@/components/video-overlays/overlayUtils";
+import type { GpsSample } from "@/types/racing";
 
 const START_ANGLE = Math.PI * 0.8;
 const END_ANGLE = Math.PI * 2.2;
@@ -84,6 +85,95 @@ const SECTOR_CELL_BG: Record<SectorStatus, string> = {
   outlap: "rgba(128, 128, 128, 0.25)",
 };
 
+// ── Per-session memo caches ─────────────────────────────────────────────────
+//
+// The draws below used to rescan the session arrays on every frame — the
+// export path repeated ~10 full O(samples) passes per output frame for
+// answers that never change (ranges, map bounds, the pace scale). The arrays
+// are immutable per session/export, so the caches key on array identity via
+// WeakMap: a new session (or a rebuilt range array) misses naturally, and
+// nothing here needs invalidation or leaks.
+
+interface RangeEntry {
+  paceData: (number | null)[];
+  brakingGData: number[];
+  range: { min: number; max: number };
+}
+const rangeCaches = new WeakMap<GpsSample[], Map<string, RangeEntry>>();
+
+function memoRange(
+  sourceId: string,
+  ctx: OverlayRenderContext,
+): { min: number; max: number } {
+  let bySource = rangeCaches.get(ctx.samples);
+  if (!bySource) {
+    bySource = new Map();
+    rangeCaches.set(ctx.samples, bySource);
+  }
+  const hit = bySource.get(sourceId);
+  // Special sources (__pace__, __braking_g__) range over these arrays, not
+  // the samples — a hit is only valid while they are the same arrays too.
+  if (hit && hit.paceData === ctx.paceData && hit.brakingGData === ctx.brakingGData) {
+    return hit.range;
+  }
+  const range = resolveRange(sourceId, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  bySource.set(sourceId, {
+    paceData: ctx.paceData,
+    brakingGData: ctx.brakingGData,
+    range,
+  });
+  return range;
+}
+
+interface MapBounds {
+  minLat: number;
+  maxLat: number;
+  minLon: number;
+  maxLon: number;
+}
+const mapBoundsCache = new WeakMap<GpsSample[], MapBounds>();
+
+function memoMapBounds(samples: GpsSample[]): MapBounds {
+  const hit = mapBoundsCache.get(samples);
+  if (hit) return hit;
+  let minLat = Infinity,
+    maxLat = -Infinity,
+    minLon = Infinity,
+    maxLon = -Infinity;
+  for (const s of samples) {
+    if (s.lat < minLat) minLat = s.lat;
+    if (s.lat > maxLat) maxLat = s.lat;
+    if (s.lon < minLon) minLon = s.lon;
+    if (s.lon > maxLon) maxLon = s.lon;
+  }
+  const bounds = { minLat, maxLat, minLon, maxLon };
+  mapBoundsCache.set(samples, bounds);
+  return bounds;
+}
+
+const paceMaxCache = new WeakMap<(number | null)[], number>();
+
+function memoPaceMax(paceData: (number | null)[]): number {
+  const hit = paceMaxCache.get(paceData);
+  if (hit !== undefined) return hit;
+  let maxDelta = 0.5;
+  for (const v of paceData) {
+    if (v !== null && Math.abs(v) > maxDelta) maxDelta = Math.abs(v);
+  }
+  maxDelta = Math.min(maxDelta * 1.2, 5);
+  paceMaxCache.set(paceData, maxDelta);
+  return maxDelta;
+}
+
+/** The digital widget's box, shared by measure and draw so the resolved value
+ * is only computed once per draw. */
+function digitalBox(fontSize: number, displayVal: string, unit: string): { w: number; h: number } {
+  return {
+    w: displayVal.length * fontSize * 0.65 + unit.length * fontSize * 0.35 + fontSize * 0.6,
+    h: fontSize * 1.5,
+  };
+}
+
 function computeLayout(
   instance: OverlayInstance,
   canvasWidth: number,
@@ -112,7 +202,7 @@ export function measureOverlay(
       const value = resolveValue(instance.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
       const unit = resolveUnit(instance.dataSource, ctx.dataSources);
       const displayVal = value !== null ? value.toFixed(1) : "—";
-      return { w: displayVal.length * f * 0.65 + unit.length * f * 0.35 + f * 0.6, h: f * 1.5 };
+      return digitalBox(f, displayVal, unit);
     }
     case "analog": {
       const size = Math.round(f * 5);
@@ -196,7 +286,7 @@ export function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, 
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const displayVal = value !== null ? value.toFixed(1) : "—";
 
-  const { w: textW, h } = measureOverlay(inst, ctx, l.fontSize);
+  const { w: textW, h } = digitalBox(l.fontSize, displayVal, unit);
 
   // Background
   c.fillStyle = theme.bg(inst.colorMode, inst.opacity);
@@ -222,7 +312,7 @@ export function drawDigital(c: CanvasRenderingContext2D, inst: OverlayInstance, 
 export function drawAnalog(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
   const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
-  const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  const { min, max } = memoRange(inst.dataSource, ctx);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
 
   const size = measureOverlay(inst, ctx, l.fontSize).w;
@@ -305,7 +395,7 @@ export function drawGraph(
 ) {
   const theme = getTheme(inst.theme);
   const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
-  const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  const { min, max } = memoRange(inst.dataSource, ctx);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const graphLength = inst.graphLength ?? 100;
   const lineColor = inst.color ?? theme.accent(inst.colorMode);
@@ -371,7 +461,7 @@ export function drawGraph(
 export function drawBar(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx: OverlayRenderContext, l: OverlayLayout) {
   const theme = getTheme(inst.theme);
   const value = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
-  const { min, max } = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  const { min, max } = memoRange(inst.dataSource, ctx);
   const unit = resolveUnit(inst.dataSource, ctx.dataSources);
   const range = max - min || 1;
   const fraction = value !== null ? Math.max(0, Math.min(1, (value - min) / range)) : 0;
@@ -420,8 +510,8 @@ export function drawBubble(c: CanvasRenderingContext2D, inst: OverlayInstance, c
   const theme = getTheme(inst.theme);
   const valueX = resolveValue(inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   const valueY = resolveValue(inst.dataSourceSecondary ?? inst.dataSource, ctx.currentSample, ctx.currentIndex, ctx.dataSources, ctx.paceData, ctx.brakingGData);
-  const rangeX = resolveRange(inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
-  const rangeY = resolveRange(inst.dataSourceSecondary ?? inst.dataSource, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
+  const rangeX = memoRange(inst.dataSource, ctx);
+  const rangeY = memoRange(inst.dataSourceSecondary ?? inst.dataSource, ctx);
 
   const size = measureOverlay(inst, ctx, l.fontSize).w;
   const cx = l.x + size / 2;
@@ -499,14 +589,8 @@ export function drawMap(c: CanvasRenderingContext2D, inst: OverlayInstance, ctx:
   if (samples.length < 2) return;
   const allSmp = ctx.allSamples.length > 1 ? ctx.allSamples : samples;
 
-  // Bounds
-  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-  for (const s of allSmp) {
-    if (s.lat < minLat) minLat = s.lat;
-    if (s.lat > maxLat) maxLat = s.lat;
-    if (s.lon < minLon) minLon = s.lon;
-    if (s.lon > maxLon) maxLon = s.lon;
-  }
+  // Bounds (memoized per session — invariant across frames)
+  const { minLat, maxLat, minLon, maxLon } = memoMapBounds(allSmp);
   const latRange = maxLat - minLat || 0.001;
   const lonRange = maxLon - minLon || 0.001;
   const plotSize = size - pad * 2;
@@ -593,11 +677,7 @@ export function drawPace(
   const f = l.fontSize;
   const paceValue = ctx.paceData[ctx.currentIndex] ?? null;
 
-  let maxDelta = 0.5;
-  for (const v of ctx.paceData) {
-    if (v !== null && Math.abs(v) > maxDelta) maxDelta = Math.abs(v);
-  }
-  maxDelta = Math.min(maxDelta * 1.2, 5);
+  const maxDelta = memoPaceMax(ctx.paceData);
 
   const barW = f * 10;
   const { w: totalW, h: totalH } = measureOverlay(inst, ctx, f);
