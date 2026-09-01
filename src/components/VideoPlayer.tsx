@@ -20,6 +20,7 @@ import { VideoExportDialog, ExportOptions } from "@/components/video-overlays/Vi
 import { OverlayCanvas } from "@/components/video-overlays/OverlayCanvas";
 import { startVideoExport, downloadBlob, ExportContext, ExportSource } from "@/lib/videoExport";
 import { startNativeVideoExport } from "@/lib/nativeVideoExport";
+import { toast } from "@/hooks/use-toast";
 import { computeBrakingGSeriesSG, gToBrakePercent } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
@@ -505,7 +506,15 @@ export const VideoPlayer = memo(function VideoPlayer({
     const chunks = state.exportChunks.length > 0
       ? state.exportChunks
       : [{ url: video.currentSrc || video.src, startOffsetSec: 0, durationSec: totalDuration }];
-    const exportSource: ExportSource = { liveVideo: video, chunks, totalDuration };
+    const exportSource: ExportSource = {
+      liveVideo: video,
+      chunks,
+      totalDuration,
+      fileName: state.videoFileName ?? undefined,
+      // The shell's remembered copy is only the source for single-file
+      // recordings — the store holds one video per session.
+      nativeSourceKey: chunks.length === 1 ? (state.nativeStoredKey ?? undefined) : undefined,
+    };
 
     const exportCallbacks = {
       onProgress: (p) => setExportProgress(p),
@@ -536,6 +545,13 @@ export const VideoPlayer = memo(function VideoPlayer({
         setIsExporting(false);
         console.error("Export error:", err);
       },
+      // Native shell: "Save to device" wrote straight into the gallery.
+      onSavedToDevice: (uri) => {
+        setIsExporting(false);
+        setShowExportDialog(false);
+        console.log("Video saved to gallery:", uri);
+        toast({ title: t("export.savedToGallery") });
+      },
     } satisfies Parameters<typeof startVideoExport>[3];
 
     // In the native shell, the hardware pipeline does the transcode (plan
@@ -550,7 +566,7 @@ export const VideoPlayer = memo(function VideoPlayer({
     // the whole `actions` object would invalidate handleExport on every parent
     // render, defeating the memoization.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, state.videoDuration, state.exportChunks, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps]);
+  }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, state.videoDuration, state.exportChunks, state.nativeStoredKey, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps, t]);
 
   // Download existing stored video
   const handleSaveExisting = useCallback(async () => {

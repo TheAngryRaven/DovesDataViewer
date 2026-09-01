@@ -55,6 +55,9 @@
     "saveToAppTitle": "Salvar o vídeo exportado no app para carregamento automático",
     "saveToDevice": "Salvar no dispositivo",
     "saveToDeviceTitle": "Baixar o arquivo de vídeo exportado",
+    "saveToGallery": "Salvar na galeria",
+    "saveToGalleryTitle": "Salvar o vídeo exportado na galeria do celular (Movies/LapWing)",
+    "savedToGallery": "Salvo na sua galeria (Movies/LapWing)",
     "info": "A exportação reproduz o vídeo em tempo real para capturar cada quadro com as sobreposições. \"Salvar no app\" armazena o vídeo para carregá-lo automaticamente na próxima sessão."
   },
   "settings": {
