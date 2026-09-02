@@ -101,5 +101,31 @@
     "lapTime": "TEMPS AU TOUR",
     "delta": "DELTA",
     "best": "MEILLEUR {{lap}}"
+  },
+  "insta360": {
+    "importButton": "Depuis une caméra Insta360",
+    "title": "Caméra Insta360",
+    "intro": "Rejoignez le Wi-Fi de la caméra et diffusez un enregistrement directement depuis celle-ci — rien n'est téléchargé.",
+    "ssidPrefix": "Le nom Wi-Fi de la caméra commence par",
+    "ssidPrefixHint": "Laissez vide pour choisir parmi tous les réseaux à portée.",
+    "passphrase": "Mot de passe Wi-Fi",
+    "passphraseHint": "Les caméras Insta360 sont livrées avec 88888888.",
+    "connect": "Connecter",
+    "connecting": "Connexion à la caméra…",
+    "listing": "Lecture des enregistrements de la caméra…",
+    "connected": "Connecté : {{camera}}",
+    "refresh": "Actualiser",
+    "disconnect": "Déconnecter",
+    "noRecordings": "Aucun enregistrement vidéo sur la caméra.",
+    "load": "Charger",
+    "badge360": "360°",
+    "segments": "{{count}} segments",
+    "back": "Retour",
+    "pointView": "Orienter la vue 360° — faites glisser l'image",
+    "lockView": "Verrouiller la vue 360°",
+    "resetView": "Réinitialiser la vue 360°",
+    "exportUnavailable": "L'export n'est pas encore disponible pour les flux caméra",
+    "openFailed": "Impossible de démarrer le flux de la caméra",
+    "streamError": "Le flux de la caméra s'est arrêté"
   }
 }
