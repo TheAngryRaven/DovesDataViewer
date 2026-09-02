@@ -7,7 +7,8 @@
     "lapSnapshots": "Instantâneos de volta",
     "cloudLogs": "Registros na nuvem",
     "dataPrivacy": "Dados e privacidade",
-    "leaderboards": "Rankings"
+    "leaderboards": "Rankings",
+    "deviceVideos": "Vídeos neste dispositivo"
   },
   "account": {
     "signInBlurb": "Entre para fazer backup e sincronizar seus arquivos, garagem e notas entre dispositivos. Tudo aqui continua funcionando offline neste dispositivo — o Cloud Sync é opcional.",
@@ -223,5 +224,23 @@
     "defaultToggle": "Novos envios são públicos por padrão",
     "defaultToggleHint": "Afeta apenas envios futuros — as sessões existentes mantêm o compartilhamento atual.",
     "defaultUpdateFailed": "Não foi possível atualizar a preferência de compartilhamento"
+  },
+  "deviceVideos": {
+    "note": "O app guarda uma cópia do vídeo de cada sessão para recarregá-lo na próxima vez que você abrir essa sessão. Excluir uma cópia só a esquece aqui — o arquivo original no seu celular não é alterado.",
+    "unavailable": "Gerenciar vídeos armazenados requer uma versão mais recente do app.",
+    "empty": "Nenhum vídeo armazenado ainda. Carregue um vídeo para uma sessão e a cópia aparecerá aqui.",
+    "summary_one": "{{count}} vídeo · {{size}}",
+    "summary_other": "{{count}} vídeos · {{size}}",
+    "unknownSession": "Sessão desconhecida (armazenado por uma versão anterior)",
+    "storedOn": "armazenado em {{date}}",
+    "remove": "Excluir",
+    "confirmRemove": "Excluir esta cópia?",
+    "cancel": "Cancelar",
+    "removed": "Excluído — {{size}} liberados",
+    "clearAll": "Excluir tudo",
+    "confirmClear_one": "Excluir o vídeo armazenado? Ele será pedido novamente ao abrir a sessão.",
+    "confirmClear_other": "Excluir todos os {{count}} vídeos armazenados? Eles serão pedidos novamente ao abrir essas sessões.",
+    "cleared": "Limpo — {{size}} liberados",
+    "failed": "Não foi possível excluir: {{error}}"
   }
 }
