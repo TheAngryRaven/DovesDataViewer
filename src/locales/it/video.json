@@ -58,6 +58,7 @@
     "saveToGallery": "Salva nella galleria",
     "saveToGalleryTitle": "Salva il video esportato nella galleria del telefono (Movies/LapWing)",
     "savedToGallery": "Salvato nella galleria (Movies/LapWing)",
+    "failed": "Esportazione non riuscita",
     "info": "L'esportazione riproduce il video in tempo reale per catturare ogni fotogramma con le sovrapposizioni. \"Salva nell'app\" memorizza il video per caricarlo automaticamente alla prossima sessione."
   },
   "settings": {

@@ -1,6 +1,6 @@
 # Native export bridge — hardware-speed overlay video in the shell
 
-> Status: **LANDED** (bridge + renderer memoization; follow-up: gallery save + remembered video). Companion: LapWing's
+> Status: **LANDED** (bridge + renderer memoization; follow-ups: gallery save + remembered video; the Android bridge fix). Companion: LapWing's
 > `tauri-plugin-videopipe` + `video_export_*` IPC (its `docs/video-pipeline.md`
 > is the contract; LapWing plan 0001, Phase 2).
 
@@ -23,7 +23,7 @@ codecs — the owner's call: the video pipeline *is* the point of the native app
   the caller falls back to the unchanged WebView exporter;
 - otherwise stages and drives the job: `video_export_begin` (same
   quality→resolution/bitrate mapping as the web path), the source blob in
-  8 MB **raw-body** chunks, then transparent overlay layers rendered by the
+  4 MB **base64** chunks (see follow-up 2), then transparent overlay layers rendered by the
   plan-0023 unified renderer at **15 Hz** (telemetry cadence — overlays
   change with data, not video frames), PNG-encoded at output resolution,
   timestamps relative to the export start;
@@ -89,3 +89,34 @@ Two gaps the first on-device run exposed:
   passes it as `sourceKey` so an export of a remembered video **skips the
   source upload entirely** (a stale key silently falls back to uploading).
   Multi-file recordings keep today's behavior (no store, v1).
+
+## Follow-up 2 (landed): the Android bridge has no raw bodies
+
+The first on-device run of "Save to Gallery" stuttered for a second and went
+idle — no file, no message. Root cause, in LapWing's IPC layer: the upload
+commands took **raw invoke bodies** (`invoke(cmd, bytes, { headers })` →
+`tauri::ipc::Request`), and Tauri never uses that IPC on Android — the
+WebView cannot hand the app a request body, so Tauri falls back to
+`window.ipc.postMessage` and serializes a `Uint8Array` payload as a JSON
+*array of numbers*, which a raw-body command rejects. The very first chunk
+of every export (and of every video-store copy) failed; `onError` only
+logged to the console, so the dialog just returned to idle. The stutter was
+the WebView turning 8 MB of bytes into ~30 MB of JSON text.
+
+What changed:
+
+- `src/lib/nativeBytes.ts`: bulk bytes now cross the bridge as **base64
+  strings in ordinary JSON args**, in 4 MB chunks (`blobToBase64` via
+  `FileReader.readAsDataURL` — native, off the main thread). LapWing decodes
+  in one pass (`video::job::decode_chunk`). `nativeVideoExport.ts` and
+  `nativeVideoStore.ts` use it; the shell's push commands take
+  `{ jobId, offset | tMs, data }` / `{ key, offset, data }`.
+- Export failures are now **visible**: `VideoPlayer.onError` toasts
+  `export.failed` with the shell's message (destructive variant) instead of
+  only `console.error`. The WebView exporter's errors get the same toast.
+- Staging progress weights one overlay layer like one chunk push (render +
+  PNG encode + bridge trip), which is what it costs.
+
+Requires the matching LapWing shell (base64 push commands); an older shell
+rejects the new args and the toast says so.
+

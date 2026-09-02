@@ -62,6 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and your chosen distance is remembered per file and switchable from the
   session header.
 
+### Fixed
+- **Save to Gallery / export in the Android app did nothing.** Every export
+  (and the app's background copy of your video) failed on its very first
+  chunk: the way the app handed video bytes to the shell doesn't exist on
+  Android's WebView, and the failure was only logged to the console — the
+  dialog just went idle after a one-second stutter. Video and overlay data
+  now cross the bridge in a form Android supports, and an export that fails
+  says so with the reason instead of silently stopping. Requires the matching
+  LapWing build.
+
 ## [4.1.0] - 2026-08-24
 
 ### Added
