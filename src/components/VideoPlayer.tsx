@@ -544,6 +544,8 @@ export const VideoPlayer = memo(function VideoPlayer({
       onError: (err) => {
         setIsExporting(false);
         console.error("Export error:", err);
+        // Say so — a silent return to idle reads as "nothing happened".
+        toast({ title: t("export.failed"), description: String(err), variant: "destructive" });
       },
       // Native shell: "Save to device" wrote straight into the gallery.
       onSavedToDevice: (uri) => {

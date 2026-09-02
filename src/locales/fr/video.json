@@ -58,6 +58,7 @@
     "saveToGallery": "Enregistrer dans la galerie",
     "saveToGalleryTitle": "Enregistrer la vidéo exportée dans la galerie du téléphone (Movies/LapWing)",
     "savedToGallery": "Enregistré dans votre galerie (Movies/LapWing)",
+    "failed": "Échec de l'exportation",
     "info": "L'export lit la vidéo en temps réel pour capturer chaque image avec les superpositions. \"Enregistrer dans l'app\" stocke la vidéo pour la charger automatiquement à la prochaine session."
   },
   "settings": {

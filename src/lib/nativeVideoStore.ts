@@ -6,8 +6,8 @@
  * thing, so the LapWing shell keeps a copy of the video in app data instead
  * (`video_store_*` IPC; contract in LapWing `docs/video-pipeline.md`):
  *
- *   - `storeNativeVideo` copies the picked File across once (8 MB raw-body
- *     chunks) and seals it under the session's store key;
+ *   - `storeNativeVideo` copies the picked File across once (base64 chunks —
+ *     `nativeBytes.ts`) and seals it under the session's store key;
  *   - `getNativeStoredVideo` finds it again on the next open and returns a
  *     playable URL over the asset protocol — the <video> streams from disk;
  *   - the export bridge names the stored copy as its source (`sourceKey`) and
@@ -18,9 +18,8 @@
  */
 
 import { api } from "@/lib/loggers/native/ipc";
+import { blobToBase64, NATIVE_CHUNK_BYTES } from "@/lib/nativeBytes";
 import { isNativeApp } from "@/lib/platform";
-
-const CHUNK_BYTES = 8 * 1024 * 1024;
 
 export interface NativeStoredVideo {
   key: string;
@@ -78,12 +77,10 @@ export async function storeNativeVideo(
     if (isUnavailable(err)) return null;
     throw err;
   }
-  for (let offset = 0; offset < file.size; offset += CHUNK_BYTES) {
-    const end = Math.min(offset + CHUNK_BYTES, file.size);
-    const bytes = new Uint8Array(await file.slice(offset, end).arrayBuffer());
-    await invoke("video_store_push", bytes, {
-      headers: { "store-key": key, offset: String(offset) },
-    });
+  for (let offset = 0; offset < file.size; offset += NATIVE_CHUNK_BYTES) {
+    const end = Math.min(offset + NATIVE_CHUNK_BYTES, file.size);
+    const data = await blobToBase64(file.slice(offset, end));
+    await invoke("video_store_push", { key, offset, data });
     onProgress?.(end / file.size);
   }
   const info = await invoke<StoredVideoInfo>("video_store_finish", { key });

@@ -10,7 +10,8 @@
  *      answers `unsupported:` (desktop stub) or doesn't know the command (an
  *      older shell), we report "unavailable" and the caller falls back to the
  *      in-WebView exporter.
- *   2. Stream the source MP4 in 8 MB raw-body chunks.
+ *   2. Stream the source MP4 in base64 chunks (`nativeBytes.ts` — Android's
+ *      bridge has no raw request bodies).
  *   3. Render transparent overlay layers with the SAME unified scene renderer
  *      the preview uses (plan 0023), at telemetry cadence (~15 Hz — overlays
  *      change with data, not video frames), PNG-encoded, timestamps relative
@@ -22,6 +23,7 @@
  */
 
 import { api } from "@/lib/loggers/native/ipc";
+import { blobToBase64, NATIVE_CHUNK_BYTES } from "@/lib/nativeBytes";
 import { isNativeApp } from "@/lib/platform";
 import {
   renderOverlaysToCanvas,
@@ -31,13 +33,15 @@ import {
 import type { ExportCallbacks, ExportContext, ExportSource } from "@/lib/videoExport";
 import type { ExportOptions } from "@/components/video-overlays/VideoExportDialog";
 
-const SOURCE_CHUNK_BYTES = 8 * 1024 * 1024;
 /** Overlay layer cadence. Data changes at sample rate (10–25 Hz); 15 Hz keeps
  * every visible change without paying video-rate layer generation. */
 const OVERLAY_FPS = 15;
 /** Share of the progress bar spent staging (source + layers); the transcode
  * gets the rest. */
 const STAGE_FRACTION = 0.35;
+/** Staging-progress weight of one overlay layer, in source bytes: rendering,
+ * PNG-encoding and shipping a 1080p layer costs about one chunk push. */
+const LAYER_UNITS = NATIVE_CHUNK_BYTES;
 
 export interface NativeExportController {
   cancel: () => void;
@@ -136,20 +140,18 @@ export async function startNativeVideoExport(
       const durMs = Math.max(0, Math.round((endTime - startTime) * 1000));
       const layerCount = overlays.length > 0 ? Math.ceil((durMs / 1000) * OVERLAY_FPS) : 0;
       // Weight staging progress by actual work: bytes for the source, one
-      // unit per overlay layer (a layer costs roughly a chunk's IPC trip).
-      const totalUnits = Math.max(1, sourceBytes + layerCount * SOURCE_CHUNK_BYTES * 0.01);
+      // chunk's worth per overlay layer.
+      const totalUnits = Math.max(1, sourceBytes + layerCount * LAYER_UNITS);
       let doneUnits = 0;
       const stageProgress = () =>
         callbacks.onProgress(Math.min(1, doneUnits / totalUnits) * STAGE_FRACTION);
 
-      for (let offset = 0; blob && offset < blob.size; offset += SOURCE_CHUNK_BYTES) {
+      for (let offset = 0; blob && offset < blob.size; offset += NATIVE_CHUNK_BYTES) {
         if (cancelled) return;
-        const end = Math.min(offset + SOURCE_CHUNK_BYTES, blob.size);
-        const bytes = new Uint8Array(await blob.slice(offset, end).arrayBuffer());
-        await invoke("video_export_push_source", bytes, {
-          headers: { "job-id": jobId, offset: String(offset) },
-        });
-        doneUnits += bytes.length;
+        const end = Math.min(offset + NATIVE_CHUNK_BYTES, blob.size);
+        const data = await blobToBase64(blob.slice(offset, end));
+        await invoke("video_export_push_source", { jobId, offset, data });
+        doneUnits += end - offset;
         stageProgress();
       }
 
@@ -172,11 +174,9 @@ export async function startNativeVideoExport(
           renderOverlaysToCanvas(ctx2d, targetW, targetH, overlays, renderCtx, histories, labels);
           const png = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png"));
           if (!png) throw new Error("PNG encode failed");
-          const bytes = new Uint8Array(await png.arrayBuffer());
-          await invoke("video_export_push_overlay", bytes, {
-            headers: { "job-id": jobId, "t-ms": String(tMs) },
-          });
-          doneUnits += SOURCE_CHUNK_BYTES * 0.01;
+          const data = await blobToBase64(png);
+          await invoke("video_export_push_overlay", { jobId, tMs, data });
+          doneUnits += LAYER_UNITS;
           stageProgress();
         }
       }

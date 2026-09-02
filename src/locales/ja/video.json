@@ -58,6 +58,7 @@
     "saveToGallery": "ギャラリーに保存",
     "saveToGalleryTitle": "書き出した動画をスマートフォンのギャラリーに保存します（Movies/LapWing）",
     "savedToGallery": "ギャラリーに保存しました（Movies/LapWing）",
+    "failed": "エクスポートに失敗しました",
     "info": "書き出しは動画をリアルタイムで再生し、各フレームをオーバーレイ付きで取り込みます。「アプリに保存」すると、次回セッションで自動読み込みされるよう動画が保存されます。"
   },
   "settings": {
