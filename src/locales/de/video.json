@@ -55,6 +55,9 @@
     "saveToAppTitle": "Exportiertes Video zum automatischen Laden in der App speichern",
     "saveToDevice": "Auf Gerät speichern",
     "saveToDeviceTitle": "Exportierte Videodatei herunterladen",
+    "saveToGallery": "In Galerie speichern",
+    "saveToGalleryTitle": "Exportiertes Video in der Galerie des Telefons speichern (Movies/LapWing)",
+    "savedToGallery": "In der Galerie gespeichert (Movies/LapWing)",
     "info": "Der Export spielt das Video in Echtzeit ab, um jedes Bild mit Overlays aufzunehmen. \"In App speichern\" legt das Video für das automatische Laden in der nächsten Session ab."
   },
   "settings": {

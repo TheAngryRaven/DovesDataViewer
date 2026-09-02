@@ -1,6 +1,6 @@
 # Native export bridge — hardware-speed overlay video in the shell
 
-> Status: **LANDED** (bridge + renderer memoization). Companion: LapWing's
+> Status: **LANDED** (bridge + renderer memoization; follow-up: gallery save + remembered video). Companion: LapWing's
 > `tauri-plugin-videopipe` + `video_export_*` IPC (its `docs/video-pipeline.md`
 > is the contract; LapWing plan 0001, Phase 2).
 
@@ -64,3 +64,28 @@ and native layer generation alike — the draws' output is bit-identical.
   layout — expect seconds, not minutes; check overlay parity against the
   paused preview, audio presence, A/V sync at the trim boundaries, and that
   cancelling mid-export leaves no stale job (next export begins clean).
+
+## Follow-up (landed): save to gallery + the remembered video
+
+Two gaps the first on-device run exposed:
+
+- **"Save to device" saved nowhere.** It fell into `downloadBlob()` — an
+  `<a download href="blob:…">` click — which the Android WebView has no
+  download handler for. On native, `destination: "device"` now means the
+  **gallery**: the bridge calls `video_export_save(jobId, fileName)` and the
+  shell copies the finished MP4 straight out of its job dir into MediaStore
+  `Movies/LapWing` (the file never round-trips through the WebView); the
+  dialog's button reads *Save to Gallery* on native and `VideoPlayer` toasts
+  `export.savedToGallery`. New `ExportCallbacks.onSavedToDevice`; the web
+  path is untouched.
+- **The video was forgotten on reopen.** The web remembers it via a
+  `FileSystemFileHandle` (Chrome desktop only). `src/lib/nativeVideoStore.ts`
+  is the shell's equivalent: `useVideoSync.loadRecording` copies a
+  single-file recording into the shell's store in the background (8 MB
+  raw-body chunks; the blob URL keeps playing meanwhile), and the restore
+  effect tries `getNativeStoredVideo` before the IndexedDB fallback — the
+  `<video>` then streams from app storage over the asset protocol. The
+  store key rides `VideoSyncState.nativeStoredKey`, and the export bridge
+  passes it as `sourceKey` so an export of a remembered video **skips the
+  source upload entirely** (a stale key silently falls back to uploading).
+  Multi-file recordings keep today's behavior (no store, v1).

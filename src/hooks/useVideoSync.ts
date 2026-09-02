@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { GpsSample } from "@/types/racing";
 import { saveVideoSync, loadVideoSync, VideoSyncRecord, VideoSyncChunk } from "@/lib/videoStorage";
 import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoMeta, type StoredVideoMeta } from "@/lib/videoFileStorage";
+import { getNativeStoredVideo, storeNativeVideo } from "@/lib/nativeVideoStore";
+import { isNativeApp } from "@/lib/platform";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
@@ -50,6 +52,12 @@ export interface VideoSyncState {
   overlaySettings: OverlaySettings;
   hasStoredVideo: boolean;
   storedVideoMeta: StoredVideoMeta | null;
+  /**
+   * Native shell: the key of this session's remembered video in the shell's
+   * store (null on the web, or until the copy finishes). The native export
+   * uses it as its source and skips the source upload.
+   */
+  nativeStoredKey: string | null;
   /**
    * When a selection holds several distinct recordings, the choices to prompt
    * the user with (null = no prompt pending). Each is one recording's display
@@ -165,6 +173,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [isOutOfRange, setIsOutOfRange] = useState(false);
   const [coverage, setCoverage] = useState<VideoCoverage>('covered');
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [nativeStoredKey, setNativeStoredKey] = useState<string | null>(null);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
   const [storedVideoMeta, setStoredVideoMeta] = useState<StoredVideoMeta | null>(null);
@@ -247,9 +256,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     hasSessionVideo(sessionFileName).then(has => setStoredVideoAvailable(has));
     getSessionVideoMeta(sessionFileName).then(meta => setStoredVideoMeta(meta)).catch(() => {});
 
+    setNativeStoredKey(null);
     loadVideoSync(sessionFileName).then(async (record) => {
       if (!record) {
-        // No sync record, but check for stored video anyway
+        // No sync record — the shell may still remember the video, else
+        // check for an app-stored (exported) video.
+        if (await tryLoadNativeStored(sessionFileName)) return;
         await tryLoadStoredVideo(sessionFileName);
         return;
       }
@@ -288,6 +300,11 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         } catch { /* File System Access query failed; fall through to IDB stored video */ }
       }
 
+      // Native shell: the session's remembered video, streamed from app storage.
+      if (!loaded) {
+        loaded = await tryLoadNativeStored(sessionFileName);
+      }
+
       // Fallback: load from IndexedDB stored video
       if (!loaded) {
         await tryLoadStoredVideo(sessionFileName);
@@ -316,6 +333,18 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     }
     revokeAllUrls();
     await applyPlaylist(entries);
+    return true;
+  }, [revokeAllUrls, applyPlaylist]);
+
+  // Native shell: the session's remembered video (see nativeVideoStore.ts).
+  // Plays over the asset protocol straight from app storage — no blob, no
+  // copy into memory.
+  const tryLoadNativeStored = useCallback(async (fileName: string): Promise<boolean> => {
+    const stored = await getNativeStoredVideo(fileName);
+    if (!stored) return false;
+    revokeAllUrls();
+    await applyPlaylist([{ name: stored.fileName, url: stored.url }]);
+    setNativeStoredKey(stored.key);
     return true;
   }, [revokeAllUrls, applyPlaylist]);
 
@@ -384,7 +413,18 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       handle: e.handle,
     })));
     persistSync(syncOffsetMsRef.current);
-  }, [revokeAllUrls, applyPlaylist, persistSync]);
+
+    // Native shell: remember the video for this session by copying it into
+    // the shell's store in the background (single-file recordings only). The
+    // blob URL keeps playing meanwhile; once stored, exports use the copy.
+    setNativeStoredKey(null);
+    if (isNativeApp() && sessionFileName && recording.files.length === 1) {
+      const file = recording.files[0].file;
+      void storeNativeVideo(sessionFileName, file)
+        .then((stored) => { if (stored) setNativeStoredKey(stored.key); })
+        .catch((e) => console.warn("Native video store failed:", e));
+    }
+  }, [revokeAllUrls, applyPlaylist, persistSync, sessionFileName]);
 
   // Group a fresh selection into recordings: load straight away when there's
   // exactly one, otherwise stash them and prompt the user to pick.
@@ -842,12 +882,13 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
     videoDuration, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
+    nativeStoredKey,
     storedVideoMeta,
     pendingRecordings,
   }), [
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
     videoDuration, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
-    storedVideoAvailable, storedVideoMeta, pendingRecordings,
+    storedVideoAvailable, nativeStoredKey, storedVideoMeta, pendingRecordings,
   ]);
 
   const actions: VideoSyncActions = useMemo(() => ({

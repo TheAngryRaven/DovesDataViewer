@@ -50,6 +50,12 @@ export interface ExportCallbacks {
   onProgress: (fraction: number) => void;
   onComplete: (blob: Blob) => void;
   onError: (error: string) => void;
+  /**
+   * Native shell only: the export was written straight into the device's
+   * gallery and no Blob comes back. When absent, the native bridge collects
+   * the MP4 and calls `onComplete` instead.
+   */
+  onSavedToDevice?: (uri: string) => void;
 }
 
 export interface ExportContext {
@@ -76,6 +82,13 @@ export interface ExportSource {
   liveVideo: HTMLVideoElement;
   chunks: ExportChunk[];
   totalDuration: number;
+  /** The video's display file name — output naming on the native path. */
+  fileName?: string;
+  /**
+   * Native shell: the session's remembered-video key. The native export uses
+   * the stored copy as its source and skips the source upload entirely.
+   */
+  nativeSourceKey?: string;
 }
 
 /* ------------------------------------------------------------------ */

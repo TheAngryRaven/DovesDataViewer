@@ -91,17 +91,28 @@ export async function startNativeVideoExport(
 
   const { invoke, Channel } = await api();
 
+  const baseParams = {
+    width: targetW,
+    height: targetH,
+    bitrate,
+    startMs: Math.round(startTime * 1000),
+    endMs: Math.round(endTime * 1000),
+  };
+
+  // Prefer the session's stored copy as the source (no upload at all); a
+  // stale key just means we upload the blob like any other export.
+  let useStoredSource = !!source.nativeSourceKey;
   let jobId: string;
   try {
-    jobId = await invoke<string>("video_export_begin", {
-      params: {
-        width: targetW,
-        height: targetH,
-        bitrate,
-        startMs: Math.round(startTime * 1000),
-        endMs: Math.round(endTime * 1000),
-      },
-    });
+    try {
+      jobId = await invoke<string>("video_export_begin", {
+        params: useStoredSource ? { ...baseParams, sourceKey: source.nativeSourceKey } : baseParams,
+      });
+    } catch (err) {
+      if (!useStoredSource || isUnavailable(err)) throw err;
+      useStoredSource = false;
+      jobId = await invoke<string>("video_export_begin", { params: baseParams });
+    }
   } catch (err) {
     if (isUnavailable(err)) return null;
     callbacks.onError(String(err));
@@ -118,19 +129,20 @@ export async function startNativeVideoExport(
 
   void (async () => {
     try {
-      // ── Stage the source ─────────────────────────────────────────────
-      const blob = await (await fetch(source.chunks[0].url)).blob();
+      // ── Stage the source (unless the shell already holds it) ─────────
+      const blob = useStoredSource ? null : await (await fetch(source.chunks[0].url)).blob();
+      const sourceBytes = blob?.size ?? 0;
       const overlays = options.includeOverlays ? exportCtx.overlays : [];
       const durMs = Math.max(0, Math.round((endTime - startTime) * 1000));
       const layerCount = overlays.length > 0 ? Math.ceil((durMs / 1000) * OVERLAY_FPS) : 0;
       // Weight staging progress by actual work: bytes for the source, one
       // unit per overlay layer (a layer costs roughly a chunk's IPC trip).
-      const totalUnits = Math.max(1, blob.size + layerCount * SOURCE_CHUNK_BYTES * 0.01);
+      const totalUnits = Math.max(1, sourceBytes + layerCount * SOURCE_CHUNK_BYTES * 0.01);
       let doneUnits = 0;
       const stageProgress = () =>
         callbacks.onProgress(Math.min(1, doneUnits / totalUnits) * STAGE_FRACTION);
 
-      for (let offset = 0; offset < blob.size; offset += SOURCE_CHUNK_BYTES) {
+      for (let offset = 0; blob && offset < blob.size; offset += SOURCE_CHUNK_BYTES) {
         if (cancelled) return;
         const end = Math.min(offset + SOURCE_CHUNK_BYTES, blob.size);
         const bytes = new Uint8Array(await blob.slice(offset, end).arrayBuffer());
@@ -176,8 +188,20 @@ export async function startNativeVideoExport(
         callbacks.onProgress(STAGE_FRACTION + p.fraction * (1 - STAGE_FRACTION));
       await invoke("video_export_run", { jobId, onProgress });
 
-      const buf = await invoke<ArrayBuffer>("video_export_collect", { jobId });
-      callbacks.onComplete(new Blob([buf], { type: "video/mp4" }));
+      // "Save to device" on native means the gallery: the shell copies the
+      // finished MP4 straight out of its job dir — nothing comes back through
+      // the WebView. "Save to app" (and callers without the hook) collect it.
+      if (options.destination === "device" && callbacks.onSavedToDevice) {
+        const base = (source.fileName ?? "export").replace(/\.[^.]+$/, "");
+        const uri = await invoke<string>("video_export_save", {
+          jobId,
+          fileName: `${base}-overlay.mp4`,
+        });
+        callbacks.onSavedToDevice(uri);
+      } else {
+        const buf = await invoke<ArrayBuffer>("video_export_collect", { jobId });
+        callbacks.onComplete(new Blob([buf], { type: "video/mp4" }));
+      }
     } catch (err) {
       if (!cancelled) callbacks.onError(String(err));
     } finally {

@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **Save to Gallery (Android app).** *Save to device* now lands the export in
+  your phone's gallery under *Movies/LapWing* — previously it quietly went
+  nowhere inside the app, because it used the browser's download path. The
+  file is written straight from the native pipeline, so nothing large passes
+  through the app's web layer.
+- **The app remembers your video.** Load a video for a session once in the
+  Android app and it comes back the next time you open that session, exactly
+  like the web version does with Chrome's file handles — the app keeps its own
+  copy in app storage and plays it from there. Exports of a remembered video
+  are faster too: the app already has the file, so there's nothing to upload
+  to the pipeline first.
 - **Hardware-speed export in the Android app.** Inside the LapWing shell,
   *Export with overlays* now hands the whole job to the phone's hardware:
   the shell transcodes with the platform codecs and composites the overlays

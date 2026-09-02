@@ -55,6 +55,9 @@
     "saveToAppTitle": "Guardar el vídeo exportado en la app para carga automática",
     "saveToDevice": "Guardar en el dispositivo",
     "saveToDeviceTitle": "Descargar el archivo de vídeo exportado",
+    "saveToGallery": "Guardar en la galería",
+    "saveToGalleryTitle": "Guardar el vídeo exportado en la galería del teléfono (Movies/LapWing)",
+    "savedToGallery": "Guardado en tu galería (Movies/LapWing)",
     "info": "La exportación reproduce el vídeo en tiempo real para capturar cada fotograma con las superposiciones. \"Guardar en la app\" almacena el vídeo para cargarlo automáticamente la próxima sesión."
   },
   "settings": {
