@@ -101,5 +101,31 @@
     "lapTime": "RUNDENZEIT",
     "delta": "DELTA",
     "best": "BESTE {{lap}}"
+  },
+  "insta360": {
+    "importButton": "Von Insta360-Kamera",
+    "title": "Insta360-Kamera",
+    "intro": "Mit dem WLAN der Kamera verbinden und eine Aufnahme direkt von der Kamera streamen – es wird nichts heruntergeladen.",
+    "ssidPrefix": "WLAN-Name der Kamera beginnt mit",
+    "ssidPrefixHint": "Leer lassen, um aus allen Netzwerken in Reichweite zu wählen.",
+    "passphrase": "WLAN-Passwort",
+    "passphraseHint": "Insta360-Kameras werden mit 88888888 ausgeliefert.",
+    "connect": "Verbinden",
+    "connecting": "Verbindung zur Kamera wird hergestellt…",
+    "listing": "Aufnahmen der Kamera werden gelesen…",
+    "connected": "Verbunden: {{camera}}",
+    "refresh": "Aktualisieren",
+    "disconnect": "Trennen",
+    "noRecordings": "Keine Videoaufnahmen auf der Kamera.",
+    "load": "Laden",
+    "badge360": "360°",
+    "segments": "{{count}} Segmente",
+    "back": "Zurück",
+    "pointView": "360°-Ansicht ausrichten – Bild ziehen",
+    "lockView": "360°-Ansicht sperren",
+    "resetView": "360°-Ansicht zurücksetzen",
+    "exportUnavailable": "Export ist für Kamera-Streams noch nicht verfügbar",
+    "openFailed": "Kamera-Stream konnte nicht gestartet werden",
+    "streamError": "Der Kamera-Stream wurde unterbrochen"
   }
 }

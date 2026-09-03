@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **Stream video straight from an Insta360 camera (Android app).** *From
+  Insta360 camera* in the video panel joins the camera's Wi-Fi, lists its
+  recordings and plays one without downloading it — the app's native player
+  streams the file off the camera, and overlays, sync lock and scrubbing work
+  on it like any video. 360° recordings show as a flat view you point by
+  dragging the picture (compass button), then lock; a reset button returns
+  to straight ahead. Export isn't available for camera streams yet. Needs a
+  build of the app that bundles the Insta360 SDK; otherwise the button
+  doesn't appear. (Plan 0025; LapWing plan 0002.)
 - **See and clear the videos the Android app keeps.** The Profile tab gains
   a *Videos on this device* card listing every session video the app has
   copied for reloading — file, session, size, date — with a delete per

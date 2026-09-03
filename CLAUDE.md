@@ -98,7 +98,7 @@ src/
 │   ├── video-overlays/    # Video-export overlay system: registry + themes + per-widget *Overlay
 │   ├── RaceLineView.tsx   # Leaflet map: race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas speed/telemetry chart (simple mode)
-│   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist)
+│   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist); native: a camera stream renders as an <img> over lib/insta360's NativePlayerElement (plan 0025), with components/insta360/ (import dialog, 360° drag-to-point layer)
 │   └── …                  # FileImport, LoggerDownload (eager picker host) + LoggerPicker (image chooser) + DataloggerDownload (lazy web-BLE Fledgling flow) / DovesloggerDownload (lazy native-BLE Fledgling flow) / MyChronDownload (lazy native Wi-Fi flow), LapSnapshot*, …
 ├── hooks/                 # One concern each; Index.tsx orchestrates.
 │   ├── useSessionData     # Parses imported file → ParsedData
@@ -139,6 +139,7 @@ src/
 │   ├── loggers/           # ★ Generic LoggerConnection (listLogs/downloadLog/disconnect) + per-logger adapters — Fledgling=web BLE, mychron/=MyChron over native (Tauri) Wi-Fi IPC, doveslogger/=same Fledgling hardware over native (Tauri) BLE IPC (scan→connect→list→download), alfano/=Alfano over native (Tauri) Bluetooth-serial IPC (SKELETON: web-side seam only, Rust backend TBD — Bluetooth serial can't be reached in-browser so there's no web path); native/ipc.ts = shared kind-agnostic native IPC (all lazy; @tauri-apps/api dynamic-imported, native-only). progress.ts = transport-neutral formatters + computeProgress; errors.ts = pure error-prefix classifier + recovery-action table — every download flow renders classified, translated errors via the shared ErrorPanel, never raw backend strings. Native Fledgling firmware OTA (plan 0008): doveslogger/`loggerUpdateFirmware` + `firmwareInfo.ts` + `useNativeFirmwareUpdate`/`NativeFirmwarePanel`, reusing lib/ble/dfu; availability runtime-detected (→ docs/ble.md, docs/android.md)
 │   ├── speedHeatmap.ts / mapMarker.ts / brakingZones / gforceCalculation / …  # racing math
 │   ├── chartUtils / canvas2d / chartAxis / chartColors / videoExport / overlayCanvasRenderer  # charts/video
+│   ├── insta360/          # ★ Native-only Insta360 camera bridge (plan 0025): ipc (insta360_* over the lazy Tauri loader), nativePlayer (the camera stream as a <video>-shaped VideoSurface for useVideoSync), playerClock + pose (pure, tested)
 │   ├── videoPlaylist.ts   # ★ Pure GoPro chunked-video model: parse/order GH/GX/GP/GOPR chunk names, build a virtual timeline (cumulative offsets) + virtual↔local time mapping + planAudioSegments (export audio stitch). useVideoSync swaps the <video> src per chunk; a single file is a 1-chunk playlist
 │   ├── satelliteImagery.ts # ★ Esri Wayback parsing (online-only satellite imagery-date picker)
 │   ├── ble/               # Web Bluetooth DovesLapTimer protocol + firmware OTA (→ docs/ble.md)
