@@ -55,6 +55,10 @@
     "saveToAppTitle": "書き出した動画を自動読み込み用にアプリへ保存",
     "saveToDevice": "デバイスに保存",
     "saveToDeviceTitle": "書き出した動画ファイルをダウンロード",
+    "saveToGallery": "ギャラリーに保存",
+    "saveToGalleryTitle": "書き出した動画をスマートフォンのギャラリーに保存します（Movies/LapWing）",
+    "savedToGallery": "ギャラリーに保存しました（Movies/LapWing）",
+    "failed": "エクスポートに失敗しました",
     "info": "書き出しは動画をリアルタイムで再生し、各フレームをオーバーレイ付きで取り込みます。「アプリに保存」すると、次回セッションで自動読み込みされるよう動画が保存されます。"
   },
   "settings": {
@@ -97,5 +101,31 @@
     "lapTime": "ラップタイム",
     "delta": "デルタ",
     "best": "ベスト {{lap}}"
+  },
+  "insta360": {
+    "importButton": "Insta360 カメラから",
+    "title": "Insta360 カメラ",
+    "intro": "カメラの Wi-Fi に接続し、録画をカメラから直接ストリーミングします。ダウンロードは行いません。",
+    "ssidPrefix": "カメラの Wi-Fi 名の先頭",
+    "ssidPrefixHint": "空欄にすると、範囲内のすべてのネットワークから選べます。",
+    "passphrase": "Wi-Fi パスワード",
+    "passphraseHint": "Insta360 カメラの初期値は 88888888 です。",
+    "connect": "接続",
+    "connecting": "カメラに接続中…",
+    "listing": "カメラの録画を読み込み中…",
+    "connected": "接続済み: {{camera}}",
+    "refresh": "更新",
+    "disconnect": "切断",
+    "noRecordings": "カメラに動画の録画がありません。",
+    "load": "読み込む",
+    "badge360": "360°",
+    "segments": "{{count}} セグメント",
+    "back": "戻る",
+    "pointView": "360° ビューの向きを変える — 画像をドラッグ",
+    "lockView": "360° ビューをロック",
+    "resetView": "360° ビューをリセット",
+    "exportUnavailable": "カメラストリームの書き出しはまだ利用できません",
+    "openFailed": "カメラストリームを開始できませんでした",
+    "streamError": "カメラストリームが停止しました"
   }
 }

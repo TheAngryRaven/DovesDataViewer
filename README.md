@@ -27,6 +27,7 @@
 - Automatic track & course detection within 5 miles
 - Automatic driving direction detection (forward/reverse)
 - Waypoint mode — lap timing anywhere, no track needed
+- Drag mode — standing-start runs auto-detected at unknown venues; pick 1/8 mile, 1000 ft or 1/4 mile and every pass gets a time-slip breakdown (60/330/660/1000 ft splits + ET), incomplete passes included
 - Interactive race line map with speed heatmap
 - Braking zone detection & visualization
 - Automatic lap detection via start/finish line

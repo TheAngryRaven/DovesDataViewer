@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import {
+  GpsSample,
   ParsedData,
   Track,
   TrackCourseSelection,
@@ -9,6 +10,14 @@ import { getFileMetadata, updateFileMetadata, type FileMetadata } from "@/lib/fi
 import { loadTracks } from "@/lib/trackStorage";
 import { findNearestTrack } from "@/lib/trackUtils";
 import { autoDetectCourse, tracksForRaceMode } from "@/lib/courseDetection";
+import {
+  detectDragRuns,
+  dragRunsToLaps,
+  isDragDistanceFt,
+  type DragDetectionResult,
+  type DragDistanceFt,
+} from "@/lib/dragRunDetection";
+import { fastestRankedLap } from "@/lib/lapCalculation";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { ensureSampleFile, SAMPLE_FILE_NAME } from "@/lib/sampleData";
 import type { useSessionData } from "@/hooks/useSessionData";
@@ -38,6 +47,18 @@ export interface UseDataLoaderReturn {
   detectionResult: CourseDetectionResult | null;
   allTracks: Track[];
   gpsCenter: { lat: number; lon: number } | null;
+
+  // Drag mode (plan 0022) — set when the loaded session was recognized as
+  // drag-strip runs (no course; laps are standing-start passes).
+  dragDetection: DragDetectionResult | null;
+  /** The active scoring distance; non-null means this is a drag session. */
+  dragDistanceFt: DragDistanceFt | null;
+  /** Re-score the held runs at a distance, persisting the choice + fastest run. */
+  applyDragDistance: (distanceFt: DragDistanceFt) => void;
+  /** Stand down drag mode in memory (metadata clearing rides selection changes). */
+  clearDragSession: () => void;
+  /** Prompt escape: swap the pre-applied drag runs for the held waypoint laps. */
+  handleUseWaypoint: () => void;
 }
 
 /** Pick the lap with the lowest lapTimeMs (linear, no Math.min spread). */
@@ -78,6 +99,26 @@ export function detectionMetadataPatch(
 }
 
 /**
+ * The metadata patch to persist when a drag session's scoring distance is
+ * applied: the distance itself plus the fastest COMPLETE run for the browser
+ * badge — an incomplete run's data window must never be cached as a time, and
+ * a stale badge from a previous distance is cleared when no run completes the
+ * new one. Pure so the tag-on-apply behaviour stays testable.
+ */
+export function dragMetadataPatch(
+  distanceFt: DragDistanceFt,
+  laps: { lapNumber: number; lapTimeMs: number; incomplete?: boolean }[],
+  startDate?: Date,
+): Partial<Omit<FileMetadata, "fileName">> {
+  const patch: Partial<Omit<FileMetadata, "fileName">> = { dragDistanceFt: distanceFt };
+  if (startDate) patch.sessionStartTime = startDate.getTime();
+  const fastest = fastestRankedLap(laps);
+  patch.fastestLapMs = fastest?.lapTimeMs;
+  patch.fastestLapNumber = fastest?.lapNumber;
+  return patch;
+}
+
+/**
  * File-load orchestration: connects sessionData (parsing), lapMgmt (lap calc),
  * sessionMeta (per-file kart/setup/weather metadata), and the track-prompt UI.
  *
@@ -95,11 +136,40 @@ export function useDataLoader({
   const [gpsCenter, setGpsCenter] = useState<{ lat: number; lon: number } | null>(null);
   const [detectionResult, setDetectionResult] = useState<CourseDetectionResult | null>(null);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
+  const [dragDetection, setDragDetection] = useState<DragDetectionResult | null>(null);
+  const [dragDistanceFt, setDragDistanceFt] = useState<DragDistanceFt | null>(null);
+
+  // Score held drag runs at a distance and swap the resulting run-laps in.
+  // Samples are passed explicitly: during a load, sessionData.data is still the
+  // previous session (setState hasn't flushed).
+  const applyDrag = useCallback(
+    (
+      samples: GpsSample[],
+      drag: DragDetectionResult,
+      distanceFt: DragDistanceFt,
+      fileName?: string | null,
+      startDate?: Date,
+      persist = true,
+    ) => {
+      const dragLaps = dragRunsToLaps(samples, drag.runs, distanceFt);
+      lapMgmt.setLaps(dragLaps);
+      lapMgmt.setSelectedLapNumber(fastestRankedLap(dragLaps)?.lapNumber ?? null);
+      setDragDetection(drag);
+      setDragDistanceFt(distanceFt);
+      if (persist && fileName) {
+        updateFileMetadata(fileName, dragMetadataPatch(distanceFt, dragLaps, startDate));
+      }
+    },
+    [lapMgmt],
+  );
 
   const handleDataLoaded = useCallback(
     async (parsedData: ParsedData, fileName?: string) => {
       sessionData.loadParsedData(parsedData, fileName);
       lapMgmt.setCurrentIndex(0);
+      // A previous file's drag state must never leak into this one.
+      setDragDetection(null);
+      setDragDistanceFt(null);
 
       // Try to restore track selection from metadata
       let courseToUse = lapMgmt.selectedCourse;
@@ -129,6 +199,17 @@ export function useDataLoader({
             restoredFromMeta = true;
           }
           sessionMeta.restoreFromMetadata(meta);
+          // A saved drag session restores silently: re-detect and re-map at the
+          // stored distance (a track/course restore above shadows a stale drag
+          // tag; a corrupt file that no longer detects falls through to normal
+          // detection).
+          if (!restoredFromMeta && isDragDistanceFt(meta.dragDistanceFt)) {
+            const drag = detectDragRuns(parsedData.samples);
+            if (drag) {
+              applyDrag(parsedData.samples, drag, meta.dragDistanceFt, fileName, parsedData.startDate);
+              return;
+            }
+          }
         } else {
           sessionMeta.restoreFromMetadata(null);
         }
@@ -193,6 +274,20 @@ export function useDataLoader({
         return;
       }
 
+      // No confident course match. Check for drag-strip data BEFORE accepting a
+      // waypoint result: a drag session's return road loops back near the
+      // staging lanes, so waypoint mode happily mis-times out-and-back passes
+      // as "laps".
+      const drag = detectDragRuns(parsedData.samples);
+      if (drag) {
+        // Pre-apply at the suggested distance (mirrors the waypoint branch's
+        // optimistic laps); nothing persists until the user confirms.
+        applyDrag(parsedData.samples, drag, drag.suggestedDistanceFt, undefined, undefined, false);
+        setDetectedTrack(null);
+        setTrackPromptOpen(true);
+        return;
+      }
+
       if (detection && detection.isWaypointMode) {
         // Waypoint mode — apply laps and prompt the user to confirm
         lapMgmt.setLaps(detection.laps);
@@ -207,7 +302,7 @@ export function useDataLoader({
       setDetectedTrack(nearest as Track | null);
       setTrackPromptOpen(true);
     },
-    [sessionData, lapMgmt, sessionMeta],
+    [sessionData, lapMgmt, sessionMeta, applyDrag],
   );
 
   // The sample log is an ordinary seeded file now: ensure it exists, parse it,
@@ -229,6 +324,9 @@ export function useDataLoader({
 
   const handleTrackPromptSelect = useCallback(
     (sel: TrackCourseSelection) => {
+      // A real course supersedes any drag/waypoint pre-application.
+      setDragDetection(null);
+      setDragDistanceFt(null);
       lapMgmt.handleSelectionChange(sel);
       const samples = sessionData.data?.samples;
       if (!samples) return;
@@ -237,6 +335,34 @@ export function useDataLoader({
     },
     [lapMgmt, sessionData.data],
   );
+
+  // Re-score the held runs at a new distance (prompt apply + header switcher).
+  // Marks were all timed at detection, so this is a pure re-mapping.
+  const applyDragDistance = useCallback(
+    (distanceFt: DragDistanceFt) => {
+      const samples = sessionData.data?.samples;
+      if (!dragDetection || !samples) return;
+      applyDrag(samples, dragDetection, distanceFt, sessionData.currentFileName, sessionData.data?.startDate);
+    },
+    [dragDetection, sessionData.data, sessionData.currentFileName, applyDrag],
+  );
+
+  const clearDragSession = useCallback(() => {
+    setDragDetection(null);
+    setDragDistanceFt(null);
+  }, []);
+
+  // Prompt escape for a session where drag pre-applied its runs but a waypoint
+  // result also exists: swap in the waypoint laps and stand down drag mode.
+  // Nothing persists — matching the plain waypoint flow, where dismissing the
+  // prompt keeps its laps unpersisted.
+  const handleUseWaypoint = useCallback(() => {
+    if (!detectionResult?.isWaypointMode) return;
+    lapMgmt.setLaps(detectionResult.laps);
+    lapMgmt.setSelectedLapNumber(pickFastestLapNumber(detectionResult.laps));
+    setDragDetection(null);
+    setDragDistanceFt(null);
+  }, [detectionResult, lapMgmt]);
 
   return {
     handleDataLoaded,
@@ -249,5 +375,10 @@ export function useDataLoader({
     detectionResult,
     allTracks,
     gpsCenter,
+    dragDetection,
+    dragDistanceFt,
+    applyDragDistance,
+    clearDragSession,
+    handleUseWaypoint,
   };
 }

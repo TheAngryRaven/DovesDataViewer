@@ -54,6 +54,10 @@
     "saveToAppTitle": "Save exported video to the app for auto-loading",
     "saveToDevice": "Save to Device",
     "saveToDeviceTitle": "Download exported video file",
+    "saveToGallery": "Save to Gallery",
+    "saveToGalleryTitle": "Save the exported video to your phone's gallery (Movies/LapWing)",
+    "savedToGallery": "Saved to your gallery (Movies/LapWing)",
+    "failed": "Export failed",
     "info": "Video export plays through the video in real-time to capture each frame with overlays. \"Save to App\" stores the video for auto-loading next session."
   },
   "settings": {
@@ -96,5 +100,31 @@
     "lapTime": "LAP TIME",
     "delta": "DELTA",
     "best": "BEST {{lap}}"
+  },
+  "insta360": {
+    "importButton": "From Insta360 camera",
+    "title": "Insta360 camera",
+    "intro": "Join the camera's Wi-Fi and stream a recording straight from the camera — nothing is downloaded.",
+    "ssidPrefix": "Camera Wi-Fi name starts with",
+    "ssidPrefixHint": "Leave empty to pick from every network in range.",
+    "passphrase": "Wi-Fi password",
+    "passphraseHint": "Insta360 cameras ship with 88888888.",
+    "connect": "Connect",
+    "connecting": "Connecting to the camera…",
+    "listing": "Reading the camera's recordings…",
+    "connected": "Connected: {{camera}}",
+    "refresh": "Refresh",
+    "disconnect": "Disconnect",
+    "noRecordings": "No video recordings on the camera.",
+    "load": "Load",
+    "badge360": "360°",
+    "segments": "{{count}} segments",
+    "back": "Back",
+    "pointView": "Point the 360° view — drag the picture",
+    "lockView": "Lock the 360° view",
+    "resetView": "Reset the 360° view",
+    "exportUnavailable": "Export isn't available for camera streams yet",
+    "openFailed": "Couldn't start the camera stream",
+    "streamError": "The camera stream stopped"
   }
 }

@@ -55,6 +55,10 @@
     "saveToAppTitle": "Guardar el vídeo exportado en la app para carga automática",
     "saveToDevice": "Guardar en el dispositivo",
     "saveToDeviceTitle": "Descargar el archivo de vídeo exportado",
+    "saveToGallery": "Guardar en la galería",
+    "saveToGalleryTitle": "Guardar el vídeo exportado en la galería del teléfono (Movies/LapWing)",
+    "savedToGallery": "Guardado en tu galería (Movies/LapWing)",
+    "failed": "Error al exportar",
     "info": "La exportación reproduce el vídeo en tiempo real para capturar cada fotograma con las superposiciones. \"Guardar en la app\" almacena el vídeo para cargarlo automáticamente la próxima sesión."
   },
   "settings": {
@@ -97,5 +101,31 @@
     "lapTime": "TIEMPO DE VUELTA",
     "delta": "DELTA",
     "best": "MEJOR {{lap}}"
+  },
+  "insta360": {
+    "importButton": "Desde cámara Insta360",
+    "title": "Cámara Insta360",
+    "intro": "Conéctate al Wi-Fi de la cámara y reproduce una grabación directamente desde ella; no se descarga nada.",
+    "ssidPrefix": "El nombre del Wi-Fi de la cámara empieza por",
+    "ssidPrefixHint": "Déjalo vacío para elegir entre todas las redes al alcance.",
+    "passphrase": "Contraseña del Wi-Fi",
+    "passphraseHint": "Las cámaras Insta360 vienen con 88888888.",
+    "connect": "Conectar",
+    "connecting": "Conectando con la cámara…",
+    "listing": "Leyendo las grabaciones de la cámara…",
+    "connected": "Conectado: {{camera}}",
+    "refresh": "Actualizar",
+    "disconnect": "Desconectar",
+    "noRecordings": "No hay grabaciones de vídeo en la cámara.",
+    "load": "Cargar",
+    "badge360": "360°",
+    "segments": "{{count}} segmentos",
+    "back": "Atrás",
+    "pointView": "Orientar la vista 360°: arrastra la imagen",
+    "lockView": "Bloquear la vista 360°",
+    "resetView": "Restablecer la vista 360°",
+    "exportUnavailable": "La exportación aún no está disponible para transmisiones de cámara",
+    "openFailed": "No se pudo iniciar la transmisión de la cámara",
+    "streamError": "La transmisión de la cámara se detuvo"
   }
 }

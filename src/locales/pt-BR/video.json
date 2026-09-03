@@ -55,6 +55,10 @@
     "saveToAppTitle": "Salvar o vídeo exportado no app para carregamento automático",
     "saveToDevice": "Salvar no dispositivo",
     "saveToDeviceTitle": "Baixar o arquivo de vídeo exportado",
+    "saveToGallery": "Salvar na galeria",
+    "saveToGalleryTitle": "Salvar o vídeo exportado na galeria do celular (Movies/LapWing)",
+    "savedToGallery": "Salvo na sua galeria (Movies/LapWing)",
+    "failed": "Falha na exportação",
     "info": "A exportação reproduz o vídeo em tempo real para capturar cada quadro com as sobreposições. \"Salvar no app\" armazena o vídeo para carregá-lo automaticamente na próxima sessão."
   },
   "settings": {
@@ -97,5 +101,31 @@
     "lapTime": "TEMPO DE VOLTA",
     "delta": "DELTA",
     "best": "MELHOR {{lap}}"
+  },
+  "insta360": {
+    "importButton": "Da câmera Insta360",
+    "title": "Câmera Insta360",
+    "intro": "Conecte-se ao Wi-Fi da câmera e transmita uma gravação direto da câmera — nada é baixado.",
+    "ssidPrefix": "O nome do Wi-Fi da câmera começa com",
+    "ssidPrefixHint": "Deixe em branco para escolher entre todas as redes ao alcance.",
+    "passphrase": "Senha do Wi-Fi",
+    "passphraseHint": "As câmeras Insta360 vêm de fábrica com 88888888.",
+    "connect": "Conectar",
+    "connecting": "Conectando à câmera…",
+    "listing": "Lendo as gravações da câmera…",
+    "connected": "Conectado: {{camera}}",
+    "refresh": "Atualizar",
+    "disconnect": "Desconectar",
+    "noRecordings": "Nenhuma gravação de vídeo na câmera.",
+    "load": "Carregar",
+    "badge360": "360°",
+    "segments": "{{count}} segmentos",
+    "back": "Voltar",
+    "pointView": "Apontar a visão 360° — arraste a imagem",
+    "lockView": "Travar a visão 360°",
+    "resetView": "Redefinir a visão 360°",
+    "exportUnavailable": "A exportação ainda não está disponível para transmissões da câmera",
+    "openFailed": "Não foi possível iniciar a transmissão da câmera",
+    "streamError": "A transmissão da câmera parou"
   }
 }

@@ -11,6 +11,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [4.2.0] - unreleased
+
+### Added
+- **Stream video straight from an Insta360 camera (Android app).** *From
+  Insta360 camera* in the video panel joins the camera's Wi-Fi, lists its
+  recordings and plays one without downloading it — the app's native player
+  streams the file off the camera, and overlays, sync lock and scrubbing work
+  on it like any video. 360° recordings show as a flat view you point by
+  dragging the picture (compass button), then lock; a reset button returns
+  to straight ahead. Export isn't available for camera streams yet. Needs a
+  build of the app that bundles the Insta360 SDK; otherwise the button
+  doesn't appear. (Plan 0025; LapWing plan 0002.)
+- **See and clear the videos the Android app keeps.** The Profile tab gains
+  a *Videos on this device* card listing every session video the app has
+  copied for reloading — file, session, size, date — with a delete per
+  video and a clear-all, each reporting the space freed. A session playing
+  from a deleted copy simply unloads its video; your original files are
+  never touched. Requires the matching LapWing build (older builds show a
+  note instead).
+- **Save to Gallery (Android app).** *Save to device* now lands the export in
+  your phone's gallery under *Movies/LapWing* — previously it quietly went
+  nowhere inside the app, because it used the browser's download path. The
+  file is written straight from the native pipeline, so nothing large passes
+  through the app's web layer.
+- **The app remembers your video.** Load a video for a session once in the
+  Android app and it comes back the next time you open that session, exactly
+  like the web version does with Chrome's file handles — the app keeps its own
+  copy in app storage and plays it from there. Exports of a remembered video
+  are faster too: the app already has the file, so there's nothing to upload
+  to the pipeline first.
+- **Hardware-speed export in the Android app.** Inside the LapWing shell,
+  *Export with overlays* now hands the whole job to the phone's hardware:
+  the shell transcodes with the platform codecs and composites the overlays
+  on the GPU, with audio copied through untouched — seconds instead of
+  minutes for a typical clip (the in-app exporter previously stepped the
+  video one frame at a time and couldn't keep up). The overlay layers are
+  drawn by the same renderer as the preview, so the burned-in widgets match
+  what you scrubbed, in your language. Web and desktop exports are
+  unchanged, and an older shell (or a multi-file recording) falls back to
+  the previous exporter automatically. Requires a LapWing build with the
+  `video_export_*` pipeline (plan 0024).
+
+### Changed
+- **One overlay renderer for preview and export.** The video-overlay preview
+  and the export pipeline previously drew with two separate implementations
+  that had drifted apart: exported videos were missing the graph grid lines,
+  the needle/dot glow, the bubble's center dot and the pace bar's SLOW/FAST
+  labels, stacked the pace bar's center line differently, and printed every
+  label in English whatever the app language. Both now go through the same
+  per-type draw functions (`lib/overlayCanvasRenderer.ts`), so what you see
+  while scrubbing is what the export burns in — including your language's
+  labels. The sector widget's completion sparkle is now driven by the data
+  timeline instead of the wall clock, which also means it finally appears in
+  exported videos, on the exact frames where the sector completed. This is
+  phase 0 of the native video-overlay work (plan 0023): the native app's
+  burn-in export will call this same renderer, so all three outputs match by
+  construction.
+
+### Added
+- **Drag mode** — drop in a log from a drag strip (or any venue the app doesn't
+  know) and standing-start runs are detected automatically: pick 1/8 mile,
+  1000 ft or 1/4 mile and every pass gets a time-slip style breakdown — ET at
+  the scoring distance plus 60 ft / 330 ft / 660 ft / 1000 ft splits. Passes
+  that lifted early stay listed as incomplete with the splits they did reach,
+  and your chosen distance is remembered per file and switchable from the
+  session header.
+
+### Fixed
+- **Save to Gallery / export in the Android app did nothing.** Every export
+  (and the app's background copy of your video) failed on its very first
+  chunk: the way the app handed video bytes to the shell doesn't exist on
+  Android's WebView, and the failure was only logged to the console — the
+  dialog just went idle after a one-second stutter. Video and overlay data
+  now cross the bridge in a form Android supports, and an export that fails
+  says so with the reason instead of silently stopping. Requires the matching
+  LapWing build.
+
 ## [4.1.0] - 2026-08-24
 
 ### Added

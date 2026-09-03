@@ -98,7 +98,7 @@ src/
 │   ├── video-overlays/    # Video-export overlay system: registry + themes + per-widget *Overlay
 │   ├── RaceLineView.tsx   # Leaflet map: race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas speed/telemetry chart (simple mode)
-│   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist)
+│   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist); native: a camera stream renders as an <img> over lib/insta360's NativePlayerElement (plan 0025), with components/insta360/ (import dialog, 360° drag-to-point layer)
 │   └── …                  # FileImport, LoggerDownload (eager picker host) + LoggerPicker (image chooser) + DataloggerDownload (lazy web-BLE Fledgling flow) / DovesloggerDownload (lazy native-BLE Fledgling flow) / MyChronDownload (lazy native Wi-Fi flow), LapSnapshot*, …
 ├── hooks/                 # One concern each; Index.tsx orchestrates.
 │   ├── useSessionData     # Parses imported file → ParsedData
@@ -115,7 +115,8 @@ src/
 │   ├── channels.ts        # ★ Canonical channel registry + normalizeChannels()
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode (→ docs/subsystems.md)
 │   ├── courseSectors.ts   # ★ Pure sector model: caps, normalizeCourseSectors, majorSectorLines (→ docs/subsystems.md)
-│   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[]
+│   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[]; fastestRankedLap = the ONLY way to pick "fastest" (skips incomplete drag runs)
+│   ├── dragRunDetection.ts # ★ Drag mode (plan 0022): standing-start run detection at unknown venues (staged→launch state machine, marks at 60/330/660/1000/1320 ft, straightness+speed gate) + run→Lap mapping. useDataLoader consults it BEFORE accepting a waypoint result (a strip's return road fools waypoint mode); distance choice persists as FileMetadata.dragDistanceFt
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy (→ docs/subsystems.md)
 │   ├── sampleData.ts      # ★ Bundled sample log seeded as an ordinary file (→ docs/subsystems.md)
@@ -138,6 +139,7 @@ src/
 │   ├── loggers/           # ★ Generic LoggerConnection (listLogs/downloadLog/disconnect) + per-logger adapters — Fledgling=web BLE, mychron/=MyChron over native (Tauri) Wi-Fi IPC, doveslogger/=same Fledgling hardware over native (Tauri) BLE IPC (scan→connect→list→download), alfano/=Alfano over native (Tauri) Bluetooth-serial IPC (SKELETON: web-side seam only, Rust backend TBD — Bluetooth serial can't be reached in-browser so there's no web path); native/ipc.ts = shared kind-agnostic native IPC (all lazy; @tauri-apps/api dynamic-imported, native-only). progress.ts = transport-neutral formatters + computeProgress; errors.ts = pure error-prefix classifier + recovery-action table — every download flow renders classified, translated errors via the shared ErrorPanel, never raw backend strings. Native Fledgling firmware OTA (plan 0008): doveslogger/`loggerUpdateFirmware` + `firmwareInfo.ts` + `useNativeFirmwareUpdate`/`NativeFirmwarePanel`, reusing lib/ble/dfu; availability runtime-detected (→ docs/ble.md, docs/android.md)
 │   ├── speedHeatmap.ts / mapMarker.ts / brakingZones / gforceCalculation / …  # racing math
 │   ├── chartUtils / canvas2d / chartAxis / chartColors / videoExport / overlayCanvasRenderer  # charts/video
+│   ├── insta360/          # ★ Native-only Insta360 camera bridge (plan 0025): ipc (insta360_* over the lazy Tauri loader), nativePlayer (the camera stream as a <video>-shaped VideoSurface for useVideoSync), playerClock + pose (pure, tested)
 │   ├── videoPlaylist.ts   # ★ Pure GoPro chunked-video model: parse/order GH/GX/GP/GOPR chunk names, build a virtual timeline (cumulative offsets) + virtual↔local time mapping + planAudioSegments (export audio stitch). useVideoSync swaps the <video> src per chunk; a single file is a 1-chunk playlist
 │   ├── satelliteImagery.ts # ★ Esri Wayback parsing (online-only satellite imagery-date picker)
 │   ├── ble/               # Web Bluetooth DovesLapTimer protocol + firmware OTA (→ docs/ble.md)
@@ -196,14 +198,14 @@ File Import (drag-drop / BLE download / file manager)
 | `ParsedData` | `samples[]`, `fieldMappings[]`, `bounds`, `duration`, `startDate?`, `dovexMetadata?`, `parserStats?` |
 | `ParserStats` | `totalRows`, `acceptedRows`, `rejected: { nanFields, zeroCoords, outOfRange, speedCap, teleportation, incompleteRow }` |
 | `DovexMetadata` | `datetime?`, `driver?`, `course?`, `shortName?`, `bestLapMs?`, `optimalMs?`, `lapTimesMs?[]` |
-| `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` (S1/S2/S3 major rollup), `sectorTimes?` (fine-grained), `sectorBoundaries?` (per-line sample indices) |
+| `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` (S1/S2/S3 major rollup), `sectorTimes?` (fine-grained), `sectorBoundaries?` (per-line sample indices), `incomplete?` (drag: lapTimeMs is a data window, never rank as fastest — use `fastestRankedLap`) |
 | `Course` | `name`, `type?: CourseType` (absent = `circuit`), `lengthFt?`, `startFinishA/B`, `finish?`+`dateCreated?` (sprint only), `sectors?: CourseSector[]`, deprecated `sector2/sector3` (legacy mirror), optional `layout?` (`{lat,lon}[]` outline) |
 | `CourseSector` | `{ line: SectorLine, major: boolean }` — one timing line after start/finish. `major` is circuit-only; sprint splits are stored unflagged |
 | `CourseType` | `'circuit' \| 'sprint'` — lap-to-lap vs point-to-point (start line ≠ finish line). Read via `isSprintCourse()`; see `docs/plans/0015-sprint-mode.md` |
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug), `label?`, `unit?`, `enabled` |
-| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — the bundled sample), `isSample?` (marks the sample so the browser can hide it), `postSession?` (`PostSessionData`: post-session tire pressures — single/halves/quarters — + a single weight, entered on the Notes tab; cloud-synced via metadata, held for later processing). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — the bundled sample), `isSample?` (marks the sample so the browser can hide it), `postSession?` (`PostSessionData`: post-session tire pressures — single/halves/quarters — + a single weight, entered on the Notes tab; cloud-synced via metadata, held for later processing), `dragDistanceFt?` (drag-mode scoring distance in feet — plan 0022; presence marks a drag session, cleared when a real course is assigned). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
 
 ---
 

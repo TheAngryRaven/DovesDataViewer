@@ -55,6 +55,10 @@
     "saveToAppTitle": "Salva il video esportato nell'app per il caricamento automatico",
     "saveToDevice": "Salva sul dispositivo",
     "saveToDeviceTitle": "Scarica il file video esportato",
+    "saveToGallery": "Salva nella galleria",
+    "saveToGalleryTitle": "Salva il video esportato nella galleria del telefono (Movies/LapWing)",
+    "savedToGallery": "Salvato nella galleria (Movies/LapWing)",
+    "failed": "Esportazione non riuscita",
     "info": "L'esportazione riproduce il video in tempo reale per catturare ogni fotogramma con le sovrapposizioni. \"Salva nell'app\" memorizza il video per caricarlo automaticamente alla prossima sessione."
   },
   "settings": {
@@ -97,5 +101,31 @@
     "lapTime": "TEMPO SUL GIRO",
     "delta": "DELTA",
     "best": "MIGLIORE {{lap}}"
+  },
+  "insta360": {
+    "importButton": "Da fotocamera Insta360",
+    "title": "Fotocamera Insta360",
+    "intro": "Collegati al Wi-Fi della fotocamera e riproduci una registrazione direttamente da essa: non viene scaricato nulla.",
+    "ssidPrefix": "Il nome Wi-Fi della fotocamera inizia con",
+    "ssidPrefixHint": "Lascia vuoto per scegliere tra tutte le reti nel raggio d'azione.",
+    "passphrase": "Password Wi-Fi",
+    "passphraseHint": "Le fotocamere Insta360 hanno di fabbrica 88888888.",
+    "connect": "Connetti",
+    "connecting": "Connessione alla fotocamera…",
+    "listing": "Lettura delle registrazioni della fotocamera…",
+    "connected": "Connesso: {{camera}}",
+    "refresh": "Aggiorna",
+    "disconnect": "Disconnetti",
+    "noRecordings": "Nessuna registrazione video sulla fotocamera.",
+    "load": "Carica",
+    "badge360": "360°",
+    "segments": "{{count}} segmenti",
+    "back": "Indietro",
+    "pointView": "Orienta la vista 360°: trascina l'immagine",
+    "lockView": "Blocca la vista 360°",
+    "resetView": "Reimposta la vista 360°",
+    "exportUnavailable": "L'esportazione non è ancora disponibile per gli stream della fotocamera",
+    "openFailed": "Impossibile avviare lo stream della fotocamera",
+    "streamError": "Lo stream della fotocamera si è interrotto"
   }
 }

@@ -56,6 +56,11 @@ export interface FileMetadata {
   // Fastest lap cache
   fastestLapMs?: number;
   fastestLapNumber?: number;
+  // Drag mode (plan 0022): the session's chosen scoring distance in feet
+  // (660 / 1000 / 1320 — validated with isDragDistanceFt on read). Presence
+  // marks the file as a drag session and restores it silently on reopen;
+  // assigning a real track/course clears it.
+  dragDistanceFt?: number;
   // Browser display-name override. When set, the file browser shows this instead
   // of the date/time derived name (used by the bundled sample log).
   displayName?: string;

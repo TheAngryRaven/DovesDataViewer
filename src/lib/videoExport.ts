@@ -20,7 +20,7 @@
 import { Muxer, ArrayBufferTarget, StreamTarget } from "mp4-muxer";
 import type { ExportOptions } from "@/components/video-overlays/VideoExportDialog";
 import type { OverlayInstance, OverlayRenderContext } from "@/components/video-overlays/types";
-import { renderOverlaysToCanvas } from "@/lib/overlayCanvasRenderer";
+import { renderOverlaysToCanvas, DEFAULT_OVERLAY_LABELS, type OverlayLabels } from "@/lib/overlayCanvasRenderer";
 import { shouldStreamExport, writeStreamChunk, type StreamedPart } from "@/lib/videoExportTarget";
 import { virtualToLocal, planAudioSegments, type Playlist } from "@/lib/videoPlaylist";
 
@@ -50,11 +50,19 @@ export interface ExportCallbacks {
   onProgress: (fraction: number) => void;
   onComplete: (blob: Blob) => void;
   onError: (error: string) => void;
+  /**
+   * Native shell only: the export was written straight into the device's
+   * gallery and no Blob comes back. When absent, the native bridge collects
+   * the MP4 and calls `onComplete` instead.
+   */
+  onSavedToDevice?: (uri: string) => void;
 }
 
 export interface ExportContext {
   overlays: OverlayInstance[];
   buildRenderCtx: (videoCurrentTime: number) => OverlayRenderContext | null;
+  /** Translated widget strings; English defaults when the caller has no i18n. */
+  labels?: OverlayLabels;
 }
 
 /** One chunk of the source recording on the virtual timeline. */
@@ -74,6 +82,13 @@ export interface ExportSource {
   liveVideo: HTMLVideoElement;
   chunks: ExportChunk[];
   totalDuration: number;
+  /** The video's display file name — output naming on the native path. */
+  fileName?: string;
+  /**
+   * Native shell: the session's remembered-video key. The native export uses
+   * the stored copy as its source and skips the source upload entirely.
+   */
+  nativeSourceKey?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -470,7 +485,7 @@ async function runWebCodecsExport(
       if (options.includeOverlays && exportCtx) {
         const renderCtx = exportCtx.buildRenderCtx(t);
         if (renderCtx) {
-          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories);
+          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories, exportCtx.labels ?? DEFAULT_OVERLAY_LABELS);
         }
       }
 
@@ -605,7 +620,7 @@ async function runFallbackExport(
       if (options.includeOverlays && exportCtx) {
         const renderCtx = exportCtx.buildRenderCtx(video.currentTime);
         if (renderCtx) {
-          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories);
+          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories, exportCtx.labels ?? DEFAULT_OVERLAY_LABELS);
         }
       }
       callbacks.onProgress(1);
@@ -634,7 +649,7 @@ async function runFallbackExport(
       if (options.includeOverlays && exportCtx) {
         const renderCtx = exportCtx.buildRenderCtx(video.currentTime);
         if (renderCtx) {
-          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories);
+          renderOverlaysToCanvas(ctx, targetW, targetH, exportCtx.overlays, renderCtx, graphHistories, exportCtx.labels ?? DEFAULT_OVERLAY_LABELS);
         }
       }
       callbacks.onProgress(Math.min(1, (video.currentTime - startTime) / duration));
