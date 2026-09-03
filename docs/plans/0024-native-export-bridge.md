@@ -120,3 +120,24 @@ What changed:
 Requires the matching LapWing shell (base64 push commands); an older shell
 rejects the new args and the toast says so.
 
+## Follow-up 3 (landed): the store is visible and clearable
+
+The shell's copy per session is the one thing in the app that grows by
+gigabytes, and nothing pruned it. A first-party plugin,
+`src/plugins/native-storage`, contributes a **"Videos on this device"** panel
+to the Profile tab on the native shell only (which also makes the Profile tab
+exist in a native build without the cloud plugin): every stored copy with its
+file name, owning session, size and date, a per-copy delete with inline
+confirm, and a clear-all — each toasting the bytes freed. The bridge grew
+`listNativeStoredVideos` / `removeNativeStoredVideo` / `clearNativeVideoStore`
+over LapWing's `video_store_list` / `video_store_remove` / `video_store_clear`;
+on a shell that predates them the card says it needs a newer build.
+
+Deleting fires a `native-video-store-changed` window event. `useVideoSync`
+listens: if the session was **playing from** the deleted copy (a restore),
+the video unloads exactly as deleting the in-app stored video does; if it
+still holds the picked blob (the copy was made in the background), only the
+export shortcut goes away. The pure parts — ordering, totals, labels,
+applying a removal, byte formatting — live in `deviceVideos.ts` with tests;
+the panel is a thin view.
+
