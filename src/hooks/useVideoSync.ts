@@ -2,9 +2,12 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { GpsSample } from "@/types/racing";
 import { saveVideoSync, loadVideoSync, VideoSyncRecord, VideoSyncChunk } from "@/lib/videoStorage";
 import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoMeta, type StoredVideoMeta } from "@/lib/videoFileStorage";
-import { getNativeStoredVideo, storeNativeVideo } from "@/lib/nativeVideoStore";
 import { NativePlayerElement, type VideoSurface } from "@/lib/insta360/nativePlayer";
 import type { Insta360CameraFile } from "@/lib/insta360/types";
+import {
+  getNativeStoredVideo, storeNativeVideo,
+  NATIVE_VIDEO_STORE_CHANGED, type NativeVideoStoreChangedDetail,
+} from "@/lib/nativeVideoStore";
 import { isNativeApp } from "@/lib/platform";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
@@ -204,6 +207,9 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [coverage, setCoverage] = useState<VideoCoverage>('covered');
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
   const [nativeStoredKey, setNativeStoredKey] = useState<string | null>(null);
+  // True while the <video> streams from the shell's copy (a restore), as
+  // opposed to the picked blob with the copy made in the background.
+  const nativeStoredPlaybackRef = useRef(false);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
   const [storedVideoMeta, setStoredVideoMeta] = useState<StoredVideoMeta | null>(null);
@@ -382,6 +388,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     revokeAllUrls();
     await applyPlaylist([{ name: stored.fileName, url: stored.url }]);
     setNativeStoredKey(stored.key);
+    nativeStoredPlaybackRef.current = true;
     return true;
   }, [revokeAllUrls, applyPlaylist]);
 
@@ -455,6 +462,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     // the shell's store in the background (single-file recordings only). The
     // blob URL keeps playing meanwhile; once stored, exports use the copy.
     setNativeStoredKey(null);
+    nativeStoredPlaybackRef.current = false;
     if (isNativeApp() && sessionFileName && recording.files.length === 1) {
       const file = recording.files[0].file;
       void storeNativeVideo(sessionFileName, file)
@@ -917,6 +925,29 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     const meta = has ? await getSessionVideoMeta(sessionFileName) : null;
     setStoredVideoMeta(meta);
   }, [sessionFileName]);
+
+  // The profile tab can delete the shell's copy of this session's video from
+  // under us. If the <video> was streaming that copy, its file is gone —
+  // unload, exactly as deleting the in-app stored video does; if we still
+  // hold the picked blob, only the export shortcut goes away.
+  useEffect(() => {
+    if (!isNativeApp() || !nativeStoredKey) return;
+    const onChanged = (ev: Event) => {
+      const removed = (ev as CustomEvent<NativeVideoStoreChangedDetail>).detail?.removedKeys;
+      if (removed !== null && !removed?.includes(nativeStoredKey)) return;
+      setNativeStoredKey(null);
+      if (!nativeStoredPlaybackRef.current) return;
+      nativeStoredPlaybackRef.current = false;
+      revokeAllUrls();
+      setVideoFileName(null);
+      setExportChunks([]);
+      playlistRef.current = null;
+      chunkHandlesRef.current = [];
+      chunkNamesRef.current = [];
+    };
+    window.addEventListener(NATIVE_VIDEO_STORE_CHANGED, onChanged);
+    return () => window.removeEventListener(NATIVE_VIDEO_STORE_CHANGED, onChanged);
+  }, [nativeStoredKey, revokeAllUrls]);
 
   const handleDeleteStoredVideo = useCallback(async () => {
     if (!sessionFileName) return;

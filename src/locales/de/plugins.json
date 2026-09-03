@@ -7,7 +7,8 @@
     "lapSnapshots": "Runden-Snapshots",
     "cloudLogs": "Cloud-Logs",
     "dataPrivacy": "Daten & Datenschutz",
-    "leaderboards": "Bestenlisten"
+    "leaderboards": "Bestenlisten",
+    "deviceVideos": "Videos auf diesem Gerät"
   },
   "account": {
     "signInBlurb": "Melde dich an, um deine Dateien, deine Garage und Notizen geräteübergreifend zu sichern und zu synchronisieren. Alles hier funktioniert weiterhin offline auf diesem Gerät — Cloud Sync ist optional.",
@@ -223,5 +224,23 @@
     "defaultToggle": "Neue Uploads sind standardmäßig öffentlich",
     "defaultToggleHint": "Gilt nur für künftige Uploads — bestehende Sessions behalten ihren aktuellen Status.",
     "defaultUpdateFailed": "Freigabe-Voreinstellung konnte nicht aktualisiert werden"
+  },
+  "deviceVideos": {
+    "note": "Die App behält eine Kopie des Videos jeder Session, um es beim nächsten Öffnen dieser Session wieder zu laden. Das Löschen einer Kopie vergisst sie nur hier – die Originaldatei auf deinem Handy bleibt unberührt.",
+    "unavailable": "Zum Verwalten gespeicherter Videos wird eine neuere App-Version benötigt.",
+    "empty": "Noch keine Videos gespeichert. Lade ein Video für eine Session, und seine Kopie erscheint hier.",
+    "summary_one": "{{count}} Video · {{size}}",
+    "summary_other": "{{count}} Videos · {{size}}",
+    "unknownSession": "Session unbekannt (von einer früheren Version gespeichert)",
+    "storedOn": "gespeichert am {{date}}",
+    "remove": "Löschen",
+    "confirmRemove": "Diese Kopie löschen?",
+    "cancel": "Abbrechen",
+    "removed": "Gelöscht – {{size}} freigegeben",
+    "clearAll": "Alle löschen",
+    "confirmClear_one": "Das gespeicherte Video löschen? Beim Öffnen der Session wirst du erneut danach gefragt.",
+    "confirmClear_other": "Alle {{count}} gespeicherten Videos löschen? Beim Öffnen dieser Sessions wirst du erneut danach gefragt.",
+    "cleared": "Geleert – {{size}} freigegeben",
+    "failed": "Löschen fehlgeschlagen: {{error}}"
   }
 }

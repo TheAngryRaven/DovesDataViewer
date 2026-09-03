@@ -11,10 +11,15 @@
  *   - `getNativeStoredVideo` finds it again on the next open and returns a
  *     playable URL over the asset protocol — the <video> streams from disk;
  *   - the export bridge names the stored copy as its source (`sourceKey`) and
- *     skips the source copy entirely.
+ *     skips the source copy entirely;
+ *   - `listNativeStoredVideos` / `removeNativeStoredVideo` /
+ *     `clearNativeVideoStore` back the profile tab's "Videos on this device"
+ *     card — the store is the one thing in the app that grows by gigabytes,
+ *     and nothing else prunes it.
  *
- * Every function is a no-op (`null`) off the native shell or on a shell that
- * predates the store, so callers can call them unconditionally.
+ * The lookup/store/list functions are no-ops (`null`) off the native shell or
+ * on a shell that predates them, so callers can call them unconditionally;
+ * remove/clear throw, because the caller is a button that must report failure.
  */
 
 import { api } from "@/lib/loggers/native/ipc";
@@ -36,6 +41,32 @@ interface StoredVideoInfo {
   fileName: string;
   size: number;
   path: string;
+}
+
+/** One entry of the shell's store, as listed. */
+export interface NativeStoredVideoEntry extends StoredVideoInfo {
+  /** The session the video was stored for; absent for copies made before the
+   * shell recorded it (they still play and export — they just can't be named). */
+  sessionFileName?: string;
+  /** When the copy was sealed (Unix ms). */
+  storedAtMs?: number;
+}
+
+/**
+ * Fired on `window` after a stored video is removed or the store is cleared,
+ * so a session that is playing (or exporting) from the deleted copy can react.
+ * `removedKeys` is `null` when everything went.
+ */
+export const NATIVE_VIDEO_STORE_CHANGED = "native-video-store-changed";
+export interface NativeVideoStoreChangedDetail {
+  removedKeys: string[] | null;
+}
+
+function announceStoreChange(removedKeys: string[] | null): void {
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<NativeVideoStoreChangedDetail>(NATIVE_VIDEO_STORE_CHANGED, { detail: { removedKeys } }),
+  );
 }
 
 /** The desktop stub's sentinel, or a shell predating the store commands. */
@@ -96,4 +127,35 @@ export async function deleteNativeStoredVideo(sessionFileName: string): Promise<
   } catch {
     // Best effort — an old shell or the desktop stub simply has nothing to delete.
   }
+}
+
+/**
+ * Every video the shell holds, or `null` when it can't say — the web, the
+ * desktop stub, or a shell predating the listing (the card hides itself).
+ */
+export async function listNativeStoredVideos(): Promise<NativeStoredVideoEntry[] | null> {
+  if (!isNativeApp()) return null;
+  try {
+    const { invoke } = await api();
+    return await invoke<NativeStoredVideoEntry[]>("video_store_list");
+  } catch (err) {
+    if (!isUnavailable(err)) console.warn("Native video store listing failed:", err);
+    return null;
+  }
+}
+
+/** Delete one stored video by its listed key. Resolves the bytes freed. */
+export async function removeNativeStoredVideo(key: string): Promise<number> {
+  const { invoke } = await api();
+  const freed = await invoke<number>("video_store_remove", { key });
+  announceStoreChange([key]);
+  return freed;
+}
+
+/** Empty the store. Resolves the bytes freed. */
+export async function clearNativeVideoStore(): Promise<number> {
+  const { invoke } = await api();
+  const freed = await invoke<number>("video_store_clear");
+  announceStoreChange(null);
+  return freed;
 }

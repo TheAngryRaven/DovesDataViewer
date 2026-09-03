@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to straight ahead. Export isn't available for camera streams yet. Needs a
   build of the app that bundles the Insta360 SDK; otherwise the button
   doesn't appear. (Plan 0025; LapWing plan 0002.)
+- **See and clear the videos the Android app keeps.** The Profile tab gains
+  a *Videos on this device* card listing every session video the app has
+  copied for reloading — file, session, size, date — with a delete per
+  video and a clear-all, each reporting the space freed. A session playing
+  from a deleted copy simply unloads its video; your original files are
+  never touched. Requires the matching LapWing build (older builds show a
+  note instead).
 - **Save to Gallery (Android app).** *Save to device* now lands the export in
   your phone's gallery under *Movies/LapWing* — previously it quietly went
   nowhere inside the app, because it used the browser's download path. The
