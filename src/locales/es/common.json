@@ -23,5 +23,15 @@
     "updating": "Actualizando…",
     "updatingBody": "Descargando la última versión — un momento.",
     "updated": "Ya tienes la última versión."
+  },
+  "install": {
+    "title": "Instalar LapWing",
+    "body": "Funciona sin conexión en el circuito — no necesitas cobertura.",
+    "action": "Instalar",
+    "dismiss": "Ahora no",
+    "iosWhy": "En iPhone y iPad, Safari borra los datos sin conexión de un sitio no instalado al cabo de una semana aproximadamente. Añadir LapWing a la pantalla de inicio los conserva —junto con tus sesiones guardadas— entre fines de semana de carreras.",
+    "iosStepShare": "Toca Compartir en la barra de Safari",
+    "iosStepAdd": "Elige «Añadir a pantalla de inicio»",
+    "iosStepOpen": "Después abre LapWing desde el nuevo icono una vez mientras aún tengas cobertura, para que pueda guardarse para uso sin conexión."
   }
 }

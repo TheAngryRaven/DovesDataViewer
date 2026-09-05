@@ -10,6 +10,7 @@ import { startVersionPolling } from "@/lib/versionCheck";
 import { isSessionActive } from "@/lib/appActivity";
 import { AUTO_APPLIED_KEY, decideUpdateAction } from "@/lib/updateFlow";
 import { buildInfo } from "@/lib/buildInfo";
+import { requestPersistentStorage } from "@/lib/persistentStorage";
 // Initialize i18next before render so the chosen language is active on first
 // paint (no English flash). The default export is the configured instance.
 import i18n from "@/lib/i18n";
@@ -123,6 +124,13 @@ if (isInIframe || isPreviewHost || isNativeApp()) {
   void cleanupPreviewServiceWorkers();
 } else {
   confirmAutoApplied();
+
+  // Ask for persistent storage before anything else touches the cache. Browsers
+  // treat offline data as disposable by default and evict it under pressure or
+  // after a stretch of not visiting the site — which is exactly the trip to the
+  // track that the offline app exists for. Fire-and-forget: a denial just means
+  // we keep the default, evictable storage. See lib/persistentStorage.
+  void requestPersistentStorage();
 
   const updateSW = registerSW({
     immediate: true,
