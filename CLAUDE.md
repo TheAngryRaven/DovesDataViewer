@@ -149,6 +149,7 @@ src/
 │   ├── weatherCacheStorage.ts # Per-session historical-weather cache (IndexedDB, local-only/never cloud-synced): a session's date is fixed so its weather is immutable — cache it once, stop re-pinging the station/API on reopen
 │   ├── buildInfo.ts       # Build version/hash/branch stamp + isPreviewBuild()
 │   ├── versionCheck.ts    # ★ "Update available" signal: compares buildInfo vs the build-emitted, uncached /version.json (independent of the SW's own update detection) → main.tsx update toast
+│   ├── offlineWarmup.ts / offlineReadiness.ts  # ★ Two-stage offline cache (plan 0027): the precache install is all-or-nothing, so `vite.config.ts` holds the heavy public dirs (DEFERRED_ASSET_DIRS = samples/, loggers/) OUT of it and emits `offline-assets.json`; offlineWarmup writes them into the `app-deferred-assets` cache afterwards via `cache.add` (NOT fetch — an uncontrolled first-visit page bypasses the SW), where a failure costs only that asset. offlineReadiness is the pure state → useOfflineReadiness → SettingsModal row
 │   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`) — mobile/PWA has no dev tools
 │   ├── units.ts           # ★ Pure unit conversions for the 3 imperial/metric toggles
 │   ├── i18n/              # ★ i18next config/init/format (→ docs/i18n.md)
@@ -406,7 +407,11 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**; baked from `package.json` + git in `vite.config.ts`. |
 
 **PWA/deploy detail:** the active offline worker is `/service-worker.js` (registered
-outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. `vite.config.ts`
+outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. **The
+precache install is all-or-nothing — one failed request discards the whole
+service worker — so keep it small: heavy public assets belong in
+`DEFERRED_ASSET_DIRS` (runtime-cached + warmed after activation), never in the
+install-blocking glob. See plan 0027 before adding anything bulky to `public/`.** `vite.config.ts`
 also emits `/version.json` per build (the freshness signal for `versionCheck.ts`); it's
 excluded from the Workbox precache (`globIgnores`) and fetched uncached. Static
 hosting is Cloudflare Workers (static-assets-only, `wrangler.jsonc`,
