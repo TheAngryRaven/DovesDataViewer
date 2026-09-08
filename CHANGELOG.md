@@ -23,7 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saved sessions with it, which is why the app can come up empty at a track
   weeks after you last used it. A Home Screen install keeps both. (Plan 0026.)
 - **Stream video straight from an Insta360 camera (Android app).** *From
-  Insta360 camera* in the video panel joins the camera's Wi-Fi, lists its
+  Insta360 camera* in the video panel connects over the camera's Wi-Fi — join
+  it in your phone's settings, or type the start of its network name to have
+  Android offer it — then lists the camera's
   recordings and plays one without downloading it — the app's native player
   streams the file off the camera, and overlays, sync lock and scrubbing work
   on it like any video. 360° recordings show as a flat view you point by
