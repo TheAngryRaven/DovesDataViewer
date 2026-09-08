@@ -93,5 +93,16 @@
     "heading": "MyChron",
     "ssidPrefix": "Préfixe du nom Wi-Fi",
     "ssidPrefixHint": "Le début du nom Wi-Fi de votre MyChron. Lors du téléchargement, le sélecteur Wi-Fi du système ne liste que les réseaux qui commencent par ce préfixe. Sensible à la casse — ne le modifiez que si votre enregistreur diffuse un nom différent."
+  },
+  "offline": {
+    "heading": "Disponibilité hors ligne",
+    "prepare": "Terminer le téléchargement",
+    "progress": "{{cached}} extras sur {{total}} en cache ({{percent}} %)",
+    "state": {
+      "ready": "Prêt — cet appareil peut ouvrir l’app et l’exemple fourni sans réseau.",
+      "preparing": "L’app s’ouvrira hors ligne. Téléchargement des extras en cours (données d’exemple et photos des loggers).",
+      "not-ready": "Pas encore en cache. Laissez cette page ouverte avec du réseau un instant, ou terminez le téléchargement maintenant.",
+      "unsupported": "La mise en cache hors ligne n’est pas disponible dans ce navigateur."
+    }
   }
 }

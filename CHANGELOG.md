@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **You can now check whether the app is ready to work offline.** Settings gains
+  an *Offline readiness* row: whether this device can open LapWing with no
+  signal, how much of the extra content (sample data, logger photos) is
+  downloaded, and a *Finish download* button. Check it in the paddock instead of
+  finding out on track. (Plan 0027.)
 - **Install prompt on iPhone and iPad.** iOS never fires the browser install
   event every other platform uses, so the "Install LapWing" card never appeared
   there at all. It now shows the manual steps instead — Share → *Add to Home
@@ -62,6 +67,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `video_export_*` pipeline (plan 0024).
 
 ### Changed
+- **The app no longer loses its whole offline cache to a flaky connection.**
+  Caching the app was previously one ~10 MB all-or-nothing download: if anything
+  failed partway through — losing signal at a track, say — *nothing* was cached
+  and a refresh with no signal showed a browser error page, with no sign
+  anything had gone wrong. The app now caches itself in two stages: a much
+  smaller core (down from 10.16 MB to 4.98 MB) that makes the app work offline
+  on its own, then the bulky extras afterwards, where a failure only means that
+  piece retries next time. Bundled sample data and logger photos were also being
+  downloaded twice per install. (Plan 0027.)
 - **The app now asks the browser to keep its offline data.** LapWing requests
   persistent storage on startup, so the cached app and your saved sessions
   aren't discarded when the browser is short on space or you haven't opened the

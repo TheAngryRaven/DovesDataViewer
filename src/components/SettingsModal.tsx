@@ -21,6 +21,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { OfflineReadinessSection } from "@/components/OfflineReadinessSection";
 import { AppSettings } from "@/hooks/useSettings";
 import { isNativeApp } from "@/lib/platform";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n/config";
@@ -74,6 +75,9 @@ export function SettingsModal({
         <div className="space-y-6 py-4 overflow-y-auto flex-1 min-h-0 pr-3 scrollbar-thin">
           {/* Compact toggle settings — responsive 2-column grid on tablet+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
+          {/* Offline readiness — first, so it's checkable before a track day */}
+          <OfflineReadinessSection />
+
           {/* Language */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">

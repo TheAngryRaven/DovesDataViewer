@@ -10,6 +10,7 @@ import { startVersionPolling } from "@/lib/versionCheck";
 import { isSessionActive } from "@/lib/appActivity";
 import { AUTO_APPLIED_KEY, decideUpdateAction } from "@/lib/updateFlow";
 import { buildInfo } from "@/lib/buildInfo";
+import { warmOfflineCache } from "@/lib/offlineWarmup";
 import { requestPersistentStorage } from "@/lib/persistentStorage";
 // Initialize i18next before render so the chosen language is active on first
 // paint (no English flash). The default export is the configured instance.
@@ -143,6 +144,14 @@ if (isInIframe || isPreviewHost || isNativeApp()) {
       window.setInterval(() => {
         void registration.update();
       }, 60_000);
+
+      // Pull in the heavy assets deliberately held out of the precache (the
+      // bundled sample datalogs, the logger photos — see DEFERRED_ASSET_DIRS in
+      // vite.config.ts). Doing it here rather than at install is the whole
+      // point: a precache install is all-or-nothing, so one slow asset used to
+      // cost the entire offline cache. Out here, a warm-up that only gets
+      // halfway still leaves a working offline app and resumes next visit.
+      void warmOfflineCache();
 
       // Independent of the service worker's own diff-detection (which can stall
       // behind HTTP/CDN caching): poll a build-emitted version.json and prompt

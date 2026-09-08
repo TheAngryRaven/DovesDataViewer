@@ -231,6 +231,8 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 
 > **PWA cache recovery:** the legacy `/sw.js` path now ships a one-release cleanup worker that deletes old app caches and unregisters itself without touching IndexedDB telemetry/session data. The active offline worker is now published at `/service-worker.js`, and HTML navigations use `NetworkFirst` to reduce the chance of users getting stuck on an old shell after future deploys.
 
+> **Offline caching is two-stage** (plan 0027). Workbox's precache install is all-or-nothing: one failed request and the whole service worker is discarded with nothing cached. So only the app shell is install-blocking; the heavy public directories listed in `DEFERRED_ASSET_DIRS` (`public/samples/`, `public/loggers/`) are excluded from the precache, runtime-cached instead, and warmed in the background once the worker is active — a warm-up that only gets halfway still leaves a working offline app and resumes next visit. **Adding a bulky asset to `public/` without deferring it puts the whole offline cache back at the mercy of one flaky request.** Settings → *Offline readiness* shows the live state.
+
 ### Database Setup
 
 The admin system uses Supabase for the database. The schema is created automatically via migrations. Tables:
