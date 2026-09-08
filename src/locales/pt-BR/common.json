@@ -23,5 +23,15 @@
     "updating": "Atualizando…",
     "updatingBody": "Baixando a versão mais recente — um momento.",
     "updated": "Você está na versão mais recente."
+  },
+  "install": {
+    "title": "Instalar o LapWing",
+    "body": "Funciona offline na pista — sem precisar de sinal.",
+    "action": "Instalar",
+    "dismiss": "Agora não",
+    "iosWhy": "No iPhone e no iPad, o Safari apaga os dados offline de um site não instalado depois de cerca de uma semana. Adicionar o LapWing à Tela de Início mantém esses dados — e as suas sessões salvas — entre os fins de semana de corrida.",
+    "iosStepShare": "Toque em Compartilhar na barra do Safari",
+    "iosStepAdd": "Escolha “Adicionar à Tela de Início”",
+    "iosStepOpen": "Depois abra o LapWing pelo novo ícone uma vez enquanto ainda tiver sinal, para que ele possa se salvar para uso offline."
   }
 }

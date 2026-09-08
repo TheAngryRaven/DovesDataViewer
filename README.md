@@ -49,7 +49,12 @@
 - Local weather lookup
 - Optional cloud sync of files & garage data across devices (requires backend + sign-in)
 - Dark & light mode
-- PWA — installable & fully offline
+- PWA — installable & fully offline. **On iPhone/iPad, install it:** Safari
+  wipes an uninstalled site's offline data (cached app *and* saved sessions)
+  after roughly a week of not visiting it, so a bookmarked tab can come up
+  empty at a track. Share → *Add to Home Screen*, then open it once with
+  signal — a Home Screen app keeps its data between race weekends. The app
+  shows these steps on iOS, where the browser never offers an install button.
 
 ---
 
