@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **Install prompt on iPhone and iPad.** iOS never fires the browser install
+  event every other platform uses, so the "Install LapWing" card never appeared
+  there at all. It now shows the manual steps instead — Share → *Add to Home
+  Screen*, then open it once while you still have signal. This matters more on
+  iOS than anywhere else: Safari deletes an uninstalled site's offline data
+  after about a week of not visiting it, taking the cached app **and** your
+  saved sessions with it, which is why the app can come up empty at a track
+  weeks after you last used it. A Home Screen install keeps both. (Plan 0026.)
 - **Stream video straight from an Insta360 camera (Android app).** *From
   Insta360 camera* in the video panel joins the camera's Wi-Fi, lists its
   recordings and plays one without downloading it — the app's native player
@@ -54,6 +62,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `video_export_*` pipeline (plan 0024).
 
 ### Changed
+- **The app now asks the browser to keep its offline data.** LapWing requests
+  persistent storage on startup, so the cached app and your saved sessions
+  aren't discarded when the browser is short on space or you haven't opened the
+  site in a while. (Plan 0026.)
+- Dismissing the install prompt now snoozes it for 30 days instead of hiding it
+  only until the tab closes. (Plan 0026.)
 - **One overlay renderer for preview and export.** The video-overlay preview
   and the export pipeline previously drew with two separate implementations
   that had drifted apart: exported videos were missing the graph grid lines,
