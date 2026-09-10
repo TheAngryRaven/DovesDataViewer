@@ -9,15 +9,9 @@ import { emitGarageChange } from './garageEvents';
 import { getSetup, listSetups } from './setupStorage';
 import { getTemplate } from './templateStorage';
 import { listAllMetadata } from './fileStorage';
-import {
-  buildSetupRevision, findOrphanRevisionIds, shouldPrune,
-  type SetupRevision,
-} from './setupRevision';
+import { buildSetupRevision, findPrunableRevisionIds, type SetupRevision } from './setupRevision';
 
 const STORE = STORE_NAMES.SETUP_REVISIONS;
-
-/** localStorage key holding the last orphan-prune time (ms). */
-const PRUNE_TS_KEY = "dove:setup-revisions:lastPrune";
 
 export async function getSetupRevision(id: string): Promise<SetupRevision | null> {
   const db = await openDB();
@@ -57,21 +51,38 @@ async function putRevision(rev: SetupRevision): Promise<void> {
 /**
  * Freeze the current state of a live setup into an immutable, content-addressed
  * revision and return its id (hash). Idempotent: if a revision with the same
- * content already exists, the existing one is kept (original createdAt preserved,
- * no write, no sync churn). Returns null if the setup no longer exists.
+ * content already exists it is kept (original createdAt preserved, no garage
+ * event) and only its `updatedAt` is bumped to `now`, so the retention sweep
+ * treats "saved again today" as fresh. Returns null if the setup no longer exists.
+ *
+ * The garage event a new revision emits is a *candidate* push: the cloud-sync
+ * plugin only uploads revisions a session references (plan 0028), so an edit
+ * that was never run stays on this device.
  */
-export async function freezeSetupRevision(setupId: string): Promise<string | null> {
+export async function freezeSetupRevision(
+  setupId: string,
+  now: number = Date.now(),
+): Promise<string | null> {
   const setup = await getSetup(setupId);
   if (!setup) return null;
   const template = setup.templateId ? await getTemplate(setup.templateId) : null;
   const rev = await buildSetupRevision({ setup, template });
 
   const existing = await getSetupRevision(rev.id);
-  if (existing) return existing.id; // dedup — same content, keep the original revision
+  if (existing) {
+    if (existing.updatedAt < now) await putRevision({ ...existing, updatedAt: now });
+    return existing.id;
+  }
 
-  await putRevision(rev);
+  await putRevision({ ...rev, createdAt: now, updatedAt: now });
   emitGarageChange({ store: STORE, key: rev.id, type: "put" });
   return rev.id;
+}
+
+/** Every revision id some session's `FileMetadata.sessionSetupRev` points at. */
+export async function referencedSetupRevisionIds(): Promise<Set<string>> {
+  const metas = await listAllMetadata();
+  return new Set(metas.map((m) => m.sessionSetupRev).filter((r): r is string => !!r));
 }
 
 /**
@@ -92,40 +103,30 @@ export async function deleteSetupRevision(id: string): Promise<void> {
 }
 
 /**
- * Sweep orphan revisions and delete them. A revision is an orphan only when no
- * `FileMetadata.sessionSetupRev` equals its id AND the live setup it was frozen
- * from has been deleted — every revision of a still-existing setup is its edit
- * history (plan 0028) and is kept. Returns the ids removed. Always safe offline;
- * the cloud copy is never touched (only tombstoned, by the sync plugin reacting
- * to the delete events).
+ * Retention sweep (plan 0028): delete revisions `findPrunableRevisionIds` names —
+ * unreferenced by any session, older than `REVISION_RETENTION_MS`, and not the
+ * newest unreferenced revision of a live setup. Returns the ids removed. Cheap
+ * (three reads), always safe offline; the cloud copy is never touched (only
+ * tombstoned, by the sync plugin reacting to the delete events).
  */
-export async function pruneSetupRevisions(): Promise<string[]> {
-  const [revisions, metas, setups] = await Promise.all([
-    listSetupRevisions(), listAllMetadata(), listSetups(),
+export async function pruneSetupRevisions(now: number = Date.now()): Promise<string[]> {
+  const [revisions, referenced, setups] = await Promise.all([
+    listSetupRevisions(), referencedSetupRevisionIds(), listSetups(),
   ]);
-  const referenced = metas
-    .map((m) => m.sessionSetupRev)
-    .filter((r): r is string => !!r);
-  const orphans = findOrphanRevisionIds(revisions, referenced, setups.map((s) => s.id));
-  for (const id of orphans) await deleteSetupRevision(id);
-  return orphans;
+  const prunable = findPrunableRevisionIds(revisions, referenced, setups.map((s) => s.id), now);
+  for (const id of prunable) await deleteSetupRevision(id);
+  return prunable;
 }
 
 /**
- * Run `pruneSetupRevisions` at most once per `PRUNE_INTERVAL_MS` (throttled via
- * localStorage), best-effort. Returns the pruned ids, or null when it was skipped
- * (not yet due) or failed. Call on app start.
+ * Best-effort `pruneSetupRevisions` for UI call sites (garage mount, history
+ * panel open): never throws, returns null when the sweep failed.
  */
-export async function maybePruneSetupRevisions(now: number = Date.now()): Promise<string[] | null> {
+export async function pruneSetupRevisionsSafely(): Promise<string[] | null> {
   try {
-    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(PRUNE_TS_KEY) : null;
-    const lastRun = raw ? Number(raw) : null;
-    if (!shouldPrune(Number.isFinite(lastRun) ? lastRun : null, now)) return null;
-    const pruned = await pruneSetupRevisions();
-    if (typeof localStorage !== "undefined") localStorage.setItem(PRUNE_TS_KEY, String(now));
-    return pruned;
+    return await pruneSetupRevisions();
   } catch (e) {
-    console.warn("Setup-revision prune skipped:", e);
+    console.warn("Setup-revision sweep skipped:", e);
     return null;
   }
 }

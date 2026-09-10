@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { ArrowLeft, Check, History } from "lucide-react";
+import { ArrowLeft, Check, History, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
 import { FileMetadata, listAllMetadata } from "@/lib/fileStorage";
-import { SetupRevision, shortRevHash } from "@/lib/setupRevision";
-import { listSetupRevisions } from "@/lib/setupRevisionStorage";
+import { REVISION_RETENTION_MS, SetupRevision, shortRevHash } from "@/lib/setupRevision";
+import { listSetupRevisions, pruneSetupRevisionsSafely } from "@/lib/setupRevisionStorage";
 import { buildSetupHistory, type SetupHistoryEntry, type SetupHistoryView } from "@/lib/setupHistory";
 import { HistoryCard, FullSetup, DiffList } from "@/components/drawer/HistoryCard";
 
@@ -19,6 +19,8 @@ interface SetupHistoryPanelProps {
   /** Open a saved session by file name (a card's fastest-lap session). */
   onOpenFile?: (fileName: string) => void | Promise<void>;
 }
+
+const RETENTION_DAYS = Math.round(REVISION_RETENTION_MS / (24 * 60 * 60 * 1000));
 
 /** Full-panel chronological history of a setup's frozen revisions. */
 export function SetupHistoryPanel({ setup, vehicles, onBack, onOpenFile }: SetupHistoryPanelProps) {
@@ -36,6 +38,8 @@ export function SetupHistoryPanel({ setup, vehicles, onBack, onOpenFile }: Setup
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Sweep first so the panel always matches the retention notice it shows.
+      await pruneSetupRevisionsSafely();
       const [revs, m] = await Promise.all([listSetupRevisions(), listAllMetadata()]);
       if (!cancelled) {
         setRevisions(revs);
@@ -124,6 +128,13 @@ export function SetupHistoryPanel({ setup, vehicles, onBack, onOpenFile }: Setup
           </Select>
         )}
       </div>
+
+      {view === "all" && (
+        <p className="shrink-0 flex items-start gap-1.5 px-3 py-2 text-[11px] text-muted-foreground border-b border-border">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
+          <span>{t("setupHistory.retentionNotice", { days: RETENTION_DAYS })}</span>
+        </p>
+      )}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">

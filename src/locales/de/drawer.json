@@ -153,6 +153,7 @@
     "viewUsed": "Verwendet",
     "viewAll": "Alle",
     "usedTag": "Verwendet",
+    "retentionNotice": "Revisionen ohne zugeordnete Session werden nach {{days}} Tagen gelöscht; die neueste bleibt immer erhalten.",
     "allKarts": "Alle Karts",
     "allCourses": "Alle Strecken",
     "original": "Original",

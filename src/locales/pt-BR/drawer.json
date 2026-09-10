@@ -153,6 +153,7 @@
     "viewUsed": "Usadas",
     "viewAll": "Todas",
     "usedTag": "Usada",
+    "retentionNotice": "Revisões não vinculadas a uma sessão são excluídas após {{days}} dias; a mais recente é sempre mantida.",
     "allKarts": "Todos os karts",
     "allCourses": "Todas as pistas",
     "original": "Original",

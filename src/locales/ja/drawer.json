@@ -153,6 +153,7 @@
     "viewUsed": "使用済み",
     "viewAll": "すべて",
     "usedTag": "使用済み",
+    "retentionNotice": "セッションに紐づいていないリビジョンは{{days}}日後に削除されます。最新のものは常に保持されます。",
     "allKarts": "すべてのカート",
     "allCourses": "すべてのコース",
     "original": "オリジナル",

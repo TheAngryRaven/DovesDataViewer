@@ -317,8 +317,9 @@ unless noted.
 - **Lap snapshots** (`lapSnapshot*.ts`): frozen "course fastest lap" keyed by
   (course + engine); loaded as a comparison overlay only (excluded from playback).
 - **Setup revisions** (`setupRevision*.ts`): immutable, content-addressed (`id` =
-  SHA-256) history of vehicle setups, frozen on every save and on assignment;
-  pruned only once the setup is deleted and no session references them (plan 0028).
+  SHA-256) history of vehicle setups, frozen on every save and on assignment.
+  Untagged revisions are device-local (never uploaded) and age out after 3 days,
+  keeping each setup's newest one (plan 0028).
 - **Course layouts / drawing**: user-drawn polyline outlines persist on
   `Course.layout`; built-ins come from `public/drawings.json`. Draw/Generate tools
   in `VisualEditor`, available to all users.

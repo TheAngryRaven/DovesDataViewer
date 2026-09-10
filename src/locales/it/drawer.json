@@ -153,6 +153,7 @@
     "viewUsed": "Usate",
     "viewAll": "Tutte",
     "usedTag": "Usata",
+    "retentionNotice": "Le revisioni non collegate a una sessione vengono eliminate dopo {{days}} giorni; la più recente viene sempre conservata.",
     "allKarts": "Tutti i kart",
     "allCourses": "Tutti i circuiti",
     "original": "Originale",

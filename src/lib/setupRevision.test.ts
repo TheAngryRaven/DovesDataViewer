@@ -4,11 +4,10 @@ import type { SetupTemplate } from "./templateStorage";
 import {
   buildSetupRevision,
   computeSetupHash,
-  findOrphanRevisionIds,
+  findPrunableRevisionIds,
   freezeTemplate,
-  PRUNE_INTERVAL_MS,
+  REVISION_RETENTION_MS,
   shortRevHash,
-  shouldPrune,
   SHORT_HASH_LENGTH,
 } from "./setupRevision";
 
@@ -139,52 +138,52 @@ describe("freezeTemplate", () => {
   });
 });
 
-describe("findOrphanRevisionIds", () => {
-  // Every revision here belongs to a setup that has been deleted, so only the
-  // session-reference rule is in play.
-  const gone = (ids: string[]) => ids.map((id) => ({ id, setupId: "deleted" }));
+describe("findPrunableRevisionIds (plan 0028 retention)", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const NOW = 100 * DAY;
+  const rev = (id: string, setupId: string, ageDays: number) => ({ id, setupId, updatedAt: NOW - ageDays * DAY });
 
-  it("returns revisions no session references", () => {
-    const orphans = findOrphanRevisionIds(gone(["a", "b", "c"]), ["b"], []);
-    expect(orphans.sort()).toEqual(["a", "c"]);
+  it("never deletes a revision a session references, however old", () => {
+    const revs = [rev("a", "s", 30), rev("b", "s", 20), rev("c", "s", 10)];
+    expect(findPrunableRevisionIds(revs, ["a", "b"], ["s"], NOW)).toEqual([]);
   });
 
-  it("keeps every referenced revision", () => {
-    expect(findOrphanRevisionIds(gone(["a", "b"]), ["a", "b"], [])).toEqual([]);
+  it("keeps unreferenced revisions younger than the retention window", () => {
+    const revs = [rev("a", "s", 2.9), rev("b", "s", 1), rev("c", "s", 0)];
+    expect(findPrunableRevisionIds(revs, [], ["s"], NOW)).toEqual([]);
   });
 
-  it("treats everything as an orphan when nothing is referenced", () => {
-    expect(findOrphanRevisionIds(gone(["a", "b"]), [], [])).toEqual(["a", "b"]);
+  it("deletes aged unreferenced revisions but keeps the newest unreferenced one of a live setup", () => {
+    const revs = [rev("a", "s", 10), rev("b", "s", 7), rev("c", "s", 4)];
+    expect(findPrunableRevisionIds(revs, [], ["s"], NOW)).toEqual(["a", "b"]);
+  });
+
+  it("keeps the newest unreferenced revision even when a newer referenced one exists", () => {
+    // The user's choice: scrub-back to the last untagged state survives.
+    const revs = [rev("a", "s", 10), rev("b", "s", 7), rev("c", "s", 4)];
+    expect(findPrunableRevisionIds(revs, ["c"], ["s"], NOW)).toEqual(["a"]);
+  });
+
+  it("deletes every aged unreferenced revision of a deleted setup", () => {
+    const revs = [rev("a", "gone", 10), rev("b", "gone", 4), rev("c", "gone", 1)];
+    expect(findPrunableRevisionIds(revs, [], [], NOW)).toEqual(["a", "b"]);
+  });
+
+  it("judges age by updatedAt, so a re-saved revision is fresh again", () => {
+    const revs = [rev("old", "s", 10), rev("resaved", "s", 0.5), rev("mid", "s", 5)];
+    // "mid" is not the newest unreferenced (resaved is), and it aged out.
+    expect(findPrunableRevisionIds(revs, [], ["s"], NOW)).toEqual(["old", "mid"]);
+  });
+
+  it("treats the boundary as aged out and honours a custom window", () => {
+    const revs = [rev("a", "s", 3), rev("b", "s", 0)];
+    expect(REVISION_RETENTION_MS).toBe(3 * DAY);
+    expect(findPrunableRevisionIds(revs, [], ["s"], NOW)).toEqual(["a"]);
+    expect(findPrunableRevisionIds(revs, [], ["s"], NOW, 5 * DAY)).toEqual([]);
   });
 
   it("ignores references to revisions that no longer exist", () => {
-    expect(findOrphanRevisionIds(gone(["a"]), ["a", "ghost"], [])).toEqual([]);
-  });
-
-  it("keeps unreferenced revisions whose live setup still exists (edit history)", () => {
-    const revisions = [
-      { id: "a", setupId: "live" },
-      { id: "b", setupId: "live" },
-      { id: "c", setupId: "deleted" },
-    ];
-    expect(findOrphanRevisionIds(revisions, [], ["live"])).toEqual(["c"]);
-  });
-
-  it("keeps a referenced revision even when its setup was deleted", () => {
-    expect(findOrphanRevisionIds([{ id: "a", setupId: "deleted" }], ["a"], [])).toEqual([]);
-  });
-});
-
-describe("shouldPrune", () => {
-  it("runs when never run before", () => {
-    expect(shouldPrune(null, 1000)).toBe(true);
-    expect(shouldPrune(undefined, 1000)).toBe(true);
-  });
-
-  it("waits until the interval has elapsed", () => {
-    const last = 1_000_000;
-    expect(shouldPrune(last, last + PRUNE_INTERVAL_MS - 1)).toBe(false);
-    expect(shouldPrune(last, last + PRUNE_INTERVAL_MS)).toBe(true);
+    expect(findPrunableRevisionIds([rev("a", "s", 10), rev("b", "s", 5)], ["ghost"], ["s"], NOW)).toEqual(["a"]);
   });
 });
 

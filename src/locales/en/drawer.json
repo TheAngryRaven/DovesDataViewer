@@ -152,6 +152,7 @@
     "viewUsed": "Used",
     "viewAll": "All",
     "usedTag": "Used",
+    "retentionNotice": "Revisions not tied to a session are deleted after {{days}} days; the most recent one is always kept.",
     "allKarts": "All karts",
     "allCourses": "All courses",
     "original": "Original",
