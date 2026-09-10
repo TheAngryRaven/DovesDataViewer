@@ -127,7 +127,7 @@ src/
 │   ├── imageCrop.ts       # ★ Pure on-device avatar crop (1:1 centre + downscale ≤256, webp/jpeg) — no Supabase (plan 0006)
 │   ├── driverProfileGroups.ts # ★ Pure: one driver's leaderboard entries → Course→weight buckets (plan 0006, DriverProfile)
 │   ├── setupRevision*.ts  # ★ Content-addressed setup history + IndexedDB CRUD (→ docs/subsystems.md)
-│   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
+│   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation; Used/All views — plan 0028) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
 │   ├── vehicleHistory.ts  # ★ Pure vehicle-history view-model (per-vehicle setup revisions, fastest-lap first, course filter) → drawer/VehicleHistoryPanel; reuses setupHistory primitives; shared card chrome in drawer/HistoryCard.tsx
 │   ├── trackSubmission.ts # ★ Community-DB upload plan (→ docs/subsystems.md)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
@@ -317,7 +317,8 @@ unless noted.
 - **Lap snapshots** (`lapSnapshot*.ts`): frozen "course fastest lap" keyed by
   (course + engine); loaded as a comparison overlay only (excluded from playback).
 - **Setup revisions** (`setupRevision*.ts`): immutable, content-addressed (`id` =
-  SHA-256) history of vehicle setups, frozen on assignment.
+  SHA-256) history of vehicle setups, frozen on every save and on assignment;
+  pruned only once the setup is deleted and no session references them (plan 0028).
 - **Course layouts / drawing**: user-drawn polyline outlines persist on
   `Course.layout`; built-ins come from `public/drawings.json`. Draw/Generate tools
   in `VisualEditor`, available to all users.

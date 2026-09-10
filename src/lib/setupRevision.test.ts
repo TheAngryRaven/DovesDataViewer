@@ -140,21 +140,38 @@ describe("freezeTemplate", () => {
 });
 
 describe("findOrphanRevisionIds", () => {
+  // Every revision here belongs to a setup that has been deleted, so only the
+  // session-reference rule is in play.
+  const gone = (ids: string[]) => ids.map((id) => ({ id, setupId: "deleted" }));
+
   it("returns revisions no session references", () => {
-    const orphans = findOrphanRevisionIds(["a", "b", "c"], ["b"]);
+    const orphans = findOrphanRevisionIds(gone(["a", "b", "c"]), ["b"], []);
     expect(orphans.sort()).toEqual(["a", "c"]);
   });
 
   it("keeps every referenced revision", () => {
-    expect(findOrphanRevisionIds(["a", "b"], ["a", "b"])).toEqual([]);
+    expect(findOrphanRevisionIds(gone(["a", "b"]), ["a", "b"], [])).toEqual([]);
   });
 
   it("treats everything as an orphan when nothing is referenced", () => {
-    expect(findOrphanRevisionIds(["a", "b"], [])).toEqual(["a", "b"]);
+    expect(findOrphanRevisionIds(gone(["a", "b"]), [], [])).toEqual(["a", "b"]);
   });
 
   it("ignores references to revisions that no longer exist", () => {
-    expect(findOrphanRevisionIds(["a"], ["a", "ghost"])).toEqual([]);
+    expect(findOrphanRevisionIds(gone(["a"]), ["a", "ghost"], [])).toEqual([]);
+  });
+
+  it("keeps unreferenced revisions whose live setup still exists (edit history)", () => {
+    const revisions = [
+      { id: "a", setupId: "live" },
+      { id: "b", setupId: "live" },
+      { id: "c", setupId: "deleted" },
+    ];
+    expect(findOrphanRevisionIds(revisions, [], ["live"])).toEqual(["c"]);
+  });
+
+  it("keeps a referenced revision even when its setup was deleted", () => {
+    expect(findOrphanRevisionIds([{ id: "a", setupId: "deleted" }], ["a"], [])).toEqual([]);
   });
 });
 

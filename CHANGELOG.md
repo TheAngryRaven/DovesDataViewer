@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **Setup history now records every edit, not only the sessions.** Saving a setup
+  freezes a revision, so the history button shows the full story of how a setup
+  evolved. A new **Used / All** toggle at the top of the panel switches between
+  revisions that were actually run on a session (the default, as before) and every
+  saved revision; in *All*, the ones that were run carry a **Used** badge. Unused
+  revisions are kept as long as the setup exists. (Plan 0028.)
 - **You can now check whether the app is ready to work offline.** Settings gains
   an *Offline readiness* row: whether this device can open LapWing with no
   signal, how much of the extra content (sample data, logger photos) is

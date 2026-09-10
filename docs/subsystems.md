@@ -237,6 +237,11 @@ exactly as it was the day it ran, even after the live setup is later edited.
   the revision (`buildSetupRevision`), and stores its hash on
   `FileMetadata.sessionSetupRev`. `sessionSetupId` (live pointer) is kept alongside
   for lineage / the future "edit the setup later" flow.
+- **Freeze on every save (plan 0028).** `useSetupManager.addSetup`/`updateSetup`
+  also call `freezeSetupRevision` after `saveSetup`, so a setup's history records
+  each edit — not only the states that were run on a session. Content dedup makes
+  a no-op save free. Cloud-pulled setups are written by the sync accessor, not
+  `saveSetup`, so they never re-freeze (the other device already did).
 - **The hash is the identity.** `computeSetupHash(setup, template)` hashes a
   canonical (sorted-key) projection of the setup's values **+ the template
   structure**, excluding volatile bookkeeping (`id`/`createdAt`/`updatedAt`). So
@@ -258,7 +263,11 @@ exactly as it was the day it ran, even after the live setup is later edited.
   changed fields; numbers coloured green=up / red=down via `diffRevisionFields`,
   with a per-row full/diff toggle), each revision's **fastest lap** (the overall
   fastest highlighted), kart/course **bubbles** for the fastest usage, and a
-  **kart + course filter** (drops non-matching revisions). Field flattening
+  **kart + course filter**. A **Used / All** toggle (`SetupHistoryFilter.view`,
+  plan 0028) picks between revisions a session ran (default) and every saved
+  revision; in *All*, used cards carry a **Used** badge. `entry.used` follows the
+  kart/course filter, so the *Used* list and the *All* markers always agree, and
+  each diff is against the previous *displayed* entry. Field flattening
   (`flattenRevisionFields`) reads each revision's *frozen* template so old history
   renders with the labels it had that day.
 - **Vehicle history panel.** Each **VehiclesTab** row has the same history icon
@@ -281,8 +290,10 @@ exactly as it was the day it ran, even after the live setup is later edited.
   `Index.tsx` (load blob → `parseDatalogFile` → `handleDataLoaded` → close drawer,
   dropping a doc-style tab back to the race line) makes the header lap time and
   each "Fastest laps" row tappable to open that session directly.
-- **Orphan prune (GC).** A revision is an orphan once no
-  `FileMetadata.sessionSetupRev` points at it. `pruneSetupRevisions()` deletes
+- **Orphan prune (GC).** A revision is an orphan only when no
+  `FileMetadata.sessionSetupRev` points at it **and** its live setup has been
+  deleted — unreferenced revisions of a setup that still exists are its edit
+  history (plan 0028). `pruneSetupRevisions()` deletes
   orphans (pure split: `findOrphanRevisionIds`); `maybePruneSetupRevisions()`
   throttles it to ~once every `PRUNE_INTERVAL_MS` (3 days) via a localStorage
   timestamp and is fired best-effort from `useSetupManager` on mount. Works fully

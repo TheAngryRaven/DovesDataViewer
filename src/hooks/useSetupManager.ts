@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { VehicleSetup, listSetups, saveSetup, deleteSetup, getLatestSetupForVehicle } from "@/lib/setupStorage";
-import { maybePruneSetupRevisions } from "@/lib/setupRevisionStorage";
+import { freezeSetupRevision, maybePruneSetupRevisions } from "@/lib/setupRevisionStorage";
 
 export function useSetupManager() {
   const [setups, setSetups] = useState<VehicleSetup[]>([]);
@@ -12,8 +12,9 @@ export function useSetupManager() {
 
   useEffect(() => {
     refresh();
-    // Throttled (~3-day) sweep of setup revisions no session references. Fire-
-    // and-forget — never blocks the garage UI, no-ops until the interval elapses.
+    // Throttled (~3-day) sweep of revisions whose setup was deleted and no session
+    // references. Fire-and-forget — never blocks the garage UI, no-ops until the
+    // interval elapses.
     void maybePruneSetupRevisions();
   }, [refresh]);
 
@@ -26,11 +27,16 @@ export function useSetupManager() {
       updatedAt: now,
     };
     await saveSetup(full);
+    // Every save freezes a content-addressed revision so the setup's history
+    // records each edit, not only the states that were run on a session
+    // (plan 0028). Dedup makes a no-op save free.
+    await freezeSetupRevision(full.id);
     await refresh();
   }, [refresh]);
 
   const updateSetup = useCallback(async (setup: VehicleSetup) => {
     await saveSetup({ ...setup, updatedAt: Date.now() });
+    await freezeSetupRevision(setup.id);
     await refresh();
   }, [refresh]);
 

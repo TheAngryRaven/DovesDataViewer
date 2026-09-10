@@ -6,7 +6,7 @@
 
 import { openDB, STORE_NAMES } from './dbUtils';
 import { emitGarageChange } from './garageEvents';
-import { getSetup } from './setupStorage';
+import { getSetup, listSetups } from './setupStorage';
 import { getTemplate } from './templateStorage';
 import { listAllMetadata } from './fileStorage';
 import {
@@ -92,17 +92,21 @@ export async function deleteSetupRevision(id: string): Promise<void> {
 }
 
 /**
- * Sweep revisions no session references (orphans) and delete them. A revision is
- * referenced when some `FileMetadata.sessionSetupRev` equals its id. Returns the
- * ids removed. Always safe offline; the cloud copy is never touched (only
- * tombstoned, by the sync plugin reacting to the delete events).
+ * Sweep orphan revisions and delete them. A revision is an orphan only when no
+ * `FileMetadata.sessionSetupRev` equals its id AND the live setup it was frozen
+ * from has been deleted — every revision of a still-existing setup is its edit
+ * history (plan 0028) and is kept. Returns the ids removed. Always safe offline;
+ * the cloud copy is never touched (only tombstoned, by the sync plugin reacting
+ * to the delete events).
  */
 export async function pruneSetupRevisions(): Promise<string[]> {
-  const [revisions, metas] = await Promise.all([listSetupRevisions(), listAllMetadata()]);
+  const [revisions, metas, setups] = await Promise.all([
+    listSetupRevisions(), listAllMetadata(), listSetups(),
+  ]);
   const referenced = metas
     .map((m) => m.sessionSetupRev)
     .filter((r): r is string => !!r);
-  const orphans = findOrphanRevisionIds(revisions.map((r) => r.id), referenced);
+  const orphans = findOrphanRevisionIds(revisions, referenced, setups.map((s) => s.id));
   for (const id of orphans) await deleteSetupRevision(id);
   return orphans;
 }

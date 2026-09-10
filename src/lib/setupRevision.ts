@@ -39,16 +39,19 @@ export function shouldPrune(
 }
 
 /**
- * Revisions not referenced by any session are orphans (prunable). `referenced` is
- * every `FileMetadata.sessionSetupRev` in use; a revision id absent from it has no
- * session pointing at it and can be removed.
+ * A revision is an orphan (prunable) only when BOTH hold: no session references it
+ * (`referenced` = every `FileMetadata.sessionSetupRev` in use) AND its live setup
+ * no longer exists (`liveSetupIds`). Unreferenced revisions of a setup that still
+ * exists are that setup's edit history (plan 0028) — never swept.
  */
 export function findOrphanRevisionIds(
-  revisionIds: string[],
+  revisions: Pick<SetupRevision, "id" | "setupId">[],
   referenced: Iterable<string>,
+  liveSetupIds: Iterable<string>,
 ): string[] {
   const keep = new Set(referenced);
-  return revisionIds.filter((id) => !keep.has(id));
+  const live = new Set(liveSetupIds);
+  return revisions.filter((r) => !keep.has(r.id) && !live.has(r.setupId)).map((r) => r.id);
 }
 
 /** The short, human-facing id for a revision hash (first 6 hex chars). */

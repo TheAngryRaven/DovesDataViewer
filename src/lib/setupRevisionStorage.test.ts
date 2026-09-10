@@ -1,8 +1,9 @@
 /**
  * IndexedDB tests for setupRevisionStorage — immutable, content-addressed frozen
  * setups. Covers freeze (hash id), dedup/idempotency, a value change producing a
- * new revision, and the orphan prune (a revision no FileMetadata references is
- * swept). freezeSetupRevision spans the setups, templates, and metadata stores.
+ * new revision, and the orphan prune (a revision is swept only once its live setup
+ * is deleted AND no FileMetadata references it — plan 0028). freezeSetupRevision
+ * spans the setups, templates, and metadata stores.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -14,7 +15,7 @@ import {
   deleteSetupRevision,
   pruneSetupRevisions,
 } from "./setupRevisionStorage";
-import { saveSetup, type VehicleSetup } from "./setupStorage";
+import { saveSetup, deleteSetup, type VehicleSetup } from "./setupStorage";
 import { saveTemplate, type SetupTemplate } from "./templateStorage";
 import { saveFileMetadata } from "./fileStorage";
 
@@ -101,22 +102,37 @@ describe("freezeSetupRevision", () => {
 });
 
 describe("pruneSetupRevisions (orphan sweep)", () => {
-  it("deletes a revision that no session metadata references", async () => {
+  it("deletes an unreferenced revision once its live setup is gone", async () => {
     await saveTemplate(template);
     await saveSetup(setup("s1"));
     const revId = await freezeSetupRevision("s1");
     expect(await listSetupRevisions()).toHaveLength(1);
+    await deleteSetup("s1");
 
     const pruned = await pruneSetupRevisions();
     expect(pruned).toEqual([revId]);
     expect(await getSetupRevision(revId!)).toBeNull();
   });
 
-  it("keeps a revision still referenced by a session's sessionSetupRev", async () => {
+  it("keeps an unreferenced revision while its live setup still exists (edit history)", async () => {
+    await saveTemplate(template);
+    await saveSetup(setup("s1"));
+    const a = await freezeSetupRevision("s1");
+    await saveSetup(setup("s1", { customFields: { "f-toe": 5 } }));
+    const b = await freezeSetupRevision("s1");
+
+    const pruned = await pruneSetupRevisions();
+    expect(pruned).toEqual([]);
+    expect(await getSetupRevision(a!)).not.toBeNull();
+    expect(await getSetupRevision(b!)).not.toBeNull();
+  });
+
+  it("keeps a revision still referenced by a session's sessionSetupRev after its setup is deleted", async () => {
     await saveTemplate(template);
     await saveSetup(setup("s1"));
     const revId = await freezeSetupRevision("s1");
     await saveFileMetadata({ fileName: "s.dove", trackName: "OKC", courseName: "CW", sessionSetupRev: revId! });
+    await deleteSetup("s1");
 
     const pruned = await pruneSetupRevisions();
     expect(pruned).toEqual([]);
