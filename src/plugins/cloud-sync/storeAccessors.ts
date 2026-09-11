@@ -14,6 +14,7 @@ import {
   listUserTracks,
   putUserTrackRaw,
 } from "@/lib/trackStorage";
+import { referencedSetupRevisionIds } from "@/lib/setupRevisionStorage";
 import { isSetupRevisionTombstoned } from "./setupRevisionTombstones";
 
 type Record_ = Record<string, unknown>;
@@ -23,6 +24,11 @@ export interface StoreAccessor {
   getOne(key: string): Promise<Record_ | undefined>;
   /** Raw write — must NOT emit a garage event or re-stamp (it's the pull path). */
   putOne(record: Record_): Promise<void>;
+  /**
+   * Optional push gate, built once per sync pass: records it rejects are never
+   * uploaded (by the event push or by reconcile). Pulls are unaffected.
+   */
+  pushFilter?(): Promise<(record: Record_) => boolean>;
 }
 
 function idbAccessor(store: string): StoreAccessor {
@@ -40,14 +46,20 @@ const tracksAccessor: StoreAccessor = {
 };
 
 // Setup revisions are content-addressed and immutable, but they can be pruned
-// locally as orphans (and tombstoned). Skip re-pulling a tombstoned id so the
-// orphan sweep isn't undone by the next reconcile; reads pass straight through.
+// locally (and tombstoned). Skip re-pulling a tombstoned id so the retention
+// sweep isn't undone by the next reconcile; reads pass straight through. Only
+// revisions a local session references are uploaded (plan 0028): every save
+// freezes one, and the untagged ones are device-local scratch that ages out.
 const setupRevisionsAccessor: StoreAccessor = {
   ...idbAccessor(STORE_NAMES.SETUP_REVISIONS),
   putOne: async (record) => {
     const id = String(record?.id ?? "");
     if (id && (await isSetupRevisionTombstoned(id))) return;
     await withWriteTransaction(STORE_NAMES.SETUP_REVISIONS, (s) => s.put(record));
+  },
+  pushFilter: async () => {
+    const referenced = await referencedSetupRevisionIds();
+    return (record) => referenced.has(String(record?.id ?? ""));
   },
 };
 

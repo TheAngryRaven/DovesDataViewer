@@ -5,6 +5,7 @@ import { TRACKS_SYNC_STORE } from "@/lib/trackStorage";
 import { getAccessor } from "./storeAccessors";
 import { addSetupRevisionTombstone } from "./setupRevisionTombstones";
 import { setActiveUserId } from "./activeUser";
+import { saveFileMetadata } from "@/lib/fileStorage";
 
 // Minimal in-memory localStorage — the tracks accessor is localStorage-backed
 // (trackStorage), and node doesn't ship one. Fresh per test for isolation.
@@ -98,5 +99,19 @@ describe("setup-revisions accessor (tombstone-aware pull)", () => {
     const acc = getAccessor(STORE_NAMES.SETUP_REVISIONS);
     await acc.putOne({ id: "hash-keep", setupId: "s2" });
     expect(await acc.getOne("hash-keep")).toMatchObject({ id: "hash-keep" });
+  });
+});
+
+describe("setup-revisions accessor push gate (plan 0028)", () => {
+  it("admits only revisions some session metadata references", async () => {
+    await saveFileMetadata({ fileName: "a.dove", trackName: "", courseName: "", sessionSetupRev: "r-used" });
+    const keep = await getAccessor(STORE_NAMES.SETUP_REVISIONS).pushFilter!();
+    expect(keep({ id: "r-used" })).toBe(true);
+    expect(keep({ id: "r-untagged" })).toBe(false);
+    expect(keep({})).toBe(false);
+  });
+
+  it("is absent on stores that sync everything", () => {
+    expect(getAccessor(STORE_NAMES.KARTS).pushFilter).toBeUndefined();
   });
 });
