@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Scrub through a track day's setup changes, even the ones you never tagged.**
   Saving a setup now freezes a revision, so the history button shows every edit
-  rather than only the states assigned to a session. A new **Used / All** toggle
+  rather than only the states assigned to a session, newest on top. A new **Used / All** toggle
   at the top of the panel switches between revisions that were actually run on a
   session (the default, as before) and every saved revision; in *All*, the ones
   that were run carry a **Used** badge. Untagged revisions stay on this device

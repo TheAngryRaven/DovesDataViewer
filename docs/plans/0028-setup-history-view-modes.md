@@ -63,7 +63,9 @@ show the last three days of untagged changes with a notice that says so.
    the kart/course filter, then keeps only the used ones in the `used` view,
    so the *Used* list and the *All* badges always agree. Diffs are against
    the previous *displayed* entry. `usedCount`/`totalCount` feed the toggle.
-6. **UI.** A two-button segmented control (`Used (n)` / `All (n)`) leads the
+6. **UI.** Cards render newest on top with the original at the bottom (the
+   model stays oldest-first; the panel reverses, and "original" is the entry
+   with no diff). A two-button segmented control (`Used (n)` / `All (n)`) leads the
    filter row; in *All*, a one-line notice under it states the retention rule
    (interpolating `REVISION_RETENTION_MS` in days) and used cards get a
    `✓ Used` badge via `HistoryCard`'s `header` slot. The empty state in *Used*

@@ -147,12 +147,14 @@ export function SetupHistoryPanel({ setup, vehicles, onBack, onOpenFile }: Setup
             <p className="text-xs text-center">{emptyHint}</p>
           </div>
         ) : (
-          history.entries.map((entry, i) => (
+          // Newest on top; the original sits at the bottom and each card above
+          // it diffs against the one below (the model stays oldest-first).
+          [...history.entries].reverse().map((entry) => (
             <RevisionCard
               key={entry.revision.id}
               entry={entry}
-              isOriginal={i === 0}
-              showFull={i === 0 || !!fullOpen[entry.revision.id]}
+              isOriginal={entry.diff === null}
+              showFull={entry.diff === null || !!fullOpen[entry.revision.id]}
               onToggleFull={() =>
                 setFullOpen((prev) => ({ ...prev, [entry.revision.id]: !prev[entry.revision.id] }))
               }

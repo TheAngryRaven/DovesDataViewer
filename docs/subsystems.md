@@ -258,8 +258,9 @@ exactly as it was the day it ran, even after the live setup is later edited.
   **SetupsTab** list shows each setup's current would-be hash; **NotesTab** shows
   the frozen `#hash` of the session's setup revision.
 - **History panel.** Each **SetupsTab** row has a history (book) icon opening
-  `drawer/SetupHistoryPanel.tsx` — a full-panel chronological timeline built by the
-  pure `lib/setupHistory.ts` (`buildSetupHistory`). It joins this setup's revisions
+  `drawer/SetupHistoryPanel.tsx` — a full-panel timeline (newest on top, original
+  at the bottom) built by the pure `lib/setupHistory.ts` (`buildSetupHistory`,
+  whose entries stay oldest-first so the diff chain is simple). It joins this setup's revisions
   with the `FileMetadata` that reference them (`sessionSetupRev`) to show: the
   **original** revision in full, each later one as a **diff vs the previous** (only
   changed fields; numbers coloured green=up / red=down via `diffRevisionFields`,
@@ -348,8 +349,9 @@ exactly as it was the day it ran, even after the live setup is later edited.
   **SetupsTab** list shows each setup's current would-be hash; **NotesTab** shows
   the frozen `#hash` of the session's setup revision.
 - **History panel.** Each **SetupsTab** row has a history (book) icon opening
-  `drawer/SetupHistoryPanel.tsx` — a full-panel chronological timeline built by the
-  pure `lib/setupHistory.ts` (`buildSetupHistory`). It joins this setup's revisions
+  `drawer/SetupHistoryPanel.tsx` — a full-panel timeline (newest on top, original
+  at the bottom) built by the pure `lib/setupHistory.ts` (`buildSetupHistory`,
+  whose entries stay oldest-first so the diff chain is simple). It joins this setup's revisions
   with the `FileMetadata` that reference them (`sessionSetupRev`) to show: the
   **original** revision in full, each later one as a **diff vs the previous** (only
   changed fields; numbers coloured green=up / red=down via `diffRevisionFields`,
