@@ -84,6 +84,8 @@ export interface SetupHistoryEntry {
   isFastestOverall: boolean;
   /** True when at least one session (matching the kart/course filter) ran this revision. */
   used: boolean;
+  /** True when any session at all ran this revision — filter-independent, so it is permanent and cloud-synced. */
+  referenced: boolean;
 }
 
 /** `used`: only revisions a session ran; `all`: every saved revision, used ones marked. */
@@ -103,6 +105,11 @@ export interface SetupHistory {
   totalCount: number;
   /** How many of those are used — what the `used` view shows. */
   usedCount: number;
+  /**
+   * The revision that most recently ran on a session (by session start, then
+   * capture time), ignoring filters — the only rollback target (plan 0028).
+   */
+  latestReferencedId: string | null;
 }
 
 export interface SetupHistoryFilter {
@@ -360,6 +367,20 @@ export function buildSetupHistory(input: BuildSetupHistoryInput): SetupHistory {
     usagesByRev.set(revId, list);
   }
 
+  // The last revision that actually ran, regardless of any filter.
+  let latestReferencedId: string | null = null;
+  let latestRun = -Infinity;
+  for (const revision of revs) {
+    const runs = usagesByRev.get(revision.id);
+    if (!runs) continue;
+    const lastRun = Math.max(...runs.map((u) => u.sessionStartTime ?? 0));
+    // `revs` is chronological, so `>=` lets a later capture win a tie.
+    if (lastRun >= latestRun) {
+      latestRun = lastRun;
+      latestReferencedId = revision.id;
+    }
+  }
+
   // Filter options span every (unfiltered) usage of this setup.
   const allUsages = Array.from(usagesByRev.values()).flat();
   const kartMap = new Map<string, string>();
@@ -403,6 +424,7 @@ export function buildSetupHistory(input: BuildSetupHistoryInput): SetupHistory {
       karts: distinct(usages.map((u) => u.kartName)),
       courses: distinct(usages.map((u) => u.courseLabel)),
       used: usages.length > 0,
+      referenced: usagesByRev.has(revision.id),
     };
   });
   const usedCount = all.filter((e) => e.used).length;
@@ -429,5 +451,6 @@ export function buildSetupHistory(input: BuildSetupHistoryInput): SetupHistory {
     overallFastestLapMs,
     totalCount: all.length,
     usedCount,
+    latestReferencedId,
   };
 }

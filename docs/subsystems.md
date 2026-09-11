@@ -272,7 +272,16 @@ exactly as it was the day it ran, even after the live setup is later edited.
   retention rule. `entry.used` follows the kart/course filter, so the *Used* list
   and the *All* markers always agree, and each diff is against the previous
   *displayed* entry. Opening the panel runs the sweep first so what it shows
-  always matches the notice. Field flattening
+  always matches the notice. **Rollback / Duplicate (plan 0028):** every card a
+  session ran gets a *Duplicate* button (`duplicateSetupFromRevision` → a new
+  setup carrying that revision's values, named "… (copy)"); the single card the
+  model names `latestReferencedId` (the revision that most recently ran on a
+  session, ignoring filters) also gets *Roll back* whenever the live setup's
+  current hash differs from it — a confirm dialog, then
+  `restoreSetupFromRevision` writes the frozen values onto the live record
+  (keeping id/vehicle/name) via the ordinary update path, which freezes and
+  dedups back onto that hash. Only session-linked revisions are targets because
+  they are permanent and already in the cloud. Field flattening
   (`flattenRevisionFields`) reads each revision's *frozen* template so old history
   renders with the labels it had that day.
 - **Vehicle history panel.** Each **VehiclesTab** row has the same history icon
@@ -363,7 +372,16 @@ exactly as it was the day it ran, even after the live setup is later edited.
   retention rule. `entry.used` follows the kart/course filter, so the *Used* list
   and the *All* markers always agree, and each diff is against the previous
   *displayed* entry. Opening the panel runs the sweep first so what it shows
-  always matches the notice. Field flattening
+  always matches the notice. **Rollback / Duplicate (plan 0028):** every card a
+  session ran gets a *Duplicate* button (`duplicateSetupFromRevision` → a new
+  setup carrying that revision's values, named "… (copy)"); the single card the
+  model names `latestReferencedId` (the revision that most recently ran on a
+  session, ignoring filters) also gets *Roll back* whenever the live setup's
+  current hash differs from it — a confirm dialog, then
+  `restoreSetupFromRevision` writes the frozen values onto the live record
+  (keeping id/vehicle/name) via the ordinary update path, which freezes and
+  dedups back onto that hash. Only session-linked revisions are targets because
+  they are permanent and already in the cloud. Field flattening
   (`flattenRevisionFields`) reads each revision's *frozen* template so old history
   renders with the labels it had that day.
 - **Vehicle history panel.** Each **VehiclesTab** row has the same history icon

@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that were run carry a **Used** badge. Untagged revisions stay on this device
   and are deleted after 3 days, always keeping the most recent one, and the panel
   says so. (Plan 0028.)
+- **Roll back or duplicate a setup from its history.** In setup history, every
+  revision that ran on a session has a *Duplicate* button that creates a new
+  setup from it. The most recently run revision also gets *Roll back* whenever
+  the live setup has drifted from it, so a track day's experiments can be undone
+  in one tap after confirming. Your edits stay in history for 3 days. (Plan 0028.)
 - **You can now check whether the app is ready to work offline.** Settings gains
   an *Offline readiness* row: whether this device can open LapWing with no
   signal, how much of the extra content (sample data, logger photos) is

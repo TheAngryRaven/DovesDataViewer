@@ -212,3 +212,34 @@ export async function buildSetupRevision(input: BuildSetupRevisionInput): Promis
     updatedAt: now,
   };
 }
+
+/**
+ * Roll a live setup back to a frozen revision (plan 0028). Restores every
+ * captured value — template, units, tires, custom fields — onto the live
+ * record while keeping its identity (id, vehicle, name, createdAt). The name
+ * stays because a later rename is not a setup change; if it differs from the
+ * revision's, the next freeze lands on a new hash rather than the old one.
+ */
+export function restoreSetupFromRevision(live: VehicleSetup, revision: SetupRevision): VehicleSetup {
+  return {
+    ...revision.setup,
+    id: live.id,
+    vehicleId: live.vehicleId,
+    name: live.name,
+    createdAt: live.createdAt,
+    updatedAt: live.updatedAt,
+  };
+}
+
+/**
+ * A brand-new setup carrying a copy of a frozen revision's values (plan 0028):
+ * the caller assigns the id/timestamps via the ordinary add path, so the copy
+ * starts its own history with this content as its original.
+ */
+export function duplicateSetupFromRevision(
+  revision: SetupRevision,
+  name: string,
+): Omit<VehicleSetup, "id" | "createdAt" | "updatedAt"> {
+  const { id: _id, createdAt: _c, updatedAt: _u, ...values } = revision.setup;
+  return { ...values, vehicleId: revision.vehicleId, name };
+}
