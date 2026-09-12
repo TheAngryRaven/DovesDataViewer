@@ -27,6 +27,7 @@
 - Automatic track & course detection within 5 miles
 - Automatic driving direction detection (forward/reverse)
 - Waypoint mode — lap timing anywhere, no track needed
+- Drag mode — standing-start runs auto-detected at unknown venues; pick 1/8 mile, 1000 ft or 1/4 mile and every pass gets a time-slip breakdown (60/330/660/1000 ft splits + ET), incomplete passes included
 - Interactive race line map with speed heatmap
 - Braking zone detection & visualization
 - Automatic lap detection via start/finish line
@@ -48,7 +49,12 @@
 - Local weather lookup
 - Optional cloud sync of files & garage data across devices (requires backend + sign-in)
 - Dark & light mode
-- PWA — installable & fully offline
+- PWA — installable & fully offline. **On iPhone/iPad, install it:** Safari
+  wipes an uninstalled site's offline data (cached app *and* saved sessions)
+  after roughly a week of not visiting it, so a bookmarked tab can come up
+  empty at a track. Share → *Add to Home Screen*, then open it once with
+  signal — a Home Screen app keeps its data between race weekends. The app
+  shows these steps on iOS, where the browser never offers an install button.
 
 ---
 
@@ -224,6 +230,8 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 > **Build fallback:** `vite.config.ts` now hardcodes the project's public backend URL, publishable key, and project ID as a fallback for production builds. Local `.env` values still take precedence, but published builds no longer white-screen if managed env injection is temporarily missing.
 
 > **PWA cache recovery:** the legacy `/sw.js` path now ships a one-release cleanup worker that deletes old app caches and unregisters itself without touching IndexedDB telemetry/session data. The active offline worker is now published at `/service-worker.js`, and HTML navigations use `NetworkFirst` to reduce the chance of users getting stuck on an old shell after future deploys.
+
+> **Offline caching is two-stage** (plan 0027). Workbox's precache install is all-or-nothing: one failed request and the whole service worker is discarded with nothing cached. So only the app shell is install-blocking; the heavy public directories listed in `DEFERRED_ASSET_DIRS` (`public/samples/`, `public/loggers/`) are excluded from the precache, runtime-cached instead, and warmed in the background once the worker is active — a warm-up that only gets halfway still leaves a working offline app and resumes next visit. **Adding a bulky asset to `public/` without deferring it puts the whole offline cache back at the mercy of one flaky request.** Settings → *Offline readiness* shows the live state.
 
 ### Database Setup
 

@@ -1,11 +1,13 @@
 // Pure view-model for the setup-revision history panel.
 //
 // A live `VehicleSetup` accumulates immutable, content-addressed `SetupRevision`s
-// over time (see setupRevision.ts). This module turns that flat list — plus the
-// session metadata that references each revision — into a chronological history
-// the UI can render: the original revision in full, every later revision as a
-// diff against the one before it, the sessions (karts/courses) each was run on,
-// and the fastest lap achieved on each.
+// over time (see setupRevision.ts) — one per save. This module turns that flat
+// list — plus the session metadata that references each revision — into a
+// chronological history the UI can render: the original revision in full, every
+// later revision as a diff against the one before it, the sessions (karts/courses)
+// each was run on, and the fastest lap achieved on each. Two views (plan 0028):
+// `used` keeps only revisions a session ran, `all` keeps every saved revision and
+// marks the used ones.
 //
 // Kept pure (no IndexedDB / React) so the aggregation + diff logic is unit-tested.
 
@@ -80,23 +82,41 @@ export interface SetupHistoryEntry {
   courses: string[];
   /** True when this revision holds the fastest lap in the current view. */
   isFastestOverall: boolean;
+  /** True when at least one session (matching the kart/course filter) ran this revision. */
+  used: boolean;
+  /** True when any session at all ran this revision — filter-independent, so it is permanent and cloud-synced. */
+  referenced: boolean;
 }
+
+/** `used`: only revisions a session ran; `all`: every saved revision, used ones marked. */
+export type SetupHistoryView = "used" | "all";
 
 export interface SetupHistory {
   setupId: string;
   setupName: string;
-  /** Chronological, oldest first. Filtered-out (no matching usage) entries removed. */
+  /** Chronological, oldest first. In the `used` view, unused entries are removed. */
   entries: SetupHistoryEntry[];
   /** Every kart this setup has been run on (for the filter). */
   kartOptions: { id: string; name: string }[];
   /** Every course this setup has been run on (for the filter). */
   courseOptions: { key: string; label: string }[];
   overallFastestLapMs: number | null;
+  /** How many revisions the `all` view would show (same kart/course filter). */
+  totalCount: number;
+  /** How many of those are used — what the `used` view shows. */
+  usedCount: number;
+  /**
+   * The revision that most recently ran on a session (by session start, then
+   * capture time), ignoring filters — the only rollback target (plan 0028).
+   */
+  latestReferencedId: string | null;
 }
 
 export interface SetupHistoryFilter {
   kartId?: string | null;
   courseKey?: string | null;
+  /** Defaults to `used`. */
+  view?: SetupHistoryView;
 }
 
 export interface BuildSetupHistoryInput {
@@ -347,6 +367,20 @@ export function buildSetupHistory(input: BuildSetupHistoryInput): SetupHistory {
     usagesByRev.set(revId, list);
   }
 
+  // The last revision that actually ran, regardless of any filter.
+  let latestReferencedId: string | null = null;
+  let latestRun = -Infinity;
+  for (const revision of revs) {
+    const runs = usagesByRev.get(revision.id);
+    if (!runs) continue;
+    const lastRun = Math.max(...runs.map((u) => u.sessionStartTime ?? 0));
+    // `revs` is chronological, so `>=` lets a later capture win a tie.
+    if (lastRun >= latestRun) {
+      latestRun = lastRun;
+      latestReferencedId = revision.id;
+    }
+  }
+
   // Filter options span every (unfiltered) usage of this setup.
   const allUsages = Array.from(usagesByRev.values()).flat();
   const kartMap = new Map<string, string>();
@@ -369,29 +403,32 @@ export function buildSetupHistory(input: BuildSetupHistoryInput): SetupHistory {
     if (filter?.courseKey && u.courseKey !== filter.courseKey) return false;
     return true;
   };
-  const filtering = !!(filter?.kartId || filter?.courseKey);
+  const view: SetupHistoryView = filter?.view ?? "used";
 
-  // First pass: per-revision aggregation (still in chronological order).
-  const built = revs
-    .map((revision) => {
-      const usages = (usagesByRev.get(revision.id) ?? [])
-        .filter(matchesFilter)
-        .sort(byFastestLap);
-      const laps = usages.map((u) => u.fastestLapMs).filter((v): v is number => v !== undefined);
-      const fastestLapMs = laps.length ? Math.min(...laps) : null;
-      const fastestUsage = usages.find((u) => u.fastestLapMs !== undefined) ?? null;
-      return {
-        revision,
-        fields: flattenRevisionFields(revision),
-        usages,
-        fastestLapMs,
-        fastestUsage,
-        karts: distinct(usages.map((u) => u.kartName)),
-        courses: distinct(usages.map((u) => u.courseLabel)),
-      };
-    })
-    // When filtering, only show revisions actually run under that filter.
-    .filter((e) => !filtering || e.usages.length > 0);
+  // First pass: per-revision aggregation (still in chronological order). A
+  // revision counts as used when a session matching the kart/course filter ran
+  // it, so the `used` view and the `all` view's markers always agree.
+  const all = revs.map((revision) => {
+    const usages = (usagesByRev.get(revision.id) ?? [])
+      .filter(matchesFilter)
+      .sort(byFastestLap);
+    const laps = usages.map((u) => u.fastestLapMs).filter((v): v is number => v !== undefined);
+    const fastestLapMs = laps.length ? Math.min(...laps) : null;
+    const fastestUsage = usages.find((u) => u.fastestLapMs !== undefined) ?? null;
+    return {
+      revision,
+      fields: flattenRevisionFields(revision),
+      usages,
+      fastestLapMs,
+      fastestUsage,
+      karts: distinct(usages.map((u) => u.kartName)),
+      courses: distinct(usages.map((u) => u.courseLabel)),
+      used: usages.length > 0,
+      referenced: usagesByRev.has(revision.id),
+    };
+  });
+  const usedCount = all.filter((e) => e.used).length;
+  const built = view === "all" ? all : all.filter((e) => e.used);
 
   const overallFastestLapMs = built.reduce<number | null>((min, e) => {
     if (e.fastestLapMs === null) return min;
@@ -405,5 +442,15 @@ export function buildSetupHistory(input: BuildSetupHistoryInput): SetupHistory {
     isFastestOverall: overallFastestLapMs !== null && e.fastestLapMs === overallFastestLapMs,
   }));
 
-  return { setupId, setupName, entries, kartOptions, courseOptions, overallFastestLapMs };
+  return {
+    setupId,
+    setupName,
+    entries,
+    kartOptions,
+    courseOptions,
+    overallFastestLapMs,
+    totalCount: all.length,
+    usedCount,
+    latestReferencedId,
+  };
 }

@@ -99,7 +99,17 @@
     "detectedLaps_other": "Detectadas <b>{{count}} vueltas</b> desde el waypoint.",
     "createTrack": "Crear pista",
     "useWaypoint": "Usar waypoint",
-    "noTrackNotice": "Ninguna pista conocida coincide con estos datos de GPS. Crea una nueva pista y luego añade un trazado para habilitar el cronometraje de vueltas."
+    "noTrackNotice": "Ninguna pista conocida coincide con estos datos de GPS. Crea una nueva pista y luego añade un trazado para habilitar el cronometraje de vueltas.",
+    "dragTitle": "Pasadas de aceleración detectadas",
+    "dragTiming": "Cronometraje de aceleración",
+    "dragNotice": "Ninguna pista conocida coincide con estos datos, pero parecen pasadas de una pista de aceleración: salidas desde parado seguidas de tiradas en línea recta.",
+    "dragRunsFound_one": "Detectada <b>{{count}} pasada desde parado</b>.",
+    "dragRunsFound_other": "Detectadas <b>{{count}} pasadas desde parado</b>.",
+    "dragDistance": "Distancia de cronometraje",
+    "dragApply": "Usar cronometraje de aceleración",
+    "dragEighth": "1/8 de milla (660 ft)",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 de milla (1320 ft)"
   },
   "submit": {
     "toastCouldNotRead": "No se pudieron leer tus pistas",

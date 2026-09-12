@@ -5,6 +5,7 @@ import {
   formatLapTime,
   formatSectorTime,
   calculateOptimalLap,
+  fastestRankedLap,
   pairSprintRuns,
 } from "./lapCalculation";
 import type { GpsSample, Course, Lap, LapCrossing } from "@/types/racing";
@@ -535,6 +536,39 @@ describe("calculateOptimalLap", () => {
     const result = calculateOptimalLap(laps)!;
     expect(result.optimalTimeMs).toBe(60000);
     expect(result.deltaToFastest).toBe(50000 - 60000); // negative — fastest beats theoretical optimal
+  });
+
+  it("uses an incomplete lap's segments for the optimal but never for fastest", () => {
+    // Drag mode: an aborted run's window (12 s) is shorter than the real ET
+    // (60 s) but is not a comparable time — its best segment still counts.
+    const aborted: Lap = { ...makeLap(1, 12000, { s1: 15000, s2: undefined, s3: undefined }), incomplete: true };
+    const complete = makeLap(2, 60000, { s1: 20000, s2: 20000, s3: 20000 });
+    const result = calculateOptimalLap([aborted, complete])!;
+    expect(result.bestSegments).toEqual([15000, 20000, 20000]);
+    expect(result.deltaToFastest).toBe(60000 - 55000); // fastest = the complete lap, not the 12 s window
+  });
+});
+
+// ─── fastestRankedLap ────────────────────────────────────────────────────────
+
+describe("fastestRankedLap", () => {
+  it("returns null for no laps", () => {
+    expect(fastestRankedLap([])).toBeNull();
+  });
+
+  it("picks the minimum lapTimeMs among complete laps", () => {
+    const laps = [makeLap(1, 61000), makeLap(2, 58000), makeLap(3, 59000)];
+    expect(fastestRankedLap(laps)?.lapNumber).toBe(2);
+  });
+
+  it("skips incomplete laps even when their window is shortest", () => {
+    const laps = [{ ...makeLap(1, 10000), incomplete: true }, makeLap(2, 58000)];
+    expect(fastestRankedLap(laps)?.lapNumber).toBe(2);
+  });
+
+  it("returns null when every lap is incomplete", () => {
+    const laps = [{ ...makeLap(1, 10000), incomplete: true }];
+    expect(fastestRankedLap(laps)).toBeNull();
   });
 });
 

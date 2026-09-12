@@ -23,7 +23,13 @@
     "setupNotConfigured": "Configuração da sessão não definida",
     "setupNoneRed": "Nenhum veículo ou acerto salvo ainda — clique para adicionar um",
     "setupNoneOrange": "Nenhum acerto salvo para esta sessão — clique para configurar",
-    "help": "Ajuda"
+    "help": "Ajuda",
+    "run": "Passada {{number}}",
+    "allRuns": "Todas as passadas",
+    "dragEighth": "1/8 mi",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 mi",
+    "dragDistanceTitle": "Distância de cronometragem"
   },
   "lapTable": {
     "noLaps": "Nenhuma volta detectada.",
@@ -46,7 +52,10 @@
     "delta": "Delta",
     "avgLapLength": "Comprimento médio da volta",
     "avgRunLength": "Comprimento médio da bateria",
-    "avgLapValue": "{{feet}} ft / {{meters}} m"
+    "avgLapValue": "{{feet}} ft / {{meters}} m",
+    "colRun": "Passada",
+    "bestEt": "Melhor ET",
+    "incomplete": "Incompleta"
   },
   "snapshots": {
     "trigger": "Instantâneos",
@@ -219,5 +228,17 @@
     "noSetup": "Sem acerto",
     "saveSelection": "Salvar seleção",
     "openGarage": "Abrir garagem"
+  },
+  "drag": {
+    "mark60": "60 ft",
+    "mark330": "330 ft",
+    "markEighth": "1/8",
+    "mark1000": "1000 ft",
+    "markQuarter": "1/4",
+    "segLaunchTo60": "Largada–60 ft",
+    "seg60To330": "60–330 ft",
+    "seg330To660": "330–660 ft",
+    "seg660To1000": "660–1000 ft",
+    "seg1000To1320": "1000–1320 ft"
   }
 }

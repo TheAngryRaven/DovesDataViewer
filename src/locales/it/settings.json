@@ -93,5 +93,16 @@
     "heading": "MyChron",
     "ssidPrefix": "Prefisso del nome Wi-Fi",
     "ssidPrefixHint": "L'inizio del nome Wi-Fi del tuo MyChron. Durante il download, il selettore Wi-Fi di sistema elenca solo le reti che iniziano con questo. Distingue maiuscole e minuscole: modificalo solo se il tuo logger trasmette un nome diverso."
+  },
+  "offline": {
+    "heading": "Disponibilità offline",
+    "prepare": "Completa il download",
+    "progress": "{{cached}} di {{total}} extra in cache ({{percent}}%)",
+    "state": {
+      "ready": "Pronto: questo dispositivo può aprire l’app e l’esempio incluso senza segnale.",
+      "preparing": "L’app si aprirà offline. Extra ancora in scaricamento (dati di esempio e foto dei logger).",
+      "not-ready": "Non ancora in cache. Tieni questa pagina aperta con una connessione per un momento, oppure completa il download ora.",
+      "unsupported": "La cache offline non è disponibile in questo browser."
+    }
   }
 }

@@ -84,6 +84,61 @@ function externalPluginsLoader(candidates: string[]): Plugin {
   };
 }
 
+// Heavy public assets kept OUT of the install-blocking precache.
+//
+// Workbox's precache install is all-or-nothing: one failed request rejects
+// `install`, the service worker is thrown away, and NOTHING is cached — the
+// partial entries are orphaned. With the bundled sample datalogs and logger
+// photos in there, install was a ~10 MB all-or-nothing download, so losing
+// signal partway through (a phone at a track, say) left the app with no offline
+// capability at all and no way to tell.
+//
+// These directories hold everything big that the app does not need in order to
+// boot: they are runtime-cached instead (see `runtimeCaching` below) and warmed
+// in the background once the worker is active (src/lib/offlineWarmup.ts), so
+// they still work offline without being able to take the whole install down.
+// One source of truth — the globs feed `globIgnores`, the runtime-cache route
+// and the emitted manifest alike.
+const DEFERRED_ASSET_DIRS = ["samples", "loggers"] as const;
+const DEFERRED_ASSET_GLOBS = DEFERRED_ASSET_DIRS.map((dir) => `${dir}/**`);
+
+/** Where the client reads the list of deferred assets to warm. */
+const DEFERRED_MANIFEST_FILE = "offline-assets.json";
+
+/**
+ * Emit `offline-assets.json` — every file under the deferred directories, as a
+ * root-relative URL. Generated from the filesystem rather than hand-maintained
+ * so dropping a new logger photo into `public/loggers/` is picked up with no
+ * code change. Runs in `writeBundle`, which is before vite-plugin-pwa builds
+ * the service worker in `closeBundle`, so the manifest itself gets precached.
+ */
+function deferredAssetManifest(dirs: readonly string[]): Plugin {
+  const publicDir = path.resolve(__dirname, "public");
+  const walk = (dir: string, out: string[]) => {
+    if (!fs.existsSync(dir)) return out;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full, out);
+      else out.push("/" + path.relative(publicDir, full).split(path.sep).join("/"));
+    }
+    return out;
+  };
+  return {
+    name: "dove-deferred-assets",
+    apply: "build",
+    writeBundle(options) {
+      const assets = dirs
+        .flatMap((dir) => walk(path.join(publicDir, dir), []))
+        .sort((a, b) => a.localeCompare(b));
+      const outDir = options.dir ?? path.resolve(__dirname, "dist");
+      fs.writeFileSync(
+        path.join(outDir, DEFERRED_MANIFEST_FILE),
+        JSON.stringify({ assets }, null, 2) + "\n",
+      );
+    },
+  };
+}
+
 const PUBLIC_BACKEND_FALLBACKS = {
   // No public backend is baked in — supply your own Supabase credentials via
   // VITE_*/HTT_* env (or a committed `.env`) to enable admin/cloud features.
@@ -259,13 +314,17 @@ export default defineConfig(async ({ mode }) => {
           });
         },
       } satisfies Plugin,
+      deferredAssetManifest(DEFERRED_ASSET_DIRS),
       VitePWA({
         filename: "service-worker.js",
         registerType: "autoUpdate",
         devOptions: {
           enabled: false,
         },
-        includeAssets: ["favicon.png", "favicon.ico", "robots.txt", "tracks.json", "samples/**/*"],
+        // Only what `globPatterns` below does NOT already match. Listing an
+        // asset in both precached it twice — that duplicated the 1.25 MB sample
+        // .nmea in every install.
+        includeAssets: ["robots.txt"],
         manifest: {
           name: "LapWing - Motorsport Data Viewer",
           short_name: "LapWing",
@@ -301,12 +360,38 @@ export default defineConfig(async ({ mode }) => {
           // .woff fallbacks @fontsource emits would just be dead precache weight.
           // mjs: the vendored firmware-simulator module (public/sim/) — precached
           // so the /simulator page works offline like everything else.
-          globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,json,nmea,wasm}"],
+          globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,json,wasm}"],
           // version.json must never be precached — it's the freshness signal the
           // running tab fetches uncached to detect a newer deploy (see versionCheck.ts).
-          globIgnores: ["**/tracks.zip", "version.json"],
+          // The deferred directories are excluded so a slow or dropped connection
+          // can't abort the whole install; they are runtime-cached and warmed
+          // afterwards instead. See DEFERRED_ASSET_DIRS above.
+          globIgnores: ["**/tracks.zip", "version.json", ...DEFERRED_ASSET_GLOBS],
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [
+            {
+              // The heavy assets held out of the precache (see
+              // DEFERRED_ASSET_DIRS). CacheFirst so that once warmed they are
+              // served offline exactly as if precached — the difference is only
+              // that failing to fetch one can no longer abort the install.
+              // The pattern is inlined rather than built from the constant
+              // because workbox-build serializes this function into the worker,
+              // where nothing from this module's scope exists. `sameOrigin` is
+              // supplied by Workbox's route matcher.
+              urlPattern: ({ url, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
+                sameOrigin && /^\/(?:samples|loggers)\//.test(url.pathname),
+              handler: "CacheFirst",
+              options: {
+                // No ExpirationPlugin here on purpose: the warm-up writes these
+                // entries straight into the cache, so they'd be absent from the
+                // plugin's own index — and a fixed set of build assets has
+                // nothing to expire anyway.
+                cacheName: "app-deferred-assets",
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             {
               urlPattern: ({ request }) => request.mode === "navigate",
               handler: "NetworkFirst",

@@ -479,14 +479,35 @@ export function calculateOptimalLap(laps: Lap[]): OptimalLapResult | null {
 
   const optimalTimeMs = bestSegments.reduce((a, b) => a + b, 0);
 
-  // Find fastest actual lap (single-pass to avoid stack overflow on huge inputs)
+  // Find fastest actual lap (single-pass to avoid stack overflow on huge inputs).
+  // Incomplete laps are skipped: their lapTimeMs is a data window, not a time —
+  // and when every lap is incomplete the final segment above was Infinity, so
+  // this point is only reached with at least one complete lap.
   let fastestLapMs = Infinity;
   for (const l of laps) {
+    if (l.incomplete) continue;
     if (l.lapTimeMs < fastestLapMs) fastestLapMs = l.lapTimeMs;
   }
   const deltaToFastest = fastestLapMs - optimalTimeMs;
 
   return { optimalTimeMs, bestSegments, deltaToFastest };
+}
+
+/**
+ * The fastest lap that may be ranked: minimum `lapTimeMs` over laps not flagged
+ * `incomplete` (whose "time" is just a data window — see `Lap.incomplete`).
+ * Every "fastest lap" pick (auto-select, trophy, persisted metadata) must go
+ * through this rather than a bare min-reduce.
+ */
+export function fastestRankedLap<T extends Pick<Lap, "lapTimeMs"> & { incomplete?: boolean }>(
+  laps: T[],
+): T | null {
+  let best: T | null = null;
+  for (const lap of laps) {
+    if (lap.incomplete) continue;
+    if (!best || lap.lapTimeMs < best.lapTimeMs) best = lap;
+  }
+  return best;
 }
 
 /**

@@ -99,7 +99,17 @@
     "detectedLaps_other": "ウェイポイントから<b>{{count}}ラップ</b>を検出しました。",
     "createTrack": "トラックを作成",
     "useWaypoint": "ウェイポイントを使用",
-    "noTrackNotice": "このGPSデータに一致する既知のトラックがありません。新しいトラックを作成し、コースを追加してラップ計測を有効にしてください。"
+    "noTrackNotice": "このGPSデータに一致する既知のトラックがありません。新しいトラックを作成し、コースを追加してラップ計測を有効にしてください。",
+    "dragTitle": "ドラッグ走行を検出",
+    "dragTiming": "ドラッグ計測",
+    "dragNotice": "既知のコースに一致しませんでしたが、ドラッグストリップの走行（静止スタートからの直線加速）のようです。",
+    "dragRunsFound_one": "<b>{{count}}本のスタンディングスタート走行</b>を検出しました。",
+    "dragRunsFound_other": "<b>{{count}}本のスタンディングスタート走行</b>を検出しました。",
+    "dragDistance": "計測距離",
+    "dragApply": "ドラッグ計測を使用",
+    "dragEighth": "1/8マイル（660 ft）",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4マイル（1320 ft）"
   },
   "submit": {
     "toastCouldNotRead": "トラックを読み取れませんでした",

@@ -1,5 +1,5 @@
 import { Lap, Course, courseHasSectors } from '@/types/racing';
-import { formatLapTime, formatSectorTime, calculateOptimalLap } from '@/lib/lapCalculation';
+import { formatLapTime, calculateOptimalLap, fastestRankedLap } from '@/lib/lapCalculation';
 import { Trophy, Sparkles, Timer } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -13,9 +13,8 @@ interface LapSummaryWidgetProps {
 export function LapSummaryWidget({ laps, course, selectedLap, paceDiff }: LapSummaryWidgetProps) {
   if (laps.length === 0) return null;
 
-  // Find fastest lap
-  const fastestLap = laps.reduce((min, lap) => 
-    lap.lapTimeMs < min.lapTimeMs ? lap : min, laps[0]);
+  // Find fastest lap (never an incomplete drag run — its time is just a window)
+  const fastestLap = fastestRankedLap(laps);
 
   // Calculate optimal lap if sectors available
   const showSectors = courseHasSectors(course);
@@ -39,17 +38,19 @@ export function LapSummaryWidget({ laps, course, selectedLap, paceDiff }: LapSum
         </div>
       )}
 
-      <div className="flex items-center gap-1.5">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Trophy className="w-3.5 h-3.5 text-racing-lapBest" />
-          </TooltipTrigger>
-          <TooltipContent>Fastest Lap</TooltipContent>
-        </Tooltip>
-        <span className="text-racing-lapBest font-semibold">
-          {formatLapTime(fastestLap.lapTimeMs)}
-        </span>
-      </div>
+      {fastestLap && (
+        <div className="flex items-center gap-1.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Trophy className="w-3.5 h-3.5 text-racing-lapBest" />
+            </TooltipTrigger>
+            <TooltipContent>Fastest Lap</TooltipContent>
+          </Tooltip>
+          <span className="text-racing-lapBest font-semibold">
+            {formatLapTime(fastestLap.lapTimeMs)}
+          </span>
+        </div>
+      )}
 
       {optimalLap && (
         <div className="flex items-center gap-1.5">

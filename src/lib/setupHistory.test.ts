@@ -218,6 +218,80 @@ describe("buildSetupHistory", () => {
     const built = buildSetupHistory({ setupId: "setup-1", setupName: "x", revisions: [...revs, other], metas, vehicles: VEHICLES });
     expect(built.entries.find((e) => e.revision.id === "rev-x")).toBeUndefined();
   });
+
+  describe("used / all views (plan 0028)", () => {
+    // rev-c was saved (frozen on edit) but never assigned to a session.
+    const revC = makeRevision("rev-c", 3000, makeSetup({ customFields: { "f-toe": 3 } }));
+    const withUnused = [...revs, revC];
+    const build = (filter?: Parameters<typeof buildSetupHistory>[0]["filter"]) =>
+      buildSetupHistory({ setupId: "setup-1", setupName: "x", revisions: withUnused, metas, vehicles: VEHICLES, filter });
+
+    it("defaults to the used view, hiding revisions no session ran", () => {
+      const built = build();
+      expect(built.entries.map((e) => e.revision.id)).toEqual(["rev-a", "rev-b"]);
+      expect(built.entries.every((e) => e.used)).toBe(true);
+      expect(built.usedCount).toBe(2);
+      expect(built.totalCount).toBe(3);
+    });
+
+    it("the all view keeps every revision and marks the used ones", () => {
+      const built = build({ view: "all" });
+      expect(built.entries.map((e) => e.revision.id)).toEqual(["rev-a", "rev-b", "rev-c"]);
+      expect(built.entries.map((e) => e.used)).toEqual([true, true, false]);
+      expect(built.entries[2].fastestLapMs).toBeNull();
+      expect(built.entries[2].usages).toEqual([]);
+      // The unused revision still diffs against the one saved before it.
+      expect(built.entries[2].diff?.map((d) => [d.key, d.nextDisplay])).toEqual([["tpl:f-toe", "3"]]);
+    });
+
+    it("an unused revision never counts as the overall fastest", () => {
+      const built = build({ view: "all" });
+      expect(built.overallFastestLapMs).toBe(61000);
+      expect(built.entries[2].isFastestOverall).toBe(false);
+    });
+
+    it("used markers follow the kart filter, so the two views agree", () => {
+      const all = build({ view: "all", kartId: "veh-2" });
+      // Only rev-a ran on veh-2; rev-b ran on veh-1 only, rev-c never ran.
+      expect(all.entries.map((e) => e.used)).toEqual([true, false, false]);
+      expect(all.usedCount).toBe(1);
+      const used = build({ view: "used", kartId: "veh-2" });
+      expect(used.entries.map((e) => e.revision.id)).toEqual(["rev-a"]);
+    });
+
+    it("marks referenced independently of the filter and names the last-run revision as the rollback target", () => {
+      const filtered = build({ view: "all", kartId: "veh-2" });
+      // rev-b ran only on veh-1: not "used" under the veh-2 filter, but still referenced.
+      expect(filtered.entries.map((e) => [e.used, e.referenced])).toEqual([[true, true], [false, true], [false, false]]);
+      // rev-b's session (t=300) is the most recent run, and the filter does not change that.
+      expect(filtered.latestReferencedId).toBe("rev-b");
+      expect(build().latestReferencedId).toBe("rev-b");
+    });
+
+    it("picks the rollback target by the most recent session, not the newest capture", () => {
+      // rev-a was captured first but re-run later than anything else.
+      const later = [...metas, makeMeta({ fileName: "s9", sessionSetupRev: "rev-a", sessionKartId: "veh-1", trackName: "Track A", courseName: "CW", sessionStartTime: 999 })];
+      const built = buildSetupHistory({ setupId: "setup-1", setupName: "x", revisions: withUnused, metas: later, vehicles: VEHICLES });
+      expect(built.latestReferencedId).toBe("rev-a");
+    });
+
+    it("has no rollback target when nothing ever ran", () => {
+      const built = buildSetupHistory({ setupId: "setup-1", setupName: "x", revisions: withUnused, metas: [], vehicles: VEHICLES, filter: { view: "all" } });
+      expect(built.latestReferencedId).toBeNull();
+      expect(built.entries.every((e) => !e.referenced)).toBe(true);
+    });
+
+    it("in the used view the diff skips over hidden unused revisions", () => {
+      const revD = makeRevision("rev-d", 4000, makeSetup({ customFields: { "f-toe": 4 } }));
+      const metasD = [...metas, makeMeta({ fileName: "s4", sessionSetupRev: "rev-d", sessionKartId: "veh-1", trackName: "Track A", courseName: "CW", fastestLapMs: 62000 })];
+      const built = buildSetupHistory({ setupId: "setup-1", setupName: "x", revisions: [...withUnused, revD], metas: metasD, vehicles: VEHICLES });
+      expect(built.entries.map((e) => e.revision.id)).toEqual(["rev-a", "rev-b", "rev-d"]);
+      // rev-d (toe 4) diffs against rev-b (toe 2), not the hidden rev-c (toe 3).
+      const toe = built.entries[2].diff?.find((d) => d.key === "tpl:f-toe");
+      expect(toe?.prevDisplay).toBe("2");
+      expect(toe?.nextDisplay).toBe("4");
+    });
+  });
 });
 
 // Helper to derive the composite course key the module builds internally.

@@ -13,6 +13,7 @@ import type { OverlayLine } from '@/lib/lapOverlays';
 import type { SaveSnapshotResult } from '@/hooks/useLapSnapshots';
 import type { PluginSnapshot } from '@/plugins/panels';
 import type { LeaderboardDescriptor } from '@/lib/leaderboardSession';
+import type { DragDistanceFt } from '@/lib/dragRunDetection';
 
 /**
  * Session-scoped state and handlers shared by the three main view tabs
@@ -49,6 +50,11 @@ export interface SessionContextValue {
   selectedLapTimeMs: number | null;
   referenceLapNumber: number | null;
   isAllLaps: boolean;
+
+  // ── Drag mode (plan 0022) ─────────────────────────────────────────────────
+  /** Active drag scoring distance; non-null marks a drag session (course is
+   *  null, the laps are standing-start runs, the lap table shows a time slip). */
+  dragDistanceFt?: DragDistanceFt | null;
 
   // ── Read-only leaderboard view (plan 0005) ────────────────────────────────
   /** True when this is a synthetic, read-only leaderboard session (no saving,

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { isNativeApp } from "@/lib/platform";
 import { useTranslation, Trans } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Download, Save, Loader2, HardDrive, Video, Trash2, AlertTriangle } from "lucide-react";
@@ -67,6 +68,9 @@ export function VideoExportDialog({
   const [quality, setQuality] = useState<"standard" | "high">("standard");
   const [range, setRange] = useState<"full" | "lap">("full");
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // In the native shell "device" means the phone's gallery, not a download.
+  const native = isNativeApp();
 
   const handleExport = useCallback((destination: "device" | "app") => {
     onExport({ includeOverlays, quality, range, destination });
@@ -224,10 +228,10 @@ export function VideoExportDialog({
               className="flex-1 gap-2"
               onClick={() => handleExport("device")}
               disabled={isExporting}
-              title={t("export.saveToDeviceTitle")}
+              title={native ? t("export.saveToGalleryTitle") : t("export.saveToDeviceTitle")}
             >
               <HardDrive className="w-4 h-4" />
-              {t("export.saveToDevice")}
+              {native ? t("export.saveToGallery") : t("export.saveToDevice")}
             </Button>
           </div>
 

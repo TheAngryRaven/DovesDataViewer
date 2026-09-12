@@ -25,30 +25,42 @@ import type { SetupTemplate } from "./templateStorage";
 /** How many leading hex chars of the content hash we surface in the UI (git-style). */
 export const SHORT_HASH_LENGTH = 6;
 
-/** How often the orphan-revision sweep runs (3 days), throttled via localStorage. */
-export const PRUNE_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
-
-/** True when the throttled prune is due — never run before, or the interval elapsed. */
-export function shouldPrune(
-  lastRunMs: number | null | undefined,
-  now: number,
-  intervalMs: number = PRUNE_INTERVAL_MS,
-): boolean {
-  if (lastRunMs == null) return true;
-  return now - lastRunMs >= intervalMs;
-}
+/** How long a revision no session references is kept (3 days) — plan 0028. */
+export const REVISION_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
- * Revisions not referenced by any session are orphans (prunable). `referenced` is
- * every `FileMetadata.sessionSetupRev` in use; a revision id absent from it has no
- * session pointing at it and can be removed.
+ * Which revisions the sweep may delete (plan 0028). A revision survives when any
+ * of these hold:
+ *   • a session references it (`referenced` = every `FileMetadata.sessionSetupRev`);
+ *   • it was saved less than `retentionMs` ago (`updatedAt` = last save of this
+ *     content) — a hectic track weekend stays scrubbable for three days even
+ *     when nobody tagged the sessions;
+ *   • it is the newest unreferenced revision of a setup that still exists
+ *     (`liveSetupIds`), so a setup never loses its latest untagged state.
+ * Everything else — including every unreferenced revision of a deleted setup
+ * once it ages out — is returned for deletion.
  */
-export function findOrphanRevisionIds(
-  revisionIds: string[],
+export function findPrunableRevisionIds(
+  revisions: Pick<SetupRevision, "id" | "setupId" | "updatedAt">[],
   referenced: Iterable<string>,
+  liveSetupIds: Iterable<string>,
+  now: number,
+  retentionMs: number = REVISION_RETENTION_MS,
 ): string[] {
   const keep = new Set(referenced);
-  return revisionIds.filter((id) => !keep.has(id));
+  const live = new Set(liveSetupIds);
+  const unreferenced = revisions.filter((r) => !keep.has(r.id));
+
+  const newestUnreferenced = new Map<string, { id: string; updatedAt: number }>();
+  for (const r of unreferenced) {
+    if (!live.has(r.setupId)) continue;
+    const current = newestUnreferenced.get(r.setupId);
+    if (!current || r.updatedAt > current.updatedAt) newestUnreferenced.set(r.setupId, r);
+  }
+
+  return unreferenced
+    .filter((r) => now - r.updatedAt >= retentionMs && newestUnreferenced.get(r.setupId)?.id !== r.id)
+    .map((r) => r.id);
 }
 
 /** The short, human-facing id for a revision hash (first 6 hex chars). */
@@ -90,7 +102,10 @@ export interface SetupRevision {
   template: FrozenTemplate | null;
   /** First time this exact content was seen (epoch ms); stable across re-freezes. */
   createdAt: number;
-  /** Last local write (ms) — mirrors createdAt; kept for the sync merge. */
+  /**
+   * Last time this exact content was saved (ms) — bumped when a re-freeze dedups
+   * onto it. Drives the retention sweep and the sync merge.
+   */
   updatedAt: number;
 }
 
@@ -196,4 +211,35 @@ export async function buildSetupRevision(input: BuildSetupRevisionInput): Promis
     createdAt: now,
     updatedAt: now,
   };
+}
+
+/**
+ * Roll a live setup back to a frozen revision (plan 0028). Restores every
+ * captured value — template, units, tires, custom fields — onto the live
+ * record while keeping its identity (id, vehicle, name, createdAt). The name
+ * stays because a later rename is not a setup change; if it differs from the
+ * revision's, the next freeze lands on a new hash rather than the old one.
+ */
+export function restoreSetupFromRevision(live: VehicleSetup, revision: SetupRevision): VehicleSetup {
+  return {
+    ...revision.setup,
+    id: live.id,
+    vehicleId: live.vehicleId,
+    name: live.name,
+    createdAt: live.createdAt,
+    updatedAt: live.updatedAt,
+  };
+}
+
+/**
+ * A brand-new setup carrying a copy of a frozen revision's values (plan 0028):
+ * the caller assigns the id/timestamps via the ordinary add path, so the copy
+ * starts its own history with this content as its original.
+ */
+export function duplicateSetupFromRevision(
+  revision: SetupRevision,
+  name: string,
+): Omit<VehicleSetup, "id" | "createdAt" | "updatedAt"> {
+  const { id: _id, createdAt: _c, updatedAt: _u, ...values } = revision.setup;
+  return { ...values, vehicleId: revision.vehicleId, name };
 }

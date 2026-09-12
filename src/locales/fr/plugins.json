@@ -7,7 +7,8 @@
     "lapSnapshots": "Instantanés de tour",
     "cloudLogs": "Journaux dans le cloud",
     "dataPrivacy": "Données et confidentialité",
-    "leaderboards": "Classements"
+    "leaderboards": "Classements",
+    "deviceVideos": "Vidéos sur cet appareil"
   },
   "account": {
     "signInBlurb": "Connectez-vous pour sauvegarder et synchroniser vos fichiers, votre garage et vos notes sur tous vos appareils. Tout ici fonctionne toujours hors ligne sur cet appareil — Cloud Sync est optionnel.",
@@ -223,5 +224,23 @@
     "defaultToggle": "Les nouveaux envois sont publics par défaut",
     "defaultToggleHint": "N'affecte que les futurs envois — les sessions existantes conservent leur partage actuel.",
     "defaultUpdateFailed": "Impossible de mettre à jour la préférence de partage"
+  },
+  "deviceVideos": {
+    "note": "L'app conserve une copie de la vidéo de chaque session pour la recharger à la prochaine ouverture de cette session. Supprimer une copie ne l'oublie qu'ici : le fichier d'origine sur votre téléphone reste intact.",
+    "unavailable": "La gestion des vidéos stockées nécessite une version plus récente de l'app.",
+    "empty": "Aucune vidéo stockée pour l'instant. Chargez une vidéo pour une session et sa copie apparaîtra ici.",
+    "summary_one": "{{count}} vidéo · {{size}}",
+    "summary_other": "{{count}} vidéos · {{size}}",
+    "unknownSession": "Session inconnue (stockée par une version antérieure)",
+    "storedOn": "stockée le {{date}}",
+    "remove": "Supprimer",
+    "confirmRemove": "Supprimer cette copie ?",
+    "cancel": "Annuler",
+    "removed": "Supprimée — {{size}} libérés",
+    "clearAll": "Tout supprimer",
+    "confirmClear_one": "Supprimer la vidéo stockée ? Elle vous sera redemandée à l'ouverture de sa session.",
+    "confirmClear_other": "Supprimer les {{count}} vidéos stockées ? Elles vous seront redemandées à l'ouverture de ces sessions.",
+    "cleared": "Vidé — {{size}} libérés",
+    "failed": "Suppression impossible : {{error}}"
   }
 }

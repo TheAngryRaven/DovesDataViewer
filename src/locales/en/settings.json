@@ -92,5 +92,16 @@
     "heading": "MyChron",
     "ssidPrefix": "Wi-Fi name prefix",
     "ssidPrefixHint": "The start of your MyChron's Wi-Fi name. When you download, the system Wi-Fi picker only lists networks that begin with this. It is case-sensitive — change it only if your logger broadcasts a different name."
+  },
+  "offline": {
+    "heading": "Offline readiness",
+    "prepare": "Finish download",
+    "progress": "{{cached}} of {{total}} extras cached ({{percent}}%)",
+    "state": {
+      "ready": "Ready — this device can open the app and the bundled sample with no signal.",
+      "preparing": "The app itself will open offline. Still downloading the extras (sample data and logger photos).",
+      "not-ready": "Not cached yet. Keep this page open on a connection for a moment, or finish the download now.",
+      "unsupported": "Offline caching is unavailable in this browser."
+    }
   }
 }

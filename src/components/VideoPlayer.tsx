@@ -1,6 +1,6 @@
-import { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { memo, lazy, Suspense, useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw, Sliders, Move, Download } from "lucide-react";
+import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw, Sliders, Move, Download, Camera, Compass, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,20 +17,36 @@ import type { OverlayPosition, OverlayInstance, OverlayRenderContext, OverlaySet
 import { buildDataSources, resolveValue } from "@/components/video-overlays/dataSourceResolver";
 import { OverlaySettingsPanel } from "@/components/video-overlays/OverlaySettingsPanel";
 import { VideoExportDialog, ExportOptions } from "@/components/video-overlays/VideoExportDialog";
-import { DigitalOverlay } from "@/components/video-overlays/DigitalOverlay";
-import { AnalogOverlay } from "@/components/video-overlays/AnalogOverlay";
-import { GraphOverlay } from "@/components/video-overlays/GraphOverlay";
-import { BarOverlay } from "@/components/video-overlays/BarOverlay";
-import { BubbleOverlay } from "@/components/video-overlays/BubbleOverlay";
-import { MapOverlay } from "@/components/video-overlays/MapOverlay";
-import { PaceOverlay } from "@/components/video-overlays/PaceOverlay";
-import { SectorOverlay } from "@/components/video-overlays/SectorOverlay";
-import { LapTimeOverlay } from "@/components/video-overlays/LapTimeOverlay";
+import { OverlayCanvas } from "@/components/video-overlays/OverlayCanvas";
 import { startVideoExport, downloadBlob, ExportContext, ExportSource } from "@/lib/videoExport";
+import { startNativeVideoExport } from "@/lib/nativeVideoExport";
+import { isNativeApp } from "@/lib/platform";
+import { insta360SdkInfo } from "@/lib/insta360/ipc";
+import { NativePlayerElement } from "@/lib/insta360/nativePlayer";
+import { DEFAULT_VIEW_POSE } from "@/lib/insta360/types";
+import { Insta360ViewLayer } from "@/components/insta360/Insta360ViewLayer";
+import { toast } from "@/hooks/use-toast";
 import { computeBrakingGSeriesSG, gToBrakePercent } from "@/lib/brakingZones";
 import { saveSessionVideo, loadSessionVideo, deleteSessionVideo } from "@/lib/videoFileStorage";
 import { courseHasSectors } from "@/types/racing";
 import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
+
+// Native-only camera import (plan 0025): lazy so the web bundle never carries it.
+const Insta360ImportDialog = lazy(() =>
+  import("@/components/insta360/Insta360ImportDialog").then((m) => ({ default: m.Insta360ImportDialog })),
+);
+
+/** Preview frame for a camera stream: the panel in device pixels, capped at 720p, even. */
+function previewSizeOf(el: HTMLElement | null): { width: number; height: number } {
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  let w = Math.round((el?.clientWidth ?? 0) * dpr);
+  let h = Math.round((el?.clientHeight ?? 0) * dpr);
+  if (w < 160 || h < 90) { w = 1280; h = 720; }
+  const scale = Math.min(1, 1280 / w, 720 / h);
+  w = Math.round(w * scale);
+  h = Math.round(h * scale);
+  return { width: w - (w % 2), height: h - (h % 2) };
+}
 
 interface VideoPlayerProps {
   state: VideoSyncState;
@@ -210,20 +226,9 @@ function DraggableOverlay({
   );
 }
 
-/** Render the appropriate overlay component for an instance */
+/** Render an overlay instance through the unified scene renderer (plan 0023). */
 function OverlayRenderer({ instance, ctx, fontSize }: { instance: OverlayInstance; ctx: OverlayRenderContext; fontSize: number }) {
-  switch (instance.type) {
-    case "digital": return <DigitalOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "analog": return <AnalogOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "graph": return <GraphOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "bar": return <BarOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "bubble": return <BubbleOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "map": return <MapOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "pace": return <PaceOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "sector": return <SectorOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    case "laptime": return <LapTimeOverlay instance={instance} ctx={ctx} fontSize={fontSize} />;
-    default: return null;
-  }
+  return <OverlayCanvas instance={instance} ctx={ctx} fontSize={fontSize} />;
 }
 
 /**
@@ -294,6 +299,55 @@ export const VideoPlayer = memo(function VideoPlayer({
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+
+  // Insta360 camera streaming (plan 0025) — offered only where the shell can
+  // do it; a 360° stream starts view-locked so a stray touch can't spin it.
+  const [insta360Available, setInsta360Available] = useState(false);
+  const [showCameraDialog, setShowCameraDialog] = useState(false);
+  const [viewLocked, setViewLocked] = useState(true);
+  const emptyStateRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    let alive = true;
+    void insta360SdkInfo().then((info) => { if (alive) setInsta360Available(info.available); });
+    return () => { alive = false; };
+  }, []);
+  const nativePlayer = state.nativeSource ? actions.videoRef.current : null;
+  const cameraPlayer = nativePlayer instanceof NativePlayerElement ? nativePlayer : null;
+  const is360Stream = !!state.nativeSource?.is360 && !!cameraPlayer;
+  useEffect(() => { setViewLocked(true); }, [state.nativeSource]);
+  // The <video> element's `muted` attribute has no equivalent on the stream;
+  // mirror the toggle onto the native player instead.
+  useEffect(() => { if (cameraPlayer) cameraPlayer.muted = isMuted; }, [cameraPlayer, isMuted]);
+  // A stream that dies (camera walked out of range) is reported, not silent.
+  useEffect(() => {
+    if (!cameraPlayer) return;
+    const onError = () => toast({ title: t("insta360.streamError"), description: cameraPlayer.lastError ?? undefined, variant: "destructive" });
+    cameraPlayer.addEventListener("error", onError);
+    return () => cameraPlayer.removeEventListener("error", onError);
+  }, [cameraPlayer, t]);
+  const handleCameraLoad = useCallback((file: Parameters<typeof actions.loadCameraRecording>[0]) => {
+    const size = previewSizeOf(videoAreaRef.current ?? emptyStateRef.current);
+    void actions.loadCameraRecording(file, size).catch((err) => {
+      toast({ title: t("insta360.openFailed"), description: String(err), variant: "destructive" });
+    });
+  }, [actions, t]);
+  const handleCameraDisconnected = useCallback(() => {
+    if (state.nativeSource) actions.unloadVideo();
+  }, [state.nativeSource, actions]);
+  const resetView = useCallback(() => {
+    void cameraPlayer?.setViewPose(DEFAULT_VIEW_POSE).catch(() => {});
+  }, [cameraPlayer]);
+  const cameraDialog = insta360Available ? (
+    <Suspense fallback={null}>
+      <Insta360ImportDialog
+        open={showCameraDialog}
+        onOpenChange={setShowCameraDialog}
+        onLoad={handleCameraLoad}
+        onDisconnected={handleCameraDisconnected}
+      />
+    </Suspense>
+  ) : null;
 
   // Keep refs for export context building
   const samplesRef = useRef(samples);
@@ -479,7 +533,8 @@ export const VideoPlayer = memo(function VideoPlayer({
   // Export
   const handleExport = useCallback((options: ExportOptions) => {
     const video = actions.videoRef.current;
-    if (!video) return;
+    // Camera streams have no file behind them — nothing to transcode (v1).
+    if (!video || state.nativeSource || !(video instanceof HTMLVideoElement)) return;
     setIsExporting(true);
     setExportProgress(0);
 
@@ -508,6 +563,13 @@ export const VideoPlayer = memo(function VideoPlayer({
     const exportContext: ExportContext = {
       overlays: overlays.filter(o => o.visible),
       buildRenderCtx: buildExportRenderCtx,
+      labels: {
+        slow: t("widgets.slow"),
+        fast: t("widgets.fast"),
+        lapTime: t("widgets.lapTime"),
+        delta: t("widgets.delta"),
+        best: (lapLabel: string) => t("widgets.best", { lap: lapLabel }),
+      },
     };
 
     const destination = options.destination;
@@ -516,9 +578,17 @@ export const VideoPlayer = memo(function VideoPlayer({
     const chunks = state.exportChunks.length > 0
       ? state.exportChunks
       : [{ url: video.currentSrc || video.src, startOffsetSec: 0, durationSec: totalDuration }];
-    const exportSource: ExportSource = { liveVideo: video, chunks, totalDuration };
+    const exportSource: ExportSource = {
+      liveVideo: video,
+      chunks,
+      totalDuration,
+      fileName: state.videoFileName ?? undefined,
+      // The shell's remembered copy is only the source for single-file
+      // recordings — the store holds one video per session.
+      nativeSourceKey: chunks.length === 1 ? (state.nativeStoredKey ?? undefined) : undefined,
+    };
 
-    startVideoExport(exportSource, exportContext, exportOptions, {
+    const exportCallbacks = {
       onProgress: (p) => setExportProgress(p),
       onComplete: (blob) => {
         setIsExporting(false);
@@ -546,13 +616,31 @@ export const VideoPlayer = memo(function VideoPlayer({
       onError: (err) => {
         setIsExporting(false);
         console.error("Export error:", err);
+        // Say so — a silent return to idle reads as "nothing happened".
+        toast({ title: t("export.failed"), description: String(err), variant: "destructive" });
       },
-    });
+      // Native shell: "Save to device" wrote straight into the gallery.
+      onSavedToDevice: (uri) => {
+        setIsExporting(false);
+        setShowExportDialog(false);
+        console.log("Video saved to gallery:", uri);
+        toast({ title: t("export.savedToGallery") });
+      },
+    } satisfies Parameters<typeof startVideoExport>[3];
+
+    // In the native shell, the hardware pipeline does the transcode (plan
+    // 0024); it resolves null when this shell can't (web, desktop stub, old
+    // app), and then the in-WebView exporter takes over unchanged.
+    void startNativeVideoExport(exportSource, exportContext, exportOptions, exportCallbacks).then(
+      (native) => {
+        if (!native) startVideoExport(exportSource, exportContext, exportOptions, exportCallbacks);
+      },
+    );
     // `actions.videoRef` is a stable RefObject from useVideoSync; depending on
     // the whole `actions` object would invalidate handleExport on every parent
     // render, defeating the memoization.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, state.videoDuration, state.exportChunks, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps]);
+  }, [actions.videoRef, state.videoFileName, state.syncOffsetMs, state.videoDuration, state.exportChunks, state.nativeStoredKey, state.nativeSource, overlays, buildExportRenderCtx, sessionFileName, selectedLapNumber, laps, t]);
 
   // Download existing stored video
   const handleSaveExisting = useCallback(async () => {
@@ -574,18 +662,26 @@ export const VideoPlayer = memo(function VideoPlayer({
   // No video loaded
   if (!state.videoUrl) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-muted/20 gap-4 px-6 text-center">
+      <div ref={emptyStateRef} className="h-full flex flex-col items-center justify-center bg-muted/20 gap-4 px-6 text-center">
         <Video className="w-12 h-12 text-muted-foreground/50" />
         <p className="text-muted-foreground text-sm">{t("player.noVideo")}</p>
         {state.videoFileName && (
           <p className="text-xs text-muted-foreground max-w-xs break-words">{t("player.lastUsed", { name: state.videoFileName })}</p>
         )}
-        <Button variant="outline" size="sm" onClick={actions.loadVideo} className="gap-2">
-          <Video className="w-4 h-4" /> {t("player.loadVideo")}
-        </Button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={actions.loadVideo} className="gap-2">
+            <Video className="w-4 h-4" /> {t("player.loadVideo")}
+          </Button>
+          {insta360Available && (
+            <Button variant="outline" size="sm" onClick={() => setShowCameraDialog(true)} className="gap-2">
+              <Camera className="w-4 h-4" /> {t("insta360.importButton")}
+            </Button>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground/70 max-w-xs">{t("player.goproHint")}</p>
         <p className="text-xs text-muted-foreground/70 max-w-xs">{t("player.bulkSelectHint")}</p>
         <RecordingPicker state={state} actions={actions} />
+        {cameraDialog}
       </div>
     );
   }
@@ -594,15 +690,31 @@ export const VideoPlayer = memo(function VideoPlayer({
     <div className="h-full flex flex-col relative bg-black">
       {/* Video element + click target */}
       <div ref={videoAreaRef} className="flex-1 min-h-0 relative overflow-hidden" onClick={handleVideoClick}>
-        <video
-          ref={actions.videoRef}
-          src={state.videoUrl}
-          onLoadedMetadata={onLoadedMetadata}
-          className="w-full h-full object-contain"
-          playsInline
-          preload="auto"
-          muted={isMuted}
-        />
+        {state.nativeSource ? (
+          // A camera stream: the shell's player renders it and serves the
+          // frames as MJPEG; the surface object lives in actions.videoRef.
+          <img
+            src={state.videoUrl}
+            alt=""
+            draggable={false}
+            className="w-full h-full object-contain select-none"
+          />
+        ) : (
+          <video
+            ref={(el) => {
+              // Only a mounted element claims the surface; on unmount, release
+              // it only if it's still ours (a camera stream may have taken it).
+              if (el) actions.videoRef.current = el;
+              else if (actions.videoRef.current instanceof HTMLVideoElement) actions.videoRef.current = null;
+            }}
+            src={state.videoUrl}
+            onLoadedMetadata={onLoadedMetadata}
+            className="w-full h-full object-contain"
+            playsInline
+            preload="auto"
+            muted={isMuted}
+          />
+        )}
 
         {/* Hidden element that buffers the next chunk so the boundary swap is near-seamless. */}
         {state.preloadUrl && (
@@ -625,6 +737,13 @@ export const VideoPlayer = memo(function VideoPlayer({
                   ? t("player.videoEnded")
                   : t("player.noVideoForPortion")}
             </p>
+          </div>
+        )}
+
+        {/* 360° drag-to-point layer (camera streams), under the overlays */}
+        {is360Stream && cameraPlayer && videoRect && (
+          <div className="absolute" style={{ left: videoRect.left, top: videoRect.top, width: videoRect.width, height: videoRect.height }}>
+            <Insta360ViewLayer player={cameraPlayer} width={videoRect.width} height={videoRect.height} locked={viewLocked} />
           </div>
         )}
 
@@ -695,6 +814,7 @@ export const VideoPlayer = memo(function VideoPlayer({
 
       {/* Recording picker (multi-recording selection) */}
       <RecordingPicker state={state} actions={actions} />
+      {cameraDialog}
 
       {/* Unified bottom toolbar + progress bar */}
       <div
@@ -737,6 +857,23 @@ export const VideoPlayer = memo(function VideoPlayer({
             </>
           )}
 
+          {is360Stream && (
+            <>
+              <div className="w-px h-5 bg-white/20 mx-1" />
+              <Button
+                variant="ghost" size="icon"
+                className={`h-7 w-7 backdrop-blur-sm text-white ${!viewLocked ? "bg-amber-500/60 hover:bg-amber-500/40" : "bg-white/15 hover:bg-white/30"}`}
+                onClick={() => setViewLocked((v) => !v)}
+                title={viewLocked ? t("insta360.pointView") : t("insta360.lockView")}
+              >
+                {viewLocked ? <Compass className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={resetView} title={t("insta360.resetView")}>
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          )}
+
           <div className="flex-1" />
 
           {/* Overlay position lock */}
@@ -759,17 +896,16 @@ export const VideoPlayer = memo(function VideoPlayer({
             <Sliders className="w-3.5 h-3.5" />
           </Button>
 
-          {/* Export */}
-          {(
-            <Button
-              variant="ghost" size="icon"
-              className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30"
-              onClick={() => setShowExportDialog(true)}
-              title={t("player.exportVideo")}
-            >
-              <Download className="w-3.5 h-3.5" />
-            </Button>
-          )}
+          {/* Export (not for camera streams: there's no file to transcode yet) */}
+          <Button
+            variant="ghost" size="icon"
+            className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30 disabled:opacity-40"
+            onClick={() => setShowExportDialog(true)}
+            disabled={!!state.nativeSource}
+            title={state.nativeSource ? t("insta360.exportUnavailable") : t("player.exportVideo")}
+          >
+            <Download className="w-3.5 h-3.5" />
+          </Button>
         </div>
 
         {/* Progress bar row */}
@@ -798,6 +934,11 @@ export const VideoPlayer = memo(function VideoPlayer({
           <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={actions.loadVideo} title={t("player.replaceVideo")}>
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
+          {insta360Available && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/15 backdrop-blur-sm text-white hover:bg-white/30" onClick={() => setShowCameraDialog(true)} title={t("insta360.importButton")}>
+              <Camera className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
       </div>
     </div>

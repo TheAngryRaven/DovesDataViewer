@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { ParsedData, Lap, GpsSample, TrackCourseSelection, Course } from "@/types/racing";
-import { calculateLaps } from "@/lib/lapCalculation";
+import { calculateLaps, fastestRankedLap } from "@/lib/lapCalculation";
 import { updateFileMetadata } from "@/lib/fileStorage";
 
 /**
@@ -63,11 +63,8 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
     (course: Course, samples: GpsSample[], fileNameOverride?: string) => {
       const computedLaps = calculateLaps(samples, course);
       setLaps(computedLaps);
-      if (computedLaps.length > 0) {
-        const fastest = computedLaps.reduce(
-          (min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min),
-          computedLaps[0]
-        );
+      const fastest = fastestRankedLap(computedLaps);
+      if (fastest) {
         setSelectedLapNumber(fastest.lapNumber);
 
         // Persist fastest lap into metadata (preserving all other tags).
@@ -95,6 +92,8 @@ export function useLapManagement(data: ParsedData | null, currentFileName: strin
         updateFileMetadata(currentFileName, {
           trackName: newSelection.trackName,
           courseName: newSelection.courseName,
+          // Assigning a real course retires drag mode for this file.
+          dragDistanceFt: undefined,
           ...(data?.startDate ? { sessionStartTime: data.startDate.getTime() } : {}),
         });
       }

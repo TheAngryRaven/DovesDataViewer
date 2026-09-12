@@ -23,5 +23,15 @@
     "updating": "Aktualisiere…",
     "updatingBody": "Neueste Version wird geladen — einen Moment.",
     "updated": "Du bist auf der neuesten Version."
+  },
+  "install": {
+    "title": "LapWing installieren",
+    "body": "Funktioniert offline an der Strecke — ganz ohne Empfang.",
+    "action": "Installieren",
+    "dismiss": "Jetzt nicht",
+    "iosWhy": "Auf iPhone und iPad löscht Safari die Offline-Daten einer nicht installierten Website nach etwa einer Woche. Wird LapWing zum Home-Bildschirm hinzugefügt, bleiben sie — samt deiner gespeicherten Sessions — zwischen den Rennwochenenden erhalten.",
+    "iosStepShare": "Tippe in der Safari-Leiste auf „Teilen“",
+    "iosStepAdd": "Wähle „Zum Home-Bildschirm“",
+    "iosStepOpen": "Öffne LapWing danach einmal über das neue Symbol, solange du noch Empfang hast, damit es sich für die Offline-Nutzung speichern kann."
   }
 }

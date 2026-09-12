@@ -1,0 +1,143 @@
+# Native export bridge — hardware-speed overlay video in the shell
+
+> Status: **LANDED** (bridge + renderer memoization; follow-ups: gallery save + remembered video; the Android bridge fix). Companion: LapWing's
+> `tauri-plugin-videopipe` + `video_export_*` IPC (its `docs/video-pipeline.md`
+> is the contract; LapWing plan 0001, Phase 2).
+
+## Why this exists
+
+On-device, the WebView exporter was unusable: ~30 s of 1080p30 hadn't finished
+after a minute, because `videoExport.ts` seeks the `<video>` element once per
+output frame (double-rAF wait, 500 ms no-op-seek stalls, GOP re-decode per
+seek). In the native shell that entire job belongs on the platform's hardware
+codecs — the owner's call: the video pipeline *is* the point of the native app.
+
+## What landed
+
+### `src/lib/nativeVideoExport.ts`
+`startNativeVideoExport(source, exportCtx, options, callbacks)`:
+
+- resolves **null** when the native path can't run — not the shell
+  (`isNativeApp()` false), a shell without the commands / the desktop stub
+  (`unsupported:` sentinel), or a multi-chunk playlist (v1 limitation) — and
+  the caller falls back to the unchanged WebView exporter;
+- otherwise stages and drives the job: `video_export_begin` (same
+  quality→resolution/bitrate mapping as the web path), the source blob in
+  4 MB **base64** chunks (see follow-up 2), then transparent overlay layers rendered by the
+  plan-0023 unified renderer at **15 Hz** (telemetry cadence — overlays
+  change with data, not video frames), PNG-encoded at output resolution,
+  timestamps relative to the export start;
+- `video_export_run` streams transcode progress (staging owns the first 35 %
+  of the bar), `video_export_collect` returns the MP4 for the existing
+  save/share flows, `dispose` cleans up — also on error/cancel.
+
+`VideoPlayer.handleExport` tries the native path first and falls back
+seamlessly; web and desktop behavior is byte-identical to before.
+
+### Renderer memoization (`overlayCanvasRenderer.ts`)
+The per-frame invariant work found while profiling the export path is now
+cached per session via `WeakMap` on array identity (no invalidation, no
+leaks): per-source ranges (`memoRange`, validated against the pace/braking
+arrays for the special sources), map bounds (`memoMapBounds`), the pace bar's
+scale (`memoPaceMax`), and the digital widget no longer resolves its value
+twice per draw (`digitalBox`). This speeds up preview, the WebView exporter,
+and native layer generation alike — the draws' output is bit-identical.
+
+## Deliberate v1 limits
+
+- Multi-chunk (multi-file recording) exports keep the WebView path.
+- Layer cadence is a constant 15 Hz; the sector sweep (600 ms) gets ~9 layers,
+  which reads smoothly. A per-widget change-detection cadence is the next
+  lever if layer generation ever dominates long-session exports (an
+  OffscreenCanvas worker after that).
+- The one flagged cross-repo unknown: media3's clipped-stream presentation
+  times are assumed 0-based against our export-relative layer timestamps —
+  if a device shows a constant offset, the fix is one constant on the LapWing
+  side (`TimedBitmapOverlay`).
+
+## Verification
+
+- Unit: range memoization scans once per session arrays (counting source
+  fixture); all prior renderer tests unchanged — the memo layer is
+  behavior-invisible.
+- On-device (owner): export the same 30 s 1080p30 clip with a full overlay
+  layout — expect seconds, not minutes; check overlay parity against the
+  paused preview, audio presence, A/V sync at the trim boundaries, and that
+  cancelling mid-export leaves no stale job (next export begins clean).
+
+## Follow-up (landed): save to gallery + the remembered video
+
+Two gaps the first on-device run exposed:
+
+- **"Save to device" saved nowhere.** It fell into `downloadBlob()` — an
+  `<a download href="blob:…">` click — which the Android WebView has no
+  download handler for. On native, `destination: "device"` now means the
+  **gallery**: the bridge calls `video_export_save(jobId, fileName)` and the
+  shell copies the finished MP4 straight out of its job dir into MediaStore
+  `Movies/LapWing` (the file never round-trips through the WebView); the
+  dialog's button reads *Save to Gallery* on native and `VideoPlayer` toasts
+  `export.savedToGallery`. New `ExportCallbacks.onSavedToDevice`; the web
+  path is untouched.
+- **The video was forgotten on reopen.** The web remembers it via a
+  `FileSystemFileHandle` (Chrome desktop only). `src/lib/nativeVideoStore.ts`
+  is the shell's equivalent: `useVideoSync.loadRecording` copies a
+  single-file recording into the shell's store in the background (8 MB
+  raw-body chunks; the blob URL keeps playing meanwhile), and the restore
+  effect tries `getNativeStoredVideo` before the IndexedDB fallback — the
+  `<video>` then streams from app storage over the asset protocol. The
+  store key rides `VideoSyncState.nativeStoredKey`, and the export bridge
+  passes it as `sourceKey` so an export of a remembered video **skips the
+  source upload entirely** (a stale key silently falls back to uploading).
+  Multi-file recordings keep today's behavior (no store, v1).
+
+## Follow-up 2 (landed): the Android bridge has no raw bodies
+
+The first on-device run of "Save to Gallery" stuttered for a second and went
+idle — no file, no message. Root cause, in LapWing's IPC layer: the upload
+commands took **raw invoke bodies** (`invoke(cmd, bytes, { headers })` →
+`tauri::ipc::Request`), and Tauri never uses that IPC on Android — the
+WebView cannot hand the app a request body, so Tauri falls back to
+`window.ipc.postMessage` and serializes a `Uint8Array` payload as a JSON
+*array of numbers*, which a raw-body command rejects. The very first chunk
+of every export (and of every video-store copy) failed; `onError` only
+logged to the console, so the dialog just returned to idle. The stutter was
+the WebView turning 8 MB of bytes into ~30 MB of JSON text.
+
+What changed:
+
+- `src/lib/nativeBytes.ts`: bulk bytes now cross the bridge as **base64
+  strings in ordinary JSON args**, in 4 MB chunks (`blobToBase64` via
+  `FileReader.readAsDataURL` — native, off the main thread). LapWing decodes
+  in one pass (`video::job::decode_chunk`). `nativeVideoExport.ts` and
+  `nativeVideoStore.ts` use it; the shell's push commands take
+  `{ jobId, offset | tMs, data }` / `{ key, offset, data }`.
+- Export failures are now **visible**: `VideoPlayer.onError` toasts
+  `export.failed` with the shell's message (destructive variant) instead of
+  only `console.error`. The WebView exporter's errors get the same toast.
+- Staging progress weights one overlay layer like one chunk push (render +
+  PNG encode + bridge trip), which is what it costs.
+
+Requires the matching LapWing shell (base64 push commands); an older shell
+rejects the new args and the toast says so.
+
+## Follow-up 3 (landed): the store is visible and clearable
+
+The shell's copy per session is the one thing in the app that grows by
+gigabytes, and nothing pruned it. A first-party plugin,
+`src/plugins/native-storage`, contributes a **"Videos on this device"** panel
+to the Profile tab on the native shell only (which also makes the Profile tab
+exist in a native build without the cloud plugin): every stored copy with its
+file name, owning session, size and date, a per-copy delete with inline
+confirm, and a clear-all — each toasting the bytes freed. The bridge grew
+`listNativeStoredVideos` / `removeNativeStoredVideo` / `clearNativeVideoStore`
+over LapWing's `video_store_list` / `video_store_remove` / `video_store_clear`;
+on a shell that predates them the card says it needs a newer build.
+
+Deleting fires a `native-video-store-changed` window event. `useVideoSync`
+listens: if the session was **playing from** the deleted copy (a restore),
+the video unloads exactly as deleting the in-app stored video does; if it
+still holds the picked blob (the copy was made in the background), only the
+export shortcut goes away. The pure parts — ordering, totals, labels,
+applying a removal, byte formatting — live in `deviceVideos.ts` with tests;
+the panel is a thin view.
+

@@ -2,6 +2,13 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { GpsSample } from "@/types/racing";
 import { saveVideoSync, loadVideoSync, VideoSyncRecord, VideoSyncChunk } from "@/lib/videoStorage";
 import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoMeta, type StoredVideoMeta } from "@/lib/videoFileStorage";
+import { NativePlayerElement, type VideoSurface } from "@/lib/insta360/nativePlayer";
+import type { Insta360CameraFile } from "@/lib/insta360/types";
+import {
+  getNativeStoredVideo, storeNativeVideo,
+  NATIVE_VIDEO_STORE_CHANGED, type NativeVideoStoreChangedDetail,
+} from "@/lib/nativeVideoStore";
+import { isNativeApp } from "@/lib/platform";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
@@ -20,6 +27,18 @@ interface UseVideoSyncOptions {
    * slave instead of being seek-scrubbed once per cursor tick (which stutters).
    */
   dataIsPlaying: boolean;
+}
+
+/**
+ * Native shell: a video streamed by the shell's own player (plan 0025 —
+ * Insta360 camera recordings) instead of a <video> element. The pixels are an
+ * MJPEG <img>; playback is driven through a NativePlayerElement that fills
+ * the same VideoSurface role as the element.
+ */
+export interface NativeVideoSource {
+  kind: "insta360";
+  file: Insta360CameraFile;
+  is360: boolean;
 }
 
 export interface VideoSyncState {
@@ -51,6 +70,14 @@ export interface VideoSyncState {
   hasStoredVideo: boolean;
   storedVideoMeta: StoredVideoMeta | null;
   /**
+   * Native shell: the key of this session's remembered video in the shell's
+   * store (null on the web, or until the copy finishes). The native export
+   * uses it as its source and skips the source upload.
+   */
+  nativeStoredKey: string | null;
+  /** The shell-streamed source behind `videoUrl`, or null for a file. */
+  nativeSource: NativeVideoSource | null;
+  /**
    * When a selection holds several distinct recordings, the choices to prompt
    * the user with (null = no prompt pending). Each is one recording's display
    * label + chapter count; only the chosen one is ever loaded into memory.
@@ -60,6 +87,13 @@ export interface VideoSyncState {
 
 export interface VideoSyncActions {
   loadVideo: () => void;
+  /**
+   * Native shell: stream a recording straight off a connected Insta360
+   * camera (plan 0025). `size` is the preview frame in device pixels.
+   */
+  loadCameraRecording: (file: Insta360CameraFile, size: { width: number; height: number }) => Promise<void>;
+  /** Drop the current video (file or camera stream) without touching storage. */
+  unloadVideo: () => void;
   /** Load one of the prompted recordings; the others are dropped from memory. */
   chooseRecording: (key: string) => void;
   /** Dismiss the recording prompt without loading anything. */
@@ -76,7 +110,11 @@ export interface VideoSyncActions {
     updateOverlaySettings: (settings: OverlaySettings) => void;
     deleteStoredVideo: () => Promise<void>;
     refreshStoredMeta: () => Promise<void>;
-    videoRef: React.RefObject<HTMLVideoElement>;
+    /**
+     * The playback surface: the <video> element for files, the shell's
+     * NativePlayerElement for a camera stream. Assigned by whichever mounts.
+     */
+    videoRef: React.MutableRefObject<VideoSurface | null>;
     preloadVideoRef: React.RefObject<HTMLVideoElement>;
   }
 
@@ -100,10 +138,9 @@ interface ChunkEntry {
  * Seek a video element, preferring `fastSeek` (approximate seek, no decode
  * stall) when the browser supports it — smoother for scrub + drift correction.
  */
-function seekVideoElement(video: HTMLVideoElement, timeSec: number): void {
-  const fast = (video as HTMLVideoElement & { fastSeek?: (t: number) => void }).fastSeek;
+function seekVideoElement(video: VideoSurface, timeSec: number): void {
   try {
-    if (typeof fast === "function") fast.call(video, timeSec);
+    if (typeof video.fastSeek === "function") video.fastSeek(timeSec);
     else video.currentTime = timeSec;
   } catch { /* out-of-range time is clamped by the browser */ }
 }
@@ -132,8 +169,12 @@ function readVideoDuration(url: string): Promise<number> {
 }
 
 export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessionFileName, dataIsPlaying }: UseVideoSyncOptions) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<VideoSurface | null>(null);
   const preloadVideoRef = useRef<HTMLVideoElement>(null);
+  // The shell-streamed player behind a camera source (plan 0025); closed on
+  // every source change.
+  const nativePlayerRef = useRef<NativePlayerElement | null>(null);
+  const [nativeSource, setNativeSource] = useState<NativeVideoSource | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const onScrubRef = useRef(onScrub);
@@ -165,6 +206,10 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const [isOutOfRange, setIsOutOfRange] = useState(false);
   const [coverage, setCoverage] = useState<VideoCoverage>('covered');
   const [fileHandle, setFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [nativeStoredKey, setNativeStoredKey] = useState<string | null>(null);
+  // True while the <video> streams from the shell's copy (a restore), as
+  // opposed to the picked blob with the copy made in the background.
+  const nativeStoredPlaybackRef = useRef(false);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
   const [storedVideoMeta, setStoredVideoMeta] = useState<StoredVideoMeta | null>(null);
@@ -186,10 +231,17 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   const swapTokenRef = useRef(0);
   const pendingActionRef = useRef<{ seekLocalSec: number; play: boolean; token: number } | null>(null);
 
-  // Revoke every chunk URL and clear the playlist.
+  // Revoke every chunk URL, stop any camera stream, and clear the playlist.
   const revokeAllUrls = useCallback(() => {
     chunkUrlsRef.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch { /* already revoked */ } });
     chunkUrlsRef.current = [];
+    const native = nativePlayerRef.current;
+    if (native) {
+      native.close();
+      nativePlayerRef.current = null;
+      if (videoRef.current === native) videoRef.current = null;
+    }
+    setNativeSource(null);
     setVideoUrl(null);
     setPreloadUrl(null);
   }, []);
@@ -247,9 +299,12 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     hasSessionVideo(sessionFileName).then(has => setStoredVideoAvailable(has));
     getSessionVideoMeta(sessionFileName).then(meta => setStoredVideoMeta(meta)).catch(() => {});
 
+    setNativeStoredKey(null);
     loadVideoSync(sessionFileName).then(async (record) => {
       if (!record) {
-        // No sync record, but check for stored video anyway
+        // No sync record — the shell may still remember the video, else
+        // check for an app-stored (exported) video.
+        if (await tryLoadNativeStored(sessionFileName)) return;
         await tryLoadStoredVideo(sessionFileName);
         return;
       }
@@ -288,6 +343,11 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         } catch { /* File System Access query failed; fall through to IDB stored video */ }
       }
 
+      // Native shell: the session's remembered video, streamed from app storage.
+      if (!loaded) {
+        loaded = await tryLoadNativeStored(sessionFileName);
+      }
+
       // Fallback: load from IndexedDB stored video
       if (!loaded) {
         await tryLoadStoredVideo(sessionFileName);
@@ -316,6 +376,19 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     }
     revokeAllUrls();
     await applyPlaylist(entries);
+    return true;
+  }, [revokeAllUrls, applyPlaylist]);
+
+  // Native shell: the session's remembered video (see nativeVideoStore.ts).
+  // Plays over the asset protocol straight from app storage — no blob, no
+  // copy into memory.
+  const tryLoadNativeStored = useCallback(async (fileName: string): Promise<boolean> => {
+    const stored = await getNativeStoredVideo(fileName);
+    if (!stored) return false;
+    revokeAllUrls();
+    await applyPlaylist([{ name: stored.fileName, url: stored.url }]);
+    setNativeStoredKey(stored.key);
+    nativeStoredPlaybackRef.current = true;
     return true;
   }, [revokeAllUrls, applyPlaylist]);
 
@@ -384,7 +457,68 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       handle: e.handle,
     })));
     persistSync(syncOffsetMsRef.current);
+
+    // Native shell: remember the video for this session by copying it into
+    // the shell's store in the background (single-file recordings only). The
+    // blob URL keeps playing meanwhile; once stored, exports use the copy.
+    setNativeStoredKey(null);
+    nativeStoredPlaybackRef.current = false;
+    if (isNativeApp() && sessionFileName && recording.files.length === 1) {
+      const file = recording.files[0].file;
+      void storeNativeVideo(sessionFileName, file)
+        .then((stored) => { if (stored) setNativeStoredKey(stored.key); })
+        .catch((e) => console.warn("Native video store failed:", e));
+    }
+  }, [revokeAllUrls, applyPlaylist, persistSync, sessionFileName]);
+
+  // Native shell: stream a recording off a connected Insta360 camera. The
+  // shell's player streams the file over the camera's Wi-Fi and serves the
+  // pixels as MJPEG; NativePlayerElement stands in for the <video> so the
+  // sync machinery below is none the wiser. Camera streams are one chunk,
+  // aren't copied into the store, and can't be exported (v1).
+  const loadCameraRecording = useCallback(async (file: Insta360CameraFile, size: { width: number; height: number }) => {
+    revokeAllUrls();
+    const player = new NativePlayerElement(file, { width: size.width, height: size.height });
+    nativePlayerRef.current = player;
+    setNativeSource({ kind: "insta360", file, is360: file.is360 });
+    try {
+      const info = await player.open();
+      if (nativePlayerRef.current !== player) throw new Error("superseded");
+      // The playlist needs a real length; the shell knows it once the player
+      // is prepared, or reports it a moment later on `loadedmetadata`.
+      if (player.duration <= 0) {
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(done, 8000);
+          function done() { clearTimeout(timer); player.removeEventListener("loadedmetadata", done); resolve(); }
+          player.addEventListener("loadedmetadata", done);
+        });
+      }
+      if (nativePlayerRef.current !== player) throw new Error("superseded");
+      videoRef.current = player;
+      await applyPlaylist([{ name: file.name, url: info.streamUrl, durationSec: player.duration }]);
+      // No file behind the stream: nothing to export from, nothing to store.
+      setExportChunks([]);
+      setNativeStoredKey(null);
+      setFileHandle(null);
+      persistSync(syncOffsetMsRef.current, undefined, file.name);
+    } catch (e) {
+      player.close();
+      if (nativePlayerRef.current === player) {
+        nativePlayerRef.current = null;
+        setNativeSource(null);
+      }
+      if (!(e instanceof Error && e.message === "superseded")) throw e;
+    }
   }, [revokeAllUrls, applyPlaylist, persistSync]);
+
+  const unloadVideo = useCallback(() => {
+    revokeAllUrls();
+    setVideoFileName(null);
+    setExportChunks([]);
+    playlistRef.current = null;
+    chunkHandlesRef.current = [];
+    chunkNamesRef.current = [];
+  }, [revokeAllUrls]);
 
   // Group a fresh selection into recordings: load straight away when there's
   // exactly one, otherwise stash them and prompt the user to pick.
@@ -496,7 +630,8 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
-    if ("requestVideoFrameCallback" in video) {
+    const rvfc = video.requestVideoFrameCallback?.bind(video);
+    if (rvfc) {
       let lastTime = 0;
       let frameCount = 0;
       const frameTimes: number[] = [];
@@ -515,18 +650,18 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
           }
         }
         lastTime = metadata.mediaTime;
-        video.requestVideoFrameCallback(callback);
+        rvfc(callback);
       };
       const origPaused = video.paused;
       if (origPaused) {
         const onPlay = () => {
-          video.requestVideoFrameCallback(callback);
+          rvfc(callback);
           video.removeEventListener("play", onPlay);
         };
         video.addEventListener("play", onPlay);
         return () => video.removeEventListener("play", onPlay);
       } else {
-        video.requestVideoFrameCallback(callback);
+        rvfc(callback);
       }
     }
   }, [videoUrl]);
@@ -564,13 +699,14 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         setIsOutOfRange(false);
       }
     };
-    if ("requestVideoFrameCallback" in video) {
+    const rvfc = video.requestVideoFrameCallback?.bind(video);
+    if (rvfc) {
       const callback = () => {
         if (!active) return;
         tick();
-        if (active) videoRef.current?.requestVideoFrameCallback(callback);
+        if (active) rvfc(callback);
       };
-      video.requestVideoFrameCallback(callback);
+      rvfc(callback);
     } else {
       let lastRaf = 0;
       const loop = (ts: number) => {
@@ -790,6 +926,29 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     setStoredVideoMeta(meta);
   }, [sessionFileName]);
 
+  // The profile tab can delete the shell's copy of this session's video from
+  // under us. If the <video> was streaming that copy, its file is gone —
+  // unload, exactly as deleting the in-app stored video does; if we still
+  // hold the picked blob, only the export shortcut goes away.
+  useEffect(() => {
+    if (!isNativeApp() || !nativeStoredKey) return;
+    const onChanged = (ev: Event) => {
+      const removed = (ev as CustomEvent<NativeVideoStoreChangedDetail>).detail?.removedKeys;
+      if (removed !== null && !removed?.includes(nativeStoredKey)) return;
+      setNativeStoredKey(null);
+      if (!nativeStoredPlaybackRef.current) return;
+      nativeStoredPlaybackRef.current = false;
+      revokeAllUrls();
+      setVideoFileName(null);
+      setExportChunks([]);
+      playlistRef.current = null;
+      chunkHandlesRef.current = [];
+      chunkNamesRef.current = [];
+    };
+    window.addEventListener(NATIVE_VIDEO_STORE_CHANGED, onChanged);
+    return () => window.removeEventListener(NATIVE_VIDEO_STORE_CHANGED, onChanged);
+  }, [nativeStoredKey, revokeAllUrls]);
+
   const handleDeleteStoredVideo = useCallback(async () => {
     if (!sessionFileName) return;
     await deleteSessionVideo(sessionFileName);
@@ -842,20 +1001,22 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
     videoDuration, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
     hasStoredVideo: storedVideoAvailable,
+    nativeStoredKey,
+    nativeSource,
     storedVideoMeta,
     pendingRecordings,
   }), [
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
     videoDuration, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
-    storedVideoAvailable, storedVideoMeta, pendingRecordings,
+    storedVideoAvailable, nativeStoredKey, nativeSource, storedVideoMeta, pendingRecordings,
   ]);
 
   const actions: VideoSyncActions = useMemo(() => ({
-    loadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
+    loadVideo, loadCameraRecording, unloadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
     addRateAnchor, clearRateAnchors,
     seekVideo, updateOverlaySettings, deleteStoredVideo: handleDeleteStoredVideo, refreshStoredMeta, videoRef, preloadVideoRef,
   }), [
-    loadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
+    loadVideo, loadCameraRecording, unloadVideo, chooseRecording, cancelRecordingChoice, toggleLock, togglePlay, stepFrame, setSyncPoint,
     addRateAnchor, clearRateAnchors,
     seekVideo, updateOverlaySettings, handleDeleteStoredVideo, refreshStoredMeta,
   ]);

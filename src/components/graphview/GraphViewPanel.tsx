@@ -69,6 +69,9 @@ export interface GraphViewPanelProps {
   allSamples?: GpsSample[];
   laps?: Lap[];
   selectedLapNumber?: number | null;
+  /** lapNumber → display label override ("Run N" in drag mode, submitter names
+   *  in read-only leaderboard views) for the main graph header. */
+  lapLabels?: Record<number, string>;
   paceData?: (number | null)[];
   // Multi-lap overlay (extra racing lines drawn on the MiniMap)
   overlayLines?: OverlayLine[];
@@ -199,10 +202,11 @@ export function GraphViewPanel(props: GraphViewPanelProps) {
     ? (props.overlayLines ?? []).filter((o) => o.id !== splitOverlayId)
     : props.overlayLines;
 
-  const mainLapLabel = props.selectedLapNumber != null
-    ? (props.lapTimeMs != null
-        ? `${t('header.lap', { number: props.selectedLapNumber })} · ${formatLapTime(props.lapTimeMs)}`
-        : t('header.lap', { number: props.selectedLapNumber }))
+  const mainLapName = props.selectedLapNumber != null
+    ? props.lapLabels?.[props.selectedLapNumber] ?? t('header.lap', { number: props.selectedLapNumber })
+    : null;
+  const mainLapLabel = mainLapName != null
+    ? (props.lapTimeMs != null ? `${mainLapName} · ${formatLapTime(props.lapTimeMs)}` : mainLapName)
     : t('header.allLaps');
 
   // Single-line legend (CSS ellipsis on overflow): main lap, then the overlays

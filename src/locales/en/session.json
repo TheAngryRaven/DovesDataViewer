@@ -22,7 +22,13 @@
     "setupNotConfigured": "Session setup not configured",
     "setupNoneRed": "No vehicle or setup saved yet — click to add one",
     "setupNoneOrange": "No setup saved for this session — click to configure",
-    "help": "Help"
+    "help": "Help",
+    "run": "Run {{number}}",
+    "allRuns": "All Runs",
+    "dragEighth": "1/8 mi",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 mi",
+    "dragDistanceTitle": "Drag scoring distance"
   },
   "lapTable": {
     "noLaps": "No laps detected.",
@@ -45,7 +51,10 @@
     "delta": "Delta",
     "avgLapLength": "Avg Lap Length",
     "avgRunLength": "Avg Run Length",
-    "avgLapValue": "{{feet}} ft / {{meters}} m"
+    "avgLapValue": "{{feet}} ft / {{meters}} m",
+    "colRun": "Run",
+    "bestEt": "Best ET",
+    "incomplete": "Incomplete"
   },
   "snapshots": {
     "trigger": "Snapshots",
@@ -218,5 +227,17 @@
     "noSetup": "No setup",
     "saveSelection": "Save Selection",
     "openGarage": "Open Garage"
+  },
+  "drag": {
+    "mark60": "60 ft",
+    "mark330": "330 ft",
+    "markEighth": "1/8",
+    "mark1000": "1000 ft",
+    "markQuarter": "1/4",
+    "segLaunchTo60": "Launch–60 ft",
+    "seg60To330": "60–330 ft",
+    "seg330To660": "330–660 ft",
+    "seg660To1000": "660–1000 ft",
+    "seg1000To1320": "1000–1320 ft"
   }
 }

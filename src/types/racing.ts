@@ -180,6 +180,13 @@ export interface Lap {
    * start). `undefined` where the crossing was missed. Powers crop-to-sector.
    */
   sectorBoundaries?: (number | undefined)[];
+  /**
+   * The lap never reached its scoring distance: `lapTimeMs` is the duration of
+   * the recorded data window, NOT a comparable completed time — never rank it
+   * as fastest (see `fastestRankedLap`). Its partial `sectorTimes` still feed
+   * the optimal-lap calc. Currently only set by drag mode for short runs.
+   */
+  incomplete?: boolean;
 }
 
 export interface FieldMapping {

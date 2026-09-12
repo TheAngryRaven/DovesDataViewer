@@ -7,7 +7,8 @@
     "lapSnapshots": "ラップスナップショット",
     "cloudLogs": "クラウドログ",
     "dataPrivacy": "データとプライバシー",
-    "leaderboards": "リーダーボード"
+    "leaderboards": "リーダーボード",
+    "deviceVideos": "このデバイスの動画"
   },
   "account": {
     "signInBlurb": "サインインすると、ファイル・ガレージ・メモをデバイス間でバックアップ・同期できます。ここのすべては、このデバイス上でオフラインでも動作します。Cloud Sync は任意です。",
@@ -223,5 +224,23 @@
     "defaultToggle": "新しいアップロードをデフォルトで公開する",
     "defaultToggleHint": "今後のアップロードにのみ適用されます — 既存のセッションは現在の共有状態を維持します。",
     "defaultUpdateFailed": "共有のデフォルト設定を更新できませんでした"
+  },
+  "deviceVideos": {
+    "note": "アプリは各セッションの動画のコピーを保持し、次にそのセッションを開いたときに再読み込みします。コピーを削除してもここで忘れるだけで、スマートフォン上の元のファイルはそのままです。",
+    "unavailable": "保存済み動画の管理には新しいバージョンのアプリが必要です。",
+    "empty": "保存された動画はまだありません。セッションに動画を読み込むと、そのコピーがここに表示されます。",
+    "summary_one": "{{count}} 本の動画 · {{size}}",
+    "summary_other": "{{count}} 本の動画 · {{size}}",
+    "unknownSession": "セッション不明（以前のバージョンで保存）",
+    "storedOn": "{{date}} に保存",
+    "remove": "削除",
+    "confirmRemove": "このコピーを削除しますか？",
+    "cancel": "キャンセル",
+    "removed": "削除しました — {{size}} 解放",
+    "clearAll": "すべて削除",
+    "confirmClear_one": "保存済みの動画を削除しますか？そのセッションを開くときに再度求められます。",
+    "confirmClear_other": "保存済みの動画 {{count}} 本をすべて削除しますか？それらのセッションを開くときに再度求められます。",
+    "cleared": "すべて削除しました — {{size}} 解放",
+    "failed": "削除できませんでした: {{error}}"
   }
 }

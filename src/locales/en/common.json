@@ -22,5 +22,15 @@
     "updating": "Updating…",
     "updatingBody": "Grabbing the latest version — one moment.",
     "updated": "You're on the latest version."
+  },
+  "install": {
+    "title": "Install LapWing",
+    "body": "Works offline at the track — no signal needed.",
+    "action": "Install",
+    "dismiss": "Not now",
+    "iosWhy": "On iPhone and iPad, Safari deletes an uninstalled site’s offline data after about a week. Adding LapWing to your Home Screen keeps it — and your saved sessions — between race weekends.",
+    "iosStepShare": "Tap Share in the Safari toolbar",
+    "iosStepAdd": "Choose “Add to Home Screen”",
+    "iosStepOpen": "Then open LapWing from the new icon once while you still have signal, so it can save itself for offline use."
   }
 }
