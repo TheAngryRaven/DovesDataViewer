@@ -72,10 +72,42 @@ show the last three days of untagged changes with a notice that says so.
    points at *All* when untagged edits exist.
 7. **Vehicle history is unaffected** — it walks sessions, not revisions.
 
+### Round three — rollback + duplicate (landed)
+
+The maintainer's follow-up: once the newest revision is untagged scratch,
+offer a way back. Anchoring both actions to **session-linked revisions only**
+is what keeps this simple — those revisions are permanent (never swept) and
+already in the cloud, so the target can neither vanish mid-tap nor be missing
+on another device. Untagged revisions get no buttons.
+
+8. **Rollback** — one target only: `SetupHistory.latestReferencedId`, the
+   revision that most recently *ran* (by session start, then capture time),
+   ignoring the kart/course filters. The button shows only when the live
+   setup's current hash (SetupsTab already computes it; now the full hash,
+   shortened at display) differs from that revision. Confirm dialog, then
+   `restoreSetupFromRevision(live, revision)` → `onUpdate` → the ordinary save
+   freezes and dedups back onto the old hash. Identity is kept (id, vehicle,
+   **name**, createdAt): a later rename is not a setup change, so if the name
+   differs the result is a new hash rather than a byte-identical revert. The
+   scratch edits remain the newest untagged revision and survive the sweep,
+   so a rollback is itself undoable by hand for three days. *Rejected:* making
+   cards tappable with a popup — only one card can ever be a target, so an
+   explicit button reads better; and allowing any used revision — same
+   safety properties, so a one-line relaxation later, but newest-only for v1.
+9. **Duplicate** — on every referenced card: `duplicateSetupFromRevision` →
+   `onAdd` with the name `"<name> (copy)"`, on the revision's vehicle. A copy
+   of the same content on the *same* setup is impossible (content addressing
+   dedups it), so "a new, unlinked revision with a copy" necessarily means a
+   new setup whose original revision is that content.
+10. `HistoryCard` gained an `actions` slot; the panel reloads after either
+    action and toasts the result. `SetupsTab` re-derives the live setup from
+    the list while the panel is open so the rollback's save shows at once.
+
 ## Touch points
 
 - `src/lib/setupRevision.ts` — `REVISION_RETENTION_MS`, `findPrunableRevisionIds`
-  (replaces `findOrphanRevisionIds` / `shouldPrune` / `PRUNE_INTERVAL_MS`).
+  (replaces `findOrphanRevisionIds` / `shouldPrune` / `PRUNE_INTERVAL_MS`);
+  `restoreSetupFromRevision`, `duplicateSetupFromRevision`.
 - `src/lib/setupRevisionStorage.ts` — `freezeSetupRevision(setupId, now)` bumps
   `updatedAt` on dedup; `referencedSetupRevisionIds`; `pruneSetupRevisions(now)`;
   `pruneSetupRevisionsSafely` (replaces `maybePruneSetupRevisions`).
@@ -84,9 +116,12 @@ show the last three days of untagged changes with a notice that says so.
 - `src/plugins/cloud-sync/storeAccessors.ts` — `pushFilter` seam + gate;
   `syncEngine.ts` — `pushRecord` returns boolean, reconcile honours the gate;
   `autoSync.ts` — clear tombstone only on upload.
-- `src/lib/setupHistory.ts` — `SetupHistoryView`, `entry.used`, counts.
+- `src/lib/setupHistory.ts` — `SetupHistoryView`, `entry.used`, `entry.referenced`,
+  counts, `latestReferencedId`.
 - `src/components/drawer/SetupHistoryPanel.tsx` — sweep on open, toggle,
-  notice, badge, empty hint.
+  notice, badge, empty hint, Roll back / Duplicate buttons + confirm dialog;
+  `HistoryCard.tsx` `actions` slot; `SetupsTab.tsx` wires both via
+  `onUpdate` / `onAdd` and passes the live setup's full hash.
 - `src/locales/*/drawer.json` — `setupHistory.{viewLabel,viewUsed,viewAll,usedTag,emptyUsedHint,retentionNotice}`.
 - Tests: `setupRevision.test.ts`, `setupRevisionStorage.test.ts`,
   `setupHistory.test.ts`, cloud-sync `syncEngine.test.ts`, `storeAccessors.test.ts`.
@@ -95,5 +130,5 @@ show the last three days of untagged changes with a notice that says so.
 
 - Setups that existed before this change have no revisions until their next
   save or assignment; no migration was judged worth it.
-- A "restore this revision" action on a history card is the natural next step
-  now that the newest revision equals the setup's current state.
+- Rollback to any used revision (not just the last-run one) is a one-line
+  relaxation of `latestReferencedId` if it turns out to be wanted.

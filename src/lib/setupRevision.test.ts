@@ -4,8 +4,10 @@ import type { SetupTemplate } from "./templateStorage";
 import {
   buildSetupRevision,
   computeSetupHash,
+  duplicateSetupFromRevision,
   findPrunableRevisionIds,
   freezeTemplate,
+  restoreSetupFromRevision,
   REVISION_RETENTION_MS,
   shortRevHash,
   SHORT_HASH_LENGTH,
@@ -205,5 +207,46 @@ describe("buildSetupRevision", () => {
     const a = await buildSetupRevision({ setup: makeSetup(), template, now: 1 });
     const b = await buildSetupRevision({ setup: makeSetup({ id: "other" }), template, now: 2 });
     expect(a.id).toBe(b.id);
+  });
+});
+
+describe("restoreSetupFromRevision (rollback, plan 0028)", () => {
+  const frozen = makeSetup({ id: "old-id", name: "Old Name", vehicleId: "veh-old", customFields: { "f-toe": 7 }, psiFrontLeft: 9, createdAt: 1, updatedAt: 2 });
+  const revision = { id: "r", setupId: "setup-1", vehicleId: "veh-old", name: "Old Name", setup: frozen, template: null, createdAt: 5, updatedAt: 5 };
+  const live = makeSetup({ id: "setup-1", name: "Renamed", vehicleId: "veh-1", customFields: { "f-toe": 1 }, psiFrontLeft: 12, createdAt: 100, updatedAt: 900 });
+
+  it("restores the frozen values onto the live record", () => {
+    const out = restoreSetupFromRevision(live, revision);
+    expect(out.customFields).toEqual({ "f-toe": 7 });
+    expect(out.psiFrontLeft).toBe(9);
+  });
+
+  it("keeps the live identity: id, vehicle, name, createdAt", () => {
+    const out = restoreSetupFromRevision(live, revision);
+    expect(out.id).toBe("setup-1");
+    expect(out.vehicleId).toBe("veh-1");
+    expect(out.name).toBe("Renamed");
+    expect(out.createdAt).toBe(100);
+  });
+
+  it("does not mutate either input", () => {
+    restoreSetupFromRevision(live, revision);
+    expect(live.customFields).toEqual({ "f-toe": 1 });
+    expect(revision.setup.id).toBe("old-id");
+  });
+});
+
+describe("duplicateSetupFromRevision (plan 0028)", () => {
+  const frozen = makeSetup({ id: "old-id", customFields: { "f-toe": 7 }, createdAt: 1, updatedAt: 2 });
+  const revision = { id: "r", setupId: "setup-1", vehicleId: "veh-9", name: "Race", setup: frozen, template: null, createdAt: 5, updatedAt: 5 };
+
+  it("copies the values under the new name, on the revision's vehicle, with no identity fields", () => {
+    const out = duplicateSetupFromRevision(revision, "Race (copy)");
+    expect(out.name).toBe("Race (copy)");
+    expect(out.vehicleId).toBe("veh-9");
+    expect(out.customFields).toEqual({ "f-toe": 7 });
+    expect("id" in out).toBe(false);
+    expect("createdAt" in out).toBe(false);
+    expect("updatedAt" in out).toBe(false);
   });
 });

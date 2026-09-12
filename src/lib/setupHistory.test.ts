@@ -259,6 +259,28 @@ describe("buildSetupHistory", () => {
       expect(used.entries.map((e) => e.revision.id)).toEqual(["rev-a"]);
     });
 
+    it("marks referenced independently of the filter and names the last-run revision as the rollback target", () => {
+      const filtered = build({ view: "all", kartId: "veh-2" });
+      // rev-b ran only on veh-1: not "used" under the veh-2 filter, but still referenced.
+      expect(filtered.entries.map((e) => [e.used, e.referenced])).toEqual([[true, true], [false, true], [false, false]]);
+      // rev-b's session (t=300) is the most recent run, and the filter does not change that.
+      expect(filtered.latestReferencedId).toBe("rev-b");
+      expect(build().latestReferencedId).toBe("rev-b");
+    });
+
+    it("picks the rollback target by the most recent session, not the newest capture", () => {
+      // rev-a was captured first but re-run later than anything else.
+      const later = [...metas, makeMeta({ fileName: "s9", sessionSetupRev: "rev-a", sessionKartId: "veh-1", trackName: "Track A", courseName: "CW", sessionStartTime: 999 })];
+      const built = buildSetupHistory({ setupId: "setup-1", setupName: "x", revisions: withUnused, metas: later, vehicles: VEHICLES });
+      expect(built.latestReferencedId).toBe("rev-a");
+    });
+
+    it("has no rollback target when nothing ever ran", () => {
+      const built = buildSetupHistory({ setupId: "setup-1", setupName: "x", revisions: withUnused, metas: [], vehicles: VEHICLES, filter: { view: "all" } });
+      expect(built.latestReferencedId).toBeNull();
+      expect(built.entries.every((e) => !e.referenced)).toBe(true);
+    });
+
     it("in the used view the diff skips over hidden unused revisions", () => {
       const revD = makeRevision("rev-d", 4000, makeSetup({ customFields: { "f-toe": 4 } }));
       const metasD = [...metas, makeMeta({ fileName: "s4", sessionSetupRev: "rev-d", sessionKartId: "veh-1", trackName: "Track A", courseName: "CW", fastestLapMs: 62000 })];

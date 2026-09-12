@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { ArrowLeft, Check, History, Info } from "lucide-react";
+import { ArrowLeft, Check, Copy, History, Info, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Vehicle } from "@/lib/vehicleStorage";
 import { VehicleSetup } from "@/lib/setupStorage";
@@ -18,12 +22,20 @@ interface SetupHistoryPanelProps {
   onBack: () => void;
   /** Open a saved session by file name (a card's fastest-lap session). */
   onOpenFile?: (fileName: string) => void | Promise<void>;
+  /** The hash the live setup would freeze to now — rollback is offered only when it drifted. */
+  currentHash?: string | null;
+  /** Reset the live setup to this revision's values (plan 0028). */
+  onRollback?: (revision: SetupRevision) => Promise<void>;
+  /** Create a new setup carrying a copy of this revision's values (plan 0028). */
+  onDuplicate?: (revision: SetupRevision) => Promise<void>;
 }
 
 const RETENTION_DAYS = Math.round(REVISION_RETENTION_MS / (24 * 60 * 60 * 1000));
 
 /** Full-panel chronological history of a setup's frozen revisions. */
-export function SetupHistoryPanel({ setup, vehicles, onBack, onOpenFile }: SetupHistoryPanelProps) {
+export function SetupHistoryPanel({
+  setup, vehicles, onBack, onOpenFile, currentHash, onRollback, onDuplicate,
+}: SetupHistoryPanelProps) {
   const { t } = useTranslation("drawer");
   const [revisions, setRevisions] = useState<SetupRevision[]>([]);
   const [metas, setMetas] = useState<FileMetadata[]>([]);
@@ -34,23 +46,60 @@ export function SetupHistoryPanel({ setup, vehicles, onBack, onOpenFile }: Setup
   const [view, setView] = useState<SetupHistoryView>("used");
   // Per-revision override: show the full setup instead of the default diff view.
   const [fullOpen, setFullOpen] = useState<Record<string, boolean>>({});
+  // Revision awaiting rollback confirmation.
+  const [rollbackTarget, setRollbackTarget] = useState<SetupRevision | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    // Sweep first so the panel always matches the retention notice it shows.
+    await pruneSetupRevisionsSafely();
+    const [revs, m] = await Promise.all([listSetupRevisions(), listAllMetadata()]);
+    return { revs, m };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      // Sweep first so the panel always matches the retention notice it shows.
-      await pruneSetupRevisionsSafely();
-      const [revs, m] = await Promise.all([listSetupRevisions(), listAllMetadata()]);
-      if (!cancelled) {
-        setRevisions(revs);
-        setMetas(m);
-        setLoading(false);
-      }
-    })();
+    load().then(({ revs, m }) => {
+      if (cancelled) return;
+      setRevisions(revs);
+      setMetas(m);
+      setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [load]);
+
+  // Rollback / duplicate both save a setup (which freezes a revision), so the
+  // list is reloaded afterwards to show the result.
+  const runAction = useCallback(
+    async (action: () => Promise<void>, done: string) => {
+      setBusy(true);
+      try {
+        await action();
+        const { revs, m } = await load();
+        setRevisions(revs);
+        setMetas(m);
+        toast.success(done);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [load],
+  );
+
+  const confirmRollback = () => {
+    const target = rollbackTarget;
+    if (!target || !onRollback) return;
+    setRollbackTarget(null);
+    void runAction(() => onRollback(target), t("setupHistory.rollbackDone", { hash: shortRevHash(target.id) }));
+  };
+
+  const duplicate = (revision: SetupRevision) => {
+    if (!onDuplicate) return;
+    const name = t("setupHistory.duplicateName", { name: revision.name });
+    void runAction(() => onDuplicate(revision), t("setupHistory.duplicateDone", { name }));
+  };
 
   const history = useMemo(
     () =>
@@ -163,11 +212,46 @@ export function SetupHistoryPanel({ setup, vehicles, onBack, onOpenFile }: Setup
               showUsedTag={view === "all"}
               labelFor={labelFor}
               onOpenFile={onOpenFile}
+              // Rollback: only the last revision that ran, and only once the live
+              // setup drifted from it. Duplicate: any revision that ran.
+              onRollback={
+                onRollback &&
+                entry.revision.id === history.latestReferencedId &&
+                currentHash !== entry.revision.id
+                  ? () => setRollbackTarget(entry.revision)
+                  : undefined
+              }
+              onDuplicate={onDuplicate && entry.referenced ? () => duplicate(entry.revision) : undefined}
+              busy={busy}
               t={t}
             />
           ))
         )}
       </div>
+
+      <Dialog open={rollbackTarget !== null} onOpenChange={(open) => { if (!open) setRollbackTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("setupHistory.rollbackTitle")}</DialogTitle>
+            {rollbackTarget && (
+              <DialogDescription>
+                {t("setupHistory.rollbackBody", {
+                  setup: setup.name,
+                  date: new Date(rollbackTarget.createdAt).toLocaleDateString(),
+                  hash: shortRevHash(rollbackTarget.id),
+                  days: RETENTION_DAYS,
+                })}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRollbackTarget(null)}>{t("setups.cancel")}</Button>
+            <Button onClick={confirmRollback}>
+              <RotateCcw className="w-4 h-4 mr-1.5" /> {t("setupHistory.rollback")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -205,11 +289,17 @@ interface RevisionCardProps {
   showUsedTag: boolean;
   labelFor: (f: { label?: string; labelKey?: string }) => string;
   onOpenFile?: (fileName: string) => void | Promise<void>;
+  /** Present only on the card eligible for rollback. */
+  onRollback?: () => void;
+  /** Present on every card a session ran. */
+  onDuplicate?: () => void;
+  busy: boolean;
   t: TFunction<"drawer">;
 }
 
 function RevisionCard({
-  entry, isOriginal, showFull, onToggleFull, hideKartBubble, hideCourseBubble, showUsedTag, labelFor, onOpenFile, t,
+  entry, isOriginal, showFull, onToggleFull, hideKartBubble, hideCourseBubble, showUsedTag, labelFor, onOpenFile,
+  onRollback, onDuplicate, busy, t,
 }: RevisionCardProps) {
   const { revision, fastestLapMs, fastestUsage, isFastestOverall, diff, usages, used } = entry;
   const date = new Date(revision.createdAt).toLocaleDateString();
@@ -265,6 +355,22 @@ function RevisionCard({
       onOpenFile={onOpenFile}
       fastestFileName={fastestUsage?.fileName}
       openSessionLabel={t("setupHistory.openSession")}
+      actions={
+        onRollback || onDuplicate ? (
+          <>
+            {onRollback && (
+              <Button size="sm" variant="default" className="h-7 text-xs gap-1" disabled={busy} onClick={onRollback}>
+                <RotateCcw className="w-3.5 h-3.5" /> {t("setupHistory.rollback")}
+              </Button>
+            )}
+            {onDuplicate && (
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={busy} onClick={onDuplicate}>
+                <Copy className="w-3.5 h-3.5" /> {t("setupHistory.duplicate")}
+              </Button>
+            )}
+          </>
+        ) : undefined
+      }
     >
       {body}
     </HistoryCard>
