@@ -89,6 +89,11 @@
     "label": "Forza l'aggiornamento e svuota la cache",
     "hint": "Svuota i file dell'app memorizzati nella cache e ricarica l'ultima versione. Le sessioni e i dati salvati nel Garage non vengono modificati."
   },
+  "privacy": {
+    "heading": "Privacy",
+    "usageStats": "Invia statistiche d'uso anonime",
+    "usageStatsHint": "Ci aiuta a capire quante persone usano LapWing, quante tornano e quanto tempo restano. Non vengono mai inviati dati di telemetria, file o posizione. Rispetta «Do Not Track»."
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Prefisso del nome Wi-Fi",

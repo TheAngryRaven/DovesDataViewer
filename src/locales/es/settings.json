@@ -89,6 +89,11 @@
     "label": "Forzar actualización y borrar caché",
     "hint": "Borra los archivos en caché de la app y recarga la última versión. Tus sesiones y datos guardados en el Garaje no se ven afectados."
   },
+  "privacy": {
+    "heading": "Privacidad",
+    "usageStats": "Enviar estadísticas de uso anónimas",
+    "usageStatsHint": "Nos ayuda a saber cuántas personas usan LapWing, cuántas vuelven y cuánto tiempo se quedan. Nunca se envían datos de telemetría, archivos ni ubicación. Respeta «Do Not Track»."
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Prefijo del nombre Wi-Fi",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, Languages, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun, Wifi } from "lucide-react";
+import { Settings, Eye, EyeOff, Gauge, Activity, Circle, HardDrive, Languages, Sun, Moon, RefreshCw, Timer, Ruler, ChevronDown, Map, CloudSun, Wifi, ShieldCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { OfflineReadinessSection } from "@/components/OfflineReadinessSection";
 import { AppSettings } from "@/hooks/useSettings";
 import { isNativeApp } from "@/lib/platform";
+import { isAnalyticsAvailable } from "@/lib/analytics";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n/config";
 import { FIELD_CATEGORIES, CanonicalFieldId } from "@/lib/fieldResolver";
 import { cn } from "@/lib/utils";
@@ -388,6 +389,31 @@ export function SettingsModal({
           </div>
 
           </div>
+
+          {/* Privacy — only where this build can report at all (web, key baked in) */}
+          {isAnalyticsAvailable() && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-medium">{t("settings:privacy.heading")}</h3>
+              </div>
+              <div className="flex items-center justify-between pl-6">
+                <div>
+                  <Label htmlFor="settings-usage-stats" className="text-sm text-muted-foreground">
+                    {t("settings:privacy.usageStats")}
+                  </Label>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                    {t("settings:privacy.usageStatsHint")}
+                  </p>
+                </div>
+                <Switch
+                  id="settings-usage-stats"
+                  checked={settings.sendUsageStats}
+                  onCheckedChange={(checked) => onSettingsChange({ sendUsageStats: checked })}
+                />
+              </div>
+            </div>
+          )}
 
           {/* MyChron Wi-Fi — native-only; the prefix the OS Wi-Fi picker filters on */}
           {isNativeApp() && (

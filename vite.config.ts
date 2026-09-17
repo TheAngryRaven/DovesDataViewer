@@ -287,6 +287,12 @@ export default defineConfig(async ({ mode }) => {
       "import.meta.env.VITE_IS_NATIVE": JSON.stringify(
         pick("VITE_IS_NATIVE", "HTT_IS_NATIVE", PUBLIC_BACKEND_FALLBACKS.VITE_IS_NATIVE),
       ),
+      // Anonymous usage stats (plan 0029). Empty = no analytics in the build.
+      // Goes through pick() so a `_PREVIEW` variant can point beta/preview
+      // deploys at a separate PostHog project; otherwise they share the
+      // production project and are told apart by the `app_channel` property.
+      "import.meta.env.VITE_POSTHOG_KEY": JSON.stringify(pick("VITE_POSTHOG_KEY", "HTT_POSTHOG_KEY", "")),
+      "import.meta.env.VITE_POSTHOG_HOST": JSON.stringify(pick("VITE_POSTHOG_HOST", "HTT_POSTHOG_HOST", "")),
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
       "import.meta.env.VITE_GIT_HASH": JSON.stringify(gitHash),
       "import.meta.env.VITE_BUILD_DATE": JSON.stringify(buildDate),
@@ -469,6 +475,9 @@ export default defineConfig(async ({ mode }) => {
             "vendor-leaflet": ["leaflet"],
             "vendor-supabase": ["@supabase/supabase-js"],
             "vendor-markdown": ["react-markdown", "remark-gfm"],
+            // Dynamic-imported by lib/analytics.ts only when analytics starts;
+            // a named chunk keeps it cache-stable across deploys.
+            "vendor-posthog": ["posthog-js"],
             // Radix is many small packages; group them into one chunk.
             "vendor-radix": [
               "@radix-ui/react-collapsible",

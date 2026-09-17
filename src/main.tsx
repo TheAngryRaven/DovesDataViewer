@@ -12,6 +12,7 @@ import { AUTO_APPLIED_KEY, decideUpdateAction } from "@/lib/updateFlow";
 import { buildInfo } from "@/lib/buildInfo";
 import { warmOfflineCache } from "@/lib/offlineWarmup";
 import { requestPersistentStorage } from "@/lib/persistentStorage";
+import { initAnalytics } from "@/lib/analytics";
 // Initialize i18next before render so the chosen language is active on first
 // paint (no English flash). The default export is the configured instance.
 import i18n from "@/lib/i18n";
@@ -125,6 +126,11 @@ if (isInIframe || isPreviewHost || isNativeApp()) {
   void cleanupPreviewServiceWorkers();
 } else {
   confirmAutoApplied();
+
+  // Anonymous usage stats (plan 0029) — same exclusions as the service worker:
+  // never in an iframe, a preview host or the native shell. Loads nothing when
+  // no key is baked in or the user has opted out in Settings.
+  void initAnalytics();
 
   // Ask for persistent storage before anything else touches the cache. Browsers
   // treat offline data as disposable by default and evict it under pressure or

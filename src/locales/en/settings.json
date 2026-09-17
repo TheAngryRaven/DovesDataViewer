@@ -88,6 +88,11 @@
     "label": "Force update & clear cache",
     "hint": "Clears cached app files and reloads the latest version. Your saved sessions and data in the Garage are not affected."
   },
+  "privacy": {
+    "heading": "Privacy",
+    "usageStats": "Send anonymous usage stats",
+    "usageStatsHint": "Helps us see how many people use LapWing, how many come back, and how long they stay. No telemetry, files or location data is ever sent. Honours Do Not Track."
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Wi-Fi name prefix",

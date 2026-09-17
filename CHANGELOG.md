@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **Anonymous usage statistics, with an off switch.** The hosted web app now
+  counts visits, returning visitors and time on site through PostHog so we can
+  tell whether anyone actually uses the thing. It is pageviews only: no click
+  tracking, no session replay, and never any telemetry, files, lap times or
+  location. A new **Settings → Privacy → Send anonymous usage stats** toggle
+  turns it off, and the browser's Do Not Track / Global Privacy Control
+  signals are honoured. The Android app and self-hosted builds without a
+  PostHog key send nothing. The privacy policy describes exactly what is
+  collected. (Plan 0029.)
 - **Scrub through a track day's setup changes, even the ones you never tagged.**
   Saving a setup now freezes a revision, so the history button shows every edit
   rather than only the states assigned to a session, newest on top. A new **Used / All** toggle

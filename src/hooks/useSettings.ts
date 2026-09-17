@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { isFieldHiddenByCanonical, CanonicalFieldId } from "@/lib/fieldResolver";
 import i18n, { initialLanguage } from "@/lib/i18n";
+import { setUsageStatsEnabled } from "@/lib/analytics";
 import type { SupportedLanguage } from "@/lib/i18n/config";
 
 export interface AppSettings {
@@ -28,6 +29,7 @@ export interface AppSettings {
   chartXAxis: 'time' | 'distance';  // Analysis chart X-axis scale (default: 'distance')
   language: SupportedLanguage;      // Display language (default: browser-detected, else 'en')
   mychronSsidPrefix: string;        // SSID prefix the Android Wi-Fi picker filters on for MyChron (default: 'MYCHRON5')
+  sendUsageStats: boolean;          // Anonymous usage stats via PostHog — web-only, plan 0029 (default: true)
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -61,6 +63,7 @@ const defaultSettings: AppSettings = {
   // Mirrors MYCHRON_SSID_PREFIX in lib/loggers/mychron/ipc.ts — kept as a literal
   // here so the eager settings bundle doesn't pull the (lazy) MyChron IPC module.
   mychronSsidPrefix: 'MYCHRON5',
+  sendUsageStats: true,
 };
 
 export function useSettings() {
@@ -93,6 +96,13 @@ export function useSettings() {
       void i18n.changeLanguage(settings.language);
     }
   }, [settings.language]);
+
+  // Bridge the usage-stats preference to the analytics client so an opt-out
+  // takes effect immediately, not on the next reload. Boot-time start lives in
+  // main.tsx; this only reacts to changes (a no-op where analytics is absent).
+  useEffect(() => {
+    setUsageStatsEnabled(settings.sendUsageStats);
+  }, [settings.sendUsageStats]);
 
   const setSettings = useCallback((updates: Partial<AppSettings>) => {
     setSettingsState((prev) => ({ ...prev, ...updates }));
