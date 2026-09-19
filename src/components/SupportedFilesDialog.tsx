@@ -15,7 +15,7 @@ const LIBXRK_URL = "https://github.com/m3rlin45/libxrk";
 // Every listed format has automated parser test coverage (several against
 // full real user-supplied sessions committed as fixtures — see
 // src/lib/__fixtures__/), so the list carries no per-format status badges.
-const PRIMARY_IDS = ["dovex", "xrk", "iracing", "motecLd", "vbo"] as const;
+const PRIMARY_IDS = ["dovex", "gopro", "xrk", "iracing", "motecLd", "vbo"] as const;
 const SECONDARY_IDS = ["ubx", "nmea", "motecCsv", "alfano", "aimCsv"] as const;
 
 // Shared rich-text components for the format bodies. `<Trans>` only uses the

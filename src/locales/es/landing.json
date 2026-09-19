@@ -109,6 +109,10 @@
         "name": "Dovex (Dove extendido)",
         "body": "Formato Dove extendido con una cabecera de metadatos de 4096 bytes que contiene información de la sesión (piloto, circuito, tiempos de vuelta) seguida de datos GPS en CSV Dove estándar. Extensión: <code>.dovex</code>"
       },
+      "gopro": {
+        "name": "Vídeo GoPro (GPS integrado)",
+        "body": "Arrastra un vídeo GoPro con GPS (HERO5 o posterior con el GPS activado) y la pista GPS que la cámara incrusta en el MP4 se convierte en la sesión, sin necesidad de registrador. Solo se lee la pequeña pista de telemetría, nunca el vídeo completo; se guarda como registro Dove y las imágenes se abren junto a él ya sincronizadas. Selecciona juntos todos los capítulos de una grabación dividida. Extensiones: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+      },
       "xrk": {
         "name": "AiM XRK / XRZ (binario)",
         "body": "Telemetría binaria nativa de AiM de los loggers MyChron / SoloDL, incluida la variante <code>.xrz</code> comprimida con zlib. Se analiza por completo en tu navegador con <libxrk>libxrk</libxrk> compilado a WebAssembly: rápido y totalmente sin conexión, como todos los demás formatos. Extensiones: <code>.xrk</code>, <code>.xrz</code>"
@@ -221,11 +225,13 @@
     "title": "Abrir un datalog",
     "processing": "Procesando...",
     "dragDrop": "Arrastra y suelta un archivo aquí, o haz clic para explorar",
-    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD y más — <i>todo procesado localmente en tu dispositivo.</i>",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD, vídeo GoPro con GPS y más — <i>todo procesado localmente en tu dispositivo.</i>",
     "parseFailed": "No se pudo analizar el archivo",
     "parseErrorSaved": "{{message}} — el archivo se guardó y puedes encontrarlo en Explorar archivos.",
     "loaded": "Cargado: {{name}}",
-    "errorLine": "Error: {{error}}"
+    "errorLine": "Error: {{error}}",
+    "goproProgress": "Leyendo telemetría GoPro… capítulo {{chapter}}/{{chapters}}, {{done}}/{{total}}",
+    "goproOneRecording": "Selecciona los capítulos de una sola grabación GoPro a la vez."
   },
   "buildDialog": {
     "title": "Construye tu propio datalogger",

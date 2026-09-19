@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **Import a GPS-tagged GoPro video as a session.** Every GoPro since the
+  HERO5 embeds its GPS fixes in the MP4, so the camera on your kart is already a
+  datalogger. Drop the video (or select all chapters of a split recording) on
+  the landing page and the embedded GPS becomes a normal session with laps,
+  sectors and the map. Only the small telemetry track is read — the video is
+  never loaded whole or stored — and because footage and telemetry share the
+  camera's clock, the video opens in the player already synced and locked. The
+  session is saved as a Dove log, so it syncs, shares and reopens like any
+  other file. GoPro HERO5–HERO10 (18 Hz) and HERO11+ (10 Hz, with per-fix
+  quality) are both read; the HERO12 has no GPS. (Plan 0029.)
 - **Scrub through a track day's setup changes, even the ones you never tagged.**
   Saving a setup now freezes a revision, so the history button shows every edit
   rather than only the states assigned to a session, newest on top. A new **Used / All** toggle

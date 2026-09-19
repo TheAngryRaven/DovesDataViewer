@@ -109,6 +109,10 @@
         "name": "Dovex (erweitertes Dove)",
         "body": "Erweitertes Dove-Format mit einem 4096-Byte-Metadaten-Header mit Session-Infos (Fahrer, Kurs, Rundenzeiten), gefolgt von standardmäßigen Dove-CSV-GPS-Daten. Erweiterung: <code>.dovex</code>"
       },
+      "gopro": {
+        "name": "GoPro-Video (eingebettetes GPS)",
+        "body": "Lege ein GoPro-Video mit GPS ab (HERO5 oder neuer, GPS aktiviert) und die GPS-Spur, die die Kamera in die MP4 einbettet, wird zur Session — ganz ohne Logger. Nur die kleine Telemetriespur wird gelesen, nie das ganze Video; sie wird als Dove-Log gespeichert und das Video öffnet sich daneben bereits synchronisiert. Wähle alle Kapitel einer geteilten Aufnahme zusammen aus. Endungen: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+      },
       "xrk": {
         "name": "AiM XRK / XRZ (binär)",
         "body": "Native binäre Telemetrie von AiM aus MyChron- / SoloDL-Loggern, einschließlich der zlib-komprimierten <code>.xrz</code>-Variante. Vollständig in deinem Browser von <libxrk>libxrk</libxrk> in WebAssembly kompiliert verarbeitet — schnell und vollständig offline, wie jedes andere Format. Erweiterungen: <code>.xrk</code>, <code>.xrz</code>"
@@ -221,11 +225,13 @@
     "title": "Datalog öffnen",
     "processing": "Wird verarbeitet...",
     "dragDrop": "Datei hierher ziehen und ablegen oder zum Durchsuchen klicken",
-    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD und mehr — <i>alles lokal auf deinem Gerät verarbeitet.</i>",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD, GoPro-Video mit GPS und mehr — <i>alles lokal auf deinem Gerät verarbeitet.</i>",
     "parseFailed": "Datei konnte nicht verarbeitet werden",
     "parseErrorSaved": "{{message}} — die Datei wurde gespeichert und ist unter „Dateien durchsuchen“ zu finden.",
     "loaded": "Geladen: {{name}}",
-    "errorLine": "Fehler: {{error}}"
+    "errorLine": "Fehler: {{error}}",
+    "goproProgress": "GoPro-Telemetrie wird gelesen… Kapitel {{chapter}}/{{chapters}}, {{done}}/{{total}}",
+    "goproOneRecording": "Wähle jeweils nur die Kapitel einer GoPro-Aufnahme aus."
   },
   "buildDialog": {
     "title": "Bau deinen eigenen Datenlogger",
