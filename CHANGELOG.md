@@ -50,7 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dragging the picture (compass button), then lock; a reset button returns
   to straight ahead. Export isn't available for camera streams yet. Needs a
   build of the app that bundles the Insta360 SDK; otherwise the button
-  doesn't appear. (Plan 0025; LapWing plan 0002.)
+  doesn't appear. If the picture can't be shown, the player says so, with the
+  app's own reason when it has one, instead of a broken-image icon.
+  (Plan 0025; LapWing plan 0002.)
 - **See and clear the videos the Android app keeps.** The Profile tab gains
   a *Videos on this device* card listing every session video the app has
   copied for reloading — file, session, size, date — with a delete per

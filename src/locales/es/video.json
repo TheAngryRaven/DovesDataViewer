@@ -126,6 +126,7 @@
     "resetView": "Restablecer la vista 360°",
     "exportUnavailable": "La exportación aún no está disponible para transmisiones de cámara",
     "openFailed": "No se pudo iniciar la transmisión de la cámara",
-    "streamError": "La transmisión de la cámara se detuvo"
+    "streamError": "La transmisión de la cámara se detuvo",
+    "previewFailed": "No se pudo mostrar la imagen de la cámara"
   }
 }

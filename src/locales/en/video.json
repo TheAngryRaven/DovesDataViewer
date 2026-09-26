@@ -125,6 +125,7 @@
     "resetView": "Reset the 360° view",
     "exportUnavailable": "Export isn't available for camera streams yet",
     "openFailed": "Couldn't start the camera stream",
-    "streamError": "The camera stream stopped"
+    "streamError": "The camera stream stopped",
+    "previewFailed": "The camera picture couldn't be shown"
   }
 }

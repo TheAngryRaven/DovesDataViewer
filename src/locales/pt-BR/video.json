@@ -126,6 +126,7 @@
     "resetView": "Redefinir a visão 360°",
     "exportUnavailable": "A exportação ainda não está disponível para transmissões da câmera",
     "openFailed": "Não foi possível iniciar a transmissão da câmera",
-    "streamError": "A transmissão da câmera parou"
+    "streamError": "A transmissão da câmera parou",
+    "previewFailed": "Não foi possível exibir a imagem da câmera"
   }
 }
