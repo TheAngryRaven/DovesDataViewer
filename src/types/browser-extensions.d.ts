@@ -51,3 +51,9 @@ interface ShowOpenFilePickerOptions {
 interface Window {
   showOpenFilePicker(options?: ShowOpenFilePickerOptions): Promise<FileSystemFileHandle[]>;
 }
+
+// Dropped files expose a File System Access handle in Chromium (used by the
+// GoPro video import to reopen the footage with its session — plan 0029).
+interface DataTransferItem {
+  getAsFileSystemHandle?(): Promise<FileSystemHandle | null>;
+}

@@ -14,6 +14,7 @@ import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
 import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
 import { coverageOf, sessionMsToVideoSec, videoSecToSessionMs, fitVideoTimeline, needsResync, type VideoCoverage } from "@/lib/videoTimeline";
 import { buildPlaylist, groupVideoRecordings, virtualToLocal, localToVirtual, type Playlist, type VideoRecording } from "@/lib/videoPlaylist";
+import { takeStagedGoProVideo, type StagedGoProVideo } from "@/lib/gopro/videoHandoff";
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
@@ -300,6 +301,17 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     getSessionVideoMeta(sessionFileName).then(meta => setStoredVideoMeta(meta)).catch(() => {});
 
     setNativeStoredKey(null);
+
+    // A GoPro import (plan 0029) already holds the footage and knows the exact
+    // sync offset (telemetry and video share the MP4 clock), so load it
+    // pre-synced and locked instead of restoring/asking. Consumed once; the
+    // persisted sync record then serves every later reopen like any video.
+    const staged = takeStagedGoProVideo(sessionFileName);
+    if (staged) {
+      void applyStagedVideo(staged);
+      return;
+    }
+
     loadVideoSync(sessionFileName).then(async (record) => {
       if (!record) {
         // No sync record — the shell may still remember the video, else
@@ -470,6 +482,23 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         .catch((e) => console.warn("Native video store failed:", e));
     }
   }, [revokeAllUrls, applyPlaylist, persistSync, sessionFileName]);
+
+  // Load a GoPro import's own footage with its known offset, rate 1, locked.
+  // The offset is set before loading so the record loadRecording persists is
+  // already right; the explicit persist afterwards pins the lock (state is
+  // still catching up inside loadRecording's closure).
+  const applyStagedVideo = useCallback(async (staged: StagedGoProVideo) => {
+    syncOffsetMsRef.current = staged.syncOffsetMs;
+    setSyncOffsetMs(staged.syncOffsetMs);
+    syncRateRef.current = 1;
+    setSyncRate(1);
+    syncAnchorRef.current = { sessionMs: staged.syncOffsetMs, videoSec: 0 };
+    lapAnchorsRef.current.clear();
+    setRateAnchorCount(0);
+    setIsLocked(true);
+    await loadRecording({ key: "gopro-import", label: staged.files[0].name, files: staged.files });
+    persistSync(staged.syncOffsetMs, undefined, staged.files[0].name, true);
+  }, [loadRecording, persistSync]);
 
   // Native shell: stream a recording off a connected Insta360 camera. The
   // shell's player streams the file over the camera's Wi-Fi and serves the
