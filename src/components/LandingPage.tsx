@@ -8,10 +8,12 @@ import {
   Map,
   Bluetooth,
   Trophy,
+  WifiOff,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { SiteHeader } from "@/components/SiteHeader";
+import { BrandLogo } from "@/components/BrandLogo";
 import { FileImport } from "@/components/FileImport";
 import { ActionTile } from "@/components/ActionTile";
 import { LatestUpdates } from "@/components/LatestUpdates";
@@ -97,17 +99,25 @@ export function LandingPage({
           {/* Hero — pure marketing, so it's dropped on the native shell where
               the user has already chosen to install the app. */}
           {!native && (
-            <div className="text-center space-y-3">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-                {t("landing:hero.title")}
-              </h2>
-              <p className="mx-auto max-w-xl text-sm text-muted-foreground">
-                {t("landing:hero.subtitle")}
-              </p>
-              <p className="text-sm font-medium text-primary">
-                {t("landing:hero.offlineNote")}
-              </p>
-            </div>
+            <section className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-8 sm:px-10 sm:py-10">
+              {/* The bird as a watermark, flying off the lower-right edge the way
+                  the mark always faces. Decorative only. */}
+              <span aria-hidden className="pointer-events-none absolute -bottom-8 -right-12 opacity-[0.08] sm:-right-6">
+                <BrandLogo className="h-40 sm:h-56" />
+              </span>
+              <div className="relative max-w-xl space-y-4">
+                <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  <WifiOff className="h-3.5 w-3.5" />
+                  {t("landing:hero.offlineNote")}
+                </span>
+                <h2 className="font-brand text-3xl font-extrabold italic leading-tight tracking-tight text-foreground sm:text-4xl">
+                  {t("landing:hero.title")}
+                </h2>
+                <p className="text-sm text-muted-foreground sm:text-base">
+                  {t("landing:hero.subtitle")}
+                </p>
+              </div>
+            </section>
           )}
 
           {/* Primary action: a 50/50 split — most users download straight off a
@@ -121,9 +131,9 @@ export function LandingPage({
                 <button
                   type="button"
                   onClick={onOpen}
-                  className="flex h-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-card/50 p-10 text-center transition-colors hover:border-primary/50 hover:bg-card"
+                  className="flex h-full cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-card/50 p-10 text-center transition-colors hover:border-primary/50 hover:bg-card"
                 >
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Bluetooth className="h-7 w-7" />
                   </span>
                   <span className="text-xl font-semibold text-foreground">

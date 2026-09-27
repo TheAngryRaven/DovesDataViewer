@@ -82,6 +82,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `video_export_*` pipeline (plan 0024).
 
 ### Changed
+- **New LapWing look.** The app now wears the LapWing brand from the
+  PerchWerks style guide: the LAPWING wordmark in the header, the brand's
+  violet palette across light and dark mode (dark mode is now a deep indigo
+  rather than near-black), a new app icon, favicon and link-preview image, and
+  slightly tighter corners to match the logo. The home page gets a refreshed
+  hero banner. Charts and speed colours are unchanged.
+- **The shared-session "read-only" banner text is readable again** — it was
+  drawn in a colour meant for text on a solid amber fill, so it nearly
+  vanished against the banner's pale tint.
 - **The app no longer loses its whole offline cache to a flaky connection.**
   Caching the app was previously one ~10 MB all-or-nothing download: if anything
   failed partway through — losing signal at a track, say — *nothing* was cached

@@ -162,7 +162,7 @@ export function SubmissionsTab() {
               <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">{t('submissions.drawingIncluded')}</span>
             )}
           </div>
-          <span className={`text-xs px-2 py-0.5 rounded ${sub.status === 'pending' ? 'bg-accent text-accent-foreground' : sub.status === 'approved' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
+          <span className={`text-xs px-2 py-0.5 rounded ${sub.status === 'pending' ? 'bg-warning/20 text-warning' : sub.status === 'approved' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
             {t(`submissions.status.${sub.status}` as 'submissions.status.pending')}
           </span>
         </div>

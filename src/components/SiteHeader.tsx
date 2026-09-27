@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Heart, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { BrandLogo } from "@/components/BrandLogo";
+import { BrandLogo, BrandLockup } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { SupportedFilesDialog } from "@/components/SupportedFilesDialog";
 import { AboutDialog } from "@/components/AboutDialog";
@@ -44,8 +44,12 @@ export function SiteHeader({
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur safe-area-top">
       <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-6 py-4">
         <div className="flex items-center gap-3">
-          <BrandLogo className="w-8 h-8" />
-          <h1 className="text-xl font-semibold text-foreground">LapWing</h1>
+          {/* Full lockup where there's room; the mark alone on phones, where the
+              right-hand button cluster would otherwise push it off-screen. */}
+          <h1 className="flex items-center">
+            <BrandLogo className="h-4 sm:hidden" />
+            <BrandLockup className="hidden h-5 sm:inline-flex" />
+          </h1>
           {!native && (
             <a
               href="https://github.com/sponsors/TheAngryRaven"
