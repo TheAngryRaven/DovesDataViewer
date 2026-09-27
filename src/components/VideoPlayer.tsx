@@ -323,9 +323,21 @@ export const VideoPlayer = memo(function VideoPlayer({
   useEffect(() => {
     if (!cameraPlayer) return;
     const onError = () => toast({ title: t("insta360.streamError"), description: cameraPlayer.lastError ?? undefined, variant: "destructive" });
+    // The shell can report a broken preview while the player is still
+    // opening, before this listener exists; show what it already said.
+    if (cameraPlayer.lastError) onError();
     cameraPlayer.addEventListener("error", onError);
     return () => cameraPlayer.removeEventListener("error", onError);
   }, [cameraPlayer, t]);
+  // The <img> itself refusing the stream is the one failure the shell can't
+  // see, so say so (once per stream) with whatever the shell last reported,
+  // instead of leaving a broken-image icon.
+  const previewErrorShownRef = useRef<string | null>(null);
+  const handlePreviewError = useCallback(() => {
+    if (!state.videoUrl || previewErrorShownRef.current === state.videoUrl) return;
+    previewErrorShownRef.current = state.videoUrl;
+    toast({ title: t("insta360.previewFailed"), description: cameraPlayer?.lastError ?? undefined, variant: "destructive" });
+  }, [state.videoUrl, cameraPlayer, t]);
   const handleCameraLoad = useCallback((file: Parameters<typeof actions.loadCameraRecording>[0]) => {
     const size = previewSizeOf(videoAreaRef.current ?? emptyStateRef.current);
     void actions.loadCameraRecording(file, size).catch((err) => {
@@ -696,6 +708,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           <img
             src={state.videoUrl}
             alt=""
+            onError={handlePreviewError}
             draggable={false}
             className="w-full h-full object-contain select-none"
           />
