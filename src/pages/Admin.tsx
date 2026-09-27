@@ -84,7 +84,7 @@ export default function Admin() {
       <header className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <BrandLogo className="w-8 h-8" />
+            <BrandLogo className="h-5" />
             <div>
               <h1 className="text-xl font-semibold text-foreground">{t('panelTitle')}</h1>
               <p className="text-sm text-muted-foreground">{user.email}</p>

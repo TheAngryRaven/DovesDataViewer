@@ -201,7 +201,7 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={[
-          "flex h-full flex-1 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center transition-colors",
+          "flex h-full flex-1 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-10 text-center transition-colors",
           isDragging ? "border-primary bg-primary/10" : "border-border bg-card/50 hover:border-primary/50 hover:bg-card",
         ].join(" ")}
       >
@@ -217,7 +217,7 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
         {isLoading ? (
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         ) : (
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Upload className="h-7 w-7" />
           </span>
         )}

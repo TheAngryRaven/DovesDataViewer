@@ -510,6 +510,12 @@ menu still opens instantly; `CourseSectorEditor` (carries
   it. Export includes `longName`, `shortName`, `defaultCourse`, per-course `lengthFt`.
 - **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors
   (e.g. `--warning`/`warning` for the preview-build footer).
+- **Brand**: the `index.css` palette is the LapWing theme from the
+  [perchwerks-style](https://github.com/TheAngryRaven/perchwerks-style) repo
+  (`lapwing-light` → `:root`, `lapwing-dark` → `.dark`); change colours there
+  first, then mirror them here. Logos: `BrandLogo` (inline bird mark,
+  `currentColor`) and `BrandLockup` (raster LAPWING lockup in `public/brand/` —
+  the logotype has no vector master yet). Archivo is display-only (`font-brand`).
 - **Admin/cloud code** is fully optional and env-gated — the core app has zero
   admin/cloud dependencies on the eager graph.
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in

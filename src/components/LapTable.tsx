@@ -493,7 +493,7 @@ export const LapTable = memo(function LapTable({ laps, course, samples, onLapSel
                       {getMaxSpeed(lap).toFixed(1)} {speedUnit}
                     </span>
                     {hasFastestSpeed && (
-                      <Zap className="w-4 h-4 text-accent" />
+                      <Zap className="w-4 h-4 text-warning" />
                     )}
                   </div>
                 </td>

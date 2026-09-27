@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, StepBack, StepForward, Eye, EyeOff, AlertCircle, Wrench, NotebookPen, SlidersHorizontal, Columns2, LifeBuoy } from "lucide-react";
-import { BrandLogo } from "@/components/BrandLogo";
+import { BrandLogo, BrandLockup } from "@/components/BrandLogo";
 import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { LapTimesTab } from "@/components/tabs/LapTimesTab";
@@ -862,8 +862,8 @@ export default function Index() {
       )}>
         {readOnly ? (
           <div className="flex items-center gap-3 min-w-0">
-            <BrandLogo className="w-6 h-6 shrink-0" />
-            <span className="truncate text-sm font-semibold text-warning-foreground">{tl("readOnly.banner")}</span>
+            <BrandLogo className="h-3.5 text-warning" />
+            <span className="truncate text-sm font-semibold text-warning">{tl("readOnly.banner")}</span>
           </div>
         ) : (
           <button
@@ -872,8 +872,8 @@ export default function Index() {
             aria-label={t("header.home")}
             className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <BrandLogo className="w-6 h-6" />
-            <span className="font-semibold text-foreground hidden sm:inline">LapWing</span>
+            <BrandLogo className="h-3.5 sm:hidden" />
+            <BrandLockup className="hidden h-4 sm:inline-flex" />
           </button>
         )}
 
