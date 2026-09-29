@@ -254,17 +254,31 @@ export function LandingPage({
           )}
 
           <div>
-            <p className="text-center text-xs text-muted-foreground">
-              {t("landing:footer.operatedBy")}{" "}
-              <a
-                href="https://PerchWerks.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => interceptExternal(e, "https://PerchWerks.com")}
-                className="font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-              >
-                PerchWerks LLC
-              </a>
+            {/* The parent-company line: the shared bird mark ties LapWing back
+                to PerchWerks, and the link leads to the company site. */}
+            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <span aria-hidden>
+                <BrandLogo className="h-2.5 text-muted-foreground" />
+              </span>
+              <span>
+                <Trans
+                  ns="landing"
+                  i18nKey="footer.productOf"
+                  components={{
+                    // Not `link`: that is a void HTML tag, so the Trans parser
+                    // would render an empty anchor.
+                    site: (
+                      <a
+                        href="https://perchwerks.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => interceptExternal(e, "https://perchwerks.com")}
+                        className="font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                      />
+                    ),
+                  }}
+                />
+              </span>
             </p>
             <p
               className={cn(
