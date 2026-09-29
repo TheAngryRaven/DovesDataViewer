@@ -39,7 +39,7 @@
     "admin": "管理"
   },
   "footer": {
-    "operatedBy": "運営：",
+    "productOf": "LapWing は <site>PerchWerks</site> の製品です",
     "previewWarning": "このブランチはプレビュー用データベースで動作しています。アカウントはいつでも削除される可能性があります。データがローカル以外の場所に保存されることを当てにしないでください。決済が有効な場合は、<strong>実際の支払い情報を入力しないでください。</strong>"
   },
   "about": {

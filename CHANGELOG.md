@@ -100,6 +100,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rather than near-black), a new app icon, favicon and link-preview image, and
   slightly tighter corners to match the logo. The home page gets a refreshed
   hero banner. Charts and speed colours are unchanged.
+- **The footer now links to PerchWerks.** "LapWing is a PerchWerks product",
+  with the shared bird mark, takes you to perchwerks.com (it replaces the old
+  "Operated by PerchWerks LLC" line).
 - **The shared-session "read-only" banner text is readable again** — it was
   drawn in a colour meant for text on a solid amber fill, so it nearly
   vanished against the banner's pale tint.

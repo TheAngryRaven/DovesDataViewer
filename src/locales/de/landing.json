@@ -39,7 +39,7 @@
     "admin": "Administration"
   },
   "footer": {
-    "operatedBy": "Betrieben von",
+    "productOf": "LapWing ist ein Produkt von <site>PerchWerks</site>",
     "previewWarning": "Dieser Branch läuft auf einer Vorschau-Datenbank – Konten können jederzeit gelöscht werden. Verlasse dich nicht darauf, dass Daten an einem anderen Ort als lokal gespeichert werden. Wenn Zahlungen aktiviert sind, <strong>gib keine echten Zahlungsinformationen ein.</strong>"
   },
   "about": {
