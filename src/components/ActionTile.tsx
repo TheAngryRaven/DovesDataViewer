@@ -23,7 +23,7 @@ interface ActionTileProps {
 }
 
 const TILE_BASE =
-  "group flex w-full items-start gap-4 rounded-xl border bg-card p-5 text-left transition-colors " +
+  "group flex w-full items-start gap-4 rounded-lg border bg-card p-5 text-left transition-colors " +
   "hover:border-primary/50 hover:bg-accent disabled:pointer-events-none disabled:opacity-50";
 
 /**

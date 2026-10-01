@@ -126,6 +126,7 @@
     "resetView": "Réinitialiser la vue 360°",
     "exportUnavailable": "L'export n'est pas encore disponible pour les flux caméra",
     "openFailed": "Impossible de démarrer le flux de la caméra",
-    "streamError": "Le flux de la caméra s'est arrêté"
+    "streamError": "Le flux de la caméra s'est arrêté",
+    "previewFailed": "Impossible d'afficher l'image de la caméra"
   }
 }

@@ -126,6 +126,7 @@
     "resetView": "Reimposta la vista 360°",
     "exportUnavailable": "L'esportazione non è ancora disponibile per gli stream della fotocamera",
     "openFailed": "Impossibile avviare lo stream della fotocamera",
-    "streamError": "Lo stream della fotocamera si è interrotto"
+    "streamError": "Lo stream della fotocamera si è interrotto",
+    "previewFailed": "Impossibile mostrare l'immagine della fotocamera"
   }
 }

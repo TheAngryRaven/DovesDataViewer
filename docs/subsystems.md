@@ -10,7 +10,7 @@ in [`backend.md`](backend.md); i18n in [`i18n.md`](i18n.md).
 ## Parsers — format-specific notes
 
 The parser contract (`isXxxFormat` / `parseXxxFile`, registration, detection
-order) is in `CLAUDE.md`. The two parsers that break the simple sync contract:
+order) is in `CLAUDE.md`. The parsers that break the simple sync contract:
 
 ### AiM XRK/XRZ (`src/lib/xrk/`) — the async exception (wasm)
 
@@ -42,6 +42,34 @@ GPS timebase (interpolate vs forward-fill per channel) → transferable
   Licenses: `src/lib/xrk/wasm/THIRD-PARTY-NOTICES.txt`.
 - `onProgress` is threaded `parseDatalogFile` → router → `parseXrkFile` (XRK
   only); other formats ignore it.
+
+### GoPro video (`src/lib/gopro/`) — the other async exception (ranged reads)
+
+A GPS-enabled GoPro (HERO5+, GPS on) embeds a GPMF telemetry track (`gpmd`)
+in its MP4; plan 0029 imports it as a session. The file is gigabytes, so
+`isGoProVideoFile()` (extension) is checked in `parseDatalogFile` **before** the
+router reads the whole file, and the extractor works through a `ByteSource`
+(`File.slice` ranged reads): walk top-level boxes → buffer only `moov` →
+resolve the `gpmd` sample table → fetch each ~1 s payload (`mp4Boxes.ts`) →
+decode KLV + `GPS5`/`GPS9` (`gpmf.ts`) → position fixes on the container
+timeline and serialise a **Dove CSV** (`goproTelemetry.ts`, pure). The saved
+session is that `.dove` — reopen/cloud/share all use the ordinary Dove parser.
+
+- **Timing = the MP4 clock**, not GPS UTC: payload presentation time (`stts`) +
+  an even spread within the payload; UTC (GPSU / GPS9 days+secs) only dates the
+  session. Because the video shares that clock, `syncOffsetMs = -(first fix
+  media time)` is known; `FileImport` stages the picked file(s) in
+  `videoHandoff.ts` and `useVideoSync` loads them pre-synced + locked on mount.
+- **Chapters** (`GH01…`/`GH02…`) stitch into one session, each offset by the
+  cumulative `mvhd` duration of the chapters before it (mirrors
+  `lib/videoPlaylist`). Ordering/grouping reuses `orderVideoFiles`/
+  `groupVideoRecordings`; a selection spanning recordings is refused.
+- **Quality**: fix < 2 dropped at extraction (GPS5 per payload via `GPSF`, GPS9
+  per sample); DOP → `hdop` so the shared `gpsQualityFilter` applies. No `sats`
+  column is written (GPMF has none). IMU (`ACCL`) is deliberately not imported
+  — it's camera-frame and would masquerade as hardware lat/lon g.
+- `parseDatalogContent` throws for MP4 bytes (like XRK); the sync callers never
+  see a video. `testFixtures.ts` builds real MP4 + GPMF bytes for the tests.
 
 ### iRacing `.ibt` (`src/lib/iracingParser.ts`) — the sim's native export
 

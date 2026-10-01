@@ -14,6 +14,7 @@ const CREDITS: ReadonlyArray<readonly [name: string, url: string]> = [
   ["Tailwind CSS", "https://tailwindcss.com"],
   ["shadcn/ui", "https://ui.shadcn.com"],
   ["Radix UI", "https://www.radix-ui.com"],
+  ["Archivo", "https://github.com/Omnibus-Type/Archivo"],
   ["Inter", "https://rsms.me/inter/"],
   ["JetBrains Mono", "https://www.jetbrains.com/lp/mono/"],
   ["Fontsource", "https://fontsource.org"],

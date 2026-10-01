@@ -39,7 +39,7 @@
     "admin": "管理"
   },
   "footer": {
-    "operatedBy": "運営：",
+    "productOf": "LapWing は <site>PerchWerks</site> の製品です",
     "previewWarning": "このブランチはプレビュー用データベースで動作しています。アカウントはいつでも削除される可能性があります。データがローカル以外の場所に保存されることを当てにしないでください。決済が有効な場合は、<strong>実際の支払い情報を入力しないでください。</strong>"
   },
   "about": {
@@ -108,6 +108,10 @@
       "dovex": {
         "name": "Dovex（拡張 Dove）",
         "body": "セッション情報（ドライバー、コース、ラップタイム）を含む4096バイトのメタデータヘッダーに、標準的な Dove CSV の GPS データが続く拡張 Dove 形式。拡張子: <code>.dovex</code>"
+      },
+      "gopro": {
+        "name": "GoPro動画（内蔵GPS）",
+        "body": "GPS付きのGoPro動画（HERO5以降、GPS有効）をドロップすると、カメラがMP4に埋め込んだGPSトラックがそのままセッションになります。ロガーは不要です。読み込むのは小さなテレメトリトラックだけで、動画全体は読み込みません。Doveログとして保存され、映像は同期済みの状態で並んで開きます。分割された録画は全チャプターをまとめて選択してください。拡張子: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
       },
       "xrk": {
         "name": "AiM XRK / XRZ（バイナリ）",
@@ -221,11 +225,13 @@
     "title": "データログを開く",
     "processing": "処理中...",
     "dragDrop": "ここにファイルをドラッグ＆ドロップ、またはクリックして参照",
-    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD など — <i>すべて端末内でローカルに処理されます。</i>",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD, GPS付きGoPro動画 など — <i>すべて端末内でローカルに処理されます。</i>",
     "parseFailed": "ファイルの解析に失敗しました",
     "parseErrorSaved": "{{message}} — ファイルは保存され、「ファイルを参照」で見つけられます。",
     "loaded": "読み込み済み: {{name}}",
-    "errorLine": "エラー: {{error}}"
+    "errorLine": "エラー: {{error}}",
+    "goproProgress": "GoProテレメトリを読み込み中… チャプター {{chapter}}/{{chapters}}、{{done}}/{{total}}",
+    "goproOneRecording": "一度に選択できるのは1つのGoPro録画のチャプターだけです。"
   },
   "buildDialog": {
     "title": "自分だけのデータロガーを作ろう",

@@ -39,7 +39,7 @@
     "admin": "Administration"
   },
   "footer": {
-    "operatedBy": "Exploité par",
+    "productOf": "LapWing est un produit <site>PerchWerks</site>",
     "previewWarning": "Cette branche fonctionne sur une base de données de préversion : les comptes peuvent être effacés à tout moment. Ne comptez pas sur l'enregistrement des données ailleurs qu'en local. Si les paiements sont activés, <strong>n'entrez pas de véritables informations de paiement.</strong>"
   },
   "about": {
@@ -108,6 +108,10 @@
       "dovex": {
         "name": "Dovex (Dove étendu)",
         "body": "Format Dove étendu avec un en-tête de métadonnées de 4096 octets contenant les infos de session (pilote, circuit, temps au tour) suivi de données GPS au format CSV Dove standard. Extension : <code>.dovex</code>"
+      },
+      "gopro": {
+        "name": "Vidéo GoPro (GPS intégré)",
+        "body": "Déposez une vidéo GoPro géolocalisée (HERO5 ou plus récente, GPS activé) et la trace GPS que la caméra intègre au MP4 devient la session, sans enregistreur. Seule la petite piste de télémétrie est lue, jamais la vidéo entière ; elle est enregistrée comme journal Dove et la vidéo s'ouvre à côté, déjà synchronisée. Sélectionnez ensemble tous les chapitres d'un enregistrement découpé. Extensions : <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (binaire)",
@@ -221,11 +225,13 @@
     "title": "Ouvrir un datalog",
     "processing": "Traitement...",
     "dragDrop": "Glissez-déposez un fichier ici, ou cliquez pour parcourir",
-    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD et plus encore — <i>tout est traité localement sur votre appareil.</i>",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD, vidéo GoPro géolocalisée et plus encore — <i>tout est traité localement sur votre appareil.</i>",
     "parseFailed": "Échec de l'analyse du fichier",
     "parseErrorSaved": "{{message}} — le fichier a été enregistré et se trouve dans Parcourir les fichiers.",
     "loaded": "Chargé : {{name}}",
-    "errorLine": "Erreur : {{error}}"
+    "errorLine": "Erreur : {{error}}",
+    "goproProgress": "Lecture de la télémétrie GoPro… chapitre {{chapter}}/{{chapters}}, {{done}}/{{total}}",
+    "goproOneRecording": "Sélectionnez les chapitres d'un seul enregistrement GoPro à la fois."
   },
   "buildDialog": {
     "title": "Construisez votre propre datalogger",

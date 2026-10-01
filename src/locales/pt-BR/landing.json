@@ -39,7 +39,7 @@
     "admin": "Administração"
   },
   "footer": {
-    "operatedBy": "Operado por",
+    "productOf": "LapWing é um produto <site>PerchWerks</site>",
     "previewWarning": "Este branch está rodando em um banco de dados de prévia: as contas podem ser apagadas a qualquer momento. Não confie que os dados sejam salvos em outro lugar que não seja localmente. Se os pagamentos forem ativados, <strong>não insira informações de pagamento reais.</strong>"
   },
   "about": {
@@ -108,6 +108,10 @@
       "dovex": {
         "name": "Dovex (Dove estendido)",
         "body": "Formato Dove estendido com um cabeçalho de metadados de 4096 bytes contendo informações da sessão (piloto, circuito, tempos de volta) seguido de dados de GPS em CSV Dove padrão. Extensão: <code>.dovex</code>"
+      },
+      "gopro": {
+        "name": "Vídeo GoPro (GPS embutido)",
+        "body": "Solte um vídeo GoPro com GPS (HERO5 ou mais nova, com GPS ligado) e a trilha GPS que a câmera embute no MP4 vira a sessão — sem precisar de logger. Só a pequena trilha de telemetria é lida, nunca o vídeo inteiro; ela é salva como log Dove e a filmagem abre ao lado já sincronizada. Selecione juntos todos os capítulos de uma gravação dividida. Extensões: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (binário)",
@@ -221,11 +225,13 @@
     "title": "Abrir um datalog",
     "processing": "Processando...",
     "dragDrop": "Arraste e solte um arquivo aqui, ou clique para procurar",
-    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD e mais — <i>tudo processado localmente no seu dispositivo.</i>",
+    "formats": "NMEA, UBX, VBO, Dove, Alfano, AiM (CSV + XRK/XRZ), iRacing, MoTeC CSV/LD, vídeo GoPro com GPS e mais — <i>tudo processado localmente no seu dispositivo.</i>",
     "parseFailed": "Falha ao analisar o arquivo",
     "parseErrorSaved": "{{message}} — o arquivo foi salvo e pode ser encontrado em Procurar arquivos.",
     "loaded": "Carregado: {{name}}",
-    "errorLine": "Erro: {{error}}"
+    "errorLine": "Erro: {{error}}",
+    "goproProgress": "Lendo telemetria da GoPro… capítulo {{chapter}}/{{chapters}}, {{done}}/{{total}}",
+    "goproOneRecording": "Selecione os capítulos de uma única gravação GoPro por vez."
   },
   "buildDialog": {
     "title": "Monte seu próprio datalogger",

@@ -126,6 +126,7 @@
     "resetView": "360° ビューをリセット",
     "exportUnavailable": "カメラストリームの書き出しはまだ利用できません",
     "openFailed": "カメラストリームを開始できませんでした",
-    "streamError": "カメラストリームが停止しました"
+    "streamError": "カメラストリームが停止しました",
+    "previewFailed": "カメラの映像を表示できませんでした"
   }
 }

@@ -38,6 +38,7 @@
 - Public leaderboards — submit your snapshots and browse fastest community laps by track, course and engine class (with optional weight grouping); opens any group in a read-only viewer (cloud-enabled builds)
 - Shareable session links — share a cloud-synced log behind an opaque public link (`/s/…`, no account needed) that never reveals the file name; opens the full session in the read-only viewer with precise lap/sector timing (custom course geometry travels with the share). Opt into public-by-default uploads and your public sessions appear on your driver profile (cloud-enabled builds)
 - Video sync with telemetry playback (incl. GoPro chunked recordings — select all chapter files and they play as one continuous video)
+- Import a GPS-tagged GoPro video as a session — the camera's embedded GPS becomes the datalog and the footage opens pre-synced
 - 9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)
 - MP4 video export with overlays & audio (H.264 + AAC)
 - Vehicle profiles & setup sheet management
@@ -92,6 +93,7 @@ All formats are auto-detected on import:
 | MoTeC CSV | MoTeC i2 Pro export | `.csv` |
 | MoTeC LD | MoTeC native binary | `.ld` |
 | NMEA | Standard GPS sentences | `.nmea`, `.txt`, `.csv` |
+| GoPro video | GPS-tagged GoPro footage (HERO5+, GPS on) — the embedded GPMF telemetry track | `.mp4`, `.mov`, `.360` |
 
 > **AiM XRK/XRZ** is parsed by [libxrk](https://github.com/m3rlin45/libxrk)'s
 > pure-Rust core **compiled to a small (~200 KB) WebAssembly module** — no
@@ -99,6 +101,15 @@ All formats are auto-detected on import:
 > **offline** (the wasm is precached), and parses a typical session in tens to a
 > couple hundred milliseconds. See
 > [AiM XRK / XRZ import](#aim-xrk--xrz-import) for how the wasm is built and pinned.
+
+> **GoPro video** is a datalog too: every GoPro since the HERO5 embeds a GPS
+> stream (GPMF `gpmd` track — `GPS5` at 18 Hz, or `GPS9` on HERO11+) in the
+> MP4. Drop the video and only that small telemetry track is read, through
+> ranged reads — the multi-GB video is never loaded or stored. The fixes are
+> saved as an ordinary Dove log, and because telemetry and footage share the
+> camera's clock the video opens alongside the session **already synced**.
+> Select all chapters of a split recording together to import them as one
+> session. Design notes: `docs/plans/0029-gopro-gps-video-import.md`.
 
 > **iRacing IBT** is the sim's only native on-disk telemetry export — the binary
 > `.ibt` file iRacing writes (at the session tick rate, typically 60 Hz) once
@@ -628,7 +639,7 @@ Built on the shoulders of these incredible open-source projects and free service
 
 - [React](https://react.dev) · [Vite](https://vite.dev) · [TypeScript](https://www.typescriptlang.org) · [Tauri](https://tauri.app) (native shell IPC, native-only)
 - [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
-- [Inter](https://rsms.me/inter/) · [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (OFL fonts) · [Fontsource](https://fontsource.org) (self-hosted, offline-ready)
+- [Archivo](https://github.com/Omnibus-Type/Archivo) (LapWing brand display face) · [Inter](https://rsms.me/inter/) · [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (OFL fonts) · [Fontsource](https://fontsource.org) (self-hosted, offline-ready)
 - [Leaflet](https://leafletjs.com) · [CARTO basemaps](https://carto.com) · [Esri World Imagery & Wayback](https://livingatlas.arcgis.com/wayback/) (satellite + historical imagery dates)
 - [TanStack Query](https://tanstack.com/query) · [Sonner](https://sonner.emilkowal.dev) · [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) · [dnd kit](https://dndkit.com) (sector list drag-to-reorder)
 - [i18next](https://www.i18next.com) · [react-i18next](https://react.i18next.com) (internationalization)

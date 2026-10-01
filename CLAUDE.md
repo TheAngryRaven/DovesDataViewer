@@ -111,6 +111,7 @@ src/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
 │   ├── gpsQualityFilter.ts # ★ Post-parse cleanup (plan 0014): rebuilds samples dropping provably-bad rows (negative sats/accuracy/DOP, DOP>10, or a position jump implying >MAX_SPEED_MPS) — all formats; quality values are never fabricated onto rows (see xrk/xrkResample)
 │   ├── *Parser.ts         # nmea, ubx, iracing (.ibt), vbo, dove, dovex, alfano, aim, motec
+│   ├── gopro/             # ★ GoPro video import (plan 0029): mp4Boxes (ranged-read ISO-BMFF → `gpmd` sample table), gpmf (KLV + GPS5/GPS9), goproTelemetry (pure → Dove CSV + known video sync offset), goproImport (File glue; async like XRK), videoHandoff (one-shot video → useVideoSync)
 │   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk (Rust→WASM) in a Web Worker (→ docs/subsystems.md)
 │   ├── channels.ts        # ★ Canonical channel registry + normalizeChannels()
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode (→ docs/subsystems.md)
@@ -225,9 +226,11 @@ ParsedData` (full parse). **To add one:**
 then other binary (MoTeC LD → UBX → iRacing `.ibt`), then text most-specific to
 least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM CSV → NMEA fallback).
 
-Two parsers break the simple sync contract — the async **AiM XRK/XRZ** (Rust→WASM
-Web Worker) and the binary **iRacing `.ibt`**. Details, plus the **.dovex/.dovep**
-8 KB-header format: **→ `docs/subsystems.md`**.
+Three parsers break the simple sync contract — the async **AiM XRK/XRZ** (Rust→WASM
+Web Worker), the async **GoPro video** (ranged reads of the `gpmd` track, checked
+by extension *before* the router's whole-file `arrayBuffer()`; saved as a `.dove`,
+never the MP4), and the binary **iRacing `.ibt`**. Details, plus the
+**.dovex/.dovep** 8 KB-header format: **→ `docs/subsystems.md`**.
 
 ---
 
@@ -509,6 +512,12 @@ menu still opens instantly; `CourseSectorEditor` (carries
   it. Export includes `longName`, `shortName`, `defaultCourse`, per-course `lengthFt`.
 - **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors
   (e.g. `--warning`/`warning` for the preview-build footer).
+- **Brand**: the `index.css` palette is the LapWing theme from the
+  [perchwerks-style](https://github.com/TheAngryRaven/perchwerks-style) repo
+  (`lapwing-light` → `:root`, `lapwing-dark` → `.dark`); change colours there
+  first, then mirror them here. Logos: `BrandLogo` (inline bird mark,
+  `currentColor`) and `BrandLockup` (raster LAPWING lockup in `public/brand/` —
+  the logotype has no vector master yet). Archivo is display-only (`font-brand`).
 - **Admin/cloud code** is fully optional and env-gated — the core app has zero
   admin/cloud dependencies on the eager graph.
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in

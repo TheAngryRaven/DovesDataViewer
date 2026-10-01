@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - unreleased
 
 ### Added
+- **Import a GPS-tagged GoPro video as a session.** Every GoPro since the
+  HERO5 embeds its GPS fixes in the MP4, so the camera on your kart is already a
+  datalogger. Drop the video (or select all chapters of a split recording) on
+  the landing page and the embedded GPS becomes a normal session with laps,
+  sectors and the map. Only the small telemetry track is read — the video is
+  never loaded whole or stored — and because footage and telemetry share the
+  camera's clock, the video opens in the player already synced and locked. The
+  session is saved as a Dove log, so it syncs, shares and reopens like any
+  other file. GoPro HERO5–HERO10 (18 Hz) and HERO11+ (10 Hz, with per-fix
+  quality) are both read; the HERO12 has no GPS. (Plan 0029.)
 - **Anonymous usage statistics, with an off switch.** The hosted web app now
   counts visits, returning visitors and time on site through PostHog so we can
   tell whether anyone actually uses the thing. It is pageviews only: no click
@@ -59,7 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dragging the picture (compass button), then lock; a reset button returns
   to straight ahead. Export isn't available for camera streams yet. Needs a
   build of the app that bundles the Insta360 SDK; otherwise the button
-  doesn't appear. (Plan 0025; LapWing plan 0002.)
+  doesn't appear. If the picture can't be shown, the player says so, with the
+  app's own reason when it has one, instead of a broken-image icon.
+  (Plan 0025; LapWing plan 0002.)
 - **See and clear the videos the Android app keeps.** The Profile tab gains
   a *Videos on this device* card listing every session video the app has
   copied for reloading — file, session, size, date — with a delete per
@@ -91,6 +103,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `video_export_*` pipeline (plan 0024).
 
 ### Changed
+- **New LapWing look.** The app now wears the LapWing brand from the
+  PerchWerks style guide: the LAPWING wordmark in the header, the brand's
+  violet palette across light and dark mode (dark mode is now a deep indigo
+  rather than near-black), a new app icon, favicon and link-preview image, and
+  slightly tighter corners to match the logo. The home page gets a refreshed
+  hero banner. Charts and speed colours are unchanged.
+- **The footer now links to PerchWerks.** "LapWing is a PerchWerks product",
+  with the shared bird mark, takes you to perchwerks.com (it replaces the old
+  "Operated by PerchWerks LLC" line).
+- **The shared-session "read-only" banner text is readable again** — it was
+  drawn in a colour meant for text on a solid amber fill, so it nearly
+  vanished against the banner's pale tint.
 - **The app no longer loses its whole offline cache to a flaky connection.**
   Caching the app was previously one ~10 MB all-or-nothing download: if anything
   failed partway through — losing signal at a track, say — *nothing* was cached

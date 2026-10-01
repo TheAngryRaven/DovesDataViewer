@@ -126,6 +126,7 @@
     "resetView": "360°-Ansicht zurücksetzen",
     "exportUnavailable": "Export ist für Kamera-Streams noch nicht verfügbar",
     "openFailed": "Kamera-Stream konnte nicht gestartet werden",
-    "streamError": "Der Kamera-Stream wurde unterbrochen"
+    "streamError": "Der Kamera-Stream wurde unterbrochen",
+    "previewFailed": "Das Kamerabild konnte nicht angezeigt werden"
   }
 }

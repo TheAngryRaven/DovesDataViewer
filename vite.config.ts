@@ -335,8 +335,9 @@ export default defineConfig(async ({ mode }) => {
           name: "LapWing - Motorsport Data Viewer",
           short_name: "LapWing",
           description: "Open source motorsport data acquisition and analytics",
-          theme_color: "#1a1a2e",
-          background_color: "#0f0f1a",
+          // LapWing brand `lapwing-dark` canvas (perchwerks-style tokens).
+          theme_color: "#170A35",
+          background_color: "#170A35",
           display: "standalone",
           start_url: "/",
           icons: [
@@ -349,6 +350,14 @@ export default defineConfig(async ({ mode }) => {
               src: "pwa-512x512.png",
               sizes: "512x512",
               type: "image/png",
+            },
+            {
+              // Full-bleed plate with the mark inside the 80% safe zone, so
+              // Android's adaptive-icon mask never clips the bird.
+              src: "pwa-512x512.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
             },
             {
               src: "apple-touch-icon-180x180.png",
@@ -372,7 +381,9 @@ export default defineConfig(async ({ mode }) => {
           // The deferred directories are excluded so a slow or dropped connection
           // can't abort the whole install; they are runtime-cached and warmed
           // afterwards instead. See DEFERRED_ASSET_DIRS above.
-          globIgnores: ["**/tracks.zip", "version.json", ...DEFERRED_ASSET_GLOBS],
+          // og-image.png is only ever fetched by link-preview crawlers — no reason
+          // to ship it in every offline install.
+          globIgnores: ["**/tracks.zip", "version.json", "og-image.png", ...DEFERRED_ASSET_GLOBS],
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [
             {
