@@ -287,7 +287,7 @@ export default defineConfig(async ({ mode }) => {
       "import.meta.env.VITE_IS_NATIVE": JSON.stringify(
         pick("VITE_IS_NATIVE", "HTT_IS_NATIVE", PUBLIC_BACKEND_FALLBACKS.VITE_IS_NATIVE),
       ),
-      // Anonymous usage stats (plan 0029). Empty = no analytics in the build.
+      // Anonymous usage stats (plan 0030). Empty = no analytics in the build.
       // Goes through pick() so a `_PREVIEW` variant can point beta/preview
       // deploys at a separate PostHog project; otherwise they share the
       // production project and are told apart by the `app_channel` property.
@@ -383,7 +383,9 @@ export default defineConfig(async ({ mode }) => {
           // afterwards instead. See DEFERRED_ASSET_DIRS above.
           // og-image.png is only ever fetched by link-preview crawlers — no reason
           // to ship it in every offline install.
-          globIgnores: ["**/tracks.zip", "version.json", "og-image.png", ...DEFERRED_ASSET_GLOBS],
+          // vendor-posthog: only analytics users ever load it (plan 0030), so it is
+          // fetched on demand instead of weighing every offline install.
+          globIgnores: ["**/tracks.zip", "version.json", "og-image.png", "**/vendor-posthog-*.js", ...DEFERRED_ASSET_GLOBS],
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [
             {
@@ -487,8 +489,9 @@ export default defineConfig(async ({ mode }) => {
             "vendor-supabase": ["@supabase/supabase-js"],
             "vendor-markdown": ["react-markdown", "remark-gfm"],
             // Dynamic-imported by lib/analytics.ts only when analytics starts;
-            // a named chunk keeps it cache-stable across deploys.
-            "vendor-posthog": ["posthog-js"],
+            // a named chunk keeps it cache-stable across deploys. Keyless builds
+            // drop the import entirely, so they get no (empty) chunk either.
+            ...(pick("VITE_POSTHOG_KEY", "HTT_POSTHOG_KEY", "") ? { "vendor-posthog": ["posthog-js"] } : {}),
             // Radix is many small packages; group them into one chunk.
             "vendor-radix": [
               "@radix-ui/react-collapsible",

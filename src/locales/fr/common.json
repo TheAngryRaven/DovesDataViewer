@@ -24,6 +24,10 @@
     "updatingBody": "Récupération de la dernière version — un instant.",
     "updated": "Vous êtes sur la dernière version."
   },
+  "usageStatsNotice": {
+    "title": "LapWing compte désormais les visites anonymes",
+    "description": "Uniquement les pages vues, sans cookies et sans rien sur vos sessions. Désactivez-le à tout moment dans Paramètres → Confidentialité."
+  },
   "install": {
     "title": "Installer LapWing",
     "body": "Fonctionne hors ligne sur le circuit — aucun réseau requis.",

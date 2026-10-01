@@ -92,7 +92,7 @@
   "privacy": {
     "heading": "Privacidade",
     "usageStats": "Enviar estatísticas de uso anônimas",
-    "usageStatsHint": "Ajuda a entender quantas pessoas usam o LapWing, quantas voltam e por quanto tempo ficam. Dados de telemetria, arquivos ou localização nunca são enviados. Respeita o “Do Not Track”."
+    "usageStatsHint": "Ajuda a entender quantas pessoas usam o LapWing e por quanto tempo ficam. Sem cookies, e dados de telemetria, arquivos ou localização nunca são enviados. Respeita o “Do Not Track” e o “Global Privacy Control”."
   },
   "mychron": {
     "heading": "MyChron",

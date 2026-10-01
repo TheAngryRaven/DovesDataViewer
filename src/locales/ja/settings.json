@@ -92,7 +92,7 @@
   "privacy": {
     "heading": "プライバシー",
     "usageStats": "匿名の利用統計を送信",
-    "usageStatsHint": "LapWing を使っている人数、再訪する人数、滞在時間の把握に役立ちます。テレメトリー、ファイル、位置情報が送信されることはありません。「Do Not Track」を尊重します。"
+    "usageStatsHint": "LapWing を使っている人数と滞在時間の把握に役立ちます。Cookie は使わず、テレメトリー、ファイル、位置情報が送信されることはありません。「Do Not Track」と「Global Privacy Control」を尊重します。"
   },
   "mychron": {
     "heading": "MyChron",

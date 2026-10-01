@@ -91,7 +91,7 @@
   "privacy": {
     "heading": "Privacy",
     "usageStats": "Send anonymous usage stats",
-    "usageStatsHint": "Helps us see how many people use LapWing, how many come back, and how long they stay. No telemetry, files or location data is ever sent. Honours Do Not Track."
+    "usageStatsHint": "Helps us see how many people use LapWing and how long they stay. No cookies, and no telemetry, files or location data is ever sent. Honours Do Not Track and Global Privacy Control."
   },
   "mychron": {
     "heading": "MyChron",

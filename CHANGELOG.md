@@ -24,15 +24,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   session is saved as a Dove log, so it syncs, shares and reopens like any
   other file. GoPro HERO5–HERO10 (18 Hz) and HERO11+ (10 Hz, with per-fix
   quality) are both read; the HERO12 has no GPS. (Plan 0029.)
-- **Anonymous usage statistics, with an off switch.** The hosted web app now
-  counts visits, returning visitors and time on site through PostHog so we can
-  tell whether anyone actually uses the thing. It is pageviews only: no click
-  tracking, no session replay, and never any telemetry, files, lap times or
-  location. A new **Settings → Privacy → Send anonymous usage stats** toggle
-  turns it off, and the browser's Do Not Track / Global Privacy Control
-  signals are honoured. The Android app and self-hosted builds without a
-  PostHog key send nothing. The privacy policy describes exactly what is
-  collected. (Plan 0029.)
+- **Anonymous usage statistics, with an off switch.** The hosted web app can
+  now count visits and time on site through PostHog, so we can tell whether
+  anyone actually uses the thing. It is pageviews only: no click tracking, no
+  session replay, and never any telemetry, files, lap times or location. It is
+  cookieless — nothing is stored in your browser — and page addresses are
+  cleaned before they leave it, so sign-in tokens, shared-session links and
+  driver names are never sent. A new **Settings → Privacy → Send anonymous
+  usage stats** toggle turns it off; with Do Not Track or Global Privacy
+  Control set, the analytics code is never even downloaded. The first time it
+  starts, the app says so once. The Android app, preview hosts and builds
+  without a PostHog key send nothing (and keyless builds don't contain the
+  analytics library at all). The privacy policy describes exactly what is
+  collected. (Plan 0030.)
 - **Scrub through a track day's setup changes, even the ones you never tagged.**
   Saving a setup now freezes a revision, so the history button shows every edit
   rather than only the states assigned to a session, newest on top. A new **Used / All** toggle

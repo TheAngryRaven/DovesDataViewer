@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { isFieldHiddenByCanonical, CanonicalFieldId } from "@/lib/fieldResolver";
 import i18n, { initialLanguage } from "@/lib/i18n";
 import { setUsageStatsEnabled } from "@/lib/analytics";
@@ -29,7 +29,7 @@ export interface AppSettings {
   chartXAxis: 'time' | 'distance';  // Analysis chart X-axis scale (default: 'distance')
   language: SupportedLanguage;      // Display language (default: browser-detected, else 'en')
   mychronSsidPrefix: string;        // SSID prefix the Android Wi-Fi picker filters on for MyChron (default: 'MYCHRON5')
-  sendUsageStats: boolean;          // Anonymous usage stats via PostHog — web-only, plan 0029 (default: true)
+  sendUsageStats: boolean;          // Anonymous usage stats via PostHog — web-only, plan 0030 (default: true)
 }
 
 const SETTINGS_KEY = "dove-dataviewer-settings";
@@ -97,10 +97,14 @@ export function useSettings() {
     }
   }, [settings.language]);
 
-  // Bridge the usage-stats preference to the analytics client so an opt-out
-  // takes effect immediately, not on the next reload. Boot-time start lives in
-  // main.tsx; this only reacts to changes (a no-op where analytics is absent).
+  // Bridge the usage-stats toggle to the analytics client so an opt-out takes
+  // effect immediately, not on the next reload. Only a CHANGE is forwarded:
+  // starting analytics is main.tsx's decision alone (it owns the preview/iframe
+  // /native exclusions), so the mount value must never reach the client.
+  const lastUsageStats = useRef(settings.sendUsageStats);
   useEffect(() => {
+    if (lastUsageStats.current === settings.sendUsageStats) return;
+    lastUsageStats.current = settings.sendUsageStats;
     setUsageStatsEnabled(settings.sendUsageStats);
   }, [settings.sendUsageStats]);
 

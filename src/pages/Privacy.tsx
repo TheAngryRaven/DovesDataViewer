@@ -8,7 +8,7 @@ import { isAnalyticsAvailable } from "@/lib/analytics";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === "true";
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
-// Anonymous usage stats (plan 0029) — present only where a PostHog key is baked
+// Anonymous usage stats (plan 0030) — present only where a PostHog key is baked
 // in and this isn't the native app; the wording below must stay in sync with
 // the config in lib/analytics.ts.
 const enableAnalytics = isAnalyticsAvailable();
@@ -83,17 +83,20 @@ const Privacy = () => {
               Anonymous Usage Statistics
             </h2>
             <p className="mb-2">
-              To understand how many people use LapWing, how many come back, and
-              roughly how long they stay, the web app sends anonymous usage
-              statistics to{" "}
+              To understand how many people use LapWing and roughly how long they
+              stay, the web app sends anonymous usage statistics to{" "}
               <strong className="text-foreground">PostHog</strong>, an analytics
               provider. This is limited to:
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
                 <strong className="text-foreground">Page visits:</strong> which
-                page of the app was opened, when, for how long, and the site that
-                linked you here (if any).
+                page of the app was opened, when, for how long, and the website
+                that linked you here (its address only, never the full link).
+                Page addresses are cleaned in your browser before anything is
+                sent: everything after a “?” or “#” is removed, and shared-session
+                links and driver names are replaced with placeholders, so no
+                sign-in token, share link or name ever leaves your device.
               </li>
               <li>
                 <strong className="text-foreground">Device basics:</strong>{" "}
@@ -102,16 +105,19 @@ const Privacy = () => {
               </li>
               <li>
                 <strong className="text-foreground">Approximate location:</strong>{" "}
-                like any web request, PostHog receives your IP address; it is
-                used only to estimate a coarse (country/region) location and is
-                not retained on the record.
+                like any web request, PostHog receives your IP address. It is used
+                to estimate a coarse (country/region) location and, together with
+                your browser type, to form a one-way visitor code; our PostHog
+                project is set to discard the IP address after that.
               </li>
               <li>
-                <strong className="text-foreground">A random identifier</strong>{" "}
-                stored in your browser, so that a later visit counts as a
-                returning visitor. It is a random string, is not linked to any
-                account, name or email, and is deleted when you clear this
-                site’s data.
+                <strong className="text-foreground">No cookies or stored
+                identifier.</strong>{" "}
+                Nothing is saved in your browser for analytics. PostHog groups
+                the page views of one visit using the one-way visitor code above,
+                which is mixed with a secret that PostHog replaces every day, so
+                visits on different days cannot be linked to each other, and
+                none can be linked to an account, name or email.
               </li>
             </ul>
             <p className="mt-2">
@@ -129,7 +135,10 @@ const Privacy = () => {
               anonymous usage stats</strong>. We also honour your browser’s{" "}
               <strong className="text-foreground">Do Not Track</strong> and{" "}
               <strong className="text-foreground">Global Privacy Control</strong>{" "}
-              signals. The Android app does not send usage statistics at all.
+              signals: with either one set, the analytics code is never even
+              downloaded. The Android app does not send usage statistics at all.
+              The first time statistics start in your browser, the app tells you
+              so, with a pointer to this switch.
             </p>
           </section>
         ) : (
@@ -331,7 +340,7 @@ const Privacy = () => {
               ? " If you sign in, we store a session/authentication token in your browser so you stay logged in — this is strictly necessary for the account feature to work."
               : ""}
             {enableAnalytics
-              ? " If anonymous usage statistics are on, a random visitor identifier is kept in localStorage and a first-party cookie (see “Anonymous Usage Statistics”); switching the setting off stops it being used."
+              ? " Anonymous usage statistics use no cookies and store no identifier (see “Anonymous Usage Statistics”); the app keeps only a one-line note that it has shown you the statistics notice."
               : ""}{" "}
             All other storage (IndexedDB and localStorage) holds your own app data
             on your device.
@@ -502,7 +511,7 @@ const Privacy = () => {
       </div>
 
       <p className="mt-10 text-xs text-muted-foreground/60">
-        Last updated: September 2026
+        Last updated: October 2026
       </p>
       </div>
     </div>

@@ -19,7 +19,7 @@ interface ImportMetaEnv {
    */
   readonly VITE_IS_NATIVE?: string;
   /**
-   * PostHog project key for anonymous usage statistics (plan 0029). Unset →
+   * PostHog project key for anonymous usage statistics (plan 0030). Unset →
    * no analytics at all (self-hosters, local dev). See lib/analytics.ts.
    */
   readonly VITE_POSTHOG_KEY?: string;
