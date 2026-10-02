@@ -93,7 +93,7 @@ All formats are auto-detected on import:
 | MoTeC CSV | MoTeC i2 Pro export | `.csv` |
 | MoTeC LD | MoTeC native binary | `.ld` |
 | NMEA | Standard GPS sentences | `.nmea`, `.txt`, `.csv` |
-| GoPro video | GPS-tagged GoPro footage (HERO5+, GPS on) — the embedded GPMF telemetry track | `.mp4`, `.mov`, `.360` |
+| GoPro video | GPS-tagged GoPro footage (HERO5+, GPS on) — the embedded GPMF telemetry track | `.mp4`, `.mov` (`.360` experimental) |
 
 > **AiM XRK/XRZ** is parsed by [libxrk](https://github.com/m3rlin45/libxrk)'s
 > pure-Rust core **compiled to a small (~200 KB) WebAssembly module** — no
@@ -109,7 +109,9 @@ All formats are auto-detected on import:
 > saved as an ordinary Dove log, and because telemetry and footage share the
 > camera's clock the video opens alongside the session **already synced**.
 > Select all chapters of a split recording together to import them as one
-> session. Design notes: `docs/plans/0029-gopro-gps-video-import.md`.
+> session. **`.360` (MAX/Fusion) is experimental:** it carries the same
+> telemetry track and is accepted, but hasn't been tested against a real file
+> yet. Design notes: `docs/plans/0029-gopro-gps-video-import.md`.
 
 > **iRacing IBT** is the sim's only native on-disk telemetry export — the binary
 > `.ibt` file iRacing writes (at the session tick rate, typically 60 Hz) once

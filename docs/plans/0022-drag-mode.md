@@ -1,7 +1,8 @@
 # Drag Mode — standing-start runs at unknown venues
 
-> Status: **IN PROGRESS** — detector landed first (logic-first, like plan 0015);
-> orchestration and UI follow in separate commits on this plan.
+> Status: **DONE** — all four commits below landed (detector first,
+> logic-first like plan 0015, then mapping, orchestration and UI); ships in
+> 4.2.0. The follow-ups section is deliberately out of scope for v1.
 
 ## Why this exists
 
