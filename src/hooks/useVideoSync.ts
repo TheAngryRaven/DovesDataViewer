@@ -15,6 +15,7 @@ import { findNearestIndex } from "@/components/video-overlays/overlayUtils";
 import { coverageOf, sessionMsToVideoSec, videoSecToSessionMs, fitVideoTimeline, needsResync, type VideoCoverage } from "@/lib/videoTimeline";
 import { buildPlaylist, groupVideoRecordings, virtualToLocal, localToVirtual, type Playlist, type VideoRecording } from "@/lib/videoPlaylist";
 import { takeStagedGoProVideo, type StagedGoProVideo } from "@/lib/gopro/videoHandoff";
+import { createLatestGate } from "@/lib/latestGate";
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
@@ -211,6 +212,10 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   // True while the <video> streams from the shell's copy (a restore), as
   // opposed to the picked blob with the copy made in the background.
   const nativeStoredPlaybackRef = useRef(false);
+  // The shell's copy/lookup of a video is async and outlives session and video
+  // switches; its key may only attach to the context that started it, or an
+  // export would burn session B's overlays onto session A's footage.
+  const [nativeKeyGate] = useState(createLatestGate);
   const [overlaySettings, setOverlaySettings] = useState<OverlaySettings>(DEFAULT_OVERLAY_SETTINGS);
   const [storedVideoAvailable, setStoredVideoAvailable] = useState(false);
   const [storedVideoMeta, setStoredVideoMeta] = useState<StoredVideoMeta | null>(null);
@@ -300,6 +305,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     hasSessionVideo(sessionFileName).then(has => setStoredVideoAvailable(has));
     getSessionVideoMeta(sessionFileName).then(meta => setStoredVideoMeta(meta)).catch(() => {});
 
+    nativeKeyGate.invalidate();
     setNativeStoredKey(null);
 
     // A GoPro import (plan 0029) already holds the footage and knows the exact
@@ -395,14 +401,18 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   // Plays over the asset protocol straight from app storage — no blob, no
   // copy into memory.
   const tryLoadNativeStored = useCallback(async (fileName: string): Promise<boolean> => {
+    const isCurrent = nativeKeyGate.claim();
     const stored = await getNativeStoredVideo(fileName);
+    // Superseded (session switch / another video picked): report it handled so
+    // the stale restore chain stops instead of falling back to other sources.
+    if (!isCurrent()) return true;
     if (!stored) return false;
     revokeAllUrls();
     await applyPlaylist([{ name: stored.fileName, url: stored.url }]);
     setNativeStoredKey(stored.key);
     nativeStoredPlaybackRef.current = true;
     return true;
-  }, [revokeAllUrls, applyPlaylist]);
+  }, [revokeAllUrls, applyPlaylist, nativeKeyGate]);
 
   const tryLoadStoredVideo = useCallback(async (fileName: string) => {
     try {
@@ -475,13 +485,14 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     // blob URL keeps playing meanwhile; once stored, exports use the copy.
     setNativeStoredKey(null);
     nativeStoredPlaybackRef.current = false;
+    const isCurrent = nativeKeyGate.claim();
     if (isNativeApp() && sessionFileName && recording.files.length === 1) {
       const file = recording.files[0].file;
       void storeNativeVideo(sessionFileName, file)
-        .then((stored) => { if (stored) setNativeStoredKey(stored.key); })
+        .then((stored) => { if (stored && isCurrent()) setNativeStoredKey(stored.key); })
         .catch((e) => console.warn("Native video store failed:", e));
     }
-  }, [revokeAllUrls, applyPlaylist, persistSync, sessionFileName]);
+  }, [revokeAllUrls, applyPlaylist, persistSync, sessionFileName, nativeKeyGate]);
 
   // Load a GoPro import's own footage with its known offset, rate 1, locked.
   // The offset is set before loading so the record loadRecording persists is
@@ -527,6 +538,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       await applyPlaylist([{ name: file.name, url: info.streamUrl, durationSec: player.duration }]);
       // No file behind the stream: nothing to export from, nothing to store.
       setExportChunks([]);
+      nativeKeyGate.invalidate();
       setNativeStoredKey(null);
       setFileHandle(null);
       persistSync(syncOffsetMsRef.current, undefined, file.name);
@@ -538,7 +550,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
       }
       if (!(e instanceof Error && e.message === "superseded")) throw e;
     }
-  }, [revokeAllUrls, applyPlaylist, persistSync]);
+  }, [revokeAllUrls, applyPlaylist, persistSync, nativeKeyGate]);
 
   const unloadVideo = useCallback(() => {
     revokeAllUrls();

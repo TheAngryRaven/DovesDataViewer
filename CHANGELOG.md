@@ -180,6 +180,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   MPH/KPH (or metric distance) left analog, bar, graph and bubble overlays
   scaling the new values against the previous unit's range, in both the
   preview and exported videos.
+- **Android app: an export could use the wrong session's video.** If the
+  app's background copy of a video finished after you had switched sessions,
+  the next export burned the new session's overlays onto the old session's
+  footage. A copy now only attaches to the session (and video) it started
+  for.
 
 ## [4.1.0] - 2026-08-24
 
