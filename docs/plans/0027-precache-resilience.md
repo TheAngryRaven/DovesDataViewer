@@ -50,8 +50,10 @@ service worker at all.
 
 ### Keep install small; defer the heavy extras
 
-`DEFERRED_ASSET_DIRS` in `vite.config.ts` (`samples/`, `loggers/`) is the single
-source of truth. It feeds three things:
+`DEFERRED_ASSET_DIRS` (`samples/`, `loggers/`) is the single source of truth —
+it lives in `scripts/deferredAssets.ts` (moved out of `vite.config.ts` after the
+4.2.0 release review so the runtime-cache route, previously a hand-copied regex,
+could be derived from it and unit-tested). It feeds three things:
 
 1. `globIgnores` — those directories stay out of the install-blocking precache.
 2. A `CacheFirst` runtime-caching route (`app-deferred-assets`), so once present

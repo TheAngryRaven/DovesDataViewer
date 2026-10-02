@@ -5,6 +5,7 @@ import fs from "fs";
 import { execSync } from "child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { resolveBranchBackend } from "./scripts/resolveSupabaseBranch";
+import { DEFERRED_ASSET_DIRS, deferredAssetPathPattern, sameOriginPathMatcher } from "./scripts/deferredAssets";
 
 // Build-time version metadata for the footer "what changed" stamp. The app
 // version comes from package.json; the commit hash + build date are baked in at
@@ -97,9 +98,8 @@ function externalPluginsLoader(candidates: string[]): Plugin {
 // boot: they are runtime-cached instead (see `runtimeCaching` below) and warmed
 // in the background once the worker is active (src/lib/offlineWarmup.ts), so
 // they still work offline without being able to take the whole install down.
-// One source of truth — the globs feed `globIgnores`, the runtime-cache route
-// and the emitted manifest alike.
-const DEFERRED_ASSET_DIRS = ["samples", "loggers"] as const;
+// One source of truth — DEFERRED_ASSET_DIRS (scripts/deferredAssets.ts) feeds
+// `globIgnores`, the runtime-cache route and the emitted manifest alike.
 const DEFERRED_ASSET_GLOBS = DEFERRED_ASSET_DIRS.map((dir) => `${dir}/**`);
 
 /** Where the client reads the list of deferred assets to warm. */
@@ -380,7 +380,7 @@ export default defineConfig(async ({ mode }) => {
           // running tab fetches uncached to detect a newer deploy (see versionCheck.ts).
           // The deferred directories are excluded so a slow or dropped connection
           // can't abort the whole install; they are runtime-cached and warmed
-          // afterwards instead. See DEFERRED_ASSET_DIRS above.
+          // afterwards instead. See DEFERRED_ASSET_DIRS (scripts/deferredAssets.ts).
           // og-image.png is only ever fetched by link-preview crawlers — no reason
           // to ship it in every offline install.
           // vendor-posthog: only analytics users ever load it (plan 0030), so it is
@@ -393,12 +393,11 @@ export default defineConfig(async ({ mode }) => {
               // DEFERRED_ASSET_DIRS). CacheFirst so that once warmed they are
               // served offline exactly as if precached — the difference is only
               // that failing to fetch one can no longer abort the install.
-              // The pattern is inlined rather than built from the constant
-              // because workbox-build serializes this function into the worker,
-              // where nothing from this module's scope exists. `sameOrigin` is
-              // supplied by Workbox's route matcher.
-              urlPattern: ({ url, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
-                sameOrigin && /^\/(?:samples|loggers)\//.test(url.pathname),
+              // workbox-build serializes this callback into the worker, where
+              // nothing from this module's scope exists, so the matcher bakes the
+              // pattern derived from DEFERRED_ASSET_DIRS into its source text.
+              // `sameOrigin` is supplied by Workbox's route matcher.
+              urlPattern: sameOriginPathMatcher(deferredAssetPathPattern(DEFERRED_ASSET_DIRS)),
               handler: "CacheFirst",
               options: {
                 // No ExpirationPlugin here on purpose: the warm-up writes these
