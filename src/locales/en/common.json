@@ -23,6 +23,10 @@
     "updatingBody": "Grabbing the latest version — one moment.",
     "updated": "You're on the latest version."
   },
+  "usageStatsNotice": {
+    "title": "LapWing now counts anonymous visits",
+    "description": "Page views only, with no cookies and nothing about your sessions. Turn it off any time in Settings → Privacy."
+  },
   "install": {
     "title": "Install LapWing",
     "body": "Works offline at the track — no signal needed.",

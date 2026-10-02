@@ -181,6 +181,8 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 | `VITE_ENABLE_CLOUD` | No | Set to `true` to enable public user accounts: Cloud Sync panels, email sign-in/registration, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`. Default `false` — flag-off builds ship zero cloud auth code (offline-first invariant). |
 | `VITE_IS_NATIVE` | No | Set to `true` **only** for the native (Tauri/Android) shell build. Skips the service worker, hides in-app purchases (paid plans are web-only — Google Play billing policy; cloud sync still works), and opens external links in the system browser. The web app leaves this unset/`false`. See [`docs/android.md`](docs/android.md). |
 | `VITE_TURNSTILE_SITE_KEY` | No | Cloudflare Turnstile site key for track submission CAPTCHA |
+| `VITE_POSTHOG_KEY` | No | PostHog project key for **anonymous usage statistics** (pageviews and time on site — cookieless, no autocapture, no replay, URLs scrubbed in the browser). Unset = no analytics code is even built in. Web-only: never active in the native app, an iframe or a `?nosw=1` preview, never for Do Not Track / Global Privacy Control browsers, and users can opt out in *Settings → Privacy*. **Do the [PostHog project checklist](#anonymous-usage-statistics) before setting it.** A `VITE_POSTHOG_KEY_PREVIEW` variant points beta/preview deploys at a separate project; otherwise they share one and are told apart by the `app_channel` event property. See `docs/plans/0030-anonymous-usage-analytics.md`. |
+| `VITE_POSTHOG_HOST` | No | PostHog ingest host override (defaults to `https://us.i.posthog.com`). Set to the EU cloud or a same-origin reverse proxy. |
 | `VITE_FIRMWARE_MANIFEST_URL` | No | Override the DovesDataLogger firmware OTA manifest URL used by the in-app firmware updater. When unset: `main` builds use the production manifest (`https://theangryraven.github.io/DovesDataLogger/manifest.json`); non-`main`/preview builds use the **beta channel** (`https://theangryraven.github.io/DovesDataLogger/beta/manifest.json`). Set this to force a specific channel on any branch. |
 | `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (edge function secret — `???`) |
 | `STRIPE_SECRET_KEY` | No (required for paid tiers) | Stripe secret key used by the `create-checkout-session`, `stripe-webhook`, and `create-portal-session` edge functions (edge function secret — `???`) |
@@ -448,6 +450,23 @@ changing them):
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | your Supabase anon key |
 | `VITE_SUPABASE_PROJECT_ID` | your Supabase project ID |
 | `VITE_TURNSTILE_SITE_KEY` | optional — Turnstile site key for the contact/submission CAPTCHA |
+| `VITE_POSTHOG_KEY` | optional — PostHog project key for anonymous usage stats (leave unset for no analytics; do the checklist below first) |
+
+#### Anonymous usage statistics
+
+Analytics stay off until `VITE_POSTHOG_KEY` is set, and the privacy policy makes
+promises the PostHog project has to keep. **Before setting the key**, in the
+PostHog project settings:
+
+1. **Enable cookieless server hash mode.** The app runs PostHog with
+   `cookieless_mode: "always"` (no cookies or storage). Without this setting
+   PostHog drops every event, so forgetting it fails closed.
+2. **Enable "Discard client IP data".** The policy says the IP address is used
+   only for the coarse location lookup and then discarded; that is only true
+   with this setting on. Nothing in the browser can enforce it.
+
+Then set `VITE_POSTHOG_KEY` (and `VITE_POSTHOG_HOST` for the EU cloud) and
+redeploy. See `docs/plans/0030-anonymous-usage-analytics.md`.
 
 `TURNSTILE_SECRET_KEY` stays a **Supabase edge-function secret** — it is never a
 client variable and does not belong in Cloudflare. The Supabase edge functions
@@ -643,6 +662,7 @@ Built on the shoulders of these incredible open-source projects and free service
 - [react-markdown](https://github.com/remarkjs/react-markdown) · [remark-gfm](https://github.com/remarkjs/remark-gfm) · [Tailwind Typography](https://github.com/tailwindlabs/tailwindcss-typography) (updates blog rendering)
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) · [Savitzky-Golay (ml.js)](https://github.com/mljs/savitzky-golay) · [JSZip](https://stuk.github.io/jszip) · [fix-webm-duration](https://github.com/yusitnikov/fix-webm-duration)
 - [IEM ASOS (Iowa State)](https://mesonet.agron.iastate.edu) · [NWS API](https://www.weather.gov/documentation/services-web-api) · [Open-Meteo](https://open-meteo.com) (global weather fallback, CC-BY 4.0)
+- [posthog-js](https://github.com/PostHog/posthog-js) (MIT / Apache-2.0) — anonymous, cookieless, opt-out usage statistics on the hosted web app (see `docs/plans/0030-anonymous-usage-analytics.md`)
 - [MoTeC i2](https://www.motec.com.au) (file format reference)
 - [libxrk](https://github.com/m3rlin45/libxrk) (MIT) + [TrackDataAnalysis](https://github.com/racer-coder/TrackDataAnalysis) (MIT) — AiM XRK/XRZ parser (Rust → WebAssembly)
 

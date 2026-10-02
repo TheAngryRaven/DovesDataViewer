@@ -89,6 +89,11 @@
     "label": "Update erzwingen & Cache leeren",
     "hint": "Leert die zwischengespeicherten App-Dateien und lädt die neueste Version neu. Deine gespeicherten Sessions und Daten in der Garage sind nicht betroffen."
   },
+  "privacy": {
+    "heading": "Datenschutz",
+    "usageStats": "Anonyme Nutzungsstatistiken senden",
+    "usageStatsHint": "Hilft uns zu sehen, wie viele Leute LapWing nutzen und wie lange sie bleiben. Keine Cookies, und es werden nie Telemetrie-, Datei- oder Standortdaten gesendet. Respektiert „Do Not Track“ und „Global Privacy Control“."
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "WLAN-Namenspräfix",

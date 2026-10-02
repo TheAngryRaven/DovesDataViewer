@@ -89,6 +89,11 @@
     "label": "更新を強制してキャッシュを消去",
     "hint": "キャッシュされたアプリファイルを消去し、最新バージョンを再読み込みします。ガレージに保存されたセッションやデータは影響を受けません。"
   },
+  "privacy": {
+    "heading": "プライバシー",
+    "usageStats": "匿名の利用統計を送信",
+    "usageStatsHint": "LapWing を使っている人数と滞在時間の把握に役立ちます。Cookie は使わず、テレメトリー、ファイル、位置情報が送信されることはありません。「Do Not Track」と「Global Privacy Control」を尊重します。"
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Wi-Fi 名のプレフィックス",

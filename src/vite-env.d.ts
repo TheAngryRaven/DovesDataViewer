@@ -18,6 +18,13 @@ interface ImportMetaEnv {
    * links via the system browser). Defaults to "false" — see lib/platform.ts.
    */
   readonly VITE_IS_NATIVE?: string;
+  /**
+   * PostHog project key for anonymous usage statistics (plan 0030). Unset →
+   * no analytics at all (self-hosters, local dev). See lib/analytics.ts.
+   */
+  readonly VITE_POSTHOG_KEY?: string;
+  /** PostHog ingest host override (EU cloud or a reverse proxy). Defaults to the US cloud. */
+  readonly VITE_POSTHOG_HOST?: string;
 }
 
 interface ImportMeta {

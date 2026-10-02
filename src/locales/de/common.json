@@ -24,6 +24,10 @@
     "updatingBody": "Neueste Version wird geladen — einen Moment.",
     "updated": "Du bist auf der neuesten Version."
   },
+  "usageStatsNotice": {
+    "title": "LapWing zählt jetzt anonyme Besuche",
+    "description": "Nur Seitenaufrufe, ohne Cookies und ohne Daten zu deinen Sessions. Jederzeit abschaltbar unter Einstellungen → Datenschutz."
+  },
   "install": {
     "title": "LapWing installieren",
     "body": "Funktioniert offline an der Strecke — ganz ohne Empfang.",
