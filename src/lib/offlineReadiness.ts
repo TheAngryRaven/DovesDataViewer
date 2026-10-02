@@ -44,3 +44,29 @@ export function readinessPercent(cached: number, total: number): number {
   if (total <= 0) return 100;
   return Math.min(100, Math.max(0, Math.round((cached / total) * 100)));
 }
+
+/** The slice of the Cache Storage API the readiness count needs. */
+export type CacheMatcher = Pick<CacheStorage, "match">;
+
+/**
+ * How many of `urls` are already cached. A lookup that throws (storage
+ * evicted mid-check, a quota error) counts as a miss rather than failing the
+ * whole readout, and no Cache API at all (old browser, insecure context)
+ * means nothing is cached.
+ */
+export async function countCachedAssets(
+  urls: string[],
+  cacheStorage: CacheMatcher | undefined = typeof caches === "undefined" ? undefined : caches,
+): Promise<number> {
+  if (!cacheStorage) return 0;
+  const hits = await Promise.all(
+    urls.map(async (url) => {
+      try {
+        return (await cacheStorage.match(url)) !== undefined;
+      } catch {
+        return false;
+      }
+    }),
+  );
+  return hits.filter(Boolean).length;
+}

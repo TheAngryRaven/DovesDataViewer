@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeReadiness, readinessPercent } from "./offlineReadiness";
+import { computeReadiness, countCachedAssets, readinessPercent } from "./offlineReadiness";
 
 const base = {
   serviceWorkerSupported: true,
@@ -53,5 +53,28 @@ describe("readinessPercent", () => {
   it("clamps to 0–100", () => {
     expect(readinessPercent(9, 4)).toBe(100);
     expect(readinessPercent(-1, 4)).toBe(0);
+  });
+});
+
+describe("countCachedAssets", () => {
+  const cache = (cached: string[], throwing: string[] = []) => ({
+    match: async (req: RequestInfo | URL) => {
+      const url = String(req);
+      if (throwing.includes(url)) throw new Error("storage evicted");
+      return cached.includes(url) ? new Response("") : undefined;
+    },
+  });
+
+  it("counts the URLs already in the cache", async () => {
+    expect(await countCachedAssets(["/a", "/b", "/c"], cache(["/a", "/c"]))).toBe(2);
+  });
+
+  it("treats a lookup that throws as a miss instead of failing the readout", async () => {
+    expect(await countCachedAssets(["/a", "/b"], cache(["/a", "/b"], ["/b"]))).toBe(1);
+  });
+
+  it("is zero with no Cache API or nothing to check", async () => {
+    expect(await countCachedAssets(["/a"], undefined)).toBe(0);
+    expect(await countCachedAssets([], cache(["/a"]))).toBe(0);
   });
 });

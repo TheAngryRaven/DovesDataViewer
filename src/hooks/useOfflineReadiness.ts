@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   computeReadiness,
+  countCachedAssets,
   readinessPercent,
   type OfflineReadiness,
 } from "@/lib/offlineReadiness";
@@ -18,20 +19,6 @@ export interface OfflineReadinessState {
 const supported = () =>
   typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
-const countCached = async (urls: string[]): Promise<number> => {
-  if (typeof caches === "undefined") return 0;
-  const hits = await Promise.all(
-    urls.map(async (url) => {
-      try {
-        return (await caches.match(url)) !== undefined;
-      } catch {
-        return false;
-      }
-    }),
-  );
-  return hits.filter(Boolean).length;
-};
-
 /**
  * Live "can this device work with no signal?" state, plus a way to finish the
  * job on demand. Backed by `lib/offlineReadiness` (pure) and `lib/offlineWarmup`
@@ -47,7 +34,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
 
   const refresh = useCallback(async (urls: string[]) => {
     setControlled(supported() && navigator.serviceWorker.controller !== null);
-    setCached(await countCached(urls));
+    setCached(await countCachedAssets(urls));
   }, []);
 
   useEffect(() => {
