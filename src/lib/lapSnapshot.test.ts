@@ -137,6 +137,14 @@ describe("fastestLap", () => {
     expect(fastestLap(laps)?.lapNumber).toBe(2);
     expect(fastestLap([])).toBeNull();
   });
+
+  it("never picks an incomplete drag run, whose time is only a data window", () => {
+    const samples = makeSamples();
+    const aborted = { ...makeLap(0, 2, samples, 1), incomplete: true };
+    const laps = [aborted, makeLap(0, 8, samples, 2)];
+    expect(fastestLap(laps)?.lapNumber).toBe(2);
+    expect(fastestLap([aborted])).toBeNull();
+  });
 });
 
 describe("snapshotPromptKind", () => {

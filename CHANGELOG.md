@@ -167,6 +167,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now cross the bridge in a form Android supports, and an export that fails
   says so with the reason instead of silently stopping. Requires the matching
   LapWing build.
+- **A drag log could overwrite a course's lap snapshot.** Opening a drag (or
+  waypoint) session right after a circuit session kept the previous course
+  selected, so assigning an engine or saving a snapshot could replace that
+  course's real fastest lap with a 10-second drag run — and cloud-sync it.
+  Course-less sessions now clear the selection, and drag sessions can never
+  save a course snapshot.
+- **Incomplete drag runs no longer count as "fastest"** in the video overlay's
+  best-lap readout, the Overlays menu trophy, the external-reference picker,
+  lap snapshots, or the course outline generated from a session.
+- **Video overlay gauges kept the old range after a unit toggle.** Switching
+  MPH/KPH (or metric distance) left analog, bar, graph and bubble overlays
+  scaling the new values against the previous unit's range, in both the
+  preview and exported videos.
 
 ## [4.1.0] - 2026-08-24
 

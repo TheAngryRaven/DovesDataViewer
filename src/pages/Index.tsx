@@ -437,6 +437,7 @@ export default function Index() {
     setups: setupManager.setups,
     sessionKartId,
     sessionSetupId,
+    isDragSession: dragDistanceFt != null,
     onLoadOverlay: loadSnapshotOverlay,
     onClearOverlay: handleClearExternalRef,
   });
