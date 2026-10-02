@@ -6,7 +6,10 @@
  * untouched tags (track/course/kart/setup), which is the whole reason it exists.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+const nativeVideo = vi.hoisted(() => ({ deleteNativeStoredVideo: vi.fn(async () => {}) }));
+vi.mock("./nativeVideoStore", () => nativeVideo);
 import { freshIndexedDB } from "./__test__/idb";
 import {
   saveFile,
@@ -59,6 +62,15 @@ describe("file blobs", () => {
     await deleteFile("gone.dove");
     expect(await getFile("gone.dove")).toBeNull();
     expect(await listFiles()).toHaveLength(0);
+  });
+
+  it("also drops the native shell's stored copy of the session's video", async () => {
+    // Regression: deleteNativeStoredVideo had no callers, so deleting a session
+    // orphaned its (often multi-gigabyte) video copy in app data.
+    nativeVideo.deleteNativeStoredVideo.mockClear();
+    await saveFile("gone.dove", new Blob(["x"]));
+    await deleteFile("gone.dove");
+    expect(nativeVideo.deleteNativeStoredVideo).toHaveBeenCalledWith("gone.dove");
   });
 });
 

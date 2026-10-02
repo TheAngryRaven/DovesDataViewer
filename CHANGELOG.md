@@ -188,6 +188,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Android app: Settings said "not cached yet" forever.** The offline
   readiness row looked for a web service worker the app never uses. It now
   shows that everything is built into the app and works with no signal.
+- **Android app: deleting a session now frees its video copy.** The app's
+  stored copy of a session's video (often gigabytes) was left behind in app
+  storage when the session was deleted.
 
 ## [4.1.0] - 2026-08-24
 

@@ -4,6 +4,7 @@
 
 import { openDB, STORE_NAMES } from './dbUtils';
 import { deleteCachedWeather } from './weatherCacheStorage';
+import { deleteNativeStoredVideo } from './nativeVideoStore';
 
 export interface FileEntry {
   name: string;
@@ -151,6 +152,10 @@ export async function deleteFile(name: string): Promise<void> {
     // Drop the session's locally-cached weather so a future file reusing this
     // name doesn't inherit stale conditions (best-effort).
     await deleteCachedWeather(name);
+    // The native shell keeps a full copy of the session's video in app data
+    // (plan 0024) — gigabytes that nothing else would ever reclaim once the
+    // session is gone. Best effort; a no-op on the web.
+    await deleteNativeStoredVideo(name);
   } catch (e) {
     console.warn("Failed to delete file from IndexedDB:", e);
     throw e;
