@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
+import { createHash } from "crypto";
 import { execSync } from "child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { resolveBranchBackend } from "./scripts/resolveSupabaseBranch";
@@ -107,19 +108,31 @@ const DEFERRED_MANIFEST_FILE = "offline-assets.json";
 
 /**
  * Emit `offline-assets.json` — every file under the deferred directories, as a
- * root-relative URL. Generated from the filesystem rather than hand-maintained
- * so dropping a new logger photo into `public/loggers/` is picked up with no
- * code change. Runs in `writeBundle`, which is before vite-plugin-pwa builds
- * the service worker in `closeBundle`, so the manifest itself gets precached.
+ * root-relative URL plus a content hash. Generated from the filesystem rather
+ * than hand-maintained so dropping a new logger photo into `public/loggers/` is
+ * picked up with no code change. Runs in `writeBundle`, which is before
+ * vite-plugin-pwa builds the service worker in `closeBundle`, so the manifest
+ * itself gets precached.
+ *
+ * The hash is the revision the runtime cache lacks: the deferred route is
+ * CacheFirst with no expiry, so the client re-fetches an asset only when its
+ * stored revision stops matching this manifest (src/lib/offlineWarmup.ts).
+ * Without it an updated sample log or logger photo never reached a device
+ * that had cached the old bytes.
  */
 function deferredAssetManifest(dirs: readonly string[]): Plugin {
   const publicDir = path.resolve(__dirname, "public");
-  const walk = (dir: string, out: string[]) => {
+  type Entry = { url: string; revision: string };
+  const walk = (dir: string, out: Entry[]) => {
     if (!fs.existsSync(dir)) return out;
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) walk(full, out);
-      else out.push("/" + path.relative(publicDir, full).split(path.sep).join("/"));
+      else
+        out.push({
+          url: "/" + path.relative(publicDir, full).split(path.sep).join("/"),
+          revision: createHash("sha256").update(fs.readFileSync(full)).digest("hex").slice(0, 16),
+        });
     }
     return out;
   };
@@ -129,7 +142,7 @@ function deferredAssetManifest(dirs: readonly string[]): Plugin {
     writeBundle(options) {
       const assets = dirs
         .flatMap((dir) => walk(path.join(publicDir, dir), []))
-        .sort((a, b) => a.localeCompare(b));
+        .sort((a, b) => a.url.localeCompare(b.url));
       const outDir = options.dir ?? path.resolve(__dirname, "dist");
       fs.writeFileSync(
         path.join(outDir, DEFERRED_MANIFEST_FILE),
@@ -403,8 +416,10 @@ export default defineConfig(async ({ mode }) => {
               options: {
                 // No ExpirationPlugin here on purpose: the warm-up writes these
                 // entries straight into the cache, so they'd be absent from the
-                // plugin's own index — and a fixed set of build assets has
-                // nothing to expire anyway.
+                // plugin's own index. Freshness comes from revisions instead:
+                // offline-assets.json carries a content hash per file and the
+                // warm-up replaces any entry not stamped with the current one
+                // (and prunes files the build no longer ships).
                 cacheName: "app-deferred-assets",
                 cacheableResponse: {
                   statuses: [0, 200],

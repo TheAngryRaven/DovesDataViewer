@@ -191,6 +191,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Android app: deleting a session now frees its video copy.** The app's
   stored copy of a session's video (often gigabytes) was left behind in app
   storage when the session was deleted.
+- **Offline extras now update.** The bundled sample logs and logger photos
+  that download in the background for offline use were cached once and never
+  refreshed, so a device kept the old copy forever after an update. Each one
+  is now checked against the current release and re-downloaded when it
+  changes, and files a release no longer ships are cleaned up.
 
 ## [4.1.0] - 2026-08-24
 
