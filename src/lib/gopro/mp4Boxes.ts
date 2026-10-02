@@ -110,12 +110,7 @@ function findChild(view: DataView, start: number, end: number, type: string): Bo
   return null;
 }
 
-/** True when the buffer opens with an ISO-BMFF `ftyp` box (MP4/MOV/.360). */
-export function isIsoBmff(buffer: ArrayBuffer): boolean {
-  if (buffer.byteLength < 12) return false;
-  const view = new DataView(buffer);
-  return fourcc(view, 4) === "ftyp";
-}
+export { isIsoBmff } from "./goproDetect";
 
 /**
  * Walk the top-level boxes with ranged reads and return the `moov` payload.

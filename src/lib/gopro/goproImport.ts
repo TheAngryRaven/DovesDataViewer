@@ -7,22 +7,10 @@ import type { ParsedData } from "@/types/racing";
 import { parseDoveFile } from "@/lib/doveParser";
 import { orderVideoFiles } from "@/lib/videoPlaylist";
 import { beginFileLoading, updateFileLoading, endFileLoading } from "@/lib/fileLoadingState";
-import { blobByteSource, isIsoBmff, readGpmdTrack, readSamples } from "./mp4Boxes";
+import { blobByteSource, readGpmdTrack, readSamples } from "./mp4Boxes";
 import { buildGoProSession, rowsFromPayloads, type GoProGpsRow, type GoProSession } from "./goproTelemetry";
 
-/** Containers a GoPro writes; `.360` is the MAX/Fusion spherical variant. */
-const GOPRO_VIDEO_EXTENSIONS = [".mp4", ".mov", ".360"];
-
-/** Cheap name-based gate used before any bytes are read. */
-export function isGoProVideoFile(name: string): boolean {
-  const lower = name.toLowerCase();
-  return GOPRO_VIDEO_EXTENSIONS.some((ext) => lower.endsWith(ext));
-}
-
-/** True for an in-memory MP4/MOV — the sync content router refuses these. */
-export function isGoProVideoBuffer(buffer: ArrayBuffer): boolean {
-  return isIsoBmff(buffer);
-}
+export { isGoProVideoBuffer, isGoProVideoFile } from "./goproDetect";
 
 /** The session file name a video import is saved under: `GH010042.MP4` → `GH010042.dove`. */
 export function goProSessionFileName(videoName: string): string {

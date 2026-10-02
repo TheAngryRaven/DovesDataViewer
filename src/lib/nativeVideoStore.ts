@@ -26,6 +26,7 @@ import { api } from "@/lib/loggers/native/ipc";
 import { blobToBase64, NATIVE_CHUNK_BYTES } from "@/lib/nativeBytes";
 import { isNativeApp } from "@/lib/platform";
 import { isNativeFeatureUnavailable } from "@/lib/nativeUnavailable";
+import { NATIVE_VIDEO_STORE_CHANGED, type NativeVideoStoreChangedDetail } from "@/lib/nativeVideoStoreEvents";
 
 export interface NativeStoredVideo {
   key: string;
@@ -53,15 +54,7 @@ export interface NativeStoredVideoEntry extends StoredVideoInfo {
   storedAtMs?: number;
 }
 
-/**
- * Fired on `window` after a stored video is removed or the store is cleared,
- * so a session that is playing (or exporting) from the deleted copy can react.
- * `removedKeys` is `null` when everything went.
- */
-export const NATIVE_VIDEO_STORE_CHANGED = "native-video-store-changed";
-export interface NativeVideoStoreChangedDetail {
-  removedKeys: string[] | null;
-}
+export { NATIVE_VIDEO_STORE_CHANGED, type NativeVideoStoreChangedDetail } from "@/lib/nativeVideoStoreEvents";
 
 function announceStoreChange(removedKeys: string[] | null): void {
   if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;

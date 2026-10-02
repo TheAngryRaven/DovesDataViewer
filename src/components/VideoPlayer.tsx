@@ -19,9 +19,7 @@ import { OverlaySettingsPanel } from "@/components/video-overlays/OverlaySetting
 import { VideoExportDialog, ExportOptions } from "@/components/video-overlays/VideoExportDialog";
 import { OverlayCanvas } from "@/components/video-overlays/OverlayCanvas";
 import { startVideoExport, downloadBlob, ExportContext, ExportSource } from "@/lib/videoExport";
-import { startNativeVideoExport } from "@/lib/nativeVideoExport";
 import { isNativeApp } from "@/lib/platform";
-import { insta360SdkInfo } from "@/lib/insta360/ipc";
 import { NativePlayerElement } from "@/lib/insta360/nativePlayer";
 import { DEFAULT_VIEW_POSE } from "@/lib/insta360/types";
 import { Insta360ViewLayer } from "@/components/insta360/Insta360ViewLayer";
@@ -309,7 +307,9 @@ export const VideoPlayer = memo(function VideoPlayer({
   useEffect(() => {
     if (!isNativeApp()) return;
     let alive = true;
-    void insta360SdkInfo().then((info) => { if (alive) setInsta360Available(info.available); });
+    void import("@/lib/insta360/ipc")
+      .then(({ insta360SdkInfo }) => insta360SdkInfo())
+      .then((info) => { if (alive) setInsta360Available(info.available); });
     return () => { alive = false; };
   }, []);
   const nativePlayer = state.nativeSource ? actions.videoRef.current : null;
@@ -612,7 +612,6 @@ export const VideoPlayer = memo(function VideoPlayer({
           const exportType = options.range === "lap" ? "lap" as const : "session" as const;
           const lapNum = options.range === "lap" && selectedLapNumber != null ? selectedLapNumber : undefined;
           saveSessionVideo(sessionFileName, blob, vidName, exportType, options.includeOverlays, lapNum).then(() => {
-            console.log("Video saved to app storage");
             actions.refreshStoredMeta();
           }).catch(err => {
             console.error("Failed to save video:", err);
@@ -635,15 +634,19 @@ export const VideoPlayer = memo(function VideoPlayer({
       onSavedToDevice: (uri) => {
         setIsExporting(false);
         setShowExportDialog(false);
-        console.log("Video saved to gallery:", uri);
         toast({ title: t("export.savedToGallery") });
       },
     } satisfies Parameters<typeof startVideoExport>[3];
 
     // In the native shell, the hardware pipeline does the transcode (plan
     // 0024); it resolves null when this shell can't (web, desktop stub, old
-    // app), and then the in-WebView exporter takes over unchanged.
-    void startNativeVideoExport(exportSource, exportContext, exportOptions, exportCallbacks).then(
+    // app), and then the in-WebView exporter takes over unchanged. The bridge
+    // is native-only, so the web build never downloads it.
+    const nativeExport = isNativeApp()
+      ? import("@/lib/nativeVideoExport").then(({ startNativeVideoExport }) =>
+        startNativeVideoExport(exportSource, exportContext, exportOptions, exportCallbacks))
+      : Promise.resolve(null);
+    void nativeExport.then(
       (native) => {
         if (!native) startVideoExport(exportSource, exportContext, exportOptions, exportCallbacks);
       },

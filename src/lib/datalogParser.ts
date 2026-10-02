@@ -11,7 +11,7 @@ import { parseAimFile, isAimFormat, hasAimSignature } from './aimParser';
 import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile } from './motecParser';
 import { isIracingFormat, parseIracingFile } from './iracingParser';
 import { isXrkFile, parseXrkFile, type XrkProgressCallback } from './xrk/xrkImporter';
-import { isGoProVideoBuffer, isGoProVideoFile, parseGoProVideoFile } from './gopro/goproImport';
+import { isGoProVideoBuffer, isGoProVideoFile } from './gopro/goproDetect';
 import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadingState';
 
 /**
@@ -73,6 +73,8 @@ async function routeDatalogFile(
   // this MUST come before the whole-file `arrayBuffer()` below (a camera file
   // is gigabytes; its telemetry is a few hundred KB).
   if (isGoProVideoFile(file.name)) {
+    // The MP4/GPMF extractor loads only when a video actually arrives.
+    const { parseGoProVideoFile } = await import('./gopro/goproImport');
     return parseGoProVideoFile(file, (p) => onProgress?.({
       phase: 'parse',
       message: `Reading GoPro telemetry… ${p.done}/${p.total}`,
