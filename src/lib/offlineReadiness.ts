@@ -7,7 +7,12 @@
 // state the UI can show before signal is gone.
 
 export type OfflineReadiness =
-  /** No service worker (unsupported browser, private mode, the native shell). */
+  /**
+   * The native (Tauri) shell: every asset ships inside the app package and no
+   * service worker is registered, so it is offline by construction.
+   */
+  | "native"
+  /** No service worker (unsupported browser, private mode). */
   | "unsupported"
   /** Nothing usable cached yet — a refresh with no signal would fail. */
   | "not-ready"
@@ -17,7 +22,13 @@ export type OfflineReadiness =
   | "ready";
 
 export interface ReadinessInput {
-  /** `"serviceWorker" in navigator` — false in private mode and the Tauri shell. */
+  /**
+   * `isNativeApp()`. Checked first: Android's WebView exposes
+   * `navigator.serviceWorker`, but the shell never registers one, so without
+   * this it would read "not ready" forever.
+   */
+  nativeApp?: boolean;
+  /** `"serviceWorker" in navigator` — false in private mode. */
   serviceWorkerSupported: boolean;
   /** A worker is active and controlling this page, so the shell is cached. */
   controlled: boolean;
@@ -34,6 +45,7 @@ export interface ReadinessInput {
  * extras still missing still opens, it just can't show the bundled sample.
  */
 export function computeReadiness(input: ReadinessInput): OfflineReadiness {
+  if (input.nativeApp) return "native";
   if (!input.serviceWorkerSupported) return "unsupported";
   if (!input.controlled) return "not-ready";
   return input.deferredCached >= input.deferredTotal ? "ready" : "preparing";

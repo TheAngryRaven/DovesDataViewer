@@ -5,6 +5,7 @@ import {
   type OfflineReadiness,
 } from "@/lib/offlineReadiness";
 import { readDeferredAssets, warmOfflineAssets } from "@/lib/offlineWarmup";
+import { isNativeApp } from "@/lib/platform";
 
 export interface OfflineReadinessState {
   state: OfflineReadiness;
@@ -51,6 +52,8 @@ export function useOfflineReadiness(): OfflineReadinessState & {
   }, []);
 
   useEffect(() => {
+    // The native shell bundles every asset; there is nothing to count or warm.
+    if (isNativeApp()) return;
     let cancelled = false;
     void (async () => {
       const urls = await readDeferredAssets();
@@ -66,7 +69,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
   // A worker that activates after this page loaded takes control later; that
   // flips "not ready" to ready without any user action, so listen for it.
   useEffect(() => {
-    if (!supported()) return;
+    if (isNativeApp() || !supported()) return;
     const onChange = () => void refresh(assets);
     navigator.serviceWorker.addEventListener("controllerchange", onChange);
     return () =>
@@ -83,6 +86,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
 
   return {
     state: computeReadiness({
+      nativeApp: isNativeApp(),
       serviceWorkerSupported: supported(),
       controlled,
       deferredTotal: assets.length,

@@ -18,13 +18,15 @@ export function OfflineReadinessSection() {
 
   if (state === "unsupported") return null;
 
+  // The native shell is offline by construction: say so, offer nothing to do.
+  const done = state === "ready" || state === "native";
   const Icon =
-    state === "ready"
+    done
       ? CheckCircle2
       : state === "preparing"
         ? CloudOff
         : WifiOff;
-  const tone = state === "ready" ? "text-success" : "text-warning";
+  const tone = done ? "text-success" : "text-warning";
 
   return (
     <div className="space-y-3">
@@ -43,7 +45,7 @@ export function OfflineReadinessSection() {
             </p>
           )}
         </div>
-        {state !== "ready" && (
+        {!done && (
           <Button
             size="sm"
             variant="outline"

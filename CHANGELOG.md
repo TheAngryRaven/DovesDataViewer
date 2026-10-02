@@ -185,6 +185,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the next export burned the new session's overlays onto the old session's
   footage. A copy now only attaches to the session (and video) it started
   for.
+- **Android app: Settings said "not cached yet" forever.** The offline
+  readiness row looked for a web service worker the app never uses. It now
+  shows that everything is built into the app and works with no signal.
 
 ## [4.1.0] - 2026-08-24
 

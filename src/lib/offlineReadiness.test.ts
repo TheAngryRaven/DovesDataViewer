@@ -9,6 +9,14 @@ const base = {
 };
 
 describe("computeReadiness", () => {
+  it("is native in the app shell, even though its WebView exposes serviceWorker", () => {
+    // Regression: the Android WebView has navigator.serviceWorker but the shell
+    // never registers a worker, so this used to read "not-ready" forever.
+    expect(computeReadiness({ ...base, nativeApp: true, controlled: false, deferredCached: 0 })).toBe(
+      "native",
+    );
+  });
+
   it("is unsupported without a service worker", () => {
     expect(computeReadiness({ ...base, serviceWorkerSupported: false })).toBe(
       "unsupported",

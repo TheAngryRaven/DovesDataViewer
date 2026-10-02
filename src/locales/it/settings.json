@@ -107,7 +107,8 @@
       "ready": "Pronto: questo dispositivo può aprire l’app e l’esempio incluso senza segnale.",
       "preparing": "L’app si aprirà offline. Extra ancora in scaricamento (dati di esempio e foto dei logger).",
       "not-ready": "Non ancora in cache. Tieni questa pagina aperta con una connessione per un momento, oppure completa il download ora.",
-      "unsupported": "La cache offline non è disponibile in questo browser."
+      "unsupported": "La cache offline non è disponibile in questo browser.",
+      "native": "Integrato nell’app: tutto funziona senza segnale."
     }
   }
 }
