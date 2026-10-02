@@ -178,10 +178,17 @@ function readTable(view: DataView, box: BoxRef, width: 1 | 2): number[] | [numbe
   return out as number[] | [number, number][];
 }
 
-function readStsz(view: DataView, box: BoxRef): number[] {
+/**
+ * `stsz` sample sizes. The explicit-size form is bounded by the box itself, but
+ * the uniform form is just a size and a uint32 count — a hostile file can ask
+ * for ~4 billion entries, which hangs or OOMs the tab. Every sample occupies
+ * `uniform` bytes of the file, so no honest table can list more than
+ * `fileSize / uniform` of them; cap the count there.
+ */
+function readStsz(view: DataView, box: BoxRef, fileSize: number): number[] {
   const uniform = view.getUint32(box.bodyStart + 4);
   const count = view.getUint32(box.bodyStart + 8);
-  if (uniform !== 0) return new Array<number>(count).fill(uniform);
+  if (uniform !== 0) return new Array<number>(Math.min(count, Math.floor(fileSize / uniform))).fill(uniform);
   const sizes: number[] = [];
   let offset = box.bodyStart + 12;
   for (let i = 0; i < count && offset + 4 <= box.end; i++, offset += 4) {
@@ -210,14 +217,14 @@ function readCo64(view: DataView, box: BoxRef): number[] {
   return offsets;
 }
 
-function readStbl(view: DataView, stbl: BoxRef): { format: string | null; table: SampleTable } {
+function readStbl(view: DataView, stbl: BoxRef, fileSize: number): { format: string | null; table: SampleTable } {
   let format: string | null = null;
   const table: SampleTable = { sizes: [], chunkOffsets: [], chunkRuns: [], timeRuns: [] };
   for (const box of children(view, stbl.bodyStart, stbl.end)) {
     switch (box.type) {
       case "stsd": format = readStsd(view, box); break;
       case "stts": table.timeRuns = readTable(view, box, 2) as [number, number][]; break;
-      case "stsz": table.sizes = readStsz(view, box); break;
+      case "stsz": table.sizes = readStsz(view, box, fileSize); break;
       case "stsc": table.chunkRuns = readStsc(view, box); break;
       case "stco": table.chunkOffsets = readTable(view, box, 1) as number[]; break;
       case "co64": table.chunkOffsets = readCo64(view, box); break;
@@ -312,7 +319,7 @@ export async function readGpmdTrack(src: ByteSource): Promise<GpmdTrack | null> 
     const minf = findChild(view, mdia.bodyStart, mdia.end, "minf");
     const stbl = minf && findChild(view, minf.bodyStart, minf.end, "stbl");
     if (!stbl) continue;
-    const { format, table } = readStbl(view, stbl);
+    const { format, table } = readStbl(view, stbl, src.size);
     if (format !== "gpmd") continue;
     const mdhd = findChild(view, mdia.bodyStart, mdia.end, "mdhd");
     const timescale = mdhd ? readMdhdTimescale(view, mdhd) : 0;
