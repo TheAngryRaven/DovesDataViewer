@@ -713,3 +713,61 @@ GPS-derived), `lat_g_native`/`lon_g_native` (logger-native), `accel_x/y/z` (raw
 IMU) — which coexist on a sample and must never collapse. `fieldResolver.ts` is the
 settings-facing adapter. `toChannelKey()` is the idempotent shim that migrates
 legacy display-name keys persisted in graph-prefs / saved overlay configs on load.
+
+---
+
+## Native video bridge (`nativeVideoExport` / `nativeVideoStore` / `nativeBytes`)
+
+Native shell only (`isNativeApp()`); every entry point is a no-op or `null` on
+the web, so callers invoke them unconditionally. All IPC goes through the lazy
+`lib/loggers/native/ipc.ts` loader, so `@tauri-apps/api` stays off the web
+payload. Shell-side contract: LapWing `docs/video-pipeline.md`. Design record:
+[`plans/0024-native-export-bridge.md`](plans/0024-native-export-bridge.md).
+
+- **`nativeBytes.ts`** — bytes *into* the shell travel as base64 strings in
+  ordinary JSON args, in `NATIVE_CHUNK_BYTES` (4 MB) chunks. Android's WebView
+  cannot hand Tauri a raw request body, so a `Uint8Array` arg degrades to a JSON
+  number array (and raw-body commands reject it outright) — that is how the
+  first on-device exports failed on their first chunk. Bytes *back* (raw
+  `tauri::ipc::Response`) are unaffected.
+- **`nativeVideoExport.ts`** — `startNativeVideoExport()` resolves `null` when
+  the shell can't export (web, multi-chunk playlist, desktop stub's
+  `unsupported:` sentinel, or a shell that doesn't know the command), and the
+  caller (`VideoPlayer`) falls back to the in-WebView WebCodecs exporter. Any
+  other `video_export_begin` failure is reported, never silently swallowed.
+  Sequence: `begin` (trim/size/bitrate; `sourceKey` when the session has a
+  stored copy, retried without it if the key is stale) → `push_source` chunks
+  (skipped with a stored source) → `push_overlay` PNG layers rendered by the
+  same scene renderer as the preview (plan 0023) at 15 Hz → `run` (progress
+  channel) → `save` (gallery) or `collect` (bytes back) → `dispose`, always.
+- **`nativeVideoStore.ts`** — the web remembers a session's video through a
+  `FileSystemFileHandle`; Android has none, so `useVideoSync` copies the picked
+  file into the shell's app-data store in the background (`video_store_*`) and
+  plays/exports from that copy on the next open. The copy is async and can
+  outlive a session switch, so its key is only adopted through a latest-wins
+  gate (`lib/latestGate`) — otherwise an export could pair one session's footage
+  with another's overlays. Stored copies are gigabytes: `fileStorage.deleteFile`
+  deletes a session's copy with the session, and the **native-storage** plugin's
+  "Videos on this device" card lists/removes them (`removeNativeStoredVideo` /
+  `clearNativeVideoStore` announce `NATIVE_VIDEO_STORE_CHANGED` so a session
+  streaming the deleted copy unloads).
+
+---
+
+## Offline durability (`pwaInstall` / `persistentStorage` / offline cache)
+
+Design records: [`plans/0026-ios-offline-install.md`](plans/0026-ios-offline-install.md)
+and [`plans/0027-precache-resilience.md`](plans/0027-precache-resilience.md).
+
+- **`persistentStorage.ts`** — `requestPersistentStorage()` runs once at boot
+  (`main.tsx`) and asks `navigator.storage.persist()` so the precache and the
+  IndexedDB sessions stop being evictable (WebKit clears script-writable storage
+  after ~7 days without a visit). Never throws; a denial keeps default storage.
+- **`pwaInstall.ts`** — pure install-nudge decision for `InstallPrompt`:
+  `installed` (standalone — nothing to offer), `ios-manual` (iOS never fires
+  `beforeinstallprompt`, so the Home Screen steps are shown by hand), or
+  `prompt-capable` (wait for the real event). The hint snoozes for 30 days.
+- **`offlineWarmup.ts` / `offlineReadiness.ts`** — the heavy public dirs are kept
+  out of the all-or-nothing precache and warmed afterwards into a revisioned
+  runtime cache; the Settings row reports `native` / `unsupported` /
+  `not-ready` / `preparing` / `ready`. Details in plan 0027.

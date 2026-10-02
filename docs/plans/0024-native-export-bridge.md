@@ -38,7 +38,8 @@ seamlessly; web and desktop behavior is byte-identical to before.
 The per-frame invariant work found while profiling the export path is now
 cached per session via `WeakMap` on array identity (no invalidation, no
 leaks): per-source ranges (`memoRange`, validated against the pace/braking
-arrays for the special sources), map bounds (`memoMapBounds`), the pace bar's
+arrays for the special sources and against the data-source defs, which close
+over the unit toggles — a MPH/KPH switch must re-range), map bounds (`memoMapBounds`), the pace bar's
 scale (`memoPaceMax`), and the digital widget no longer resolves its value
 twice per draw (`digitalBox`). This speeds up preview, the WebView exporter,
 and native layer generation alike — the draws' output is bit-identical.
@@ -141,3 +142,16 @@ export shortcut goes away. The pure parts — ordering, totals, labels,
 applying a removal, byte formatting — live in `deviceVideos.ts` with tests;
 the panel is a thin view.
 
+## Follow-up 4 (landed): release-review hardening (4.2.0)
+
+- **Stale copy, wrong session.** `loadRecording`'s background copy set
+  `nativeStoredKey` whenever it resolved, so a copy that finished after a
+  session switch attached session A's key to session B and the export paired
+  A's footage with B's overlays. `useVideoSync` now adopts a key only through a
+  latest-wins gate (`lib/latestGate.ts`) invalidated on every session/video
+  change; the async restore lookup is gated the same way.
+- **Deleted sessions leaked their copy.** `deleteNativeStoredVideo` had no
+  callers. `fileStorage.deleteFile` now drops the session's stored copy,
+  best-effort, next to its weather cache.
+- **Tests.** `nativeVideoExport.test.ts` pins the IPC sequence, the stale-key
+  retry and the fallback-vs-error classifier.
