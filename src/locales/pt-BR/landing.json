@@ -111,7 +111,7 @@
       },
       "gopro": {
         "name": "Vídeo GoPro (GPS embutido)",
-        "body": "Solte um vídeo GoPro com GPS (HERO5 ou mais nova, com GPS ligado) e a trilha GPS que a câmera embute no MP4 vira a sessão — sem precisar de logger. Só a pequena trilha de telemetria é lida, nunca o vídeo inteiro; ela é salva como log Dove e a filmagem abre ao lado já sincronizada. Selecione juntos todos os capítulos de uma gravação dividida. Extensões: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+        "body": "Solte um vídeo GoPro com GPS (HERO5 ou mais nova, com GPS ligado) e a trilha GPS que a câmera embute no MP4 vira a sessão — sem precisar de logger. Só a pequena trilha de telemetria é lida, nunca o vídeo inteiro; ela é salva como log Dove e a filmagem abre ao lado já sincronizada. Selecione juntos todos os capítulos de uma gravação dividida. Extensões: <code>.mp4</code>, <code>.mov</code>, <code>.360</code> (experimental)"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (binário)",

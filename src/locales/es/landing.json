@@ -111,7 +111,7 @@
       },
       "gopro": {
         "name": "Vídeo GoPro (GPS integrado)",
-        "body": "Arrastra un vídeo GoPro con GPS (HERO5 o posterior con el GPS activado) y la pista GPS que la cámara incrusta en el MP4 se convierte en la sesión, sin necesidad de registrador. Solo se lee la pequeña pista de telemetría, nunca el vídeo completo; se guarda como registro Dove y las imágenes se abren junto a él ya sincronizadas. Selecciona juntos todos los capítulos de una grabación dividida. Extensiones: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+        "body": "Arrastra un vídeo GoPro con GPS (HERO5 o posterior con el GPS activado) y la pista GPS que la cámara incrusta en el MP4 se convierte en la sesión, sin necesidad de registrador. Solo se lee la pequeña pista de telemetría, nunca el vídeo completo; se guarda como registro Dove y las imágenes se abren junto a él ya sincronizadas. Selecciona juntos todos los capítulos de una grabación dividida. Extensiones: <code>.mp4</code>, <code>.mov</code>, <code>.360</code> (experimental)"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (binario)",

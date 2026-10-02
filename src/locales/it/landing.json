@@ -111,7 +111,7 @@
       },
       "gopro": {
         "name": "Video GoPro (GPS integrato)",
-        "body": "Trascina un video GoPro con GPS (HERO5 o successiva, GPS attivo) e la traccia GPS che la camera incorpora nell'MP4 diventa la sessione, senza alcun logger. Viene letta solo la piccola traccia di telemetria, mai l'intero video; viene salvata come log Dove e il filmato si apre accanto già sincronizzato. Seleziona insieme tutti i capitoli di una registrazione divisa. Estensioni: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+        "body": "Trascina un video GoPro con GPS (HERO5 o successiva, GPS attivo) e la traccia GPS che la camera incorpora nell'MP4 diventa la sessione, senza alcun logger. Viene letta solo la piccola traccia di telemetria, mai l'intero video; viene salvata come log Dove e il filmato si apre accanto già sincronizzato. Seleziona insieme tutti i capitoli di una registrazione divisa. Estensioni: <code>.mp4</code>, <code>.mov</code>, <code>.360</code> (sperimentale)"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (binario)",

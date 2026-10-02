@@ -190,7 +190,7 @@
       },
       "gopro": {
         "name": "GoPro Video (embedded GPS)",
-        "body": "Drop a GPS-tagged GoPro video (HERO5 and newer with GPS on) and the GPS track the camera embeds in the MP4 becomes the session — no logger needed. Only the small telemetry track is read, never the whole video; it is saved as a Dove log and the footage opens alongside it already synced. Select every chapter of a split recording together. Extensions: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+        "body": "Drop a GPS-tagged GoPro video (HERO5 and newer with GPS on) and the GPS track the camera embeds in the MP4 becomes the session — no logger needed. Only the small telemetry track is read, never the whole video; it is saved as a Dove log and the footage opens alongside it already synced. Select every chapter of a split recording together. Extensions: <code>.mp4</code>, <code>.mov</code>, <code>.360</code> (experimental)"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (Binary)",

@@ -111,7 +111,7 @@
       },
       "gopro": {
         "name": "Vidéo GoPro (GPS intégré)",
-        "body": "Déposez une vidéo GoPro géolocalisée (HERO5 ou plus récente, GPS activé) et la trace GPS que la caméra intègre au MP4 devient la session, sans enregistreur. Seule la petite piste de télémétrie est lue, jamais la vidéo entière ; elle est enregistrée comme journal Dove et la vidéo s'ouvre à côté, déjà synchronisée. Sélectionnez ensemble tous les chapitres d'un enregistrement découpé. Extensions : <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+        "body": "Déposez une vidéo GoPro géolocalisée (HERO5 ou plus récente, GPS activé) et la trace GPS que la caméra intègre au MP4 devient la session, sans enregistreur. Seule la petite piste de télémétrie est lue, jamais la vidéo entière ; elle est enregistrée comme journal Dove et la vidéo s'ouvre à côté, déjà synchronisée. Sélectionnez ensemble tous les chapitres d'un enregistrement découpé. Extensions : <code>.mp4</code>, <code>.mov</code>, <code>.360</code> (expérimental)"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (binaire)",
