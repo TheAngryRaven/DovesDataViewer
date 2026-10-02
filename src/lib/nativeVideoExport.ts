@@ -25,6 +25,7 @@
 import { api } from "@/lib/loggers/native/ipc";
 import { blobToBase64, NATIVE_CHUNK_BYTES } from "@/lib/nativeBytes";
 import { isNativeApp } from "@/lib/platform";
+import { isNativeFeatureUnavailable } from "@/lib/nativeUnavailable";
 import {
   renderOverlaysToCanvas,
   DEFAULT_OVERLAY_LABELS,
@@ -45,13 +46,6 @@ const LAYER_UNITS = NATIVE_CHUNK_BYTES;
 
 export interface NativeExportController {
   cancel: () => void;
-}
-
-/** True for the errors that mean "this shell can't do native export" — the
- * desktop stub's sentinel, or a shell predating the command. */
-function isUnavailable(err: unknown): boolean {
-  const msg = String(err);
-  return msg.startsWith("unsupported:") || /unknown|not found|not allowed/i.test(msg);
 }
 
 /**
@@ -113,12 +107,12 @@ export async function startNativeVideoExport(
         params: useStoredSource ? { ...baseParams, sourceKey: source.nativeSourceKey } : baseParams,
       });
     } catch (err) {
-      if (!useStoredSource || isUnavailable(err)) throw err;
+      if (!useStoredSource || isNativeFeatureUnavailable(err)) throw err;
       useStoredSource = false;
       jobId = await invoke<string>("video_export_begin", { params: baseParams });
     }
   } catch (err) {
-    if (isUnavailable(err)) return null;
+    if (isNativeFeatureUnavailable(err)) return null;
     callbacks.onError(String(err));
     return { cancel: () => {} };
   }
