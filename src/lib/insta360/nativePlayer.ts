@@ -65,6 +65,17 @@ export interface NativePlayerOptions {
 const SEEK_WATCHDOG_MS = 600;
 
 /**
+ * The shell runs ONE native player and `insta360_player_close` carries no
+ * player id, so a superseded element's late close (its `close()` after a newer
+ * element opened, or an open that resolved after it was closed) would kill
+ * whichever stream is live now. Track which element last opened the player
+ * and let only that one release it. Keyed by the close command so injected
+ * test doubles each get their own slot; in the app every element shares the
+ * real one.
+ */
+const playerOwners = new WeakMap<object, NativePlayerElement>();
+
+/**
  * One native player session over one camera recording. `open()` starts the
  * stream; `close()` (or opening another) stops it. Extends `EventTarget` so
  * the sync hook's `addEventListener` calls work unchanged.
@@ -189,9 +200,11 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
       quality: this.opts.quality,
       muted: this.opts.muted,
     };
+    // Opening replaces any earlier player in the shell, so ownership moves now.
+    playerOwners.set(this.ipc.close, this);
     const info = await this.ipc.open(request, (e) => this.onEvent(e));
     if (this.closed) {
-      void this.ipc.close();
+      this.releaseNativePlayer();
       throw new Error("player closed while opening");
     }
     this.info = info;
@@ -207,7 +220,7 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
     if (this.closed) return;
     this.closed = true;
     this.clearSeekTimer();
-    if (this.info) void this.ipc.close();
+    if (this.info) this.releaseNativePlayer();
     this.info = null;
     this.clock.setPlaying(false, this.now());
   }
@@ -221,6 +234,13 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
   }
 
   // ── internals ───────────────────────────────────────────────────────────
+
+  /** Close the shell's player — only while this element is the one that owns it. */
+  private releaseNativePlayer(): void {
+    if (playerOwners.get(this.ipc.close) !== this) return;
+    playerOwners.delete(this.ipc.close);
+    void this.ipc.close();
+  }
 
   private seekTo(sec: number, precise: boolean): void {
     if (this.closed || !this.info) return;
@@ -281,6 +301,7 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
         this.dispatchEvent(new Event("error"));
         break;
       case "closed":
+        if (playerOwners.get(this.ipc.close) === this) playerOwners.delete(this.ipc.close);
         this.closed = true;
         this.info = null;
         this.clearSeekTimer();
