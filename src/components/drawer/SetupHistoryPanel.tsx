@@ -49,6 +49,9 @@ export function SetupHistoryPanel({
   // Revision awaiting rollback confirmation.
   const [rollbackTarget, setRollbackTarget] = useState<SetupRevision | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  // Bumped by the error state's Retry button to re-run the load effect.
+  const [reloadKey, setReloadKey] = useState(0);
 
   const load = useCallback(async () => {
     // Sweep first so the panel always matches the retention notice it shows.
@@ -59,28 +62,47 @@ export function SetupHistoryPanel({
 
   useEffect(() => {
     let cancelled = false;
-    load().then(({ revs, m }) => {
-      if (cancelled) return;
-      setRevisions(revs);
-      setMetas(m);
-      setLoading(false);
-    });
+    setLoading(true);
+    setLoadFailed(false);
+    load()
+      .then(({ revs, m }) => {
+        if (cancelled) return;
+        setRevisions(revs);
+        setMetas(m);
+      })
+      // A failed IndexedDB read must not leave the panel on "Loading…" forever.
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, reloadKey]);
 
   // Rollback / duplicate both save a setup (which freezes a revision), so the
   // list is reloaded afterwards to show the result.
   const runAction = useCallback(
-    async (action: () => Promise<void>, done: string) => {
+    async (action: () => Promise<void>, done: string, failed: string) => {
       setBusy(true);
       try {
-        await action();
-        const { revs, m } = await load();
-        setRevisions(revs);
-        setMetas(m);
+        try {
+          await action();
+        } catch {
+          toast.error(failed);
+          return;
+        }
         toast.success(done);
+        try {
+          const { revs, m } = await load();
+          setRevisions(revs);
+          setMetas(m);
+          setLoadFailed(false);
+        } catch {
+          setLoadFailed(true);
+        }
       } finally {
         setBusy(false);
       }
@@ -92,13 +114,21 @@ export function SetupHistoryPanel({
     const target = rollbackTarget;
     if (!target || !onRollback) return;
     setRollbackTarget(null);
-    void runAction(() => onRollback(target), t("setupHistory.rollbackDone", { hash: shortRevHash(target.id) }));
+    void runAction(
+      () => onRollback(target),
+      t("setupHistory.rollbackDone", { hash: shortRevHash(target.id) }),
+      t("setupHistory.rollbackFailed"),
+    );
   };
 
   const duplicate = (revision: SetupRevision) => {
     if (!onDuplicate) return;
     const name = t("setupHistory.duplicateName", { name: revision.name });
-    void runAction(() => onDuplicate(revision), t("setupHistory.duplicateDone", { name }));
+    void runAction(
+      () => onDuplicate(revision),
+      t("setupHistory.duplicateDone", { name }),
+      t("setupHistory.duplicateFailed"),
+    );
   };
 
   const history = useMemo(
@@ -189,6 +219,13 @@ export function SetupHistoryPanel({
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {loading ? (
           <p className="text-center text-xs text-muted-foreground py-8">{t("setupHistory.loading")}</p>
+        ) : loadFailed ? (
+          <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-xs text-destructive">{t("setupHistory.loadFailed")}</p>
+            <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+              {t("setupHistory.retry")}
+            </Button>
+          </div>
         ) : history.entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-muted-foreground gap-3 py-16">
             <History className="w-12 h-12 opacity-30" />
