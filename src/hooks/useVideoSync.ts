@@ -2,12 +2,11 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { GpsSample } from "@/types/racing";
 import { saveVideoSync, loadVideoSync, VideoSyncRecord, VideoSyncChunk } from "@/lib/videoStorage";
 import { loadSessionVideo, hasSessionVideo, deleteSessionVideo, getSessionVideoMeta, type StoredVideoMeta } from "@/lib/videoFileStorage";
-import { NativePlayerElement, type VideoSurface } from "@/lib/insta360/nativePlayer";
+import type { NativePlayerElement, VideoSurface } from "@/lib/insta360/nativePlayer";
 import type { Insta360CameraFile } from "@/lib/insta360/types";
 import {
-  getNativeStoredVideo, storeNativeVideo,
   NATIVE_VIDEO_STORE_CHANGED, type NativeVideoStoreChangedDetail,
-} from "@/lib/nativeVideoStore";
+} from "@/lib/nativeVideoStoreEvents";
 import { isNativeApp } from "@/lib/platform";
 import type { OverlaySettings } from "@/components/video-overlays/types";
 import { DEFAULT_OVERLAY_SETTINGS } from "@/components/video-overlays/types";
@@ -16,6 +15,14 @@ import { coverageOf, sessionMsToVideoSec, videoSecToSessionMs, fitVideoTimeline,
 import { buildPlaylist, groupVideoRecordings, virtualToLocal, localToVirtual, type Playlist, type VideoRecording } from "@/lib/videoPlaylist";
 import { takeStagedGoProVideo, type StagedGoProVideo } from "@/lib/gopro/videoHandoff";
 import { createLatestGate } from "@/lib/latestGate";
+
+// Native-shell-only modules (plans 0024/0025), loaded on first use so the web
+// build's main chunk never carries the store bridge or the camera player. Every
+// caller is already behind `isNativeApp()` or a native-only action.
+const getNativeStoredVideo = async (fileName: string) =>
+  (await import("@/lib/nativeVideoStore")).getNativeStoredVideo(fileName);
+const storeNativeVideo = async (fileName: string, file: File) =>
+  (await import("@/lib/nativeVideoStore")).storeNativeVideo(fileName, file);
 
 interface UseVideoSyncOptions {
   samples: GpsSample[];
@@ -518,6 +525,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   // aren't copied into the store, and can't be exported (v1).
   const loadCameraRecording = useCallback(async (file: Insta360CameraFile, size: { width: number; height: number }) => {
     revokeAllUrls();
+    const { NativePlayerElement } = await import("@/lib/insta360/nativePlayer");
     const player = new NativePlayerElement(file, { width: size.width, height: size.height });
     nativePlayerRef.current = player;
     setNativeSource({ kind: "insta360", file, is360: file.is360 });

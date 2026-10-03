@@ -95,7 +95,7 @@ src/
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox, PanelCard (resizable card chrome for relocated Video/Mini-Map panels). The left column collapses via a divider flag tab (any screen size), and Video/Mini-Map can be relocated into the resizable graph stack from the top of the "Add Graph" picker (GraphPanel reports which are active so the host drops its duplicate VideoPlayer — single shared video ref). Split graphs (tablet+): SecondaryGraphStack mirrors the main panel's graph set for a chosen overlay lap in a draggable two-up view, overriding PlaybackContext for its subtree (nested PlaybackProvider) so one cursor lands on the same track position in both laps (distance-mapped via lib/referenceUtils mapIndexByDistance); SecondaryVideo is a literal second, lap-synced <video> for in-session overlay laps.
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Device*); SetupsTab + NotesTab also here but mounted as main-view tabs
 │   ├── track-editor/      # Track editor: VisualEditor, SectorListEditor, CourseSectorEditor, Add*Dialog
-│   ├── video-overlays/    # Video-export overlay system: registry + themes + per-widget *Overlay
+│   ├── video-overlays/    # Video-overlay system: registry + themes + settings/export UI + OverlayCanvas; ONE scene renderer (lib/overlayCanvasRenderer, plan 0023) draws every widget for preview, web export and native export alike
 │   ├── RaceLineView.tsx   # Leaflet map: race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas speed/telemetry chart (simple mode)
 │   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist); native: a camera stream renders as an <img> over lib/insta360's NativePlayerElement (plan 0025), with components/insta360/ (import dialog, 360° drag-to-point layer)
@@ -111,7 +111,7 @@ src/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
 │   ├── gpsQualityFilter.ts # ★ Post-parse cleanup (plan 0014): rebuilds samples dropping provably-bad rows (negative sats/accuracy/DOP, DOP>10, or a position jump implying >MAX_SPEED_MPS) — all formats; quality values are never fabricated onto rows (see xrk/xrkResample)
 │   ├── *Parser.ts         # nmea, ubx, iracing (.ibt), vbo, dove, dovex, alfano, aim, motec
-│   ├── gopro/             # ★ GoPro video import (plan 0029): mp4Boxes (ranged-read ISO-BMFF → `gpmd` sample table), gpmf (KLV + GPS5/GPS9), goproTelemetry (pure → Dove CSV + known video sync offset), goproImport (File glue; async like XRK), videoHandoff (one-shot video → useVideoSync)
+│   ├── gopro/             # ★ GoPro video import (plan 0029): mp4Boxes (ranged-read ISO-BMFF → `gpmd` sample table), gpmf (KLV + GPS5/GPS9), goproTelemetry (pure → Dove CSV + known video sync offset), goproImport (File glue; async like XRK — dynamic-imported, off the main chunk), goproDetect (the cheap eager name/`ftyp` gates), videoHandoff (one-shot video → useVideoSync)
 │   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk (Rust→WASM) in a Web Worker (→ docs/subsystems.md)
 │   ├── channels.ts        # ★ Canonical channel registry + normalizeChannels()
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode (→ docs/subsystems.md)
@@ -422,7 +422,7 @@ and the seeder: **→ `docs/i18n.md`**.
 outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. **The
 precache install is all-or-nothing — one failed request discards the whole
 service worker — so keep it small: heavy public assets belong in
-`DEFERRED_ASSET_DIRS` (runtime-cached + warmed after activation), never in the
+`DEFERRED_ASSET_DIRS` (`scripts/deferredAssets.ts`; runtime-cached + warmed after activation), never in the
 install-blocking glob. See plan 0027 before adding anything bulky to `public/`.** `vite.config.ts`
 also emits `/version.json` per build (the freshness signal for `versionCheck.ts`); it's
 excluded from the Workbox precache (`globIgnores`) and fetched uncached. Static
@@ -522,7 +522,8 @@ menu still opens instantly; `CourseSectorEditor` (carries
   (`lapwing-light` → `:root`, `lapwing-dark` → `.dark`); change colours there
   first, then mirror them here. Logos: `BrandLogo` (inline bird mark,
   `currentColor`) and `BrandLockup` (raster LAPWING lockup in `public/brand/` —
-  the logotype has no vector master yet). Archivo is display-only (`font-brand`).
+  the logotype has no vector master yet). Archivo is display-only (`font-brand`)
+  and only its italic face ships.
 - **Admin/cloud code** is fully optional and env-gated — the core app has zero
   admin/cloud dependencies on the eager graph.
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in

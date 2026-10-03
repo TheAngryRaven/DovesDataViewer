@@ -14,15 +14,10 @@
 /* Archivo is the PerchWerks/LapWing brand typeface (perchwerks-style/fonts).
    It's used only for display type (`font-brand`) — the dense app UI stays on
    Inter so tables and toolbars keep their metrics. Bundled from src/ so Vite
-   hashes it into the SW precache like the @fontsource files. */
-@font-face {
-  font-family: "Archivo";
-  src: url("./assets/fonts/Archivo-Variable.woff2") format("woff2");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
+   hashes it into the SW precache like the @fontsource files.
+   Only the italic face ships: every `font-brand` use is italic, and the upright
+   variable face was ~35 KB of precache no page ever rendered. Add it back
+   (Archivo-Variable.woff2, font-style: normal) if upright brand type appears. */
 @font-face {
   font-family: "Archivo";
   src: url("./assets/fonts/Archivo-Variable-Italic.woff2") format("woff2");

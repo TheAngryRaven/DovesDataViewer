@@ -56,3 +56,25 @@ export function readinessPercent(cached: number, total: number): number {
   if (total <= 0) return 100;
   return Math.min(100, Math.max(0, Math.round((cached / total) * 100)));
 }
+
+/**
+ * How many of `assets` the predicate reports as cached. The predicate decides
+ * what "cached" means (the deferred cache also checks the asset's revision);
+ * a lookup that throws (storage evicted mid-check, a quota error) counts as a
+ * miss rather than failing the whole readout.
+ */
+export async function countCachedAssets<T>(
+  assets: readonly T[],
+  isCached: (asset: T) => Promise<boolean>,
+): Promise<number> {
+  const hits = await Promise.all(
+    assets.map(async (asset) => {
+      try {
+        return await isCached(asset);
+      } catch {
+        return false;
+      }
+    }),
+  );
+  return hits.filter(Boolean).length;
+}

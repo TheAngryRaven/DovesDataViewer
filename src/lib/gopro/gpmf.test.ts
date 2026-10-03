@@ -55,6 +55,11 @@ describe("value readers", () => {
     const bytes = gpmfComplex("GPS9", "l", [[1]]);
     expect(() => readComplex(view(bytes), parseGpmf(view(bytes))[0], "x")).toThrow(/unsupported/);
   });
+
+  it("rejects a TYPE wider than the record instead of reading the next one", () => {
+    const bytes = gpmfComplex("GPS9", "l", [[1], [2]]);
+    expect(() => readComplex(view(bytes), parseGpmf(view(bytes))[0], "ll")).toThrow(/exceeds/);
+  });
 });
 
 describe("parseGpsu", () => {
@@ -105,6 +110,27 @@ describe("extractGpsPayload", () => {
     expect(gps?.fixes[0].dop).toBeCloseTo(1.2, 5);
     expect(gps?.fixes[1]).toMatchObject({ fix: 0, utcMs: utc + 100 });
     expect(gps?.utcMs).toBe(utc);
+  });
+
+  it("returns null (skip) for a malformed GPS9 stream instead of throwing", () => {
+    // Regression (A4): an unknown TYPE char used to throw out of the whole import.
+    const bytes = gpmfNested("DEVC", [
+      gpmfNested("STRM", [gpmfString("TYPE", "lllllllSx"), gpmfComplex("GPS9", "lllllllSS", [[1, 2, 3, 4, 5, 6, 7, 8, 3]])]),
+    ]);
+    expect(extractGpsPayload(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))).toBeNull();
+  });
+
+  it("falls back to GPS5 when the payload's GPS9 stream is malformed", () => {
+    const gps5 = gps5Payload([{ lat: 33.5, lon: -117.7, alt: 1, speed2d: 1 }]);
+    const bytes = concat([
+      gpmfNested("DEVC", [
+        gpmfNested("STRM", [gpmfString("TYPE", "x"), gpmfComplex("GPS9", "l", [[1]])]),
+      ]),
+      gps5,
+    ]);
+    const gps = extractGpsPayload(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    expect(gps?.source).toBe("GPS5");
+    expect(gps?.fixes[0].lat).toBeCloseTo(33.5, 6);
   });
 
   it("returns null for a payload without a GPS stream", () => {

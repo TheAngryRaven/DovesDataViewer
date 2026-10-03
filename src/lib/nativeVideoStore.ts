@@ -25,6 +25,8 @@
 import { api } from "@/lib/loggers/native/ipc";
 import { blobToBase64, NATIVE_CHUNK_BYTES } from "@/lib/nativeBytes";
 import { isNativeApp } from "@/lib/platform";
+import { isNativeFeatureUnavailable } from "@/lib/nativeUnavailable";
+import { NATIVE_VIDEO_STORE_CHANGED, type NativeVideoStoreChangedDetail } from "@/lib/nativeVideoStoreEvents";
 
 export interface NativeStoredVideo {
   key: string;
@@ -52,27 +54,13 @@ export interface NativeStoredVideoEntry extends StoredVideoInfo {
   storedAtMs?: number;
 }
 
-/**
- * Fired on `window` after a stored video is removed or the store is cleared,
- * so a session that is playing (or exporting) from the deleted copy can react.
- * `removedKeys` is `null` when everything went.
- */
-export const NATIVE_VIDEO_STORE_CHANGED = "native-video-store-changed";
-export interface NativeVideoStoreChangedDetail {
-  removedKeys: string[] | null;
-}
+export { NATIVE_VIDEO_STORE_CHANGED, type NativeVideoStoreChangedDetail } from "@/lib/nativeVideoStoreEvents";
 
 function announceStoreChange(removedKeys: string[] | null): void {
   if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
   window.dispatchEvent(
     new CustomEvent<NativeVideoStoreChangedDetail>(NATIVE_VIDEO_STORE_CHANGED, { detail: { removedKeys } }),
   );
-}
-
-/** The desktop stub's sentinel, or a shell predating the store commands. */
-function isUnavailable(err: unknown): boolean {
-  const msg = String(err);
-  return msg.startsWith("unsupported:") || /unknown|not found|not allowed/i.test(msg);
 }
 
 /** The session's remembered video, if the shell has one. */
@@ -84,7 +72,7 @@ export async function getNativeStoredVideo(sessionFileName: string): Promise<Nat
     if (!info) return null;
     return { ...info, url: convertFileSrc(info.path) };
   } catch (err) {
-    if (!isUnavailable(err)) console.warn("Native video store lookup failed:", err);
+    if (!isNativeFeatureUnavailable(err)) console.warn("Native video store lookup failed:", err);
     return null;
   }
 }
@@ -105,7 +93,7 @@ export async function storeNativeVideo(
   try {
     key = await invoke<string>("video_store_begin", { sessionFileName, fileName: file.name });
   } catch (err) {
-    if (isUnavailable(err)) return null;
+    if (isNativeFeatureUnavailable(err)) return null;
     throw err;
   }
   for (let offset = 0; offset < file.size; offset += NATIVE_CHUNK_BYTES) {
@@ -139,7 +127,7 @@ export async function listNativeStoredVideos(): Promise<NativeStoredVideoEntry[]
     const { invoke } = await api();
     return await invoke<NativeStoredVideoEntry[]>("video_store_list");
   } catch (err) {
-    if (!isUnavailable(err)) console.warn("Native video store listing failed:", err);
+    if (!isNativeFeatureUnavailable(err)) console.warn("Native video store listing failed:", err);
     return null;
   }
 }

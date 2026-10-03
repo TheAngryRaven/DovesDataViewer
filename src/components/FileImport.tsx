@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import { Upload, Loader2, LifeBuoy } from "lucide-react";
 import { parseDatalogContent, parseDatalogFile } from "@/lib/datalogParser";
-import { importGoProVideo, isGoProVideoFile } from "@/lib/gopro/goproImport";
+import { isGoProVideoFile } from "@/lib/gopro/goproDetect";
 import { stageGoProVideo, type StagedVideoFile } from "@/lib/gopro/videoHandoff";
 import { groupVideoRecordings } from "@/lib/videoPlaylist";
 import { ParsedData } from "@/types/racing";
@@ -95,6 +95,8 @@ export function FileImport({ onDataLoaded, autoSave, autoSaveFile }: FileImportP
         // One session per recording: a mixed selection is ambiguous, so say so
         // rather than silently picking one.
         if (!recording || groups.length > 1) throw new Error(t("fileImport.goproOneRecording"));
+        // The extractor is loaded on demand so it stays off the landing payload.
+        const { importGoProVideo } = await import("@/lib/gopro/goproImport");
         const result = await importGoProVideo(
           recording.files.map((f) => f.file),
           (p) => setProgress(t("fileImport.goproProgress", { ...p })),

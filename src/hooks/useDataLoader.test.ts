@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Lap, TrackCourseSelection } from "@/types/racing";
-import { applyCourselessLaps, detectionMetadataPatch, dragMetadataPatch } from "./useDataLoader";
+import {
+  applyCourselessLaps,
+  chooseAutoDetectPath,
+  detectionMetadataPatch,
+  dragMetadataPatch,
+  shouldRestoreDragSession,
+} from "./useDataLoader";
 
 const laps = [
   { lapNumber: 1, lapTimeMs: 65000 },
@@ -64,6 +70,44 @@ describe("dragMetadataPatch (drag-session tagging)", () => {
     expect("fastestLapMs" in patch).toBe(true);
     expect(patch.fastestLapMs).toBeUndefined();
     expect(patch.fastestLapNumber).toBeUndefined();
+  });
+});
+
+describe("chooseAutoDetectPath (load precedence, plan 0022)", () => {
+  const drag = { runs: [] };
+
+  it("a confident course wins and never runs drag detection", () => {
+    const detectDrag = vi.fn(() => drag);
+    expect(chooseAutoDetectPath({ isWaypointMode: false }, detectDrag)).toEqual({ kind: "course" });
+    expect(detectDrag).not.toHaveBeenCalled();
+  });
+
+  it("drag runs beat a waypoint result", () => {
+    expect(chooseAutoDetectPath({ isWaypointMode: true }, () => drag)).toEqual({ kind: "drag", drag });
+  });
+
+  it("drag runs are found even when no course detected at all", () => {
+    expect(chooseAutoDetectPath(null, () => drag)).toEqual({ kind: "drag", drag });
+  });
+
+  it("falls back to waypoint, then to the nearest-track prompt", () => {
+    expect(chooseAutoDetectPath({ isWaypointMode: true }, () => null)).toEqual({ kind: "waypoint" });
+    expect(chooseAutoDetectPath(null, () => null)).toEqual({ kind: "nearest" });
+  });
+});
+
+describe("shouldRestoreDragSession (saved drag tag)", () => {
+  it("restores a recognised distance when no course was restored", () => {
+    expect(shouldRestoreDragSession(false, 1320)).toBe(true);
+  });
+
+  it("a restored track/course shadows a stale drag tag", () => {
+    expect(shouldRestoreDragSession(true, 1320)).toBe(false);
+  });
+
+  it("ignores a missing or unrecognised distance", () => {
+    expect(shouldRestoreDragSession(false, undefined)).toBe(false);
+    expect(shouldRestoreDragSession(false, 1234)).toBe(false);
   });
 });
 

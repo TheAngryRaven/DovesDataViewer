@@ -130,6 +130,45 @@ export function applyCourselessLaps(sink: CourselessLapSink, laps: Lap[]): void 
 }
 
 /**
+ * Whether a saved drag tag should restore this session as drag runs (plan
+ * 0022). A track/course restored from the same metadata shadows a stale drag
+ * tag, and only a recognised scoring distance counts. Pure so the load
+ * precedence stays testable.
+ */
+export function shouldRestoreDragSession(
+  restoredCourse: boolean,
+  storedDragDistanceFt: unknown,
+): storedDragDistanceFt is DragDistanceFt {
+  return !restoredCourse && isDragDistanceFt(storedDragDistanceFt);
+}
+
+/** Which branch a fresh (un-restored) load takes after auto-detection. */
+export type AutoDetectPath<D> =
+  | { kind: "course" }
+  | { kind: "drag"; drag: D }
+  | { kind: "waypoint" }
+  | { kind: "nearest" };
+
+/**
+ * Load precedence after auto-detection (plan 0022): a confident course wins
+ * outright (drag detection never even runs); otherwise drag-strip runs beat a
+ * waypoint result — a drag session's return road loops back near the staging
+ * lanes, so waypoint mode would mis-time out-and-back passes as laps; then
+ * waypoint; then the nearest-track prompt. `detectDrag` is a thunk so the scan
+ * only costs anything when a course didn't match. Pure so it stays testable.
+ */
+export function chooseAutoDetectPath<D>(
+  detection: Pick<CourseDetectionResult, "isWaypointMode"> | null,
+  detectDrag: () => D | null,
+): AutoDetectPath<D> {
+  if (detection && !detection.isWaypointMode) return { kind: "course" };
+  const drag = detectDrag();
+  if (drag) return { kind: "drag", drag };
+  if (detection) return { kind: "waypoint" };
+  return { kind: "nearest" };
+}
+
+/**
  * File-load orchestration: connects sessionData (parsing), lapMgmt (lap calc),
  * sessionMeta (per-file kart/setup/weather metadata), and the track-prompt UI.
  *
@@ -213,7 +252,7 @@ export function useDataLoader({
           // stored distance (a track/course restore above shadows a stale drag
           // tag; a corrupt file that no longer detects falls through to normal
           // detection).
-          if (!restoredFromMeta && isDragDistanceFt(meta.dragDistanceFt)) {
+          if (shouldRestoreDragSession(restoredFromMeta, meta.dragDistanceFt)) {
             const drag = detectDragRuns(parsedData.samples);
             if (drag) {
               applyDrag(parsedData.samples, drag, meta.dragDistanceFt, fileName, parsedData.startDate);
@@ -255,8 +294,9 @@ export function useDataLoader({
         tracksForRaceMode(tracks, parsedData.dovexMetadata?.raceMode),
       );
       setDetectionResult(detection);
+      const path = chooseAutoDetectPath(detection, () => detectDragRuns(parsedData.samples));
 
-      if (detection && !detection.isWaypointMode) {
+      if (path.kind === "course" && detection) {
         // Auto-detected a real course — apply directly, no prompt needed
         lapMgmt.setSelection({
           trackName: detection.track.name,
@@ -284,12 +324,10 @@ export function useDataLoader({
         return;
       }
 
-      // No confident course match. Check for drag-strip data BEFORE accepting a
-      // waypoint result: a drag session's return road loops back near the
-      // staging lanes, so waypoint mode happily mis-times out-and-back passes
-      // as "laps".
-      const drag = detectDragRuns(parsedData.samples);
-      if (drag) {
+      // No confident course match: drag-strip data beats a waypoint result
+      // (see chooseAutoDetectPath).
+      if (path.kind === "drag") {
+        const { drag } = path;
         // Pre-apply at the suggested distance (mirrors the waypoint branch's
         // optimistic laps); nothing persists until the user confirms.
         applyDrag(parsedData.samples, drag, drag.suggestedDistanceFt, undefined, undefined, false);
@@ -298,7 +336,7 @@ export function useDataLoader({
         return;
       }
 
-      if (detection && detection.isWaypointMode) {
+      if (path.kind === "waypoint" && detection) {
         // Waypoint mode — apply laps and prompt the user to confirm
         applyCourselessLaps(lapMgmt, detection.laps);
         setDetectedTrack(null);

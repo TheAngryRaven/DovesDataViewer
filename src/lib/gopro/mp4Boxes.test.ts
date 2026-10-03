@@ -46,6 +46,15 @@ describe("readGpmdTrack", () => {
     expect(await readGpmdTrack(bufferByteSource(new ArrayBuffer(3)))).toBeNull();
   });
 
+  it("caps a hostile uniform stsz count against the file size instead of allocating it", async () => {
+    // Regression (SEC-1): a ~4-billion-entry uniform stsz used to hang/OOM the tab.
+    const file = buildGoProMp4({ payloads, uniformStsz: { size: 1, count: 0xffff_fffe } });
+    const track = await readGpmdTrack(bufferByteSource(file));
+    // Three one-sample chunks bound what resolves; the cap bounds what is allocated.
+    expect(track!.samples).toHaveLength(3);
+    expect(track!.samples.every((s) => s.size === 1)).toBe(true);
+  });
+
   it("leaves the creation time undefined when the camera wrote none", async () => {
     const track = await readGpmdTrack(bufferByteSource(buildGoProMp4({ payloads })));
     expect(track!.creationEpochMs).toBeUndefined();

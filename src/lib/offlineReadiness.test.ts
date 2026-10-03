@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeReadiness, readinessPercent } from "./offlineReadiness";
+import { computeReadiness, countCachedAssets, readinessPercent } from "./offlineReadiness";
 
 const base = {
   serviceWorkerSupported: true,
@@ -61,5 +61,24 @@ describe("readinessPercent", () => {
   it("clamps to 0–100", () => {
     expect(readinessPercent(9, 4)).toBe(100);
     expect(readinessPercent(-1, 4)).toBe(0);
+  });
+});
+
+describe("countCachedAssets", () => {
+  const check = (cached: string[], throwing: string[] = []) => async (url: string) => {
+    if (throwing.includes(url)) throw new Error("storage evicted");
+    return cached.includes(url);
+  };
+
+  it("counts the assets the predicate reports as cached", async () => {
+    expect(await countCachedAssets(["/a", "/b", "/c"], check(["/a", "/c"]))).toBe(2);
+  });
+
+  it("treats a lookup that throws as a miss instead of failing the readout", async () => {
+    expect(await countCachedAssets(["/a", "/b"], check(["/a", "/b"], ["/b"]))).toBe(1);
+  });
+
+  it("is zero with nothing to check", async () => {
+    expect(await countCachedAssets([], check(["/a"]))).toBe(0);
   });
 });

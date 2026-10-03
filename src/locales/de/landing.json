@@ -111,7 +111,7 @@
       },
       "gopro": {
         "name": "GoPro-Video (eingebettetes GPS)",
-        "body": "Lege ein GoPro-Video mit GPS ab (HERO5 oder neuer, GPS aktiviert) und die GPS-Spur, die die Kamera in die MP4 einbettet, wird zur Session — ganz ohne Logger. Nur die kleine Telemetriespur wird gelesen, nie das ganze Video; sie wird als Dove-Log gespeichert und das Video öffnet sich daneben bereits synchronisiert. Wähle alle Kapitel einer geteilten Aufnahme zusammen aus. Endungen: <code>.mp4</code>, <code>.mov</code>, <code>.360</code>"
+        "body": "Lege ein GoPro-Video mit GPS ab (HERO5 oder neuer, GPS aktiviert) und die GPS-Spur, die die Kamera in die MP4 einbettet, wird zur Session — ganz ohne Logger. Nur die kleine Telemetriespur wird gelesen, nie das ganze Video; sie wird als Dove-Log gespeichert und das Video öffnet sich daneben bereits synchronisiert. Wähle alle Kapitel einer geteilten Aufnahme zusammen aus. Endungen: <code>.mp4</code>, <code>.mov</code>, <code>.360</code> (experimentell)"
       },
       "xrk": {
         "name": "AiM XRK / XRZ (binär)",

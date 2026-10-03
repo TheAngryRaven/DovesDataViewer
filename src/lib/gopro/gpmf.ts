@@ -104,15 +104,24 @@ export function readString(view: DataView, item: GpmfItem): string {
  */
 export function readComplex(view: DataView, item: GpmfItem, typeString: string): number[][] {
   const fields = typeString.split("").filter((c) => c !== "\0");
+  let recordSize = 0;
+  for (const typeChar of fields) {
+    const size = TYPE_SIZES[typeChar];
+    if (!size) throw new Error(`GPMF: unsupported TYPE field '${typeChar}'`);
+    recordSize += size;
+  }
+  // A TYPE wider than the record would read into the next record (or past the
+  // payload), so treat the mismatch as corruption rather than decode garbage.
+  if (recordSize > item.structSize) {
+    throw new Error(`GPMF: TYPE '${typeString}' (${recordSize} B) exceeds the ${item.structSize} B record`);
+  }
   const rows: number[][] = [];
   for (let r = 0; r < item.repeat; r++) {
     let offset = item.dataOffset + r * item.structSize;
     const row: number[] = [];
     for (const typeChar of fields) {
-      const size = TYPE_SIZES[typeChar];
-      if (!size) throw new Error(`GPMF: unsupported TYPE field '${typeChar}'`);
       row.push(readScalar(view, offset, typeChar));
-      offset += size;
+      offset += TYPE_SIZES[typeChar];
     }
     rows.push(row);
   }
@@ -221,7 +230,8 @@ function decodeGps5(view: DataView, stream: Map<string, GpmfItem>): GpmfGpsPaylo
 
 /**
  * Pull the GPS stream out of one `gpmd` payload. Prefers GPS9 (HERO11+,
- * per-sample time/DOP/fix) over GPS5. Null when the payload has no GPS stream.
+ * per-sample time/DOP/fix) over GPS5. Null when the payload has no GPS stream
+ * or its GPS stream is malformed (the caller skips the payload).
  */
 export function extractGpsPayload(buffer: ArrayBuffer): GpmfGpsPayload | null {
   const view = new DataView(buffer);
@@ -233,12 +243,26 @@ export function extractGpsPayload(buffer: ArrayBuffer): GpmfGpsPayload | null {
     }
   }
   for (const stream of streams) {
-    const gps9 = decodeGps9(view, stream);
+    const gps9 = decodeOrSkip(() => decodeGps9(view, stream));
     if (gps9) return gps9;
   }
   for (const stream of streams) {
-    const gps5 = decodeGps5(view, stream);
+    const gps5 = decodeOrSkip(() => decodeGps5(view, stream));
     if (gps5) return gps5;
   }
   return null;
+}
+
+/**
+ * One corrupt stream (an unknown TYPE character, a record that runs past the
+ * payload) must cost that payload's GPS, not the whole import: a GoPro file
+ * carries one payload per second, so skipping a bad one leaves a one-second
+ * gap while throwing would reject an hour of otherwise good telemetry.
+ */
+function decodeOrSkip(decode: () => GpmfGpsPayload | null): GpmfGpsPayload | null {
+  try {
+    return decode();
+  } catch {
+    return null;
+  }
 }

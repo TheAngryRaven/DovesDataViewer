@@ -3,8 +3,8 @@
  * lazy loader in `loggers/native/ipc.ts` so `@tauri-apps/api` stays out of
  * the web bundle. Errors are plain strings; an `unsupported:` prefix means
  * this shell can't talk to a camera (desktop, or an Android build without
- * the SDK) — `isInsta360Unavailable` folds a shell that predates these
- * commands into the same answer.
+ * the SDK) — `isNativeFeatureUnavailable` (`lib/nativeUnavailable.ts`) folds
+ * a shell that predates these commands into the same answer.
  */
 
 import { api } from "@/lib/loggers/native/ipc";
@@ -22,12 +22,6 @@ import type {
   Insta360WifiJoin,
   ViewPose,
 } from "./types";
-
-/** The stub sentinel, or a shell that doesn't know the command at all. */
-export function isInsta360Unavailable(err: unknown): boolean {
-  const msg = String(err);
-  return msg.startsWith("unsupported:") || /unknown|not found|not allowed/i.test(msg);
-}
 
 /**
  * Whether this shell can talk to an Insta360 camera. Resolves `false` off

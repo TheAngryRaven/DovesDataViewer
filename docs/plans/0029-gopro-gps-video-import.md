@@ -85,8 +85,14 @@ the C library).
 - `src/lib/gopro/gpmf.ts` — pure KLV decoder + GPS5/GPS9 stream extraction.
 - `src/lib/gopro/goproTelemetry.ts` — pure: payloads + timing → GPS rows →
   Dove CSV text, plus the sync offset.
-- `src/lib/gopro/goproImport.ts` — File glue (`isGoProVideoFile`,
-  `extractGoProTelemetry`, `importGoProVideo`).
+- `src/lib/gopro/goproImport.ts` — File glue (`extractGoProTelemetry`,
+  `importGoProVideo`). Dynamic-imported by `datalogParser`/`FileImport`, so the
+  extractor stays off the main chunk.
+- `src/lib/gopro/goproDetect.ts` — the cheap eager gates (`isGoProVideoFile`,
+  `isGoProVideoBuffer`) the routers call on every import.
+- Hardening (4.2.0 review): a malformed GPS stream skips its payload instead of
+  aborting the import, and a uniform `stsz` count is capped at
+  `fileSize / sampleSize` so a hostile MP4 can't allocate billions of entries.
 - `src/lib/gopro/videoHandoff.ts` — one-shot pending video for a session.
 - `src/components/FileImport.tsx`, `src/lib/datalogParser.ts`,
   `src/hooks/useVideoSync.ts` — wiring.

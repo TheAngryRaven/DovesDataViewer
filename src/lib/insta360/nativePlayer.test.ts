@@ -198,4 +198,43 @@ describe("NativePlayerElement", () => {
     await expect(opening).rejects.toThrow(/closed/);
     expect(close).toHaveBeenCalled();
   });
+
+  it("a superseded player's late close does not kill the newer stream", async () => {
+    // Regression (B6): the shell's close carries no player id.
+    const close = vi.fn(async () => {});
+    const info: Insta360PlayerInfo = { streamUrl: "u", width: 640, height: 360, durationMs: 1, is360: false };
+    const make = () =>
+      new NativePlayerElement(file, {
+        width: 640, height: 360, open: async () => info, control: async () => {}, close, setView: async (p) => p,
+      });
+    const first = make();
+    await first.open();
+    const second = make();
+    await second.open();
+    first.close();
+    expect(close).not.toHaveBeenCalled();
+    second.close();
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("an open that resolves after a newer player opened leaves the newer one alone", async () => {
+    const close = vi.fn(async () => {});
+    let resolveFirst: ((i: Insta360PlayerInfo) => void) | null = null;
+    const info: Insta360PlayerInfo = { streamUrl: "u", width: 640, height: 360, durationMs: 1, is360: false };
+    const first = new NativePlayerElement(file, {
+      width: 640, height: 360,
+      open: () => new Promise((res) => { resolveFirst = res; }),
+      control: async () => {}, close, setView: async (p) => p,
+    });
+    const second = new NativePlayerElement(file, {
+      width: 640, height: 360, open: async () => info, control: async () => {}, close, setView: async (p) => p,
+    });
+    const opening = first.open();
+    first.close();
+    await second.open();
+    resolveFirst!(info);
+    await expect(opening).rejects.toThrow(/closed/);
+    expect(close).not.toHaveBeenCalled();
+    expect(second.streamUrl).toBe("u");
+  });
 });

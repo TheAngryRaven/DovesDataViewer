@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   computeReadiness,
+  countCachedAssets,
   readinessPercent,
   type OfflineReadiness,
 } from "@/lib/offlineReadiness";
@@ -24,13 +25,6 @@ export interface OfflineReadinessState {
 const supported = () =>
   typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
-// Counts only entries at the manifest's current revision: a stale copy from an
-// older build is exactly what the next warm-up will replace.
-const countCached = async (assets: DeferredAsset[]): Promise<number> => {
-  const hits = await Promise.all(assets.map(isDeferredAssetCached));
-  return hits.filter(Boolean).length;
-};
-
 /**
  * Live "can this device work with no signal?" state, plus a way to finish the
  * job on demand. Backed by `lib/offlineReadiness` (pure) and `lib/offlineWarmup`
@@ -46,7 +40,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
 
   const refresh = useCallback(async (list: DeferredAsset[]) => {
     setControlled(supported() && navigator.serviceWorker.controller !== null);
-    setCached(await countCached(list));
+    setCached(await countCachedAssets(list, isDeferredAssetCached));
   }, []);
 
   useEffect(() => {

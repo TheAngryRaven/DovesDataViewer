@@ -185,6 +185,8 @@ export interface Mp4Options {
   withVideoTrack?: boolean;
   /** Use a 64-bit `co64` chunk table. */
   co64?: boolean;
+  /** Write a uniform-size `stsz` (size + count) instead of a per-sample list. */
+  uniformStsz?: { size: number; count: number };
 }
 
 /**
@@ -211,7 +213,9 @@ export function buildGoProMp4(opts: Mp4Options): ArrayBuffer {
     for (const p of opts.payloads) { offsets.push(cursor); cursor += p.byteLength; }
 
     const stts = fullBox("stts", u32(durations.length), ...durations.map((d) => u32(1, d)));
-    const stsz = fullBox("stsz", u32(0), u32(opts.payloads.length), ...opts.payloads.map((p) => u32(p.byteLength)));
+    const stsz = opts.uniformStsz
+      ? fullBox("stsz", u32(opts.uniformStsz.size), u32(opts.uniformStsz.count))
+      : fullBox("stsz", u32(0), u32(opts.payloads.length), ...opts.payloads.map((p) => u32(p.byteLength)));
     const stsc = fullBox("stsc", u32(1), u32(1, 1, 1));
     const stco = opts.co64
       ? fullBox("co64", u32(offsets.length), ...offsets.map((o) => u32(0, o)))

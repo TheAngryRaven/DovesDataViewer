@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildGoProSession, rowsFromPayloads, type GoProPayload } from "./goproTelemetry";
-import { acclOnlyPayload, gps5Payload, gps9Payload } from "./testFixtures";
+import { acclOnlyPayload, gpmfComplex, gpmfNested, gpmfString, gps5Payload, gps9Payload } from "./testFixtures";
 import { parseDoveFile } from "@/lib/doveParser";
 
 const buf = (bytes: Uint8Array) => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
@@ -30,6 +30,16 @@ describe("rowsFromPayloads", () => {
     const rows = rowsFromPayloads([payload(gps9, 5, 0.3)]);
     expect(rows.map((r) => r.utcMs)).toEqual([UTC, UTC + 200]);
     expect(rows.map((r) => r.tSec)).toEqual([5, 5.2]);
+  });
+
+  it("skips a malformed payload and keeps importing the rest", () => {
+    const bad = gpmfNested("DEVC", [
+      gpmfNested("STRM", [gpmfString("TYPE", "lllllllSx"), gpmfComplex("GPS9", "lllllllSS", [[1, 2, 3, 4, 5, 6, 7, 8, 3]])]),
+    ]);
+    const good = gps5Payload([{ lat: 33.5, lon: -117.7, alt: 0, speed2d: 1 }], { gpsu: "240615143025.000" });
+    const rows = rowsFromPayloads([payload(bad, 0), payload(good, 1)]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].tSec).toBe(1);
   });
 
   it("rejects zero/out-of-range coordinates and skips payloads without GPS", () => {

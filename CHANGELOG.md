@@ -105,6 +105,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged, and an older shell (or a multi-file recording) falls back to
   the previous exporter automatically. Requires a LapWing build with the
   `video_export_*` pipeline (plan 0024).
+- **Drag mode** — drop in a log from a drag strip (or any venue the app doesn't
+  know) and standing-start runs are detected automatically: pick 1/8 mile,
+  1000 ft or 1/4 mile and every pass gets a time-slip style breakdown — ET at
+  the scoring distance plus 60 ft / 330 ft / 660 ft / 1000 ft splits. Passes
+  that lifted early stay listed as incomplete with the splits they did reach,
+  and your chosen distance is remembered per file and switchable from the
+  session header. (Plan 0022.)
 
 ### Changed
 - **New LapWing look.** The app now wears the LapWing brand from the
@@ -116,9 +123,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The footer now links to PerchWerks.** "LapWing is a PerchWerks product",
   with the shared bird mark, takes you to perchwerks.com (it replaces the old
   "Operated by PerchWerks LLC" line).
-- **The shared-session "read-only" banner text is readable again** — it was
-  drawn in a colour meant for text on a solid amber fill, so it nearly
-  vanished against the banner's pale tint.
 - **The app no longer loses its whole offline cache to a flaky connection.**
   Caching the app was previously one ~10 MB all-or-nothing download: if anything
   failed partway through — losing signal at a track, say — *nothing* was cached
@@ -149,16 +153,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   burn-in export will call this same renderer, so all three outputs match by
   construction.
 
-### Added
-- **Drag mode** — drop in a log from a drag strip (or any venue the app doesn't
-  know) and standing-start runs are detected automatically: pick 1/8 mile,
-  1000 ft or 1/4 mile and every pass gets a time-slip style breakdown — ET at
-  the scoring distance plus 60 ft / 330 ft / 660 ft / 1000 ft splits. Passes
-  that lifted early stay listed as incomplete with the splits they did reach,
-  and your chosen distance is remembered per file and switchable from the
-  session header.
-
 ### Fixed
+- **The shared-session "read-only" banner text is readable again** — it was
+  drawn in a colour meant for text on a solid amber fill, so it nearly
+  vanished against the banner's pale tint.
+- **Setup history no longer hangs on "Loading…" or fails silently.** If the
+  history can't be read, the panel now says so with a Retry button, and a
+  rollback or duplicate that fails shows an error instead of doing nothing.
+  (Plan 0028.)
+- **One damaged telemetry packet no longer rejects a whole GoPro import.** A
+  malformed GPS payload is skipped (a one-second gap) and the rest of the
+  recording imports. A corrupt or hostile MP4 whose sample table claims
+  billions of entries is also capped instead of freezing the tab. (Plan 0029.)
+- **Insta360 (Android app): switching recordings quickly could stop the new
+  stream.** A previous recording's player closing late no longer shuts down
+  the one you just opened. (Plan 0025.)
 - **The Insta360 import dialog no longer spins forever when reopened.** In the
   Android app, reopening the camera dialog while a camera was still connected
   got stuck on its loading spinner, and only unloading the video got you out.
