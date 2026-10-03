@@ -330,4 +330,20 @@ describe("range memoization", () => {
     expect(minCalls).toBe(2);
     expect(maxCalls).toBe(2);
   });
+
+  it("re-ranges when the data sources are rebuilt (MPH/KPH or metric toggle)", () => {
+    // Regression: the cache keyed only on the session arrays, so after a unit
+    // toggle the gauges kept scaling KPH values against the old MPH range.
+    const samples = [sample(0), sample(100), sample(200)];
+    const paceData = [null, null, null];
+    const brakingGData: number[] = [];
+    const shared = { samples, allSamples: samples, paceData, brakingGData };
+    let kphMaxCalls = 0;
+    const mph: DataSourceDef = { ...speedSource, getMax: () => 100 };
+    const kph: DataSourceDef = { ...speedSource, getMax: () => { kphMaxCalls++; return 160; } };
+    const inst = makeInstance({ type: "analog" });
+    drawAnalog(makeStubCtx().c, inst, makeRenderCtx({ ...shared, dataSources: [mph] }), L);
+    drawAnalog(makeStubCtx().c, inst, makeRenderCtx({ ...shared, dataSources: [kph] }), L);
+    expect(kphMaxCalls).toBe(1);
+  });
 });

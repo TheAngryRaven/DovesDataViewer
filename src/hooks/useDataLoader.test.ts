@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { detectionMetadataPatch, dragMetadataPatch } from "./useDataLoader";
+import type { Lap, TrackCourseSelection } from "@/types/racing";
+import { applyCourselessLaps, detectionMetadataPatch, dragMetadataPatch } from "./useDataLoader";
 
 const laps = [
   { lapNumber: 1, lapTimeMs: 65000 },
@@ -63,5 +64,37 @@ describe("dragMetadataPatch (drag-session tagging)", () => {
     expect("fastestLapMs" in patch).toBe(true);
     expect(patch.fastestLapMs).toBeUndefined();
     expect(patch.fastestLapNumber).toBeUndefined();
+  });
+});
+
+describe("applyCourselessLaps (drag / waypoint pre-application)", () => {
+  function sink(initial: TrackCourseSelection | null) {
+    const state = { selection: initial, laps: [] as Lap[], selected: null as number | null };
+    return {
+      state,
+      setSelection: (sel: TrackCourseSelection | null) => { state.selection = sel; },
+      setLaps: (l: Lap[]) => { state.laps = l; },
+      setSelectedLapNumber: (n: number | null) => { state.selected = n; },
+    };
+  }
+  const lap = (lapNumber: number, lapTimeMs: number, incomplete?: boolean) =>
+    ({ lapNumber, lapTimeMs, ...(incomplete ? { incomplete } : {}) }) as Lap;
+
+  it("clears a course selection carried over from the previous file", () => {
+    // Regression: a drag log opened after a circuit session kept that course
+    // selected, so canSnapshot stayed live and a run could replace the course PB.
+    const s = sink({ trackName: "OKC", courseName: "CW", course: {} as TrackCourseSelection["course"] });
+    applyCourselessLaps(s, [lap(1, 13400), lap(2, 12900)]);
+    expect(s.state.selection).toBeNull();
+    expect(s.state.laps).toHaveLength(2);
+    expect(s.state.selected).toBe(2);
+  });
+
+  it("selects the fastest complete run, never an incomplete one", () => {
+    const s = sink(null);
+    applyCourselessLaps(s, [lap(1, 4200, true), lap(2, 12900)]);
+    expect(s.state.selected).toBe(2);
+    applyCourselessLaps(s, [lap(1, 4200, true)]);
+    expect(s.state.selected).toBeNull();
   });
 });

@@ -107,7 +107,8 @@
       "ready": "Bereit — dieses Gerät kann die App und das mitgelieferte Beispiel ohne Empfang öffnen.",
       "preparing": "Die App selbst startet offline. Die Extras (Beispieldaten und Logger-Fotos) werden noch geladen.",
       "not-ready": "Noch nicht zwischengespeichert. Lass diese Seite kurz mit Verbindung geöffnet oder schließe den Download jetzt ab.",
-      "unsupported": "Offline-Caching ist in diesem Browser nicht verfügbar."
+      "unsupported": "Offline-Caching ist in diesem Browser nicht verfügbar.",
+      "native": "In der App enthalten – alles funktioniert ohne Empfang."
     }
   }
 }

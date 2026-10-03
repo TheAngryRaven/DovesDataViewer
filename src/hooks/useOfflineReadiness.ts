@@ -4,7 +4,13 @@ import {
   readinessPercent,
   type OfflineReadiness,
 } from "@/lib/offlineReadiness";
-import { readDeferredAssets, warmOfflineAssets } from "@/lib/offlineWarmup";
+import {
+  isDeferredAssetCached,
+  readDeferredAssets,
+  warmOfflineAssets,
+  type DeferredAsset,
+} from "@/lib/offlineWarmup";
+import { isNativeApp } from "@/lib/platform";
 
 export interface OfflineReadinessState {
   state: OfflineReadiness;
@@ -18,17 +24,10 @@ export interface OfflineReadinessState {
 const supported = () =>
   typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
-const countCached = async (urls: string[]): Promise<number> => {
-  if (typeof caches === "undefined") return 0;
-  const hits = await Promise.all(
-    urls.map(async (url) => {
-      try {
-        return (await caches.match(url)) !== undefined;
-      } catch {
-        return false;
-      }
-    }),
-  );
+// Counts only entries at the manifest's current revision: a stale copy from an
+// older build is exactly what the next warm-up will replace.
+const countCached = async (assets: DeferredAsset[]): Promise<number> => {
+  const hits = await Promise.all(assets.map(isDeferredAssetCached));
   return hits.filter(Boolean).length;
 };
 
@@ -40,23 +39,25 @@ const countCached = async (urls: string[]): Promise<number> => {
 export function useOfflineReadiness(): OfflineReadinessState & {
   prepare: () => void;
 } {
-  const [assets, setAssets] = useState<string[]>([]);
+  const [assets, setAssets] = useState<DeferredAsset[]>([]);
   const [cached, setCached] = useState(0);
   const [controlled, setControlled] = useState(false);
   const [working, setWorking] = useState(false);
 
-  const refresh = useCallback(async (urls: string[]) => {
+  const refresh = useCallback(async (list: DeferredAsset[]) => {
     setControlled(supported() && navigator.serviceWorker.controller !== null);
-    setCached(await countCached(urls));
+    setCached(await countCached(list));
   }, []);
 
   useEffect(() => {
+    // The native shell bundles every asset; there is nothing to count or warm.
+    if (isNativeApp()) return;
     let cancelled = false;
     void (async () => {
-      const urls = await readDeferredAssets();
+      const list = await readDeferredAssets();
       if (cancelled) return;
-      setAssets(urls);
-      await refresh(urls);
+      setAssets(list);
+      await refresh(list);
     })();
     return () => {
       cancelled = true;
@@ -66,7 +67,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
   // A worker that activates after this page loaded takes control later; that
   // flips "not ready" to ready without any user action, so listen for it.
   useEffect(() => {
-    if (!supported()) return;
+    if (isNativeApp() || !supported()) return;
     const onChange = () => void refresh(assets);
     navigator.serviceWorker.addEventListener("controllerchange", onChange);
     return () =>
@@ -83,6 +84,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
 
   return {
     state: computeReadiness({
+      nativeApp: isNativeApp(),
       serviceWorkerSupported: supported(),
       controlled,
       deferredTotal: assets.length,

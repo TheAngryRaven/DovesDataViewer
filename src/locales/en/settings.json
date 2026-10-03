@@ -106,7 +106,8 @@
       "ready": "Ready — this device can open the app and the bundled sample with no signal.",
       "preparing": "The app itself will open offline. Still downloading the extras (sample data and logger photos).",
       "not-ready": "Not cached yet. Keep this page open on a connection for a moment, or finish the download now.",
-      "unsupported": "Offline caching is unavailable in this browser."
+      "unsupported": "Offline caching is unavailable in this browser.",
+      "native": "Built into the app — everything works with no signal."
     }
   }
 }

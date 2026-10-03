@@ -14,6 +14,7 @@
 
 import type { Course, CourseDirection, GpsSample, Lap } from "@/types/racing";
 import type { VehicleSetup } from "./setupStorage";
+import { fastestRankedLap } from "./lapCalculation";
 
 /** Samples kept on each side of the lap, so a later start/finish nudge still fits. */
 export const SNAPSHOT_BUFFER_MS = 5000;
@@ -167,10 +168,13 @@ export function snapshotLapSamples(snap: LapSnapshot): GpsSample[] {
   return clean.length > 0 ? clean : snap.samples;
 }
 
-/** The fastest lap in a list (min lapTimeMs), or null when empty. */
+/**
+ * The fastest rankable lap (min lapTimeMs, incomplete drag runs skipped), or
+ * null when none qualifies — an incomplete run's "time" is only a data window
+ * and must never become a course snapshot.
+ */
 export function fastestLap(laps: Lap[]): Lap | null {
-  if (laps.length === 0) return null;
-  return laps.reduce((min, l) => (l.lapTimeMs < min.lapTimeMs ? l : min), laps[0]);
+  return fastestRankedLap(laps);
 }
 
 export type SnapshotPromptKind = "new" | "faster";

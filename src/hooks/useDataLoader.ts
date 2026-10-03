@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import {
   GpsSample,
+  Lap,
   ParsedData,
   Track,
   TrackCourseSelection,
@@ -61,19 +62,9 @@ export interface UseDataLoaderReturn {
   handleUseWaypoint: () => void;
 }
 
-/** Pick the lap with the lowest lapTimeMs (linear, no Math.min spread). */
-function pickFastestLap<T extends { lapTimeMs: number }>(laps: T[]): T | null {
-  if (laps.length === 0) return null;
-  let fastest = laps[0];
-  for (let i = 1; i < laps.length; i++) {
-    if (laps[i].lapTimeMs < fastest.lapTimeMs) fastest = laps[i];
-  }
-  return fastest;
-}
-
-/** Pick the lap number with the lowest lapTimeMs. */
-function pickFastestLapNumber(laps: { lapNumber: number; lapTimeMs: number }[]): number | null {
-  return pickFastestLap(laps)?.lapNumber ?? null;
+/** The fastest rankable lap's number (incomplete drag runs never qualify). */
+function pickFastestLapNumber(laps: { lapNumber: number; lapTimeMs: number; incomplete?: boolean }[]): number | null {
+  return fastestRankedLap(laps)?.lapNumber ?? null;
 }
 
 /**
@@ -90,7 +81,7 @@ export function detectionMetadataPatch(
 ): Partial<Omit<FileMetadata, "fileName">> {
   const patch: Partial<Omit<FileMetadata, "fileName">> = { trackName, courseName };
   if (startDate) patch.sessionStartTime = startDate.getTime();
-  const fastest = pickFastestLap(laps);
+  const fastest = fastestRankedLap(laps);
   if (fastest) {
     patch.fastestLapMs = fastest.lapTimeMs;
     patch.fastestLapNumber = fastest.lapNumber;
@@ -116,6 +107,26 @@ export function dragMetadataPatch(
   patch.fastestLapMs = fastest?.lapTimeMs;
   patch.fastestLapNumber = fastest?.lapNumber;
   return patch;
+}
+
+/** The slice of useLapManagement a drag (or waypoint) pre-application writes. */
+export interface CourselessLapSink {
+  setSelection: (selection: TrackCourseSelection | null) => void;
+  setLaps: (laps: Lap[]) => void;
+  setSelectedLapNumber: (lapNumber: number | null) => void;
+}
+
+/**
+ * Swap course-less laps (drag runs, or the waypoint fallback) into the lap
+ * manager. The course selection is cleared first: a drag/waypoint session has
+ * no course, and a selection left over from the previously loaded file would
+ * otherwise keep `canSnapshot` live and let a 10-second drag run overwrite
+ * that course's snapshot (plan 0022). Pure so the clearing stays testable.
+ */
+export function applyCourselessLaps(sink: CourselessLapSink, laps: Lap[]): void {
+  sink.setSelection(null);
+  sink.setLaps(laps);
+  sink.setSelectedLapNumber(fastestRankedLap(laps)?.lapNumber ?? null);
 }
 
 /**
@@ -152,8 +163,7 @@ export function useDataLoader({
       persist = true,
     ) => {
       const dragLaps = dragRunsToLaps(samples, drag.runs, distanceFt);
-      lapMgmt.setLaps(dragLaps);
-      lapMgmt.setSelectedLapNumber(fastestRankedLap(dragLaps)?.lapNumber ?? null);
+      applyCourselessLaps(lapMgmt, dragLaps);
       setDragDetection(drag);
       setDragDistanceFt(distanceFt);
       if (persist && fileName) {
@@ -290,8 +300,7 @@ export function useDataLoader({
 
       if (detection && detection.isWaypointMode) {
         // Waypoint mode — apply laps and prompt the user to confirm
-        lapMgmt.setLaps(detection.laps);
-        lapMgmt.setSelectedLapNumber(pickFastestLapNumber(detection.laps));
+        applyCourselessLaps(lapMgmt, detection.laps);
         setDetectedTrack(null);
         setTrackPromptOpen(true);
         return;
@@ -358,8 +367,7 @@ export function useDataLoader({
   // prompt keeps its laps unpersisted.
   const handleUseWaypoint = useCallback(() => {
     if (!detectionResult?.isWaypointMode) return;
-    lapMgmt.setLaps(detectionResult.laps);
-    lapMgmt.setSelectedLapNumber(pickFastestLapNumber(detectionResult.laps));
+    applyCourselessLaps(lapMgmt, detectionResult.laps);
     setDragDetection(null);
     setDragDistanceFt(null);
   }, [detectionResult, lapMgmt]);
