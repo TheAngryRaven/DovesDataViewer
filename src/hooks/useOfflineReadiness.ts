@@ -5,7 +5,13 @@ import {
   readinessPercent,
   type OfflineReadiness,
 } from "@/lib/offlineReadiness";
-import { readDeferredAssets, warmOfflineAssets } from "@/lib/offlineWarmup";
+import {
+  isDeferredAssetCached,
+  readDeferredAssets,
+  warmOfflineAssets,
+  type DeferredAsset,
+} from "@/lib/offlineWarmup";
+import { isNativeApp } from "@/lib/platform";
 
 export interface OfflineReadinessState {
   state: OfflineReadiness;
@@ -27,23 +33,25 @@ const supported = () =>
 export function useOfflineReadiness(): OfflineReadinessState & {
   prepare: () => void;
 } {
-  const [assets, setAssets] = useState<string[]>([]);
+  const [assets, setAssets] = useState<DeferredAsset[]>([]);
   const [cached, setCached] = useState(0);
   const [controlled, setControlled] = useState(false);
   const [working, setWorking] = useState(false);
 
-  const refresh = useCallback(async (urls: string[]) => {
+  const refresh = useCallback(async (list: DeferredAsset[]) => {
     setControlled(supported() && navigator.serviceWorker.controller !== null);
-    setCached(await countCachedAssets(urls));
+    setCached(await countCachedAssets(list, isDeferredAssetCached));
   }, []);
 
   useEffect(() => {
+    // The native shell bundles every asset; there is nothing to count or warm.
+    if (isNativeApp()) return;
     let cancelled = false;
     void (async () => {
-      const urls = await readDeferredAssets();
+      const list = await readDeferredAssets();
       if (cancelled) return;
-      setAssets(urls);
-      await refresh(urls);
+      setAssets(list);
+      await refresh(list);
     })();
     return () => {
       cancelled = true;
@@ -53,7 +61,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
   // A worker that activates after this page loaded takes control later; that
   // flips "not ready" to ready without any user action, so listen for it.
   useEffect(() => {
-    if (!supported()) return;
+    if (isNativeApp() || !supported()) return;
     const onChange = () => void refresh(assets);
     navigator.serviceWorker.addEventListener("controllerchange", onChange);
     return () =>
@@ -70,6 +78,7 @@ export function useOfflineReadiness(): OfflineReadinessState & {
 
   return {
     state: computeReadiness({
+      nativeApp: isNativeApp(),
       serviceWorkerSupported: supported(),
       controlled,
       deferredTotal: assets.length,

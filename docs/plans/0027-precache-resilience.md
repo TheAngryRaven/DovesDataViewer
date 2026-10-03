@@ -93,13 +93,37 @@ The route deliberately has no `ExpirationPlugin`: entries written by the client
 aren't in the plugin's own index, and a fixed set of build assets has nothing to
 expire.
 
+### Revision the deferred cache (follow-up, 4.2.0 release review PERF-1)
+
+Moving `samples/` and `loggers/` out of the precache also moved them out of
+Workbox's per-file revisioning, and the runtime route is `CacheFirst` with no
+expiry — so an updated sample log or logger photo would never reach a device
+that had already cached the old bytes. The fix keeps the cache key a plain URL
+(the app requests plain URLs and the route serves them) and moves the revision
+into the data:
+
+- `offline-assets.json` lists `{ url, revision }`, where `revision` is the first
+  16 hex chars of the file's SHA-256, computed by `deferredAssetManifest`.
+- The warm-up stores each response with an `X-Asset-Revision` header
+  (`fetch(…, { cache: "reload" })` + `cache.put`, so a refresh never gets the
+  old bytes from the HTTP cache) and treats an entry whose stamp doesn't match
+  the manifest as missing. Entries the service worker's own route cached on a
+  miss carry no stamp, so they are replaced once.
+- After a run it prunes entries whose path the manifest no longer lists — but
+  never against an empty list, which is what an unreadable manifest degrades to.
+- The readiness count uses the same revision check, so a stale cache reads as
+  "preparing" rather than "ready".
+
 ### Make readiness visible
 
 The deeper failure was that none of this was observable — you found out the cache
 was incomplete by losing signal and refreshing. `lib/offlineReadiness.ts` (pure)
 plus `hooks/useOfflineReadiness` and a Settings row report one of
 `unsupported` / `not-ready` / `preparing` / `ready`, with a *Finish download*
-button. `controlled` alone decides whether the app loads offline — the shell is
+button. A later `native` state (checked first, via `isNativeApp()`) covers the
+Tauri shell: its WebView exposes `navigator.serviceWorker` but the shell never
+registers one, so it used to read `not-ready` forever; native is offline by
+construction and the row says so. `controlled` alone decides whether the app loads offline — the shell is
 precached as a unit, so a controlling worker means install completed; the
 deferred count only separates "ready" from "preparing".
 

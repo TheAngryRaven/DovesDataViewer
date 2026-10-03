@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [4.2.0] - unreleased
+## [4.2.0] - 2026-10-02
 
 ### Added
 - **Import a GPS-tagged GoPro video as a session.** Every GoPro since the
@@ -168,6 +168,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Insta360 (Android app): switching recordings quickly could stop the new
   stream.** A previous recording's player closing late no longer shuts down
   the one you just opened. (Plan 0025.)
+- **The Insta360 import dialog no longer spins forever when reopened.** In the
+  Android app, reopening the camera dialog while a camera was still connected
+  got stuck on its loading spinner, and only unloading the video got you out.
+  It now goes straight back to the recording list, and drops back to the
+  connect form if the camera can't list its recordings.
 - **Save to Gallery / export in the Android app did nothing.** Every export
   (and the app's background copy of your video) failed on its very first
   chunk: the way the app handed video bytes to the shell doesn't exist on
@@ -176,6 +181,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now cross the bridge in a form Android supports, and an export that fails
   says so with the reason instead of silently stopping. Requires the matching
   LapWing build.
+- **A drag log could overwrite a course's lap snapshot.** Opening a drag (or
+  waypoint) session right after a circuit session kept the previous course
+  selected, so assigning an engine or saving a snapshot could replace that
+  course's real fastest lap with a 10-second drag run — and cloud-sync it.
+  Course-less sessions now clear the selection, and drag sessions can never
+  save a course snapshot.
+- **Incomplete drag runs no longer count as "fastest"** in the video overlay's
+  best-lap readout, the Overlays menu trophy, the external-reference picker,
+  lap snapshots, or the course outline generated from a session.
+- **Video overlay gauges kept the old range after a unit toggle.** Switching
+  MPH/KPH (or metric distance) left analog, bar, graph and bubble overlays
+  scaling the new values against the previous unit's range, in both the
+  preview and exported videos.
+- **Android app: an export could use the wrong session's video.** If the
+  app's background copy of a video finished after you had switched sessions,
+  the next export burned the new session's overlays onto the old session's
+  footage. A copy now only attaches to the session (and video) it started
+  for.
+- **Android app: Settings said "not cached yet" forever.** The offline
+  readiness row looked for a web service worker the app never uses. It now
+  shows that everything is built into the app and works with no signal.
+- **Android app: deleting a session now frees its video copy.** The app's
+  stored copy of a session's video (often gigabytes) was left behind in app
+  storage when the session was deleted.
+- **Offline extras now update.** The bundled sample logs and logger photos
+  that download in the background for offline use were cached once and never
+  refreshed, so a device kept the old copy forever after an update. Each one
+  is now checked against the current release and re-downloaded when it
+  changes, and files a release no longer ships are cleaned up.
 
 ## [4.1.0] - 2026-08-24
 

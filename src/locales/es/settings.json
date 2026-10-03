@@ -107,7 +107,8 @@
       "ready": "Listo: este dispositivo puede abrir la app y el ejemplo incluido sin cobertura.",
       "preparing": "La app se abrirá sin conexión. Aún se descargan los extras (datos de ejemplo y fotos de loggers).",
       "not-ready": "Todavía sin caché. Mantén esta página abierta con conexión un momento, o termina la descarga ahora.",
-      "unsupported": "El almacenamiento sin conexión no está disponible en este navegador."
+      "unsupported": "El almacenamiento sin conexión no está disponible en este navegador.",
+      "native": "Integrado en la app: todo funciona sin señal."
     }
   }
 }

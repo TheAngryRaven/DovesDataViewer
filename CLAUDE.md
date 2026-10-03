@@ -151,7 +151,9 @@ src/
 │   ├── buildInfo.ts       # Build version/hash/branch stamp + isPreviewBuild()
 │   ├── analytics.ts       # ★ Anonymous usage stats (plan 0030): PostHog, cookieless, dynamic-imported only when the gate passes (key baked in + web + not iframe/`?nosw=1` + no DNT/GPC + `sendUsageStats` on) — keyless builds drop the import entirely. Pageview/pageleave only; `scrubEvent` (before_send) strips query/hash and placeholders `/s/:token` + `/driver/:username` from every URL property. Privacy.tsx wording mirrors its config — change both together
 │   ├── versionCheck.ts    # ★ "Update available" signal: compares buildInfo vs the build-emitted, uncached /version.json (independent of the SW's own update detection) → main.tsx update toast
-│   ├── offlineWarmup.ts / offlineReadiness.ts  # ★ Two-stage offline cache (plan 0027): the precache install is all-or-nothing, so `vite.config.ts` holds the heavy public dirs (DEFERRED_ASSET_DIRS = samples/, loggers/) OUT of it and emits `offline-assets.json`; offlineWarmup writes them into the `app-deferred-assets` cache afterwards via `cache.add` (NOT fetch — an uncontrolled first-visit page bypasses the SW), where a failure costs only that asset. offlineReadiness is the pure state → useOfflineReadiness → SettingsModal row
+│   ├── offlineWarmup.ts / offlineReadiness.ts  # ★ Two-stage offline cache (plan 0027): the precache install is all-or-nothing, so `vite.config.ts` holds the heavy public dirs (DEFERRED_ASSET_DIRS = samples/, loggers/) OUT of it and emits `offline-assets.json` (url + content-hash revision per file); offlineWarmup writes them into the `app-deferred-assets` cache afterwards with `cache.put` (NOT a plain fetch — an uncontrolled first-visit page bypasses the SW), stamping each with its revision so an updated asset is re-fetched (the CacheFirst route alone never would) and pruning files no longer shipped; a failure costs only that asset. offlineReadiness is the pure state (incl. `native` for the Tauri shell) → useOfflineReadiness → SettingsModal row
+│   ├── nativeVideoExport.ts / nativeVideoStore.ts / nativeBytes.ts  # ★ Native-shell video bridge (plan 0024, → docs/subsystems.md): nativeVideoExport stages a hardware-transcoded overlay export over `video_export_*` IPC (null = shell can't, caller falls back to the WebView exporter); nativeVideoStore copies a session's picked video into the shell's app-data store (`video_store_*`) so it replays/exports without re-picking — deleted with its session by fileStorage.deleteFile, listed/pruned by plugins/native-storage; nativeBytes = the base64-chunk upload encoding (Android's WebView has no raw IPC bodies)
+│   ├── pwaInstall.ts / persistentStorage.ts  # Offline durability (plan 0026): pwaInstall decides the install nudge (iOS never fires beforeinstallprompt → hand-held Home Screen hint, snoozable) for InstallPrompt; persistentStorage asks navigator.storage.persist() once at boot (main.tsx) so the precache + IndexedDB stop being evictable
 │   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`) — mobile/PWA has no dev tools
 │   ├── units.ts           # ★ Pure unit conversions for the 3 imperial/metric toggles
 │   ├── i18n/              # ★ i18next config/init/format (→ docs/i18n.md)
@@ -161,6 +163,7 @@ src/
 │   ├── (framework)        # types, registry, index, panels, mounts, fileSources, storage + hosts
 │   ├── cloud-sync/        # ★ First-party plugin: Supabase file + garage sync (→ docs/backend.md)
 │   ├── tools/             # ★ First-party plugin: Tools tab (kart seat-position viz; phone Lap Timer; pill alignment calculator — plan 0011)
+│   ├── native-storage/    # First-party plugin, native shell only: Profile-tab "Videos on this device" panel over lib/nativeVideoStore (plan 0024) — also what gives a native build without cloud a Profile tab
 │   └── coaching/          # Gitignored slot for the AI coach (npm pkg in production)
 ├── types/racing.ts        # ★ Core types: GpsSample, ParsedData, Lap, Course, Track, …
 ├── contexts/              # SettingsContext, SessionContext, PlaybackContext, DeviceContext, AuthContext
@@ -284,9 +287,11 @@ A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 - **File sources** (`fileSources.ts`, `FILE_SOURCES_POINT`): feed *remote* files
   into the host browser as inline `cloud` rows without coupling the host to cloud.
 
-First-party plugins: **cloud-sync** (Supabase file + garage sync → `docs/backend.md`)
-and **tools** (Tools tab: kart seat-position visualizer + phone Lap Timer built on
-`lib/gps/`). New slots/points are just new strings — no framework change.
+First-party plugins: **cloud-sync** (Supabase file + garage sync → `docs/backend.md`),
+**tools** (Tools tab: kart seat-position visualizer + phone Lap Timer built on
+`lib/gps/`) and **native-storage** (native shell only — the Profile tab's "Videos
+on this device" card over `lib/nativeVideoStore`; its `setup` returns early off
+native, so the web build contributes nothing). New slots/points are just new strings — no framework change.
 
 > ## ⚠️ SUPER IMPORTANT — coach source differs by branch (DO NOT MERGE BLINDLY)
 >

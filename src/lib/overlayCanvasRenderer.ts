@@ -35,6 +35,7 @@ import {
   type SectorStatus,
 } from "@/components/video-overlays/sectorUtils";
 import { courseHasSectors } from "@/types/racing";
+import { fastestRankedLap } from "@/lib/lapCalculation";
 import { findCurrentLap, formatOverlayLapTime, getOverlayLapStartTime } from "@/components/video-overlays/overlayUtils";
 import type { GpsSample } from "@/types/racing";
 
@@ -95,6 +96,7 @@ const SECTOR_CELL_BG: Record<SectorStatus, string> = {
 // nothing here needs invalidation or leaks.
 
 interface RangeEntry {
+  dataSources: OverlayRenderContext["dataSources"];
   paceData: (number | null)[];
   brakingGData: number[];
   range: { min: number; max: number };
@@ -112,12 +114,20 @@ function memoRange(
   }
   const hit = bySource.get(sourceId);
   // Special sources (__pace__, __braking_g__) range over these arrays, not
-  // the samples — a hit is only valid while they are the same arrays too.
-  if (hit && hit.paceData === ctx.paceData && hit.brakingGData === ctx.brakingGData) {
+  // the samples — a hit is only valid while they are the same arrays too. The
+  // data-source defs close over the unit toggles (KPH, metric distance), so a
+  // rebuilt set means the same samples now range in different units.
+  if (
+    hit &&
+    hit.dataSources === ctx.dataSources &&
+    hit.paceData === ctx.paceData &&
+    hit.brakingGData === ctx.brakingGData
+  ) {
     return hit.range;
   }
   const range = resolveRange(sourceId, ctx.samples, ctx.dataSources, ctx.paceData, ctx.brakingGData);
   bySource.set(sourceId, {
+    dataSources: ctx.dataSources,
     paceData: ctx.paceData,
     brakingGData: ctx.brakingGData,
     range,
@@ -865,11 +875,8 @@ export function drawLapTime(
     // Best lap
     let bestTimeStr = "—";
     let bestLapLabel = "";
-    if (ctx.laps.length > 0) {
-      let best = ctx.laps[0];
-      for (const la of ctx.laps) {
-        if (la.lapTimeMs < best.lapTimeMs) best = la;
-      }
+    const best = fastestRankedLap(ctx.laps);
+    if (best) {
       bestTimeStr = formatOverlayLapTime(best.lapTimeMs / 1000);
       bestLapLabel = `L${best.lapNumber}`;
     }

@@ -107,6 +107,15 @@ convention) re-runs the detector and re-maps silently; a real track/course
 restore shadows a stale drag field; assigning a course clears the field.
 Distance switching is a pure re-map of the held `DragRun[]` — no re-detection.
 
+Course-less pre-application (drag runs, and the waypoint fallback) goes
+through `applyCourselessLaps`, which **clears the course selection** first. The
+loader carries the previous file's selection into a new load, and a drag
+session left holding it kept `canSnapshot` live — a 10-second run could replace
+that course's snapshot and cloud-sync it (4.2.0 release review A1).
+`useLapSnapshots` also refuses drag sessions outright (`snapshotEligible`), and
+every "fastest" pick in the app goes through `fastestRankedLap`, never a bare
+min-reduce (A2).
+
 ### UI
 
 `TrackPromptDialog` precedence: course-step > drag > waypoint > no-track (title

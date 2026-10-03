@@ -9,6 +9,14 @@ const base = {
 };
 
 describe("computeReadiness", () => {
+  it("is native in the app shell, even though its WebView exposes serviceWorker", () => {
+    // Regression: the Android WebView has navigator.serviceWorker but the shell
+    // never registers a worker, so this used to read "not-ready" forever.
+    expect(computeReadiness({ ...base, nativeApp: true, controlled: false, deferredCached: 0 })).toBe(
+      "native",
+    );
+  });
+
   it("is unsupported without a service worker", () => {
     expect(computeReadiness({ ...base, serviceWorkerSupported: false })).toBe(
       "unsupported",
@@ -57,24 +65,20 @@ describe("readinessPercent", () => {
 });
 
 describe("countCachedAssets", () => {
-  const cache = (cached: string[], throwing: string[] = []) => ({
-    match: async (req: RequestInfo | URL) => {
-      const url = String(req);
-      if (throwing.includes(url)) throw new Error("storage evicted");
-      return cached.includes(url) ? new Response("") : undefined;
-    },
-  });
+  const check = (cached: string[], throwing: string[] = []) => async (url: string) => {
+    if (throwing.includes(url)) throw new Error("storage evicted");
+    return cached.includes(url);
+  };
 
-  it("counts the URLs already in the cache", async () => {
-    expect(await countCachedAssets(["/a", "/b", "/c"], cache(["/a", "/c"]))).toBe(2);
+  it("counts the assets the predicate reports as cached", async () => {
+    expect(await countCachedAssets(["/a", "/b", "/c"], check(["/a", "/c"]))).toBe(2);
   });
 
   it("treats a lookup that throws as a miss instead of failing the readout", async () => {
-    expect(await countCachedAssets(["/a", "/b"], cache(["/a", "/b"], ["/b"]))).toBe(1);
+    expect(await countCachedAssets(["/a", "/b"], check(["/a", "/b"], ["/b"]))).toBe(1);
   });
 
-  it("is zero with no Cache API or nothing to check", async () => {
-    expect(await countCachedAssets(["/a"], undefined)).toBe(0);
-    expect(await countCachedAssets([], cache(["/a"]))).toBe(0);
+  it("is zero with nothing to check", async () => {
+    expect(await countCachedAssets([], check(["/a"]))).toBe(0);
   });
 });

@@ -7,7 +7,12 @@
 // state the UI can show before signal is gone.
 
 export type OfflineReadiness =
-  /** No service worker (unsupported browser, private mode, the native shell). */
+  /**
+   * The native (Tauri) shell: every asset ships inside the app package and no
+   * service worker is registered, so it is offline by construction.
+   */
+  | "native"
+  /** No service worker (unsupported browser, private mode). */
   | "unsupported"
   /** Nothing usable cached yet — a refresh with no signal would fail. */
   | "not-ready"
@@ -17,7 +22,13 @@ export type OfflineReadiness =
   | "ready";
 
 export interface ReadinessInput {
-  /** `"serviceWorker" in navigator` — false in private mode and the Tauri shell. */
+  /**
+   * `isNativeApp()`. Checked first: Android's WebView exposes
+   * `navigator.serviceWorker`, but the shell never registers one, so without
+   * this it would read "not ready" forever.
+   */
+  nativeApp?: boolean;
+  /** `"serviceWorker" in navigator` — false in private mode. */
   serviceWorkerSupported: boolean;
   /** A worker is active and controlling this page, so the shell is cached. */
   controlled: boolean;
@@ -34,6 +45,7 @@ export interface ReadinessInput {
  * extras still missing still opens, it just can't show the bundled sample.
  */
 export function computeReadiness(input: ReadinessInput): OfflineReadiness {
+  if (input.nativeApp) return "native";
   if (!input.serviceWorkerSupported) return "unsupported";
   if (!input.controlled) return "not-ready";
   return input.deferredCached >= input.deferredTotal ? "ready" : "preparing";
@@ -45,24 +57,20 @@ export function readinessPercent(cached: number, total: number): number {
   return Math.min(100, Math.max(0, Math.round((cached / total) * 100)));
 }
 
-/** The slice of the Cache Storage API the readiness count needs. */
-export type CacheMatcher = Pick<CacheStorage, "match">;
-
 /**
- * How many of `urls` are already cached. A lookup that throws (storage
- * evicted mid-check, a quota error) counts as a miss rather than failing the
- * whole readout, and no Cache API at all (old browser, insecure context)
- * means nothing is cached.
+ * How many of `assets` the predicate reports as cached. The predicate decides
+ * what "cached" means (the deferred cache also checks the asset's revision);
+ * a lookup that throws (storage evicted mid-check, a quota error) counts as a
+ * miss rather than failing the whole readout.
  */
-export async function countCachedAssets(
-  urls: string[],
-  cacheStorage: CacheMatcher | undefined = typeof caches === "undefined" ? undefined : caches,
+export async function countCachedAssets<T>(
+  assets: readonly T[],
+  isCached: (asset: T) => Promise<boolean>,
 ): Promise<number> {
-  if (!cacheStorage) return 0;
   const hits = await Promise.all(
-    urls.map(async (url) => {
+    assets.map(async (asset) => {
       try {
-        return (await cacheStorage.match(url)) !== undefined;
+        return await isCached(asset);
       } catch {
         return false;
       }

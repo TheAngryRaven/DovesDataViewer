@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { listAllMetadata } from '@/lib/fileStorage';
 import { filesTaggedWithCourse, type CourseFileEntry } from '@/lib/fileBrowserTree';
-import { formatLapTime } from '@/lib/lapCalculation';
+import { fastestRankedLap, formatLapTime } from '@/lib/lapCalculation';
 import { overlayId, externalOverlayId, type OverlayLine } from '@/lib/lapOverlays';
 import type { Lap } from '@/types/racing';
 import { Layers, Loader2, Trophy, Check, Target, X, ChevronDown, ChevronRight } from 'lucide-react';
@@ -30,10 +30,10 @@ interface OverlaysMenuProps {
   onSetOverlayReference: (line: OverlayLine) => void;
 }
 
-/** Index of the fastest lap (by time) in a list, or -1 when empty. */
-function fastestLapIdx(laps: Array<{ lapTimeMs: number }>): number {
-  if (laps.length === 0) return -1;
-  return laps.reduce((minIdx, lap, idx, arr) => (lap.lapTimeMs < arr[minIdx].lapTimeMs ? idx : minIdx), 0);
+/** Index of the fastest rankable lap in a list (incomplete runs skipped), or -1. */
+function fastestLapIdx(laps: Array<{ lapTimeMs: number; incomplete?: boolean }>): number {
+  const best = fastestRankedLap(laps);
+  return best ? laps.indexOf(best) : -1;
 }
 
 /**

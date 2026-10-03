@@ -107,7 +107,8 @@
       "ready": "Prêt — cet appareil peut ouvrir l’app et l’exemple fourni sans réseau.",
       "preparing": "L’app s’ouvrira hors ligne. Téléchargement des extras en cours (données d’exemple et photos des loggers).",
       "not-ready": "Pas encore en cache. Laissez cette page ouverte avec du réseau un instant, ou terminez le téléchargement maintenant.",
-      "unsupported": "La mise en cache hors ligne n’est pas disponible dans ce navigateur."
+      "unsupported": "La mise en cache hors ligne n’est pas disponible dans ce navigateur.",
+      "native": "Intégré à l’application : tout fonctionne sans réseau."
     }
   }
 }
