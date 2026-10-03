@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Camera, Loader2, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   insta360ListFiles,
   insta360Status,
 } from "@/lib/insta360/ipc";
+import { resumeInsta360Session, type Insta360DialogPhase } from "@/lib/insta360/resumeSession";
 import type { Insta360CameraFile, Insta360CameraInfo } from "@/lib/insta360/types";
 
 interface Insta360ImportDialogProps {
@@ -24,7 +25,7 @@ interface Insta360ImportDialogProps {
   onDisconnected: () => void;
 }
 
-type Phase = "idle" | "connecting" | "listing" | "ready" | "error";
+type Phase = Insta360DialogPhase;
 
 /** Insta360 cameras ship with this hotspot password. */
 const DEFAULT_PASSPHRASE = "88888888";
@@ -62,22 +63,31 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
   const [ssidPrefix, setSsidPrefix] = useState("");
   const [passphrase, setPassphrase] = useState(DEFAULT_PASSPHRASE);
 
-  // Reopening the dialog while a camera is still connected (a stream is
-  // playing) resumes at the recording list.
+  // Read by the resume below, which must not hijack a connect the user has
+  // already started while the status call was in flight.
+  const phaseRef = useRef<Phase>(phase);
   useEffect(() => {
-    if (!open || phase !== "idle") return;
+    phaseRef.current = phase;
+  }, [phase]);
+
+  // Reopening the dialog while a camera is still connected (a stream is
+  // playing) resumes at the recording list. Keyed on `open` alone: with
+  // `phase` in the deps, the resume's own move to "listing" re-ran this
+  // effect, whose cleanup cancelled the listing and stranded the spinner.
+  useEffect(() => {
+    if (!open) return;
     let alive = true;
-    void insta360Status()
-      .then(async (s) => {
-        if (!alive || !s.connected || !s.camera) return;
-        setCamera(s.camera);
-        setPhase("listing");
-        setFiles(await insta360ListFiles());
-        if (alive) setPhase("ready");
-      })
-      .catch(() => { /* not connected — stay idle */ });
+    void resumeInsta360Session(
+      { status: insta360Status, listFiles: insta360ListFiles },
+      {
+        canResume: () => alive && phaseRef.current === "idle",
+        setCamera,
+        setFiles,
+        setPhase,
+      },
+    );
     return () => { alive = false; };
-  }, [open, phase]);
+  }, [open]);
 
   const connect = useCallback(async () => {
     setError(null);

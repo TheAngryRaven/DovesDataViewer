@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [4.2.0] - unreleased
+## [4.2.0] - 2026-10-02
 
 ### Added
 - **Import a GPS-tagged GoPro video as a session.** Every GoPro since the
@@ -159,6 +159,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   session header.
 
 ### Fixed
+- **The Insta360 import dialog no longer spins forever when reopened.** In the
+  Android app, reopening the camera dialog while a camera was still connected
+  got stuck on its loading spinner, and only unloading the video got you out.
+  It now goes straight back to the recording list, and drops back to the
+  connect form if the camera can't list its recordings.
 - **Save to Gallery / export in the Android app did nothing.** Every export
   (and the app's background copy of your video) failed on its very first
   chunk: the way the app handed video bytes to the shell doesn't exist on
