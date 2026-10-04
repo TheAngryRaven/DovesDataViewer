@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
-## [4.2.0] - 2026-10-02
+## [5.0.0] - 2026-10-04
 
 ### Added
 - **Import a GPS-tagged GoPro video as a session.** Every GoPro since the

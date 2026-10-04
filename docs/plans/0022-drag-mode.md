@@ -2,7 +2,7 @@
 
 > Status: **DONE** — all four commits below landed (detector first,
 > logic-first like plan 0015, then mapping, orchestration and UI); ships in
-> 4.2.0. The follow-ups section is deliberately out of scope for v1.
+> 5.0.0. The follow-ups section is deliberately out of scope for v1.
 
 ## Why this exists
 
@@ -111,7 +111,7 @@ Course-less pre-application (drag runs, and the waypoint fallback) goes
 through `applyCourselessLaps`, which **clears the course selection** first. The
 loader carries the previous file's selection into a new load, and a drag
 session left holding it kept `canSnapshot` live — a 10-second run could replace
-that course's snapshot and cloud-sync it (4.2.0 release review A1).
+that course's snapshot and cloud-sync it (5.0.0 release review A1).
 `useLapSnapshots` also refuses drag sessions outright (`snapshotEligible`), and
 every "fastest" pick in the app goes through `fastestRankedLap`, never a bare
 min-reduce (A2).

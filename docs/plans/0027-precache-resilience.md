@@ -52,7 +52,7 @@ service worker at all.
 
 `DEFERRED_ASSET_DIRS` (`samples/`, `loggers/`) is the single source of truth —
 it lives in `scripts/deferredAssets.ts` (moved out of `vite.config.ts` after the
-4.2.0 release review so the runtime-cache route, previously a hand-copied regex,
+5.0.0 release review so the runtime-cache route, previously a hand-copied regex,
 could be derived from it and unit-tested). It feeds three things:
 
 1. `globIgnores` — those directories stay out of the install-blocking precache.
@@ -93,7 +93,7 @@ The route deliberately has no `ExpirationPlugin`: entries written by the client
 aren't in the plugin's own index, and a fixed set of build assets has nothing to
 expire.
 
-### Revision the deferred cache (follow-up, 4.2.0 release review PERF-1)
+### Revision the deferred cache (follow-up, 5.0.0 release review PERF-1)
 
 Moving `samples/` and `loggers/` out of the precache also moved them out of
 Workbox's per-file revisioning, and the runtime route is `CacheFirst` with no
