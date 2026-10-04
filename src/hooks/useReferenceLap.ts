@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { ParsedData, Lap, GpsSample, Course } from "@/types/racing";
 import { FileEntry, listFiles, getFile } from "@/lib/fileStorage";
 import { parseDatalogFile } from "@/lib/datalogParser";
-import { calculateLaps, formatLapTime } from "@/lib/lapCalculation";
+import { calculateLaps, fastestRankedLap, formatLapTime } from "@/lib/lapCalculation";
 import { calculateReferenceSpeed } from "@/lib/referenceUtils";
 import { computeLapPace, type DeltaMethod } from "@/lib/lapDelta";
 import { findSpeedEvents } from "@/lib/speedEvents";
@@ -33,12 +33,11 @@ export function useReferenceLap(
   }, [data, laps, referenceLapNumber, externalRefSamples]);
 
   // Get fastest lap samples for pace comparison when no reference selected
+  // (never an incomplete drag run — its window is not a comparable time).
   const fastestLapSamples = useMemo((): GpsSample[] => {
-    if (!data || laps.length === 0) return [];
-    const fastestLap = laps.reduce(
-      (min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min),
-      laps[0]
-    );
+    if (!data) return [];
+    const fastestLap = fastestRankedLap(laps);
+    if (!fastestLap) return [];
     return data.samples.slice(fastestLap.startIndex, fastestLap.endIndex + 1);
   }, [data, laps]);
 
@@ -53,15 +52,14 @@ export function useReferenceLap(
     };
   }, [filteredSamples, referenceSamples, useKph, deltaMethod, deltaSampleMeters]);
 
-  // Calculate lap to fastest delta (direct lap time difference)
+  // Calculate lap to fastest delta (direct lap time difference). Incomplete
+  // drag runs have no comparable time, on either side of the subtraction.
   const lapToFastestDelta = useMemo((): number | null => {
     if (selectedLapNumber === null || laps.length === 0) return null;
     const selectedLap = laps.find((l) => l.lapNumber === selectedLapNumber);
-    if (!selectedLap) return null;
-    const fastestLap = laps.reduce(
-      (min, lap) => (lap.lapTimeMs < min.lapTimeMs ? lap : min),
-      laps[0]
-    );
+    if (!selectedLap || selectedLap.incomplete) return null;
+    const fastestLap = fastestRankedLap(laps);
+    if (!fastestLap) return null;
     return selectedLap.lapTimeMs - fastestLap.lapTimeMs;
   }, [laps, selectedLapNumber]);
 

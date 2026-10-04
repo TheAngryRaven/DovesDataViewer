@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Track, TrackCourseSelection, CourseDetectionResult, Lap, GpsSample } from '@/types/racing';
+import type { DragDetectionResult, DragDistanceFt } from '@/lib/dragRunDetection';
 import { AddCourseDialog } from '@/components/track-editor/AddCourseDialog';
 import { AddTrackDialog } from '@/components/track-editor/AddTrackDialog';
 import { useTrackEditorForm } from '@/hooks/useTrackEditorForm';
@@ -35,6 +36,12 @@ interface TrackPromptDialogProps {
   initialCenter?: { lat: number; lon: number } | null;
   /** Auto-detection result with direction and waypoint info */
   detectionResult?: CourseDetectionResult | null;
+  /** Detected standing-start drag runs (plan 0022) — shows the drag branch. */
+  dragDetection?: DragDetectionResult | null;
+  /** Apply drag timing at the chosen scoring distance. */
+  onSelectDragDistance?: (distanceFt: DragDistanceFt) => void;
+  /** Swap the pre-applied drag runs for the held waypoint laps. */
+  onUseWaypoint?: () => void;
   /** Current session laps (e.g. waypoint-mode laps) — feeds the create-course
    *  "Generate outline" picker so the outline can be drawn right here. */
   laps?: Lap[];
@@ -45,11 +52,13 @@ interface TrackPromptDialogProps {
 
 export function TrackPromptDialog({
   open, onOpenChange, detectedTrack, tracks: initialTracks, onSelect, initialCenter, detectionResult,
+  dragDetection, onSelectDragDistance, onUseWaypoint,
   laps, samples,
 }: TrackPromptDialogProps) {
   const { t } = useTranslation('tracks');
   const [tracks, setTracks] = useState(initialTracks);
   const [selectedCourseName, setSelectedCourseName] = useState('');
+  const [dragDistance, setDragDistance] = useState<DragDistanceFt>(1320);
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false);
   const [isAddTrackOpen, setIsAddTrackOpen] = useState(false);
   // A track is just a name now, so creating one here is a two-step flow: make
@@ -74,6 +83,11 @@ export function TrackPromptDialog({
   useEffect(() => {
     if (open) setCreatedTrackName(null);
   }, [open]);
+
+  // Seed the distance picker with the longest distance a run actually covered.
+  useEffect(() => {
+    if (open && dragDetection) setDragDistance(dragDetection.suggestedDistanceFt);
+  }, [open, dragDetection]);
 
   useEffect(() => {
     if (open && detectionResult && !detectionResult.isWaypointMode) {
@@ -180,12 +194,13 @@ export function TrackPromptDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-primary" />
-              {track ? t('prompt.selectCourse') : t('prompt.noTrackDetected')}
+              {track ? t('prompt.selectCourse') : dragDetection ? t('prompt.dragTitle') : t('prompt.noTrackDetected')}
             </DialogTitle>
           </DialogHeader>
 
-          {/* Course step: a track is selected/created — pick (or add) its course */}
-          {track && (inCourseStep || !detectionResult?.isWaypointMode) ? (
+          {/* Course step: a track is selected/created — pick (or add) its course.
+              Precedence: course step > drag > waypoint > no-track. */}
+          {track && (inCourseStep || (!detectionResult?.isWaypointMode && !dragDetection)) ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 {inCourseStep ? (
@@ -231,6 +246,51 @@ export function TrackPromptDialog({
                 </Button>
                 <Button variant="outline" onClick={() => onOpenChange(false)}>{t('prompt.skip')}</Button>
               </div>
+            </div>
+          ) : dragDetection ? (
+            /* Drag runs detected (plan 0022): standing-start passes at an
+               unknown venue — pick the scoring distance for the time slip. */
+            <div className="space-y-4">
+              <div className="p-3 rounded-md border border-yellow-500/30 bg-yellow-500/5">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{t('prompt.dragTiming')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('prompt.dragNotice')}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <Trans ns="tracks" i18nKey="prompt.dragRunsFound" count={dragDetection.runs.length} components={{ b: <span className="font-medium text-foreground" /> }} />
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('prompt.dragDistance')}</Label>
+                <Select value={String(dragDistance)} onValueChange={(v) => setDragDistance(Number(v) as DragDistanceFt)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="660">{t('prompt.dragEighth')}</SelectItem>
+                    <SelectItem value="1000">{t('prompt.dragThousand')}</SelectItem>
+                    <SelectItem value="1320">{t('prompt.dragQuarter')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => { onSelectDragDistance?.(dragDistance); onOpenChange(false); }} className="flex-1">
+                  <Check className="w-4 h-4 mr-2" /> {t('prompt.dragApply')}
+                </Button>
+                <Button variant="outline" onClick={() => { form.resetForm(); setIsAddTrackOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" /> {t('prompt.createTrack')}
+                </Button>
+              </div>
+              {detectionResult?.isWaypointMode && (
+                <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => { onUseWaypoint?.(); onOpenChange(false); }}>
+                  {t('prompt.useWaypoint')}
+                </Button>
+              )}
             </div>
           ) : detectionResult?.isWaypointMode ? (
             /* Waypoint mode notice */

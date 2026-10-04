@@ -132,3 +132,82 @@ function findIndexByTime(samples: GpsSample[], time: number, lo: number, hi: num
   }
   return lo;
 }
+
+/**
+ * One cell of the sector-times widget, resolved at data time t.
+ * Shared by the unified overlay renderer (preview + export draw the same
+ * states) — extracted from the previously duplicated logic in
+ * SectorOverlay.tsx and the export renderer's drawSector.
+ */
+export interface SectorDisplayState {
+  status: SectorStatus;
+  /** Delta to the best sector in ms; null while outlap/active. */
+  deltaMs: number | null;
+  /**
+   * Absolute data time (ms) this sector's result landed — the crossing that
+   * finished it. Drives the completion sweep in data time, so the animation
+   * lands on the same frames in preview and export. Null until completed.
+   */
+  completedAtMs: number | null;
+}
+
+/**
+ * Resolve the three sector cells for the widget at data time `currentTimeMs`.
+ * Mirrors the crossing arithmetic of computeSectorSegments, but yields the
+ * per-cell status/delta the widget shows rather than sample index ranges.
+ */
+export function computeSectorDisplayStates(
+  laps: Lap[],
+  currentLap: Lap | null,
+  currentTimeMs: number,
+): SectorDisplayState[] {
+  const outlap: SectorDisplayState = { status: "outlap", deltaMs: null, completedAtMs: null };
+  const active: SectorDisplayState = { status: "active", deltaMs: null, completedAtMs: null };
+
+  if (!currentLap?.sectors) return [outlap, outlap, outlap];
+
+  const s = currentLap.sectors;
+  const t = currentTimeMs;
+  const lapStart = currentLap.startTime;
+  const isFirstLap = currentLap.lapNumber === 1;
+  const best = computeBestSectors(laps);
+
+  const s1Time = s.s1 !== undefined && s.s1 > 0 ? s.s1 : 0;
+  const s2Time = s.s2 !== undefined && s.s2 > 0 ? s.s2 : 0;
+  const s3Time = s.s3 !== undefined && s.s3 > 0 ? s.s3 : 0;
+
+  const s2Crossing = s1Time > 0 ? lapStart + s1Time : Infinity;
+  const s3Crossing = s2Time > 0 ? s2Crossing + s2Time : Infinity;
+  const lapEnd = currentLap.endTime;
+
+  const result = (sectorTime: number, bestTime: number, completedAtMs: number): SectorDisplayState => {
+    if (isFirstLap && bestTime === sectorTime) {
+      return { status: "first", deltaMs: 0, completedAtMs };
+    }
+    if (sectorTime <= bestTime) {
+      return { status: "best", deltaMs: sectorTime - bestTime, completedAtMs };
+    }
+    return { status: "slower", deltaMs: sectorTime - bestTime, completedAtMs };
+  };
+
+  const states: SectorDisplayState[] = [];
+
+  // Sector 1
+  if (t < s2Crossing && s1Time > 0) states.push(active);
+  else if (s1Time > 0) states.push(result(s1Time, best.s1, s2Crossing));
+  else states.push(outlap);
+
+  // Sector 2
+  if (t < s2Crossing) states.push(outlap);
+  else if (t < s3Crossing && s2Time > 0) states.push(active);
+  else if (s2Time > 0) states.push(result(s2Time, best.s2, s3Crossing));
+  else states.push(outlap);
+
+  // Sector 3
+  if (t < s3Crossing) states.push(outlap);
+  else if (t < lapEnd && s3Time > 0) states.push(active);
+  else if (s3Time > 0) states.push(result(s3Time, best.s3, lapEnd));
+  else states.push(outlap);
+
+  return states;
+}

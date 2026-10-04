@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Gauge, Map, ListOrdered, BarChart3, FolderOpen, Play, Pause, StepBack, StepForward, Eye, EyeOff, AlertCircle, Wrench, NotebookPen, SlidersHorizontal, Columns2, LifeBuoy } from "lucide-react";
-import { BrandLogo } from "@/components/BrandLogo";
+import { BrandLogo, BrandLockup } from "@/components/BrandLogo";
 import { LandingPage } from "@/components/LandingPage";
 import { TrackEditor } from "@/components/TrackEditor"; // still used in compact header
 import { LapTimesTab } from "@/components/tabs/LapTimesTab";
@@ -45,6 +45,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Course, ParsedData } from "@/types/racing";
 import { parseDatalogFile } from "@/lib/datalogParser";
 import { calculateDistanceArray } from "@/lib/referenceUtils";
+import type { DragDistanceFt } from "@/lib/dragRunDetection";
 import { formatAxisDistance } from "@/lib/chartAxis";
 import { cn } from "@/lib/utils";
 import { usePanelsForSlot, PanelSlot } from "@/plugins/panels";
@@ -386,7 +387,18 @@ export default function Index() {
     handleDataLoaded, handleLoadSample, isLoadingSample, handleTrackPromptSelect,
     trackPromptOpen, setTrackPromptOpen, detectedTrack, detectionResult,
     allTracks, gpsCenter,
+    dragDetection, dragDistanceFt, applyDragDistance, clearDragSession, handleUseWaypoint,
   } = dataLoader;
+
+  // Assigning a course from the header TrackEditor also stands down an active
+  // drag session (its metadata tag is cleared by handleSelectionChange itself).
+  const handleSelectionChangeWithDragClear = useCallback(
+    (sel: Parameters<typeof handleSelectionChange>[0]) => {
+      clearDragSession();
+      handleSelectionChange(sel);
+    },
+    [clearDragSession, handleSelectionChange],
+  );
 
   // Open a saved session by file name — used by the setup/vehicle history cards to
   // jump straight to the session that holds a card's fastest lap. Loads + parses
@@ -425,6 +437,7 @@ export default function Index() {
     setups: setupManager.setups,
     sessionKartId,
     sessionSetupId,
+    isDragSession: dragDistanceFt != null,
     onLoadOverlay: loadSnapshotOverlay,
     onClearOverlay: handleClearExternalRef,
   });
@@ -517,9 +530,23 @@ export default function Index() {
     brakeMaxG: (settings.brakeMaxG ?? 150) / 100,
   }), [settings.brakingEntryThreshold, settings.brakingExitThreshold, settings.brakingMinDuration, settings.brakingSmoothingAlpha, settings.brakingZoneColor, settings.brakingZoneWidth, settings.brakingGraphWindow, settings.brakeMaxG]);
 
-  const selectedLapTimeMs = selectedLapNumber !== null
-    ? (laps.find((l) => l.lapNumber === selectedLapNumber)?.lapTimeMs ?? null)
+  // An incomplete drag run's lapTimeMs is just its data window, not a time —
+  // suppress it so labels degrade to a bare "Run N" instead of a bogus ET.
+  const selectedLapForTime = selectedLapNumber !== null
+    ? laps.find((l) => l.lapNumber === selectedLapNumber) ?? null
     : null;
+  const selectedLapTimeMs = selectedLapForTime && !selectedLapForTime.incomplete
+    ? selectedLapForTime.lapTimeMs
+    : null;
+
+  // Drag sessions label rows "Run N" through the same lapLabels plumbing the
+  // read-only leaderboard view uses, so the header dropdown, lap table, and
+  // graph header all pick it up with no extra wiring.
+  const dragLapLabels = useMemo(() => {
+    if (dragDistanceFt == null) return null;
+    return Object.fromEntries(laps.map((l) => [l.lapNumber, t("header.run", { number: l.lapNumber })]));
+  }, [dragDistanceFt, laps, t]);
+  const effectiveLapLabels = dragLapLabels ?? lapLabels;
 
   const isAllLaps = selectedLapNumber === null;
   const minRange = Math.min(10, Math.floor(filteredSamples.length / 10));
@@ -627,8 +654,9 @@ export default function Index() {
     selectedLapTimeMs,
     referenceLapNumber,
     isAllLaps,
+    dragDistanceFt,
     readOnly,
-    lapLabels,
+    lapLabels: effectiveLapLabels,
     readOnlyDescriptor,
     hasReference,
     paceDiff,
@@ -693,7 +721,7 @@ export default function Index() {
     visibleRange, minRange,
     selectedCourse, filteredBounds,
     laps, selectedLapNumber, selectedLapTimeMs, referenceLapNumber, isAllLaps,
-    readOnly, lapLabels, readOnlyDescriptor,
+    dragDistanceFt, readOnly, effectiveLapLabels, readOnlyDescriptor,
     hasReference, paceDiff, paceDiffLabel, slicedPaceData, slicedReferenceSpeedData,
     deltaTopSpeed, deltaMinSpeed, lapToFastestDelta, refAvgTopSpeed, refAvgMinSpeed,
     externalRefLabel, savedFiles,
@@ -835,8 +863,8 @@ export default function Index() {
       )}>
         {readOnly ? (
           <div className="flex items-center gap-3 min-w-0">
-            <BrandLogo className="w-6 h-6 shrink-0" />
-            <span className="truncate text-sm font-semibold text-warning-foreground">{tl("readOnly.banner")}</span>
+            <BrandLogo className="h-3.5 text-warning" />
+            <span className="truncate text-sm font-semibold text-warning">{tl("readOnly.banner")}</span>
           </div>
         ) : (
           <button
@@ -845,8 +873,8 @@ export default function Index() {
             aria-label={t("header.home")}
             className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <BrandLogo className="w-6 h-6" />
-            <span className="font-semibold text-foreground hidden sm:inline">LapWing</span>
+            <BrandLogo className="h-3.5 sm:hidden" />
+            <BrandLockup className="hidden h-4 sm:inline-flex" />
           </button>
         )}
 
@@ -885,19 +913,35 @@ export default function Index() {
           </TooltipProvider>
 
           {!readOnly && (
-            <TrackEditor selection={selection} onSelectionChange={handleSelectionChange} compact laps={laps} samples={data?.samples} />
+            <TrackEditor selection={selection} onSelectionChange={handleSelectionChangeWithDragClear} compact laps={laps} samples={data?.samples} />
+          )}
+
+          {!readOnly && dragDistanceFt != null && (
+            <Select
+              value={String(dragDistanceFt)}
+              onValueChange={(v) => applyDragDistance(Number(v) as DragDistanceFt)}
+            >
+              <SelectTrigger className="w-auto gap-1 h-8 px-2 text-sm" title={t("header.dragDistanceTitle")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="660">{t("header.dragEighth")}</SelectItem>
+                <SelectItem value="1000">{t("header.dragThousand")}</SelectItem>
+                <SelectItem value="1320">{t("header.dragQuarter")}</SelectItem>
+              </SelectContent>
+            </Select>
           )}
 
           {laps.length > 0 && (
             <Select value={selectedLapNumber?.toString() ?? "all"} onValueChange={handleLapDropdownChange}>
               <SelectTrigger className="w-auto gap-1 h-8 px-2 text-sm">
-                <SelectValue placeholder={t("header.allLaps")} />
+                <SelectValue placeholder={dragDistanceFt != null ? t("header.allRuns") : t("header.allLaps")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("header.allLaps")}</SelectItem>
+                <SelectItem value="all">{dragDistanceFt != null ? t("header.allRuns") : t("header.allLaps")}</SelectItem>
                 {laps.map((lap) => (
                   <SelectItem key={lap.lapNumber} value={lap.lapNumber.toString()}>
-                    {lapLabels[lap.lapNumber] ?? t("header.lap", { number: lap.lapNumber })}
+                    {effectiveLapLabels[lap.lapNumber] ?? t("header.lap", { number: lap.lapNumber })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1012,6 +1056,9 @@ export default function Index() {
         onSelect={handleTrackPromptSelect}
         initialCenter={gpsCenter}
         detectionResult={detectionResult}
+        dragDetection={dragDetection}
+        onSelectDragDistance={applyDragDistance}
+        onUseWaypoint={handleUseWaypoint}
         laps={laps}
         samples={data?.samples}
       />

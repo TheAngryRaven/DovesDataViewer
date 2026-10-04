@@ -95,10 +95,10 @@ src/
 │   ├── graphview/         # Pro mode: GraphPanel, GraphViewPanel, MiniMap, SingleSeriesChart, GGDiagram, InfoBox, PanelCard (resizable card chrome for relocated Video/Mini-Map panels). The left column collapses via a divider flag tab (any screen size), and Video/Mini-Map can be relocated into the resizable graph stack from the top of the "Add Graph" picker (GraphPanel reports which are active so the host drops its duplicate VideoPlayer — single shared video ref). Split graphs (tablet+): SecondaryGraphStack mirrors the main panel's graph set for a chosen overlay lap in a draggable two-up view, overriding PlaybackContext for its subtree (nested PlaybackProvider) so one cursor lands on the same track position in both laps (distance-mapped via lib/referenceUtils mapIndexByDistance); SecondaryVideo is a literal second, lap-synced <video> for in-session overlay laps.
 │   ├── drawer/            # File-manager drawer tabs (Files, Vehicles/Karts, Device*); SetupsTab + NotesTab also here but mounted as main-view tabs
 │   ├── track-editor/      # Track editor: VisualEditor, SectorListEditor, CourseSectorEditor, Add*Dialog
-│   ├── video-overlays/    # Video-export overlay system: registry + themes + per-widget *Overlay
+│   ├── video-overlays/    # Video-overlay system: registry + themes + settings/export UI + OverlayCanvas; ONE scene renderer (lib/overlayCanvasRenderer, plan 0023) draws every widget for preview, web export and native export alike
 │   ├── RaceLineView.tsx   # Leaflet map: race line, speed heatmap, braking zones
 │   ├── TelemetryChart.tsx # Canvas speed/telemetry chart (simple mode)
-│   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist)
+│   ├── VideoPlayer.tsx    # Synced video playback + overlay system (multi-chunk GoPro playlists via lib/videoPlaylist); native: a camera stream renders as an <img> over lib/insta360's NativePlayerElement (plan 0025), with components/insta360/ (import dialog, 360° drag-to-point layer)
 │   └── …                  # FileImport, LoggerDownload (eager picker host) + LoggerPicker (image chooser) + DataloggerDownload (lazy web-BLE Fledgling flow) / DovesloggerDownload (lazy native-BLE Fledgling flow) / MyChronDownload (lazy native Wi-Fi flow), LapSnapshot*, …
 ├── hooks/                 # One concern each; Index.tsx orchestrates.
 │   ├── useSessionData     # Parses imported file → ParsedData
@@ -111,11 +111,13 @@ src/
 │   ├── datalogParser.ts   # ★ Format auto-detection router (entry point for all parsing)
 │   ├── gpsQualityFilter.ts # ★ Post-parse cleanup (plan 0014): rebuilds samples dropping provably-bad rows (negative sats/accuracy/DOP, DOP>10, or a position jump implying >MAX_SPEED_MPS) — all formats; quality values are never fabricated onto rows (see xrk/xrkResample)
 │   ├── *Parser.ts         # nmea, ubx, iracing (.ibt), vbo, dove, dovex, alfano, aim, motec
+│   ├── gopro/             # ★ GoPro video import (plan 0029): mp4Boxes (ranged-read ISO-BMFF → `gpmd` sample table), gpmf (KLV + GPS5/GPS9), goproTelemetry (pure → Dove CSV + known video sync offset), goproImport (File glue; async like XRK — dynamic-imported, off the main chunk), goproDetect (the cheap eager name/`ftyp` gates), videoHandoff (one-shot video → useVideoSync)
 │   ├── xrk/               # ★ AiM .xrk/.xrz importer — libxrk (Rust→WASM) in a Web Worker (→ docs/subsystems.md)
 │   ├── channels.ts        # ★ Canonical channel registry + normalizeChannels()
 │   ├── courseDetection.ts # ★ Auto track/course/direction detection + waypoint mode (→ docs/subsystems.md)
 │   ├── courseSectors.ts   # ★ Pure sector model: caps, normalizeCourseSectors, majorSectorLines (→ docs/subsystems.md)
-│   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[]
+│   ├── lapCalculation.ts  # Start/finish + per-sector crossing detection → Lap[]; fastestRankedLap = the ONLY way to pick "fastest" (skips incomplete drag runs)
+│   ├── dragRunDetection.ts # ★ Drag mode (plan 0022): standing-start run detection at unknown venues (staged→launch state machine, marks at 60/330/660/1000/1320 ft, straightness+speed gate) + run→Lap mapping. useDataLoader consults it BEFORE accepting a waypoint result (a strip's return road fools waypoint mode); distance choice persists as FileMetadata.dragDistanceFt
 │   ├── lapDelta.ts        # ★ Position-based lap delta (arc-length resample + segment-projected gap)
 │   ├── fileBrowserTree.ts # ★ Pure file-browser hierarchy (→ docs/subsystems.md)
 │   ├── sampleData.ts      # ★ Bundled sample log seeded as an ordinary file (→ docs/subsystems.md)
@@ -126,7 +128,7 @@ src/
 │   ├── imageCrop.ts       # ★ Pure on-device avatar crop (1:1 centre + downscale ≤256, webp/jpeg) — no Supabase (plan 0006)
 │   ├── driverProfileGroups.ts # ★ Pure: one driver's leaderboard entries → Course→weight buckets (plan 0006, DriverProfile)
 │   ├── setupRevision*.ts  # ★ Content-addressed setup history + IndexedDB CRUD (→ docs/subsystems.md)
-│   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
+│   ├── setupHistory.ts    # ★ Pure setup-history view-model (diff + fastest-lap aggregation; Used/All views — plan 0028) → drawer/SetupHistoryPanel (→ docs/subsystems.md)
 │   ├── vehicleHistory.ts  # ★ Pure vehicle-history view-model (per-vehicle setup revisions, fastest-lap first, course filter) → drawer/VehicleHistoryPanel; reuses setupHistory primitives; shared card chrome in drawer/HistoryCard.tsx
 │   ├── trackSubmission.ts # ★ Community-DB upload plan (→ docs/subsystems.md)
 │   ├── dbUtils.ts         # ★ Shared IndexedDB: DB_NAME, DB_VERSION, openDB(), tx helpers
@@ -138,6 +140,7 @@ src/
 │   ├── loggers/           # ★ Generic LoggerConnection (listLogs/downloadLog/disconnect) + per-logger adapters — Fledgling=web BLE, mychron/=MyChron over native (Tauri) Wi-Fi IPC, doveslogger/=same Fledgling hardware over native (Tauri) BLE IPC (scan→connect→list→download), alfano/=Alfano over native (Tauri) Bluetooth-serial IPC (SKELETON: web-side seam only, Rust backend TBD — Bluetooth serial can't be reached in-browser so there's no web path); native/ipc.ts = shared kind-agnostic native IPC (all lazy; @tauri-apps/api dynamic-imported, native-only). progress.ts = transport-neutral formatters + computeProgress; errors.ts = pure error-prefix classifier + recovery-action table — every download flow renders classified, translated errors via the shared ErrorPanel, never raw backend strings. Native Fledgling firmware OTA (plan 0008): doveslogger/`loggerUpdateFirmware` + `firmwareInfo.ts` + `useNativeFirmwareUpdate`/`NativeFirmwarePanel`, reusing lib/ble/dfu; availability runtime-detected (→ docs/ble.md, docs/android.md)
 │   ├── speedHeatmap.ts / mapMarker.ts / brakingZones / gforceCalculation / …  # racing math
 │   ├── chartUtils / canvas2d / chartAxis / chartColors / videoExport / overlayCanvasRenderer  # charts/video
+│   ├── insta360/          # ★ Native-only Insta360 camera bridge (plan 0025): ipc (insta360_* over the lazy Tauri loader), nativePlayer (the camera stream as a <video>-shaped VideoSurface for useVideoSync), playerClock + pose (pure, tested)
 │   ├── videoPlaylist.ts   # ★ Pure GoPro chunked-video model: parse/order GH/GX/GP/GOPR chunk names, build a virtual timeline (cumulative offsets) + virtual↔local time mapping + planAudioSegments (export audio stitch). useVideoSync swaps the <video> src per chunk; a single file is a 1-chunk playlist
 │   ├── satelliteImagery.ts # ★ Esri Wayback parsing (online-only satellite imagery-date picker)
 │   ├── ble/               # Web Bluetooth DovesLapTimer protocol + firmware OTA (→ docs/ble.md)
@@ -146,7 +149,11 @@ src/
 │   ├── weatherService.ts  # Historical weather (online-only): NWS/IEM METAR → Open-Meteo fallback
 │   ├── weatherCacheStorage.ts # Per-session historical-weather cache (IndexedDB, local-only/never cloud-synced): a session's date is fixed so its weather is immutable — cache it once, stop re-pinging the station/API on reopen
 │   ├── buildInfo.ts       # Build version/hash/branch stamp + isPreviewBuild()
+│   ├── analytics.ts       # ★ Anonymous usage stats (plan 0030): PostHog, cookieless, dynamic-imported only when the gate passes (key baked in + web + not iframe/`?nosw=1` + no DNT/GPC + `sendUsageStats` on) — keyless builds drop the import entirely. Pageview/pageleave only; `scrubEvent` (before_send) strips query/hash and placeholders `/s/:token` + `/driver/:username` from every URL property. Privacy.tsx wording mirrors its config — change both together
 │   ├── versionCheck.ts    # ★ "Update available" signal: compares buildInfo vs the build-emitted, uncached /version.json (independent of the SW's own update detection) → main.tsx update toast
+│   ├── offlineWarmup.ts / offlineReadiness.ts  # ★ Two-stage offline cache (plan 0027): the precache install is all-or-nothing, so `vite.config.ts` holds the heavy public dirs (DEFERRED_ASSET_DIRS = samples/, loggers/) OUT of it and emits `offline-assets.json` (url + content-hash revision per file); offlineWarmup writes them into the `app-deferred-assets` cache afterwards with `cache.put` (NOT a plain fetch — an uncontrolled first-visit page bypasses the SW), stamping each with its revision so an updated asset is re-fetched (the CacheFirst route alone never would) and pruning files no longer shipped; a failure costs only that asset. offlineReadiness is the pure state (incl. `native` for the Tauri shell) → useOfflineReadiness → SettingsModal row
+│   ├── nativeVideoExport.ts / nativeVideoStore.ts / nativeBytes.ts  # ★ Native-shell video bridge (plan 0024, → docs/subsystems.md): nativeVideoExport stages a hardware-transcoded overlay export over `video_export_*` IPC (null = shell can't, caller falls back to the WebView exporter); nativeVideoStore copies a session's picked video into the shell's app-data store (`video_store_*`) so it replays/exports without re-picking — deleted with its session by fileStorage.deleteFile, listed/pruned by plugins/native-storage; nativeBytes = the base64-chunk upload encoding (Android's WebView has no raw IPC bodies)
+│   ├── pwaInstall.ts / persistentStorage.ts  # Offline durability (plan 0026): pwaInstall decides the install nudge (iOS never fires beforeinstallprompt → hand-held Home Screen hint, snoozable) for InstallPrompt; persistentStorage asks navigator.storage.persist() once at boot (main.tsx) so the precache + IndexedDB stop being evictable
 │   ├── debugConsole.ts    # ★ On-screen debug console (`?dbg=true`) — mobile/PWA has no dev tools
 │   ├── units.ts           # ★ Pure unit conversions for the 3 imperial/metric toggles
 │   ├── i18n/              # ★ i18next config/init/format (→ docs/i18n.md)
@@ -156,6 +163,7 @@ src/
 │   ├── (framework)        # types, registry, index, panels, mounts, fileSources, storage + hosts
 │   ├── cloud-sync/        # ★ First-party plugin: Supabase file + garage sync (→ docs/backend.md)
 │   ├── tools/             # ★ First-party plugin: Tools tab (kart seat-position viz; phone Lap Timer; pill alignment calculator — plan 0011)
+│   ├── native-storage/    # First-party plugin, native shell only: Profile-tab "Videos on this device" panel over lib/nativeVideoStore (plan 0024) — also what gives a native build without cloud a Profile tab
 │   └── coaching/          # Gitignored slot for the AI coach (npm pkg in production)
 ├── types/racing.ts        # ★ Core types: GpsSample, ParsedData, Lap, Course, Track, …
 ├── contexts/              # SettingsContext, SessionContext, PlaybackContext, DeviceContext, AuthContext
@@ -196,14 +204,14 @@ File Import (drag-drop / BLE download / file manager)
 | `ParsedData` | `samples[]`, `fieldMappings[]`, `bounds`, `duration`, `startDate?`, `dovexMetadata?`, `parserStats?` |
 | `ParserStats` | `totalRows`, `acceptedRows`, `rejected: { nanFields, zeroCoords, outOfRange, speedCap, teleportation, incompleteRow }` |
 | `DovexMetadata` | `datetime?`, `driver?`, `course?`, `shortName?`, `bestLapMs?`, `optimalMs?`, `lapTimesMs?[]` |
-| `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` (S1/S2/S3 major rollup), `sectorTimes?` (fine-grained), `sectorBoundaries?` (per-line sample indices) |
+| `Lap` | `lapNumber`, `startTime/endTime`, `lapTimeMs`, speed stats, `startIndex/endIndex`, `sectors?` (S1/S2/S3 major rollup), `sectorTimes?` (fine-grained), `sectorBoundaries?` (per-line sample indices), `incomplete?` (drag: lapTimeMs is a data window, never rank as fastest — use `fastestRankedLap`) |
 | `Course` | `name`, `type?: CourseType` (absent = `circuit`), `lengthFt?`, `startFinishA/B`, `finish?`+`dateCreated?` (sprint only), `sectors?: CourseSector[]`, deprecated `sector2/sector3` (legacy mirror), optional `layout?` (`{lat,lon}[]` outline) |
 | `CourseSector` | `{ line: SectorLine, major: boolean }` — one timing line after start/finish. `major` is circuit-only; sprint splits are stored unflagged |
 | `CourseType` | `'circuit' \| 'sprint'` — lap-to-lap vs point-to-point (start line ≠ finish line). Read via `isSprintCourse()`; see `docs/plans/0015-sprint-mode.md` |
 | `Track` | `name`, `shortName?` (max 8 chars), `courses[]` |
 | `CourseDetectionResult` | `track`, `course`, `direction?`, `laps[]`, `isWaypointMode`, `waypointNotice?` |
 | `FieldMapping` | `index`, `name` (canonical ChannelId or `custom:` slug), `label?`, `unit?`, `enabled` |
-| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — the bundled sample), `isSample?` (marks the sample so the browser can hide it), `postSession?` (`PostSessionData`: post-session tire pressures — single/halves/quarters — + a single weight, entered on the Notes tab; cloud-synced via metadata, held for later processing). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
+| `FileMetadata` | `fileName`, `trackName`, `courseName`, `weatherStation*?`, `sessionKartId?`, `sessionSetupId?`, `sessionSetupRev?` (frozen hash), `sessionEngine?`, `sessionStartTime?`, `fastestLapMs?`, `fastestLapNumber?`, `displayName?` (browser-name override — the bundled sample), `isSample?` (marks the sample so the browser can hide it), `postSession?` (`PostSessionData`: post-session tire pressures — single/halves/quarters — + a single weight, entered on the Notes tab; cloud-synced via metadata, held for later processing), `dragDistanceFt?` (drag-mode scoring distance in feet — plan 0022; presence marks a drag session, cleared when a real course is assigned). Partial updates go through `updateFileMetadata(fileName, patch)` (read-merge-write — never clobbers untouched tags). |
 
 ---
 
@@ -221,9 +229,11 @@ ParsedData` (full parse). **To add one:**
 then other binary (MoTeC LD → UBX → iRacing `.ibt`), then text most-specific to
 least (VBO → MoTeC CSV → Dovex → Dove → Alfano → AiM CSV → NMEA fallback).
 
-Two parsers break the simple sync contract — the async **AiM XRK/XRZ** (Rust→WASM
-Web Worker) and the binary **iRacing `.ibt`**. Details, plus the **.dovex/.dovep**
-8 KB-header format: **→ `docs/subsystems.md`**.
+Three parsers break the simple sync contract — the async **AiM XRK/XRZ** (Rust→WASM
+Web Worker), the async **GoPro video** (ranged reads of the `gpmd` track, checked
+by extension *before* the router's whole-file `arrayBuffer()`; saved as a `.dove`,
+never the MP4), and the binary **iRacing `.ibt`**. Details, plus the
+**.dovex/.dovep** 8 KB-header format: **→ `docs/subsystems.md`**.
 
 ---
 
@@ -277,9 +287,11 @@ A plugin default-exports `{ id, name, version?, priority?, setup?(ctx) }`. In
 - **File sources** (`fileSources.ts`, `FILE_SOURCES_POINT`): feed *remote* files
   into the host browser as inline `cloud` rows without coupling the host to cloud.
 
-First-party plugins: **cloud-sync** (Supabase file + garage sync → `docs/backend.md`)
-and **tools** (Tools tab: kart seat-position visualizer + phone Lap Timer built on
-`lib/gps/`). New slots/points are just new strings — no framework change.
+First-party plugins: **cloud-sync** (Supabase file + garage sync → `docs/backend.md`),
+**tools** (Tools tab: kart seat-position visualizer + phone Lap Timer built on
+`lib/gps/`) and **native-storage** (native shell only — the Profile tab's "Videos
+on this device" card over `lib/nativeVideoStore`; its `setup` returns early off
+native, so the web build contributes nothing). New slots/points are just new strings — no framework change.
 
 > ## ⚠️ SUPER IMPORTANT — coach source differs by branch (DO NOT MERGE BLINDLY)
 >
@@ -314,7 +326,9 @@ unless noted.
 - **Lap snapshots** (`lapSnapshot*.ts`): frozen "course fastest lap" keyed by
   (course + engine); loaded as a comparison overlay only (excluded from playback).
 - **Setup revisions** (`setupRevision*.ts`): immutable, content-addressed (`id` =
-  SHA-256) history of vehicle setups, frozen on assignment.
+  SHA-256) history of vehicle setups, frozen on every save and on assignment.
+  Untagged revisions are device-local (never uploaded) and age out after 3 days,
+  keeping each setup's newest one (plan 0028).
 - **Course layouts / drawing**: user-drawn polyline outlines persist on
   `Course.layout`; built-ins come from `public/drawings.json`. Draw/Generate tools
   in `VisualEditor`, available to all users.
@@ -396,6 +410,7 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_ENABLE_CLOUD` | Client | `"true"` enables public accounts (Cloud Sync + email sign-in + `/register` etc.). Default `"false"`. |
 | `VITE_IS_NATIVE` | Client/Build | `"true"` ONLY for the native (Tauri/Android) shell build. Gates `isNativeApp()` (`lib/platform.ts`): no service worker, no in-app purchases (web-only billing — Google Play policy), external links via the system browser. Default `"false"`. → `docs/android.md`. |
 | `VITE_TURNSTILE_SITE_KEY` | Client | Cloudflare Turnstile site key (optional CAPTCHA) |
+| `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` | Client | Anonymous usage stats via PostHog (plan 0030, `lib/analytics.ts`). Key unset = the PostHog import is dead code (no chunk emitted). Web-only (never native/iframe/`?nosw=1`), skipped for DNT/GPC, opt-out via `sendUsageStats` setting, `cookieless_mode: "always"`, URLs scrubbed in `before_send`. Pageview/pageleave ONLY — no autocapture, replay, surveys or flags. **Operator checklist before setting the key (README → Anonymous usage statistics): enable cookieless server hash mode + Discard client IP data in the PostHog project.** Goes through `pick()`, so `_PREVIEW`/`HTT_` variants work; events carry `app_channel` (production/preview) + `app_display_mode`. Host defaults to the US cloud. |
 | `TURNSTILE_SECRET_KEY` | Server (edge fn) | Turnstile secret — `???` |
 | `VITE_FIRMWARE_MANIFEST_URL` | Client | Override the logger firmware OTA manifest URL. Unset: `main` → production manifest, non-`main`/preview → beta channel (same `isPreviewBuild()` switch). |
 | `SUPABASE_ACCESS_TOKEN` | Build (secret) | Supabase PAT. On a **feature-branch** build (not `main`, not `BETA`), `vite.config.ts` resolves that branch's own Supabase **preview-branch DB** via the Management API (`scripts/resolveSupabaseBranch.ts`) and bakes its creds in, else falls back to the static `*_PREVIEW`/beta creds. Never on `main`/`BETA`/dev/runtime. → plan 0007. |
@@ -404,7 +419,11 @@ and the seeder: **→ `docs/i18n.md`**.
 | `VITE_APP_VERSION` / `VITE_GIT_HASH` / `VITE_BUILD_DATE` / `VITE_GIT_BRANCH` / `VITE_GIT_COMMIT_DATE` | Build (auto) | Footer version stamp — **not hand-set**; baked from `package.json` + git in `vite.config.ts`. |
 
 **PWA/deploy detail:** the active offline worker is `/service-worker.js` (registered
-outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. `vite.config.ts`
+outside preview/iframe contexts); `public/sw.js` is a legacy kill-switch. **The
+precache install is all-or-nothing — one failed request discards the whole
+service worker — so keep it small: heavy public assets belong in
+`DEFERRED_ASSET_DIRS` (`scripts/deferredAssets.ts`; runtime-cached + warmed after activation), never in the
+install-blocking glob. See plan 0027 before adding anything bulky to `public/`.** `vite.config.ts`
 also emits `/version.json` per build (the freshness signal for `versionCheck.ts`); it's
 excluded from the Workbox precache (`globIgnores`) and fetched uncached. Static
 hosting is Cloudflare Workers (static-assets-only, `wrangler.jsonc`,
@@ -498,6 +517,13 @@ menu still opens instantly; `CourseSectorEditor` (carries
   it. Export includes `longName`, `shortName`, `defaultCourse`, per-course `lengthFt`.
 - **CSS**: use Tailwind semantic tokens from `index.css`, never hardcode colors
   (e.g. `--warning`/`warning` for the preview-build footer).
+- **Brand**: the `index.css` palette is the LapWing theme from the
+  [perchwerks-style](https://github.com/TheAngryRaven/perchwerks-style) repo
+  (`lapwing-light` → `:root`, `lapwing-dark` → `.dark`); change colours there
+  first, then mirror them here. Logos: `BrandLogo` (inline bird mark,
+  `currentColor`) and `BrandLockup` (raster LAPWING lockup in `public/brand/` —
+  the logotype has no vector master yet). Archivo is display-only (`font-brand`)
+  and only its italic face ships.
 - **Admin/cloud code** is fully optional and env-gated — the core app has zero
   admin/cloud dependencies on the eager graph.
 - **Edge functions** live in `supabase/functions/`, auto-deployed, configured in

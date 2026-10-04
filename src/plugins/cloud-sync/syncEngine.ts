@@ -228,14 +228,22 @@ async function pushDocRows(rows: SyncRecordRow[]): Promise<{ pushed: number; ski
  * No-op if the record is already gone locally. Throws on a backend error
  * (including the server quota rejection — see `isQuotaError`).
  */
-export async function pushRecord(userId: string, store: string, key: string): Promise<void> {
-  const record = await getAccessor(store).getOne(key);
-  if (record == null) return;
+/**
+ * Upsert one local document to the cloud. Returns false (no upload) when the
+ * record is missing locally or the store's push gate rejects it.
+ */
+export async function pushRecord(userId: string, store: string, key: string): Promise<boolean> {
+  const accessor = getAccessor(store);
+  const record = await accessor.getOne(key);
+  if (record == null) return false;
+  const keep = await accessor.pushFilter?.();
+  if (keep && !keep(record)) return false;
   const { error } = await syncRecords().upsert(
     [{ user_id: userId, store, record_key: key, data: record }],
     { onConflict: "user_id,store,record_key" },
   );
   if (error) throw new Error(error.message);
+  return true;
 }
 
 /** Delete one document record from the cloud (deletion propagation). */
@@ -291,6 +299,7 @@ export async function reconcileDocs(
   const seen = new Set<string>();
 
   for (const store of DOC_STORES) {
+    const keep = await getAccessor(store).pushFilter?.();
     for (const record of await readAll(store)) {
       const key = extractKey(store, record);
       const id = pendingId(store, key);
@@ -304,6 +313,10 @@ export async function reconcileDocs(
         pending: pendingKeys.has(id),
       });
       if (action === "push") {
+        // A store's push gate keeps device-local records (untagged setup
+        // revisions) out of the cloud; they still count as seen so the
+        // cloud-only pass doesn't re-pull over them.
+        if (keep && !keep(record)) continue;
         toPush.push({ user_id: userId, store, record_key: key, data: record });
       } else if (action === "pull" && c) {
         await writeOne(store, c.data);

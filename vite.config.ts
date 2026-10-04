@@ -2,9 +2,11 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
+import { createHash } from "crypto";
 import { execSync } from "child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { resolveBranchBackend } from "./scripts/resolveSupabaseBranch";
+import { DEFERRED_ASSET_DIRS, deferredAssetPathPattern, sameOriginPathMatcher } from "./scripts/deferredAssets";
 
 // Build-time version metadata for the footer "what changed" stamp. The app
 // version comes from package.json; the commit hash + build date are baked in at
@@ -80,6 +82,72 @@ function externalPluginsLoader(candidates: string[]): Plugin {
       const imports = present.map((p, i) => `import p${i} from ${JSON.stringify(p)};`).join("\n");
       const list = present.map((_, i) => `p${i}`).join(", ");
       return `${imports}\nexport default [${list}];\n`;
+    },
+  };
+}
+
+// Heavy public assets kept OUT of the install-blocking precache.
+//
+// Workbox's precache install is all-or-nothing: one failed request rejects
+// `install`, the service worker is thrown away, and NOTHING is cached — the
+// partial entries are orphaned. With the bundled sample datalogs and logger
+// photos in there, install was a ~10 MB all-or-nothing download, so losing
+// signal partway through (a phone at a track, say) left the app with no offline
+// capability at all and no way to tell.
+//
+// These directories hold everything big that the app does not need in order to
+// boot: they are runtime-cached instead (see `runtimeCaching` below) and warmed
+// in the background once the worker is active (src/lib/offlineWarmup.ts), so
+// they still work offline without being able to take the whole install down.
+// One source of truth — DEFERRED_ASSET_DIRS (scripts/deferredAssets.ts) feeds
+// `globIgnores`, the runtime-cache route and the emitted manifest alike.
+const DEFERRED_ASSET_GLOBS = DEFERRED_ASSET_DIRS.map((dir) => `${dir}/**`);
+
+/** Where the client reads the list of deferred assets to warm. */
+const DEFERRED_MANIFEST_FILE = "offline-assets.json";
+
+/**
+ * Emit `offline-assets.json` — every file under the deferred directories, as a
+ * root-relative URL plus a content hash. Generated from the filesystem rather
+ * than hand-maintained so dropping a new logger photo into `public/loggers/` is
+ * picked up with no code change. Runs in `writeBundle`, which is before
+ * vite-plugin-pwa builds the service worker in `closeBundle`, so the manifest
+ * itself gets precached.
+ *
+ * The hash is the revision the runtime cache lacks: the deferred route is
+ * CacheFirst with no expiry, so the client re-fetches an asset only when its
+ * stored revision stops matching this manifest (src/lib/offlineWarmup.ts).
+ * Without it an updated sample log or logger photo never reached a device
+ * that had cached the old bytes.
+ */
+function deferredAssetManifest(dirs: readonly string[]): Plugin {
+  const publicDir = path.resolve(__dirname, "public");
+  type Entry = { url: string; revision: string };
+  const walk = (dir: string, out: Entry[]) => {
+    if (!fs.existsSync(dir)) return out;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full, out);
+      else
+        out.push({
+          url: "/" + path.relative(publicDir, full).split(path.sep).join("/"),
+          revision: createHash("sha256").update(fs.readFileSync(full)).digest("hex").slice(0, 16),
+        });
+    }
+    return out;
+  };
+  return {
+    name: "dove-deferred-assets",
+    apply: "build",
+    writeBundle(options) {
+      const assets = dirs
+        .flatMap((dir) => walk(path.join(publicDir, dir), []))
+        .sort((a, b) => a.url.localeCompare(b.url));
+      const outDir = options.dir ?? path.resolve(__dirname, "dist");
+      fs.writeFileSync(
+        path.join(outDir, DEFERRED_MANIFEST_FILE),
+        JSON.stringify({ assets }, null, 2) + "\n",
+      );
     },
   };
 }
@@ -232,6 +300,12 @@ export default defineConfig(async ({ mode }) => {
       "import.meta.env.VITE_IS_NATIVE": JSON.stringify(
         pick("VITE_IS_NATIVE", "HTT_IS_NATIVE", PUBLIC_BACKEND_FALLBACKS.VITE_IS_NATIVE),
       ),
+      // Anonymous usage stats (plan 0030). Empty = no analytics in the build.
+      // Goes through pick() so a `_PREVIEW` variant can point beta/preview
+      // deploys at a separate PostHog project; otherwise they share the
+      // production project and are told apart by the `app_channel` property.
+      "import.meta.env.VITE_POSTHOG_KEY": JSON.stringify(pick("VITE_POSTHOG_KEY", "HTT_POSTHOG_KEY", "")),
+      "import.meta.env.VITE_POSTHOG_HOST": JSON.stringify(pick("VITE_POSTHOG_HOST", "HTT_POSTHOG_HOST", "")),
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
       "import.meta.env.VITE_GIT_HASH": JSON.stringify(gitHash),
       "import.meta.env.VITE_BUILD_DATE": JSON.stringify(buildDate),
@@ -259,19 +333,24 @@ export default defineConfig(async ({ mode }) => {
           });
         },
       } satisfies Plugin,
+      deferredAssetManifest(DEFERRED_ASSET_DIRS),
       VitePWA({
         filename: "service-worker.js",
         registerType: "autoUpdate",
         devOptions: {
           enabled: false,
         },
-        includeAssets: ["favicon.png", "favicon.ico", "robots.txt", "tracks.json", "samples/**/*"],
+        // Only what `globPatterns` below does NOT already match. Listing an
+        // asset in both precached it twice — that duplicated the 1.25 MB sample
+        // .nmea in every install.
+        includeAssets: ["robots.txt"],
         manifest: {
           name: "LapWing - Motorsport Data Viewer",
           short_name: "LapWing",
           description: "Open source motorsport data acquisition and analytics",
-          theme_color: "#1a1a2e",
-          background_color: "#0f0f1a",
+          // LapWing brand `lapwing-dark` canvas (perchwerks-style tokens).
+          theme_color: "#170A35",
+          background_color: "#170A35",
           display: "standalone",
           start_url: "/",
           icons: [
@@ -284,6 +363,14 @@ export default defineConfig(async ({ mode }) => {
               src: "pwa-512x512.png",
               sizes: "512x512",
               type: "image/png",
+            },
+            {
+              // Full-bleed plate with the mark inside the 80% safe zone, so
+              // Android's adaptive-icon mask never clips the bird.
+              src: "pwa-512x512.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
             },
             {
               src: "apple-touch-icon-180x180.png",
@@ -301,12 +388,43 @@ export default defineConfig(async ({ mode }) => {
           // .woff fallbacks @fontsource emits would just be dead precache weight.
           // mjs: the vendored firmware-simulator module (public/sim/) — precached
           // so the /simulator page works offline like everything else.
-          globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,json,nmea,wasm}"],
+          globPatterns: ["**/*.{js,mjs,css,html,ico,png,svg,woff2,json,wasm}"],
           // version.json must never be precached — it's the freshness signal the
           // running tab fetches uncached to detect a newer deploy (see versionCheck.ts).
-          globIgnores: ["**/tracks.zip", "version.json"],
+          // The deferred directories are excluded so a slow or dropped connection
+          // can't abort the whole install; they are runtime-cached and warmed
+          // afterwards instead. See DEFERRED_ASSET_DIRS (scripts/deferredAssets.ts).
+          // og-image.png is only ever fetched by link-preview crawlers — no reason
+          // to ship it in every offline install.
+          // vendor-posthog: only analytics users ever load it (plan 0030), so it is
+          // fetched on demand instead of weighing every offline install.
+          globIgnores: ["**/tracks.zip", "version.json", "og-image.png", "**/vendor-posthog-*.js", ...DEFERRED_ASSET_GLOBS],
           navigateFallbackDenylist: [/^\/~oauth/],
           runtimeCaching: [
+            {
+              // The heavy assets held out of the precache (see
+              // DEFERRED_ASSET_DIRS). CacheFirst so that once warmed they are
+              // served offline exactly as if precached — the difference is only
+              // that failing to fetch one can no longer abort the install.
+              // workbox-build serializes this callback into the worker, where
+              // nothing from this module's scope exists, so the matcher bakes the
+              // pattern derived from DEFERRED_ASSET_DIRS into its source text.
+              // `sameOrigin` is supplied by Workbox's route matcher.
+              urlPattern: sameOriginPathMatcher(deferredAssetPathPattern(DEFERRED_ASSET_DIRS)),
+              handler: "CacheFirst",
+              options: {
+                // No ExpirationPlugin here on purpose: the warm-up writes these
+                // entries straight into the cache, so they'd be absent from the
+                // plugin's own index. Freshness comes from revisions instead:
+                // offline-assets.json carries a content hash per file and the
+                // warm-up replaces any entry not stamped with the current one
+                // (and prunes files the build no longer ships).
+                cacheName: "app-deferred-assets",
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             {
               urlPattern: ({ request }) => request.mode === "navigate",
               handler: "NetworkFirst",
@@ -384,6 +502,10 @@ export default defineConfig(async ({ mode }) => {
             "vendor-leaflet": ["leaflet"],
             "vendor-supabase": ["@supabase/supabase-js"],
             "vendor-markdown": ["react-markdown", "remark-gfm"],
+            // Dynamic-imported by lib/analytics.ts only when analytics starts;
+            // a named chunk keeps it cache-stable across deploys. Keyless builds
+            // drop the import entirely, so they get no (empty) chunk either.
+            ...(pick("VITE_POSTHOG_KEY", "HTT_POSTHOG_KEY", "") ? { "vendor-posthog": ["posthog-js"] } : {}),
             // Radix is many small packages; group them into one chunk.
             "vendor-radix": [
               "@radix-ui/react-collapsible",

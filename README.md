@@ -27,6 +27,7 @@
 - Automatic track & course detection within 5 miles
 - Automatic driving direction detection (forward/reverse)
 - Waypoint mode — lap timing anywhere, no track needed
+- Drag mode — standing-start runs auto-detected at unknown venues; pick 1/8 mile, 1000 ft or 1/4 mile and every pass gets a time-slip breakdown (60/330/660/1000 ft splits + ET), incomplete passes included
 - Interactive race line map with speed heatmap
 - Braking zone detection & visualization
 - Automatic lap detection via start/finish line
@@ -37,6 +38,7 @@
 - Public leaderboards — submit your snapshots and browse fastest community laps by track, course and engine class (with optional weight grouping); opens any group in a read-only viewer (cloud-enabled builds)
 - Shareable session links — share a cloud-synced log behind an opaque public link (`/s/…`, no account needed) that never reveals the file name; opens the full session in the read-only viewer with precise lap/sector timing (custom course geometry travels with the share). Opt into public-by-default uploads and your public sessions appear on your driver profile (cloud-enabled builds)
 - Video sync with telemetry playback (incl. GoPro chunked recordings — select all chapter files and they play as one continuous video)
+- Import a GPS-tagged GoPro video as a session — the camera's embedded GPS becomes the datalog and the footage opens pre-synced
 - 9 overlay gauge types (digital, analog, graph, bar, bubble, map, pace, sector, lap time)
 - MP4 video export with overlays & audio (H.264 + AAC)
 - Vehicle profiles & setup sheet management
@@ -48,7 +50,12 @@
 - Local weather lookup
 - Optional cloud sync of files & garage data across devices (requires backend + sign-in)
 - Dark & light mode
-- PWA — installable & fully offline
+- PWA — installable & fully offline. **On iPhone/iPad, install it:** Safari
+  wipes an uninstalled site's offline data (cached app *and* saved sessions)
+  after roughly a week of not visiting it, so a bookmarked tab can come up
+  empty at a track. Share → *Add to Home Screen*, then open it once with
+  signal — a Home Screen app keeps its data between race weekends. The app
+  shows these steps on iOS, where the browser never offers an install button.
 
 ---
 
@@ -86,6 +93,7 @@ All formats are auto-detected on import:
 | MoTeC CSV | MoTeC i2 Pro export | `.csv` |
 | MoTeC LD | MoTeC native binary | `.ld` |
 | NMEA | Standard GPS sentences | `.nmea`, `.txt`, `.csv` |
+| GoPro video | GPS-tagged GoPro footage (HERO5+, GPS on) — the embedded GPMF telemetry track | `.mp4`, `.mov` (`.360` experimental) |
 
 > **AiM XRK/XRZ** is parsed by [libxrk](https://github.com/m3rlin45/libxrk)'s
 > pure-Rust core **compiled to a small (~200 KB) WebAssembly module** — no
@@ -93,6 +101,17 @@ All formats are auto-detected on import:
 > **offline** (the wasm is precached), and parses a typical session in tens to a
 > couple hundred milliseconds. See
 > [AiM XRK / XRZ import](#aim-xrk--xrz-import) for how the wasm is built and pinned.
+
+> **GoPro video** is a datalog too: every GoPro since the HERO5 embeds a GPS
+> stream (GPMF `gpmd` track — `GPS5` at 18 Hz, or `GPS9` on HERO11+) in the
+> MP4. Drop the video and only that small telemetry track is read, through
+> ranged reads — the multi-GB video is never loaded or stored. The fixes are
+> saved as an ordinary Dove log, and because telemetry and footage share the
+> camera's clock the video opens alongside the session **already synced**.
+> Select all chapters of a split recording together to import them as one
+> session. **`.360` (MAX/Fusion) is experimental:** it carries the same
+> telemetry track and is accepted, but hasn't been tested against a real file
+> yet. Design notes: `docs/plans/0029-gopro-gps-video-import.md`.
 
 > **iRacing IBT** is the sim's only native on-disk telemetry export — the binary
 > `.ibt` file iRacing writes (at the session tick rate, typically 60 Hz) once
@@ -164,6 +183,8 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 | `VITE_ENABLE_CLOUD` | No | Set to `true` to enable public user accounts: Cloud Sync panels, email sign-in/registration, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback`. Default `false` — flag-off builds ship zero cloud auth code (offline-first invariant). |
 | `VITE_IS_NATIVE` | No | Set to `true` **only** for the native (Tauri/Android) shell build. Skips the service worker, hides in-app purchases (paid plans are web-only — Google Play billing policy; cloud sync still works), and opens external links in the system browser. The web app leaves this unset/`false`. See [`docs/android.md`](docs/android.md). |
 | `VITE_TURNSTILE_SITE_KEY` | No | Cloudflare Turnstile site key for track submission CAPTCHA |
+| `VITE_POSTHOG_KEY` | No | PostHog project key for **anonymous usage statistics** (pageviews and time on site — cookieless, no autocapture, no replay, URLs scrubbed in the browser). Unset = no analytics code is even built in. Web-only: never active in the native app, an iframe or a `?nosw=1` preview, never for Do Not Track / Global Privacy Control browsers, and users can opt out in *Settings → Privacy*. **Do the [PostHog project checklist](#anonymous-usage-statistics) before setting it.** A `VITE_POSTHOG_KEY_PREVIEW` variant points beta/preview deploys at a separate project; otherwise they share one and are told apart by the `app_channel` event property. See `docs/plans/0030-anonymous-usage-analytics.md`. |
+| `VITE_POSTHOG_HOST` | No | PostHog ingest host override (defaults to `https://us.i.posthog.com`). Set to the EU cloud or a same-origin reverse proxy. |
 | `VITE_FIRMWARE_MANIFEST_URL` | No | Override the DovesDataLogger firmware OTA manifest URL used by the in-app firmware updater. When unset: `main` builds use the production manifest (`https://theangryraven.github.io/DovesDataLogger/manifest.json`); non-`main`/preview builds use the **beta channel** (`https://theangryraven.github.io/DovesDataLogger/beta/manifest.json`). Set this to force a specific channel on any branch. |
 | `TURNSTILE_SECRET_KEY` | No | Cloudflare Turnstile secret key (edge function secret — `???`) |
 | `STRIPE_SECRET_KEY` | No (required for paid tiers) | Stripe secret key used by the `create-checkout-session`, `stripe-webhook`, and `create-portal-session` edge functions (edge function secret — `???`) |
@@ -224,6 +245,8 @@ view. Older JSON with only `sector_2_*`/`sector_3_*` is read as the two majors.
 > **Build fallback:** `vite.config.ts` now hardcodes the project's public backend URL, publishable key, and project ID as a fallback for production builds. Local `.env` values still take precedence, but published builds no longer white-screen if managed env injection is temporarily missing.
 
 > **PWA cache recovery:** the legacy `/sw.js` path now ships a one-release cleanup worker that deletes old app caches and unregisters itself without touching IndexedDB telemetry/session data. The active offline worker is now published at `/service-worker.js`, and HTML navigations use `NetworkFirst` to reduce the chance of users getting stuck on an old shell after future deploys.
+
+> **Offline caching is two-stage** (plan 0027). Workbox's precache install is all-or-nothing: one failed request and the whole service worker is discarded with nothing cached. So only the app shell is install-blocking; the heavy public directories listed in `DEFERRED_ASSET_DIRS` (`public/samples/`, `public/loggers/`) are excluded from the precache, runtime-cached instead, and warmed in the background once the worker is active — a warm-up that only gets halfway still leaves a working offline app and resumes next visit. **Adding a bulky asset to `public/` without deferring it puts the whole offline cache back at the mercy of one flaky request.** Settings → *Offline readiness* shows the live state.
 
 ### Database Setup
 
@@ -429,6 +452,23 @@ changing them):
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | your Supabase anon key |
 | `VITE_SUPABASE_PROJECT_ID` | your Supabase project ID |
 | `VITE_TURNSTILE_SITE_KEY` | optional — Turnstile site key for the contact/submission CAPTCHA |
+| `VITE_POSTHOG_KEY` | optional — PostHog project key for anonymous usage stats (leave unset for no analytics; do the checklist below first) |
+
+#### Anonymous usage statistics
+
+Analytics stay off until `VITE_POSTHOG_KEY` is set, and the privacy policy makes
+promises the PostHog project has to keep. **Before setting the key**, in the
+PostHog project settings:
+
+1. **Enable cookieless server hash mode.** The app runs PostHog with
+   `cookieless_mode: "always"` (no cookies or storage). Without this setting
+   PostHog drops every event, so forgetting it fails closed.
+2. **Enable "Discard client IP data".** The policy says the IP address is used
+   only for the coarse location lookup and then discarded; that is only true
+   with this setting on. Nothing in the browser can enforce it.
+
+Then set `VITE_POSTHOG_KEY` (and `VITE_POSTHOG_HOST` for the EU cloud) and
+redeploy. See `docs/plans/0030-anonymous-usage-analytics.md`.
 
 `TURNSTILE_SECRET_KEY` stays a **Supabase edge-function secret** — it is never a
 client variable and does not belong in Cloudflare. The Supabase edge functions
@@ -617,13 +657,14 @@ Built on the shoulders of these incredible open-source projects and free service
 
 - [React](https://react.dev) · [Vite](https://vite.dev) · [TypeScript](https://www.typescriptlang.org) · [Tauri](https://tauri.app) (native shell IPC, native-only)
 - [Tailwind CSS](https://tailwindcss.com) · [shadcn/ui](https://ui.shadcn.com) · [Radix UI](https://www.radix-ui.com) · [Lucide Icons](https://lucide.dev)
-- [Inter](https://rsms.me/inter/) · [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (OFL fonts) · [Fontsource](https://fontsource.org) (self-hosted, offline-ready)
+- [Archivo](https://github.com/Omnibus-Type/Archivo) (LapWing brand display face, self-hosted from `src/assets/fonts/` with its licence in `OFL.txt`) · [Inter](https://rsms.me/inter/) · [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (OFL fonts) · [Fontsource](https://fontsource.org) (self-hosted, offline-ready)
 - [Leaflet](https://leafletjs.com) · [CARTO basemaps](https://carto.com) · [Esri World Imagery & Wayback](https://livingatlas.arcgis.com/wayback/) (satellite + historical imagery dates)
 - [TanStack Query](https://tanstack.com/query) · [Sonner](https://sonner.emilkowal.dev) · [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) · [dnd kit](https://dndkit.com) (sector list drag-to-reorder)
 - [i18next](https://www.i18next.com) · [react-i18next](https://react.i18next.com) (internationalization)
 - [react-markdown](https://github.com/remarkjs/react-markdown) · [remark-gfm](https://github.com/remarkjs/remark-gfm) · [Tailwind Typography](https://github.com/tailwindlabs/tailwindcss-typography) (updates blog rendering)
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) · [Savitzky-Golay (ml.js)](https://github.com/mljs/savitzky-golay) · [JSZip](https://stuk.github.io/jszip) · [fix-webm-duration](https://github.com/yusitnikov/fix-webm-duration)
 - [IEM ASOS (Iowa State)](https://mesonet.agron.iastate.edu) · [NWS API](https://www.weather.gov/documentation/services-web-api) · [Open-Meteo](https://open-meteo.com) (global weather fallback, CC-BY 4.0)
+- [posthog-js](https://github.com/PostHog/posthog-js) (MIT / Apache-2.0) — anonymous, cookieless, opt-out usage statistics on the hosted web app (see `docs/plans/0030-anonymous-usage-analytics.md`)
 - [MoTeC i2](https://www.motec.com.au) (file format reference)
 - [libxrk](https://github.com/m3rlin45/libxrk) (MIT) + [TrackDataAnalysis](https://github.com/racer-coder/TrackDataAnalysis) (MIT) — AiM XRK/XRZ parser (Rust → WebAssembly)
 

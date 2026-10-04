@@ -1,7 +1,7 @@
 {
   "name": "doves-dataviewer",
   "private": true,
-  "version": "4.1.0",
+  "version": "5.0.0",
   "description": "Open-source, offline-first motorsport telemetry viewer (Dove's DataViewer / LapWing).",
   "license": "GPL-3.0-or-later",
   "author": "TheAngryRaven",
@@ -60,6 +60,7 @@
     "lucide-react": "^0.462.0",
     "ml-savitzky-golay": "^5.0.0",
     "mp4-muxer": "^5.2.2",
+    "posthog-js": "^1.433.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.8",

@@ -89,9 +89,26 @@
     "label": "Forcer la mise à jour et vider le cache",
     "hint": "Vide les fichiers de l'application en cache et recharge la dernière version. Vos sessions et données enregistrées dans le Garage ne sont pas affectées."
   },
+  "privacy": {
+    "heading": "Confidentialité",
+    "usageStats": "Envoyer des statistiques d'utilisation anonymes",
+    "usageStatsHint": "Nous aide à savoir combien de personnes utilisent LapWing et combien de temps elles restent. Aucun cookie, et aucune donnée de télémétrie, de fichier ou de position n'est jamais envoyée. Respecte « Do Not Track » et « Global Privacy Control »."
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Préfixe du nom Wi-Fi",
     "ssidPrefixHint": "Le début du nom Wi-Fi de votre MyChron. Lors du téléchargement, le sélecteur Wi-Fi du système ne liste que les réseaux qui commencent par ce préfixe. Sensible à la casse — ne le modifiez que si votre enregistreur diffuse un nom différent."
+  },
+  "offline": {
+    "heading": "Disponibilité hors ligne",
+    "prepare": "Terminer le téléchargement",
+    "progress": "{{cached}} extras sur {{total}} en cache ({{percent}} %)",
+    "state": {
+      "ready": "Prêt — cet appareil peut ouvrir l’app et l’exemple fourni sans réseau.",
+      "preparing": "L’app s’ouvrira hors ligne. Téléchargement des extras en cours (données d’exemple et photos des loggers).",
+      "not-ready": "Pas encore en cache. Laissez cette page ouverte avec du réseau un instant, ou terminez le téléchargement maintenant.",
+      "unsupported": "La mise en cache hors ligne n’est pas disponible dans ce navigateur.",
+      "native": "Intégré à l’application : tout fonctionne sans réseau."
+    }
   }
 }

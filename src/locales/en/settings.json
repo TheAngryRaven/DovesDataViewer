@@ -88,9 +88,26 @@
     "label": "Force update & clear cache",
     "hint": "Clears cached app files and reloads the latest version. Your saved sessions and data in the Garage are not affected."
   },
+  "privacy": {
+    "heading": "Privacy",
+    "usageStats": "Send anonymous usage stats",
+    "usageStatsHint": "Helps us see how many people use LapWing and how long they stay. No cookies, and no telemetry, files or location data is ever sent. Honours Do Not Track and Global Privacy Control."
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Wi-Fi name prefix",
     "ssidPrefixHint": "The start of your MyChron's Wi-Fi name. When you download, the system Wi-Fi picker only lists networks that begin with this. It is case-sensitive — change it only if your logger broadcasts a different name."
+  },
+  "offline": {
+    "heading": "Offline readiness",
+    "prepare": "Finish download",
+    "progress": "{{cached}} of {{total}} extras cached ({{percent}}%)",
+    "state": {
+      "ready": "Ready — this device can open the app and the bundled sample with no signal.",
+      "preparing": "The app itself will open offline. Still downloading the extras (sample data and logger photos).",
+      "not-ready": "Not cached yet. Keep this page open on a connection for a moment, or finish the download now.",
+      "unsupported": "Offline caching is unavailable in this browser.",
+      "native": "Built into the app — everything works with no signal."
+    }
   }
 }

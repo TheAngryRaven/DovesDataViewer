@@ -25,6 +25,7 @@ import { onGarageChange } from '@/lib/garageEvents';
 import { buildSubmissionPlan } from '@/lib/trackSubmission';
 import { loadSubmittedRecords } from '@/lib/submittedTracksStorage';
 import { abbreviateTrackName, buildCourseOutline } from '@/lib/trackUtils';
+import { fastestRankedLap } from '@/lib/lapCalculation';
 import {
   Select,
   SelectContent,
@@ -290,9 +291,7 @@ function CourseDrawingMini({ points, size = 36 }: { points: Array<{ lat: number;
     // lap (or the whole trace when no laps were detected) so the new course
     // already has a drawing — no need for the user to open the Generate picker.
     if (samples && samples.length >= 2) {
-      const fastest = laps && laps.length > 0
-        ? laps.reduce((best, l) => (l.lapTimeMs < best.lapTimeMs ? l : best))
-        : null;
+      const fastest = laps ? fastestRankedLap(laps) : null;
       const source = fastest ? samples.slice(fastest.startIndex, fastest.endIndex + 1) : samples;
       const outline = buildCourseOutline(source);
       if (outline.length >= 2) form.handleVisualLayoutChange(outline);

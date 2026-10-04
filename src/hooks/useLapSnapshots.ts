@@ -24,6 +24,12 @@ export interface UseLapSnapshotsParams {
   setups: VehicleSetup[];
   sessionKartId: string | null;
   sessionSetupId: string | null;
+  /**
+   * True for a drag session (plan 0022): its runs are standing-start passes,
+   * not laps of the selected course, so they must never become a course
+   * snapshot — even if a stale selection survived.
+   */
+  isDragSession?: boolean;
   /** Load a lap's samples as the (non-playable) comparison overlay. */
   onLoadOverlay: (samples: GpsSample[], label: string) => void;
   onClearOverlay: () => void;
@@ -49,6 +55,20 @@ export interface SaveSnapshotResult {
 }
 
 /**
+ * Whether a session may capture a course snapshot at all: it needs a course, at
+ * least one lap, an engine to key the snapshot by, and must not be a drag
+ * session. Pure so the drag gate stays testable.
+ */
+export function snapshotEligible(opts: {
+  hasCourse: boolean;
+  lapCount: number;
+  engine: string;
+  isDragSession: boolean;
+}): boolean {
+  return opts.hasCourse && opts.lapCount > 0 && opts.engine.length > 0 && !opts.isDragSession;
+}
+
+/**
  * Orchestrates lap snapshots for the active session: the per-course list, the
  * save-as-snapshot action, the "new course fastest lap" prompt on engine
  * assignment, and loading a snapshot as a comparison overlay.
@@ -57,6 +77,7 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
   const {
     data, laps, selection, selectedLapNumber, currentFileName,
     vehicles, setups, sessionKartId, sessionSetupId, onLoadOverlay, onClearOverlay,
+    isDragSession = false,
   } = params;
 
   const [snapshots, setSnapshots] = useState<LapSnapshot[]>([]);
@@ -99,7 +120,7 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
   /** Build the snapshot for a lap under a given engine/setup assignment, or null. */
   const buildCandidate = useCallback(
     (lap: Lap | null, kartId: string | null, setupId: string | null): LapSnapshot | null => {
-      if (!lap || !data || !selection?.course) return null;
+      if (!lap || !data || !selection?.course || isDragSession) return null;
       const { vehicle, setup, engine } = resolveContext(kartId, setupId);
       if (!engine) return null;
 
@@ -126,13 +147,19 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
         createdAt: existing?.createdAt,
       });
     },
-    [data, selection, snapshots, currentFileName, resolveContext],
+    [data, selection, snapshots, currentFileName, resolveContext, isDragSession],
   );
 
   /** True when the session has everything needed to capture a snapshot. */
   const canSnapshot = useMemo(
-    () => Boolean(selection?.course && laps.length > 0 && resolveContext(sessionKartId, sessionSetupId).engine),
-    [selection, laps.length, resolveContext, sessionKartId, sessionSetupId],
+    () =>
+      snapshotEligible({
+        hasCourse: Boolean(selection?.course),
+        lapCount: laps.length,
+        engine: resolveContext(sessionKartId, sessionSetupId).engine,
+        isDragSession,
+      }),
+    [selection, laps.length, resolveContext, sessionKartId, sessionSetupId, isDragSession],
   );
 
   // ── Overlay loading (shares the external-reference slot; never auto-plays) ───
@@ -154,7 +181,7 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
   // prompt path already gates on snapshotPromptKind; manual save must not blow
   // away a faster personal-best baseline without an explicit confirm.
   const saveSelectedLap = useCallback(async (force = false): Promise<SaveSnapshotResult> => {
-    if (!selection?.course) return { saved: false, replaced: false, reason: "no-course" };
+    if (!selection?.course || isDragSession) return { saved: false, replaced: false, reason: "no-course" };
     const lap =
       (selectedLapNumber !== null ? laps.find((l) => l.lapNumber === selectedLapNumber) : null) ??
       fastestLap(laps);
@@ -168,7 +195,7 @@ export function useLapSnapshots(params: UseLapSnapshotsParams) {
     }
     await saveSnapshot(candidate);
     return { saved: true, replaced: !!existing };
-  }, [selection, selectedLapNumber, laps, buildCandidate, sessionKartId, sessionSetupId, snapshots]);
+  }, [selection, selectedLapNumber, laps, buildCandidate, sessionKartId, sessionSetupId, snapshots, isDragSession]);
 
   const removeSnapshot = useCallback(
     async (id: string) => {

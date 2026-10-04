@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { VehicleSetup, listSetups, saveSetup, deleteSetup, getLatestSetupForVehicle } from "@/lib/setupStorage";
-import { maybePruneSetupRevisions } from "@/lib/setupRevisionStorage";
+import { freezeSetupRevision, pruneSetupRevisionsSafely } from "@/lib/setupRevisionStorage";
 
 export function useSetupManager() {
   const [setups, setSetups] = useState<VehicleSetup[]>([]);
@@ -12,9 +12,9 @@ export function useSetupManager() {
 
   useEffect(() => {
     refresh();
-    // Throttled (~3-day) sweep of setup revisions no session references. Fire-
-    // and-forget — never blocks the garage UI, no-ops until the interval elapses.
-    void maybePruneSetupRevisions();
+    // Retention sweep of untagged setup revisions (plan 0028). Fire-and-forget —
+    // three IndexedDB reads, never blocks the garage UI.
+    void pruneSetupRevisionsSafely();
   }, [refresh]);
 
   const addSetup = useCallback(async (setup: Omit<VehicleSetup, "id" | "createdAt" | "updatedAt">) => {
@@ -26,11 +26,16 @@ export function useSetupManager() {
       updatedAt: now,
     };
     await saveSetup(full);
+    // Every save freezes a content-addressed revision so the day's edits can be
+    // scrubbed through even when no session was tagged (plan 0028). Untagged
+    // revisions stay local and age out after REVISION_RETENTION_MS.
+    await freezeSetupRevision(full.id);
     await refresh();
   }, [refresh]);
 
   const updateSetup = useCallback(async (setup: VehicleSetup) => {
     await saveSetup({ ...setup, updatedAt: Date.now() });
+    await freezeSetupRevision(setup.id);
     await refresh();
   }, [refresh]);
 

@@ -71,6 +71,10 @@ export function useSessionMetadata(currentFileName: string | null) {
         sessionSetupRev: rev ?? undefined,
         sessionEngine: engine?.trim() || undefined,
       });
+      // The revision is referenced now, so it qualifies for the cloud (the sync
+      // plugin only uploads revisions a session points at — plan 0028). Emit after
+      // the metadata write so the plugin's referenced check sees it.
+      if (rev) emitGarageChange({ store: STORE_NAMES.SETUP_REVISIONS, key: rev, type: "put" });
       setSessionKartId(kartId);
       setSessionSetupId(setupId);
       setSessionSetupRev(rev);

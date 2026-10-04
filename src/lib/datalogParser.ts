@@ -11,6 +11,7 @@ import { parseAimFile, isAimFormat, hasAimSignature } from './aimParser';
 import { isMotecLdFormat, parseMotecLdFile, isMotecCsvFormat, parseMotecCsvFile } from './motecParser';
 import { isIracingFormat, parseIracingFile } from './iracingParser';
 import { isXrkFile, parseXrkFile, type XrkProgressCallback } from './xrk/xrkImporter';
+import { isGoProVideoBuffer, isGoProVideoFile } from './gopro/goproDetect';
 import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadingState';
 
 /**
@@ -26,10 +27,12 @@ import { beginFileLoading, updateFileLoading, endFileLoading } from './fileLoadi
  * - Alfano CSV format (Alfano data loggers)
  * - AiM CSV format (MyChron 5/6, Race Studio 3 exports)
  * - AiM XRK/XRZ binary format (MyChron/SoloDL — parsed in-browser via libxrk wasm)
+ * - GoPro video (.mp4/.mov/.360) with an embedded GPMF telemetry track (plan 0029)
  * - NMEA text format (CSV with NMEA sentences, .nmea files)
  *
- * `onProgress` only fires for the async, worker-backed XRK path (wasm load +
- * parse); every other format parses synchronously and ignores it.
+ * `onProgress` only fires for the two async paths — the worker-backed XRK
+ * parse and the ranged-read GoPro extraction; every other format parses
+ * synchronously and ignores it.
  *
  * Brackets the whole load with the `fileLoadingState` overlay so every "open a
  * file as the session" path (import, file-manager reopen, cloud open) dims the
@@ -66,6 +69,19 @@ async function routeDatalogFile(
   file: File,
   onProgress?: XrkProgressCallback,
 ): Promise<ParsedData> {
+  // GoPro video: only the telemetry track is read, through ranged slices, so
+  // this MUST come before the whole-file `arrayBuffer()` below (a camera file
+  // is gigabytes; its telemetry is a few hundred KB).
+  if (isGoProVideoFile(file.name)) {
+    // The MP4/GPMF extractor loads only when a video actually arrives.
+    const { parseGoProVideoFile } = await import('./gopro/goproImport');
+    return parseGoProVideoFile(file, (p) => onProgress?.({
+      phase: 'parse',
+      message: `Reading GoPro telemetry… ${p.done}/${p.total}`,
+      ratio: p.total > 0 ? p.done / p.total : undefined,
+    }));
+  }
+
   const buffer = await file.arrayBuffer();
 
   // AiM XRK/XRZ binary — detected by extension or `<h` magic. Parsed in a
@@ -142,6 +158,10 @@ function routeDatalogContent(content: string | ArrayBuffer): ParsedData {
     // remaining sync callers (BLE download, bundled sample) are never XRK.
     if (isXrkFile("", content)) {
       throw new Error("AiM .xrk/.xrz files must be parsed via parseDatalogFile (async).");
+    }
+    // Same story for a GoPro video: the extractor reads the container by range.
+    if (isGoProVideoBuffer(content)) {
+      throw new Error("GoPro videos must be parsed via parseDatalogFile (async).");
     }
     if (isMotecLdFormat(content)) {
       return parseMotecLdFile(content);

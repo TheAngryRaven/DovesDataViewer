@@ -99,7 +99,17 @@
     "detectedLaps_other": "Détecté <b>{{count}} tours</b> depuis le waypoint.",
     "createTrack": "Créer un circuit",
     "useWaypoint": "Utiliser le waypoint",
-    "noTrackNotice": "Aucun circuit connu ne correspond à ces données GPS. Créez un nouveau circuit, puis ajoutez un tracé pour activer le chronométrage des tours."
+    "noTrackNotice": "Aucun circuit connu ne correspond à ces données GPS. Créez un nouveau circuit, puis ajoutez un tracé pour activer le chronométrage des tours.",
+    "dragTitle": "Runs d'accélération détectés",
+    "dragTiming": "Chronométrage drag",
+    "dragNotice": "Aucun circuit connu ne correspond à ces données, mais elles ressemblent à des runs de dragster : départs arrêtés suivis d'accélérations en ligne droite.",
+    "dragRunsFound_one": "<b>{{count}} run départ arrêté</b> détecté.",
+    "dragRunsFound_other": "<b>{{count}} runs départ arrêté</b> détectés.",
+    "dragDistance": "Distance de chronométrage",
+    "dragApply": "Utiliser le chrono drag",
+    "dragEighth": "1/8 de mile (660 ft)",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4 de mile (1320 ft)"
   },
   "submit": {
     "toastCouldNotRead": "Impossible de lire vos circuits",

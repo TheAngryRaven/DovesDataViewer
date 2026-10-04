@@ -6,7 +6,8 @@
     "lapSnapshots": "Lap snapshots",
     "leaderboards": "Leaderboards",
     "cloudLogs": "Cloud logs",
-    "dataPrivacy": "Data & privacy"
+    "dataPrivacy": "Data & privacy",
+    "deviceVideos": "Videos on this device"
   },
   "leaderboard": {
     "signInHint": "Sign in to submit your snapshots to the public leaderboards.",
@@ -222,5 +223,23 @@
     "defaultToggle": "New uploads are public by default",
     "defaultToggleHint": "Only affects future uploads — existing sessions keep their current sharing.",
     "defaultUpdateFailed": "Couldn't update the sharing default"
+  },
+  "deviceVideos": {
+    "note": "The app keeps a copy of each session's video so it can reload it the next time you open that session. Deleting a copy only forgets it here — the original file on your phone is untouched.",
+    "unavailable": "Managing stored videos needs a newer app build.",
+    "empty": "No videos stored yet. Load a video for a session and its copy will appear here.",
+    "summary_one": "{{count}} video · {{size}}",
+    "summary_other": "{{count}} videos · {{size}}",
+    "unknownSession": "Session unknown (stored by an earlier version)",
+    "storedOn": "stored {{date}}",
+    "remove": "Delete",
+    "confirmRemove": "Delete this copy?",
+    "cancel": "Cancel",
+    "removed": "Deleted — {{size}} freed",
+    "clearAll": "Clear all",
+    "confirmClear_one": "Delete the stored video? You'll be asked for it again when you open its session.",
+    "confirmClear_other": "Delete all {{count}} stored videos? You'll be asked for them again when you open those sessions.",
+    "cleared": "Cleared — {{size}} freed",
+    "failed": "Couldn't delete: {{error}}"
   }
 }

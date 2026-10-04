@@ -23,7 +23,13 @@
     "setupNotConfigured": "セッションのセットアップが未設定です",
     "setupNoneRed": "車両またはセットアップがまだ保存されていません — クリックして追加",
     "setupNoneOrange": "このセッションのセットアップが保存されていません — クリックして設定",
-    "help": "ヘルプ"
+    "help": "ヘルプ",
+    "run": "ラン {{number}}",
+    "allRuns": "全ラン",
+    "dragEighth": "1/8マイル",
+    "dragThousand": "1000 ft",
+    "dragQuarter": "1/4マイル",
+    "dragDistanceTitle": "ドラッグ計測距離"
   },
   "lapTable": {
     "noLaps": "ラップが検出されませんでした。",
@@ -46,7 +52,10 @@
     "delta": "デルタ",
     "avgLapLength": "平均ラップ長",
     "avgRunLength": "平均走行距離",
-    "avgLapValue": "{{feet}} ft / {{meters}} m"
+    "avgLapValue": "{{feet}} ft / {{meters}} m",
+    "colRun": "ラン",
+    "bestEt": "ベストET",
+    "incomplete": "未完走"
   },
   "snapshots": {
     "trigger": "スナップショット",
@@ -219,5 +228,17 @@
     "noSetup": "セットアップなし",
     "saveSelection": "選択を保存",
     "openGarage": "ガレージを開く"
+  },
+  "drag": {
+    "mark60": "60 ft",
+    "mark330": "330 ft",
+    "markEighth": "1/8",
+    "mark1000": "1000 ft",
+    "markQuarter": "1/4",
+    "segLaunchTo60": "スタート–60 ft",
+    "seg60To330": "60–330 ft",
+    "seg330To660": "330–660 ft",
+    "seg660To1000": "660–1000 ft",
+    "seg1000To1320": "1000–1320 ft"
   }
 }

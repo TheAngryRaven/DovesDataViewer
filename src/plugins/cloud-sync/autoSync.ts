@@ -51,15 +51,18 @@ async function pushOne(userId: string, change: GarageChange): Promise<void> {
     return;
   }
   if (change.store === STORE_NAMES.SETUP_REVISIONS) {
-    // A delete here is the orphan prune. Don't remove the cloud copy (another
+    // A delete here is the retention sweep. Don't remove the cloud copy (another
     // device may still reference it) — tombstone the id so reconcile won't
-    // re-pull it locally. A fresh freeze (put) clears the tombstone + pushes.
+    // re-pull it locally. A put is a candidate upload: the store's push gate
+    // only lets through revisions a local session references (plan 0028), and
+    // an actual upload clears any tombstone (the revision is wanted again).
     if (change.type === "delete") {
       await addSetupRevisionTombstone(change.key);
       return;
     }
-    await clearSetupRevisionTombstone(change.key);
-    await pushRecord(userId, change.store, change.key);
+    if (await pushRecord(userId, change.store, change.key)) {
+      await clearSetupRevisionTombstone(change.key);
+    }
     return;
   }
   if (change.store === FILE_STORE) {

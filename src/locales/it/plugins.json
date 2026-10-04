@@ -7,7 +7,8 @@
     "lapSnapshots": "Istantanee del giro",
     "cloudLogs": "Registri nel cloud",
     "dataPrivacy": "Dati e privacy",
-    "leaderboards": "Classifiche"
+    "leaderboards": "Classifiche",
+    "deviceVideos": "Video su questo dispositivo"
   },
   "account": {
     "signInBlurb": "Accedi per eseguire il backup e sincronizzare i tuoi file, il garage e le note tra i dispositivi. Tutto qui continua a funzionare offline su questo dispositivo — Cloud Sync è facoltativo.",
@@ -223,5 +224,23 @@
     "defaultToggle": "I nuovi caricamenti sono pubblici per impostazione predefinita",
     "defaultToggleHint": "Riguarda solo i caricamenti futuri — le sessioni esistenti mantengono la condivisione attuale.",
     "defaultUpdateFailed": "Impossibile aggiornare la preferenza di condivisione"
+  },
+  "deviceVideos": {
+    "note": "L'app conserva una copia del video di ogni sessione per ricaricarlo alla prossima apertura di quella sessione. Eliminare una copia la dimentica solo qui: il file originale sul telefono resta intatto.",
+    "unavailable": "Per gestire i video salvati serve una versione più recente dell'app.",
+    "empty": "Nessun video salvato. Carica un video per una sessione e la sua copia comparirà qui.",
+    "summary_one": "{{count}} video · {{size}}",
+    "summary_other": "{{count}} video · {{size}}",
+    "unknownSession": "Sessione sconosciuta (salvato da una versione precedente)",
+    "storedOn": "salvato il {{date}}",
+    "remove": "Elimina",
+    "confirmRemove": "Eliminare questa copia?",
+    "cancel": "Annulla",
+    "removed": "Eliminato — {{size}} liberati",
+    "clearAll": "Elimina tutto",
+    "confirmClear_one": "Eliminare il video salvato? Ti verrà richiesto di nuovo all'apertura della sua sessione.",
+    "confirmClear_other": "Eliminare tutti i {{count}} video salvati? Ti verranno richiesti di nuovo all'apertura di quelle sessioni.",
+    "cleared": "Svuotato — {{size}} liberati",
+    "failed": "Impossibile eliminare: {{error}}"
   }
 }

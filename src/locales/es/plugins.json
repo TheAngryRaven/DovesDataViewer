@@ -7,7 +7,8 @@
     "lapSnapshots": "Instantáneas de vuelta",
     "cloudLogs": "Registros en la nube",
     "dataPrivacy": "Datos y privacidad",
-    "leaderboards": "Clasificaciones"
+    "leaderboards": "Clasificaciones",
+    "deviceVideos": "Vídeos en este dispositivo"
   },
   "account": {
     "signInBlurb": "Inicia sesión para respaldar y sincronizar tus archivos, garaje y notas entre dispositivos. Todo aquí sigue funcionando sin conexión en este dispositivo: Cloud Sync es opcional.",
@@ -223,5 +224,23 @@
     "defaultToggle": "Las nuevas subidas son públicas por defecto",
     "defaultToggleHint": "Solo afecta a futuras subidas — las sesiones existentes mantienen su estado actual.",
     "defaultUpdateFailed": "No se pudo actualizar la preferencia de compartición"
+  },
+  "deviceVideos": {
+    "note": "La app guarda una copia del vídeo de cada sesión para volver a cargarlo la próxima vez que abras esa sesión. Eliminar una copia solo la olvida aquí: el archivo original de tu teléfono no se toca.",
+    "unavailable": "Gestionar los vídeos guardados requiere una versión más reciente de la app.",
+    "empty": "Aún no hay vídeos guardados. Carga un vídeo para una sesión y su copia aparecerá aquí.",
+    "summary_one": "{{count}} vídeo · {{size}}",
+    "summary_other": "{{count}} vídeos · {{size}}",
+    "unknownSession": "Sesión desconocida (guardado por una versión anterior)",
+    "storedOn": "guardado el {{date}}",
+    "remove": "Eliminar",
+    "confirmRemove": "¿Eliminar esta copia?",
+    "cancel": "Cancelar",
+    "removed": "Eliminado: {{size}} liberados",
+    "clearAll": "Eliminar todo",
+    "confirmClear_one": "¿Eliminar el vídeo guardado? Se te pedirá de nuevo al abrir su sesión.",
+    "confirmClear_other": "¿Eliminar los {{count}} vídeos guardados? Se te pedirán de nuevo al abrir esas sesiones.",
+    "cleared": "Vaciado: {{size}} liberados",
+    "failed": "No se pudo eliminar: {{error}}"
   }
 }

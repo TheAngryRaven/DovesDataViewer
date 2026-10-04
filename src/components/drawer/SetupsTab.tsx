@@ -14,7 +14,9 @@ import { VehicleType, SetupTemplate, TemplateSection, TemplateFieldDef } from "@
 import { TemplateCreator } from "@/components/drawer/TemplateCreator";
 import { VehicleTypeEditor } from "@/components/drawer/VehicleTypeEditor";
 import { ModeToggle } from "@/components/drawer/ModeToggle";
-import { computeSetupHash, shortRevHash } from "@/lib/setupRevision";
+import {
+  computeSetupHash, duplicateSetupFromRevision, restoreSetupFromRevision, shortRevHash, type SetupRevision,
+} from "@/lib/setupRevision";
 import { SetupHistoryPanel } from "@/components/drawer/SetupHistoryPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -88,9 +90,11 @@ export function SetupsTab({
   const [historySetup, setHistorySetup] = useState<VehicleSetup | null>(null);
   const { user } = useAuth();
 
-  // The content hash each setup would freeze to right now (git-style short id).
-  // Shown so two sessions on the same setup read the same #hash, and an edited
-  // setup reads a different one. Recomputed when setups or templates change.
+  // The content hash each setup would freeze to right now (full; shown as the
+  // git-style short id). Two sessions on the same setup read the same #hash, an
+  // edited setup reads a different one, and the history panel compares it to
+  // the last-run revision to decide whether rollback applies. Recomputed when
+  // setups or templates change.
   const [setupHashes, setSetupHashes] = useState<Record<string, string>>({});
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +102,7 @@ export function SetupsTab({
       const next: Record<string, string> = {};
       for (const s of setups) {
         const tpl = templates.find(tt => tt.id === s.templateId) ?? null;
-        next[s.id] = shortRevHash(await computeSetupHash(s, tpl));
+        next[s.id] = await computeSetupHash(s, tpl);
       }
       if (!cancelled) setSetupHashes(next);
     })();
@@ -341,12 +345,19 @@ export function SetupsTab({
 
   // ── Setup History ──
   if (mode === "history" && historySetup) {
+    // Re-derive from the live list so a rollback's save is reflected at once.
+    const live = setups.find(s => s.id === historySetup.id) ?? historySetup;
     return (
       <SetupHistoryPanel
-        setup={historySetup}
+        setup={live}
         vehicles={vehicles}
         onBack={() => { setHistorySetup(null); setMode("list"); }}
         onOpenFile={onOpenFile}
+        currentHash={setupHashes[live.id] ?? null}
+        onRollback={(revision: SetupRevision) => onUpdate(restoreSetupFromRevision(live, revision))}
+        onDuplicate={(revision: SetupRevision) =>
+          onAdd(duplicateSetupFromRevision(revision, t("setupHistory.duplicateName", { name: revision.name })))
+        }
       />
     );
   }
@@ -406,9 +417,9 @@ export function SetupsTab({
                           {setupHashes[setup.id] && (
                             <span
                               className="shrink-0 font-mono text-[10px] text-muted-foreground"
-                              title={t("setups.revisionTitle", { hash: setupHashes[setup.id] })}
+                              title={t("setups.revisionTitle", { hash: shortRevHash(setupHashes[setup.id]) })}
                             >
-                              #{setupHashes[setup.id]}
+                              #{shortRevHash(setupHashes[setup.id])}
                             </span>
                           )}
                         </div>

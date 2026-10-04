@@ -11,6 +11,206 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [5.0.0] - 2026-10-04
+
+### Added
+- **Import a GPS-tagged GoPro video as a session.** Every GoPro since the
+  HERO5 embeds its GPS fixes in the MP4, so the camera on your kart is already a
+  datalogger. Drop the video (or select all chapters of a split recording) on
+  the landing page and the embedded GPS becomes a normal session with laps,
+  sectors and the map. Only the small telemetry track is read — the video is
+  never loaded whole or stored — and because footage and telemetry share the
+  camera's clock, the video opens in the player already synced and locked. The
+  session is saved as a Dove log, so it syncs, shares and reopens like any
+  other file. GoPro HERO5–HERO10 (18 Hz) and HERO11+ (10 Hz, with per-fix
+  quality) are both read; the HERO12 has no GPS. (Plan 0029.)
+- **Anonymous usage statistics, with an off switch.** The hosted web app can
+  now count visits and time on site through PostHog, so we can tell whether
+  anyone actually uses the thing. It is pageviews only: no click tracking, no
+  session replay, and never any telemetry, files, lap times or location. It is
+  cookieless — nothing is stored in your browser — and page addresses are
+  cleaned before they leave it, so sign-in tokens, shared-session links and
+  driver names are never sent. A new **Settings → Privacy → Send anonymous
+  usage stats** toggle turns it off; with Do Not Track or Global Privacy
+  Control set, the analytics code is never even downloaded. The first time it
+  starts, the app says so once. The Android app, preview hosts and builds
+  without a PostHog key send nothing (and keyless builds don't contain the
+  analytics library at all). The privacy policy describes exactly what is
+  collected. (Plan 0030.)
+- **Scrub through a track day's setup changes, even the ones you never tagged.**
+  Saving a setup now freezes a revision, so the history button shows every edit
+  rather than only the states assigned to a session, newest on top. A new **Used / All** toggle
+  at the top of the panel switches between revisions that were actually run on a
+  session (the default, as before) and every saved revision; in *All*, the ones
+  that were run carry a **Used** badge. Untagged revisions stay on this device
+  and are deleted after 3 days, always keeping the most recent one, and the panel
+  says so. (Plan 0028.)
+- **Roll back or duplicate a setup from its history.** In setup history, every
+  revision that ran on a session has a *Duplicate* button that creates a new
+  setup from it. The most recently run revision also gets *Roll back* whenever
+  the live setup has drifted from it, so a track day's experiments can be undone
+  in one tap after confirming. Your edits stay in history for 3 days. (Plan 0028.)
+- **You can now check whether the app is ready to work offline.** Settings gains
+  an *Offline readiness* row: whether this device can open LapWing with no
+  signal, how much of the extra content (sample data, logger photos) is
+  downloaded, and a *Finish download* button. Check it in the paddock instead of
+  finding out on track. (Plan 0027.)
+- **Install prompt on iPhone and iPad.** iOS never fires the browser install
+  event every other platform uses, so the "Install LapWing" card never appeared
+  there at all. It now shows the manual steps instead — Share → *Add to Home
+  Screen*, then open it once while you still have signal. This matters more on
+  iOS than anywhere else: Safari deletes an uninstalled site's offline data
+  after about a week of not visiting it, taking the cached app **and** your
+  saved sessions with it, which is why the app can come up empty at a track
+  weeks after you last used it. A Home Screen install keeps both. (Plan 0026.)
+- **Stream video straight from an Insta360 camera (Android app).** *From
+  Insta360 camera* in the video panel connects over the camera's Wi-Fi — join
+  it in your phone's settings, or type the start of its network name to have
+  Android offer it — then lists the camera's
+  recordings and plays one without downloading it — the app's native player
+  streams the file off the camera, and overlays, sync lock and scrubbing work
+  on it like any video. 360° recordings show as a flat view you point by
+  dragging the picture (compass button), then lock; a reset button returns
+  to straight ahead. Export isn't available for camera streams yet. Needs a
+  build of the app that bundles the Insta360 SDK; otherwise the button
+  doesn't appear. If the picture can't be shown, the player says so, with the
+  app's own reason when it has one, instead of a broken-image icon.
+  (Plan 0025; LapWing plan 0002.)
+- **See and clear the videos the Android app keeps.** The Profile tab gains
+  a *Videos on this device* card listing every session video the app has
+  copied for reloading — file, session, size, date — with a delete per
+  video and a clear-all, each reporting the space freed. A session playing
+  from a deleted copy simply unloads its video; your original files are
+  never touched. Requires the matching LapWing build (older builds show a
+  note instead).
+- **Save to Gallery (Android app).** *Save to device* now lands the export in
+  your phone's gallery under *Movies/LapWing* — previously it quietly went
+  nowhere inside the app, because it used the browser's download path. The
+  file is written straight from the native pipeline, so nothing large passes
+  through the app's web layer.
+- **The app remembers your video.** Load a video for a session once in the
+  Android app and it comes back the next time you open that session, exactly
+  like the web version does with Chrome's file handles — the app keeps its own
+  copy in app storage and plays it from there. Exports of a remembered video
+  are faster too: the app already has the file, so there's nothing to upload
+  to the pipeline first.
+- **Hardware-speed export in the Android app.** Inside the LapWing shell,
+  *Export with overlays* now hands the whole job to the phone's hardware:
+  the shell transcodes with the platform codecs and composites the overlays
+  on the GPU, with audio copied through untouched — seconds instead of
+  minutes for a typical clip (the in-app exporter previously stepped the
+  video one frame at a time and couldn't keep up). The overlay layers are
+  drawn by the same renderer as the preview, so the burned-in widgets match
+  what you scrubbed, in your language. Web and desktop exports are
+  unchanged, and an older shell (or a multi-file recording) falls back to
+  the previous exporter automatically. Requires a LapWing build with the
+  `video_export_*` pipeline (plan 0024).
+- **Drag mode** — drop in a log from a drag strip (or any venue the app doesn't
+  know) and standing-start runs are detected automatically: pick 1/8 mile,
+  1000 ft or 1/4 mile and every pass gets a time-slip style breakdown — ET at
+  the scoring distance plus 60 ft / 330 ft / 660 ft / 1000 ft splits. Passes
+  that lifted early stay listed as incomplete with the splits they did reach,
+  and your chosen distance is remembered per file and switchable from the
+  session header. (Plan 0022.)
+
+### Changed
+- **New LapWing look.** The app now wears the LapWing brand from the
+  PerchWerks style guide: the LAPWING wordmark in the header, the brand's
+  violet palette across light and dark mode (dark mode is now a deep indigo
+  rather than near-black), a new app icon, favicon and link-preview image, and
+  slightly tighter corners to match the logo. The home page gets a refreshed
+  hero banner. Charts and speed colours are unchanged.
+- **The footer now links to PerchWerks.** "LapWing is a PerchWerks product",
+  with the shared bird mark, takes you to perchwerks.com (it replaces the old
+  "Operated by PerchWerks LLC" line).
+- **The app no longer loses its whole offline cache to a flaky connection.**
+  Caching the app was previously one ~10 MB all-or-nothing download: if anything
+  failed partway through — losing signal at a track, say — *nothing* was cached
+  and a refresh with no signal showed a browser error page, with no sign
+  anything had gone wrong. The app now caches itself in two stages: a much
+  smaller core (down from 10.16 MB to 4.98 MB) that makes the app work offline
+  on its own, then the bulky extras afterwards, where a failure only means that
+  piece retries next time. Bundled sample data and logger photos were also being
+  downloaded twice per install. (Plan 0027.)
+- **The app now asks the browser to keep its offline data.** LapWing requests
+  persistent storage on startup, so the cached app and your saved sessions
+  aren't discarded when the browser is short on space or you haven't opened the
+  site in a while. (Plan 0026.)
+- Dismissing the install prompt now snoozes it for 30 days instead of hiding it
+  only until the tab closes. (Plan 0026.)
+- **One overlay renderer for preview and export.** The video-overlay preview
+  and the export pipeline previously drew with two separate implementations
+  that had drifted apart: exported videos were missing the graph grid lines,
+  the needle/dot glow, the bubble's center dot and the pace bar's SLOW/FAST
+  labels, stacked the pace bar's center line differently, and printed every
+  label in English whatever the app language. Both now go through the same
+  per-type draw functions (`lib/overlayCanvasRenderer.ts`), so what you see
+  while scrubbing is what the export burns in — including your language's
+  labels. The sector widget's completion sparkle is now driven by the data
+  timeline instead of the wall clock, which also means it finally appears in
+  exported videos, on the exact frames where the sector completed. This is
+  phase 0 of the native video-overlay work (plan 0023): the native app's
+  burn-in export will call this same renderer, so all three outputs match by
+  construction.
+
+### Fixed
+- **The shared-session "read-only" banner text is readable again** — it was
+  drawn in a colour meant for text on a solid amber fill, so it nearly
+  vanished against the banner's pale tint.
+- **Setup history no longer hangs on "Loading…" or fails silently.** If the
+  history can't be read, the panel now says so with a Retry button, and a
+  rollback or duplicate that fails shows an error instead of doing nothing.
+  (Plan 0028.)
+- **One damaged telemetry packet no longer rejects a whole GoPro import.** A
+  malformed GPS payload is skipped (a one-second gap) and the rest of the
+  recording imports. A corrupt or hostile MP4 whose sample table claims
+  billions of entries is also capped instead of freezing the tab. (Plan 0029.)
+- **Insta360 (Android app): switching recordings quickly could stop the new
+  stream.** A previous recording's player closing late no longer shuts down
+  the one you just opened. (Plan 0025.)
+- **The Insta360 import dialog no longer spins forever when reopened.** In the
+  Android app, reopening the camera dialog while a camera was still connected
+  got stuck on its loading spinner, and only unloading the video got you out.
+  It now goes straight back to the recording list, and drops back to the
+  connect form if the camera can't list its recordings.
+- **Save to Gallery / export in the Android app did nothing.** Every export
+  (and the app's background copy of your video) failed on its very first
+  chunk: the way the app handed video bytes to the shell doesn't exist on
+  Android's WebView, and the failure was only logged to the console — the
+  dialog just went idle after a one-second stutter. Video and overlay data
+  now cross the bridge in a form Android supports, and an export that fails
+  says so with the reason instead of silently stopping. Requires the matching
+  LapWing build.
+- **A drag log could overwrite a course's lap snapshot.** Opening a drag (or
+  waypoint) session right after a circuit session kept the previous course
+  selected, so assigning an engine or saving a snapshot could replace that
+  course's real fastest lap with a 10-second drag run — and cloud-sync it.
+  Course-less sessions now clear the selection, and drag sessions can never
+  save a course snapshot.
+- **Incomplete drag runs no longer count as "fastest"** in the video overlay's
+  best-lap readout, the Overlays menu trophy, the external-reference picker,
+  lap snapshots, or the course outline generated from a session.
+- **Video overlay gauges kept the old range after a unit toggle.** Switching
+  MPH/KPH (or metric distance) left analog, bar, graph and bubble overlays
+  scaling the new values against the previous unit's range, in both the
+  preview and exported videos.
+- **Android app: an export could use the wrong session's video.** If the
+  app's background copy of a video finished after you had switched sessions,
+  the next export burned the new session's overlays onto the old session's
+  footage. A copy now only attaches to the session (and video) it started
+  for.
+- **Android app: Settings said "not cached yet" forever.** The offline
+  readiness row looked for a web service worker the app never uses. It now
+  shows that everything is built into the app and works with no signal.
+- **Android app: deleting a session now frees its video copy.** The app's
+  stored copy of a session's video (often gigabytes) was left behind in app
+  storage when the session was deleted.
+- **Offline extras now update.** The bundled sample logs and logger photos
+  that download in the background for offline use were cached once and never
+  refreshed, so a device kept the old copy forever after an update. Each one
+  is now checked against the current release and re-downloaded when it
+  changes, and files a release no longer ships are cleaned up.
+
 ## [4.1.0] - 2026-08-24
 
 ### Added

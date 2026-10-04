@@ -152,7 +152,7 @@ vi.mock("./cloudClient", () => {
 import { freshIndexedDB } from "@/lib/__test__/idb";
 import { STORE_NAMES } from "@/lib/dbUtils";
 import { FILE_STORE } from "./syncStores";
-import { saveFile } from "@/lib/fileStorage";
+import { saveFile, saveFileMetadata } from "@/lib/fileStorage";
 import { getAccessor } from "./storeAccessors";
 import { getFileRecord, fileSyncStatus } from "./fileSync";
 import { pendingId } from "./merge";
@@ -219,6 +219,39 @@ describe("pushRecord / deleteRecord", () => {
   it("throws when the cloud delete fails", async () => {
     cloud.deleteError = { message: "nope" };
     await expect(deleteRecord(U, STORE_NAMES.KARTS, "k1")).rejects.toThrow(/nope/);
+  });
+});
+
+describe("setup-revision push gate (plan 0028: only session-referenced revisions upload)", () => {
+  const rev = (id: string) => ({ id, setupId: "s1", vehicleId: "v1", name: "x", setup: {}, template: null, createdAt: 1, updatedAt: 1 });
+
+  it("pushRecord skips a revision no local session references", async () => {
+    await getAccessor(STORE_NAMES.SETUP_REVISIONS).putOne(rev("r-untagged"));
+    expect(await pushRecord(U, STORE_NAMES.SETUP_REVISIONS, "r-untagged")).toBe(false);
+    expect(cloud.rows).toHaveLength(0);
+  });
+
+  it("pushRecord uploads a revision once a session points at it", async () => {
+    await getAccessor(STORE_NAMES.SETUP_REVISIONS).putOne(rev("r-used"));
+    await saveFileMetadata({ fileName: "s.dove", trackName: "", courseName: "", sessionSetupRev: "r-used" });
+    expect(await pushRecord(U, STORE_NAMES.SETUP_REVISIONS, "r-used")).toBe(true);
+    expect(cloud.rows.map((r) => r.record_key)).toEqual(["r-used"]);
+  });
+
+  it("reconcile pushes only referenced revisions and never re-pulls over an untagged one", async () => {
+    await getAccessor(STORE_NAMES.SETUP_REVISIONS).putOne(rev("r-used"));
+    await getAccessor(STORE_NAMES.SETUP_REVISIONS).putOne(rev("r-untagged"));
+    await saveFileMetadata({ fileName: "s.dove", trackName: "", courseName: "", sessionSetupRev: "r-used" });
+    const result = await reconcileDocs(U, new Set());
+    expect(result.pulled).toBe(0);
+    // The session metadata row syncs too; only the referenced revision joins it.
+    const revisionRows = cloud.rows.filter((r) => r.store === STORE_NAMES.SETUP_REVISIONS);
+    expect(revisionRows.map((r) => r.record_key)).toEqual(["r-used"]);
+  });
+
+  it("the gate never blocks other document stores", async () => {
+    await getAccessor(STORE_NAMES.KARTS).putOne({ id: "k1", name: "Local", updatedAt: 3 });
+    expect(await pushRecord(U, STORE_NAMES.KARTS, "k1")).toBe(true);
   });
 });
 

@@ -10,7 +10,7 @@ in [`backend.md`](backend.md); i18n in [`i18n.md`](i18n.md).
 ## Parsers — format-specific notes
 
 The parser contract (`isXxxFormat` / `parseXxxFile`, registration, detection
-order) is in `CLAUDE.md`. The two parsers that break the simple sync contract:
+order) is in `CLAUDE.md`. The parsers that break the simple sync contract:
 
 ### AiM XRK/XRZ (`src/lib/xrk/`) — the async exception (wasm)
 
@@ -42,6 +42,34 @@ GPS timebase (interpolate vs forward-fill per channel) → transferable
   Licenses: `src/lib/xrk/wasm/THIRD-PARTY-NOTICES.txt`.
 - `onProgress` is threaded `parseDatalogFile` → router → `parseXrkFile` (XRK
   only); other formats ignore it.
+
+### GoPro video (`src/lib/gopro/`) — the other async exception (ranged reads)
+
+A GPS-enabled GoPro (HERO5+, GPS on) embeds a GPMF telemetry track (`gpmd`)
+in its MP4; plan 0029 imports it as a session. The file is gigabytes, so
+`isGoProVideoFile()` (extension) is checked in `parseDatalogFile` **before** the
+router reads the whole file, and the extractor works through a `ByteSource`
+(`File.slice` ranged reads): walk top-level boxes → buffer only `moov` →
+resolve the `gpmd` sample table → fetch each ~1 s payload (`mp4Boxes.ts`) →
+decode KLV + `GPS5`/`GPS9` (`gpmf.ts`) → position fixes on the container
+timeline and serialise a **Dove CSV** (`goproTelemetry.ts`, pure). The saved
+session is that `.dove` — reopen/cloud/share all use the ordinary Dove parser.
+
+- **Timing = the MP4 clock**, not GPS UTC: payload presentation time (`stts`) +
+  an even spread within the payload; UTC (GPSU / GPS9 days+secs) only dates the
+  session. Because the video shares that clock, `syncOffsetMs = -(first fix
+  media time)` is known; `FileImport` stages the picked file(s) in
+  `videoHandoff.ts` and `useVideoSync` loads them pre-synced + locked on mount.
+- **Chapters** (`GH01…`/`GH02…`) stitch into one session, each offset by the
+  cumulative `mvhd` duration of the chapters before it (mirrors
+  `lib/videoPlaylist`). Ordering/grouping reuses `orderVideoFiles`/
+  `groupVideoRecordings`; a selection spanning recordings is refused.
+- **Quality**: fix < 2 dropped at extraction (GPS5 per payload via `GPSF`, GPS9
+  per sample); DOP → `hdop` so the shared `gpsQualityFilter` applies. No `sats`
+  column is written (GPMF has none). IMU (`ACCL`) is deliberately not imported
+  — it's camera-frame and would masquerade as hardware lat/lon g.
+- `parseDatalogContent` throws for MP4 bytes (like XRK); the sync callers never
+  see a video. `testFixtures.ts` builds real MP4 + GPMF bytes for the tests.
 
 ### iRacing `.ibt` (`src/lib/iracingParser.ts`) — the sim's native export
 
@@ -237,6 +265,13 @@ exactly as it was the day it ran, even after the live setup is later edited.
   the revision (`buildSetupRevision`), and stores its hash on
   `FileMetadata.sessionSetupRev`. `sessionSetupId` (live pointer) is kept alongside
   for lineage / the future "edit the setup later" flow.
+- **Freeze on every save (plan 0028).** `useSetupManager.addSetup`/`updateSetup`
+  also call `freezeSetupRevision` after `saveSetup`, so a hectic track day's edits
+  can be scrubbed through even when nobody tagged the sessions. Content dedup
+  makes a no-op save free; a dedup re-freeze only bumps `updatedAt` (last save of
+  that content). Cloud-pulled setups are written by the sync accessor, not
+  `saveSetup`, so they never re-freeze (the other device already did). Untagged
+  revisions are **device-local scratch** that the retention sweep ages out (below).
 - **The hash is the identity.** `computeSetupHash(setup, template)` hashes a
   canonical (sorted-key) projection of the setup's values **+ the template
   structure**, excluding volatile bookkeeping (`id`/`createdAt`/`updatedAt`). So
@@ -251,14 +286,30 @@ exactly as it was the day it ran, even after the live setup is later edited.
   **SetupsTab** list shows each setup's current would-be hash; **NotesTab** shows
   the frozen `#hash` of the session's setup revision.
 - **History panel.** Each **SetupsTab** row has a history (book) icon opening
-  `drawer/SetupHistoryPanel.tsx` — a full-panel chronological timeline built by the
-  pure `lib/setupHistory.ts` (`buildSetupHistory`). It joins this setup's revisions
+  `drawer/SetupHistoryPanel.tsx` — a full-panel timeline (newest on top, original
+  at the bottom) built by the pure `lib/setupHistory.ts` (`buildSetupHistory`,
+  whose entries stay oldest-first so the diff chain is simple). It joins this setup's revisions
   with the `FileMetadata` that reference them (`sessionSetupRev`) to show: the
   **original** revision in full, each later one as a **diff vs the previous** (only
   changed fields; numbers coloured green=up / red=down via `diffRevisionFields`,
   with a per-row full/diff toggle), each revision's **fastest lap** (the overall
   fastest highlighted), kart/course **bubbles** for the fastest usage, and a
-  **kart + course filter** (drops non-matching revisions). Field flattening
+  **kart + course filter**. A **Used / All** toggle (`SetupHistoryFilter.view`,
+  plan 0028) picks between revisions a session ran (default) and every saved
+  revision; in *All*, used cards carry a **Used** badge and a notice states the
+  retention rule. `entry.used` follows the kart/course filter, so the *Used* list
+  and the *All* markers always agree, and each diff is against the previous
+  *displayed* entry. Opening the panel runs the sweep first so what it shows
+  always matches the notice. **Rollback / Duplicate (plan 0028):** every card a
+  session ran gets a *Duplicate* button (`duplicateSetupFromRevision` → a new
+  setup carrying that revision's values, named "… (copy)"); the single card the
+  model names `latestReferencedId` (the revision that most recently ran on a
+  session, ignoring filters) also gets *Roll back* whenever the live setup's
+  current hash differs from it — a confirm dialog, then
+  `restoreSetupFromRevision` writes the frozen values onto the live record
+  (keeping id/vehicle/name) via the ordinary update path, which freezes and
+  dedups back onto that hash. Only session-linked revisions are targets because
+  they are permanent and already in the cloud. Field flattening
   (`flattenRevisionFields`) reads each revision's *frozen* template so old history
   renders with the labels it had that day.
 - **Vehicle history panel.** Each **VehiclesTab** row has the same history icon
@@ -281,8 +332,110 @@ exactly as it was the day it ran, even after the live setup is later edited.
   `Index.tsx` (load blob → `parseDatalogFile` → `handleDataLoaded` → close drawer,
   dropping a doc-style tab back to the race line) makes the header lap time and
   each "Fastest laps" row tappable to open that session directly.
-- **Orphan prune (GC).** A revision is an orphan once no
-  `FileMetadata.sessionSetupRev` points at it. `pruneSetupRevisions()` deletes
+- **Retention sweep (GC, plan 0028).** `findPrunableRevisionIds` (pure) names the
+  revisions to delete: unreferenced by any `FileMetadata.sessionSetupRev`, older
+  than `REVISION_RETENTION_MS` (3 days, by `updatedAt`), and not the newest
+  unreferenced revision of a still-existing setup (a setup never loses its latest
+  untagged state; a deleted setup's untagged revisions all age out).
+  `pruneSetupRevisions()` applies it; `pruneSetupRevisionsSafely()` is the
+  never-throws wrapper fired from `useSetupManager` on mount and from
+  `SetupHistoryPanel` on open. Three reads, no throttle, works fully offline.
+- **Sync (cloud-sync plugin):** a **dedicated `lap_snapshots` table**, but its
+  serialized payload size counts toward the **same unified per-tier byte budget**
+  as documents + logs (`subscription_tiers.total_bytes`), enforced by a trigger —
+  no separate count quota. Always pushes on save; a local delete **never**
+  propagates to the cloud (the cloud copy is removed only explicitly from
+  **Profile → Lap snapshots**, like the log menu). Cloud deletes are tombstoned
+  (`snapshotTombstones.ts`) so reconcile won't resurrect a surviving local copy.
+  `reconcileSnapshots()` pulls cloud→local additively and pushes local-only up.
+  Local storage is always unlimited.
+
+---
+
+## Setup Revisions (`src/lib/setupRevision.ts` + `setupRevisionStorage.ts` + `setupHistory.ts`)
+
+Immutable, **content-addressed** history of vehicle setups — git's blob model
+without the diff chains. A `VehicleSetup` (`setups` store) is the *live, editable*
+working copy; a `SetupRevision` (`setup-revisions` store) is a write-once frozen
+copy whose **`id` is a SHA-256 of its content**. This keeps a session's setup
+exactly as it was the day it ran, even after the live setup is later edited.
+
+- **Freeze on assignment.** `handleSaveSessionSetup` (`useSessionMetadata`) calls
+  `freezeSetupRevision(setupId)`, which reads the live setup + its template, builds
+  the revision (`buildSetupRevision`), and stores its hash on
+  `FileMetadata.sessionSetupRev`. `sessionSetupId` (live pointer) is kept alongside
+  for lineage / the future "edit the setup later" flow.
+- **Freeze on every save (plan 0028).** `useSetupManager.addSetup`/`updateSetup`
+  also call `freezeSetupRevision` after `saveSetup`, so a hectic track day's edits
+  can be scrubbed through even when nobody tagged the sessions. Content dedup
+  makes a no-op save free; a dedup re-freeze only bumps `updatedAt` (last save of
+  that content). Cloud-pulled setups are written by the sync accessor, not
+  `saveSetup`, so they never re-freeze (the other device already did). Untagged
+  revisions are **device-local scratch** that the retention sweep ages out (below).
+- **The hash is the identity.** `computeSetupHash(setup, template)` hashes a
+  canonical (sorted-key) projection of the setup's values **+ the template
+  structure**, excluding volatile bookkeeping (`id`/`createdAt`/`updatedAt`). So
+  two sessions on the genuinely-identical setup dedup to the **same hash**, and any
+  value change — *or* a template change (a renamed/added field) — yields a new
+  hash, i.e. a new revision, with no child-type machinery. `freezeSetupRevision`
+  is idempotent: an existing-hash revision is reused (original `createdAt` kept).
+- **Self-contained.** A revision embeds a frozen copy of the `setup` **and** the
+  template structure (`FrozenTemplate`: section + field names/units), so old
+  history always renders with the labels it had that day.
+- **Display.** `shortRevHash()` surfaces the leading 6 hex chars (git-style). The
+  **SetupsTab** list shows each setup's current would-be hash; **NotesTab** shows
+  the frozen `#hash` of the session's setup revision.
+- **History panel.** Each **SetupsTab** row has a history (book) icon opening
+  `drawer/SetupHistoryPanel.tsx` — a full-panel timeline (newest on top, original
+  at the bottom) built by the pure `lib/setupHistory.ts` (`buildSetupHistory`,
+  whose entries stay oldest-first so the diff chain is simple). It joins this setup's revisions
+  with the `FileMetadata` that reference them (`sessionSetupRev`) to show: the
+  **original** revision in full, each later one as a **diff vs the previous** (only
+  changed fields; numbers coloured green=up / red=down via `diffRevisionFields`,
+  with a per-row full/diff toggle), each revision's **fastest lap** (the overall
+  fastest highlighted), kart/course **bubbles** for the fastest usage, and a
+  **kart + course filter**. A **Used / All** toggle (`SetupHistoryFilter.view`,
+  plan 0028) picks between revisions a session ran (default) and every saved
+  revision; in *All*, used cards carry a **Used** badge and a notice states the
+  retention rule. `entry.used` follows the kart/course filter, so the *Used* list
+  and the *All* markers always agree, and each diff is against the previous
+  *displayed* entry. Opening the panel runs the sweep first so what it shows
+  always matches the notice. **Rollback / Duplicate (plan 0028):** every card a
+  session ran gets a *Duplicate* button (`duplicateSetupFromRevision` → a new
+  setup carrying that revision's values, named "… (copy)"); the single card the
+  model names `latestReferencedId` (the revision that most recently ran on a
+  session, ignoring filters) also gets *Roll back* whenever the live setup's
+  current hash differs from it — a confirm dialog, then
+  `restoreSetupFromRevision` writes the frozen values onto the live record
+  (keeping id/vehicle/name) via the ordinary update path, which freezes and
+  dedups back onto that hash. Only session-linked revisions are targets because
+  they are permanent and already in the cloud. Field flattening
+  (`flattenRevisionFields`) reads each revision's *frozen* template so old history
+  renders with the labels it had that day.
+- **Vehicle history panel.** Each **VehiclesTab** row has the same history icon
+  opening `drawer/VehicleHistoryPanel.tsx`, built by the pure `lib/vehicleHistory.ts`
+  (`buildVehicleHistory`). Where setup history fixes one setup and walks its
+  revisions, vehicle history fixes one *vehicle* and gathers **every setup revision
+  run on it** (one card per revision, joined via `sessionKartId` + `sessionSetupRev`),
+  ordered **fastest lap first** so the quickest setup is on top (overall fastest
+  highlighted). Each card shows the setup **name + #hash**, is **collapsed by
+  default** (expand for the full frozen setup — **no diff**), and a **course filter**
+  narrows the view. It reuses setupHistory's `buildUsage`/`byFastestLap`/
+  `flattenRevisionFields` primitives, and both panels render through the shared
+  **`drawer/HistoryCard.tsx`** card chrome (`HistoryCard` + `FullSetup`/`DiffList`:
+  fastest-lap highlight, hash/date header, kart/course bubbles, collapsible body,
+  fastest-laps footer).
+- **Jump to the session.** Both panels' fastest-lap values come from each
+  session's cached `FileMetadata.fastestLapMs` (computed from the session's own
+  `Lap[]` at load/detect time — **not** from lap snapshots), so every usage
+  carries a real `fileName`. Passing an `onOpenFile(fileName)` handler down from
+  `Index.tsx` (load blob → `parseDatalogFile` → `handleDataLoaded` → close drawer,
+  dropping a doc-style tab back to the race line) makes the header lap time and
+  each "Fastest laps" row tappable to open that session directly.
+- **Orphan prune (GC).** A revision is an orphan only when no
+  `FileMetadata.sessionSetupRev` points at it **and** its live setup has been
+  deleted — unreferenced revisions of a setup that still exists are its edit
+  history (plan 0028). `pruneSetupRevisions()` deletes
   orphans (pure split: `findOrphanRevisionIds`); `maybePruneSetupRevisions()`
   throttles it to ~once every `PRUNE_INTERVAL_MS` (3 days) via a localStorage
   timestamp and is fired best-effort from `useSetupManager` on mount. Works fully
@@ -291,9 +444,15 @@ exactly as it was the day it ran, even after the live setup is later edited.
   registered in `syncStores.ts` (`DOC_STORES` + `KEY_FIELD`, keyed by `id`), so
   they push/pull as ordinary `sync_records` rows counting toward the pooled
   documents budget. No dedicated table. Being immutable + content-addressed, the
-  last-write-wins merge is a no-op on collision. **Prune is local-only:** a deleted
-  orphan is **tombstoned** (`setupRevisionTombstones.ts`, per-user) rather than
-  removed from the cloud. A fresh freeze of the same content clears the tombstone.
+  last-write-wins merge is a no-op on collision. **Only session-referenced
+  revisions upload (plan 0028):** the store accessor's `pushFilter` gate (a
+  `StoreAccessor` seam, built once per pass) rejects any revision no local
+  `sessionSetupRev` points at, in both `pushRecord` and `reconcileDocs`, so every
+  untagged save stays on the device. Assigning a setup to a session emits a
+  revision `put` *after* the metadata write so the gate sees the reference.
+  **Prune is local-only:** a swept revision is **tombstoned**
+  (`setupRevisionTombstones.ts`, per-user) rather than removed from the cloud; an
+  actual upload of the same content clears the tombstone.
   **Cloud-side GC and later-editing are deliberate follow-ups.**
 
 ---
@@ -554,3 +713,61 @@ GPS-derived), `lat_g_native`/`lon_g_native` (logger-native), `accel_x/y/z` (raw
 IMU) — which coexist on a sample and must never collapse. `fieldResolver.ts` is the
 settings-facing adapter. `toChannelKey()` is the idempotent shim that migrates
 legacy display-name keys persisted in graph-prefs / saved overlay configs on load.
+
+---
+
+## Native video bridge (`nativeVideoExport` / `nativeVideoStore` / `nativeBytes`)
+
+Native shell only (`isNativeApp()`); every entry point is a no-op or `null` on
+the web, so callers invoke them unconditionally. All IPC goes through the lazy
+`lib/loggers/native/ipc.ts` loader, so `@tauri-apps/api` stays off the web
+payload. Shell-side contract: LapWing `docs/video-pipeline.md`. Design record:
+[`plans/0024-native-export-bridge.md`](plans/0024-native-export-bridge.md).
+
+- **`nativeBytes.ts`** — bytes *into* the shell travel as base64 strings in
+  ordinary JSON args, in `NATIVE_CHUNK_BYTES` (4 MB) chunks. Android's WebView
+  cannot hand Tauri a raw request body, so a `Uint8Array` arg degrades to a JSON
+  number array (and raw-body commands reject it outright) — that is how the
+  first on-device exports failed on their first chunk. Bytes *back* (raw
+  `tauri::ipc::Response`) are unaffected.
+- **`nativeVideoExport.ts`** — `startNativeVideoExport()` resolves `null` when
+  the shell can't export (web, multi-chunk playlist, desktop stub's
+  `unsupported:` sentinel, or a shell that doesn't know the command), and the
+  caller (`VideoPlayer`) falls back to the in-WebView WebCodecs exporter. Any
+  other `video_export_begin` failure is reported, never silently swallowed.
+  Sequence: `begin` (trim/size/bitrate; `sourceKey` when the session has a
+  stored copy, retried without it if the key is stale) → `push_source` chunks
+  (skipped with a stored source) → `push_overlay` PNG layers rendered by the
+  same scene renderer as the preview (plan 0023) at 15 Hz → `run` (progress
+  channel) → `save` (gallery) or `collect` (bytes back) → `dispose`, always.
+- **`nativeVideoStore.ts`** — the web remembers a session's video through a
+  `FileSystemFileHandle`; Android has none, so `useVideoSync` copies the picked
+  file into the shell's app-data store in the background (`video_store_*`) and
+  plays/exports from that copy on the next open. The copy is async and can
+  outlive a session switch, so its key is only adopted through a latest-wins
+  gate (`lib/latestGate`) — otherwise an export could pair one session's footage
+  with another's overlays. Stored copies are gigabytes: `fileStorage.deleteFile`
+  deletes a session's copy with the session, and the **native-storage** plugin's
+  "Videos on this device" card lists/removes them (`removeNativeStoredVideo` /
+  `clearNativeVideoStore` announce `NATIVE_VIDEO_STORE_CHANGED` so a session
+  streaming the deleted copy unloads).
+
+---
+
+## Offline durability (`pwaInstall` / `persistentStorage` / offline cache)
+
+Design records: [`plans/0026-ios-offline-install.md`](plans/0026-ios-offline-install.md)
+and [`plans/0027-precache-resilience.md`](plans/0027-precache-resilience.md).
+
+- **`persistentStorage.ts`** — `requestPersistentStorage()` runs once at boot
+  (`main.tsx`) and asks `navigator.storage.persist()` so the precache and the
+  IndexedDB sessions stop being evictable (WebKit clears script-writable storage
+  after ~7 days without a visit). Never throws; a denial keeps default storage.
+- **`pwaInstall.ts`** — pure install-nudge decision for `InstallPrompt`:
+  `installed` (standalone — nothing to offer), `ios-manual` (iOS never fires
+  `beforeinstallprompt`, so the Home Screen steps are shown by hand), or
+  `prompt-capable` (wait for the real event). The hint snoozes for 30 days.
+- **`offlineWarmup.ts` / `offlineReadiness.ts`** — the heavy public dirs are kept
+  out of the all-or-nothing precache and warmed afterwards into a revisioned
+  runtime cache; the Settings row reports `native` / `unsupported` /
+  `not-ready` / `preparing` / `ready`. Details in plan 0027.

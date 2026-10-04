@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileEntry } from '@/lib/fileStorage';
-import { formatLapTime } from '@/lib/lapCalculation';
+import { fastestRankedLap, formatLapTime } from '@/lib/lapCalculation';
 import { FileSearch, Loader2, X, Trophy } from 'lucide-react';
 
 interface ExternalRefBarProps {
@@ -134,8 +134,8 @@ export function ExternalRefBar({
           {!loading && !error && stage === 'laps' && (
             <div className="overflow-y-auto flex-1 -mx-2">
               {(() => {
-                const fastestIdx = laps.reduce((minIdx, lap, idx, arr) =>
-                  lap.lapTimeMs < arr[minIdx].lapTimeMs ? idx : minIdx, 0);
+                const fastest = fastestRankedLap(laps);
+                const fastestIdx = fastest ? laps.indexOf(fastest) : -1;
                 return (
                   <ul className="space-y-0.5">
                     {laps.map((lap, idx) => {

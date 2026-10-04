@@ -4,9 +4,14 @@ import { useDocumentHead } from "@/hooks/useDocumentHead";
 import { interceptExternal } from "@/lib/platform";
 import { goBackOrHome } from "@/lib/navBack";
 import { BrandHeader } from "@/components/BrandHeader";
+import { isAnalyticsAvailable } from "@/lib/analytics";
 
 const enableAdmin = import.meta.env.VITE_ENABLE_ADMIN === "true";
 const enableCloud = import.meta.env.VITE_ENABLE_CLOUD === "true";
+// Anonymous usage stats (plan 0030) — present only where a PostHog key is baked
+// in and this isn't the native app; the wording below must stay in sync with
+// the config in lib/analytics.ts.
+const enableAnalytics = isAnalyticsAvailable();
 
 // NOTE FOR THE OPERATOR: this policy adapts to the build flags. With cloud
 // features off it describes the offline-only app; with VITE_ENABLE_CLOUD on it
@@ -50,7 +55,10 @@ const Privacy = () => {
             <strong className="text-foreground">never leaves your device</strong>.
             {enableCloud
               ? " Some features are optional and online: creating an account to back up and sync your data, paid storage plans, and AI coaching. Those features only send data off your device after you choose to use them, and this policy explains exactly what each one collects."
-              : " This build has no accounts, no cloud sync and no analytics."}
+              : " This build has no accounts and no cloud sync."}
+            {enableAnalytics
+              ? " The only thing sent automatically is a small, anonymous usage count (which pages were opened and for how long) that you can switch off in Settings — see “Anonymous Usage Statistics” below."
+              : " This build has no analytics."}
           </p>
         </section>
 
@@ -69,17 +77,83 @@ const Privacy = () => {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-foreground mb-2">
-            No Tracking or Advertising
-          </h2>
-          <p>
-            We do not use analytics scripts, advertising networks, telemetry
-            beacons, or fingerprinting, and we do not sell or rent your data to
-            anyone. We use only the storage strictly necessary to run the app
-            (see “Cookies &amp; Local Storage” below).
-          </p>
-        </section>
+        {enableAnalytics ? (
+          <section>
+            <h2 className="text-base font-semibold text-foreground mb-2">
+              Anonymous Usage Statistics
+            </h2>
+            <p className="mb-2">
+              To understand how many people use LapWing and roughly how long they
+              stay, the web app sends anonymous usage statistics to{" "}
+              <strong className="text-foreground">PostHog</strong>, an analytics
+              provider. This is limited to:
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                <strong className="text-foreground">Page visits:</strong> which
+                page of the app was opened, when, for how long, and the website
+                that linked you here (its address only, never the full link).
+                Page addresses are cleaned in your browser before anything is
+                sent: everything after a “?” or “#” is removed, and shared-session
+                links and driver names are replaced with placeholders, so no
+                sign-in token, share link or name ever leaves your device.
+              </li>
+              <li>
+                <strong className="text-foreground">Device basics:</strong>{" "}
+                browser, operating system, screen size, app version, and whether
+                the app is installed to your home screen.
+              </li>
+              <li>
+                <strong className="text-foreground">Approximate location:</strong>{" "}
+                like any web request, PostHog receives your IP address. It is used
+                to estimate a coarse (country/region) location and, together with
+                your browser type, to form a one-way visitor code; our PostHog
+                project is set to discard the IP address after that.
+              </li>
+              <li>
+                <strong className="text-foreground">No cookies or stored
+                identifier.</strong>{" "}
+                Nothing is saved in your browser for analytics. PostHog groups
+                the page views of one visit using the one-way visitor code above,
+                which is mixed with a secret that PostHog replaces every day, so
+                visits on different days cannot be linked to each other, and
+                none can be linked to an account, name or email.
+              </li>
+            </ul>
+            <p className="mt-2">
+              We do <strong className="text-foreground">not</strong> collect
+              your telemetry, session files, lap times, GPS traces, garage data,
+              file names, or what you type or click inside the app, and we do
+              not record your screen. There is no advertising, no cross-site
+              tracking, no fingerprinting, and we do not sell or rent your data
+              to anyone. Our legal basis is our legitimate interest in
+              understanding whether the app is used.
+            </p>
+            <p className="mt-2">
+              <strong className="text-foreground">Switch it off</strong> at any
+              time in <strong className="text-foreground">Settings → Privacy → Send
+              anonymous usage stats</strong>. We also honour your browser’s{" "}
+              <strong className="text-foreground">Do Not Track</strong> and{" "}
+              <strong className="text-foreground">Global Privacy Control</strong>{" "}
+              signals: with either one set, the analytics code is never even
+              downloaded. The Android app does not send usage statistics at all.
+              The first time statistics start in your browser, the app tells you
+              so, with a pointer to this switch.
+            </p>
+          </section>
+        ) : (
+          <section>
+            <h2 className="text-base font-semibold text-foreground mb-2">
+              No Tracking or Advertising
+            </h2>
+            <p>
+              We do not use analytics scripts, advertising networks, telemetry
+              beacons, or fingerprinting, and we do not sell or rent your data to
+              anyone. We use only the storage strictly necessary to run the app
+              (see “Cookies &amp; Local Storage” below).
+            </p>
+          </section>
+        )}
 
         {enableCloud && (
           <>
@@ -207,36 +281,45 @@ const Privacy = () => {
           </p>
         </section>
 
-        {enableCloud && (
+        {(enableCloud || enableAnalytics) && (
           <section>
             <h2 className="text-base font-semibold text-foreground mb-2">
               Third-Party Services (Sub-processors)
             </h2>
             <p className="mb-2">
-              When you use the optional online features, the following providers
-              process data on our behalf:
+              The following providers process data on our behalf:
             </p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>
-                <strong className="text-foreground">Supabase</strong> — account,
-                database and file storage for cloud sync.
-              </li>
-              <li>
-                <strong className="text-foreground">Stripe</strong> — subscription
-                payments.
-              </li>
-              <li>
-                <strong className="text-foreground">Google</strong> — only if you
-                choose “Sign in with Google”.
-              </li>
-              <li>
-                <strong className="text-foreground">Cloudflare Turnstile</strong>{" "}
-                — bot/abuse protection on sign-up.
-              </li>
-              <li>
-                <strong className="text-foreground">Anthropic</strong> — powers AI
-                coaching, only if you use it.
-              </li>
+              {enableAnalytics && (
+                <li>
+                  <strong className="text-foreground">PostHog</strong> — anonymous
+                  usage statistics (see above), unless you switch them off.
+                </li>
+              )}
+              {enableCloud && (
+                <>
+                  <li>
+                    <strong className="text-foreground">Supabase</strong> — account,
+                    database and file storage for cloud sync.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Stripe</strong> — subscription
+                    payments.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Google</strong> — only if you
+                    choose “Sign in with Google”.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Cloudflare Turnstile</strong>{" "}
+                    — bot/abuse protection on sign-up.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Anthropic</strong> — powers AI
+                    coaching, only if you use it.
+                  </li>
+                </>
+              )}
             </ul>
             <p className="mt-2">
               Map tiles (CartoDB, Esri) and weather (OpenWeatherMap) are loaded
@@ -255,6 +338,9 @@ const Privacy = () => {
             We do not use advertising or tracking cookies.
             {enableCloud
               ? " If you sign in, we store a session/authentication token in your browser so you stay logged in — this is strictly necessary for the account feature to work."
+              : ""}
+            {enableAnalytics
+              ? " Anonymous usage statistics use no cookies and store no identifier (see “Anonymous Usage Statistics”); the app keeps only a one-line note that it has shown you the statistics notice."
               : ""}{" "}
             All other storage (IndexedDB and localStorage) holds your own app data
             on your device.
@@ -425,7 +511,7 @@ const Privacy = () => {
       </div>
 
       <p className="mt-10 text-xs text-muted-foreground/60">
-        Last updated: June 2026
+        Last updated: October 2026
       </p>
       </div>
     </div>

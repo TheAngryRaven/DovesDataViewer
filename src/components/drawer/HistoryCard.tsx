@@ -41,6 +41,8 @@ interface HistoryCardProps {
   fastestFileName?: string | null;
   /** Tooltip for the open-session affordances. */
   openSessionLabel?: string;
+  /** Action buttons (rollback / duplicate) rendered under the body. */
+  actions?: React.ReactNode;
 }
 
 /**
@@ -64,6 +66,7 @@ export function HistoryCard({
   onOpenFile,
   fastestFileName,
   openSessionLabel,
+  actions,
 }: HistoryCardProps) {
   const visibleBubbles = bubbles?.filter((b) => b.text) ?? [];
   const canOpenFastest = !!(onOpenFile && fastestFileName && fastestLapMs !== null);
@@ -136,6 +139,8 @@ export function HistoryCard({
           {toggle.expanded ? toggle.collapseLabel : toggle.expandLabel}
         </button>
       )}
+
+      {actions && <div className="flex flex-wrap gap-2 pt-0.5">{actions}</div>}
 
       {/* Fastest laps completed with this revision */}
       {usages.length > 0 && (

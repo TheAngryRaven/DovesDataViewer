@@ -10,6 +10,9 @@ import { startVersionPolling } from "@/lib/versionCheck";
 import { isSessionActive } from "@/lib/appActivity";
 import { AUTO_APPLIED_KEY, decideUpdateAction } from "@/lib/updateFlow";
 import { buildInfo } from "@/lib/buildInfo";
+import { warmOfflineCache } from "@/lib/offlineWarmup";
+import { requestPersistentStorage } from "@/lib/persistentStorage";
+import { initAnalytics, takeUsageStatsNotice } from "@/lib/analytics";
 // Initialize i18next before render so the chosen language is active on first
 // paint (no English flash). The default export is the configured instance.
 import i18n from "@/lib/i18n";
@@ -124,6 +127,26 @@ if (isInIframe || isPreviewHost || isNativeApp()) {
 } else {
   confirmAutoApplied();
 
+  // Anonymous usage stats (plan 0030) — same exclusions as the service worker:
+  // never in an iframe, a preview host or the native shell (analytics.ts
+  // re-checks all three). Loads nothing when no key is baked in, the browser
+  // sends DNT/GPC, or the user has opted out in Settings. The first time it
+  // starts, say so once, so nobody is opted in without being told.
+  void initAnalytics().then((started) => {
+    if (!started || !takeUsageStatsNotice()) return;
+    toast(i18n.t("common:usageStatsNotice.title"), {
+      description: i18n.t("common:usageStatsNotice.description"),
+      duration: 15_000,
+    });
+  });
+
+  // Ask for persistent storage before anything else touches the cache. Browsers
+  // treat offline data as disposable by default and evict it under pressure or
+  // after a stretch of not visiting the site — which is exactly the trip to the
+  // track that the offline app exists for. Fire-and-forget: a denial just means
+  // we keep the default, evictable storage. See lib/persistentStorage.
+  void requestPersistentStorage();
+
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
@@ -135,6 +158,14 @@ if (isInIframe || isPreviewHost || isNativeApp()) {
       window.setInterval(() => {
         void registration.update();
       }, 60_000);
+
+      // Pull in the heavy assets deliberately held out of the precache (the
+      // bundled sample datalogs, the logger photos — see DEFERRED_ASSET_DIRS in
+      // vite.config.ts). Doing it here rather than at install is the whole
+      // point: a precache install is all-or-nothing, so one slow asset used to
+      // cost the entire offline cache. Out here, a warm-up that only gets
+      // halfway still leaves a working offline app and resumes next visit.
+      void warmOfflineCache();
 
       // Independent of the service worker's own diff-detection (which can stall
       // behind HTTP/CDN caching): poll a build-emitted version.json and prompt

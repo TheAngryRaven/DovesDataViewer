@@ -89,9 +89,26 @@
     "label": "Forzar actualización y borrar caché",
     "hint": "Borra los archivos en caché de la app y recarga la última versión. Tus sesiones y datos guardados en el Garaje no se ven afectados."
   },
+  "privacy": {
+    "heading": "Privacidad",
+    "usageStats": "Enviar estadísticas de uso anónimas",
+    "usageStatsHint": "Nos ayuda a saber cuántas personas usan LapWing y cuánto tiempo se quedan. Sin cookies, y nunca se envían datos de telemetría, archivos ni ubicación. Respeta «Do Not Track» y «Global Privacy Control»."
+  },
   "mychron": {
     "heading": "MyChron",
     "ssidPrefix": "Prefijo del nombre Wi-Fi",
     "ssidPrefixHint": "El inicio del nombre Wi-Fi de tu MyChron. Al descargar, el selector de Wi-Fi del sistema solo muestra las redes que empiezan por esto. Distingue mayúsculas de minúsculas: cámbialo solo si tu registrador emite un nombre distinto."
+  },
+  "offline": {
+    "heading": "Disponibilidad sin conexión",
+    "prepare": "Terminar descarga",
+    "progress": "{{cached}} de {{total}} extras en caché ({{percent}}%)",
+    "state": {
+      "ready": "Listo: este dispositivo puede abrir la app y el ejemplo incluido sin cobertura.",
+      "preparing": "La app se abrirá sin conexión. Aún se descargan los extras (datos de ejemplo y fotos de loggers).",
+      "not-ready": "Todavía sin caché. Mantén esta página abierta con conexión un momento, o termina la descarga ahora.",
+      "unsupported": "El almacenamiento sin conexión no está disponible en este navegador.",
+      "native": "Integrado en la app: todo funciona sin señal."
+    }
   }
 }

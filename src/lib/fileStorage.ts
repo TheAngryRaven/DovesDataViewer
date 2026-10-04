@@ -4,6 +4,7 @@
 
 import { openDB, STORE_NAMES } from './dbUtils';
 import { deleteCachedWeather } from './weatherCacheStorage';
+import { deleteNativeStoredVideo } from './nativeVideoStore';
 
 export interface FileEntry {
   name: string;
@@ -56,6 +57,11 @@ export interface FileMetadata {
   // Fastest lap cache
   fastestLapMs?: number;
   fastestLapNumber?: number;
+  // Drag mode (plan 0022): the session's chosen scoring distance in feet
+  // (660 / 1000 / 1320 — validated with isDragDistanceFt on read). Presence
+  // marks the file as a drag session and restores it silently on reopen;
+  // assigning a real track/course clears it.
+  dragDistanceFt?: number;
   // Browser display-name override. When set, the file browser shows this instead
   // of the date/time derived name (used by the bundled sample log).
   displayName?: string;
@@ -146,6 +152,10 @@ export async function deleteFile(name: string): Promise<void> {
     // Drop the session's locally-cached weather so a future file reusing this
     // name doesn't inherit stale conditions (best-effort).
     await deleteCachedWeather(name);
+    // The native shell keeps a full copy of the session's video in app data
+    // (plan 0024) — gigabytes that nothing else would ever reclaim once the
+    // session is gone. Best effort; a no-op on the web.
+    await deleteNativeStoredVideo(name);
   } catch (e) {
     console.warn("Failed to delete file from IndexedDB:", e);
     throw e;
