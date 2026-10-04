@@ -90,7 +90,7 @@ the C library).
   extractor stays off the main chunk.
 - `src/lib/gopro/goproDetect.ts` — the cheap eager gates (`isGoProVideoFile`,
   `isGoProVideoBuffer`) the routers call on every import.
-- Hardening (4.2.0 review): a malformed GPS stream skips its payload instead of
+- Hardening (5.0.0 review): a malformed GPS stream skips its payload instead of
   aborting the import, and a uniform `stsz` count is capped at
   `fileSize / sampleSize` so a hostile MP4 can't allocate billions of entries.
 - `src/lib/gopro/videoHandoff.ts` — one-shot pending video for a session.

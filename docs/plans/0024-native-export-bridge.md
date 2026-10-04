@@ -142,7 +142,7 @@ export shortcut goes away. The pure parts — ordering, totals, labels,
 applying a removal, byte formatting — live in `deviceVideos.ts` with tests;
 the panel is a thin view.
 
-## Follow-up 4 (landed): release-review hardening (4.2.0)
+## Follow-up 4 (landed): release-review hardening (5.0.0)
 
 - **Stale copy, wrong session.** `loadRecording`'s background copy set
   `nativeStoredKey` whenever it resolved, so a copy that finished after a
