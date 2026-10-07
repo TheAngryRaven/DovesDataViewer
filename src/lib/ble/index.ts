@@ -45,3 +45,13 @@ export type {
   UploadOptions,
   ApplyOptions,
 } from "./firmwareUpload";
+
+// Remote-transfer PIN handshake (docs/plans/0031-remote-transfer-pin.md)
+export {
+  authenticateLogger,
+  computeAuthAnswer,
+  isValidPin,
+  LoggerAuthError,
+} from "./auth";
+export type { AuthOutcome, PinPromptContext } from "./auth";
+export { loadLoggerPin, saveLoggerPin } from "./pinStore";

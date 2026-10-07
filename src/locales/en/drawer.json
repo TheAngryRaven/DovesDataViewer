@@ -519,5 +519,21 @@
     "deleteConfirmBtn": "Delete",
     "deleteHasSetups": "This type has saved setups — delete those first.",
     "deleteDefault": "The built-in default type can't be deleted."
+  },
+  "pin": {
+    "title": "PIN for {{name}}",
+    "thisLogger": "this logger",
+    "desc": "Enter this logger's PIN. You can see it on the logger under Transfer → PIN. The app remembers it after this.",
+    "label": "Logger PIN",
+    "wrong_one": "Wrong PIN. {{count}} try left before the logger locks for a while.",
+    "wrong_other": "Wrong PIN. {{count}} tries left before the logger locks for a while.",
+    "cancel": "Cancel",
+    "submit": "Unlock",
+    "checking": "Checking the logger's PIN…",
+    "errorLocked": "Too many wrong PINs. The logger is locked for {{seconds}} s.",
+    "errorCamera": "The camera needs the logger's radio right now. Try again once it's done.",
+    "errorTimeout": "The logger stopped waiting for the PIN. Connect again.",
+    "errorBusy": "The logger is busy. Connect again in a moment.",
+    "errorProtocol": "The logger didn't accept the connection. Connect again."
   }
 }

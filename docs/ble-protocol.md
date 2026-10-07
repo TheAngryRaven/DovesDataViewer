@@ -105,6 +105,10 @@ Standard read-only service; the firmware publishes its identity here via Adafrui
    stability).
 6. **Subscribe** to the notify characteristic(s) a given protocol uses
    **before** writing the command that triggers them (see each protocol below).
+7. **Authenticate** with `AUTH?` before anything else (§3.3). A logger started
+   from its own Transfer menu answers `AUTH:OPEN`; one reached from its main menu
+   (remote transfer) refuses everything but the handshake and `BATT` until the
+   PIN is proven; pre-PIN firmware says nothing.
 
 > **No DFU service is requested.** Firmware updates ride the `0x1820` file service
 > (see §10). Chrome's Web Bluetooth blocklist bans the Nordic legacy DFU service,
@@ -130,6 +134,62 @@ Just drop the GATT connection. Safe to call when already disconnected. Some flow
 (settings reset, firmware apply) expect the device to reboot and the link to drop
 on its own — treat that disconnect as expected.
 
+### 3.3 Remote transfer & the PIN handshake (`AUTH`, `PINGET`)
+
+Logger plan 0019 / viewer plan 0031. While the logger sits on its **main menu**
+with the `remote_transfer` setting `on`, it advertises the same `0x1820` service
+in a **locked** mode: only `AUTH?`, `AUTH:<answer>` and `BATT` are accepted;
+anything else answers `AUTH:REQUIRED`. A correct answer turns the logger into the
+transfer page (labelled *Remote Transfer*) and every command except `PINGET`
+opens up. A transfer started on the logger itself (Transfer → Bluetooth) is
+**open**: everything is allowed, including `PINGET`.
+
+```
+client → 0x2A3E : "AUTH?"
+device → 0x2A40 : "AUTH:NONCE:<32 hex>"      (locked: a fresh 16-byte nonce)
+               |  "AUTH:OPEN"                 (local start — nothing to prove)
+               |  "AUTH:OK"                   (already authenticated)
+               |  "AUTH:LOCKED:<seconds>"     (lockout running)
+               |  "AUTH:BUSY"                 (a check is in flight / RNG busy)
+               |  (silence)                   (pre-0019 firmware — treat as open)
+
+client → 0x2A3E : "AUTH:<32 hex answer>"
+device → 0x2A40 : "AUTH:OK"                   (session promoted to a transfer)
+               |  "AUTH:FAIL:<tries left>"    (nonce consumed — ask for a new one)
+               |  "AUTH:LOCKED:<seconds>"
+               |  "AUTH:NO_NONCE"             (answer without a pending nonce)
+```
+
+**answer** = the first 16 bytes, lowercase hex, of
+`HMAC-SHA256(key = PIN as ASCII, msg = "BEAUTH1|" + nonceHex)`, where `nonceHex`
+is the 32 hex characters exactly as received. The device compares
+case-insensitively in constant time. Golden vectors (firmware
+`tests/remote_auth_test.cpp`, `src/lib/ble/auth.test.ts`, LapWing):
+
+| PIN | nonce | answer |
+|---|---|---|
+| `4821` | `00112233445566778899aabbccddeeff` | `4936f5dad4502101eb0f65790cca77b4` |
+| `1000` | `ffffffffffffffffffffffffffffffff` | `3db7fac4dc48559fa85594079b59fce4` |
+
+- **Lockout:** 5 wrong answers lock for 60 s, doubling per lockout up to 15 min.
+  RAM-only — a power cycle clears it.
+- **Squat limit:** a locked session that hasn't authenticated within **20 s** of
+  connecting gets `AUTH:TIMEOUT` and is dropped. Prompting a user for the PIN
+  counts against it.
+- **The camera always wins.** If the Insta360 auto-record needs the radio (engine
+  turning, camera waking or recording), the logger sends `AUTH:CAMERA` and drops a
+  remote session — before or after authentication.
+- **`PINGET`** → `PIN:<4 digits>`, **open sessions only** (`AUTH:REQUIRED`
+  otherwise). This is how a client learns the PIN without anyone typing it: a
+  local start hands it over, and the client stores it for the next remote start.
+- **The PIN is 4 digits, leading zeros allowed.** Shown on the logger under
+  Transfer → PIN (hold Select to reveal; it hides itself again).
+
+> **Security limit.** The link is unencrypted (Just Works), so the handshake is a
+> gate against a casual nearby phone, not against a sniffer: a captured nonce +
+> answer can be brute-forced offline across the 10 000 PINs. Changing the PIN
+> (Transfer → PIN → New PIN on the logger, or `SSET`) is the remedy.
+
 ---
 
 ## 4. Command summary
@@ -142,6 +202,9 @@ channel and terminator differ per command.
 | `LIST` | `0x2A3D` | `…END` (anchored at end) | (timeout) |
 | `GET:<filename>` | `0x2A40` then `0x2A3F` | `SIZE:<n>` → data chunks → `DONE` | `ERROR` |
 | `BATT` | `0x2A40` | `BATT:<pct>,<volt>` | (timeout) |
+| `AUTH?` | `0x2A40` | `AUTH:NONCE:<hex>` / `AUTH:OPEN` / `AUTH:OK` (§3.3) | `AUTH:LOCKED:<s>` / `AUTH:BUSY` / (silence = legacy) |
+| `AUTH:<answer>` | `0x2A40` | `AUTH:OK` (§3.3) | `AUTH:FAIL:<n>` / `AUTH:LOCKED:<s>` / `AUTH:NO_NONCE` |
+| `PINGET` | `0x2A40` | `PIN:<4 digits>` (open sessions only) | `AUTH:REQUIRED` / `SERR:NOT_FOUND` |
 | `SLIST` | `0x2A40` | `SVAL:<k>=<v>` … → `SEND` | — |
 | `SGET:<key>` | `0x2A40` | `SVAL:<key>=<value>` | `SERR:<reason>` |
 | `SSET:<key>=<value>` | `0x2A40` | `SOK:<key>` | `SERR:<reason>` |
@@ -266,6 +329,9 @@ device → 0x2A40 : "SEND"                 (terminator)
 Parse each `SVAL:` line by splitting on the **first** `=`. Build a `key → value`
 map. Resolve on `SEND`. Reset a ~3 s idle timer per message; hard timeout ~10 s.
 
+PIN-gated firmware (§3.3) **omits `bluetooth_pin`** from the list; read it with
+`PINGET` on an open session instead.
+
 ### 8.2 Get one (`SGET:<key>`)
 
 ```
@@ -275,7 +341,8 @@ device → 0x2A40 : "SVAL:<key>=<value>"   (match the requested key)
 device → 0x2A40 : "SERR:<reason>"        e.g. "SERR:NOT_FOUND"
 ```
 
-Timeout ~5 s.
+Timeout ~5 s. `SGET:bluetooth_pin` answers `SERR:PROTECTED` on PIN-gated
+firmware (§3.3).
 
 ### 8.3 Set one (`SSET:<key>=<value>`)
 
@@ -286,7 +353,8 @@ device → 0x2A40 : "SOK:<key>"            (success; "SOK: <key>" with a space a
 device → 0x2A40 : "SERR:<reason>"        e.g. "SERR:WRITE_FAIL"
 ```
 
-Timeout ~5 s.
+Timeout ~5 s. `SSET:bluetooth_pin=` takes exactly four digits (`SERR:BAD_VALUE`
+otherwise) and is live for the next handshake.
 
 ### 8.4 Factory reset (`SRESET`)
 
@@ -549,6 +617,8 @@ new `ble/index.ts` re-export the public surface.
 | `types.ts` | `BleConnection`, `FileInfo`, `DownloadProgress`, `BatteryInfo` |
 | `fileTransfer.ts` | `LIST` + `GET:` (§5, §6) |
 | `battery.ts` | `BATT` (§7) |
+| `auth.ts` | `AUTH?` / `AUTH:` / `PINGET` handshake (§3.3) |
+| `pinStore.ts` | Per-logger PIN memory (browser storage, never cloud-synced) |
 | `settings.ts` | `SLIST` / `SGET` / `SSET` / `SRESET` (§8) |
 | `trackSync.ts` | `TLIST` / `TGET` / `TPUT` / `TDEL` (§9) |
 | `firmwareCrc.ts` | CRC-32/IEEE (§10) |
@@ -583,4 +653,6 @@ For a non-Web-Bluetooth central (btleplug/`tauri-plugin-blec`, bleak, etc.):
 8. **Honor the timeouts** in §4–§10; use a per-chunk watchdog (not a total cap) for
    large transfers.
 9. **Expect reboots** on `SRESET` and `FWAPPLY` — treat the disconnect as expected.
+10. **Run the §3.3 handshake first**, against the golden vectors; treat 2 s of
+    silence to `AUTH?` as pre-PIN firmware.
 </content>

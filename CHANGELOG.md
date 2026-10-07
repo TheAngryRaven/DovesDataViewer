@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [5.1.0] - unreleased
+
+### Added
+- **Start a logger download from the app while the logger sits on its menu.**
+  With a Fledgling running the new firmware, Connect works without pressing
+  Transfer on the logger first. The logger only opens up once the app proves it
+  knows the logger's 4-digit PIN, which the app learns automatically the next
+  time you start a transfer from the logger itself. A logger it hasn't seen
+  before asks for the PIN once (shown on the logger under Transfer → PIN). Too
+  many wrong PINs lock the logger for a while, and the Insta360 camera always
+  gets the radio first. Older loggers connect exactly as before. (Plan 0031.)
+- **Remote Transfer setting** on the Device tab, to turn this off per logger.
+
+### Changed
+- The Device tab's Bluetooth PIN now has to be exactly four digits (leading
+  zeros are fine), matching what the logger accepts.
+
 ## [5.0.0] - 2026-10-04
 
 ### Added

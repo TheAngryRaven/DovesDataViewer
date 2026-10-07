@@ -520,5 +520,21 @@
     "deleteConfirmBtn": "Löschen",
     "deleteHasSetups": "Dieser Typ hat gespeicherte Setups – lösche diese zuerst.",
     "deleteDefault": "Der integrierte Standardtyp kann nicht gelöscht werden."
+  },
+  "pin": {
+    "title": "PIN für {{name}}",
+    "thisLogger": "diesen Logger",
+    "desc": "Gib die PIN dieses Loggers ein. Du findest sie am Logger unter Transfer → PIN. Die App merkt sie sich danach.",
+    "label": "Logger-PIN",
+    "wrong_one": "Falsche PIN. Noch {{count}} Versuch, bevor der Logger eine Weile sperrt.",
+    "wrong_other": "Falsche PIN. Noch {{count}} Versuche, bevor der Logger eine Weile sperrt.",
+    "cancel": "Abbrechen",
+    "submit": "Entsperren",
+    "checking": "PIN des Loggers wird geprüft…",
+    "errorLocked": "Zu viele falsche PINs. Der Logger ist für {{seconds}} s gesperrt.",
+    "errorCamera": "Die Kamera braucht gerade das Funkmodul des Loggers. Versuche es erneut, wenn sie fertig ist.",
+    "errorTimeout": "Der Logger hat nicht länger auf die PIN gewartet. Verbinde dich erneut.",
+    "errorBusy": "Der Logger ist beschäftigt. Verbinde dich gleich erneut.",
+    "errorProtocol": "Der Logger hat die Verbindung nicht angenommen. Verbinde dich erneut."
   }
 }

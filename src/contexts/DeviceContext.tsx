@@ -1,10 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   type BleConnection,
+  type PinPromptContext,
+  authenticateLogger,
   connectToDevice,
   disconnect,
   isBleSupported,
+  LoggerAuthError,
 } from "@/lib/bleDatalogger";
+import { LoggerPinDialog } from "@/components/LoggerPinDialog";
 import type { DeviceDetails, LoggerKind } from "@/lib/loggers";
 import { createBleDeviceDetails } from "@/lib/loggers/bleDetails";
 import {
@@ -73,6 +79,10 @@ interface DeviceContextValue {
 const DeviceContext = createContext<DeviceContextValue | null>(null);
 
 export function DeviceProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("drawer");
+  // The pending remote-transfer PIN prompt (plan 0031) and how to answer it.
+  const [pinRequest, setPinRequest] = useState<PinPromptContext | null>(null);
+  const pinResolveRef = useRef<((pin: string | null) => void) | null>(null);
   const [connection, setConnection] = useState<BleConnection | null>(null);
   const [nativeConnected, setNativeConnected] = useState(false);
   const [details, setDetails] = useState<DeviceDetails | null>(null);
@@ -109,12 +119,49 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
     setDeviceName(null);
   }, []);
 
+  const promptPin = useCallback((ctx: PinPromptContext) => {
+    return new Promise<string | null>((resolve) => {
+      pinResolveRef.current = resolve;
+      setPinRequest(ctx);
+    });
+  }, []);
+
+  const finishPinPrompt = useCallback((pin: string | null) => {
+    const resolve = pinResolveRef.current;
+    pinResolveRef.current = null;
+    setPinRequest(null);
+    resolve?.(pin);
+  }, []);
+
+  const authErrorMessage = useCallback((err: LoggerAuthError) => {
+    switch (err.code) {
+      case "locked": return t("pin.errorLocked", { seconds: err.seconds ?? 0 });
+      case "camera": return t("pin.errorCamera");
+      case "timeout": return t("pin.errorTimeout");
+      case "busy": return t("pin.errorBusy");
+      default: return t("pin.errorProtocol");
+    }
+  }, [t]);
+
   const connectFn = useCallback(async (onStatus?: (msg: string) => void): Promise<BleConnection | null> => {
     if (isConnecting) return null;
     if (connectionRef.current) return connectionRef.current;
     setIsConnecting(true);
     try {
       const conn = await connectToDevice(onStatus);
+      // A logger started remotely from its menu answers nothing but the PIN
+      // handshake until it is satisfied; a local start or older firmware
+      // passes straight through.
+      onStatus?.(t("pin.checking"));
+      try {
+        await authenticateLogger(conn, { promptPin });
+      } catch (err) {
+        disconnect(conn);
+        if (err instanceof LoggerAuthError && err.code !== "cancelled") {
+          toast.error(authErrorMessage(err));
+        }
+        throw err;
+      }
       // Listen for unexpected disconnects
       conn.device.addEventListener("gattserverdisconnected", handleDisconnect);
       setConnection(conn);
@@ -130,7 +177,7 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsConnecting(false);
     }
-  }, [isConnecting, handleDisconnect]);
+  }, [isConnecting, handleDisconnect, promptPin, authErrorMessage, t]);
 
   const scanNative = useCallback(async (): Promise<ScannedDevice[]> => {
     // Lazy import keeps Tauri off the web/eager graph (Golden Rule #1).
@@ -210,6 +257,7 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <LoggerPinDialog request={pinRequest} onDone={finishPinPrompt} />
     </DeviceContext.Provider>
   );
 }

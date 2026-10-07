@@ -109,6 +109,12 @@ export interface DeviceSettingDef {
    */
   allowZero?: boolean;
   /**
+   * `number` only: the value must be written with exactly this many digits,
+   * leading zeros allowed. The PIN is a 4-character code, not a quantity —
+   * "123" is not a PIN the logger will take (it answers `SERR:BAD_VALUE`).
+   */
+  exactDigits?: number;
+  /**
    * Required for `enum`, ignored otherwise. The device stores a bare string, so
    * a free-text field lets a typo through that the firmware then silently
    * treats as the default — which reads as the setting not working at all.
@@ -150,9 +156,25 @@ export const DEVICE_SETTINGS_SCHEMA: DeviceSettingDef[] = [
     label: 'Bluetooth PIN',
     type: 'number',
     maxLength: 4,
+    exactDigits: 4,
     min: 0,
     max: 9999,
-    description: 'Pairing PIN code (4 digits)',
+    description:
+      'Unlocks a transfer started from the app while the logger sits on its menu. Also shown on the logger under Transfer → PIN',
+  },
+  {
+    // Logger plan 0019 / viewer plan 0031: the menu advertises a PIN-locked
+    // transfer service so the app can start a download without anyone
+    // pressing Transfer on the device.
+    key: 'remote_transfer',
+    label: 'Remote Transfer',
+    type: 'enum',
+    options: [
+      { value: 'on', label: 'On (start transfers from the app, PIN-locked)' },
+      { value: 'off', label: 'Off (only from the logger\'s Transfer menu)' },
+    ],
+    description:
+      'Lets the app start a Bluetooth transfer while the logger sits on its main menu. The camera always takes the radio first',
   },
   {
     key: 'driver_name',
@@ -459,6 +481,9 @@ export function validateSettingValue(key: string, value: string): string | null 
     if (def.max !== undefined && num > def.max) return `Maximum value is ${def.max}`;
     if (def.maxLength !== undefined && value.length > def.maxLength) {
       return `Maximum ${def.maxLength} digits`;
+    }
+    if (def.exactDigits !== undefined && !new RegExp(`^[0-9]{${def.exactDigits}}$`).test(value)) {
+      return `Must be exactly ${def.exactDigits} digits`;
     }
   }
 

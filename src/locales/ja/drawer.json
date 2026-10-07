@@ -520,5 +520,21 @@
     "deleteConfirmBtn": "削除",
     "deleteHasSetups": "このタイプには保存されたセットアップがあります。先に削除してください。",
     "deleteDefault": "組み込みの既定タイプは削除できません。"
+  },
+  "pin": {
+    "title": "{{name}} の PIN",
+    "thisLogger": "このロガー",
+    "desc": "このロガーの PIN を入力してください。ロガーの Transfer → PIN で確認できます。次回からはアプリが記憶します。",
+    "label": "ロガーの PIN",
+    "wrong_one": "PIN が違います。あと {{count}} 回間違えるとロガーがしばらくロックされます。",
+    "wrong_other": "PIN が違います。あと {{count}} 回間違えるとロガーがしばらくロックされます。",
+    "cancel": "キャンセル",
+    "submit": "ロック解除",
+    "checking": "ロガーの PIN を確認しています…",
+    "errorLocked": "PIN の入力ミスが多すぎます。ロガーは {{seconds}} 秒間ロックされています。",
+    "errorCamera": "現在カメラがロガーの無線を使用しています。終わってから再度お試しください。",
+    "errorTimeout": "ロガーが PIN の待機を終了しました。再接続してください。",
+    "errorBusy": "ロガーはビジー状態です。少ししてから再接続してください。",
+    "errorProtocol": "ロガーが接続を受け付けませんでした。再接続してください。"
   }
 }

@@ -520,5 +520,21 @@
     "deleteConfirmBtn": "Excluir",
     "deleteHasSetups": "Este tipo tem configurações salvas — exclua-as primeiro.",
     "deleteDefault": "O tipo padrão integrado não pode ser excluído."
+  },
+  "pin": {
+    "title": "PIN de {{name}}",
+    "thisLogger": "este registrador",
+    "desc": "Digite o PIN deste registrador. Ele aparece no registrador em Transfer → PIN. O app vai lembrar depois disso.",
+    "label": "PIN do registrador",
+    "wrong_one": "PIN incorreto. Resta {{count}} tentativa antes de o registrador bloquear por um tempo.",
+    "wrong_other": "PIN incorreto. Restam {{count}} tentativas antes de o registrador bloquear por um tempo.",
+    "cancel": "Cancelar",
+    "submit": "Desbloquear",
+    "checking": "Verificando o PIN do registrador…",
+    "errorLocked": "PINs incorretos demais. O registrador está bloqueado por {{seconds}} s.",
+    "errorCamera": "A câmera está usando o rádio do registrador agora. Tente de novo quando ela terminar.",
+    "errorTimeout": "O registrador parou de esperar o PIN. Conecte novamente.",
+    "errorBusy": "O registrador está ocupado. Conecte novamente em instantes.",
+    "errorProtocol": "O registrador não aceitou a conexão. Conecte novamente."
   }
 }

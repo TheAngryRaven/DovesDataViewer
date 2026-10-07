@@ -26,6 +26,14 @@ Alfano tile mounts the lazy `AlfanoDownload` flow (Bluetooth serial over native 
 explanatory dialogs instead (Alfano uses Bluetooth serial / Classic Bluetooth SPP,
 which Web Bluetooth — BLE GATT only — can't reach, so it has no web path at all).
 
+**Remote transfer PIN (plan 0031).** `DeviceContext.connect` runs
+`authenticateLogger()` (`src/lib/ble/auth.ts`) right after `connectToDevice()`,
+so every web surface gets an authenticated (or open, or legacy) link without
+knowing auth exists. It learns the PIN via `PINGET` on a locally started
+transfer, tries the stored one silently on a remote start, and only then opens
+`LoggerPinDialog` (mounted by `DeviceProvider`). A failure disconnects and toasts.
+Wire spec: [`ble-protocol.md`](ble-protocol.md) §3.3.
+
 `DataloggerDownload` talks to the device only through the generic
 `LoggerConnection` interface (`src/lib/loggers/`): `listLogs` / `downloadLog` /
 `disconnect`, with `createFledglingConnection()` adapting a `BleConnection`. MyChron

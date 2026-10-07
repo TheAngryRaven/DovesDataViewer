@@ -520,5 +520,21 @@
     "deleteConfirmBtn": "Elimina",
     "deleteHasSetups": "Questo tipo ha configurazioni salvate: eliminale prima.",
     "deleteDefault": "Il tipo predefinito integrato non può essere eliminato."
+  },
+  "pin": {
+    "title": "PIN di {{name}}",
+    "thisLogger": "questo logger",
+    "desc": "Inserisci il PIN di questo logger. Lo trovi sul logger in Transfer → PIN. L'app lo ricorderà in seguito.",
+    "label": "PIN del logger",
+    "wrong_one": "PIN errato. Resta {{count}} tentativo prima che il logger si blocchi per un po'.",
+    "wrong_other": "PIN errato. Restano {{count}} tentativi prima che il logger si blocchi per un po'.",
+    "cancel": "Annulla",
+    "submit": "Sblocca",
+    "checking": "Verifica del PIN del logger…",
+    "errorLocked": "Troppi PIN errati. Il logger è bloccato per {{seconds}} s.",
+    "errorCamera": "La videocamera sta usando la radio del logger. Riprova quando ha finito.",
+    "errorTimeout": "Il logger ha smesso di attendere il PIN. Riconnettiti.",
+    "errorBusy": "Il logger è occupato. Riconnettiti tra un momento.",
+    "errorProtocol": "Il logger non ha accettato la connessione. Riconnettiti."
   }
 }
