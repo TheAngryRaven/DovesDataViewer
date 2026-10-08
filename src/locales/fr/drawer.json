@@ -520,5 +520,27 @@
     "deleteConfirmBtn": "Supprimer",
     "deleteHasSetups": "Ce type a des configurations enregistrées — supprimez-les d'abord.",
     "deleteDefault": "Le type par défaut intégré ne peut pas être supprimé."
+  },
+  "pin": {
+    "title": "PIN de {{name}}",
+    "thisLogger": "cet enregistreur",
+    "desc": "Saisissez le PIN de cet enregistreur. Pour le voir, ouvrez Transfer → PIN sur l'enregistreur, puis ramenez-le à son menu principal avant de le saisir ici. L'app le retiendra ensuite.",
+    "label": "PIN de l'enregistreur",
+    "wrong_one": "PIN incorrect. Il reste {{count}} essai avant que l'enregistreur ne se verrouille un moment.",
+    "wrong_other": "PIN incorrect. Il reste {{count}} essais avant que l'enregistreur ne se verrouille un moment.",
+    "cancel": "Annuler",
+    "submit": "Déverrouiller",
+    "handshake": "Communication avec l'enregistreur…",
+    "checking": "Vérification du PIN de l'enregistreur…",
+    "reconnecting": "Reconnexion à l'enregistreur…",
+    "errorLocked": "Trop de PIN incorrects. L'enregistreur est verrouillé pendant {{seconds}} s.",
+    "errorCamera": "La caméra a besoin de la radio de l'enregistreur pour le moment. Réessayez quand elle aura fini.",
+    "errorTimeout": "L'enregistreur a cessé d'attendre le PIN. Ramenez-le à son menu principal et reconnectez-vous.",
+    "errorEngine": "Le moteur a démarré : l'enregistreur a mis fin au transfert à distance pour se préparer à enregistrer.",
+    "errorIdle": "L'enregistreur a mis fin au transfert à distance après 10 minutes sans activité. Reconnectez-vous pour continuer.",
+    "errorBusy": "L'enregistreur est occupé. Reconnectez-vous dans un instant.",
+    "errorNoReply": "L'enregistreur ne répond plus. Reconnectez-vous.",
+    "errorDisconnected": "L'enregistreur a coupé la connexion. Vérifiez qu'il est sur son menu principal, puis reconnectez-vous.",
+    "errorProtocol": "L'enregistreur n'a pas accepté la connexion. Reconnectez-vous."
   }
 }

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { type BleConnection } from "@/lib/bleDatalogger";
+import { type BleConnection, loadLoggerPin, saveLoggerPin } from "@/lib/bleDatalogger";
 import type { DeviceDetails } from "@/lib/loggers";
 import {
   DEVICE_SETTINGS_SCHEMA,
@@ -117,6 +117,14 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     setFetchError(null);
     try {
       const settings = await details.listSettings();
+      // PIN-gated firmware (logger plan 0019) leaves the PIN out of SLIST so a
+      // remote peer can't read the secret that gates it. The handshake that
+      // let us in either fetched it (local start) or proved it (remote), so
+      // the stored copy is the device's current PIN.
+      if (!("bluetooth_pin" in settings) && bleConnection) {
+        const pin = loadLoggerPin(bleConnection.device.id);
+        if (pin) settings.bluetooth_pin = pin;
+      }
       // Build rows: schema-defined keys first (in order), then unknown keys
       const knownKeys = DEVICE_SETTINGS_SCHEMA.map((s) => s.key);
       const orderedKeys = [
@@ -137,7 +145,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     } finally {
       setLoading(false);
     }
-  }, [details, t]);
+  }, [details, bleConnection, t]);
 
   useEffect(() => {
     fetchSettings();
@@ -193,6 +201,9 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
 
     try {
       await details.setSetting(row.key, row.value);
+      if (row.key === "bluetooth_pin" && bleConnection) {
+        saveLoggerPin(bleConnection.device.id, row.value);
+      }
       setRows((prev) =>
         prev.map((r) =>
           r.key === key ? { ...r, originalValue: r.value, saving: false } : r
@@ -215,6 +226,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     setResetting(true);
     try {
       await details.resetSettings();
+      // The stored PIN stays: SRESET keeps the logger's bluetooth_pin.
       toast.success(t("device.toastReset"));
       onResetComplete?.();
     } catch (err) {

@@ -520,5 +520,27 @@
     "deleteConfirmBtn": "Eliminar",
     "deleteHasSetups": "Este tipo tiene configuraciones guardadas: elimínalas primero.",
     "deleteDefault": "El tipo predeterminado integrado no se puede eliminar."
+  },
+  "pin": {
+    "title": "PIN de {{name}}",
+    "thisLogger": "este registrador",
+    "desc": "Introduce el PIN de este registrador. Para verlo, abre Transfer → PIN en el registrador y vuelve a su menú principal antes de introducirlo aquí. La app lo recordará después.",
+    "label": "PIN del registrador",
+    "wrong_one": "PIN incorrecto. Queda {{count}} intento antes de que el registrador se bloquee un rato.",
+    "wrong_other": "PIN incorrecto. Quedan {{count}} intentos antes de que el registrador se bloquee un rato.",
+    "cancel": "Cancelar",
+    "submit": "Desbloquear",
+    "handshake": "Comunicando con el registrador…",
+    "checking": "Comprobando el PIN del registrador…",
+    "reconnecting": "Reconectando con el registrador…",
+    "errorLocked": "Demasiados PIN incorrectos. El registrador está bloqueado durante {{seconds}} s.",
+    "errorCamera": "La cámara necesita ahora la radio del registrador. Inténtalo de nuevo cuando termine.",
+    "errorTimeout": "El registrador dejó de esperar el PIN. Vuelve a su menú principal y conecta de nuevo.",
+    "errorEngine": "El motor arrancó, así que el registrador terminó la transferencia remota para prepararse a registrar.",
+    "errorIdle": "El registrador terminó la transferencia remota tras 10 minutos sin actividad. Vuelve a conectar para continuar.",
+    "errorBusy": "El registrador está ocupado. Vuelve a conectar en un momento.",
+    "errorNoReply": "El registrador dejó de responder. Vuelve a conectar.",
+    "errorDisconnected": "El registrador cortó la conexión. Asegúrate de que esté en su menú principal y vuelve a conectar.",
+    "errorProtocol": "El registrador no aceptó la conexión. Vuelve a conectar."
   }
 }

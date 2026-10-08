@@ -519,5 +519,27 @@
     "deleteConfirmBtn": "Delete",
     "deleteHasSetups": "This type has saved setups — delete those first.",
     "deleteDefault": "The built-in default type can't be deleted."
+  },
+  "pin": {
+    "title": "PIN for {{name}}",
+    "thisLogger": "this logger",
+    "desc": "Enter this logger's PIN. To see it, open Transfer → PIN on the logger, then return the logger to its main menu before entering it here. The app remembers it after this.",
+    "label": "Logger PIN",
+    "wrong_one": "Wrong PIN. {{count}} try left before the logger locks for a while.",
+    "wrong_other": "Wrong PIN. {{count}} tries left before the logger locks for a while.",
+    "cancel": "Cancel",
+    "submit": "Unlock",
+    "handshake": "Talking to the logger…",
+    "checking": "Checking the logger's PIN…",
+    "reconnecting": "Reconnecting to the logger…",
+    "errorLocked": "Too many wrong PINs. The logger is locked for {{seconds}} s.",
+    "errorCamera": "The camera needs the logger's radio right now. Try again once it's done.",
+    "errorTimeout": "The logger stopped waiting for the PIN. Return it to its main menu and connect again.",
+    "errorEngine": "The engine started, so the logger ended the remote transfer to get ready to log.",
+    "errorIdle": "The logger ended the remote transfer after 10 minutes without activity. Connect again to continue.",
+    "errorBusy": "The logger is busy. Connect again in a moment.",
+    "errorNoReply": "The logger stopped answering. Connect again.",
+    "errorDisconnected": "The logger dropped the connection. Make sure it's on its main menu, then connect again.",
+    "errorProtocol": "The logger didn't accept the connection. Connect again."
   }
 }

@@ -143,7 +143,7 @@ src/
 │   ├── insta360/          # ★ Native-only Insta360 camera bridge (plan 0025): ipc (insta360_* over the lazy Tauri loader), nativePlayer (the camera stream as a <video>-shaped VideoSurface for useVideoSync), playerClock + pose (pure, tested)
 │   ├── videoPlaylist.ts   # ★ Pure GoPro chunked-video model: parse/order GH/GX/GP/GOPR chunk names, build a virtual timeline (cumulative offsets) + virtual↔local time mapping + planAudioSegments (export audio stitch). useVideoSync swaps the <video> src per chunk; a single file is a 1-chunk playlist
 │   ├── satelliteImagery.ts # ★ Esri Wayback parsing (online-only satellite imagery-date picker)
-│   ├── ble/               # Web Bluetooth DovesLapTimer protocol + firmware OTA (→ docs/ble.md)
+│   ├── ble/               # Web Bluetooth DovesLapTimer protocol + firmware OTA (→ docs/ble.md); auth.ts = remote-transfer PIN handshake, dynamic-imported by DeviceContext.connect (plan 0031, wire spec docs/ble-protocol.md §3.3) + pinStore.ts (per-logger PIN, local only)
 │   ├── db/                # Admin DB layer: ITrackDatabase + supabaseAdapter + getDatabase()
 │   ├── billing*.ts        # Subscription logic + Supabase billing I/O (→ docs/backend.md)
 │   ├── weatherService.ts  # Historical weather (online-only): NWS/IEM METAR → Open-Meteo fallback
@@ -489,8 +489,10 @@ re-merges it into the main chunk — watch for this.
 **Lazy (off the initial path):** routes (`Login`, `Admin`, `Register`, `Privacy`);
 view tabs (`RaceLineTab`, `GraphViewTab`, `CoachTab`, `ToolsTab`, `SetupsTab`); `FileManagerDrawer`;
 `DataloggerDownload` — the Fledgling BLE flow, mounted on demand by the eager
-`LoggerDownload` picker host so `lib/ble/*` stays off the landing payload while the
-menu still opens instantly; `CourseSectorEditor` (carries
+`LoggerDownload` picker host so the BLE protocol modules stay off the landing
+payload while the menu still opens instantly (the eager `DeviceContext` carries only
+`lib/ble/connection.ts`; it dynamic-imports the PIN handshake `lib/ble/auth` and lazy-loads
+`LoggerPinDialog` on first connect); `CourseSectorEditor` (carries
 `@dnd-kit/*`). Lazy components must render inside `<Suspense>`; use
 `lazy(() => import('…').then((m) => ({ default: m.Named })))` for named exports.
 
