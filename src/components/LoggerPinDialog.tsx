@@ -45,7 +45,7 @@ export function LoggerPinDialog({ request, onDone }: LoggerPinDialogProps) {
           <Input
             className="my-4 text-center text-2xl tracking-[0.5em] font-mono"
             inputMode="numeric"
-            autoComplete="off"
+            autoComplete="one-time-code"
             maxLength={4}
             autoFocus
             value={pin}
@@ -53,7 +53,7 @@ export function LoggerPinDialog({ request, onDone }: LoggerPinDialogProps) {
             onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
           />
           {request?.triesLeft !== undefined && (
-            <p className="text-sm text-destructive mb-4">{t("pin.wrong", { count: request.triesLeft })}</p>
+            <p role="alert" className="text-sm text-destructive mb-4">{t("pin.wrong", { count: request.triesLeft })}</p>
           )}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onDone(null)}>{t("pin.cancel")}</Button>
