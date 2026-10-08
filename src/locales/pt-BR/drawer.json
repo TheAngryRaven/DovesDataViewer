@@ -524,17 +524,23 @@
   "pin": {
     "title": "PIN de {{name}}",
     "thisLogger": "este registrador",
-    "desc": "Digite o PIN deste registrador. Ele aparece no registrador em Transfer → PIN. O app vai lembrar depois disso.",
+    "desc": "Digite o PIN deste registrador. Para vê-lo, abra Transfer → PIN no registrador e depois volte ao menu principal dele antes de digitá-lo aqui. O app vai lembrar depois disso.",
     "label": "PIN do registrador",
     "wrong_one": "PIN incorreto. Resta {{count}} tentativa antes de o registrador bloquear por um tempo.",
     "wrong_other": "PIN incorreto. Restam {{count}} tentativas antes de o registrador bloquear por um tempo.",
     "cancel": "Cancelar",
     "submit": "Desbloquear",
+    "handshake": "Conversando com o registrador…",
     "checking": "Verificando o PIN do registrador…",
+    "reconnecting": "Reconectando ao registrador…",
     "errorLocked": "PINs incorretos demais. O registrador está bloqueado por {{seconds}} s.",
     "errorCamera": "A câmera está usando o rádio do registrador agora. Tente de novo quando ela terminar.",
-    "errorTimeout": "O registrador parou de esperar o PIN. Conecte novamente.",
+    "errorTimeout": "O registrador parou de esperar o PIN. Volte ao menu principal dele e conecte novamente.",
+    "errorEngine": "O motor ligou, então o registrador encerrou a transferência remota para se preparar para registrar.",
+    "errorIdle": "O registrador encerrou a transferência remota após 10 minutos sem atividade. Conecte novamente para continuar.",
     "errorBusy": "O registrador está ocupado. Conecte novamente em instantes.",
+    "errorNoReply": "O registrador parou de responder. Conecte novamente.",
+    "errorDisconnected": "O registrador caiu a conexão. Verifique se ele está no menu principal e conecte novamente.",
     "errorProtocol": "O registrador não aceitou a conexão. Conecte novamente."
   }
 }

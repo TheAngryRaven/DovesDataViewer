@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { PinPromptContext } from "@/lib/ble";
+import type { PinPromptContext } from "@/lib/ble/auth";
 
 interface LoggerPinDialogProps {
   /** The open prompt, or null when none is pending. */

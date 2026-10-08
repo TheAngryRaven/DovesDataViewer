@@ -21,7 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   time you start a transfer from the logger itself. A logger it hasn't seen
   before asks for the PIN once (shown on the logger under Transfer → PIN). Too
   many wrong PINs lock the logger for a while, and the Insta360 camera always
-  gets the radio first. Older loggers connect exactly as before. (Plan 0031.)
+  gets the radio first. Reading the PIN on the logger takes it off its main
+  menu: the app waits, and once you're back on the menu and enter the PIN it
+  reconnects on its own. If the logger ends the session itself (camera, engine
+  started, or 10 minutes idle) the app tells you why. Older loggers connect as
+  before, about 2 seconds slower while the app checks. (Plan 0031.)
 - **Remote Transfer setting** on the Device tab, to turn this off per logger.
 
 ### Changed

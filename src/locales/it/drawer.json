@@ -524,17 +524,23 @@
   "pin": {
     "title": "PIN di {{name}}",
     "thisLogger": "questo logger",
-    "desc": "Inserisci il PIN di questo logger. Lo trovi sul logger in Transfer → PIN. L'app lo ricorderà in seguito.",
+    "desc": "Inserisci il PIN di questo logger. Per vederlo, apri Transfer → PIN sul logger, poi riporta il logger al menu principale prima di inserirlo qui. L'app lo ricorderà in seguito.",
     "label": "PIN del logger",
     "wrong_one": "PIN errato. Resta {{count}} tentativo prima che il logger si blocchi per un po'.",
     "wrong_other": "PIN errato. Restano {{count}} tentativi prima che il logger si blocchi per un po'.",
     "cancel": "Annulla",
     "submit": "Sblocca",
+    "handshake": "Comunicazione con il logger…",
     "checking": "Verifica del PIN del logger…",
+    "reconnecting": "Riconnessione al logger…",
     "errorLocked": "Troppi PIN errati. Il logger è bloccato per {{seconds}} s.",
     "errorCamera": "La videocamera sta usando la radio del logger. Riprova quando ha finito.",
-    "errorTimeout": "Il logger ha smesso di attendere il PIN. Riconnettiti.",
+    "errorTimeout": "Il logger ha smesso di attendere il PIN. Riportalo al menu principale e riconnettiti.",
+    "errorEngine": "Il motore si è avviato, quindi il logger ha chiuso il trasferimento remoto per prepararsi a registrare.",
+    "errorIdle": "Il logger ha chiuso il trasferimento remoto dopo 10 minuti di inattività. Riconnettiti per continuare.",
     "errorBusy": "Il logger è occupato. Riconnettiti tra un momento.",
+    "errorNoReply": "Il logger non risponde più. Riconnettiti.",
+    "errorDisconnected": "Il logger ha interrotto la connessione. Assicurati che sia nel menu principale, poi riconnettiti.",
     "errorProtocol": "Il logger non ha accettato la connessione. Riconnettiti."
   }
 }

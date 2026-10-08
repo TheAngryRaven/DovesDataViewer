@@ -16,7 +16,7 @@ export type {
 } from "./types";
 
 export { formatBytes, formatSpeed, formatTime } from "./format";
-export { isBleSupported, connectToDevice, disconnect } from "./connection";
+export { isBleSupported, connectToDevice, reconnectDevice, disconnect } from "./connection";
 export { requestFileList, downloadFile } from "./fileTransfer";
 export { requestBatteryLevel } from "./battery";
 export {
@@ -47,11 +47,21 @@ export type {
 } from "./firmwareUpload";
 
 // Remote-transfer PIN handshake (docs/plans/0031-remote-transfer-pin.md)
+// DeviceContext loads ./auth with a dynamic import so it stays off the eager
+// graph; these re-exports are for code that is already lazy.
 export {
   authenticateLogger,
   computeAuthAnswer,
   isValidPin,
   LoggerAuthError,
+  watchLinkEndNotices,
 } from "./auth";
-export type { AuthOutcome, PinPromptContext } from "./auth";
+export type {
+  AuthOutcome,
+  AuthPhase,
+  AuthResult,
+  LinkEnd,
+  LinkEndNotice,
+  PinPromptContext,
+} from "./auth";
 export { forgetLoggerPin, loadLoggerPin, saveLoggerPin } from "./pinStore";
