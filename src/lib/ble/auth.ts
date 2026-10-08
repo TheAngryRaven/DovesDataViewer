@@ -191,13 +191,13 @@ export async function authenticateLogger(
   if (first === null) return "legacy";
   if (first.kind === "open") {
     const pin = await sendAuthCommand(connection, "PINGET");
-    if (pin?.kind === "pin") saveLoggerPin(device.id, deviceName, pin.pin);
+    if (pin?.kind === "pin") saveLoggerPin(device.id, pin.pin);
     return "open";
   }
   if (first.kind === "ok") return "authed";
 
   let reply: AuthReply | null = first;
-  let pin = loadLoggerPin(device.id, deviceName);
+  let pin = loadLoggerPin(device.id);
   let triesLeft: number | undefined;
   for (;;) {
     if (reply === null) throw new LoggerAuthError("timeout");
@@ -220,7 +220,7 @@ export async function authenticateLogger(
 
     const verdict = await sendAuthCommand(connection, `AUTH:${await computeAuthAnswer(pin, reply.nonce)}`);
     if (verdict?.kind === "ok") {
-      saveLoggerPin(device.id, deviceName, pin);
+      saveLoggerPin(device.id, pin);
       return "authed";
     }
     if (verdict?.kind !== "fail" && verdict?.kind !== "noNonce") {
@@ -230,7 +230,7 @@ export async function authenticateLogger(
     if (verdict.kind === "fail") {
       // A stored PIN that no longer works (changed on the logger) is dropped
       // so it can't keep burning tries.
-      forgetLoggerPin(device.id, deviceName);
+      forgetLoggerPin(device.id);
       triesLeft = verdict.triesLeft;
       pin = null;
     }

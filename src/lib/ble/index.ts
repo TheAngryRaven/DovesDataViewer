@@ -54,4 +54,4 @@ export {
   LoggerAuthError,
 } from "./auth";
 export type { AuthOutcome, PinPromptContext } from "./auth";
-export { loadLoggerPin, saveLoggerPin } from "./pinStore";
+export { forgetLoggerPin, loadLoggerPin, saveLoggerPin } from "./pinStore";

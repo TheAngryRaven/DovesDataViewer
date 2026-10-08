@@ -104,11 +104,11 @@ describe("authenticateLogger", () => {
     expect(lastWritten(conn.characteristics.fileRequest)).toBe("PINGET");
     conn.characteristics.fileStatus.simulate("PIN:4821\n");
     await expect(result).resolves.toBe("open");
-    expect(loadLoggerPin("dev-1", "BirdsEye-42")).toBe("4821");
+    expect(loadLoggerPin("dev-1")).toBe("4821");
   });
 
   it("answers silently with a stored PIN", async () => {
-    saveLoggerPin("dev-1", "BirdsEye-42", "4821");
+    saveLoggerPin("dev-1", "4821");
     const conn = loggerConnection();
     const promptPin = vi.fn();
     const result = authenticateLogger(conn, { promptPin });
@@ -121,13 +121,8 @@ describe("authenticateLogger", () => {
     expect(promptPin).not.toHaveBeenCalled();
   });
 
-  it("falls back to the name when the browser hands out a new id", async () => {
-    saveLoggerPin("old-id", "BirdsEye-42", "4821");
-    expect(loadLoggerPin("dev-1", "BirdsEye-42")).toBe("4821");
-  });
-
   it("forgets a rejected PIN and asks the user", async () => {
-    saveLoggerPin("dev-1", "BirdsEye-42", "9999");
+    saveLoggerPin("dev-1", "9999");
     const conn = loggerConnection();
     const promptPin = vi.fn().mockResolvedValue("4821");
     const result = authenticateLogger(conn, { promptPin });
@@ -137,14 +132,14 @@ describe("authenticateLogger", () => {
     conn.characteristics.fileStatus.simulate("AUTH:FAIL:4\n");
     await waitForWrite(conn.characteristics.fileRequest, 3);
     expect(lastWritten(conn.characteristics.fileRequest)).toBe("AUTH?");
-    expect(loadLoggerPin("dev-1", "BirdsEye-42")).toBeNull();
+    expect(loadLoggerPin("dev-1")).toBeNull();
     conn.characteristics.fileStatus.simulate(`AUTH:NONCE:${NONCE}\n`);
     await waitForWrite(conn.characteristics.fileRequest, 4);
     expect(promptPin).toHaveBeenCalledWith({ deviceName: "BirdsEye-42", triesLeft: 4 });
     expect(lastWritten(conn.characteristics.fileRequest)).toBe("AUTH:4936f5dad4502101eb0f65790cca77b4");
     conn.characteristics.fileStatus.simulate("AUTH:OK\n");
     await expect(result).resolves.toBe("authed");
-    expect(loadLoggerPin("dev-1", "BirdsEye-42")).toBe("4821");
+    expect(loadLoggerPin("dev-1")).toBe("4821");
   });
 
   it("gives up when the user cancels the prompt", async () => {
@@ -166,7 +161,7 @@ describe("authenticateLogger", () => {
   });
 
   it("reports the camera taking the radio", async () => {
-    saveLoggerPin("dev-1", "BirdsEye-42", "4821");
+    saveLoggerPin("dev-1", "4821");
     const conn = loggerConnection();
     const result = authenticateLogger(conn, { promptPin: vi.fn() });
     await waitForWrite(conn.characteristics.fileRequest, 1);

@@ -3,11 +3,14 @@
  *
  * Device-local on purpose: it is never cloud-synced, and losing it costs one
  * look at the logger's Transfer → PIN page. Keyed by the Web Bluetooth
- * `device.id` (stable per origin while the browser keeps the permission) with
- * the advertised name as a fallback for when the browser hands out a fresh id.
+ * `device.id` only (stable per origin while the browser keeps the permission).
+ * There is deliberately no fallback to the advertised name: default names come
+ * from a small space, so a name match could try logger B's PIN on logger A and
+ * burn one of A's tries. A browser that hands out a fresh id just means asking
+ * once more (or learning it again from a local start).
  *
- * Every storage access is guarded: a private window or blocked site data just
- * means the user is asked again.
+ * Every storage access is guarded: a private window, blocked site data or a
+ * malformed entry just means the user is asked again.
  */
 
 const STORAGE_KEY = "dove-logger-pins";
@@ -15,7 +18,6 @@ const STORAGE_KEY = "dove-logger-pins";
 type PinMap = Record<string, string>;
 
 const idKey = (id: string) => `id:${id}`;
-const nameKey = (name: string) => `name:${name}`;
 
 function read(): PinMap {
   try {
@@ -28,6 +30,11 @@ function read(): PinMap {
 }
 
 function write(map: PinMap): void {
+  // Entries keyed by advertised name came from the first cut of this store;
+  // they are never read, so drop them whenever the map is rewritten.
+  for (const key of Object.keys(map)) {
+    if (!key.startsWith("id:")) delete map[key];
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
   } catch {
@@ -36,24 +43,21 @@ function write(map: PinMap): void {
 }
 
 /** The stored PIN for this logger, or null. */
-export function loadLoggerPin(deviceId: string, deviceName: string): string | null {
-  const map = read();
-  const pin = map[idKey(deviceId)] ?? (deviceName ? map[nameKey(deviceName)] : undefined);
+export function loadLoggerPin(deviceId: string): string | null {
+  const pin = read()[idKey(deviceId)];
   return typeof pin === "string" && /^[0-9]{4}$/.test(pin) ? pin : null;
 }
 
 /** Remember the PIN for this logger. */
-export function saveLoggerPin(deviceId: string, deviceName: string, pin: string): void {
+export function saveLoggerPin(deviceId: string, pin: string): void {
   const map = read();
   map[idKey(deviceId)] = pin;
-  if (deviceName) map[nameKey(deviceName)] = pin;
   write(map);
 }
 
-/** Forget this logger's PIN (it was rejected). */
-export function forgetLoggerPin(deviceId: string, deviceName: string): void {
+/** Forget this logger's PIN (rejected, or the logger's settings were reset). */
+export function forgetLoggerPin(deviceId: string): void {
   const map = read();
   delete map[idKey(deviceId)];
-  if (deviceName) delete map[nameKey(deviceName)];
   write(map);
 }

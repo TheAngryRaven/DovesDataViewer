@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { type BleConnection, loadLoggerPin, saveLoggerPin } from "@/lib/bleDatalogger";
+import { type BleConnection, forgetLoggerPin, loadLoggerPin, saveLoggerPin } from "@/lib/bleDatalogger";
 import type { DeviceDetails } from "@/lib/loggers";
 import {
   DEVICE_SETTINGS_SCHEMA,
@@ -122,7 +122,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
       // let us in either fetched it (local start) or proved it (remote), so
       // the stored copy is the device's current PIN.
       if (!("bluetooth_pin" in settings) && bleConnection) {
-        const pin = loadLoggerPin(bleConnection.device.id, bleConnection.device.name ?? "");
+        const pin = loadLoggerPin(bleConnection.device.id);
         if (pin) settings.bluetooth_pin = pin;
       }
       // Build rows: schema-defined keys first (in order), then unknown keys
@@ -202,7 +202,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     try {
       await details.setSetting(row.key, row.value);
       if (row.key === "bluetooth_pin" && bleConnection) {
-        saveLoggerPin(bleConnection.device.id, bleConnection.device.name ?? "", row.value);
+        saveLoggerPin(bleConnection.device.id, row.value);
       }
       setRows((prev) =>
         prev.map((r) =>
@@ -226,6 +226,9 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     setResetting(true);
     try {
       await details.resetSettings();
+      // A settings reset can roll a new PIN on the logger; a stale stored one
+      // would silently burn one of the logger's tries on the next connect.
+      if (bleConnection) forgetLoggerPin(bleConnection.device.id);
       toast.success(t("device.toastReset"));
       onResetComplete?.();
     } catch (err) {
