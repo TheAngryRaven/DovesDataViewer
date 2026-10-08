@@ -40,8 +40,8 @@ stays open, and on submit the handshake reconnects the same `BluetoothDevice`
 (`reconnectDevice`, no picker) and reruns with the typed PIN. A camera notice
 closes the dialog. Any failure disconnects and toasts a translated reason. After
 connecting, `watchLinkEndNotices` toasts the logger's own session-ending notices
-(`AUTH:CAMERA` / `ENGINE` / `IDLE`) before the disconnect tears the UI down. A
-Device-tab settings reset forgets the stored PIN (the reset may roll a new one).
+(`AUTH:CAMERA` / `ENGINE` / `IDLE`) before the disconnect tears the UI down.
+A Device-tab settings reset keeps the stored PIN (`SRESET` preserves it).
 Wire spec: [`ble-protocol.md`](ble-protocol.md) §3.3.
 
 `DataloggerDownload` talks to the device only through the generic

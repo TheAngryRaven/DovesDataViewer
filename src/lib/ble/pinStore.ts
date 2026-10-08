@@ -55,7 +55,7 @@ export function saveLoggerPin(deviceId: string, pin: string): void {
   write(map);
 }
 
-/** Forget this logger's PIN (rejected, or the logger's settings were reset). */
+/** Forget this logger's PIN (the logger rejected it). */
 export function forgetLoggerPin(deviceId: string): void {
   const map = read();
   delete map[idKey(deviceId)];

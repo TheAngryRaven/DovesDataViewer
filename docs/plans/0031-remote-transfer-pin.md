@@ -42,8 +42,9 @@ ever taking the radio from the Insta360 auto-record.
 3. **Stored PIN first, silently; a rejected one is forgotten.** A PIN changed on
    the logger would otherwise burn a try on every connect. "Rejected" is any
    verdict but OK — `FAIL`, and `LOCKED` (what the 5th miss returns). The prompt
-   then shows the tries left. A Device-tab settings reset forgets it too, since
-   the reset can roll a new PIN.
+   then shows the tries left. A Device-tab settings reset keeps it: the
+   firmware's `SRESET` preserves a valid `bluetooth_pin` (it used to roll a new
+   one, which review M3 flagged; the logger side fixed it there).
 4. **Storage is per device, local, never synced.** `localStorage`, keyed by
    Web Bluetooth `device.id` only (stable per origin while the permission
    lasts). The first cut fell back to the advertised name when the browser
@@ -118,11 +119,12 @@ ever taking the radio from the Insta360 auto-record.
   says to return it to the menu and connect again.
 - **Hardware check outstanding:** remote start from the menu, wrong-PIN lockout,
   `AUTH:CAMERA` with a paired X4, a legacy logger connecting after the probe,
-  and the read-the-PIN-then-reconnect path (Chrome's `gatt.connect()` on a
+  `AUTH:ENGINE` on an engine start, and the read-the-PIN-then-reconnect path (Chrome's `gatt.connect()` on a
   device that re-advertises).
 
 ## Review follow-up (PR #454)
 
 H1 (prompt on a dead link, typed PIN lost), M1 (non-auth errors only logged),
-M2 (slow reply read as legacy), M3 (stale PIN after a settings reset), L1–L6 and
-the nits are addressed by decisions 3–5 and 8–11 above.
+M2 (slow reply read as legacy), L1–L6 and the nits are addressed by decisions
+3–5 and 8–11 above. M3 (stale PIN after a settings reset) was fixed in the
+firmware instead: `SRESET` now keeps the PIN, so the app keeps its copy.

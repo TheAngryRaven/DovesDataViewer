@@ -169,8 +169,8 @@ session — and then drops the link:
 | Notice | Meaning |
 |---|---|
 | `AUTH:TIMEOUT` | 20 s squat limit: not authenticated in time (locked sessions only) |
-| `AUTH:CAMERA` | the Insta360 auto-record needs the radio |
-| `AUTH:ENGINE` | a remote session ended because the engine started (the logger goes back to logging) |
+| `AUTH:CAMERA` | the Insta360 auto-record needs the radio (camera waking, recording, or its bench page) |
+| `AUTH:ENGINE` | a remote session ended because the engine started (the logger goes back to logging) — sent for an engine start even with a paired camera |
 | `AUTH:IDLE` | a remote session ended after 10 min with no transfer commands |
 
 A client must not read any of them as the reply to the command it just sent,
@@ -199,15 +199,20 @@ case-insensitively in constant time. Golden vectors (firmware
 - **Squat limit:** a locked session that hasn't authenticated within **20 s** of
   connecting gets `AUTH:TIMEOUT` and is dropped. Prompting a user for the PIN
   counts against it.
-- **The camera always wins.** If the Insta360 auto-record needs the radio (engine
-  turning, camera waking or recording), the logger sends `AUTH:CAMERA` and drops a
-  remote session — before or after authentication.
+- **The camera always wins.** If the Insta360 auto-record needs the radio (camera
+  waking or recording), the logger sends `AUTH:CAMERA` and drops a remote session —
+  before or after authentication. An engine start ends a remote session with
+  `AUTH:ENGINE` instead, camera paired or not.
 - **Leaving the main menu drops a locked session** without a notice. Reading the
   PIN (Transfer → PIN) does exactly that, so a client that prompts for the PIN
   should reconnect after the user returns the logger to its menu and rerun the
   handshake with the typed PIN (the web client does).
 - **`PINGET`** → `PIN:<4 digits>`, **open sessions only** (`AUTH:REQUIRED`
-  otherwise). This is how a client learns the PIN without anyone typing it: a
+  otherwise). `SERR:NOT_FOUND` means the logger has no valid PIN stored right
+  now: treat it as "nothing learned", not as an error.
+- **`AUTH:BUSY` to an answer** also means the logger couldn't read its own PIN
+  (SD busy, settings unreadable): the nonce is kept and no try is counted, so
+  resending the same answer once is safe. This is how a client learns the PIN without anyone typing it: a
   local start hands it over, and the client stores it for the next remote start.
 - **The PIN is 4 digits, leading zeros allowed.** Shown on the logger under
   Transfer → PIN (hold Select to reveal; it hides itself again).
@@ -393,6 +398,9 @@ device → 0x2A40 : "SOK:RESET"            (then the device reboots)
 
 After `SOK:RESET` the device reboots — the client should **disconnect immediately**
 and expect the link to drop. Timeout ~10 s. Errors as `SERR:<reason>`.
+
+On PIN-gated firmware (§3.3) the reset **keeps a valid `bluetooth_pin`** (an
+invalid one is regenerated), so a client's stored PIN stays good across it.
 
 ### 8.5 Known settings (schema)
 

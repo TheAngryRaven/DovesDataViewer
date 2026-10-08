@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { type BleConnection, forgetLoggerPin, loadLoggerPin, saveLoggerPin } from "@/lib/bleDatalogger";
+import { type BleConnection, loadLoggerPin, saveLoggerPin } from "@/lib/bleDatalogger";
 import type { DeviceDetails } from "@/lib/loggers";
 import {
   DEVICE_SETTINGS_SCHEMA,
@@ -226,9 +226,7 @@ export function DeviceSettingsTab({ details, bleConnection, onResetComplete }: D
     setResetting(true);
     try {
       await details.resetSettings();
-      // A settings reset can roll a new PIN on the logger; a stale stored one
-      // would silently burn one of the logger's tries on the next connect.
-      if (bleConnection) forgetLoggerPin(bleConnection.device.id);
+      // The stored PIN stays: SRESET keeps the logger's bluetooth_pin.
       toast.success(t("device.toastReset"));
       onResetComplete?.();
     } catch (err) {
