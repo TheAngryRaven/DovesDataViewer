@@ -125,6 +125,9 @@
     "resetView": "Reset the 360° view",
     "exportUnavailable": "Export isn't available for camera streams yet",
     "openFailed": "Couldn't start the camera stream",
+    "loadingTitle": "Loading from the camera…",
+    "loadingReading": "Reading the recording off the camera. A long recording can take 30–40 seconds the first time.",
+    "loadingStarting": "Starting the picture…",
     "streamError": "The camera stream stopped",
     "previewFailed": "The camera picture couldn't be shown"
   }

@@ -126,6 +126,9 @@
     "resetView": "360° ビューをリセット",
     "exportUnavailable": "カメラストリームの書き出しはまだ利用できません",
     "openFailed": "カメラストリームを開始できませんでした",
+    "loadingTitle": "カメラから読み込み中…",
+    "loadingReading": "カメラから録画を読み込んでいます。長い録画は初回に30〜40秒かかることがあります。",
+    "loadingStarting": "映像を開始しています…",
     "streamError": "カメラストリームが停止しました",
     "previewFailed": "カメラの映像を表示できませんでした"
   }

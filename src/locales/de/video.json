@@ -126,6 +126,9 @@
     "resetView": "360°-Ansicht zurücksetzen",
     "exportUnavailable": "Export ist für Kamera-Streams noch nicht verfügbar",
     "openFailed": "Kamera-Stream konnte nicht gestartet werden",
+    "loadingTitle": "Wird von der Kamera geladen…",
+    "loadingReading": "Die Aufnahme wird von der Kamera gelesen. Bei langen Aufnahmen kann das beim ersten Mal 30–40 Sekunden dauern.",
+    "loadingStarting": "Bild wird gestartet…",
     "streamError": "Der Kamera-Stream wurde unterbrochen",
     "previewFailed": "Das Kamerabild konnte nicht angezeigt werden"
   }

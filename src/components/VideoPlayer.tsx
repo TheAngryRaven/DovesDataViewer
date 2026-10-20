@@ -1,6 +1,6 @@
 import { memo, lazy, Suspense, useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw, Sliders, Move, Download, Camera, Compass, RotateCcw } from "lucide-react";
+import { Play, Pause, Lock, Unlock, Plus, Minus, Video, Crosshair, Volume2, VolumeX, RefreshCw, Sliders, Move, Download, Camera, Compass, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -678,9 +678,20 @@ export const VideoPlayer = memo(function VideoPlayer({
   if (!state.videoUrl) {
     return (
       <div ref={emptyStateRef} className="h-full flex flex-col items-center justify-center bg-muted/20 gap-4 px-6 text-center">
-        <Video className="w-12 h-12 text-muted-foreground/50" />
-        <p className="text-muted-foreground text-sm">{t("player.noVideo")}</p>
-        {state.videoFileName && (
+        {state.cameraLoadPhase && (
+          // A camera recording takes 30 s+ to open; without this the tap
+          // looks ignored and gets repeated, queueing more opens.
+          <div role="status" aria-live="polite" className="flex flex-col items-center gap-2">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <p className="text-sm font-medium">{t("insta360.loadingTitle")}</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              {t(state.cameraLoadPhase === "reading" ? "insta360.loadingReading" : "insta360.loadingStarting")}
+            </p>
+          </div>
+        )}
+        {!state.cameraLoadPhase && <Video className="w-12 h-12 text-muted-foreground/50" />}
+        {!state.cameraLoadPhase && <p className="text-muted-foreground text-sm">{t("player.noVideo")}</p>}
+        {state.videoFileName && !state.cameraLoadPhase && (
           <p className="text-xs text-muted-foreground max-w-xs break-words">{t("player.lastUsed", { name: state.videoFileName })}</p>
         )}
         <div className="flex flex-wrap items-center justify-center gap-2">

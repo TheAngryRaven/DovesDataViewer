@@ -126,6 +126,9 @@
     "resetView": "Reimposta la vista 360°",
     "exportUnavailable": "L'esportazione non è ancora disponibile per gli stream della fotocamera",
     "openFailed": "Impossibile avviare lo stream della fotocamera",
+    "loadingTitle": "Caricamento dalla fotocamera…",
+    "loadingReading": "Lettura della registrazione dalla fotocamera. Una registrazione lunga può richiedere 30–40 secondi la prima volta.",
+    "loadingStarting": "Avvio dell'immagine…",
     "streamError": "Lo stream della fotocamera si è interrotto",
     "previewFailed": "Impossibile mostrare l'immagine della fotocamera"
   }

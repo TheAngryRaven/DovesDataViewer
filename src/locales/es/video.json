@@ -126,6 +126,9 @@
     "resetView": "Restablecer la vista 360°",
     "exportUnavailable": "La exportación aún no está disponible para transmisiones de cámara",
     "openFailed": "No se pudo iniciar la transmisión de la cámara",
+    "loadingTitle": "Cargando desde la cámara…",
+    "loadingReading": "Leyendo la grabación de la cámara. Una grabación larga puede tardar 30–40 segundos la primera vez.",
+    "loadingStarting": "Iniciando la imagen…",
     "streamError": "La transmisión de la cámara se detuvo",
     "previewFailed": "No se pudo mostrar la imagen de la cámara"
   }

@@ -126,6 +126,9 @@
     "resetView": "Réinitialiser la vue 360°",
     "exportUnavailable": "L'export n'est pas encore disponible pour les flux caméra",
     "openFailed": "Impossible de démarrer le flux de la caméra",
+    "loadingTitle": "Chargement depuis la caméra…",
+    "loadingReading": "Lecture de l'enregistrement sur la caméra. Un long enregistrement peut prendre 30 à 40 secondes la première fois.",
+    "loadingStarting": "Démarrage de l'image…",
     "streamError": "Le flux de la caméra s'est arrêté",
     "previewFailed": "Impossible d'afficher l'image de la caméra"
   }

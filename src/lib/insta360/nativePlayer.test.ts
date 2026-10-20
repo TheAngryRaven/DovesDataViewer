@@ -149,6 +149,44 @@ describe("NativePlayerElement", () => {
     expect(h.player.lastError).toBe("boom");
   });
 
+  it("whenFirstFrame waits for the player's first frame and takes its duration over the metadata's", async () => {
+    // The camera's metadata said 28× the real length (first X4 test).
+    const h = harness({ durationMs: 28 * 60_000 * 28 });
+    await h.player.open();
+    const waiting = h.player.whenFirstFrame(60_000);
+    h.emit({ kind: "opened", positionMs: 0, durationMs: 28 * 60_000, playing: false });
+    await expect(waiting).resolves.toBe(true);
+    expect(h.player.duration).toBe(28 * 60);
+    // Already rendered: answers at once.
+    await expect(h.player.whenFirstFrame(1)).resolves.toBe(true);
+  });
+
+  it("whenFirstFrame gives up on an error, a close, or the timeout", async () => {
+    const failed = harness();
+    await failed.player.open();
+    const onError = failed.player.whenFirstFrame(60_000);
+    failed.emit({ kind: "error", positionMs: 0, durationMs: 0, playing: false, message: "no frame" });
+    await expect(onError).resolves.toBe(false);
+
+    const closed = harness();
+    await closed.player.open();
+    const onClose = closed.player.whenFirstFrame(60_000);
+    closed.player.close();
+    await expect(onClose).resolves.toBe(false);
+    await expect(closed.player.whenFirstFrame(60_000)).resolves.toBe(false);
+
+    vi.useFakeTimers();
+    try {
+      const slow = harness();
+      await slow.player.open();
+      const onTimeout = slow.player.whenFirstFrame(5000);
+      vi.advanceTimersByTime(5000);
+      await expect(onTimeout).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("muted toggles reach the shell only after open, and only on change", async () => {
     const h = harness();
     h.player.muted = false;

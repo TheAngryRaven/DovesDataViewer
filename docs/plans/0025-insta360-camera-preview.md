@@ -64,6 +64,22 @@ The constraint that shaped everything: reuse the existing video machinery.
   poses, one in flight at a time, latest wins) / lock, and reset. Streams
   start locked so a stray touch can't spin the view.
 
+## First hardware test (X4, fw 1.9.21)
+
+Video plays, overlays render, and manual sync works. What the test showed,
+and what changed for it:
+
+- Opening a recording is slow: ~27 s for the shell to read the file's
+  metadata off the camera, then ~20 s more to the player's first frame.
+  With nothing on screen the tap looked ignored and got repeated. The video
+  pane now shows a spinner with the phase (`cameraLoadPhase`: reading →
+  starting) for the whole load.
+- The metadata's duration was 28× the real one (`47051984 ms` vs. the
+  player's `1680428 ms`), and the playlist was built from it.
+  `loadCameraRecording` now waits for the first rendered frame
+  (`NativePlayerElement.whenFirstFrame`, 60 s cap) and builds the playlist
+  from the player's own duration.
+
 ## Deliberate limits
 
 - Preview only: no export, no download, no GPS sync; pose isn't persisted

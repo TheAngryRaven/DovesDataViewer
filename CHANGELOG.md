@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > from git history and grouped by theme rather than exhaustive per-commit
 > detail.
 
+## [5.0.1] - unreleased
+
+### Fixed
+- **Loading a recording from an Insta360 camera shows that it's working.**
+  Opening one can take 30–40 seconds (the camera has to read it before the
+  picture starts), and until now nothing on screen said so, so the tap
+  looked ignored. The video pane now shows a spinner and what it is waiting
+  on. (Plan 0025.)
+- **Camera recordings get their real length.** The timeline was built from
+  the camera's file metadata, which on an X4 can claim many times the real
+  length (a 28-minute recording read as 13 hours). It now waits for the
+  player's first frame and uses the length the player reports. (Plan 0025.)
+
 ## [5.0.0] - 2026-10-04
 
 ### Added

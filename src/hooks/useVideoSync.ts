@@ -50,6 +50,15 @@ export interface NativeVideoSource {
   is360: boolean;
 }
 
+/**
+ * Where a camera recording's load stands: the shell reading it off the camera
+ * (can take 30 s+ on a long recording), then the player starting the picture.
+ */
+export type CameraLoadPhase = "reading" | "starting";
+
+/** How long a camera recording gets to render a first frame before we show it anyway. */
+const CAMERA_FIRST_FRAME_TIMEOUT_MS = 60_000;
+
 export interface VideoSyncState {
   videoUrl: string | null;
   /** Object URL of the next chunk, preloaded by a hidden <video> for a near-seamless boundary. */
@@ -86,6 +95,8 @@ export interface VideoSyncState {
   nativeStoredKey: string | null;
   /** The shell-streamed source behind `videoUrl`, or null for a file. */
   nativeSource: NativeVideoSource | null;
+  /** A camera recording is loading (null when none is). */
+  cameraLoadPhase: CameraLoadPhase | null;
   /**
    * When a selection holds several distinct recordings, the choices to prompt
    * the user with (null = no prompt pending). Each is one recording's display
@@ -184,6 +195,7 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
   // every source change.
   const nativePlayerRef = useRef<NativePlayerElement | null>(null);
   const [nativeSource, setNativeSource] = useState<NativeVideoSource | null>(null);
+  const [cameraLoadPhase, setCameraLoadPhase] = useState<CameraLoadPhase | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const onScrubRef = useRef(onScrub);
@@ -529,18 +541,16 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     const player = new NativePlayerElement(file, { width: size.width, height: size.height });
     nativePlayerRef.current = player;
     setNativeSource({ kind: "insta360", file, is360: file.is360 });
+    setCameraLoadPhase("reading");
     try {
       const info = await player.open();
       if (nativePlayerRef.current !== player) throw new Error("superseded");
-      // The playlist needs a real length; the shell knows it once the player
-      // is prepared, or reports it a moment later on `loadedmetadata`.
-      if (player.duration <= 0) {
-        await new Promise<void>((resolve) => {
-          const timer = setTimeout(done, 8000);
-          function done() { clearTimeout(timer); player.removeEventListener("loadedmetadata", done); resolve(); }
-          player.addEventListener("loadedmetadata", done);
-        });
-      }
+      // The playlist needs the real length, which only the player's first
+      // rendered frame carries — the camera's metadata can be a multiple of
+      // it. If no frame comes, carry on with what we have; the shell reports
+      // why on the error channel.
+      setCameraLoadPhase("starting");
+      await player.whenFirstFrame(CAMERA_FIRST_FRAME_TIMEOUT_MS);
       if (nativePlayerRef.current !== player) throw new Error("superseded");
       videoRef.current = player;
       await applyPlaylist([{ name: file.name, url: info.streamUrl, durationSec: player.duration }]);
@@ -557,6 +567,8 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
         setNativeSource(null);
       }
       if (!(e instanceof Error && e.message === "superseded")) throw e;
+    } finally {
+      if (nativePlayerRef.current === player || nativePlayerRef.current === null) setCameraLoadPhase(null);
     }
   }, [revokeAllUrls, applyPlaylist, persistSync, nativeKeyGate]);
 
@@ -1052,12 +1064,13 @@ export function useVideoSync({ samples, allSamples, currentIndex, onScrub, sessi
     hasStoredVideo: storedVideoAvailable,
     nativeStoredKey,
     nativeSource,
+    cameraLoadPhase,
     storedVideoMeta,
     pendingRecordings,
   }), [
     videoUrl, preloadUrl, videoFileName, isLocked, isPlaying, syncOffsetMs, syncRate, rateAnchorCount, fps,
     videoDuration, chunkCount, currentChunkIndex, exportChunks, isOutOfRange, coverage, overlaySettings,
-    storedVideoAvailable, nativeStoredKey, nativeSource, storedVideoMeta, pendingRecordings,
+    storedVideoAvailable, nativeStoredKey, nativeSource, cameraLoadPhase, storedVideoMeta, pendingRecordings,
   ]);
 
   const actions: VideoSyncActions = useMemo(() => ({

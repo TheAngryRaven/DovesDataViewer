@@ -100,6 +100,8 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
   pose: ViewPose | null = null;
   /** The shell's message for the last `error` event. */
   lastError: string | null = null;
+  /** The player has rendered a frame (its `opened` event), so its duration is real. */
+  private firstFrame = false;
 
   constructor(file: Insta360CameraFile, options: NativePlayerOptions) {
     super();
@@ -215,6 +217,32 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
     return info;
   }
 
+  /**
+   * Resolves `true` once the player has rendered its first frame, or `false`
+   * if it reports an error, is closed, or `timeoutMs` passes first. Only then
+   * is the duration the player's own: the camera's recording metadata can
+   * be off by a multiple (an X4 file read as 28× its length).
+   */
+  whenFirstFrame(timeoutMs: number): Promise<boolean> {
+    if (this.firstFrame) return Promise.resolve(true);
+    if (this.closed) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      const finish = (ok: boolean) => {
+        clearTimeout(timer);
+        this.removeEventListener("canplay", onFrame);
+        this.removeEventListener("error", onFail);
+        this.removeEventListener("emptied", onFail);
+        resolve(ok);
+      };
+      const onFrame = () => finish(true);
+      const onFail = () => finish(false);
+      const timer = setTimeout(onFail, timeoutMs);
+      this.addEventListener("canplay", onFrame);
+      this.addEventListener("error", onFail);
+      this.addEventListener("emptied", onFail);
+    });
+  }
+
   /** Stop the stream and release the native player (idempotent). */
   close(): void {
     if (this.closed) return;
@@ -223,6 +251,7 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
     if (this.info) this.releaseNativePlayer();
     this.info = null;
     this.clock.setPlaying(false, this.now());
+    this.dispatchEvent(new Event("emptied"));
   }
 
   /** Point the 360° view. Resolves to the pose the player reached. */
@@ -274,7 +303,9 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
     switch (e.kind) {
       case "opened":
         this.clock.report({ positionMs: e.positionMs, durationMs: e.durationMs, playing: e.playing }, now);
+        this.firstFrame = true;
         this.dispatchEvent(new Event("loadedmetadata"));
+        this.dispatchEvent(new Event("canplay"));
         break;
       case "status": {
         // A seek in flight owns the position until it lands.
@@ -305,6 +336,7 @@ export class NativePlayerElement extends EventTarget implements VideoSurface {
         this.closed = true;
         this.info = null;
         this.clearSeekTimer();
+        this.dispatchEvent(new Event("emptied"));
         break;
     }
   }
