@@ -17,10 +17,13 @@ interface Insta360ViewLayerProps {
  * finger the way every 360° player behaves; each move becomes an absolute
  * pose the shell steers the native player to. Poses are sent one at a time —
  * a drag that outruns the bridge collapses to the latest pose, never a
- * queue. Pinch/zoom is deliberately not here yet.
+ * queue. Each move builds on the pose the drag is heading for, never on the
+ * pose the player last reported: that one lags the finger, and building on
+ * it snapped the view back mid-drag. Pinch/zoom is deliberately not here yet.
  */
 export function Insta360ViewLayer({ player, width, height, locked }: Insta360ViewLayerProps) {
-  const poseRef = useRef<ViewPose>(player.pose ?? DEFAULT_VIEW_POSE);
+  /** Where the drag is pointing the view — the base for the next move. */
+  const targetRef = useRef<ViewPose>(player.pose ?? DEFAULT_VIEW_POSE);
   const lastRef = useRef<{ x: number; y: number } | null>(null);
   const inflightRef = useRef(false);
   const pendingRef = useRef<ViewPose | null>(null);
@@ -39,7 +42,6 @@ export function Insta360ViewLayer({ player, width, height, locked }: Insta360Vie
     inflightRef.current = true;
     void player
       .setViewPose(next)
-      .then((reached) => { poseRef.current = reached; })
       .catch(() => { /* the next drag re-sends; a closed player just ignores us */ })
       .finally(() => {
         inflightRef.current = false;
@@ -53,7 +55,7 @@ export function Insta360ViewLayer({ player, width, height, locked }: Insta360Vie
     e.stopPropagation();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     lastRef.current = { x: e.clientX, y: e.clientY };
-    poseRef.current = player.pose ?? poseRef.current;
+    targetRef.current = player.pose ?? targetRef.current;
   }, [locked, player]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -62,7 +64,8 @@ export function Insta360ViewLayer({ player, width, height, locked }: Insta360Vie
     const dx = e.clientX - last.x;
     const dy = e.clientY - last.y;
     lastRef.current = { x: e.clientX, y: e.clientY };
-    const next = dragToPose(pendingRef.current ?? poseRef.current, dx, dy, width, height);
+    const next = dragToPose(targetRef.current, dx, dy, width, height);
+    targetRef.current = next;
     pendingRef.current = next;
     flush();
   }, [locked, width, height, flush]);

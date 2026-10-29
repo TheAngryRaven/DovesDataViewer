@@ -15,6 +15,7 @@ import {
 } from "@/lib/insta360/ipc";
 import { resumeInsta360Session, type Insta360DialogPhase } from "@/lib/insta360/resumeSession";
 import type { Insta360CameraFile, Insta360CameraInfo } from "@/lib/insta360/types";
+import { loadSsidPrefix, saveSsidPrefix } from "@/lib/insta360/connectPrefs";
 
 interface Insta360ImportDialogProps {
   open: boolean;
@@ -60,7 +61,7 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
   const [camera, setCamera] = useState<Insta360CameraInfo | null>(null);
   const [files, setFiles] = useState<Insta360CameraFile[]>([]);
   const [error, setError] = useState<unknown>(null);
-  const [ssidPrefix, setSsidPrefix] = useState("");
+  const [ssidPrefix, setSsidPrefix] = useState(loadSsidPrefix);
   const [passphrase, setPassphrase] = useState(DEFAULT_PASSPHRASE);
 
   // Read by the resume below, which must not hijack a connect the user has
@@ -92,6 +93,7 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
   const connect = useCallback(async () => {
     setError(null);
     setPhase("connecting");
+    saveSsidPrefix(ssidPrefix);
     try {
       const info = await insta360Connect("wifi", {
         ssidPrefix: ssidPrefix.trim() || "*",
@@ -147,7 +149,6 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
                 id="insta360-ssid"
                 value={ssidPrefix}
                 onChange={(e) => setSsidPrefix(e.target.value)}
-                placeholder="X4"
                 autoComplete="off"
               />
               <p className="text-xs text-muted-foreground">{t("insta360.ssidPrefixHint")}</p>

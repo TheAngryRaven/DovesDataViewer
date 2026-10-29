@@ -80,6 +80,15 @@ and what changed for it:
   (`NativePlayerElement.whenFirstFrame`, 60 s cap) and builds the playlist
   from the player's own duration.
 
+- 360° dragging jittered: `Insta360ViewLayer` built each step on the pose
+  the player last reported (lagging the finger), and the shell turned every
+  pose into a separate synthetic swipe plus corrective drags. Steps now
+  build on the drag's own target; the shell holds one synthetic finger down
+  for the whole drag (LapWing `GestureSynth.Held`).
+- The SSID-prefix field's "X4" was a placeholder, so an untouched field
+  meant "current Wi-Fi". It is now a real, remembered default
+  (`lib/insta360/connectPrefs.ts`).
+
 ## Deliberate limits
 
 - Preview only: no export, no download, no GPS sync; pose isn't persisted

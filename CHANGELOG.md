@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the camera's file metadata, which on an X4 can claim many times the real
   length (a 28-minute recording read as 13 hours). It now waits for the
   player's first frame and uses the length the player reports. (Plan 0025.)
+- **Dragging a 360° camera view no longer jitters.** Each drag step was
+  built on the pose the player had last reported, which trails the finger,
+  so the view kept snapping back mid-drag. Steps now build on where the drag
+  is heading. (Plan 0025; the shell side of the fix is in LapWing.)
+- **The camera Wi-Fi name field starts filled in.** Its "X4" was only a
+  placeholder, and an empty field means "the Wi-Fi this phone is already
+  on", so connecting without typing never asked for the camera's network.
+  It now defaults to X4 and remembers what you last used. (Plan 0025.)
 
 ## [5.0.0] - 2026-10-04
 
