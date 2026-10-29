@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Camera, Loader2, Unplug } from "lucide-react";
+import { Bluetooth, Camera, Loader2, Unplug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { ErrorPanel } from "@/components/loggers/DownloadPanels";
 import { classifyLoggerError, loggerErrorKey } from "@/lib/loggers/errors";
 import {
+  insta360BleConnect,
+  insta360BleScan,
   insta360Connect,
   insta360Disconnect,
   insta360ListFiles,
   insta360Status,
 } from "@/lib/insta360/ipc";
 import { resumeInsta360Session, type Insta360DialogPhase } from "@/lib/insta360/resumeSession";
-import type { Insta360CameraFile, Insta360CameraInfo } from "@/lib/insta360/types";
+import type { Insta360BleCamera, Insta360CameraFile, Insta360CameraInfo } from "@/lib/insta360/types";
 import { loadSsidPrefix, saveSsidPrefix } from "@/lib/insta360/connectPrefs";
 
 interface Insta360ImportDialogProps {
@@ -47,8 +49,11 @@ function formatWhen(file: Insta360CameraFile, locale: string): string | null {
 }
 
 /**
- * Connect to an Insta360 camera over its Wi-Fi hotspot and pick a recording
- * to stream (plan 0025; LapWing `docs/insta360.md`). Native only — lazily
+ * Connect to an Insta360 camera and pick a recording to stream (plan 0025;
+ * LapWing `docs/insta360.md`). The main path finds the camera over Bluetooth
+ * and lets the shell join its Wi-Fi with the credentials the camera hands
+ * over — nothing typed. Typing the hotspot's name and password stays as a
+ * fallback. Native only — lazily
  * loaded by VideoPlayer, never part of the web bundle's eager graph.
  *
  * Closing the dialog keeps the camera connected: the stream needs it. Only
@@ -63,6 +68,12 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
   const [error, setError] = useState<unknown>(null);
   const [ssidPrefix, setSsidPrefix] = useState(loadSsidPrefix);
   const [passphrase, setPassphrase] = useState(DEFAULT_PASSPHRASE);
+  const [showManual, setShowManual] = useState(false);
+  /** Cameras from the last Bluetooth scan; null until one has run. */
+  const [found, setFound] = useState<Insta360BleCamera[] | null>(null);
+  const [viaBluetooth, setViaBluetooth] = useState(false);
+  /** What the error panel's retry re-runs. */
+  const retryRef = useRef<() => void>(() => {});
 
   // Read by the resume below, which must not hijack a connect the user has
   // already started while the status call was in flight.
@@ -90,24 +101,56 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
     return () => { alive = false; };
   }, [open]);
 
+  const fail = useCallback((err: unknown, retry: () => void) => {
+    retryRef.current = retry;
+    setError(err);
+    setPhase("error");
+  }, []);
+
+  /** Connected: list the camera's recordings. */
+  const connected = useCallback(async (info: Insta360CameraInfo) => {
+    setCamera(info);
+    setPhase("listing");
+    setFiles(await insta360ListFiles());
+    setPhase("ready");
+  }, []);
+
   const connect = useCallback(async () => {
     setError(null);
+    setViaBluetooth(false);
     setPhase("connecting");
     saveSsidPrefix(ssidPrefix);
     try {
-      const info = await insta360Connect("wifi", {
+      await connected(await insta360Connect("wifi", {
         ssidPrefix: ssidPrefix.trim() || "*",
         passphrase: passphrase || undefined,
-      });
-      setCamera(info);
-      setPhase("listing");
-      setFiles(await insta360ListFiles());
-      setPhase("ready");
+      }));
     } catch (err) {
-      setError(err);
-      setPhase("error");
+      fail(err, () => void connect());
     }
-  }, [ssidPrefix, passphrase]);
+  }, [ssidPrefix, passphrase, connected, fail]);
+
+  const scan = useCallback(async () => {
+    setError(null);
+    setPhase("scanning");
+    try {
+      setFound(await insta360BleScan());
+      setPhase("idle");
+    } catch (err) {
+      fail(err, () => void scan());
+    }
+  }, [fail]);
+
+  const connectBle = useCallback(async (cam: Insta360BleCamera) => {
+    setError(null);
+    setViaBluetooth(true);
+    setPhase("connecting");
+    try {
+      await connected(await insta360BleConnect(cam.address));
+    } catch (err) {
+      fail(err, () => void connectBle(cam));
+    }
+  }, [connected, fail]);
 
   const refresh = useCallback(async () => {
     setPhase("listing");
@@ -115,10 +158,9 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
       setFiles(await insta360ListFiles());
       setPhase("ready");
     } catch (err) {
-      setError(err);
-      setPhase("error");
+      fail(err, () => void refresh());
     }
-  }, []);
+  }, [fail]);
 
   const disconnect = useCallback(async () => {
     await insta360Disconnect();
@@ -143,36 +185,72 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
 
         {phase === "idle" && (
           <div className="flex flex-col gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="insta360-ssid">{t("insta360.ssidPrefix")}</Label>
-              <Input
-                id="insta360-ssid"
-                value={ssidPrefix}
-                onChange={(e) => setSsidPrefix(e.target.value)}
-                autoComplete="off"
-              />
-              <p className="text-xs text-muted-foreground">{t("insta360.ssidPrefixHint")}</p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => void scan()} className="gap-2">
+                <Bluetooth className="w-4 h-4" /> {found ? t("insta360.scanAgain") : t("insta360.findCameras")}
+              </Button>
+              <p className="text-xs text-muted-foreground">{t("insta360.findHint")}</p>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="insta360-pass">{t("insta360.passphrase")}</Label>
-              <Input
-                id="insta360-pass"
-                value={passphrase}
-                onChange={(e) => setPassphrase(e.target.value)}
-                autoComplete="off"
-              />
-              <p className="text-xs text-muted-foreground">{t("insta360.passphraseHint")}</p>
-            </div>
-            <Button onClick={() => void connect()} className="gap-2">
-              <Camera className="w-4 h-4" /> {t("insta360.connect")}
-            </Button>
+            {found && found.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center">{t("insta360.noCameras")}</p>
+            )}
+            {found && found.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {found.map((cam) => (
+                  <div key={cam.address} className="flex items-center gap-3 rounded-md border border-border/60 px-3 py-2">
+                    <Camera className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1 min-w-0 text-sm font-medium truncate">{cam.name}</span>
+                    <Button size="sm" onClick={() => void connectBle(cam)}>{t("insta360.connect")}</Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!showManual ? (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline underline-offset-2 self-center"
+                onClick={() => setShowManual(true)}
+              >
+                {t("insta360.manualToggle")}
+              </button>
+            ) : (
+              <div className="flex flex-col gap-4 border-t border-border/60 pt-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="insta360-ssid">{t("insta360.ssidPrefix")}</Label>
+                  <Input
+                    id="insta360-ssid"
+                    value={ssidPrefix}
+                    onChange={(e) => setSsidPrefix(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-muted-foreground">{t("insta360.ssidPrefixHint")}</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="insta360-pass">{t("insta360.passphrase")}</Label>
+                  <Input
+                    id="insta360-pass"
+                    value={passphrase}
+                    onChange={(e) => setPassphrase(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-muted-foreground">{t("insta360.passphraseHint")}</p>
+                </div>
+                <Button variant="outline" onClick={() => void connect()} className="gap-2">
+                  <Camera className="w-4 h-4" /> {t("insta360.connect")}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
-        {(phase === "connecting" || phase === "listing") && (
-          <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted-foreground">
+        {(phase === "scanning" || phase === "connecting" || phase === "listing") && (
+          <div className="flex flex-col items-center gap-3 py-6 text-sm text-muted-foreground text-center">
             <Loader2 className="w-6 h-6 animate-spin" />
-            {phase === "connecting" ? t("insta360.connecting") : t("insta360.listing")}
+            {phase === "scanning"
+              ? t("insta360.scanning")
+              : phase === "connecting"
+                ? t(viaBluetooth ? "insta360.connectingBle" : "insta360.connecting")
+                : t("insta360.listing")}
           </div>
         )}
 
@@ -183,7 +261,7 @@ export function Insta360ImportDialog({ open, onOpenChange, onLoad, onDisconnecte
             detailLabel={tLogger("errors.detailLabel")}
             onCancel={() => { setError(null); setPhase("idle"); }}
             cancelLabel={t("insta360.back")}
-            onAction={() => void connect()}
+            onAction={() => retryRef.current()}
             actionLabel={tLogger("errors.actionRetry")}
           />
         )}

@@ -30,6 +30,10 @@ describe("classifyLoggerError", () => {
     expect(classifyLoggerError("device unreachable: user denied the request").category).toBe(
       "permission",
     );
+    // The Insta360 Bluetooth bootstrap's own sentinel.
+    expect(classifyLoggerError("permission: allow Nearby devices (Bluetooth) access, then try again").category).toBe(
+      "permission",
+    );
     // Plain unreachable stays unreachable.
     expect(classifyLoggerError("device unreachable: radio off").category).toBe("unreachable");
   });

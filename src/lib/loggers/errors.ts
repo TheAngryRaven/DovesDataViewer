@@ -58,6 +58,9 @@ export function classifyLoggerError(err: unknown): ClassifiedLoggerError {
     const remainder = detail.slice("device unreachable:".length);
     return { category: PERMISSION_HINT.test(remainder) ? "permission" : "unreachable", detail };
   }
+  // The Insta360 Bluetooth bootstrap asks for access itself and fails the
+  // call with this prefix; the user retries once they've answered.
+  if (lower.startsWith("permission:")) return { category: "permission", detail };
   if (lower.startsWith("device hung:")) return { category: "hung", detail };
   if (lower.startsWith("protocol error:")) return { category: "protocol", detail };
   if (lower.startsWith("unsupported:")) return { category: "unsupported", detail };

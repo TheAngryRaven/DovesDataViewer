@@ -49,6 +49,16 @@ export interface Insta360CameraFile {
 }
 
 /** Wi-Fi join request forwarded to the shell's network binder. */
+/** A camera found by a Bluetooth scan, strongest signal first. */
+export interface Insta360BleCamera {
+  /** Bluetooth address — what `insta360BleConnect` takes. */
+  address: string;
+  /** Advertised name, e.g. "Insta360 X4 1A2B3C". */
+  name: string;
+  /** Signal strength, dBm. */
+  rssi: number;
+}
+
 export interface Insta360WifiJoin {
   ssid?: string;
   /** `"*"` = let the OS picker show every network. */

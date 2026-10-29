@@ -89,6 +89,20 @@ and what changed for it:
   meant "current Wi-Fi". It is now a real, remembered default
   (`lib/insta360/connectPrefs.ts`).
 
+## Bluetooth connect (no password typed)
+
+Digging the hotspot password out of the camera's settings was the worst
+part of the first test. The Insta360 Camera SDK V2 documents a "BLE first,
+then Wi-Fi" bootstrap (its guide §2.5): BLE-connect, read
+`system.fetchWifiData()` (ssid/pwd, opening the hotspot first if it's off),
+join with the system Wi-Fi API, then connect over Wi-Fi as before. The
+shell runs all of it (LapWing `insta360_ble_scan` / `insta360_ble_connect`);
+the credentials never reach the WebView. The dialog's main path is now
+*Find cameras* → tap a camera; the typed name/password form is a fallback
+behind a link. A first scan fails with `permission: …` while Android asks
+for Nearby-devices access (classified as `permission` by
+`lib/loggers/errors.ts`); the user scans again.
+
 ## Deliberate limits
 
 - Preview only: no export, no download, no GPS sync; pose isn't persisted

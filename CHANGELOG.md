@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [5.0.1] - unreleased
 
+### Added
+- **Connect to an Insta360 camera without typing its Wi-Fi password.** In
+  the native app, *Find cameras* scans for the camera over Bluetooth; tap it
+  and LapWing asks the camera for its Wi-Fi name and password, turns its
+  Wi-Fi on if it's off, and joins it for you. Android may still ask once to
+  allow joining the camera's network. The old name-and-password form stays
+  as a fallback. (Plan 0025.)
+
 ### Fixed
 - **Loading a recording from an Insta360 camera shows that it's working.**
   Opening one can take 30–40 seconds (the camera has to read it before the

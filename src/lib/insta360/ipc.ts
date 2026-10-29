@@ -10,6 +10,7 @@
 import { api } from "@/lib/loggers/native/ipc";
 import { isNativeApp } from "@/lib/platform";
 import type {
+  Insta360BleCamera,
   Insta360CameraFile,
   Insta360CameraInfo,
   Insta360CameraStatus,
@@ -44,6 +45,25 @@ export async function insta360Connect(
 ): Promise<Insta360CameraInfo> {
   const { invoke } = await api();
   return invoke<Insta360CameraInfo>("insta360_connect", { connectType, wifi: wifi ?? null });
+}
+
+/**
+ * Nearby cameras over Bluetooth. Rejects with `permission: …` the first
+ * time, while Android asks the user for Bluetooth access — scan again after.
+ */
+export async function insta360BleScan(timeoutMs?: number): Promise<Insta360BleCamera[]> {
+  const { invoke } = await api();
+  return invoke<Insta360BleCamera[]>("insta360_ble_scan", { timeoutMs: timeoutMs ?? null });
+}
+
+/**
+ * Connect to a scanned camera without typing anything: the shell reads the
+ * camera's Wi-Fi name and password over Bluetooth, joins that network and
+ * connects over Wi-Fi. The credentials never come back to the WebView.
+ */
+export async function insta360BleConnect(address: string): Promise<Insta360CameraInfo> {
+  const { invoke } = await api();
+  return invoke<Insta360CameraInfo>("insta360_ble_connect", { address });
 }
 
 /** Best effort: never throws (already disconnected / old shell). */

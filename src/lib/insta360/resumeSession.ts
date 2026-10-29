@@ -1,7 +1,7 @@
 import type { Insta360CameraFile, Insta360CameraInfo, Insta360CameraStatus } from "./types";
 
 /** The Insta360 import dialog's UI phase. */
-export type Insta360DialogPhase = "idle" | "connecting" | "listing" | "ready" | "error";
+export type Insta360DialogPhase = "idle" | "scanning" | "connecting" | "listing" | "ready" | "error";
 
 export interface ResumeDeps {
   status: () => Promise<Insta360CameraStatus>;
