@@ -520,5 +520,27 @@
     "deleteConfirmBtn": "Löschen",
     "deleteHasSetups": "Dieser Typ hat gespeicherte Setups – lösche diese zuerst.",
     "deleteDefault": "Der integrierte Standardtyp kann nicht gelöscht werden."
+  },
+  "pin": {
+    "title": "PIN für {{name}}",
+    "thisLogger": "diesen Logger",
+    "desc": "Gib die PIN dieses Loggers ein. Öffne dazu am Logger Transfer → PIN und bring den Logger danach zurück in sein Hauptmenü, bevor du sie hier eingibst. Die App merkt sie sich danach.",
+    "label": "Logger-PIN",
+    "wrong_one": "Falsche PIN. Noch {{count}} Versuch, bevor der Logger eine Weile sperrt.",
+    "wrong_other": "Falsche PIN. Noch {{count}} Versuche, bevor der Logger eine Weile sperrt.",
+    "cancel": "Abbrechen",
+    "submit": "Entsperren",
+    "handshake": "Verbindung mit dem Logger wird hergestellt…",
+    "checking": "PIN des Loggers wird geprüft…",
+    "reconnecting": "Erneute Verbindung mit dem Logger…",
+    "errorLocked": "Zu viele falsche PINs. Der Logger ist für {{seconds}} s gesperrt.",
+    "errorCamera": "Die Kamera braucht gerade das Funkmodul des Loggers. Versuche es erneut, wenn sie fertig ist.",
+    "errorTimeout": "Der Logger hat nicht länger auf die PIN gewartet. Bring ihn zurück ins Hauptmenü und verbinde dich erneut.",
+    "errorEngine": "Der Motor wurde gestartet, daher hat der Logger die Fernübertragung beendet, um sich auf die Aufzeichnung vorzubereiten.",
+    "errorIdle": "Der Logger hat die Fernübertragung nach 10 Minuten ohne Aktivität beendet. Verbinde dich erneut, um fortzufahren.",
+    "errorBusy": "Der Logger ist beschäftigt. Verbinde dich gleich erneut.",
+    "errorNoReply": "Der Logger antwortet nicht mehr. Verbinde dich erneut.",
+    "errorDisconnected": "Der Logger hat die Verbindung getrennt. Stelle sicher, dass er im Hauptmenü ist, und verbinde dich erneut.",
+    "errorProtocol": "Der Logger hat die Verbindung nicht angenommen. Verbinde dich erneut."
   }
 }

@@ -25,6 +25,25 @@ export async function connectToDevice(
     optionalServices: [DIS_SERVICE_UUID],
   });
 
+  return openGattConnection(device, updateStatus);
+}
+
+/**
+ * Reopen the GATT link to a device the user already picked, without the
+ * browser picker. Used when the logger drops the link mid-handshake (it leaves
+ * its main menu while the user reads the PIN — plan 0031).
+ */
+export async function reconnectDevice(
+  device: BluetoothDevice,
+  onStatusChange?: (status: string) => void,
+): Promise<BleConnection> {
+  return openGattConnection(device, onStatusChange || (() => {}));
+}
+
+async function openGattConnection(
+  device: BluetoothDevice,
+  updateStatus: (status: string) => void,
+): Promise<BleConnection> {
   updateStatus("Connecting...");
   const server = await device.gatt!.connect();
 

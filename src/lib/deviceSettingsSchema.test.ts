@@ -162,6 +162,19 @@ describe("validateSettingValue — number fields", () => {
     );
   });
 
+  // The logger takes exactly four digits (plan 0031): "123" would come back
+  // SERR:BAD_VALUE, and "0042" is a valid PIN even though it reads as 42.
+  it("requires exactly four digits for bluetooth_pin, leading zeros allowed", () => {
+    expect(validateSettingValue("bluetooth_pin", "0042")).toBeNull();
+    expect(validateSettingValue("bluetooth_pin", "123")).toBe("Must be exactly 4 digits");
+  });
+
+  it("offers on/off for remote_transfer", () => {
+    expect(validateSettingValue("remote_transfer", "on")).toBeNull();
+    expect(validateSettingValue("remote_transfer", "off")).toBeNull();
+    expect(validateSettingValue("remote_transfer", "yes")).toMatch(/^Must be one of/);
+  });
+
   // Number("") is 0, so an empty box used to validate as a real zero — fine
   // for lap_detection_distance (min 1 caught it) but NOT for the fields whose
   // range includes 0: an empty bluetooth_pin or led_brightness sailed through

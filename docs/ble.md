@@ -16,7 +16,10 @@ state lives in `DeviceContext.tsx` (wraps the app tree in `Index.tsx`). Source:
 The user reaches the BLE flow through `LoggerDownload` → `LoggerPicker` (an eager,
 lightweight image chooser of supported loggers). Picking the PerchWerks Fledgling
 tile mounts `DataloggerDownload` — the lazy Web Bluetooth flow — on demand, so
-`lib/ble/*` stays out of the initial bundle while the menu still opens instantly.
+the protocol modules (file transfer, settings, tracks, firmware) stay out of the
+initial bundle while the menu still opens instantly. The eager `DeviceContext`
+carries only `lib/ble/connection.ts` (picker + GATT open); the PIN handshake
+(`auth.ts`, `pinStore.ts`) and `LoggerPinDialog` load on the first connect.
 On the native (Tauri) shell the webview has no Web Bluetooth, so the Fledgling tile
 instead mounts the lazy `DovesloggerDownload` flow (BLE over native IPC: scan →
 pick device → connect → list → download), the MyChron tile mounts the lazy
@@ -25,6 +28,21 @@ Alfano tile mounts the lazy `AlfanoDownload` flow (Bluetooth serial over native 
 — SKELETON, Rust backend TBD); on the web the MyChron and Alfano tiles open
 explanatory dialogs instead (Alfano uses Bluetooth serial / Classic Bluetooth SPP,
 which Web Bluetooth — BLE GATT only — can't reach, so it has no web path at all).
+
+**Remote transfer PIN (plan 0031).** `DeviceContext.connect` dynamic-imports
+`authenticateLogger()` (`src/lib/ble/auth.ts`) and runs it right after
+`connectToDevice()`, so every web surface gets an authenticated (or open, or
+legacy) link without knowing auth exists. It learns the PIN via `PINGET` on a
+locally started transfer, tries the stored one silently on a remote start, and
+only then opens `LoggerPinDialog` (lazy, mounted by `DeviceProvider`). Reading
+the PIN on the logger leaves its main menu, which drops the link: the dialog
+stays open, and on submit the handshake reconnects the same `BluetoothDevice`
+(`reconnectDevice`, no picker) and reruns with the typed PIN. A camera notice
+closes the dialog. Any failure disconnects and toasts a translated reason. After
+connecting, `watchLinkEndNotices` toasts the logger's own session-ending notices
+(`AUTH:CAMERA` / `ENGINE` / `IDLE`) before the disconnect tears the UI down.
+A Device-tab settings reset keeps the stored PIN (`SRESET` preserves it).
+Wire spec: [`ble-protocol.md`](ble-protocol.md) §3.3.
 
 `DataloggerDownload` talks to the device only through the generic
 `LoggerConnection` interface (`src/lib/loggers/`): `listLogs` / `downloadLog` /
