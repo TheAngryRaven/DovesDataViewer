@@ -424,6 +424,10 @@ integration / Workers Builds:
    - **Build command:** `bun run build`
    - **Deploy command:** `npx wrangler deploy` (Workers Builds default).
    - **Node version:** pinned to `20` via `.nvmrc` (matches CI).
+   - **Non-production branches:** on, with `npx wrangler versions upload`
+     (the default). Every other branch gets a preview version, and the
+     Cloudflare bot comments its Commit Preview URL and Branch Preview URL on
+     the pull request (a build starts on a push, not on opening the PR).
 3. **`wrangler.jsonc`** (repo root) configures the deploy — there's no Worker
    script, just a static-assets binding:
    - `assets.directory: "./dist"` — uploads the Vite build output.
